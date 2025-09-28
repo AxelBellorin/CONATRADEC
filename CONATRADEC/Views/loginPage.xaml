@@ -1,12 +1,75 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"             
+             xmlns:login="clr-namespace:CONATRADEC.Views"
+             xmlns:viewmodel="clr-namespace:CONATRADEC.ViewModels"
              x:Class="CONATRADEC.Views.loginPage"
              Title="Login">
-    <VerticalStackLayout>
+    <ContentPage.BindingContext>
+        <viewmodel:LoginViewModel/>
+    </ContentPage.BindingContext>
+    <VerticalStackLayout Padding="30" Spacing="30" VerticalOptions="Center">
+
+        <Image Source="{Binding urlImage}"
+               HorizontalOptions="Center"
+               HeightRequest="150"/>
         <Label 
-            Text="Welcome to .NET MAUI!"
-            VerticalOptions="Center" 
+            Text="{x:Static login:loginPage.appName}"
+            FontSize="24"
+            FontFamily="MontserratBold"
             HorizontalOptions="Center" />
+        <Label Text="Iniciar sesión"
+               HorizontalOptions="Center"
+               FontSize="18"
+               FontFamily="MontserratMedium"
+               HeightRequest="30"/> 
+
+        <Border Stroke="Transparent"
+            StrokeShape="RoundRectangle 15"
+            BackgroundColor="White"
+            Padding="10"
+            Shadow="5,5,10,Black">
+            <Entry x:Name="EntryUsuario"
+                   Text="{Binding Username}"
+                   Placeholder="Correo electronico"                   
+                   FontSize="16"
+                   FontFamily="OpenSans-Regular"
+                   Keyboard="Email"
+                   TextColor="Black"/>  
+        </Border>
+
+        <Border Stroke="Transparent"
+                StrokeShape="RoundRectangle 15"
+                BackgroundColor="White"
+                Padding="10"
+                Shadow="5,5,10,Black">
+                <Entry x:Name="EntryEmail"
+                       Placeholder="Contraseña" 
+                       Text="{Binding Password}"
+                       Keyboard="Password"
+                       BackgroundColor="Transparent"
+                       FontSize="16"   
+                       FontFamily="OpenSans-Regular"
+                       TextColor="Black"/>  
+        </Border>
+
+        <!-- Enlace de recuperar -->
+        <Label Text="¿Olvidaste tu contraseña?"
+           FontSize="14"
+           TextColor="#3B655B"
+           HorizontalOptions="Center">
+            <Label.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ForgotPasswordCommand}"/>
+            </Label.GestureRecognizers>
+        </Label>
+
+        <Button Text="Iniciar Sesión" 
+                BackgroundColor="#3B655B"
+                CornerRadius="15"
+                TextColor="#FFF5F5"
+                Command="{Binding LoginCommand}"/>
+
+        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
     </VerticalStackLayout>
 </ContentPage>
