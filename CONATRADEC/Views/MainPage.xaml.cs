@@ -6,5 +6,6 @@ public partial class MainPage : ContentPage
     {
         InitializeComponent();
         Shell.Current.FlyoutBehavior = FlyoutBehavior.Flyout;
+        BindingContext = new MainPage();
     }
 }

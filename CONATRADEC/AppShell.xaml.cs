@@ -6,7 +6,6 @@ namespace CONATRADEC
         public AppShell()
         {
             InitializeComponent();
-            BindingContext = new AppShellViewModel();
         }
     }
 

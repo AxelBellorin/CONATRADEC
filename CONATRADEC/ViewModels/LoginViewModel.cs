@@ -25,7 +25,7 @@ namespace CONATRADEC.ViewModels
         {
             apiService = new ApiService();
             LoginCommand = new Command(async () => await LoginAsync(), () => !IsBusy);
-            TogglePasswordCommand = new Command(void () => OnTogglePassword());
+            TogglePasswordCommand = new Command(() => OnTogglePassword());
         }
 
         public string Username
