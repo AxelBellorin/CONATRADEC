@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CONATRADEC.Models;
-using System.Net.Http;
+﻿using CONATRADEC.Models;
 using System.Net.Http.Json;
 
 namespace CONATRADEC.Services
@@ -23,7 +17,7 @@ namespace CONATRADEC.Services
             var response = await httpClient.PostAsJsonAsync("auth/login", request);
             if (response.IsSuccessStatusCode)
             {
-                var loginResponse =await response.Content.ReadFromJsonAsync<LoginResponse>();
+                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
                 return loginResponse;
             }
             else

@@ -3,28 +3,33 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"             
              xmlns:login="clr-namespace:CONATRADEC.Views"
              xmlns:viewmodel="clr-namespace:CONATRADEC.ViewModels"
+             BackgroundColor="White"
              x:Class="CONATRADEC.Views.loginPage"
-             Title="Login">
-    <VerticalStackLayout Padding="30" Spacing="30" VerticalOptions="Center">
+             Shell.NavBarIsVisible="False">
+    <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center" BackgroundColor="White">
 
-        <Image Source="{Binding urlImage}"
+        <Image Source="logocontradec.jpg"
                HorizontalOptions="Center"
-               HeightRequest="150"/>
+               HeightRequest="150"
+               />
         <Label 
             Text="{x:Static login:loginPage.appName}"
-            FontSize="24"
+            FontSize="40"
             FontFamily="MontserratBold"
-            HorizontalOptions="Center" />
+            HorizontalOptions="Center" 
+            TextColor="Black"/>
         <Label Text="Iniciar sesión"
                HorizontalOptions="Center"
-               FontSize="18"
+               TextColor="Black"
+               FontSize="40"
+               FontAttributes="Bold"               
                FontFamily="MontserratMedium"
-               HeightRequest="30"/> 
+               /> 
 
         <Border Stroke="Transparent"
             StrokeShape="RoundRectangle 15"
             BackgroundColor="White"
-            Padding="10"
+            Padding="5"
             Shadow="5,5,10,Black">
             <Entry x:Name="EntryUsuario"
                    Text="{Binding Username}"
@@ -38,16 +43,25 @@
         <Border Stroke="Transparent"
                 StrokeShape="RoundRectangle 15"
                 BackgroundColor="White"
-                Padding="10"
+                Padding="5"
                 Shadow="5,5,10,Black">
-                <Entry x:Name="EntryEmail"
-                       Placeholder="Contraseña" 
-                       Text="{Binding Password}"
-                       Keyboard="Password"
-                       BackgroundColor="Transparent"
-                       FontSize="16"   
-                       FontFamily="OpenSans-Regular"
-                       TextColor="Black"/>  
+                <Grid ColumnDefinitions="*, Auto">
+                    <Entry  Grid.Column="0"
+                            Placeholder="Contraseña" 
+                            x:Name="contraseña"
+                            Text="{Binding Password}"
+                            IsPassword="{Binding IsPasswordHidden}"
+                            FontSize="16"   
+                            FontFamily="OpenSans-Regular"
+                            TextColor="Black"/>
+                    <ImageButton    Grid.Column="1"
+                                    Margin="10,0,0,0"
+                                    Source="{Binding PasswordToggleIcon}"
+                                    Command="{Binding TogglePasswordCommand}"
+                                    BackgroundColor="Transparent"
+                                    WidthRequest="40"
+                                    HeightRequest="40" />
+            </Grid>
         </Border>
 
         <!-- Enlace de recuperar -->
@@ -64,9 +78,9 @@
                 BackgroundColor="#3B655B"
                 CornerRadius="15"
                 TextColor="#FFF5F5"
+                FontAttributes="Bold"
                 Command="{Binding LoginCommand}"/>
 
         <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-
     </VerticalStackLayout>
 </ContentPage>

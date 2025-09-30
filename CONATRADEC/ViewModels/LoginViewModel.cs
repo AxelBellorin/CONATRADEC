@@ -1,16 +1,8 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
-using CONATRADEC.Views;
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
-using Microsoft.Maui.Controls;
 
 
 namespace CONATRADEC.ViewModels
@@ -21,17 +13,19 @@ namespace CONATRADEC.ViewModels
         private string password;
         private string message;
         private bool isBusy;
-        private string urlimage= "loginicon";
+        private string urlimage = "logoconatradec";
+        private bool isPasswordHidden = true;
+        private string passwordToggleIcon = "eye.png";
         private LoginResponse user;
 
         private readonly ApiService apiService;
-
         public event PropertyChangedEventHandler PropertyChanged;
 
         public LoginViewModel()
         {
             apiService = new ApiService();
             LoginCommand = new Command(async () => await LoginAsync(), () => !IsBusy);
+            TogglePasswordCommand = new Command(void () => OnTogglePassword());
         }
 
         public string Username
@@ -57,6 +51,13 @@ namespace CONATRADEC.ViewModels
             set { urlimage = value; OnPropertyChanged(); }
         }
 
+        public string PasswordToggleIcon
+        {
+            get => passwordToggleIcon;
+            set { passwordToggleIcon = value; OnPropertyChanged(); }
+        }
+
+
         public bool IsBusy
         {
             get => isBusy;
@@ -68,6 +69,17 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public bool IsPasswordHidden
+        {
+            get => isPasswordHidden;
+            set
+            {
+                isPasswordHidden = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ICommand TogglePasswordCommand { get; }
         public LoginResponse User
         {
             get => user;
@@ -90,8 +102,6 @@ namespace CONATRADEC.ViewModels
                     ExpiresInMins = 60
                 };
 
-                
-
                 var resp = await apiService.LoginAsync(req);
 
                 User = resp;
@@ -107,8 +117,8 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                Message = $"Error: {ex.Message}";
-                await Application.Current.MainPage.DisplayAlert("Título", Message, "OK");
+                //Message = $"Error: {ex.Message}";
+                await Application.Current.MainPage.DisplayAlert("Credenciales incorrecta", "Correo o contraseña incorrecta, favor revise e intente nuevamente", "OK");
             }
             finally
             {
@@ -116,6 +126,13 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public ICommand OnTogglePasswordClickedCommand { get; }
+
+        public void OnTogglePassword()
+        {
+            IsPasswordHidden = !IsPasswordHidden;
+            PasswordToggleIcon = IsPasswordHidden ? "eye.png" : "eyeoff.png";
+        }
         private void OnPropertyChanged([CallerMemberName] string name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
