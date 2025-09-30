@@ -3,12 +3,46 @@
     x:Class="CONATRADEC.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:CONATRADEC.Views"
-    Title="CONATRADEC">
+    xmlns:views="clr-namespace:CONATRADEC.Views"
+    Title="CONATRADEC"
+    FlyoutHeaderBehavior="Fixed"
+    Shell.TitleColor="White"
+    Shell.DisabledColor="Gray"
+    Shell.FlyoutBackgroundColor="LightBlue">
 
-    <ShellContent
-        Title="Login"
-        ContentTemplate="{DataTemplate local:loginPage}"
-        Route="MainPage" />
+    <Shell.FlyoutHeader>
+        <VerticalStackLayout BackgroundColor="DarkBlue" Padding="20">
+            <Image Source="loginicon.png" HeightRequest="120" WidthRequest="150"/>
+                <Label Text="Usuario: Axel" TextColor="White" FontSize="16"/>
+            </VerticalStackLayout>
+    </Shell.FlyoutHeader>
 
+    <ShellContent Title="Login"  Route="LoginPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:loginPage}"/>
+    <ShellContent Title="Login"  Route="MainPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:MainPage}"/>
+    <!-- Opción principal -->
+    <FlyoutItem Title="Inicio" Icon="iconhome.png">
+        <ShellContent ContentTemplate="{DataTemplate views:MainPage}" />
+    </FlyoutItem>
+
+    <!-- Menú padre -->
+    <FlyoutItem Title="Configuraciones" Icon="iconhome.png">
+        <ShellContent Icon="iconhome.png" ContentTemplate="{DataTemplate views:MainPage}" />
+    </FlyoutItem>
+
+    <!-- Submenús -->
+    <MenuItem Text="Cambiar contraseña" 
+              Command="{Binding NavigateCommand}" 
+              CommandParameter="//ChangePasswordPage" />
+
+    <MenuItem Text="Notificaciones" 
+              Command="{Binding NavigateCommand}" 
+              CommandParameter="//NotificacionesPage" />
+
+    <Shell.FlyoutFooter>
+        <StackLayout Padding="10">
+            <Label Text="Configuraciones" FontAttributes="Bold" />
+            <Button Text="Cambiar contraseña"
+                Command="{Binding GoToChangePasswordCommand}" />
+        </StackLayout>
+    </Shell.FlyoutFooter>
 </Shell>

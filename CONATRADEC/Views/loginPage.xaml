@@ -5,9 +5,6 @@
              xmlns:viewmodel="clr-namespace:CONATRADEC.ViewModels"
              x:Class="CONATRADEC.Views.loginPage"
              Title="Login">
-    <ContentPage.BindingContext>
-        <viewmodel:LoginViewModel/>
-    </ContentPage.BindingContext>
     <VerticalStackLayout Padding="30" Spacing="30" VerticalOptions="Center">
 
         <Image Source="{Binding urlImage}"
@@ -33,7 +30,7 @@
                    Text="{Binding Username}"
                    Placeholder="Correo electronico"                   
                    FontSize="16"
-                   FontFamily="OpenSans-Regular"
+                   FontFamily="OpenSansRegular"
                    Keyboard="Email"
                    TextColor="Black"/>  
         </Border>

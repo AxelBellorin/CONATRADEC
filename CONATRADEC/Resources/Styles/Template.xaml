@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    <ControlTemplate x:Key="HeaderFooterTemplate">
+        <Grid RowDefinitions="* , Auto">            
+            <!-- Aquí va el contenido de cada página -->
+            <ContentPresenter BackgroundColor="GhostWhite" Grid.Row="0"/>
+            
+            <ScrollView Orientation="Horizontal" Grid.Row="1">
+                <HorizontalStackLayout Spacing="10" BackgroundColor="White" Padding="20">
+                    <VerticalStackLayout Grid.Column="0" Spacing="3">
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconlibro.png"/>
+                        <Label HorizontalOptions="Center" Text="Inicio" FontSize="16" FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout  Spacing="3">    
+                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
+                        <Label HorizontalOptions="Center" Text="Resultados" FontSize="16" FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout  Spacing="3">
+                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
+                        <Label HorizontalOptions="Center" Text="Configuracion" FontSize="16" FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout  Spacing="3">
+                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
+                        <Label HorizontalOptions="Center" Text="Prueba" FontSize="16" FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout  Spacing="3">
+                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
+                        <Label HorizontalOptions="Center" Text="Otra" FontSize="16" FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout  Spacing="3">
+                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
+                        <Label HorizontalOptions="Center" Text="Mas" FontSize="16" FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout  Spacing="3">
+                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
+                        <Label HorizontalOptions="Center" Text="Asi es" FontSize="16" FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout  Spacing="3">
+                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
+                        <Label HorizontalOptions="Center" Text="Falta" FontSize="16" FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+            </ScrollView>
+        </Grid>
+    </ControlTemplate>
+</ResourceDictionary>

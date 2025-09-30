@@ -90,14 +90,20 @@ namespace CONATRADEC.ViewModels
                     ExpiresInMins = 60
                 };
 
+                
+
                 var resp = await apiService.LoginAsync(req);
 
                 User = resp;
                 Message = $"Bienvenido {resp.FirstName} {resp.LastName}. Token: {resp.AccessToken}. URL: {resp.Image}";
 
-                await Application.Current.MainPage.DisplayAlert("Título", Message, "OK");
                 urlImage = resp.Image;
+
+
+                Preferences.Default.Set("user_image_path", urlImage);
                 // Aquí podrías navegar a otra página, guardar token, etc.
+
+                await Shell.Current.GoToAsync("//MainPage");
             }
             catch (Exception ex)
             {

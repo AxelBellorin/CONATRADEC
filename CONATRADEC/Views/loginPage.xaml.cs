@@ -8,5 +8,6 @@ public partial class loginPage : ContentPage
 	{
 		InitializeComponent();
 		BindingContext = new LoginViewModel();
-	}
+        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+    }
 }
