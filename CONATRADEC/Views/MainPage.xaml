@@ -18,6 +18,7 @@
                         BackgroundColor="#1D6B42"
                         TextColor="White"
                         FontSize="18"
+                        Command="{Binding MainPageButtonCommand}"
                         CornerRadius="12"
                         HeightRequest="50"
                         HorizontalOptions="Fill"

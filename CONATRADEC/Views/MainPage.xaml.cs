@@ -1,11 +1,12 @@
 namespace CONATRADEC.Views;
+using CONATRADEC.ViewModels;
 
 public partial class MainPage : ContentPage
 {
     public MainPage()
     {
         InitializeComponent();
-        Shell.Current.FlyoutBehavior = FlyoutBehavior.Flyout;
-        BindingContext = new MainPage();
+        BindingContext = new MainPageViewModel();
+        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
     }
 }

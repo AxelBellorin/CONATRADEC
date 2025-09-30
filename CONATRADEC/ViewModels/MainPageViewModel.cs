@@ -13,16 +13,15 @@ namespace CONATRADEC.ViewModels
     
     class MainPageViewModel: INotifyPropertyChanged
     {
+        public ICommand MainPageButtonCommand { get; }
         public MainPageViewModel()
         {
-            MainPageButtonCommand = new Command(()=> GoToMainPageButtonCommand());
-        }
+            MainPageButtonCommand = new Command(async ()=> await GoToMainPageButtonCommand());
+        }      
 
-        public ICommand MainPageButtonCommand { get; }
-
-        public void GoToMainPageButtonCommand()
+        private async Task GoToMainPageButtonCommand()
         {
-            Shell.Current.GoToAsync("//LoginPage");
+            await  Shell.Current.GoToAsync("//LoginPage");
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

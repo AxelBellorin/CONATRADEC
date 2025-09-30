@@ -10,39 +10,7 @@
     Shell.DisabledColor="Gray"
     Shell.FlyoutBackgroundColor="LightBlue">
 
-    <Shell.FlyoutHeader>
-        <VerticalStackLayout BackgroundColor="DarkBlue" Padding="20">
-            <Image Source="loginicon.png" HeightRequest="120" WidthRequest="150"/>
-                <Label Text="Usuario: Axel" TextColor="White" FontSize="16"/>
-            </VerticalStackLayout>
-    </Shell.FlyoutHeader>
-
     <ShellContent Title="Login"  Route="LoginPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:loginPage}"/>
-    <ShellContent Title="Login"  Route="MainPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:MainPage}"/>
-    <!-- Opción principal -->
-    <FlyoutItem Title="Inicio" Icon="iconhome.png">
-        <ShellContent ContentTemplate="{DataTemplate views:MainPage}" />
-    </FlyoutItem>
+    <ShellContent Title="MainPage"  Route="MainPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:MainPage}"/>
 
-    <!-- Menú padre -->
-    <FlyoutItem Title="Configuraciones" Icon="iconhome.png">
-        <ShellContent Icon="iconhome.png" ContentTemplate="{DataTemplate views:MainPage}" />
-    </FlyoutItem>
-
-    <!-- Submenús -->
-    <MenuItem Text="Cambiar contraseña" 
-              Command="{Binding NavigateCommand}" 
-              CommandParameter="//ChangePasswordPage" />
-
-    <MenuItem Text="Notificaciones" 
-              Command="{Binding NavigateCommand}" 
-              CommandParameter="//NotificacionesPage" />
-
-    <Shell.FlyoutFooter>
-        <StackLayout Padding="10">
-            <Label Text="Configuraciones" FontAttributes="Bold" />
-            <Button Text="Cambiar contraseña"
-                Command="{Binding GoToChangePasswordCommand}" />
-        </StackLayout>
-    </Shell.FlyoutFooter>
 </Shell>
