@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace CONATRADEC.ViewModels
 {
-    public class LoginViewModel : INotifyPropertyChanged
+    public class LoginViewModel : INotifyPropertyChanged    
     {
         private string username;
         private string password;

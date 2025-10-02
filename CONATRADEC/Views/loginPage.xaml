@@ -66,7 +66,7 @@
 
         <!-- Enlace de recuperar -->
         <Label Text="¿Olvidaste tu contraseña?"
-           FontSize="14"
+           FontSize="16"
            TextColor="#3B655B"
            HorizontalOptions="Center">
             <Label.GestureRecognizers>
@@ -76,9 +76,11 @@
 
         <Button Text="Iniciar Sesión" 
                 BackgroundColor="#3B655B"
+                FontSize="16"
                 CornerRadius="15"
                 TextColor="#FFF5F5"
                 FontAttributes="Bold"
+                Padding="15"
                 Command="{Binding LoginCommand}"/>
 
         <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
