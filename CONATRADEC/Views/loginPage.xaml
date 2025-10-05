@@ -6,83 +6,66 @@
              BackgroundColor="White"
              x:Class="CONATRADEC.Views.loginPage"
              Shell.NavBarIsVisible="False">
-    <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center" BackgroundColor="White">
+    <VerticalStackLayout Style="{StaticResource VerticalStackLayouttyle}">
 
         <Image Source="logocontradec.jpg"
                HorizontalOptions="Center"
                HeightRequest="150"
                />
         <Label 
-            Text="{x:Static login:loginPage.appName}"
+            Text="ConatraCafé Soil"
             FontSize="40"
             FontFamily="MontserratBold"
             HorizontalOptions="Center" 
-            TextColor="Black"/>
+            TextColor="{StaticResource color_Negro}"/>
+        
         <Label Text="Iniciar sesión"
                HorizontalOptions="Center"
-               TextColor="Black"
+               TextColor="{StaticResource color_Negro}"
                FontSize="40"
                FontAttributes="Bold"               
                FontFamily="MontserratMedium"
                /> 
 
-        <Border Stroke="Transparent"
-            StrokeShape="RoundRectangle 15"
-            BackgroundColor="White"
-            Padding="5"
-            Shadow="5,5,10,Black">
-            <Entry x:Name="EntryUsuario"
+        <Border Style="{StaticResource BorderStyle}">
+            <Entry Style="{StaticResource EntryStyle}"
                    Text="{Binding Username}"
                    Placeholder="Correo electronico"                   
-                   FontSize="16"
-                   FontFamily="OpenSansRegular"
-                   Keyboard="Email"
-                   TextColor="Black"/>  
+                   Keyboard="Email"/>  
         </Border>
 
-        <Border Stroke="Transparent"
-                StrokeShape="RoundRectangle 15"
-                BackgroundColor="White"
-                Padding="5"
-                Shadow="5,5,10,Black">
+        <Border Style="{StaticResource BorderStyle}">
                 <Grid ColumnDefinitions="*, Auto">
                     <Entry  Grid.Column="0"
+                            Style="{StaticResource EntryStyle}"
                             Placeholder="Contraseña" 
-                            x:Name="contraseña"
                             Text="{Binding Password}"
-                            IsPassword="{Binding IsPasswordHidden}"
-                            FontSize="16"   
-                            FontFamily="OpenSans-Regular"
-                            TextColor="Black"/>
+                            IsPassword="{Binding IsPasswordHidden}"/>
                     <ImageButton    Grid.Column="1"
                                     Margin="10,0,0,0"
                                     Source="{Binding PasswordToggleIcon}"
                                     Command="{Binding TogglePasswordCommand}"
                                     BackgroundColor="Transparent"
-                                    WidthRequest="40"
-                                    HeightRequest="40" />
+                                    WidthRequest="30"
+                                    HeightRequest="30" />
             </Grid>
         </Border>
 
         <!-- Enlace de recuperar -->
         <Label Text="¿Olvidaste tu contraseña?"
            FontSize="16"
-           TextColor="#3B655B"
+           TextColor="{StaticResource  color_Verde}"
            HorizontalOptions="Center">
             <Label.GestureRecognizers>
                 <TapGestureRecognizer Command="{Binding ForgotPasswordCommand}"/>
             </Label.GestureRecognizers>
         </Label>
 
-        <Button Text="Iniciar Sesión" 
-                BackgroundColor="#3B655B"
-                FontSize="16"
-                CornerRadius="15"
-                TextColor="#FFF5F5"
-                FontAttributes="Bold"
-                Padding="15"
+        <Button Style="{StaticResource ButtonStyle}"
+                Text="Iniciar Sesión" 
                 Command="{Binding LoginCommand}"/>
 
         <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+        
     </VerticalStackLayout>
 </ContentPage>

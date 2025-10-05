@@ -9,7 +9,14 @@ namespace CONATRADEC.Services
 
         public ApiService()
         {
-            httpClient = new HttpClient { BaseAddress = new Uri("https://dummyjson.com/") };
+            try{
+                httpClient = new HttpClient { BaseAddress = new Uri("https://dummyjson.com/") };
+            }
+            catch
+            {
+               
+            }
+            
         }
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)

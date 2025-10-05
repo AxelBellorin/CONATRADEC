@@ -5,7 +5,7 @@
              Shell.NavBarIsVisible="False">
     <ContentView ControlTemplate="{StaticResource HeaderFooterTemplate}">
         <ScrollView>
-            <VerticalStackLayout Padding="20" Spacing="20">
+            <VerticalStackLayout Style="{StaticResource VerticalStackLayouttyle}">
 
                 <!-- Encabezado -->
                 <Label Text="Inicio"

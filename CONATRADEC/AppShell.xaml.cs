@@ -5,7 +5,7 @@ namespace CONATRADEC
     {
         public AppShell()
         {
-            InitializeComponent();
+            InitializeComponent();  
         }
     }
 

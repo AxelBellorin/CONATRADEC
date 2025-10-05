@@ -4,19 +4,28 @@
     
     <ControlTemplate x:Key="HeaderFooterTemplate">
         <Grid RowDefinitions="* , Auto">            
-            <!-- Aquí va el contenido de cada página -->
-            <ContentPresenter BackgroundColor="GhostWhite" Grid.Row="0"/>
             
+            <!-- #region contenido de la pagina-->
+            <ContentPresenter BackgroundColor="GhostWhite" Grid.Row="0"/>
+            <!--#endregion-->
+            
+            <!--#region Pie de pagina-->
+            <!--Etiqueta de scroll para deslizar los botones-->
             <ScrollView Orientation="Horizontal" Grid.Row="1">
+                <!--Etiqueta para que los botones se alineen horizontalmente-->
                 <HorizontalStackLayout Spacing="10" BackgroundColor="White" Padding="20">
-                    <VerticalStackLayout Grid.Column="0" Spacing="3">                                            
-                        <Image HeightRequest="30" WidthRequest="30"  Source="iconlibro.png"/>
-                        <Label  HorizontalOptions="Center" Text="Inicio" FontSize="16" FontFamily="MontserratMedium">
-                            <Label.GestureRecognizers>
+                    <!--Etiqueta para crear los botones-->
+                    <VerticalStackLayout Grid.Column="0" Spacing="3">
+                        <!--Imagen del boton-->
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconlibro.png">
+                            <Image.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding MainPageButtonCommand}"/>
-                            </Label.GestureRecognizers>
-                        </Label>
+                            </Image.GestureRecognizers>
+                        </Image>
+                        <!--Texto de la opción-->
+                        <Label  HorizontalOptions="Center" Text="Inicio" FontSize="16" FontFamily="MontserratMedium"/>
                     </VerticalStackLayout>
+                    
                     <VerticalStackLayout  Spacing="3">    
                         <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
                         <Label HorizontalOptions="Center" Text="Resultados" FontSize="16" FontFamily="MontserratMedium"/>
@@ -47,6 +56,7 @@
                     </VerticalStackLayout>
                 </HorizontalStackLayout>
             </ScrollView>
+           <!--#endregion-->
         </Grid>
     </ControlTemplate>
 </ResourceDictionary>
