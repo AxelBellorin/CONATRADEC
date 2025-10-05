@@ -5,7 +5,7 @@
              BackgroundColor="White"
              x:Class="CONATRADEC.Views.loginPage"
              Shell.NavBarIsVisible="False">
-    <VerticalStackLayout Style="{StaticResource VerticalStackLayouttyle}">
+    <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
 
         <Image Source="logocontradec.jpg"
                HorizontalOptions="Center"

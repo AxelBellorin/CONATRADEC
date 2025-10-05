@@ -8,7 +8,7 @@
     <Color x:Key="color_Verde">#3B655B</Color>
     <Color x:Key="color_Cafe">#9B552C</Color>
     <Color x:Key="color_Amarillo">#F2C94C</Color>
-    <Color x:Key="color_Blanco">#FFF5F5</Color>
+    <Color x:Key="color_Blanco">#FFF5FF</Color>
     <Color x:Key="color_Negro">#000000</Color>
     <!--#endregion-->
     

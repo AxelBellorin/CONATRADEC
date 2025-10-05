@@ -41,7 +41,7 @@
     </Style>
 
     <!-- Estilo para VerticalStackLayout-->
-    <Style TargetType="VerticalStackLayout" x:Key="VerticalStackLayouttyle">
+    <Style TargetType="VerticalStackLayout" x:Key="VerticalStackLayoutStyle">
         <Setter Property="Padding" Value="30"/>
         <Setter Property="Spacing" Value="20"/>
         <Setter Property="BackgroundColor" Value="{StaticResource color_Blanco}"/>

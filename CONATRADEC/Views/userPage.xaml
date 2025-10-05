@@ -3,79 +3,65 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.userPage"
              Shell.NavBarIsVisible="False">
-    <VerticalStackLayout Style="{StaticResource VerticalStackLayouttyle}">
+    <ContentView ControlTemplate="{StaticResource HeaderFooterTemplate}">   
+        <VerticalStackLayout Style="{StaticResource VerticalStackLayouttyle}">
 
-        <!-- Header con título y botón de agregar -->
-        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Start">
-            <Label Text="Users"
-                       FontSize="24"
-                       FontAttributes="Bold"
-                       VerticalOptions="Start"/>
-            <Button Text="+"
-                        FontSize="50"
-                        BackgroundColor="LightBlue"
-                        TextColor="White"
-                        WidthRequest="40"
-                        HeightRequest="40"
-                        CornerRadius="20"
-                        Clicked="OnAddUserClicked"
-                        Grid.Column="1"/>
-        </Grid>
+            <!-- Header con título y botón de agregar -->
+            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Start">
+                <Label Text="Users"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           VerticalOptions="Start"/>
+                <Button Text="+"
+                            FontSize="50"
+                            BackgroundColor="LightBlue"
+                            TextColor="White"
+                            WidthRequest="40"
+                            HeightRequest="40"
+                            CornerRadius="20"
+                            Grid.Column="1"/>
+            </Grid>
 
-        <!-- Lista de usuarios -->
-        <CollectionView x:Name="UsersCollection"
-                            ItemsSource="{Binding Users}"
+            <!-- Lista de usuarios -->
+            <CollectionView ItemsSource="{Binding Users}"
                             SelectionMode="None">
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <SwipeView>
-                        <!-- Swipe izquierdo con botones -->
-                        <SwipeView.RightItems>
-                            <SwipeItems Mode="Reveal">
-                                <SwipeItem Text="Editar"
-                                               BackgroundColor="LightBlue"
-                                               IconImageSource="edit_icon.png"
-                                               Invoked="OnEditUserInvoked"
-                                               CommandParameter="{Binding .}" />
-                                <SwipeItem Text="Eliminar"
-                                               BackgroundColor="Red"
-                                               IconImageSource="delete_icon.png"
-                                               Invoked="OnDeleteUserInvoked"
-                                               CommandParameter="{Binding .}" />
-                            </SwipeItems>
-                        </SwipeView.RightItems>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems Mode="Reveal">
+                                    <SwipeItem Text="Editar"
+                                               BackgroundColor="LightBlue" />
+                                    <SwipeItem Text="Eliminar"
+                                               BackgroundColor="Red"/>
+                                </SwipeItems>
+                            </SwipeView.RightItems>
 
-                        <!-- Contenido del item -->
-                        <Grid ColumnDefinitions="60,*,Auto"
-                                  Padding="10"
-                                  VerticalOptions="Center">
-
-                            <!-- Avatar -->
-                            <Image Source="{Binding Avatar}"
-                                       WidthRequest="50"
-                                       HeightRequest="50"
+                            <!-- Contenido del usuario -->
+                            <Grid Padding="10" ColumnDefinitions="Auto,*,Auto">
+                                <Image Source="{Binding Avatar}"
+                                       WidthRequest="40"
+                                       HeightRequest="40"
                                        Aspect="AspectFill"
                                        VerticalOptions="Center"
                                        HorizontalOptions="Center"
-                                       Clip="EllipseGeometry Center=25,25 RadiusX=25 RadiusY=25" />
-
-                            <!-- Nombre y correo -->
-                            <VerticalStackLayout Grid.Column="1"
-                                                     Spacing="2"
-                                                     VerticalOptions="Center">
-                                <Label Text="{Binding Name}"
-                                           FontAttributes="Bold"
+                                       Margin="0,0,10,0"/>
+                                <StackLayout Grid.Column="1"
+                                             VerticalOptions="Center">
+                                    <Label Text="{Binding Name}" 
+                                           FontAttributes="Bold" 
                                            FontSize="16"/>
-                                <Label Text="{Binding Email}"
+                                    <Label Text="{Binding Email}" 
                                            FontSize="14"
                                            TextColor="Gray"/>
-                            </VerticalStackLayout>
-                        </Grid>
-                    </SwipeView>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+                                </StackLayout>
+                            </Grid>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
         
-    </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ContentView>
 </ContentPage>
