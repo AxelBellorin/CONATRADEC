@@ -91,6 +91,7 @@ namespace CONATRADEC.ViewModels
         public async Task LoginAsync()
         {
             if (IsBusy) return;
+
             IsBusy = true;
             Message = string.Empty;
             try

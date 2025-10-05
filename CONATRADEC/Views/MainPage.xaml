@@ -25,10 +25,7 @@
                         />
 
                 <!-- Último análisis -->
-                <Frame BackgroundColor="White"
-                       CornerRadius="12"
-                       HasShadow="True"
-                       Padding="15">
+                <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Último análisis"
                                FontAttributes="Bold"
@@ -61,16 +58,9 @@
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
 
-                <Border Stroke="LightGray"
-                        StrokeThickness="1"
-                        BackgroundColor="White"
-                        StrokeShape="RoundRectangle 15"
-                        Shadow="2,2,6,Black"
-                        Padding="20"
-                        Margin="0">
-
+                <Border Style="{StaticResource BorderStyle}">
                     <!-- Contenido -->
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Último análisis"
@@ -106,10 +96,7 @@
 
 
                 <!-- Otro análisis -->
-                <Frame BackgroundColor="White"
-                       CornerRadius="12"
-                       HasShadow="True"
-                       Padding="15">
+                <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="8 mar, 2024"
                                FontSize="14"
@@ -138,7 +125,8 @@
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
-                </Frame>
+                </Border>
+                
             </VerticalStackLayout>
         </ScrollView>
     </ContentView>

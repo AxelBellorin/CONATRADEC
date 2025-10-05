@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.userPage"
+             Shell.NavBarIsVisible="False">
+    <VerticalStackLayout Style="{StaticResource VerticalStackLayouttyle}">
+
+        <!-- Header con título y botón de agregar -->
+        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Start">
+            <Label Text="Users"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       VerticalOptions="Start"/>
+            <Button Text="+"
+                        FontSize="50"
+                        BackgroundColor="LightBlue"
+                        TextColor="White"
+                        WidthRequest="40"
+                        HeightRequest="40"
+                        CornerRadius="20"
+                        Clicked="OnAddUserClicked"
+                        Grid.Column="1"/>
+        </Grid>
+
+        <!-- Lista de usuarios -->
+        <CollectionView x:Name="UsersCollection"
+                            ItemsSource="{Binding Users}"
+                            SelectionMode="None">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <SwipeView>
+                        <!-- Swipe izquierdo con botones -->
+                        <SwipeView.RightItems>
+                            <SwipeItems Mode="Reveal">
+                                <SwipeItem Text="Editar"
+                                               BackgroundColor="LightBlue"
+                                               IconImageSource="edit_icon.png"
+                                               Invoked="OnEditUserInvoked"
+                                               CommandParameter="{Binding .}" />
+                                <SwipeItem Text="Eliminar"
+                                               BackgroundColor="Red"
+                                               IconImageSource="delete_icon.png"
+                                               Invoked="OnDeleteUserInvoked"
+                                               CommandParameter="{Binding .}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+
+                        <!-- Contenido del item -->
+                        <Grid ColumnDefinitions="60,*,Auto"
+                                  Padding="10"
+                                  VerticalOptions="Center">
+
+                            <!-- Avatar -->
+                            <Image Source="{Binding Avatar}"
+                                       WidthRequest="50"
+                                       HeightRequest="50"
+                                       Aspect="AspectFill"
+                                       VerticalOptions="Center"
+                                       HorizontalOptions="Center"
+                                       Clip="EllipseGeometry Center=25,25 RadiusX=25 RadiusY=25" />
+
+                            <!-- Nombre y correo -->
+                            <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="2"
+                                                     VerticalOptions="Center">
+                                <Label Text="{Binding Name}"
+                                           FontAttributes="Bold"
+                                           FontSize="16"/>
+                                <Label Text="{Binding Email}"
+                                           FontSize="14"
+                                           TextColor="Gray"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        
+    </VerticalStackLayout>
+</ContentPage>
