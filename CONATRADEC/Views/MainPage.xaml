@@ -15,7 +15,7 @@
 
                 <!-- Botón Nuevo Análisis -->
                 <Button Text="Nuevo Análisis"
-                        BackgroundColor="#1D6B42"
+                        BackgroundColor="{StaticResource color_Verde}"
                         TextColor="White"
                         FontSize="18"
                         Command="{Binding MainPageButtonCommand}"
@@ -126,7 +126,7 @@
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
-                
+
             </VerticalStackLayout>
         </ScrollView>
     </ContentView>

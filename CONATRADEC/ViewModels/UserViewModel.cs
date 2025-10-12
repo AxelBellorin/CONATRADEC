@@ -13,51 +13,60 @@ using System.Windows.Input;
 
 namespace CONATRADEC.ViewModels
 {
-    internal class UserViewModel: INotifyPropertyChanged
+    public class UserViewModel : GlobalService
     {
-        public event PropertyChangedEventHandler PropertyChanged;
+        private ObservableCollection<User> usersList = new ObservableCollection<User>();
+        private readonly UserApiService userApiService;
 
-        private ObservableCollection<User> _users;
-
-        public ObservableCollection<User> Users
-        {
-            get => _users;
-            set
-            {
-                _users = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public ICommand AddUserCommand { get; }
-        public ICommand EditUserCommand { get; }
-        public ICommand DeleteUserCommand { get; }
+        public Command AddUserCommand { get; }
+        public Command EditUserCommand { get; }
+        public Command DeleteUserCommand { get; }
+        public ObservableCollection<User> UsersList { get => usersList; set { usersList = value; OnPropertyChanged(); } }
 
         public UserViewModel()
         {
-            // Datos de prueba
-            Users = new ObservableCollection<User>
-            {
-                new User { Name = "Alice Johnson", Email = "alice.johnson@example.com", Avatar="alice.png" },
-                new User { Name = "Bob Smith", Email = "bob.smith@example.com", Avatar="bob.png" },
-                new User { Name = "Carol Williams", Email = "carol.williams@example.com", Avatar="carol.png" },
-                new User { Name = "David Brown", Email = "david.brown@example.com", Avatar="david.png" }
-            };
 
-            AddUserCommand = new Command(OnAddUser);
-            EditUserCommand = new Command<User>(OnEditUser);
-            DeleteUserCommand = new Command<User>(OnDeleteUser);
+            try
+            {
+                userApiService = new UserApiService();
+                AddUserCommand = new Command(async () => await OnAddUser());
+                EditUserCommand = new Command<User>(OnEditUser);
+                DeleteUserCommand = new Command<User>(OnDeleteUser);
+            }
+            catch (Exception ex)
+            {
+                Application.Current.MainPage.DisplayAlert("Error", $"No se pudo conectar al servidor en el viewmodel {ex}", "OK");
+            }
         }
 
-        private async void OnAddUser()
+        public async Task LoadUsers()
         {
-            await App.Current.MainPage.DisplayAlert("Agregar", "Abrir formulario para agregar usuario.", "OK");
+            var usersresponse = await userApiService.GetUsersAsync();
+
+            if (usersresponse.Users.Count() != 0)
+            {
+                UsersList.Clear();
+                foreach (var user in usersresponse.Users)
+                {
+                    usersList.Add(user);
+                }
+            }
+            else
+            {
+                await App.Current.MainPage.DisplayAlert("Información", "No se encontraron usuarios.", "OK");
+            }
+        }
+
+        private async Task OnAddUser()
+        {
+            //await App.Current.MainPage.DisplayAlert("Agregar", "Abrir formulario para agregar usuario.", "OK");
+            await GoToUserFormPage();
         }
 
         private async void OnEditUser(User user)
         {
             if (user == null) return;
-            await App.Current.MainPage.DisplayAlert("Editar", $"Editar usuario: {user.Name}", "OK");
+            await App.Current.MainPage.DisplayAlert("Editar", $"Editar usuario: {user.FirstName}", "OK");
         }
 
         private async void OnDeleteUser(User user)
@@ -65,25 +74,14 @@ namespace CONATRADEC.ViewModels
             if (user == null) return;
 
             bool confirm = await App.Current.MainPage.DisplayAlert("Eliminar",
-                $"¿Seguro que deseas eliminar a {user.Name}?", "Sí", "No");
+                $"¿Seguro que deseas eliminar a {user.FirstName + " " + user.LastName}?", "Sí", "No");
 
             if (confirm)
             {
-                Users.Remove(user);
+                UsersList.Remove(user);
             }
         }
 
-        private async Task GoToMainPageButtonCommand()
-        {
-            await Shell.Current.GoToAsync("//LoginPage");
-        }
-
-        private async Task GoToUserPageButtonCommand()
-        {
-            await Shell.Current.GoToAsync("//UserPage");
-        }
-
-        private void OnPropertyChanged([CallerMemberName] string name = null) =>
-    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        private async Task GoToUserFormPage() => await Shell.Current.GoToAsync("//UserFormPage");
     }
 }

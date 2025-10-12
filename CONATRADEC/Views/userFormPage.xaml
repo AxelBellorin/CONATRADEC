@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.userFormPage"
+             Title="userFormPage"
+             Shell.NavBarIsVisible="False">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12">
+
+            <Label Text="Formulario de Usuario"
+                   FontSize="20" FontAttributes="Bold" />
+
+            <Entry Text="{Binding FirstName}" Placeholder="Nombre" IsEnabled="{Binding IsEditable}" />
+            <Entry Text="{Binding LastName}" Placeholder="Apellido" IsEnabled="{Binding IsEditable}" />
+            <Entry Text="{Binding Email}" Placeholder="Correo" Keyboard="Email" IsEnabled="{Binding IsEditable}" />
+            <Entry Text="{Binding Phone}" Placeholder="Teléfono" IsEnabled="{Binding IsEditable}" />
+            <Entry Text="{Binding Password}" Placeholder="Contraseña" IsPassword="True" IsEnabled="{Binding IsEditable}" />
+
+            <Button Text="{Binding SaveButtonText}"
+                    Command="{Binding SaveCommand}"
+                    IsEnabled="{Binding CanSave}" />
+
+            <Button Text="Cancelar"
+                    Command="{Binding CancelCommand}"/>
+
+            <Label Text="{Binding Message}" TextColor="Green" IsVisible="{Binding Message, Converter={StaticResource NullToBoolConverter}}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

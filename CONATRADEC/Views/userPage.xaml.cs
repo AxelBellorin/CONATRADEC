@@ -4,9 +4,9 @@ namespace CONATRADEC.Views;
 public partial class userPage : ContentPage
 {
 	public userPage()
-	{
-		InitializeComponent();
-        BindingContext = new UserViewModel();
-        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+	{		       
+            BindingContext = new UserViewModel();
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+            InitializeComponent();
     }
 }

@@ -12,6 +12,6 @@
 
     <ShellContent Title="Login"  Route="LoginPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:loginPage}"/>
     <ShellContent Title="MainPage"  Route="MainPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:MainPage}"/>
-    <ShellContent Title="MainPage"  Route="UserPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:userPage}"/>
-
+    <ShellContent Title="UserPage"  Route="UserPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:userPage}"/>
+    <ShellContent Title="UserFormPage"  Route="UserFormPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:userFormPage}"/>
 </Shell>

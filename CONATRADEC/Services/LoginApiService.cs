@@ -3,20 +3,13 @@ using System.Net.Http.Json;
 
 namespace CONATRADEC.Services
 {
-    class ApiService
+    class LoginApiService
     {
         private readonly HttpClient httpClient;
 
-        public ApiService()
+        public LoginApiService()
         {
-            try{
-                httpClient = new HttpClient { BaseAddress = new Uri("https://dummyjson.com/") };
-            }
-            catch
-            {
-               
-            }
-            
+            httpClient = new HttpClient { BaseAddress = new Uri("https://dummyjson.com/") };
         }
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request)

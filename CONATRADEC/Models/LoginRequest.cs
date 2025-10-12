@@ -1,6 +1,6 @@
 ﻿namespace CONATRADEC.Models
 {
-    class LoginRequest
+    public class LoginRequest
     {
         private string? username;
         private string? password;

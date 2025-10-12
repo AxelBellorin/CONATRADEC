@@ -2,38 +2,39 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"             
              xmlns:login="clr-namespace:CONATRADEC.Views"
-             BackgroundColor="White"
              x:Class="CONATRADEC.Views.loginPage"
-             Shell.NavBarIsVisible="False">
-    <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
-
-        <Image Source="logocontradec.jpg"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{StaticResource color_Blanco}">
+    <ScrollView>
+        <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
+            <ImageButton Source="logocontradec.jpg"
                HorizontalOptions="Center"
                HeightRequest="150"
+               WidthRequest="150"
                />
-        <Label 
+            <Label 
             Text="ConatraCafé Soil"
             FontSize="40"
             FontFamily="MontserratBold"
             HorizontalOptions="Center" 
             TextColor="{StaticResource color_Negro}"/>
-        
-        <Label Text="Iniciar sesión"
+
+            <Label Text="Iniciar sesión"
                HorizontalOptions="Center"
                TextColor="{StaticResource color_Negro}"
                FontSize="40"
                FontAttributes="Bold"               
                FontFamily="MontserratMedium"
-               /> 
+               />
 
-        <Border Style="{StaticResource BorderStyle}">
-            <Entry Style="{StaticResource EntryStyle}"
+            <Border Style="{StaticResource BorderStyle}">
+                <Entry Style="{StaticResource EntryStyle}"
                    Text="{Binding Username}"
                    Placeholder="Correo electronico"                   
-                   Keyboard="Email"/>  
-        </Border>
+                   Keyboard="Email"/>
+            </Border>
 
-        <Border Style="{StaticResource BorderStyle}">
+            <Border Style="{StaticResource BorderStyle}">
                 <Grid ColumnDefinitions="*, Auto">
                     <Entry  Grid.Column="0"
                             Style="{StaticResource EntryStyle}"
@@ -47,24 +48,15 @@
                                     BackgroundColor="Transparent"
                                     WidthRequest="30"
                                     HeightRequest="30" />
-            </Grid>
-        </Border>
+                </Grid>
+            </Border>
 
-        <!-- Enlace de recuperar -->
-        <Label Text="¿Olvidaste tu contraseña?"
-           FontSize="16"
-           TextColor="{StaticResource  color_Verde}"
-           HorizontalOptions="Center">
-            <Label.GestureRecognizers>
-                <TapGestureRecognizer Command="{Binding ForgotPasswordCommand}"/>
-            </Label.GestureRecognizers>
-        </Label>
-
-        <Button Style="{StaticResource ButtonStyle}"
+            <Button Style="{StaticResource ButtonStyle}"
                 Text="Iniciar Sesión" 
                 Command="{Binding LoginCommand}"/>
 
-        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-        
-    </VerticalStackLayout>
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

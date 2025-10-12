@@ -6,6 +6,17 @@
 
     <!--#region Estilos Propios-->
 
+        <!-- Estilo para Border de Imagenes -->
+
+    <Style TargetType="Border" x:Key="BorderStyleImage">
+        <Setter Property="Stroke" Value="{StaticResource color_Verde}"/>    <!-- Color del borde -->
+        <Setter Property="StrokeThickness" Value="2"/>  <!-- Grosor del borde -->
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="BackgroundColor" Value="LightGray"/>
+        <Setter Property="StrokeShape" Value="Ellipse"/>
+    </Style>
+
+
     <!-- Estilo para Border de cajas de texto -->
     <Style TargetType="Border" x:Key="BorderStyle">
         <Setter Property="Stroke" Value="Transparent"/>
@@ -19,6 +30,29 @@
                         Offset="5,5"
                         Radius="10"
                         Opacity="0.3"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Estilo para Border de cajas de texto sin estilo-->
+    <Style TargetType="Border" x:Key="BorderStyleNoBorder">
+        <Setter Property="Stroke" Value="Transparent"/>
+        <Setter Property="Padding" Value="20,0,20,0"/>
+    </Style>
+
+    <!-- Estilo para Border de cajas de texto sin esquinas redondeadas-->
+    <Style TargetType="Border" x:Key="BorderStyleNoCornerRadius">
+        <Setter Property="Stroke" Value="Transparent"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 0"/>
+        <Setter Property="BackgroundColor" Value="White"/>
+        <Setter Property="Padding" Value="5"/>
+
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="Black"
+                    Offset="5,5"
+                    Radius="10"
+                    Opacity="0.3"/>
             </Setter.Value>
         </Setter>
     </Style>

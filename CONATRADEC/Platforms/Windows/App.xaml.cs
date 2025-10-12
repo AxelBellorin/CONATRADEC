@@ -1,6 +1,9 @@
 ﻿// To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
+
 namespace CONATRADEC.WinUI
 {
     /// <summary>
@@ -18,6 +21,25 @@ namespace CONATRADEC.WinUI
         }
 
         protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+
+        protected override void OnLaunched(LaunchActivatedEventArgs args)
+        {
+            base.OnLaunched(args);
+
+            try
+            {
+                IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+                var appWindow = AppWindow.GetFromWindowId(windowId);
+
+                if (appWindow.Presenter is OverlappedPresenter presenter)
+                    presenter.Maximize();
+            }
+            catch
+            {
+                // En caso extremo, ignorar la falla
+            }
+        }
     }
 
 }

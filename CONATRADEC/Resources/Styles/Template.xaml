@@ -11,55 +11,38 @@
             
             <!--#region Pie de pagina-->
             <!--Etiqueta de scroll para deslizar los botones-->
-            <ScrollView Orientation="Horizontal" Grid.Row="1">
+            <ScrollView Grid.Row="1" >
                 <!--Etiqueta para que los botones se alineen horizontalmente-->
-                <HorizontalStackLayout Spacing="10" BackgroundColor="White" Padding="20">
+                <HorizontalStackLayout Spacing="10" BackgroundColor="{StaticResource color_Blanco}" Padding="30,10,10,5">
                     <!--Etiqueta para crear los botones-->
-                    <VerticalStackLayout Spacing="3">
+                    <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
                         <!--Imagen del boton-->
                         <Image HeightRequest="30" WidthRequest="30"  Source="iconlibro.png">
                             <Image.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding MainPageButtonCommand}"/>
+                                <TapGestureRecognizer Command="{Binding goToMainPageCommand}"/>
                             </Image.GestureRecognizers>
                         </Image>
                         <!--Texto de la opción-->
-                        <Label  HorizontalOptions="Center" Text="Inicio" FontSize="16" FontFamily="MontserratMedium"/>
+                        <Label  HorizontalOptions="Center" 
+                                Text="Inicio" 
+                                FontSize="16" 
+                                TextColor="{StaticResource color_Negro}"
+                                FontFamily="MontserratMedium"/>
                     </VerticalStackLayout>
 
-                    <VerticalStackLayout Spacing="3">
+                    <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
                         <!--Imagen del boton-->
-                        <Image HeightRequest="30" WidthRequest="30"  Source="iconlibro.png">
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconuser.png">
                             <Image.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding UserPageButtonCommand}"/>
+                                <TapGestureRecognizer Command="{Binding goToUserPageButtonCommand}"/>
                             </Image.GestureRecognizers>
                         </Image>
                         <!--Texto de la opción-->
-                        <Label  HorizontalOptions="Center" Text="Usuario" FontSize="16" FontFamily="MontserratMedium"/>
-                    </VerticalStackLayout>
-                    
-                    <VerticalStackLayout  Spacing="3">
-                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
-                        <Label HorizontalOptions="Center" Text="Configuracion" FontSize="16" FontFamily="MontserratMedium"/>
-                    </VerticalStackLayout>
-                    <VerticalStackLayout  Spacing="3">
-                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
-                        <Label HorizontalOptions="Center" Text="Prueba" FontSize="16" FontFamily="MontserratMedium"/>
-                    </VerticalStackLayout>
-                    <VerticalStackLayout  Spacing="3">
-                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
-                        <Label HorizontalOptions="Center" Text="Otra" FontSize="16" FontFamily="MontserratMedium"/>
-                    </VerticalStackLayout>
-                    <VerticalStackLayout  Spacing="3">
-                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
-                        <Label HorizontalOptions="Center" Text="Mas" FontSize="16" FontFamily="MontserratMedium"/>
-                    </VerticalStackLayout>
-                    <VerticalStackLayout  Spacing="3">
-                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
-                        <Label HorizontalOptions="Center" Text="Asi es" FontSize="16" FontFamily="MontserratMedium"/>
-                    </VerticalStackLayout>
-                    <VerticalStackLayout  Spacing="3">
-                        <Image HeightRequest="30" WidthRequest="30" HorizontalOptions="Center" Source="iconlibro.png"/>
-                        <Label HorizontalOptions="Center" Text="Falta" FontSize="16" FontFamily="MontserratMedium"/>
+                        <Label  HorizontalOptions="Center" 
+                                Text="Usuario" 
+                                FontSize="16" 
+                                TextColor="{StaticResource color_Negro}"
+                                FontFamily="MontserratMedium"/>
                     </VerticalStackLayout>
                 </HorizontalStackLayout>
             </ScrollView>

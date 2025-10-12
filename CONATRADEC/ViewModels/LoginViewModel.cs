@@ -7,7 +7,7 @@ using System.Windows.Input;
 
 namespace CONATRADEC.ViewModels
 {
-    public class LoginViewModel : INotifyPropertyChanged    
+    public class LoginViewModel : GlobalService
     {
         private string username;
         private string password;
@@ -18,12 +18,11 @@ namespace CONATRADEC.ViewModels
         private string passwordToggleIcon = "eye.png";
         private LoginResponse user;
 
-        private readonly ApiService apiService;
-        public event PropertyChangedEventHandler PropertyChanged;
+        private readonly LoginApiService apiServiceLogin;
 
         public LoginViewModel()
         {
-            apiService = new ApiService();
+            apiServiceLogin = new LoginApiService();
             LoginCommand = new Command(async () => await LoginAsync(), () => !IsBusy);
             TogglePasswordCommand = new Command(() => OnTogglePassword());
         }
@@ -65,7 +64,7 @@ namespace CONATRADEC.ViewModels
             {
                 isBusy = value;
                 OnPropertyChanged();
-                ((Command)LoginCommand).ChangeCanExecute();
+                LoginCommand.ChangeCanExecute();
             }
         }
 
@@ -79,14 +78,13 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public ICommand TogglePasswordCommand { get; }
+        public Command TogglePasswordCommand { get; }
+        public Command LoginCommand { get; }
         public LoginResponse User
         {
             get => user;
-            set { user = value; OnPropertyChanged(); }
+            set => user = value;
         }
-
-        public ICommand LoginCommand { get; }
 
         public async Task LoginAsync()
         {
@@ -103,16 +101,18 @@ namespace CONATRADEC.ViewModels
                     ExpiresInMins = 60
                 };
 
-                var resp = await apiService.LoginAsync(req);
+                var resp = await apiServiceLogin.LoginAsync(req);
 
-                User = resp;
-                Message = $"Bienvenido {resp.FirstName} {resp.LastName}. Token: {resp.AccessToken}. URL: {resp.Image}";
+                Message = $"Bienvenido {resp.FirstName} {resp.LastName}.";
 
-                urlImage = resp.Image;
-
-
-                Preferences.Default.Set("user_image_path", urlImage);
+                await Application.Current.MainPage.DisplayAlert("Login Correcto", $"{Message}", "OK");
+                
+                //urlImage = resp.Image;        
+                //Preferences.Default.Set("user_image_path", urlImage);
                 // Aquí podrías navegar a otra página, guardar token, etc.
+
+                //Username = "";
+                //Password = "";
 
                 await Shell.Current.GoToAsync("//MainPage");
             }
@@ -134,7 +134,6 @@ namespace CONATRADEC.ViewModels
             IsPasswordHidden = !IsPasswordHidden;
             PasswordToggleIcon = IsPasswordHidden ? "eye.png" : "eyeoff.png";
         }
-        private void OnPropertyChanged([CallerMemberName] string name = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
+
 }
