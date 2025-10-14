@@ -18,6 +18,10 @@ namespace CONATRADEC.ViewModels
         private string passwordToggleIcon = "eye.png";
         private LoginResponse user;
 
+        public Command TogglePasswordCommand { get; }
+        public Command LoginCommand { get; }
+        public ICommand OnTogglePasswordClickedCommand { get; }
+
         private readonly LoginApiService apiServiceLogin;
 
         public LoginViewModel()
@@ -78,8 +82,6 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public Command TogglePasswordCommand { get; }
-        public Command LoginCommand { get; }
         public LoginResponse User
         {
             get => user;
@@ -104,30 +106,28 @@ namespace CONATRADEC.ViewModels
                 var resp = await apiServiceLogin.LoginAsync(req);
 
                 Message = $"Bienvenido {resp.FirstName} {resp.LastName}.";
-
+                Username = "";
+                Password = "";
                 await Application.Current.MainPage.DisplayAlert("Login Correcto", $"{Message}", "OK");
-                
-                //urlImage = resp.Image;        
-                //Preferences.Default.Set("user_image_path", urlImage);
+
                 // Aquí podrías navegar a otra página, guardar token, etc.
 
-                //Username = "";
-                //Password = "";
-
                 await Shell.Current.GoToAsync("//MainPage");
+                // Guardar datos en preferencias
+                //Preferences.Default.Set("user_image_path", urlImage);
             }
             catch (Exception ex)
             {
-                //Message = $"Error: {ex.Message}";
+                Message = $"Error: {ex.Message}";
                 await Application.Current.MainPage.DisplayAlert("Credenciales incorrecta", "Correo o contraseña incorrecta, favor revise e intente nuevamente", "OK");
+                Username = "";
+                Password = "";
             }
             finally
             {
                 IsBusy = false;
             }
         }
-
-        public ICommand OnTogglePasswordClickedCommand { get; }
 
         public void OnTogglePassword()
         {

@@ -2,7 +2,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
     
-    <ControlTemplate x:Key="HeaderFooterTemplate">
+    <ControlTemplate x:Key="FooterTemplate">
         <Grid RowDefinitions="* , Auto">            
             
             <!-- #region contenido de la pagina-->

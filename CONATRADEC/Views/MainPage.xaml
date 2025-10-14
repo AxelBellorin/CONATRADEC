@@ -3,10 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.MainPage"
              Shell.NavBarIsVisible="False">
-    <ContentView ControlTemplate="{StaticResource HeaderFooterTemplate}">
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <ScrollView>
-            <VerticalStackLayout Style="{StaticResource VerticalStackLayouttyle}">
-
+            <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
                 <!-- Encabezado -->
                 <Label Text="Inicio"
                        FontSize="24"

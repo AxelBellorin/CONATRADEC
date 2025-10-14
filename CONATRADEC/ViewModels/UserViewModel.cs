@@ -59,8 +59,15 @@ namespace CONATRADEC.ViewModels
 
         private async Task OnAddUser()
         {
-            //await App.Current.MainPage.DisplayAlert("Agregar", "Abrir formulario para agregar usuario.", "OK");
-            await GoToUserFormPage();
+            try
+            {
+                //await App.Current.MainPage.DisplayAlert("Agregar", "Abrir formulario para agregar usuario.", "OK");
+                await Shell.Current.GoToAsync("//UserFormPage");
+            }
+            catch(Exception ex)
+            {
+                await App.Current.MainPage.DisplayAlert("Error", $"No se pudo conectar al servidor {ex}", "OK");
+            }  
         }
 
         private async void OnEditUser(User user)
@@ -81,7 +88,5 @@ namespace CONATRADEC.ViewModels
                 UsersList.Remove(user);
             }
         }
-
-        private async Task GoToUserFormPage() => await Shell.Current.GoToAsync("//UserFormPage");
     }
 }

@@ -5,7 +5,7 @@
              Shell.NavBarIsVisible="False"
              BackgroundColor="{StaticResource color_Blanco}">
         <ContentView    x:Name="UserPage"
-                    ControlTemplate="{StaticResource HeaderFooterTemplate}">
+                    ControlTemplate="{StaticResource FooterTemplate}">
         <!-- Header con título y botón de agregar -->
         <Grid ColumnDefinitions="*" RowDefinitions="Auto,*">
             <Grid ColumnDefinitions="*,auto" Grid.Row="0" Padding="0,10,0,0">
