@@ -7,11 +7,18 @@
              BackgroundColor="{StaticResource color_Blanco}">
     <ScrollView>
         <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
-            <ImageButton Source="logocontradec.jpg"
-               HorizontalOptions="Center"
-               HeightRequest="150"
-               WidthRequest="150"
-               />
+            <ImageButton    Source="logocontradec.png"
+                            BackgroundColor="Transparent"
+                            Aspect="AspectFill" 
+                            Padding="0"
+                            HeightRequest="250"
+                            WidthRequest="250"
+                            CornerRadius="125">
+                <ImageButton.Clip>
+                    <!-- recorta 5 px hacia adentro: ajusta RadiusX/Y a gusto -->
+                    <EllipseGeometry Center="125,125" RadiusX="100" RadiusY="100"/>
+                </ImageButton.Clip>
+            </ImageButton>
             <Label 
             Text="ConatraCafé Soil"
             FontSize="40"
@@ -40,7 +47,8 @@
                             Style="{StaticResource EntryStyle}"
                             Placeholder="Contraseña" 
                             Text="{Binding Password}"
-                            IsPassword="{Binding IsPasswordHidden}"/>
+                            IsPassword="{Binding IsPasswordHidden}"
+                            Background="Transparent"/>
                     <ImageButton    Grid.Column="1"
                                     Margin="10,0,0,0"
                                     Source="{Binding PasswordToggleIcon}"
@@ -51,9 +59,11 @@
                 </Grid>
             </Border>
 
-            <Button Style="{StaticResource ButtonStyle}"
-                Text="Iniciar Sesión" 
-                Command="{Binding LoginCommand}"/>
+            <Button Style="{StaticResource AddButton}"
+                    Text="Iniciar Sesión" 
+                    Padding="0,18,0,18"
+                    Margin="0,50,0,0"
+                    Command="{Binding LoginCommand}"/>
 
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
 

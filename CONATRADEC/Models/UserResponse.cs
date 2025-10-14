@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CONATRADEC.Models
 {
-    public class User
+    public class UserRP
     {
         private int id;
         private string firstName;
@@ -25,5 +25,5 @@ namespace CONATRADEC.Models
     }
 
     // Modelo para la respuesta completa
-    public class UserResponse() { public List<User> Users { get; set; } = new(); }
+    public class UserResponse() { public List<UserRP> Users { get; set; } = new(); }
 }

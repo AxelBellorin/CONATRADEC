@@ -4,27 +4,48 @@
              x:Class="CONATRADEC.Views.userFormPage"
              Title="userFormPage"
              Shell.NavBarIsVisible="False">
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="12">
-
-            <Label Text="Formulario de Usuario"
-                   FontSize="20" FontAttributes="Bold" />
-
-            <Entry Text="{Binding FirstName}" Placeholder="Nombre" IsEnabled="{Binding IsEditable}" />
-            <Entry Text="{Binding LastName}" Placeholder="Apellido" IsEnabled="{Binding IsEditable}" />
-            <Entry Text="{Binding Email}" Placeholder="Correo" Keyboard="Email" IsEnabled="{Binding IsEditable}" />
-            <Entry Text="{Binding Phone}" Placeholder="Teléfono" IsEnabled="{Binding IsEditable}" />
-            <Entry Text="{Binding Password}" Placeholder="Contraseña" IsPassword="True" IsEnabled="{Binding IsEditable}" />
-
-            <Button Text="{Binding SaveButtonText}"
-                    Command="{Binding SaveCommand}"
-                    IsEnabled="{Binding CanSave}" />
-
-            <Button Text="Cancelar"
-                    Command="{Binding CancelCommand}"/>
-
-            <Label Text="{Binding Message}" TextColor="Green" IsVisible="{Binding Message, Converter={StaticResource NullToBoolConverter}}" />
-
-        </VerticalStackLayout>
-    </ScrollView>
+    <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
+        <Label Text="{Binding Title}"
+                FontSize="24"
+                FontAttributes="Bold"
+                HorizontalOptions="Start"
+                Grid.Row="0"
+                Margin="10,20,0,0"/>
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="10" Spacing="15">
+                <Border Style="{StaticResource BorderStyle}">                  
+                    <Entry  Placeholder="Nombre"
+                            Style="{StaticResource EntryStyle}"
+                            Text="{Binding FirstName}"
+                            IsReadOnly="{Binding IsReadOnly}" />
+                </Border>
+                <Border Style="{StaticResource BorderStyle}">
+                    <Entry  Placeholder="Apellido"
+                        Style="{StaticResource EntryStyle}"
+                        Text="{Binding LastName}"
+                        IsReadOnly="{Binding IsReadOnly}" />
+                </Border>
+                <Border Style="{StaticResource BorderStyle}">
+                    <Entry  Placeholder="Correo electrónico"                        
+                        Style="{StaticResource EntryStyle}"
+                        Text="{Binding Email}"
+                        Keyboard="Email"
+                        IsReadOnly="{Binding IsReadOnly}" />
+                </Border>
+                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">
+                    <Button Text="Guardar"
+                            Style="{StaticResource UpdateButton}"
+                            IsVisible="{Binding ShowSaveButton}"    
+                            Command="{Binding SaveCommand}"
+                            Grid.Column="0"
+                            Margin="10,0,10,0"/>
+                    <Button Text="Cancelar"
+                            Style="{StaticResource CancelButton}"
+                            Command="{Binding CancelCommand}" 
+                            Grid.Column="1"
+                            Margin="10,0,10,0"/>  
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
 </ContentPage>

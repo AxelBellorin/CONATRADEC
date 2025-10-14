@@ -1,4 +1,5 @@
 ﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System;
 using System.Collections.Generic;
@@ -9,36 +10,29 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
-
+using CONATRADEC.Models;
 
 namespace CONATRADEC.ViewModels
 {
     public class UserViewModel : GlobalService
     {
-        private ObservableCollection<User> usersList = new ObservableCollection<User>();
+        private ObservableCollection<UserRP> usersList = new ObservableCollection<UserRP>();
         private readonly UserApiService userApiService;
 
         public Command AddUserCommand { get; }
         public Command EditUserCommand { get; }
         public Command DeleteUserCommand { get; }
-        public ObservableCollection<User> UsersList { get => usersList; set { usersList = value; OnPropertyChanged(); } }
+        public ICommand ViewUserCommand { get; }
+        public ObservableCollection<UserRP> UsersList { get => usersList; set { usersList = value; OnPropertyChanged(); } }
 
         public UserViewModel()
         {
-
-            try
-            {
-                userApiService = new UserApiService();
-                AddUserCommand = new Command(async () => await OnAddUser());
-                EditUserCommand = new Command<User>(OnEditUser);
-                DeleteUserCommand = new Command<User>(OnDeleteUser);
-            }
-            catch (Exception ex)
-            {
-                Application.Current.MainPage.DisplayAlert("Error", $"No se pudo conectar al servidor en el viewmodel {ex}", "OK");
-            }
+            userApiService = new UserApiService();
+            AddUserCommand = new Command(async () => await OnAddUser());
+            EditUserCommand = new Command<UserRP>(OnEditUser);
+            DeleteUserCommand = new Command<UserRP>(OnDeleteUser);
+            ViewUserCommand = new Command<UserRP>(OnViewUser);
         }
-
         public async Task LoadUsers()
         {
             var usersresponse = await userApiService.GetUsersAsync();
@@ -56,37 +50,73 @@ namespace CONATRADEC.ViewModels
                 await App.Current.MainPage.DisplayAlert("Información", "No se encontraron usuarios.", "OK");
             }
         }
-
         private async Task OnAddUser()
         {
             try
             {
                 //await App.Current.MainPage.DisplayAlert("Agregar", "Abrir formulario para agregar usuario.", "OK");
-                await Shell.Current.GoToAsync("//UserFormPage");
+                var parameters = new Dictionary<string, object>
+                {
+                    { "Mode", FormMode.FormModeSelect.Create},
+                    { "User", new UserRequest(new UserRP()) }
+                };
+                await Shell.Current.GoToAsync("//UserFormPage", parameters);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 await App.Current.MainPage.DisplayAlert("Error", $"No se pudo conectar al servidor {ex}", "OK");
-            }  
-        }
-
-        private async void OnEditUser(User user)
-        {
-            if (user == null) return;
-            await App.Current.MainPage.DisplayAlert("Editar", $"Editar usuario: {user.FirstName}", "OK");
-        }
-
-        private async void OnDeleteUser(User user)
-        {
-            if (user == null) return;
-
-            bool confirm = await App.Current.MainPage.DisplayAlert("Eliminar",
-                $"¿Seguro que deseas eliminar a {user.FirstName + " " + user.LastName}?", "Sí", "No");
-
-            if (confirm)
-            {
-                UsersList.Remove(user);
             }
+        }
+
+        private async void OnEditUser(UserRP user)
+        {
+            try
+            {
+                if (user == null) return;
+
+                var parameters = new Dictionary<string, object>
+                {
+                    { "Mode", FormMode.FormModeSelect.Edit },
+                    { "User", new UserRequest(user) }
+                };
+
+                //await App.Current.MainPage.DisplayAlert("Editar", $"Editar usuario: {user.FirstName}", "OK");
+                await Shell.Current.GoToAsync("//UserFormPage", parameters);
+            }
+            catch (Exception ex)
+            {
+                await App.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+            }
+
+        }
+
+        private async void OnDeleteUser(UserRP user)
+        {
+            try
+            {
+                if (user == null) return;
+
+                bool confirm = await App.Current.MainPage.DisplayAlert("Eliminar",
+                    $"¿Seguro que deseas eliminar a {user.FirstName + " " + user.LastName}?", "Sí", "No");
+
+                if (confirm)
+                    UsersList.Remove(user);
+
+            }
+            catch (Exception ex)
+            {
+                await App.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+            }
+        }
+
+        private async void OnViewUser(UserRP user)
+        {
+            var parameters = new Dictionary<string, object>
+            {
+                { "Mode", FormMode.FormModeSelect.View},
+                { "User", new UserRequest(user) }
+            };
+            await Shell.Current.GoToAsync("//UserFormPage", parameters);
         }
     }
 }

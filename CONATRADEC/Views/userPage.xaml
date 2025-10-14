@@ -4,7 +4,7 @@
              x:Class="CONATRADEC.Views.userPage"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{StaticResource color_Blanco}">
-        <ContentView    x:Name="UserPage"
+    <ContentView    x:Name="UserPage"
                     ControlTemplate="{StaticResource FooterTemplate}">
         <!-- Header con título y botón de agregar -->
         <Grid ColumnDefinitions="*" RowDefinitions="Auto,*">
@@ -27,34 +27,39 @@
                     Command="{Binding AddUserCommand}"/>
             </Grid>
 
-                <!-- Lista de usuarios -->
+            <!-- Lista de usuarios -->
             <CollectionView ItemsSource="{Binding UsersList}"
                             SelectionMode="None"
                             Grid.Row="1">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="2"/>
                 </CollectionView.ItemsLayout>
-                
+
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <SwipeView>
                             <SwipeView.RightItems>
                                 <SwipeItems Mode="Reveal">
                                     <SwipeItem  Text="Editar"
-                                                BackgroundColor="Blue" 
+                                                BackgroundColor="{StaticResource BlueUpdate}"
                                                 Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.EditUserCommand}"
-                                                CommandParameter="{Binding .}"                                                
-                                                />
+                                                CommandParameter="{Binding .}"/>
+
                                     <SwipeItem  Text="Eliminar"
-                                                BackgroundColor="Red"
+                                                BackgroundColor="{StaticResource RedDelete}"
                                                 Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.DeleteUserCommand}"
                                                 CommandParameter="{Binding .}"/>
+
                                 </SwipeItems>
                             </SwipeView.RightItems>
                             <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
                                                         Android={StaticResource BorderStyleNoBorder}}">
                                 <!-- Contenido del usuario -->
                                 <Grid Padding="10" ColumnDefinitions="Auto,*">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer   Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.ViewUserCommand}"
+                                                                CommandParameter="{Binding .}"/>
+                                    </Grid.GestureRecognizers>
                                     <Border Style="{StaticResource BorderStyleImage}"
                                             WidthRequest="65"
                                             HeightRequest="65"

@@ -77,10 +77,112 @@
     <!-- Estilo para VerticalStackLayout-->
     <Style TargetType="VerticalStackLayout" x:Key="VerticalStackLayoutStyle">
         <Setter Property="Padding" Value="30"/>
-        <Setter Property="Spacing" Value="20"/>
-        <Setter Property="BackgroundColor" Value="{StaticResource color_Blanco}"/>
+        <Setter Property="Spacing" Value="10"/>
+        <Setter Property="BackgroundColor" Value="Transparent"/>
     </Style>
 
+    <!-- Estilo pruebas-->
+
+    <!-- Estilo base -->
+    <Style x:Key="ActionButtonBase" TargetType="Button">
+        <Setter Property="TextColor" Value="White"/>
+        <Setter Property="Padding" Value="18,12"/>
+        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="CornerRadius" Value="15"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal"/>
+                    <VisualState x:Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="Scale" Value="0.98"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GrayDisabled}"/>
+                            <Setter Property="TextColor" Value="{StaticResource GrayDisabledText}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!-- Variantes -->
+    <Style x:Key="AddButton" TargetType="Button" BasedOn="{StaticResource ActionButtonBase}">
+        <Setter Property="BackgroundColor" Value="{StaticResource GreenAdd}"/>
+        <Setter Property="SemanticProperties.Hint" Value="Agrega un nuevo registro"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup>
+                    <VisualState x:Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GreenAddPressed}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="E">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GreenAddPressed}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <Style x:Key="UpdateButton" TargetType="Button" BasedOn="{StaticResource ActionButtonBase}">
+        <Setter Property="BackgroundColor" Value="{StaticResource BlueUpdate}"/>
+        <Setter Property="SemanticProperties.Hint" Value="Actualiza el registro"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup>
+                    <VisualState x:Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource BlueUpdatePressed}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DeleteButton" TargetType="Button" BasedOn="{StaticResource ActionButtonBase}">
+        <Setter Property="BackgroundColor" Value="{StaticResource RedDelete}"/>
+        <Setter Property="SemanticProperties.Hint" Value="Elimina el registro"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup>
+                    <VisualState x:Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource RedDeletePressed}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+
+    <!-- Variante Cancelar (relleno suave) -->
+    <Style x:Key="CancelButton" TargetType="Button" BasedOn="{StaticResource ActionButtonBase}">
+        <Setter Property="BackgroundColor" Value="{StaticResource GrayCancelBg}"/>
+        <Setter Property="TextColor" Value="{StaticResource GrayCancelText}"/>
+        <Setter Property="BorderColor" Value="{StaticResource GrayCancelBorder}"/>
+        <Setter Property="BorderWidth" Value="1"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup>
+                    <VisualState x:Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GrayCancelBgPressed}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
     <!--#endregion-->
     
     <!-- #region Estilos Incluidos -->
