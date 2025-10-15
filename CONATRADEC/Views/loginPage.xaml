@@ -62,7 +62,7 @@
             <Button Style="{StaticResource AddButton}"
                     Text="Iniciar Sesión" 
                     Padding="0,18,0,18"
-                    Margin="0,50,0,0"
+                    Margin="0,20,0,0"
                     Command="{Binding LoginCommand}"/>
 
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
