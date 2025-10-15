@@ -54,6 +54,7 @@
 
                                 </SwipeItems>
                             </SwipeView.RightItems>
+                            
                             <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
                                                         Android={StaticResource BorderStyleNoBorder}}">
                                 <!-- Contenido del usuario -->

@@ -22,7 +22,7 @@ namespace CONATRADEC.ViewModels
         public Command AddUserCommand { get; }
         public Command EditUserCommand { get; }
         public Command DeleteUserCommand { get; }
-        public ICommand ViewUserCommand { get; }
+        public Command ViewUserCommand { get; }
         public ObservableCollection<UserRP> UsersList { get => usersList; set { usersList = value; OnPropertyChanged(); } }
 
         public UserViewModel()

@@ -1,7 +1,6 @@
 ﻿using CONATRADEC.Services;
 using System.ComponentModel;
 using System.Windows.Input;
-//using static CONATRADEC.Models.FormMode;
 using CONATRADEC.Models;
 
 namespace CONATRADEC.ViewModels
@@ -11,9 +10,9 @@ namespace CONATRADEC.ViewModels
         private UserRequest user;
         private bool isBusy;
         private bool isCancel;
-        private string firstName="";
-        private string lastName;    
-        private string email;       
+        private string firstName = "";
+        private string lastName;
+        private string email;
         private FormMode.FormModeSelect mode = new FormMode.FormModeSelect();
         public Command SaveCommand { get; }
         public Command CancelCommand { get; }
@@ -24,36 +23,36 @@ namespace CONATRADEC.ViewModels
             CancelCommand = new Command(async () => await CancelAsync());
         }
 
-        public string FirstName 
-        { 
-            get => firstName; 
-            set { firstName = value; OnPropertyChanged();}
+        public string FirstName
+        {
+            get => firstName;
+            set { firstName = value; OnPropertyChanged(); }
         }
-        public string LastName 
-        { 
+        public string LastName
+        {
             get => lastName;
-            set { lastName = value; OnPropertyChanged();} 
+            set { lastName = value; OnPropertyChanged(); }
         }
-        public string Email 
-        { 
-            get => email; 
-            set { email = value; OnPropertyChanged();}
+        public string Email
+        {
+            get => email;
+            set { email = value; OnPropertyChanged(); }
         }
-        public bool IsCancel 
-        { 
-            get => isCancel; 
-            set => isCancel = value; 
+        public bool IsCancel
+        {
+            get => isCancel;
+            set => isCancel = value;
         }
-        public bool IsBusy 
-        { 
-            get => isBusy; 
-            set { isBusy = value; OnPropertyChanged(); } 
+        public bool IsBusy
+        {
+            get => isBusy;
+            set { isBusy = value; OnPropertyChanged(); }
         }
 
         public UserRequest User
         {
             get => user;
-            set { user = value; OnPropertyChanged(); FirstName = value.FirstName ; LastName = value.LastName; Email = value.Email; }
+            set { user = value; OnPropertyChanged(); FirstName = value.FirstName; LastName = value.LastName; Email = value.Email; }
         }
 
         public FormMode.FormModeSelect Mode
@@ -87,7 +86,7 @@ namespace CONATRADEC.ViewModels
         };
 
         private async Task CancelAsync()
-        {               
+        {
             try
             {
                 IsCancel = ValidateFieldsAsync();
@@ -135,7 +134,6 @@ namespace CONATRADEC.ViewModels
                 else if (Mode == FormMode.FormModeSelect.Edit)
                     await UpdateUserAsync();
 
-                await Application.Current.MainPage.DisplayAlert("Éxito", "Usuario guardado correctamente", "OK");
             }
             catch (Exception ex)
             {
@@ -149,25 +147,20 @@ namespace CONATRADEC.ViewModels
 
         private async Task CreateUserAsync()
         {
-            // Aquí podrías llamar a una API o guardar en base de datos
-            //Console.WriteLine($"Creando usuario: {User.FirstName}");
-            await Shell.Current.GoToAsync("//UserPage");
-        }
-
-        private async Task UpdateUserAsync()
-        {
-            try 
+            try
             {
                 IsCancel = ValidateFieldsAsync();
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert("Confirmar", "Desea actualizar", "Aceptar", "Cancelar");
+                    bool confirm = await App.Current.MainPage.DisplayAlert("Confirmar", "¿Desea guardar los datos del usuario?", "Aceptar", "Cancelar");
 
                     if (confirm)
                     {
+                        // Aquí podrías llamar a una API o guardar en base de datos
                         await Shell.Current.GoToAsync("//UserPage");
-                    }                        
+                        await Application.Current.MainPage.DisplayAlert("Éxito", "Usuario guardado correctamente", "OK");
+                    }
                 }
             }
             catch (Exception ex)
@@ -178,8 +171,33 @@ namespace CONATRADEC.ViewModels
             {
                 IsCancel = false;
             }
-            //Console.WriteLine($"Actualizando usuario {User.Id}");
-            await Shell.Current.GoToAsync("//UserPage");
+        }
+
+        private async Task UpdateUserAsync()
+        {
+            try
+            {
+                IsCancel = ValidateFieldsAsync();
+
+                if (IsCancel)
+                {
+                    bool confirm = await App.Current.MainPage.DisplayAlert("Confirmar", "¿Desea actualizar?", "Aceptar", "Cancelar");
+
+                    if (confirm)
+                    {
+                        await Shell.Current.GoToAsync("//UserPage");
+                        await Application.Current.MainPage.DisplayAlert("Éxito", "Usuario guardado correctamente", "OK");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+            }
+            finally
+            {
+                IsCancel = false;
+            }
         }
     }
 }
