@@ -98,6 +98,9 @@
 	  <Compile Update="Views\loginPage.xaml.cs">
 	    <DependentUpon>loginPage.xaml</DependentUpon>
 	  </Compile>
+	  <Compile Update="Views\rolFormPage.xaml.cs">
+	    <DependentUpon>rolFormPage.xaml</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -108,6 +111,12 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\loginPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\rolFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\rolPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\userFormPage.xaml">

@@ -13,35 +13,35 @@ using System.Windows.Input;
 
 namespace CONATRADEC.ViewModels
 {
-    public class UserViewModel : GlobalService
+    public class RolViewModel : GlobalService
     {
-        private ObservableCollection<UserRP> usersList = new ObservableCollection<UserRP>();
-        private readonly UserApiService userApiService;
+        private ObservableCollection<RolRP> list = new ObservableCollection<RolRP>();
+        private readonly RolApiService rolApiService;
 
-        public Command AddUserCommand { get; }
-        public Command EditUserCommand { get; }
-        public Command DeleteUserCommand { get; }
-        public Command ViewUserCommand { get; }
-        public ObservableCollection<UserRP> UsersList { get => usersList; set { usersList = value; OnPropertyChanged(); } }
+        public Command AddCommand { get; }
+        public Command EditCommand { get; }
+        public Command DeleteCommand { get; }
+        public Command ViewCommand { get; }
+        public ObservableCollection<RolRP> List { get => list; set { list = value; OnPropertyChanged(); } }
 
-        public UserViewModel()
+        public RolViewModel()
         {
-            userApiService = new UserApiService();
-            AddUserCommand = new Command(async () => await OnAddUser());
-            EditUserCommand = new Command<UserRP>(OnEditUser);
-            DeleteUserCommand = new Command<UserRP>(OnDeleteUser);
-            ViewUserCommand = new Command<UserRP>(OnViewUser);
+            rolApiService = new RolApiService();
+            AddCommand = new Command(async () => await OnAdd());
+            EditCommand = new Command<RolRP>(OnEdit);
+            DeleteCommand = new Command<RolRP>(OnDelete);
+            ViewCommand = new Command<RolRP>(OnView);
         }
         public async Task LoadUsers()
         {
-            var usersresponse = await userApiService.GetUsersAsync();
+            var response = await rolApiService.GetRolAsync();
 
-            if (usersresponse.Users.Count() != 0)
+            if (response.Count() != 0)
             {
-                UsersList.Clear();
-                foreach (var user in usersresponse.Users)
+                List.Clear();
+                foreach (var rol in response)
                 {
-                    usersList.Add(user);
+                    List.Add(rol);
                 }
             }
             else
@@ -49,7 +49,7 @@ namespace CONATRADEC.ViewModels
                 await App.Current.MainPage.DisplayAlert("Información", "No se encontraron usuarios.", "OK");
             }
         }
-        private async Task OnAddUser()
+        private async Task OnAdd()
         {
             try
             {
@@ -57,9 +57,9 @@ namespace CONATRADEC.ViewModels
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Create},
-                    { "User", new UserRequest(new UserRP()) }
+                    { "Rol", new RolRequest(new RolRP()) }
                 };
-                await Shell.Current.GoToAsync("//UserFormPage", parameters);
+                await Shell.Current.GoToAsync("//RolFormPage", parameters);
             }
             catch (Exception ex)
             {
@@ -67,20 +67,20 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async void OnEditUser(UserRP user)
+        private async void OnEdit(RolRP rol)
         {
             try
             {
-                if (user == null) return;
+                if (rol == null) return;
 
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Edit },
-                    { "User", new UserRequest(user) }
+                    { "Rol", new RolRequest(new RolRP()) }
                 };
 
                 //await App.Current.MainPage.DisplayAlert("Editar", $"Editar usuario: {user.FirstName}", "OK");
-                await Shell.Current.GoToAsync("//UserFormPage", parameters);
+                await Shell.Current.GoToAsync("//RolFormPage", parameters);
             }
             catch (Exception ex)
             {
@@ -89,17 +89,17 @@ namespace CONATRADEC.ViewModels
 
         }
 
-        private async void OnDeleteUser(UserRP user)
+        private async void OnDelete(RolRP rol)
         {
             try
             {
-                if (user == null) return;
+                if (rol == null) return;
 
                 bool confirm = await App.Current.MainPage.DisplayAlert("Eliminar",
-                    $"¿Seguro que deseas eliminar a {user.FirstName + " " + user.LastName}?", "Sí", "No");
+                    $"¿Seguro que deseas eliminar al rol {rol.NombreRol}", "Sí", "No");
 
                 if (confirm)
-                    UsersList.Remove(user);
+                    List.Remove(rol);
 
             }
             catch (Exception ex)
@@ -108,14 +108,14 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async void OnViewUser(UserRP user)
+        private async void OnView(RolRP rol)
         {
             var parameters = new Dictionary<string, object>
             {
                 { "Mode", FormMode.FormModeSelect.View},
-                { "User", new UserRequest(user) }
+                { "Rol", new RolRequest(new RolRP()) }
             };
-            await Shell.Current.GoToAsync("//UserFormPage", parameters);
+            await Shell.Current.GoToAsync("//RolFormPage", parameters);
         }
     }
 }

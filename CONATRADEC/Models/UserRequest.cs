@@ -23,16 +23,6 @@ namespace CONATRADEC.Models
         public string? Email { get => email; set => email = value; }
         public string? Image { get => image; set => image = value; }
 
-        public UserRequest()
-        {
-            Id = 0;
-            FirstName = "";
-            LastName = "";
-            Age = 0;
-            Email = "";
-            Image = "";
-        } 
-
         public UserRequest(UserRP user)
         {
             Id = user.Id;

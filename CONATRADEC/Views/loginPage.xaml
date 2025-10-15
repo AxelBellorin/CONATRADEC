@@ -4,7 +4,7 @@
              xmlns:login="clr-namespace:CONATRADEC.Views"
              x:Class="CONATRADEC.Views.loginPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="{StaticResource color_Blanco}">
+             BackgroundColor="Transparent">
     <ScrollView>
         <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
             <ImageButton    Source="logocontradec.png"

@@ -4,27 +4,27 @@ using CONATRADEC.Models;
 using CONATRADEC.ViewModels;
 
 [QueryProperty(nameof(Mode), "Mode")]
-[QueryProperty(nameof(User), "User")]
-public partial class userFormPage : ContentPage
+[QueryProperty(nameof(User), "Rol")]
+public partial class rolFormPage : ContentPage
 {
-    private UserFormViewModel viewModel= new UserFormViewModel();
+    private RolFormViewModel viewModel= new RolFormViewModel();
 
     public FormModeSelect Mode 
     { 
         set => viewModel.Mode = value; 
     }
 
-    public UserRequest User
+    public RolRequest User
     {
-        set => viewModel.User = value;
+        set => viewModel.Rol = value;
     }
-    public userFormPage()
+    public rolFormPage()
     {
         try
         {
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
             InitializeComponent();
-            BindingContext = viewModel;
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+            BindingContext = viewModel;                      
         }
         catch(Exception ex)
         {

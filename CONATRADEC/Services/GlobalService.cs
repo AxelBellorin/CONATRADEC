@@ -14,6 +14,7 @@ namespace CONATRADEC.Services
     {
         public Command goToMainPageCommand { get; }
         public Command goToUserPageButtonCommand { get; }
+        public Command goToRolPageButtonCommand { get; }
         public Command goToBack { get; }
 
         private bool isBusyUser;
@@ -48,6 +49,7 @@ namespace CONATRADEC.Services
         {
             goToMainPageCommand = new Command(async () => await GoToMainPage(), () => !isBusyMain);
             goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusyUser);
+            goToRolPageButtonCommand = new Command(async () => await Shell.Current.GoToAsync("//RolPage"));
             goToBack = new Command(async () => await Shell.Current.GoToAsync("//.."));
         }
 
@@ -84,6 +86,20 @@ namespace CONATRADEC.Services
             if (Shell.Current.CurrentPage is userPage page &&
                 page.BindingContext is UserViewModel vm)
                 await vm.LoadUsers();
+            IsBusyUser = false;
+        }
+
+        private async Task GoToRolPage()
+        {
+            if (IsBusyUser) return;
+            IsBusyUser = true;
+
+            await Shell.Current.GoToAsync("//UserPage");
+
+            // Buscar la página actual después de navegar
+            if (Shell.Current.CurrentPage is rolPage page &&
+                page.BindingContext is RolViewModel vm)
+                await vm.LoadRol();
             IsBusyUser = false;
         }
         public void OnPropertyChanged([CallerMemberName] string name = null) =>

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.userFormPage"
-             Title="userFormPage"
+             x:Class="CONATRADEC.Views.rolFormPage"
+             Title="rolFormPage"
              Shell.NavBarIsVisible="False"
              Background="Transparent">
     <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
