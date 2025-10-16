@@ -17,39 +17,29 @@ namespace CONATRADEC.Services
         public Command goToRolPageButtonCommand { get; }
         public Command goToBack { get; }
 
-        private bool isBusyUser;
-        private bool isBusyMain;
+        private bool isBusy;
+
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public bool IsBusyMain
+        public bool IsBusy
         {
-            get => isBusyMain;
+            get =>  isBusy;
             set
             {
-                isBusyMain = value;
+                isBusy = value;
                 OnPropertyChanged();
                 ((Command)goToMainPageCommand).ChangeCanExecute();
-            }
-        }
-        public bool IsBusyUser
-        {
-            get => isBusyUser;
-            set
-            {
-                isBusyUser = value;
-                OnPropertyChanged();
                 ((Command)goToUserPageButtonCommand).ChangeCanExecute();
+                ((Command)goToRolPageButtonCommand).ChangeCanExecute();
             }
         }
-
-
 
         public GlobalService()
         {
-            goToMainPageCommand = new Command(async () => await GoToMainPage(), () => !isBusyMain);
-            goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusyUser);
-            goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusyUser);
+            goToMainPageCommand = new Command(async () => await GoToMainPage(), () => !IsBusy);
+            goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusy);
+            goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusy);
             goToBack = new Command(async () => await Shell.Current.GoToAsync("//.."));
         }
 
@@ -63,44 +53,48 @@ namespace CONATRADEC.Services
 
         private async Task GoToUserPage()
         {
-            if (IsBusyUser) return;
-            IsBusyUser = true;
-
-            await Shell.Current.GoToAsync("//UserPage");
-
+            if (IsBusy) return;
+            IsBusy = true;  
+            
+            await Shell.Current.GoToAsync("//UserPage");   
+            
             // Buscar la página actual después de navegar
             if (Shell.Current.CurrentPage is userPage page &&
                 page.BindingContext is UserViewModel vm)
-                await vm.LoadUsers();
-            IsBusyUser = false;
+            {
+                await vm.LoadUsers(IsBusy);
+                vm.IsBusy = false;
+            }
+                
+               
         }
 
         private async Task GoToMainPage()
         {
-            if (IsBusyUser) return;
-            IsBusyUser = true;
+            if (IsBusy) return;
+            //IsBusy = true;
 
             await Shell.Current.GoToAsync("//MainPage");
 
-            // Buscar la página actual después de navegar
-            if (Shell.Current.CurrentPage is userPage page &&
-                page.BindingContext is UserViewModel vm)
-                await vm.LoadUsers();
-            IsBusyUser = false;
+            if (Shell.Current.CurrentPage is MainPage page &&
+                 page.BindingContext is MainPageViewModel vm)
+            {
+                //await vm.LoadUsers(IsBusy);
+                vm.IsBusy = false;
+            }
         }
 
-        private async Task GoToRolPage()
+        public async Task GoToRolPage()
         {
-            if (IsBusyUser) return;
-            IsBusyUser = true;
+            if (IsBusy) return;
+            IsBusy = true;
 
             await Shell.Current.GoToAsync("//RolPage");
 
             // Buscar la página actual después de navegar
             if (Shell.Current.CurrentPage is rolPage page &&
                 page.BindingContext is RolViewModel vm)
-                await vm.LoadRol();
-            IsBusyUser = false;
+                await vm.LoadRol(IsBusy);
         }
         public void OnPropertyChanged([CallerMemberName] string name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

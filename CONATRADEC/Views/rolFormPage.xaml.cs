@@ -8,6 +8,7 @@ using CONATRADEC.ViewModels;
 public partial class rolFormPage : ContentPage
 {
     private RolFormViewModel viewModel= new RolFormViewModel();
+    private RolRequest rolr;
 
     public FormModeSelect Mode 
     { 
@@ -16,7 +17,9 @@ public partial class rolFormPage : ContentPage
 
     public RolRequest Rol
     {
-        set => viewModel.Rol = value;
+        get => rolr;
+        set { viewModel.Rol = value; rolr = value; }
+
     }
     public rolFormPage()
     {
@@ -24,7 +27,7 @@ public partial class rolFormPage : ContentPage
         {
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
             InitializeComponent();
-            BindingContext = viewModel;                      
+            BindingContext = viewModel;
         }
         catch(Exception ex)
         {

@@ -32,16 +32,18 @@ namespace CONATRADEC.ViewModels
             DeleteUserCommand = new Command<UserRP>(OnDeleteUser);
             ViewUserCommand = new Command<UserRP>(OnViewUser);
         }
-        public async Task LoadUsers()
+        public async Task LoadUsers(bool isBusy)
         {
+            IsBusy = isBusy;
+
             var usersresponse = await userApiService.GetUsersAsync();
 
             if (usersresponse.Users.Count() != 0)
             {
                 UsersList.Clear();
-                foreach (var user in usersresponse.Users)
+                foreach (var user in usersresponse.Users.OrderBy(r => r.FirstName).ToList())
                 {
-                    usersList.Add(user);
+                    UsersList.Add(user);
                 }
             }
             else
@@ -53,7 +55,6 @@ namespace CONATRADEC.ViewModels
         {
             try
             {
-                //await App.Current.MainPage.DisplayAlert("Agregar", "Abrir formulario para agregar usuario.", "OK");
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Create},

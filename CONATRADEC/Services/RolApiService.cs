@@ -31,5 +31,47 @@ namespace CONATRADEC.Services
                 return new List<RolRP>();
             }
         }
+
+        public async Task<bool> CreateRolAsync(RolRequest rol)
+        {
+            try
+            {
+                var response = await httpClient.PostAsJsonAsync($"api/Rol/crearRol", rol);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteRolAsyn(RolRequest rol)
+        {
+            try
+            {
+                var response = await httpClient.DeleteAsync($"api/Rol/eliminarRol/{rol.RolId}");
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateRolAsync(RolRequest rol)
+        {
+            try
+            {
+                var response = await httpClient.PutAsJsonAsync($"api/Rol/editarRol/{rol.RolId}", rol);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+                return false;
+            }
+        }
     }
 }

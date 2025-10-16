@@ -7,7 +7,7 @@
     <ContentView    x:Name="RolPage"
                     ControlTemplate="{StaticResource FooterTemplate}">
         <!-- Header con título y botón de agregar -->
-        <Grid ColumnDefinitions="*" RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*" RowDefinitions="Auto,auto,*">
             <Grid ColumnDefinitions="*,auto" Grid.Row="0" Padding="0,10,0,0">
                 <Label Text="Rol"
                     FontSize="30"
@@ -26,11 +26,13 @@
                     Padding="0,0,20,0"
                     Command="{Binding AddCommand}"/>
             </Grid>
-
-            <!-- Lista de usuarios -->
+            
+            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            
+<!-- Lista de usuarios -->
             <CollectionView ItemsSource="{Binding List}"
                             SelectionMode="None"
-                            Grid.Row="1">
+                            Grid.Row="2">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="2"/>
                 </CollectionView.ItemsLayout>

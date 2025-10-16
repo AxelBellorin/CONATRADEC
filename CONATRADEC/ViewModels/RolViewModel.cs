@@ -1,5 +1,4 @@
 ﻿using CONATRADEC.Models;
-using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System;
 using System.Collections.Generic;
@@ -32,28 +31,29 @@ namespace CONATRADEC.ViewModels
             DeleteCommand = new Command<RolRP>(OnDelete);
             ViewCommand = new Command<RolRP>(OnView);
         }
-        public async Task LoadRol()
+        public async Task LoadRol(bool isbussy)
         {
+            IsBusy = true;
+
             var response = await rolApiService.GetRolAsync();
 
             if (response.Count() != 0)
             {
                 List.Clear();
-                foreach (var rol in response)
-                {
+                foreach (var rol in response.OrderBy(r => r.NombreRol).ToList())
                     List.Add(rol);
-                }
             }
             else
             {
                 await App.Current.MainPage.DisplayAlert("Información", "No se encontraron usuarios.", "OK");
             }
+
+            IsBusy = false;
         }
         private async Task OnAdd()
         {
             try
             {
-                //await App.Current.MainPage.DisplayAlert("Agregar", "Abrir formulario para agregar usuario.", "OK");
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Create},
@@ -76,7 +76,7 @@ namespace CONATRADEC.ViewModels
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Edit },
-                    { "Rol", new RolRequest(new RolRP()) }
+                    { "Rol", new RolRequest(rol) }
                 };
 
                 //await App.Current.MainPage.DisplayAlert("Editar", $"Editar usuario: {user.FirstName}", "OK");
@@ -99,7 +99,17 @@ namespace CONATRADEC.ViewModels
                     $"¿Seguro que deseas eliminar al rol {rol.NombreRol}", "Sí", "No");
 
                 if (confirm)
-                    List.Remove(rol);
+                {
+                    var response = await rolApiService.DeleteRolAsyn(new RolRequest(rol));
+                    if (response)
+                    {
+                        await App.Current.MainPage.DisplayAlert("Éxito", "Rol eliminado correctamente", "OK");
+                        Task.Run(async () => await LoadRol(IsBusy));
+                    }else
+                        await App.Current.MainPage.DisplayAlert("Error", "El rol no se pudo eliminar, intente nuevamente", "OK");
+                    
+                }
+                
 
             }
             catch (Exception ex)
@@ -113,7 +123,7 @@ namespace CONATRADEC.ViewModels
             var parameters = new Dictionary<string, object>
             {
                 { "Mode", FormMode.FormModeSelect.View},
-                { "Rol", new RolRequest(new RolRP()) }
+                { "Rol", new RolRequest(rol) }
             };
             await Shell.Current.GoToAsync("//RolFormPage", parameters);
         }

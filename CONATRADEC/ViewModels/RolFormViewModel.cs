@@ -13,6 +13,7 @@ namespace CONATRADEC.ViewModels
         private string nombreRol;
         private string descripcionRol;
         private FormMode.FormModeSelect mode = new FormMode.FormModeSelect();
+        private readonly RolApiService rolApiService= new RolApiService();
         public Command SaveCommand { get; }
         public Command CancelCommand { get; }
 
@@ -150,9 +151,19 @@ namespace CONATRADEC.ViewModels
 
                     if (confirm)
                     {
+                        Rol.NombreRol = NombreRol;
+                        Rol.DescripcionRol = DescripcionRol;
                         // Aquí podrías llamar a una API o guardar en base de datos
-                        await Shell.Current.GoToAsync("//RolPage");
-                        await Application.Current.MainPage.DisplayAlert("Éxito", "Rol guardado correctamente", "OK");
+                        var response = await rolApiService.CreateRolAsync(Rol);
+                        if (response) 
+                        {
+                            await GoToRolPage();
+                            await Application.Current.MainPage.DisplayAlert("Éxito", "Rol guardado correctamente", "OK");
+                        }
+                        else
+                        {
+                            await Application.Current.MainPage.DisplayAlert("Error", "El rol no se pudo guardar, intente nuevamente", "OK");
+                        }                       
                     }
                 }
             }
@@ -178,8 +189,21 @@ namespace CONATRADEC.ViewModels
 
                     if (confirm)
                     {
-                        await Shell.Current.GoToAsync("//RolPage");
-                        await Application.Current.MainPage.DisplayAlert("Éxito", "Rol guardado correctamente", "OK");
+                        //Asigna los cambios realizados al objeto Rol
+                        Rol.NombreRol = NombreRol;
+                        Rol.DescripcionRol = DescripcionRol;
+                        // Aquí podrías llamar a una API o guardar en base de datos
+                        var response = await rolApiService.UpdateRolAsync(Rol);
+                        if (response)
+                        {
+                            await GoToRolPage();
+                            await Application.Current.MainPage.DisplayAlert("Éxito", "Rol actualizado correctamente", "OK");
+                        }
+                        else
+                        {
+                            await Application.Current.MainPage.DisplayAlert("Error", "El rol no se pudo actualizar, intente nuevamente", "OK");
+                        }
+                        
                     }
                 }
             }
