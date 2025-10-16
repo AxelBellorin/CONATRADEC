@@ -49,7 +49,7 @@ namespace CONATRADEC.Services
         {
             goToMainPageCommand = new Command(async () => await GoToMainPage(), () => !isBusyMain);
             goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusyUser);
-            goToRolPageButtonCommand = new Command(async () => await Shell.Current.GoToAsync("//RolPage"));
+            goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusyUser);
             goToBack = new Command(async () => await Shell.Current.GoToAsync("//.."));
         }
 
@@ -94,7 +94,7 @@ namespace CONATRADEC.Services
             if (IsBusyUser) return;
             IsBusyUser = true;
 
-            await Shell.Current.GoToAsync("//UserPage");
+            await Shell.Current.GoToAsync("//RolPage");
 
             // Buscar la página actual después de navegar
             if (Shell.Current.CurrentPage is rolPage page &&

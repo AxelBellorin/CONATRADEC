@@ -17,20 +17,13 @@
                 <Border Style="{StaticResource BorderStyle}">                  
                     <Entry  Placeholder="Nombre"
                             Style="{StaticResource EntryStyle}"
-                            Text="{Binding FirstName}"
+                            Text="{Binding NombreRol}"
                             IsReadOnly="{Binding IsReadOnly}" />
                 </Border>
                 <Border Style="{StaticResource BorderStyle}">
-                    <Entry  Placeholder="Apellido"
+                    <Entry  Placeholder="Descripcion"
                         Style="{StaticResource EntryStyle}"
-                        Text="{Binding LastName}"
-                        IsReadOnly="{Binding IsReadOnly}" />
-                </Border>
-                <Border Style="{StaticResource BorderStyle}">
-                    <Entry  Placeholder="Correo electrónico"                        
-                        Style="{StaticResource EntryStyle}"
-                        Text="{Binding Email}"
-                        Keyboard="Email"
+                        Text="{Binding DescripcionRol}"
                         IsReadOnly="{Binding IsReadOnly}" />
                 </Border>
                 <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">

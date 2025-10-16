@@ -32,7 +32,7 @@ namespace CONATRADEC.ViewModels
             DeleteCommand = new Command<RolRP>(OnDelete);
             ViewCommand = new Command<RolRP>(OnView);
         }
-        public async Task LoadUsers()
+        public async Task LoadRol()
         {
             var response = await rolApiService.GetRolAsync();
 

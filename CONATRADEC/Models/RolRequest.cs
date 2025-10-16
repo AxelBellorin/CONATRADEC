@@ -20,7 +20,7 @@ namespace CONATRADEC.Models
         {
             RolId= rolRP.RolId;
             NombreRol= rolRP.NombreRol; 
-            DescripcionRol= rolRP.DescripcionRol;
+            DescripcionRol= rolRP.DescripcionRol;            
         }
     }
 }
