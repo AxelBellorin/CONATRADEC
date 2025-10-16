@@ -118,24 +118,16 @@ namespace CONATRADEC.ViewModels
         }
         private async Task SaveAsync()
         {
-            if (IsBusy) return;
-            IsBusy = true;
-
             try
             {
                 if (Mode == FormMode.FormModeSelect.Create)
                     await CreateUserAsync();
                 else if (Mode == FormMode.FormModeSelect.Edit)
                     await UpdateUserAsync();
-
             }
             catch (Exception ex)
             {
                 await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
-            }
-            finally
-            {
-                IsBusy = false;
             }
         }
 
@@ -202,8 +194,7 @@ namespace CONATRADEC.ViewModels
                         else
                         {
                             await Application.Current.MainPage.DisplayAlert("Error", "El rol no se pudo actualizar, intente nuevamente", "OK");
-                        }
-                        
+                        }                        
                     }
                 }
             }

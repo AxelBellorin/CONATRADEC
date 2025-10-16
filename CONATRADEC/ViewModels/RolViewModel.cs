@@ -31,9 +31,9 @@ namespace CONATRADEC.ViewModels
             DeleteCommand = new Command<RolRP>(OnDelete);
             ViewCommand = new Command<RolRP>(OnView);
         }
-        public async Task LoadRol(bool isbussy)
+        public async Task LoadRol(bool isBusy)
         {
-            IsBusy = true;
+            IsBusy = isBusy;
 
             var response = await rolApiService.GetRolAsync();
 
@@ -47,11 +47,12 @@ namespace CONATRADEC.ViewModels
             {
                 await App.Current.MainPage.DisplayAlert("Información", "No se encontraron usuarios.", "OK");
             }
-
             IsBusy = false;
         }
         private async Task OnAdd()
         {
+            if(IsBusy) return;
+
             try
             {
                 var parameters = new Dictionary<string, object>
@@ -69,6 +70,8 @@ namespace CONATRADEC.ViewModels
 
         private async void OnEdit(RolRP rol)
         {
+            if (IsBusy) return;
+
             try
             {
                 if (rol == null) return;
@@ -91,6 +94,9 @@ namespace CONATRADEC.ViewModels
 
         private async void OnDelete(RolRP rol)
         {
+            if (IsBusy) return;
+
+            IsBusy = true;
             try
             {
                 if (rol == null) return;
@@ -120,6 +126,8 @@ namespace CONATRADEC.ViewModels
 
         private async void OnView(RolRP rol)
         {
+            if (IsBusy) return;
+
             var parameters = new Dictionary<string, object>
             {
                 { "Mode", FormMode.FormModeSelect.View},

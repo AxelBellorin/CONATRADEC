@@ -63,7 +63,6 @@ namespace CONATRADEC.Services
                 page.BindingContext is UserViewModel vm)
             {
                 await vm.LoadUsers(IsBusy);
-                vm.IsBusy = false;
             }
                 
                
@@ -80,7 +79,7 @@ namespace CONATRADEC.Services
                  page.BindingContext is MainPageViewModel vm)
             {
                 //await vm.LoadUsers(IsBusy);
-                vm.IsBusy = false;
+               // vm.IsBusy = false;
             }
         }
 

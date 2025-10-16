@@ -50,6 +50,7 @@ namespace CONATRADEC.ViewModels
             {
                 await App.Current.MainPage.DisplayAlert("Información", "No se encontraron usuarios.", "OK");
             }
+            IsBusy = false;
         }
         private async Task OnAddUser()
         {
