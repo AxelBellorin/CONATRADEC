@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.cargoPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="Transparent">
+    <ContentView    x:Name="CargoPage"
+                    ControlTemplate="{StaticResource FooterTemplate}">
+        <!-- Header con título y botón de agregar -->
+        <Grid ColumnDefinitions="*" RowDefinitions="Auto,auto,*">
+            <Grid ColumnDefinitions="*,auto" Grid.Row="0" Padding="0,10,0,0">
+                <Label Text="Cargo"
+                    FontSize="30"
+                    FontFamily="MontserratBold"
+                    TextColor="{StaticResource color_Negro}"
+                    FontAttributes="Bold"
+                    VerticalOptions="Center"
+                    HorizontalOptions="Start"
+                    Padding="30,0,0,0"/>
+                <ImageButton 
+                    Source="iconadd.png"
+                    WidthRequest="60"
+                    HeightRequest="60"
+                    CornerRadius="30"
+                    Grid.Column="1"
+                    Padding="0,0,20,0"
+                    Command="{Binding AddCommand}"/>
+            </Grid>
+            
+            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            
+<!-- Lista de usuarios -->
+            <CollectionView ItemsSource="{Binding List}"
+                            SelectionMode="None"
+                            Grid.Row="2">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="2"/>
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems Mode="Reveal">
+                                    <SwipeItem  Text="Editar"
+                                                IconImageSource="iconupdate.png"
+                                                BackgroundColor="{StaticResource BlueUpdate}"
+                                                Command="{Binding Source={x:Reference CargoPage}, Path=BindingContext.EditCommand}"
+                                                CommandParameter="{Binding .}"/>
+
+                                    <SwipeItem  Text="Eliminar"
+                                                IconImageSource="icondelete.png" 
+                                                BackgroundColor="{StaticResource RedDelete}"
+                                                Command="{Binding Source={x:Reference CargoPage}, Path=BindingContext.DeleteCommand}"
+                                                CommandParameter="{Binding .}"/>
+
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+
+                            <!-- Contenido del usuario -->
+                            <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
+                                                        Android={StaticResource BorderStyleNoBorder}}"
+                                                        Margin="50,0,50,0">
+
+                                <Grid Padding="10" ColumnDefinitions="Auto,*">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer   Command="{Binding Source={x:Reference CargoPage}, Path=BindingContext.ViewCommand}"
+                                                                CommandParameter="{Binding .}"/>
+                                    </Grid.GestureRecognizers>
+                                    <Border Style="{StaticResource BorderStyleImage}"
+                                            WidthRequest="65"
+                                            HeightRequest="65"
+                                            Margin="0,0,10,0">
+                                        <Image Source="coffesplash.png"                                   
+                                                Aspect="AspectFill"
+                                                BackgroundColor="Transparent"/>
+                                    </Border>
+                                    <StackLayout Grid.Column="1"
+                                                        VerticalOptions="Center">
+                                        <Label Text="{Binding NombreCargo}" 
+                                                    FontAttributes="Bold" 
+                                                    FontSize="20"
+                                                    FontFamily="MontserratBold"
+                                                    TextColor="{StaticResource color_Negro}"/>
+                                    </StackLayout>
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </ContentView>
+</ContentPage>

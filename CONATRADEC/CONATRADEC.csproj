@@ -98,8 +98,14 @@
 	  <Compile Update="Views\loginPage.xaml.cs">
 	    <DependentUpon>loginPage.xaml</DependentUpon>
 	  </Compile>
+	  <Compile Update="Views\cargoFormPage.xaml.cs">
+	    <DependentUpon>cargoFormPage.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\rolFormPage.xaml.cs">
 	    <DependentUpon>rolFormPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\cargoPage.xaml.cs">
+	    <DependentUpon>cargoPage.xaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 
@@ -113,7 +119,13 @@
 	  <MauiXaml Update="Views\loginPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Views\cargoFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\rolFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\cargoPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\rolPage.xaml">

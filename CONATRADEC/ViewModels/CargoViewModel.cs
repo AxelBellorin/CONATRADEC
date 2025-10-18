@@ -12,36 +12,36 @@ using System.Windows.Input;
 
 namespace CONATRADEC.ViewModels
 {
-    public class RolViewModel : GlobalService
+    public class CargoViewModel : GlobalService
     {
-        private ObservableCollection<RolRP> list = new ObservableCollection<RolRP>();
-        private readonly RolApiService rolApiService;
+        private ObservableCollection<CargoRP> list = new ObservableCollection<CargoRP>();
+        private readonly CargoApiService cargoApiService;
 
         public Command AddCommand { get; }
         public Command EditCommand { get; }
         public Command DeleteCommand { get; }
         public Command ViewCommand { get; }
-        public ObservableCollection<RolRP> List { get => list; set { list = value; OnPropertyChanged(); } }
+        public ObservableCollection<CargoRP> List { get => list; set { list = value; OnPropertyChanged(); } }
 
-        public RolViewModel()
+        public CargoViewModel()
         {
-            rolApiService = new RolApiService();
+            cargoApiService = new CargoApiService();
             AddCommand = new Command(async () => await OnAdd());
-            EditCommand = new Command<RolRP>(OnEdit);
-            DeleteCommand = new Command<RolRP>(OnDelete);
-            ViewCommand = new Command<RolRP>(OnView);
+            EditCommand = new Command<CargoRP>(OnEdit);
+            DeleteCommand = new Command<CargoRP>(OnDelete);
+            ViewCommand = new Command<CargoRP>(OnView);
         }
-        public async Task LoadRol(bool isBusy)
+        public async Task LoadCargo(bool isBusy)
         {
             IsBusy = isBusy;
 
-            var response = await rolApiService.GetRolAsync();
+            var response = await cargoApiService.GetCargoAsync();
 
-            if (response.Count() != 0)
+           if (response.Count() != 0)
             {
                 List.Clear();
-                foreach (var rol in response.OrderBy(r => r.NombreRol).ToList())
-                    List.Add(rol);
+                foreach (var cargo in response.OrderBy(r => r.NombreCargo).ToList())
+                    List.Add(cargo);
             }
             else
             {
@@ -58,9 +58,9 @@ namespace CONATRADEC.ViewModels
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Create},
-                    { "Rol", new RolRequest(new RolRP()) }
+                    { "Cargo", new CargoRequest(new CargoRP()) }
                 };
-                await Shell.Current.GoToAsync("//RolFormPage", parameters);
+                await Shell.Current.GoToAsync("//CargoFormPage", parameters);
             }
             catch (Exception ex)
             {
@@ -68,22 +68,21 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async void OnEdit(RolRP rol)
+        private async void OnEdit(CargoRP cargo)
         {
             if (IsBusy) return;
 
             try
             {
-                if (rol == null) return;
+                if (cargo == null) return;
 
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Edit },
-                    { "Rol", new RolRequest(rol) }
+                    { "Cargo", new CargoRequest(cargo) }
                 };
 
-                //await App.Current.MainPage.DisplayAlert("Editar", $"Editar usuario: {user.FirstName}", "OK");
-                await Shell.Current.GoToAsync("//RolFormPage", parameters);
+                await Shell.Current.GoToAsync("//CargoFormPage", parameters);
             }
             catch (Exception ex)
             {
@@ -92,33 +91,33 @@ namespace CONATRADEC.ViewModels
 
         }
 
-        private async void OnDelete(RolRP rol)
+        private async void OnDelete(CargoRP cargo)
         {
             if (IsBusy) return;
 
             IsBusy = true;
             try
             {
-                if (rol == null) return;
+                if (cargo == null) return;
 
                 bool confirm = await App.Current.MainPage.DisplayAlert("Eliminar",
-                    $"¿Seguro que deseas eliminar al rol {rol.NombreRol}", "Sí", "No");
+                    $"¿Seguro que deseas eliminar al cargo {cargo.NombreCargo}", "Sí", "No");
 
                 if (confirm)
                 {
-                    var response = await rolApiService.DeleteRolAsyn(new RolRequest(rol));
+                    var response = await cargoApiService.DeleteCargoAsyn(new CargoRequest(cargo));
                     if (response)
                     {
-                        await App.Current.MainPage.DisplayAlert("Éxito", "Rol eliminado correctamente", "OK");
-                        Task.Run(async () => await LoadRol(IsBusy));
+                        await App.Current.MainPage.DisplayAlert("Éxito", "Cargo eliminado correctamente", "OK");
+                        Task.Run(async () => await LoadCargo(true));
                     }else
-                        await App.Current.MainPage.DisplayAlert("Error", "El rol no se pudo eliminar, intente nuevamente", "OK");
+                        await App.Current.MainPage.DisplayAlert("Error", "El cargo no se pudo eliminar, intente nuevamente", "OK");
                     
                 }
                 else
                 {
                     IsBusy = false;
-                }
+                }                    
             }
             catch (Exception ex)
             {
@@ -126,16 +125,16 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async void OnView(RolRP rol)
+        private async void OnView(CargoRP cargo)
         {
             if (IsBusy) return;
 
             var parameters = new Dictionary<string, object>
             {
                 { "Mode", FormMode.FormModeSelect.View},
-                { "Rol", new RolRequest(rol) }
+                { "Cargo", new CargoRequest(cargo) }
             };
-            await Shell.Current.GoToAsync("//RolFormPage", parameters);
+            await Shell.Current.GoToAsync("//CargoFormPage", parameters);
         }
     }
 }

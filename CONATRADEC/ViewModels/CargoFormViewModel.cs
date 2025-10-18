@@ -5,42 +5,43 @@ using CONATRADEC.Models;
 
 namespace CONATRADEC.ViewModels
 {
-    public class RolFormViewModel : GlobalService
+    public class CargoFormViewModel : GlobalService
     {
-        private RolRequest rol;
+        private CargoRequest cargo;
         private bool isCancel;
-        private string nombreRol;
-        private string descripcionRol;
+        private string nombreCargo;
+        private string descripcionCargo;
         private FormMode.FormModeSelect mode = new FormMode.FormModeSelect();
-        private readonly RolApiService rolApiService= new RolApiService();
+        private readonly CargoApiService cargoApiService= new CargoApiService();
         public Command SaveCommand { get; }
         public Command CancelCommand { get; }
 
-        public RolFormViewModel()
+        public CargoFormViewModel()
         {
             SaveCommand = new Command(async () => await SaveAsync(), () => !IsReadOnly);
             CancelCommand = new Command(async () => await CancelAsync());
         }
 
-        public string NombreRol
+        public string NombreCargo
         {
-            get => nombreRol;
-            set { nombreRol = value; OnPropertyChanged(); }
+            get => nombreCargo;
+            set { nombreCargo = value; OnPropertyChanged(); }
         }
-        public string DescripcionRol
+        public string DescripcionCargo
         {
-            get => descripcionRol;
-            set { descripcionRol = value; OnPropertyChanged(); }
+            get => descripcionCargo;
+            set { descripcionCargo = value; OnPropertyChanged(); }
         }
         public bool IsCancel
         {
             get => isCancel;
             set => isCancel = value;
         }
-        public RolRequest Rol
+
+        public CargoRequest Cargo
         {
-            get => rol;
-            set { rol = value; OnPropertyChanged(); NombreRol = value.NombreRol; DescripcionRol = value.DescripcionRol;}
+            get => cargo;
+            set { cargo = value; OnPropertyChanged(); NombreCargo = value.NombreCargo; DescripcionCargo = value.DescripcionCargo;}
         }
 
         public FormMode.FormModeSelect Mode
@@ -67,9 +68,9 @@ namespace CONATRADEC.ViewModels
 
         public string Title => Mode switch
         {
-            FormMode.FormModeSelect.Create => "Crear Rol",
-            FormMode.FormModeSelect.Edit => "Editar Rol",
-            FormMode.FormModeSelect.View => "Detalles del Rol",
+            FormMode.FormModeSelect.Create => "Crear Cargo",
+            FormMode.FormModeSelect.Edit => "Editar Cargo",
+            FormMode.FormModeSelect.View => "Detalles del Cargo",
             _ => "",
         };
 
@@ -85,12 +86,12 @@ namespace CONATRADEC.ViewModels
 
                     if (confirm)
                     {
-                        await Shell.Current.GoToAsync("//RolPage");
+                        await Shell.Current.GoToAsync("//CargoPage");
                     }
                 }
                 else
                 {
-                    await Shell.Current.GoToAsync("//RolPage");
+                    await Shell.Current.GoToAsync("//CargoPage");
                 }
             }
             catch (Exception ex)
@@ -105,8 +106,8 @@ namespace CONATRADEC.ViewModels
 
         private bool ValidateFieldsAsync()
         {
-            if (NombreRol != Rol.NombreRol) return true;
-            if (DescripcionRol != Rol.DescripcionRol) return true;
+            if (NombreCargo != Cargo.NombreCargo) return true;
+            if (DescripcionCargo != Cargo.DescripcionCargo) return true;
             return false;
         }
         private async Task SaveAsync()
@@ -114,9 +115,9 @@ namespace CONATRADEC.ViewModels
             try
             {
                 if (Mode == FormMode.FormModeSelect.Create)
-                    await CreateRolAsync();
+                    await CreateCargoAsync();
                 else if (Mode == FormMode.FormModeSelect.Edit)
-                    await UpdateRolAsync();
+                    await UpdateCargoAsync();
             }
             catch (Exception ex)
             {
@@ -124,7 +125,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CreateRolAsync()
+        private async Task CreateCargoAsync()
         {
             try
             {
@@ -132,22 +133,22 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert("Confirmar", "¿Desea guardar los datos del usuario?", "Aceptar", "Cancelar");
+                    bool confirm = await App.Current.MainPage.DisplayAlert("Confirmar", "¿Desea guardar los datos del cargo?", "Aceptar", "Cancelar");
 
                     if (confirm)
                     {
-                        Rol.NombreRol = NombreRol;
-                        Rol.DescripcionRol = DescripcionRol;
+                        Cargo.NombreCargo = NombreCargo;
+                        Cargo.DescripcionCargo = DescripcionCargo;
                         // Aquí podrías llamar a una API o guardar en base de datos
-                        var response = await rolApiService.CreateRolAsync(Rol);
+                        var response = await cargoApiService.CreateCargoAsync(Cargo);
                         if (response) 
                         {
-                            await GoToRolPage();
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Rol guardado correctamente", "OK");
+                            await GoToCargoPage();
+                            await Application.Current.MainPage.DisplayAlert("Éxito", "Cargo guardado correctamente", "OK");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "El rol no se pudo guardar, intente nuevamente", "OK");
+                            await Application.Current.MainPage.DisplayAlert("Error", "El cargo no se pudo guardar, intente nuevamente", "OK");
                         }                       
                     }
                 }
@@ -162,7 +163,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task UpdateRolAsync()
+        private async Task UpdateCargoAsync()
         {
             try
             {
@@ -175,18 +176,18 @@ namespace CONATRADEC.ViewModels
                     if (confirm)
                     {
                         //Asigna los cambios realizados al objeto Rol
-                        Rol.NombreRol = NombreRol;
-                        Rol.DescripcionRol = DescripcionRol;
+                        Cargo.NombreCargo = NombreCargo;
+                        Cargo.DescripcionCargo = DescripcionCargo;
                         // Aquí podrías llamar a una API o guardar en base de datos
-                        var response = await rolApiService.UpdateRolAsync(Rol);
+                        var response = await cargoApiService.UpdateCargoAsync(Cargo);
                         if (response)
                         {
-                            await GoToRolPage();
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Rol actualizado correctamente", "OK");
+                            await GoToCargoPage();
+                            await Application.Current.MainPage.DisplayAlert("Éxito", "Cargo actualizado correctamente", "OK");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "El rol no se pudo actualizar, intente nuevamente", "OK");
+                            await Application.Current.MainPage.DisplayAlert("Error", "El cargo no se pudo actualizar, intente nuevamente", "OK");
                         }                        
                     }
                 }

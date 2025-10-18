@@ -59,6 +59,21 @@
                                 TextColor="{StaticResource color_Negro}"
                                 FontFamily="MontserratMedium"/>
                     </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+                        <!--Imagen del boton-->
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconjobposition.png">
+                            <Image.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding goToCargoPageButtonCommand}"/>
+                            </Image.GestureRecognizers>
+                        </Image>
+                        <!--Texto de la opción-->
+                        <Label  HorizontalOptions="Center" 
+                                Text="Cargo" 
+                                FontSize="16" 
+                                TextColor="{StaticResource color_Negro}"
+                                FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
                 </HorizontalStackLayout>
             </ScrollView>
            <!--#endregion-->

@@ -15,6 +15,7 @@ namespace CONATRADEC.Services
         public Command goToMainPageCommand { get; }
         public Command goToUserPageButtonCommand { get; }
         public Command goToRolPageButtonCommand { get; }
+        public Command goToCargoPageButtonCommand { get; }
         public Command goToBack { get; }
 
         private bool isBusy;
@@ -32,6 +33,7 @@ namespace CONATRADEC.Services
                 ((Command)goToMainPageCommand).ChangeCanExecute();
                 ((Command)goToUserPageButtonCommand).ChangeCanExecute();
                 ((Command)goToRolPageButtonCommand).ChangeCanExecute();
+                ((Command)goToCargoPageButtonCommand).ChangeCanExecute();
             }
         }
 
@@ -40,6 +42,7 @@ namespace CONATRADEC.Services
             goToMainPageCommand = new Command(async () => await GoToMainPage(), () => !IsBusy);
             goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusy);
             goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusy);
+            goToCargoPageButtonCommand = new Command(async () => await GoToCargoPage(), () => !IsBusy);
             goToBack = new Command(async () => await Shell.Current.GoToAsync("//.."));
         }
 
@@ -50,24 +53,6 @@ namespace CONATRADEC.Services
             else
                 await Shell.Current.GoToAsync(route, parameters);
         }
-
-        private async Task GoToUserPage()
-        {
-            if (IsBusy) return;
-            IsBusy = true;  
-            
-            await Shell.Current.GoToAsync("//UserPage");   
-            
-            // Buscar la página actual después de navegar
-            if (Shell.Current.CurrentPage is userPage page &&
-                page.BindingContext is UserViewModel vm)
-            {
-                await vm.LoadUsers(IsBusy);
-            }
-                
-               
-        }
-
         private async Task GoToMainPage()
         {
             if (IsBusy) return;
@@ -75,12 +60,30 @@ namespace CONATRADEC.Services
 
             await Shell.Current.GoToAsync("//MainPage");
 
+            // Buscar la página actual después de navegar
             if (Shell.Current.CurrentPage is MainPage page &&
-                 page.BindingContext is MainPageViewModel vm)
-            {
-                //await vm.LoadUsers(IsBusy);
-               // vm.IsBusy = false;
-            }
+                page.BindingContext is MainPageViewModel vm)
+                vm.IsBusy = false;
+
+            //if (Shell.Current.CurrentPage is MainPage page &&
+            //     page.BindingContext is MainPageViewModel vm)
+            //{
+            //    //await vm.LoadUsers(IsBusy);
+            //   // vm.IsBusy = false;
+            //}
+            //IsBusy = false;
+        }
+        private async Task GoToUserPage()
+        {
+            if (IsBusy) return;
+            IsBusy = true;
+
+            await Shell.Current.GoToAsync("//UserPage");
+
+            // Buscar la página actual después de navegar
+            if (Shell.Current.CurrentPage is userPage page &&
+                page.BindingContext is UserViewModel vm)
+                await vm.LoadUsers(IsBusy);
         }
 
         public async Task GoToRolPage()
@@ -94,6 +97,19 @@ namespace CONATRADEC.Services
             if (Shell.Current.CurrentPage is rolPage page &&
                 page.BindingContext is RolViewModel vm)
                 await vm.LoadRol(IsBusy);
+        }
+
+        public async Task GoToCargoPage()
+        {
+            if (IsBusy) return;
+            IsBusy = true;
+
+            await Shell.Current.GoToAsync("//CargoPage");
+
+            // Buscar la página actual después de navegar
+            if (Shell.Current.CurrentPage is cargoPage page &&
+                page.BindingContext is CargoViewModel vm)
+                await vm.LoadCargo(IsBusy);
         }
         public void OnPropertyChanged([CallerMemberName] string name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

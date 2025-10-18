@@ -1,8 +1,11 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
+using CONATRADEC.Views;
+using CONATRADEC.ViewModels;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+
 
 
 namespace CONATRADEC.ViewModels
@@ -113,6 +116,11 @@ namespace CONATRADEC.ViewModels
                 // Aquí podrías navegar a otra página, guardar token, etc.
 
                 await Shell.Current.GoToAsync("//MainPage");
+
+                // Buscar la página actual después de navegar
+                if (Shell.Current.CurrentPage is MainPage page &&
+                    page.BindingContext is MainPageViewModel vm)
+                    vm.IsBusy = false;
                 // Guardar datos en preferencias
                 //Preferences.Default.Set("user_image_path", urlImage);
             }

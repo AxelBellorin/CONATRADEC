@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.userFormPage"
-             Title="Formulario de usuario"
+             x:Class="CONATRADEC.Views.cargoFormPage"
+             Title="Formulario de cargo"
              Shell.NavBarIsVisible="False"
              Background="Transparent">
     <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
@@ -17,20 +17,13 @@
                 <Border Style="{StaticResource BorderStyle}">                  
                     <Entry  Placeholder="Nombre"
                             Style="{StaticResource EntryStyle}"
-                            Text="{Binding FirstName}"
+                            Text="{Binding NombreCargo}"
                             IsReadOnly="{Binding IsReadOnly}" />
                 </Border>
                 <Border Style="{StaticResource BorderStyle}">
-                    <Entry  Placeholder="Apellido"
+                    <Entry  Placeholder="Descripcion"
                         Style="{StaticResource EntryStyle}"
-                        Text="{Binding LastName}"
-                        IsReadOnly="{Binding IsReadOnly}" />
-                </Border>
-                <Border Style="{StaticResource BorderStyle}">
-                    <Entry  Placeholder="Correo electrónico"                        
-                        Style="{StaticResource EntryStyle}"
-                        Text="{Binding Email}"
-                        Keyboard="Email"
+                        Text="{Binding DescripcionCargo}"
                         IsReadOnly="{Binding IsReadOnly}" />
                 </Border>
                 <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">
