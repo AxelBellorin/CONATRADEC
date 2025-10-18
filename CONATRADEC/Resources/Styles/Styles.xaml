@@ -37,7 +37,7 @@
     <!-- Estilo para Border de cajas de texto sin estilo-->
     <Style TargetType="Border" x:Key="BorderStyleNoBorder">
         <Setter Property="Stroke" Value="Transparent"/>
-        <Setter Property="Padding" Value="20,0,20,0"/>
+        <Setter Property="Padding" Value="20,0"/>
     </Style>
 
     <!-- Estilo para Border de cajas de texto sin esquinas redondeadas-->
@@ -45,7 +45,7 @@
         <Setter Property="Stroke" Value="Transparent"/>
         <Setter Property="StrokeShape" Value="RoundRectangle 0"/>
         <Setter Property="BackgroundColor" Value="White"/>
-        <Setter Property="Padding" Value="5"/>
+        <Setter Property="Padding" Value="20,5,20,5"/>
 
         <Setter Property="Shadow">
             <Setter.Value>

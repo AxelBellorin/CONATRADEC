@@ -1,5 +1,6 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Networking;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -35,23 +36,33 @@ namespace CONATRADEC.ViewModels
         {
             IsBusy = isBusy;
 
-            var response = await cargoApiService.GetCargoAsync();
+            bool tieneInternet = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
 
-           if (response.Count() != 0)
+            if (tieneInternet)
             {
-                List.Clear();
-                foreach (var cargo in response.OrderBy(r => r.NombreCargo).ToList())
-                    List.Add(cargo);
+                var response = await cargoApiService.GetCargoAsync();
+
+                if (response.Count() != 0)
+                {
+                    List.Clear();
+                    foreach (var cargo in response.OrderBy(r => r.NombreCargo).ToList())
+                        List.Add(cargo);
+                }
+                else
+                {
+                    await App.Current.MainPage.DisplayAlert("Información", "No se encontraron cargos.", "OK");
+                }
             }
             else
             {
-                await App.Current.MainPage.DisplayAlert("Información", "No se encontraron cargos.", "OK");
+                await App.Current.MainPage.DisplayAlert("Error", "No hay conexión a internet. Por favor, verifica tu conexión e inténtalo de nuevo.", "OK");
             }
+
             IsBusy = false;
         }
         private async Task OnAdd()
         {
-            if(IsBusy) return;
+            if (IsBusy) return;
 
             try
             {
@@ -110,14 +121,15 @@ namespace CONATRADEC.ViewModels
                     {
                         await App.Current.MainPage.DisplayAlert("Éxito", "Cargo eliminado correctamente", "OK");
                         Task.Run(async () => await LoadCargo(true));
-                    }else
+                    }
+                    else
                         await App.Current.MainPage.DisplayAlert("Error", "El cargo no se pudo eliminar, intente nuevamente", "OK");
-                    
+
                 }
                 else
                 {
                     IsBusy = false;
-                }                    
+                }
             }
             catch (Exception ex)
             {

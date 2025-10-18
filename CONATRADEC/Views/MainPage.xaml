@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.MainPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="Transparent">
+             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <ScrollView>
             <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">

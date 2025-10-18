@@ -4,11 +4,10 @@
              xmlns:login="clr-namespace:CONATRADEC.Views"
              x:Class="CONATRADEC.Views.loginPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="Transparent">
+             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
     <ScrollView>
         <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
             <ImageButton    Source="logocontradec.png"
-                            BackgroundColor="Transparent"
                             Aspect="AspectFill" 
                             Padding="0"
                             HeightRequest="250"
@@ -35,15 +34,19 @@
                />
 
             <Border Style="{StaticResource BorderStyle}">
-                <Entry Style="{StaticResource EntryStyle}"
-                   Text="{Binding Username}"
-                   Placeholder="Correo electronico"                   
-                   Keyboard="Email"/>
+                <Entry  Style="{StaticResource EntryStyle}"
+                        Text="{Binding Username}"
+                        x:Name="UserNameEntry"
+                        Completed="UserNameEntryCompleted"
+                        Placeholder="Correo electronico"                   
+                        Keyboard="Email"/>
             </Border>
 
             <Border Style="{StaticResource BorderStyle}">
                 <Grid ColumnDefinitions="*, Auto">
                     <Entry  Grid.Column="0"
+                            x:Name="PasswordEntry"  
+                            Completed="PasswordEntryCompleted"
                             Style="{StaticResource EntryStyle}"
                             Placeholder="Contraseña" 
                             Text="{Binding Password}"
@@ -59,7 +62,7 @@
                 </Grid>
             </Border>
 
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}"/>
             
             <Button Style="{StaticResource AddButton}"
                     Text="Iniciar Sesión" 

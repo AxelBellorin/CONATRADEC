@@ -18,7 +18,6 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<ApplicationTitle>ConatraCafé Soil</ApplicationTitle>
 		<PackageId>ConatraCafeSoil</PackageId>
 
 		<!-- Display name -->
@@ -73,10 +72,10 @@
 	
 	<ItemGroup>
 		<!-- App Icon -->
-		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appicon.svg" Color="#3B655B" />
+		<MauiIcon Include="Resources\AppIcon\appicon.png" ForegroundFile="Resources\AppIcon\appicon.png" Color="#3B655B" />
 
 		<!-- Splash Screen -->
-		<MauiSplashScreen Include="Resources\Splash\coffesplash.svg" Color="#3B655B" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Splash\coffesplash.png" Color="#3B655B" BaseSize="128,128" />
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
@@ -87,6 +86,10 @@
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <MauiImage Include="Resources\Splash\coffesplash.png" />
 	</ItemGroup>
 
 	<ItemGroup>

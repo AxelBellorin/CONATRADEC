@@ -10,8 +10,16 @@ namespace CONATRADEC
         }
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(new AppShell());
-        }
 
+#if WINDOWS
+            // Devuelves la ventana con su contenido raíz
+            var page = new AppShell();
+            var window = new Window(page);
+            window.Title = "ConatraCafé Soil";
+            return window;
+#else
+            return new Window(new AppShell());
+#endif
+        }
     }
 }

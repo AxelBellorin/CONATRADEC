@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.rolPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="Transparent">
+             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
     <ContentView    x:Name="RolPage"
                     ControlTemplate="{StaticResource FooterTemplate}">
         <!-- Header con título y botón de agregar -->
@@ -26,8 +26,8 @@
                     Padding="0,0,20,0"
                     Command="{Binding AddCommand}"/>
             </Grid>
-            
-            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Verde}"/>
             
 <!-- Lista de usuarios -->
             <CollectionView ItemsSource="{Binding List}"
@@ -59,8 +59,7 @@
 
                             <!-- Contenido del usuario -->
                             <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
-                                                        Android={StaticResource BorderStyleNoBorder}}"
-                                                        Margin="50,0,50,0">
+                                                        Default={StaticResource BorderStyleNoBorder}}">
 
                                 <Grid Padding="10" ColumnDefinitions="Auto,*">
                                     <Grid.GestureRecognizers>

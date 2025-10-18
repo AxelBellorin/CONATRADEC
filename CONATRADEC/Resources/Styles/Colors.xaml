@@ -10,6 +10,7 @@
     <Color x:Key="color_Amarillo">#F2C94C</Color>
     <Color x:Key="color_Blanco">#FFF5FF</Color>
     <Color x:Key="color_Negro">#000000</Color>
+    <Color x:Key="color_Naranja">#FF9800</Color>
 
 
     <Color x:Key="GreenAdd">#3B655B</Color>
