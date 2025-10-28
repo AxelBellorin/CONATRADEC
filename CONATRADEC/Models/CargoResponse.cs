@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CONATRADEC.Models
 {
-    public class CargoRP
+    public class CargoResponse
     {
 
         private int? cargoId;
@@ -17,13 +17,4 @@ namespace CONATRADEC.Models
         public string? DescripcionCargo { get => descripcionCargo; set => descripcionCargo = value; }
 
     }
-
-    public class CargoResponse()
-    {
-        private string? message;
-        private CargoRP? cargo;
-        public string? Message { get => message; set => message = value; }
-        public CargoRP? Cargo { get => cargo; set => cargo = value; }
-    }
-
 }

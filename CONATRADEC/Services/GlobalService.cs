@@ -16,6 +16,7 @@ namespace CONATRADEC.Services
         public Command goToUserPageButtonCommand { get; }
         public Command goToRolPageButtonCommand { get; }
         public Command goToCargoPageButtonCommand { get; }
+        public Command goToMatrizPermisosPageButtonCommad { get; }
         public Command goToBack { get; }
 
         private bool isBusy;
@@ -34,6 +35,7 @@ namespace CONATRADEC.Services
                 ((Command)goToUserPageButtonCommand).ChangeCanExecute();
                 ((Command)goToRolPageButtonCommand).ChangeCanExecute();
                 ((Command)goToCargoPageButtonCommand).ChangeCanExecute();
+                ((Command)goToMatrizPermisosPageButtonCommad).ChangeCanExecute();   
             }
         }
 
@@ -43,6 +45,7 @@ namespace CONATRADEC.Services
             goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusy);
             goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusy);
             goToCargoPageButtonCommand = new Command(async () => await GoToCargoPage(), () => !IsBusy);
+            goToMatrizPermisosPageButtonCommad = new Command(async () => await GoToMatrizPermisosPage(), () => !IsBusy);
             goToBack = new Command(async () => await Shell.Current.GoToAsync("//.."));
         }
 
@@ -110,6 +113,20 @@ namespace CONATRADEC.Services
             if (Shell.Current.CurrentPage is cargoPage page &&
                 page.BindingContext is CargoViewModel vm)
                 await vm.LoadCargo(IsBusy);
+        }
+
+        public async Task GoToMatrizPermisosPage()
+        {
+            if (IsBusy) return;
+            IsBusy = true;
+
+            await Shell.Current.GoToAsync("//MatrizPermisosPage");
+
+            // Buscar la página actual después de navegar
+            if (Shell.Current.CurrentPage is matrizPermisosPage page &&
+                page.BindingContext is MatrizPermisosViewModel vm)
+                //await vm.LoadCargo(IsBusy);
+                await Task.Delay(1000);
         }
         public void OnPropertyChanged([CallerMemberName] string name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

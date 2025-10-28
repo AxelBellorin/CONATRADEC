@@ -27,7 +27,7 @@
                     Command="{Binding AddCommand}"/>
             </Grid>
 
-            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Verde}"/>
+            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}"/>
             
 <!-- Lista de usuarios -->
             <CollectionView ItemsSource="{Binding List}"

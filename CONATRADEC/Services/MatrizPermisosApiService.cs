@@ -10,27 +10,38 @@ using static CONATRADEC.Models.UserResponse;
 
 namespace CONATRADEC.Services
 {
-    class RolApiService
+    class MatrizPermisosApiService  
     {
         private readonly HttpClient httpClient;
-        private readonly UrlApiService urlApiService = new UrlApiService(); 
+        private readonly UrlApiService urlApiService = new UrlApiService();
 
-        public RolApiService()
+        public MatrizPermisosApiService()
         {
             httpClient = new HttpClient { BaseAddress = new Uri(urlApiService.BaseUrlApi) };
         }
 
-        public async Task<ObservableCollection<RolResponse>> GetRolAsync()
+        public async Task<ObservableCollection<MatrizPermisosResponse>> GetMatrizByRolAsync(RolRequest rolRequest)
         {
             try
             {
-                var response = await httpClient.GetFromJsonAsync<ObservableCollection<RolResponse>>("api/Rol/listarRoles");
-                return response ?? new ObservableCollection<RolResponse>();
+                var encodedRol = Uri.EscapeDataString(rolRequest.NombreRol);
+                var response = await httpClient.GetFromJsonAsync<ObservableCollection<MatrizPermisosResponse>>($"api/rol-permisos/matriz-por-rol-nombre?nombreRol={encodedRol}");
+                return response ?? new ObservableCollection<MatrizPermisosResponse>();
+            }
+            catch (HttpRequestException ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error de conexión", ex.Message, "OK");
+                return new ObservableCollection<MatrizPermisosResponse> ();
+            }
+            catch (NotSupportedException ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error de formato", "Respuesta no JSON.", "OK");
+                return new ObservableCollection<MatrizPermisosResponse>();
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
-                return new ObservableCollection<RolResponse>();
+                await Application.Current.MainPage.DisplayAlert("Error inesperado", ex.Message, "OK");
+                return new  ObservableCollection<MatrizPermisosResponse>();
             }
         }
 
@@ -61,12 +72,11 @@ namespace CONATRADEC.Services
                 return false;
             }
         }
-
-        public async Task<bool> UpdateRolAsync(RolRequest rol)
+        public async Task<bool> GuardarMatrizAsync(List<MatrizPermisosRequest> matrizPermisosRequest)
         {
             try
             {
-                var response = await httpClient.PutAsJsonAsync($"api/Rol/editarRol/{rol.RolId}", rol);
+                var response = await httpClient.PutAsJsonAsync("api/rol-permisos/actualizar-permisos/", matrizPermisosRequest);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)

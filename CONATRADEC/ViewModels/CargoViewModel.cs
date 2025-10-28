@@ -15,48 +15,47 @@ namespace CONATRADEC.ViewModels
 {
     public class CargoViewModel : GlobalService
     {
-        private ObservableCollection<CargoRP> list = new ObservableCollection<CargoRP>();
+        private ObservableCollection<CargoResponse> list = new ObservableCollection<CargoResponse>();
         private readonly CargoApiService cargoApiService;
 
         public Command AddCommand { get; }
         public Command EditCommand { get; }
         public Command DeleteCommand { get; }
         public Command ViewCommand { get; }
-        public ObservableCollection<CargoRP> List { get => list; set { list = value; OnPropertyChanged(); } }
+        public ObservableCollection<CargoResponse> List { get => list; set { list = value; OnPropertyChanged(); } }
 
         public CargoViewModel()
         {
             cargoApiService = new CargoApiService();
             AddCommand = new Command(async () => await OnAdd());
-            EditCommand = new Command<CargoRP>(OnEdit);
-            DeleteCommand = new Command<CargoRP>(OnDelete);
-            ViewCommand = new Command<CargoRP>(OnView);
+            EditCommand = new Command<CargoResponse>(OnEdit);
+            DeleteCommand = new Command<CargoResponse>(OnDelete);
+            ViewCommand = new Command<CargoResponse>(OnView);
         }
         public async Task LoadCargo(bool isBusy)
         {
             IsBusy = isBusy;
 
-            bool tieneInternet = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
+            //bool tieneInternet = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
 
-            if (tieneInternet)
-            {
+            //if (tieneInternet)
+            //{
                 var response = await cargoApiService.GetCargoAsync();
 
                 if (response.Count() != 0)
                 {
                     List.Clear();
-                    foreach (var cargo in response.OrderBy(r => r.NombreCargo).ToList())
-                        List.Add(cargo);
+                    List = response;
                 }
                 else
                 {
                     await App.Current.MainPage.DisplayAlert("Información", "No se encontraron cargos.", "OK");
                 }
-            }
-            else
-            {
-                await App.Current.MainPage.DisplayAlert("Error", "No hay conexión a internet. Por favor, verifica tu conexión e inténtalo de nuevo.", "OK");
-            }
+            //}
+            //else
+            //{
+            //    await App.Current.MainPage.DisplayAlert("Error", "No hay conexión a internet. Por favor, verifica tu conexión e inténtalo de nuevo.", "OK");
+            //}
 
             IsBusy = false;
         }
@@ -69,7 +68,7 @@ namespace CONATRADEC.ViewModels
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Create},
-                    { "Cargo", new CargoRequest(new CargoRP()) }
+                    { "Cargo", new CargoRequest(new CargoResponse()) }
                 };
                 await Shell.Current.GoToAsync("//CargoFormPage", parameters);
             }
@@ -79,7 +78,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async void OnEdit(CargoRP cargo)
+        private async void OnEdit(CargoResponse cargo)
         {
             if (IsBusy) return;
 
@@ -102,7 +101,7 @@ namespace CONATRADEC.ViewModels
 
         }
 
-        private async void OnDelete(CargoRP cargo)
+        private async void OnDelete(CargoResponse cargo)
         {
             if (IsBusy) return;
 
@@ -137,7 +136,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async void OnView(CargoRP cargo)
+        private async void OnView(CargoResponse cargo)
         {
             if (IsBusy) return;
 

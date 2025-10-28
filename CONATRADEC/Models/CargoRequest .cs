@@ -15,7 +15,7 @@ namespace CONATRADEC.Models
         public string? NombreCargo { get => nombreCargo; set => nombreCargo = value; }
         public string? DescripcionCargo { get => descripcionCargo; set => descripcionCargo = value; }
 
-        public CargoRequest(CargoRP cargoRP)
+        public CargoRequest(CargoResponse cargoRP)
         {
             CargoId = cargoRP.CargoId;
             NombreCargo = cargoRP.NombreCargo;

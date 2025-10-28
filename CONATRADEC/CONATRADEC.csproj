@@ -75,7 +75,7 @@
 		<MauiIcon Include="Resources\AppIcon\appicon.png" ForegroundFile="Resources\AppIcon\appicon.png" Color="#3B655B" />
 
 		<!-- Splash Screen -->
-		<MauiSplashScreen Include="Resources\Splash\coffesplash.png" Color="#3B655B" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#3B655B" BaseSize="512,512" />
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
@@ -93,11 +93,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Maui" Version="9.1.1" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Views\matrizPermisosPage.xaml.cs">
+	    <DependentUpon>matrizPermisosPage.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\loginPage.xaml.cs">
 	    <DependentUpon>loginPage.xaml</DependentUpon>
 	  </Compile>
@@ -114,6 +118,9 @@
 
 	<ItemGroup>
 	  <MauiXaml Update="Resources\Styles\Template.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\matrizPermisosPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\loginPage.xaml">

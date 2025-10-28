@@ -16,7 +16,10 @@ namespace CONATRADEC.Models
         public string? NombreRol { get => nombreRol; set => nombreRol = value; }
         public string? DescripcionRol { get => descripcionRol; set => descripcionRol = value; }
 
-        public RolRequest(RolRP rolRP)
+        public RolRequest()
+        {
+        }
+        public RolRequest(RolResponse rolRP)
         {
             RolId= rolRP.RolId;
             NombreRol= rolRP.NombreRol; 

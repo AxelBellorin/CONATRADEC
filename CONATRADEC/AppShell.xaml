@@ -18,4 +18,5 @@
     <ShellContent Title="RolFormPage"  Route="RolFormPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:rolFormPage}"/>
     <ShellContent Title="CargoPage"  Route="CargoPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:cargoPage}"/>
     <ShellContent Title="CargoFormPage"  Route="CargoFormPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:cargoFormPage}"/>
+    <ShellContent Title="MatrizPermisosPage"  Route="MatrizPermisosPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:matrizPermisosPage}"/>
 </Shell>

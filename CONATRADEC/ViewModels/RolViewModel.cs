@@ -14,22 +14,22 @@ namespace CONATRADEC.ViewModels
 {
     public class RolViewModel : GlobalService
     {
-        private ObservableCollection<RolRP> list = new ObservableCollection<RolRP>();
+        private ObservableCollection<RolResponse> list = new ObservableCollection<RolResponse>();
         private readonly RolApiService rolApiService;
 
         public Command AddCommand { get; }
         public Command EditCommand { get; }
         public Command DeleteCommand { get; }
         public Command ViewCommand { get; }
-        public ObservableCollection<RolRP> List { get => list; set { list = value; OnPropertyChanged(); } }
+        public ObservableCollection<RolResponse> List { get => list; set { list = value; OnPropertyChanged(); } }
 
         public RolViewModel()
         {
             rolApiService = new RolApiService();
             AddCommand = new Command(async () => await OnAdd());
-            EditCommand = new Command<RolRP>(OnEdit);
-            DeleteCommand = new Command<RolRP>(OnDelete);
-            ViewCommand = new Command<RolRP>(OnView);
+            EditCommand = new Command<RolResponse>(OnEdit);
+            DeleteCommand = new Command<RolResponse>(OnDelete);
+            ViewCommand = new Command<RolResponse>(OnView);
         }
         public async Task LoadRol(bool isBusy)
         {
@@ -40,8 +40,7 @@ namespace CONATRADEC.ViewModels
             if (response.Count() != 0)
             {
                 List.Clear();
-                foreach (var rol in response.OrderBy(r => r.NombreRol).ToList())
-                    List.Add(rol);
+                List = response;
             }
             else
             {
@@ -58,7 +57,7 @@ namespace CONATRADEC.ViewModels
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Create},
-                    { "Rol", new RolRequest(new RolRP()) }
+                    { "Rol", new RolRequest(new RolResponse()) }
                 };
                 await Shell.Current.GoToAsync("//RolFormPage", parameters);
             }
@@ -68,7 +67,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async void OnEdit(RolRP rol)
+        private async void OnEdit(RolResponse rol)
         {
             if (IsBusy) return;
 
@@ -92,7 +91,7 @@ namespace CONATRADEC.ViewModels
 
         }
 
-        private async void OnDelete(RolRP rol)
+        private async void OnDelete(RolResponse rol)
         {
             if (IsBusy) return;
 
@@ -126,7 +125,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async void OnView(RolRP rol)
+        private async void OnView(RolResponse rol)
         {
             if (IsBusy) return;
 

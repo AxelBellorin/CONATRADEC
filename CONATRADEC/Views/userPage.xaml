@@ -6,9 +6,12 @@
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
     <ContentView    x:Name="UserPage"
                     ControlTemplate="{StaticResource FooterTemplate}">
-        <!-- Header con título y botón de agregar -->
+        
         <Grid ColumnDefinitions="*" RowDefinitions="Auto,auto,*">
-            <Grid ColumnDefinitions="*,auto" Grid.Row="0" Padding="0,10,0,0">
+            <!-- Header con título y botón de agregar -->
+            <Grid Grid.Row="0" 
+                  ColumnDefinitions="*,auto" 
+                  Padding="0,10,0,0">
                 <Label Text="Users"
                     FontSize="30"
                     FontFamily="MontserratBold"
@@ -27,12 +30,13 @@
                     Command="{Binding AddUserCommand}"/>
             </Grid>
 
-            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Verde}"/>
+            <!-- Overlay de carga -->
+            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}"/>
 
             <!-- Lista de usuarios -->
-            <CollectionView ItemsSource="{Binding UsersList}"
-                            SelectionMode="None"
-                            Grid.Row="2">
+            <CollectionView Grid.Row="2"
+                            ItemsSource="{Binding UsersList}"
+                            SelectionMode="None">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="2"/>
                 </CollectionView.ItemsLayout>

@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
     <!--#region Colores Propios-->
+    <!--Colores Principales-->
     <Color x:Key="color_Verde">#3B655B</Color>
     <Color x:Key="color_Cafe">#9B552C</Color>
     <Color x:Key="color_Amarillo">#F2C94C</Color>
@@ -12,18 +13,27 @@
     <Color x:Key="color_Negro">#000000</Color>
     <Color x:Key="color_Naranja">#FF9800</Color>
 
-
+    <!--Colores Funcionales-->
+    
+    <!--Boton Agregar-->
     <Color x:Key="GreenAdd">#3B655B</Color>
     <Color x:Key="GreenAddPressed">#22C55E</Color>
-    
+
+    <!--Boton Actualizar-->
     <Color x:Key="BlueUpdate">#3B82F6</Color>
     <Color x:Key="BlueUpdatePressed">#2563EB</Color>
-    
+
+    <!--Boton Borrar-->
     <Color x:Key="RedDelete">#EF4444</Color>
     <Color x:Key="RedDeletePressed">#DC2626</Color>
-    
+
+    <!--Boton Cancelar-->
     <Color x:Key="GrayDisabled">#E5E7EB</Color>
     <Color x:Key="GrayDisabledText">#9CA3AF</Color>
+    
+    <!--Boton Refrescar-->
+    <Color x:Key="Color_Refrescar_Normal">#03A9F4</Color>
+    <Color x:Key="Color_Refrescar_Pressed">#0288D1</Color>
 
     <!-- Colores cancelar -->
     <Color x:Key="GrayCancelBg">#F3F4F6</Color>

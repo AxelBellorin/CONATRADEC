@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
-    
+
     <ControlTemplate x:Key="FooterTemplate">
-        <Grid RowDefinitions="* , Auto">            
-            
+        <Grid RowDefinitions="* , Auto">
+
             <!-- #region contenido de la pagina-->
             <ContentPresenter BackgroundColor="GhostWhite" Grid.Row="0"/>
             <!--#endregion-->
-            
+
             <!--#region Pie de pagina-->
             <!--Etiqueta de scroll para deslizar los botones-->
-            <ScrollView Grid.Row="1" >
+            <ScrollView Grid.Row="1" Orientation="Horizontal">
                 <!--Etiqueta para que los botones se alineen horizontalmente-->
                 <HorizontalStackLayout Spacing="10" BackgroundColor="{StaticResource color_Blanco}" Padding="30,10,10,5">
                     <!--Etiqueta para crear los botones-->
@@ -74,9 +74,24 @@
                                 TextColor="{StaticResource color_Negro}"
                                 FontFamily="MontserratMedium"/>
                     </VerticalStackLayout>
+
+                    <!--<VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+                        --><!--Imagen del boton--><!--
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconjobposition.png">
+                            <Image.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding goToMatrizPermisosPageButtonCommad}"/>
+                            </Image.GestureRecognizers>
+                        </Image>
+                        --><!--Texto de la opción--><!--
+                        <Label  HorizontalOptions="Center" 
+                                Text="Matriz de Permisos" 
+                                FontSize="16" 
+                                TextColor="{StaticResource color_Negro}"
+                                FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>-->
                 </HorizontalStackLayout>
             </ScrollView>
-           <!--#endregion-->
+            <!--#endregion-->
         </Grid>
     </ControlTemplate>
 </ResourceDictionary>
