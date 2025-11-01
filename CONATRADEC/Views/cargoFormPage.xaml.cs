@@ -68,21 +68,13 @@ public partial class cargoFormPage : ContentPage
     // ============================================================
     public cargoFormPage()
     {
-        try
-        {
-            // Deshabilita el menú lateral de Shell (evita abrirlo en formularios)
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+        // Deshabilita el menú lateral de Shell (evita abrirlo en formularios)
+        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
 
-            // Carga el diseño visual (cargoFormPage.xaml)
-            InitializeComponent();
+        // Conecta la vista con su ViewModel (MVVM binding)
+        BindingContext = viewModel;
 
-            // Conecta la vista con su ViewModel (MVVM binding)
-            BindingContext = viewModel;
-        }
-        catch (Exception ex)
-        {
-            // En caso de error en la inicialización, lo muestra en la consola.
-            Console.WriteLine(ex.Message);
-        }
+        // Carga el diseño visual (cargoFormPage.xaml)
+        InitializeComponent();
     }
 }

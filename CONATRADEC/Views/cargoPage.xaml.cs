@@ -5,8 +5,8 @@ public partial class cargoPage : ContentPage
 {
     public cargoPage()
     {
-        InitializeComponent();
+        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
         BindingContext = new CargoViewModel();
-        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;        
+        InitializeComponent();   
     }
 }

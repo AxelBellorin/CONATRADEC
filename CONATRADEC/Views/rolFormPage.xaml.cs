@@ -26,8 +26,8 @@ public partial class rolFormPage : ContentPage
         try
         {
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            InitializeComponent();
             BindingContext = viewModel;
+            InitializeComponent();            
         }
         catch(Exception ex)
         {

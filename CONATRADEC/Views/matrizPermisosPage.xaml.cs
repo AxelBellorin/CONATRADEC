@@ -5,8 +5,8 @@ public partial class matrizPermisosPage : ContentPage
 {
     public matrizPermisosPage()
     {
-        InitializeComponent();
+        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
         BindingContext = new MatrizPermisosViewModel();
-        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;        
+        InitializeComponent();        
     }
 }

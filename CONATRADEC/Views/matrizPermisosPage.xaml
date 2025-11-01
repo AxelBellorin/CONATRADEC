@@ -53,6 +53,7 @@
 
                         <!-- Picker de Roles. Muestra NombreRol y actualiza RolSeleccionado -->
                         <Picker Title="Seleccione un rol"
+                                TextColor="{StaticResource color_Negro}"
                                 ItemsSource="{Binding Roles}"
                                 ItemDisplayBinding="{Binding NombreRol}"
                                 SelectedItem="{Binding RolSeleccionado}" />
@@ -72,6 +73,7 @@
                     <!-- FILA 2: Cuadro de búsqueda de interfaces -->
                     <!-- Filtra por NombrePermiso en PermisosFiltrados -->
                     <SearchBar Grid.Row="2"
+                               TextColor="{StaticResource color_Negro}"
                                Placeholder="Buscar interfaz..."
                                Text="{Binding Filtro}"
                                IsEnabled="{Binding !IsBusy}" />
@@ -87,6 +89,7 @@
 
                             <!-- Título de la primera columna -->
                             <Label Text="Interfaz"
+                                   TextColor="{StaticResource color_Negro}"
                                    FontAttributes="Bold"
                                    VerticalOptions="Center" />
 
@@ -156,6 +159,7 @@
                                                       Padding="0,8">
                                                     <!-- Nombre de la interfaz -->
                                                     <Label Text="{Binding NombrePermiso}"
+                                                           TextColor="{StaticResource color_Negro}"
                                                            LineBreakMode="TailTruncation"
                                                            VerticalTextAlignment="Start" />
 
@@ -166,14 +170,17 @@
                                                            VerticalTextAlignment="Center">
                                                         <Label.FormattedText>
                                                             <FormattedString>
-                                                                <Span Text="L:" />
-                                                                <Span Text="{Binding Leer}" />
-                                                                <Span Text="  A:" />
-                                                                <Span Text="{Binding Agregar}" />
-                                                                <Span Text="  U:" />
-                                                                <Span Text="{Binding Actualizar}" />
-                                                                <Span Text="  E:" />
-                                                                <Span Text="{Binding Eliminar}" />
+                                                                <Span Text="L: " TextColor="{StaticResource color_Negro}"/>                                                                
+                                                                <Span Text="{Binding Leer}" TextColor="{StaticResource color_Negro}" />
+                                                                <Span Text=" | " TextColor="{StaticResource color_Negro}"/>
+                                                                <Span Text="  A: " TextColor="{StaticResource color_Negro}"/>
+                                                                <Span Text="{Binding Agregar}" TextColor="{StaticResource color_Negro}"/>
+                                                                <Span Text=" | " TextColor="{StaticResource color_Negro}"/>
+                                                                <Span Text="  Ac: " TextColor="{StaticResource color_Negro}"/>
+                                                                <Span Text="{Binding Actualizar}" TextColor="{StaticResource color_Negro}"/>
+                                                                <Span Text=" | " TextColor="{StaticResource color_Negro}"/>
+                                                                <Span Text="  E: " TextColor="{StaticResource color_Negro}"/>
+                                                                <Span Text="{Binding Eliminar}" TextColor="{StaticResource color_Negro}"/>
                                                             </FormattedString>
                                                         </Label.FormattedText>
                                                     </Label>
@@ -190,12 +197,15 @@
 
                                                     <!-- Fila de opciones (etiqueta + checkbox por permiso) -->
                                                     <Grid RowDefinitions="Auto,Auto"
-                                                          ColumnDefinitions="*,*,*,*,Auto">
+                                                          ColumnDefinitions="*,*,*,*,Auto"
+                                                          ColumnSpacing="5"
+                                                          >
 
                                                         <!-- Leer -->
                                                         <Label Grid.Row="0"
                                                                Grid.Column="0"
                                                                Text="Leer"
+                                                               TextColor="{StaticResource color_Negro}"
                                                                LineBreakMode="TailTruncation"
                                                                MaxLines="1" />
                                                         <CheckBox Grid.Row="1"
@@ -208,6 +218,7 @@
                                                         <Label Grid.Row="0"
                                                                Grid.Column="1"
                                                                Text="Agregar"
+                                                               TextColor="{StaticResource color_Negro}"
                                                                LineBreakMode="TailTruncation"
                                                                MaxLines="1" />
                                                         <CheckBox Grid.Row="1"
@@ -220,6 +231,7 @@
                                                         <Label Grid.Row="0"
                                                                Grid.Column="2"
                                                                Text="Actualizar"
+                                                               TextColor="{StaticResource color_Negro}"
                                                                LineBreakMode="TailTruncation"
                                                                MaxLines="1" />
                                                         <CheckBox Grid.Row="1"
@@ -232,6 +244,7 @@
                                                         <Label Grid.Row="0"
                                                                Grid.Column="3"
                                                                Text="Eliminar"
+                                                               TextColor="{StaticResource color_Negro}"
                                                                LineBreakMode="TailTruncation"
                                                                MaxLines="1" />
                                                         <CheckBox Grid.Row="1"

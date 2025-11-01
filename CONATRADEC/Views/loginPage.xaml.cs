@@ -6,9 +6,9 @@ public partial class loginPage : ContentPage
     public static string appName = "ConatraCafé Soil";
     public loginPage()
     {
-        InitializeComponent();
-        BindingContext = new LoginViewModel();
         Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+        BindingContext = new LoginViewModel();
+        InitializeComponent();
     }
 
     private void UserNameEntryCompleted(object sender, EventArgs e) => PasswordEntry.Focus();

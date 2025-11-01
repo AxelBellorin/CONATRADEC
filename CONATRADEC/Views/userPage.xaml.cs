@@ -5,8 +5,8 @@ public partial class userPage : ContentPage
 {
     public userPage()
     {
-        BindingContext = new UserViewModel();
         Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+        BindingContext = new UserViewModel();
         InitializeComponent();
     }
 }

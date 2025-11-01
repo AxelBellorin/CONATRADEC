@@ -5,8 +5,8 @@ public partial class rolPage : ContentPage
 {
     public rolPage()
     {
-        InitializeComponent();
+        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
         BindingContext = new RolViewModel();
-        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;        
+        InitializeComponent();      
     }
 }
