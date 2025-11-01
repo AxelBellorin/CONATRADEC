@@ -1,29 +1,101 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Página: MainPage.xaml
+  Descripción:
+  Pantalla principal de la aplicación ConatraCafé Soil.
+  Presenta opciones de navegación y resumen de análisis recientes.
+  Usa un ControlTemplate (FooterTemplate) que define el pie de página global.
+-->
+
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.MainPage"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <!-- Contenedor principal que aplica el FooterTemplate compartido -->
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+
+        <!-- ScrollView permite desplazar contenido en pantallas pequeñas -->
         <ScrollView>
+
+            <!-- Contenedor principal vertical con estilo global -->
             <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
-                <!-- Encabezado -->
+
+                <!-- ===================================================== -->
+                <!-- ENCABEZADO -->
+                <!-- ===================================================== -->
                 <Label Text="Inicio"
                        FontSize="24"
                        FontAttributes="Bold"
                        TextColor="Black" />
 
-                <!-- Botón Nuevo Análisis -->
+                <!-- ===================================================== -->
+                <!-- BOTÓN: NUEVO ANÁLISIS -->
+                <!-- ===================================================== -->
+                <!--
+                  Botón de acción principal.
+                  Podría enlazarse a un comando del ViewModel para crear un nuevo análisis de suelo.
+                -->
                 <Button Text="Nuevo Análisis"
                         BackgroundColor="{StaticResource color_Verde}"
                         TextColor="White"
                         FontSize="18"
                         CornerRadius="12"
                         HeightRequest="50"
-                        HorizontalOptions="Fill"
-                        />
+                        HorizontalOptions="Fill" />
 
-                <!-- Último análisis -->
+                <!-- ===================================================== -->
+                <!-- BLOQUE: ÚLTIMO ANÁLISIS (ejemplo estático) -->
+                <!-- ===================================================== -->
+                <!--
+                  Cada bloque de análisis muestra información resumida (fecha, pH, humedad, etc.)
+                  El estilo BorderStyle define el contorno y padding uniforme.
+                -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="8">
+
+                        <!-- Título y fecha -->
+                        <Label Text="Último análisis"
+                               FontAttributes="Bold"
+                               FontSize="16"
+                               TextColor="Black" />
+                        <Label Text="12-mar, 2024"
+                               FontSize="14"
+                               TextColor="Gray" />
+
+                        <!-- Datos principales -->
+                        <Grid ColumnDefinitions="*,*"
+                              Padding="0,5,0,0">
+
+                            <!-- Valor de pH -->
+                            <VerticalStackLayout>
+                                <Label Text="pH" 
+                                       FontSize="14"
+                                       TextColor="Gray" />
+                                <Label Text="5.8"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="Black" />
+                            </VerticalStackLayout>
+
+                            <!-- Valor de Humedad -->
+                            <VerticalStackLayout Grid.Column="1">
+                                <Label Text="Humedad" 
+                                       FontSize="14"
+                                       TextColor="Gray" />
+                                <Label Text="13 %"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="Black" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ===================================================== -->
+                <!-- BLOQUE REPETIDO (puede eliminarse o reutilizarse dinámicamente) -->
+                <!-- ===================================================== -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="8">
                         <Label Text="Último análisis"
@@ -36,91 +108,65 @@
 
                         <Grid ColumnDefinitions="*,*"
                               Padding="0,5,0,0">
-                            <VerticalStackLayout>
-                                <Label Text="pH" 
-                                       FontSize="14"
-                                       TextColor="Gray"/>
-                                <Label Text="5.8"
-                                       FontSize="18"
-                                       FontAttributes="Bold"
-                                       TextColor="Black"/>
-                            </VerticalStackLayout>
 
-                            <VerticalStackLayout Grid.Column="1">
-                                <Label Text="Humedad" 
-                                       FontSize="14"
-                                       TextColor="Gray"/>
-                                <Label Text="13 %"
-                                       FontSize="18"
-                                       FontAttributes="Bold"
-                                       TextColor="Black"/>
-                            </VerticalStackLayout>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
-
-                <Border Style="{StaticResource BorderStyle}">
-                    <!-- Contenido -->
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Último análisis"
-                                   FontAttributes="Bold"
-                                   FontSize="16"
-                                   TextColor="Black" />
-                        <Label Text="12-mar, 2024"
-                                FontSize="14"
-                                TextColor="Gray" />
-
-                        <Grid ColumnDefinitions="*,*" Padding="0,5,0,0">
                             <VerticalStackLayout Grid.Column="0">
                                 <Label Text="pH" 
-                                   FontSize="14"
-                                   TextColor="Gray"/>
+                                       FontSize="14"
+                                       TextColor="Gray" />
                                 <Label Text="5.8"
-                                   FontSize="18"
-                                   FontAttributes="Bold"
-                                   TextColor="Black"/>
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="Black" />
                             </VerticalStackLayout>
+
                             <VerticalStackLayout Grid.Column="1">
                                 <Label Text="Humedad" 
-                                   FontSize="14"
-                                   TextColor="Gray"/>
+                                       FontSize="14"
+                                       TextColor="Gray" />
                                 <Label Text="13 %"
-                                   FontSize="18"
-                                   FontAttributes="Bold"
-                                   TextColor="Black"/>
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="Black" />
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-
-                <!-- Otro análisis -->
+                <!-- ===================================================== -->
+                <!-- BLOQUE: OTRO ANÁLISIS (ejemplo histórico) -->
+                <!-- ===================================================== -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="8">
+
+                        <!-- Fecha del análisis -->
                         <Label Text="8 mar, 2024"
                                FontSize="14"
                                TextColor="Gray" />
 
+                        <!-- Datos -->
                         <Grid ColumnDefinitions="*,*"
                               Padding="0,5,0,0">
+
+                            <!-- Valor de pH -->
                             <VerticalStackLayout>
                                 <Label Text="pH" 
                                        FontSize="14"
-                                       TextColor="Gray"/>
+                                       TextColor="Gray" />
                                 <Label Text="6.2"
                                        FontSize="18"
                                        FontAttributes="Bold"
-                                       TextColor="Black"/>
+                                       TextColor="Black" />
                             </VerticalStackLayout>
 
+                            <!-- Valor de Humedad -->
                             <VerticalStackLayout Grid.Column="1">
                                 <Label Text="Humedad" 
                                        FontSize="14"
-                                       TextColor="Gray"/>
+                                       TextColor="Gray" />
                                 <Label Text="16 %"
                                        FontSize="18"
                                        FontAttributes="Bold"
-                                       TextColor="Black"/>
+                                       TextColor="Black" />
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>

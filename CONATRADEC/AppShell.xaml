@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Archivo: AppShell.xaml
+  Descripción:
+    Define la estructura de navegación principal de la aplicación CONATRADEC.
+    Utiliza el patrón Shell de .NET MAUI para manejar rutas, navegación jerárquica
+    y el menú Flyout.
+
+  Contiene:
+    - Configuración visual del Shell (colores, encabezado, fondo del menú).
+    - Definición de rutas de las páginas (ShellContent).
+    - Cada ShellContent representa una vista registrada para navegación.
+-->
 <Shell
     x:Class="CONATRADEC.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -10,13 +22,66 @@
     Shell.DisabledColor="Gray"
     Shell.FlyoutBackgroundColor="LightBlue">
 
-    <ShellContent Title="Login"  Route="LoginPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:loginPage}"/>
-    <ShellContent Title="MainPage"  Route="MainPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:MainPage}"/>
-    <ShellContent Title="UserPage"  Route="UserPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:userPage}"/>
-    <ShellContent Title="UserFormPage"  Route="UserFormPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:userFormPage}"/>
-    <ShellContent Title="RolPage"  Route="RolPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:rolPage}"/>
-    <ShellContent Title="RolFormPage"  Route="RolFormPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:rolFormPage}"/>
-    <ShellContent Title="CargoPage"  Route="CargoPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:cargoPage}"/>
-    <ShellContent Title="CargoFormPage"  Route="CargoFormPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:cargoFormPage}"/>
-    <ShellContent Title="MatrizPermisosPage"  Route="MatrizPermisosPage" FlyoutItemIsVisible="False" ContentTemplate="{DataTemplate views:matrizPermisosPage}"/>
+    <!--
+      NOTAS:
+        - Cada <ShellContent> define una página registrada con una "Route".
+        - FlyoutItemIsVisible="False" oculta la página del menú lateral (solo accesible por código).
+        - Se usan rutas absolutas en navegación (//RouteName).
+        - El "ContentTemplate" vincula el nombre de la vista (Page) con su clase correspondiente.
+    -->
+
+    <!-- Pantalla de autenticación -->
+    <ShellContent Title="Login"
+                  Route="LoginPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:loginPage}" />
+
+    <!-- Página principal después de iniciar sesión -->
+    <ShellContent Title="MainPage"
+                  Route="MainPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:MainPage}" />
+
+    <!-- Gestión de usuarios -->
+    <ShellContent Title="UserPage"
+                  Route="UserPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:userPage}" />
+
+    <!-- Formulario de usuario (crear, editar, ver) -->
+    <ShellContent Title="UserFormPage"
+                  Route="UserFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:userFormPage}" />
+
+    <!-- Gestión de roles -->
+    <ShellContent Title="RolPage"
+                  Route="RolPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:rolPage}" />
+
+    <!-- Formulario de rol -->
+    <ShellContent Title="RolFormPage"
+                  Route="RolFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:rolFormPage}" />
+
+    <!-- Gestión de cargos -->
+    <ShellContent Title="CargoPage"
+                  Route="CargoPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:cargoPage}" />
+
+    <!-- Formulario de cargo -->
+    <ShellContent Title="CargoFormPage"
+                  Route="CargoFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:cargoFormPage}" />
+
+    <!-- Matriz de permisos (Roles ↔ Interfaz) -->
+    <ShellContent Title="MatrizPermisosPage"
+                  Route="MatrizPermisosPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:matrizPermisosPage}" />
+
 </Shell>

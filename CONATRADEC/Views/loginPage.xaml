@@ -1,74 +1,125 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Página: loginPage.xaml
+  Descripción:
+  Pantalla de inicio de sesión de la aplicación ConatraCafé Soil.
+  Esta vista está vinculada al ViewModel: LoginViewModel.
+  Propiedades clave del ViewModel: Username, Password, IsBusy, IsPasswordHidden, PasswordToggleIcon.
+  Comandos: LoginCommand, TogglePasswordCommand.
+-->
+
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"             
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:login="clr-namespace:CONATRADEC.Views"
              x:Class="CONATRADEC.Views.loginPage"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <!-- ScrollView para permitir desplazamiento vertical en pantallas pequeñas -->
     <ScrollView>
+
+        <!-- Contenedor principal con espaciado y padding definido en VerticalStackLayoutStyle -->
         <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
-            <ImageButton    Source="logocontradec.png"
-                            Aspect="AspectFill" 
-                            Padding="0"
-                            HeightRequest="250"
-                            WidthRequest="250"
-                            CornerRadius="125">
+
+            <!-- 
+                LOGO DE LA APLICACIÓN 
+                - Se usa un ImageButton con clip circular (EllipseGeometry) para recortar la imagen.
+                - Puede servir también como acción futura (por ejemplo, recargar o mostrar info).
+            -->
+            <ImageButton Source="logocontradec.png"
+                         Aspect="AspectFill"
+                         Padding="0"
+                         HeightRequest="250"
+                         WidthRequest="250"
+                         CornerRadius="125">
                 <ImageButton.Clip>
-                    <!-- recorta 5 px hacia adentro: ajusta RadiusX/Y a gusto -->
-                    <EllipseGeometry Center="125,125" RadiusX="100" RadiusY="100"/>
+                    <!-- Recorta la imagen en forma circular -->
+                    <EllipseGeometry Center="125,125" RadiusX="100" RadiusY="100" />
                 </ImageButton.Clip>
             </ImageButton>
-            <Label 
-            Text="ConatraCafé Soil"
-            FontSize="40"
-            FontFamily="MontserratBold"
-            HorizontalOptions="Center" 
-            TextColor="{StaticResource color_Negro}"/>
 
+            <!-- 
+                TÍTULO PRINCIPAL DE LA APLICACIÓN 
+                - Muestra el nombre de la app: ConatraCafé Soil
+            -->
+            <Label Text="ConatraCafé Soil"
+                   FontSize="40"
+                   FontFamily="MontserratBold"
+                   HorizontalOptions="Center"
+                   TextColor="{StaticResource color_Negro}" />
+
+            <!-- SUBTÍTULO / ENCABEZADO DEL FORMULARIO -->
             <Label Text="Iniciar sesión"
-               HorizontalOptions="Center"
-               TextColor="{StaticResource color_Negro}"
-               FontSize="40"
-               FontAttributes="Bold"               
-               FontFamily="MontserratMedium"
-               />
+                   HorizontalOptions="Center"
+                   TextColor="{StaticResource color_Negro}"
+                   FontSize="40"
+                   FontAttributes="Bold"
+                   FontFamily="MontserratMedium" />
 
+            <!-- 
+                CAMPO DE CORREO ELECTRÓNICO 
+                - Enlazado a Username del ViewModel.
+                - Usa teclado tipo Email.
+                - Completed invoca evento en code-behind (UserNameEntryCompleted).
+            -->
             <Border Style="{StaticResource BorderStyle}">
-                <Entry  Style="{StaticResource EntryStyle}"
-                        Text="{Binding Username}"
-                        x:Name="UserNameEntry"
-                        Completed="UserNameEntryCompleted"
-                        Placeholder="Correo electronico"                   
-                        Keyboard="Email"/>
+                <Entry Style="{StaticResource EntryStyle}"
+                       Text="{Binding Username}"
+                       x:Name="UserNameEntry"
+                       Completed="UserNameEntryCompleted"
+                       Placeholder="Correo electrónico"
+                       Keyboard="Email" />
             </Border>
 
+            <!-- 
+                CAMPO DE CONTRASEÑA 
+                - Contiene Entry + botón (ojo) para alternar visibilidad.
+                - IsPassword se enlaza a IsPasswordHidden (booleano del ViewModel).
+                - Icono del ojo cambia según PasswordToggleIcon.
+            -->
             <Border Style="{StaticResource BorderStyle}">
                 <Grid ColumnDefinitions="*, Auto">
-                    <Entry  Grid.Column="0"
-                            x:Name="PasswordEntry"  
-                            Completed="PasswordEntryCompleted"
-                            Style="{StaticResource EntryStyle}"
-                            Placeholder="Contraseña" 
-                            Text="{Binding Password}"
-                            IsPassword="{Binding IsPasswordHidden}"
-                            Background="Transparent"/>
-                    <ImageButton    Grid.Column="1"
-                                    Margin="10,0,0,0"
-                                    Source="{Binding PasswordToggleIcon}"
-                                    Command="{Binding TogglePasswordCommand}"
-                                    BackgroundColor="Transparent"
-                                    WidthRequest="30"
-                                    HeightRequest="30" />
+                    <!-- Entry de contraseña -->
+                    <Entry Grid.Column="0"
+                           x:Name="PasswordEntry"
+                           Completed="PasswordEntryCompleted"
+                           Style="{StaticResource EntryStyle}"
+                           Placeholder="Contraseña"
+                           Text="{Binding Password}"
+                           IsPassword="{Binding IsPasswordHidden}"
+                           Background="Transparent" />
+
+                    <!-- Botón para mostrar/ocultar contraseña -->
+                    <ImageButton Grid.Column="1"
+                                 Margin="10,0,0,0"
+                                 Source="{Binding PasswordToggleIcon}"
+                                 Command="{Binding TogglePasswordCommand}"
+                                 BackgroundColor="Transparent"
+                                 WidthRequest="30"
+                                 HeightRequest="30" />
                 </Grid>
             </Border>
 
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}"/>
-            
+            <!--
+                INDICADOR DE CARGA 
+                - Se muestra mientras IsBusy es true.
+                - Usado durante el proceso de login.
+            -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource color_Naranja}" />
+
+            <!-- 
+                BOTÓN PRINCIPAL: INICIAR SESIÓN 
+                - Ejecuta LoginCommand del ViewModel.   
+                - Aplica estilo global "AddButton" para color y forma.
+            -->
             <Button Style="{StaticResource AddButton}"
-                    Text="Iniciar Sesión" 
+                    Text="Iniciar Sesión"
                     Padding="0,18,0,18"
                     Margin="0,20,0,0"
-                    Command="{Binding LoginCommand}"/>
+                    Command="{Binding LoginCommand}" />
+
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

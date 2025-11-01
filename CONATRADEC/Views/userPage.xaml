@@ -1,94 +1,162 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Página: userPage.xaml
+  Descripción: Muestra una lista de usuarios, permitiendo crear, editar, eliminar y ver detalles.
+  ViewModel esperado: UserViewModel
+  Bindings clave:
+    - UsersList (ObservableCollection<UserRP>)
+    - IsBusy (bool)
+    - AddUserCommand, EditUserCommand, DeleteUserCommand, ViewUserCommand
+-->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.userPage"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
-    <ContentView    x:Name="UserPage"
-                    ControlTemplate="{StaticResource FooterTemplate}">
-        
-        <Grid ColumnDefinitions="*" RowDefinitions="Auto,auto,*">
-            <!-- Header con título y botón de agregar -->
-            <Grid Grid.Row="0" 
-                  ColumnDefinitions="*,auto" 
+
+    <!--
+      Se utiliza un ContentView con plantilla de pie de página (FooterTemplate)
+      para mantener coherencia visual con el resto de las páginas del sistema.
+      El x:Name="UserPage" es importante para acceder al BindingContext
+      desde los SwipeItems.
+    -->
+    <ContentView x:Name="UserPage"
+                 ControlTemplate="{StaticResource FooterTemplate}">
+
+        <!--
+          Layout principal con tres secciones:
+          1. Encabezado (título + botón agregar)
+          2. Indicador de carga
+          3. Lista de usuarios
+        -->
+        <Grid ColumnDefinitions="*"
+              RowDefinitions="Auto,auto,*">
+
+            <!-- ENCABEZADO -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="*,auto"
                   Padding="0,10,0,0">
-                <Label Text="Users"
-                    FontSize="30"
-                    FontFamily="MontserratBold"
-                    TextColor="{StaticResource color_Negro}"
-                    FontAttributes="Bold"
-                    VerticalOptions="Center"
-                    HorizontalOptions="Start"
-                    Padding="30,0,0,0"/>
-                <ImageButton 
-                    Source="iconadd.png"
-                    WidthRequest="60"
-                    HeightRequest="60"
-                    CornerRadius="30"
-                    Grid.Column="1"
-                    Padding="0,0,20,0"
-                    Command="{Binding AddUserCommand}"/>
+
+                <!-- Título principal -->
+                <Label Text="Usuario"
+                       FontSize="30"
+                       FontFamily="MontserratBold"
+                       TextColor="{StaticResource color_Negro}"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"
+                       HorizontalOptions="Start"
+                       Padding="30,0,0,0" />
+
+                <!-- Botón para agregar un nuevo usuario -->
+                <ImageButton Source="iconadd.png"
+                             WidthRequest="60"
+                             HeightRequest="60"
+                             CornerRadius="30"
+                             Grid.Column="1"
+                             Padding="0,0,20,0"
+                             Command="{Binding AddUserCommand}" />
             </Grid>
 
-            <!-- Overlay de carga -->
-            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}"/>
+            <!-- INDICADOR DE CARGA -->
+            <!--
+              Aparece cuando el ViewModel tiene IsBusy = true.
+              Se utiliza color naranja según la paleta del proyecto.
+            -->
+            <ActivityIndicator Grid.Row="1"
+                               IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource color_Naranja}" />
 
-            <!-- Lista de usuarios -->
+            <!-- LISTA DE USUARIOS -->
+            <!--
+              Cada usuario muestra: Imagen, Nombre y Correo.
+              Swipe lateral permite Editar o Eliminar.
+            -->
             <CollectionView Grid.Row="2"
                             ItemsSource="{Binding UsersList}"
                             SelectionMode="None">
+
+                <!-- Configuración de disposición vertical -->
                 <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="2"/>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="2" />
                 </CollectionView.ItemsLayout>
 
+                <!-- Vista vacía cuando no hay usuarios -->
+                <CollectionView.EmptyView>
+                    <Grid Padding="20">
+                        <Label Text="No hay cargos para mostrar."
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Grid>
+                </CollectionView.EmptyView>
+
+                <!-- PLANTILLA DE ELEMENTO -->
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
+
+                        <!-- SwipeView: acciones Editar / Eliminar -->
                         <SwipeView>
+
+                            <!-- Acciones laterales -->
                             <SwipeView.RightItems>
                                 <SwipeItems Mode="Reveal">
-                                    <SwipeItem  Text="Editar"
-                                                IconImageSource="iconupdate.png"
-                                                BackgroundColor="{StaticResource BlueUpdate}"
-                                                Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.EditUserCommand}"
-                                                CommandParameter="{Binding .}"/>
 
-                                    <SwipeItem  Text="Eliminar"
-                                                IconImageSource="icondelete.png" 
-                                                BackgroundColor="{StaticResource RedDelete}"
-                                                Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.DeleteUserCommand}"
-                                                CommandParameter="{Binding .}"/>
+                                    <!-- Acción: Editar usuario -->
+                                    <SwipeItem Text="Editar"
+                                               IconImageSource="iconupdate.png"
+                                               BackgroundColor="{StaticResource BlueUpdate}"
+                                               Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.EditUserCommand}"
+                                               CommandParameter="{Binding .}" />
+
+                                    <!-- Acción: Eliminar usuario -->
+                                    <SwipeItem Text="Eliminar"
+                                               IconImageSource="icondelete.png"
+                                               BackgroundColor="{StaticResource RedDelete}"
+                                               Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.DeleteUserCommand}"
+                                               CommandParameter="{Binding .}" />
 
                                 </SwipeItems>
                             </SwipeView.RightItems>
 
-                            <!-- Contenido del usuario -->
+                            <!-- CONTENIDO VISUAL DEL USUARIO -->
                             <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
-                                                        Default={StaticResource BorderStyleNoBorder}}">
+                                                    Default={StaticResource BorderStyleNoBorder}}">
 
-                                <Grid Padding="10" ColumnDefinitions="Auto,*">
+                                <!-- Estructura interna: Imagen + Nombre + Correo -->
+                                <Grid Padding="10"
+                                      ColumnDefinitions="Auto,*">
+
+                                    <!-- TapGesture para ver detalles -->
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer   Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.ViewUserCommand}"
-                                                                CommandParameter="{Binding .}"/>
+                                        <TapGestureRecognizer Command="{Binding Source={x:Reference UserPage}, Path=BindingContext.ViewUserCommand}"
+                                                              CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
+
+                                    <!-- Imagen de usuario (si no hay, se muestra imagen por defecto o vacía) -->
                                     <Border Style="{StaticResource BorderStyleImage}"
                                             WidthRequest="65"
                                             HeightRequest="65"
                                             Margin="0,0,10,0">
-                                        <Image Source="{Binding Image}"                                   
-                                                Aspect="AspectFill"
-                                                BackgroundColor="Transparent"/>
+                                        <Image Source="{Binding Image}"
+                                               Aspect="AspectFill"
+                                               BackgroundColor="Transparent" />
                                     </Border>
+
+                                    <!-- Datos del usuario -->
                                     <StackLayout Grid.Column="1"
-                                                        VerticalOptions="Center">
-                                        <Label  Text="{Binding FirstName}" 
-                                                FontAttributes="Bold" 
-                                                FontSize="20"
-                                                FontFamily="MontserratBold"
-                                                TextColor="{StaticResource color_Negro}"/>
-                                        <Label  Text="{Binding Email}" 
-                                                FontSize="14"
-                                                FontFamily="MontserratMedium"
-                                                TextColor="{StaticResource color_Negro}"/>
+                                                 VerticalOptions="Center">
+                                        <!-- Nombre -->
+                                        <Label Text="{Binding FirstName}"
+                                               FontAttributes="Bold"
+                                               FontSize="20"
+                                               FontFamily="MontserratBold"
+                                               TextColor="{StaticResource color_Negro}" />
+
+                                        <!-- Correo electrónico -->
+                                        <Label Text="{Binding Email}"
+                                               FontSize="14"
+                                               FontFamily="MontserratMedium"
+                                               TextColor="{StaticResource color_Negro}" />
                                     </StackLayout>
                                 </Grid>
                             </Border>

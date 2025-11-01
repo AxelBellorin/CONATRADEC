@@ -18,7 +18,7 @@ public partial class rolFormPage : ContentPage
     public RolRequest Rol
     {
         get => rolr;
-        set { viewModel.Rol = value; rolr = value; }
+        set { viewModel.Rol = value; }
 
     }
     public rolFormPage()

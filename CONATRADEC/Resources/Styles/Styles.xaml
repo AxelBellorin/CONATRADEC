@@ -128,6 +128,12 @@
                             <Setter Property="BackgroundColor" Value="{StaticResource GreenAdd}"/>
                         </VisualState.Setters>
                     </VisualState>
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GrayDisabled}"/>
+                            <Setter Property="TextColor" Value="{StaticResource GrayDisabledText}"/>
+                        </VisualState.Setters>
+                    </VisualState>
                 </VisualStateGroup>
             </VisualStateGroupList>
         </Setter>
@@ -149,6 +155,12 @@
                             <Setter Property="BackgroundColor" Value="{StaticResource BlueUpdate}"/>
                         </VisualState.Setters>
                     </VisualState>
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GrayDisabled}"/>
+                            <Setter Property="TextColor" Value="{StaticResource GrayDisabledText}"/>
+                        </VisualState.Setters>
+                    </VisualState>
                 </VisualStateGroup>
             </VisualStateGroupList>
         </Setter>
@@ -168,6 +180,12 @@
                     <VisualState x:Name="Normal">
                         <VisualState.Setters>
                             <Setter Property="BackgroundColor" Value="{StaticResource RedDelete}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GrayDisabled}"/>
+                            <Setter Property="TextColor" Value="{StaticResource GrayDisabledText}"/>
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
@@ -193,6 +211,12 @@
                     <VisualState x:Name="Normal">
                         <VisualState.Setters>
                             <Setter Property="BackgroundColor" Value="{StaticResource GrayCancelBg}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GrayDisabled}"/>
+                            <Setter Property="TextColor" Value="{StaticResource GrayDisabledText}"/>
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>

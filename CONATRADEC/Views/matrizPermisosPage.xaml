@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Página: matrizPermisosPage.xaml
+  Descripción: UI para administrar la matriz de permisos por Rol.
+  ViewModel esperado: MatrizPermisosViewModel
+  Propiedades/comandos usados: Roles, RolSeleccionado, Filtro, IsBusy, Estado,
+                              PermisosFiltrados, RefrescarCommand, GuardarCommand,
+                              RevertirCambiosCommand, MarcarColumnaCommand,
+                              LimpiarTodoCommand, MarcarFilaCommand, LimpiarFilaCommand.
+-->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
@@ -7,166 +16,261 @@
              Title="Matriz de permisos"
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
+    <!-- Contenedor con plantilla de pie de página común -->
     <ContentView x:Name="MatrizPermisosPage"
                  ControlTemplate="{StaticResource FooterTemplate}">
 
-        <!-- Solo scroll vertical -->
+        <!-- Scroll sólo vertical para listas largas -->
         <ScrollView Orientation="Vertical">
-            <VerticalStackLayout>
-                <!-- Overlay de carga -->
-                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}" HorizontalOptions="Center" VerticalOptions="Center"/>
 
-                <!-- BODY -->
-                <Grid Padding="20,10,20,0" RowSpacing="10"
+            <VerticalStackLayout>
+
+                <!-- Indicador de carga: se muestra cuando IsBusy = true -->
+                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
+                                   Color="{StaticResource color_Naranja}"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+
+                <!-- CUERPO PRINCIPAL -->
+                <Grid Padding="20,10,20,0"
+                      RowSpacing="10"
                       RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
-                    <!-- Título -->
+                    <!-- TÍTULO -->
                     <Label Text="Matriz de permisos"
                            FontSize="30"
                            FontFamily="MontserratBold"
                            TextColor="{StaticResource color_Negro}"
                            FontAttributes="Bold"
                            VerticalOptions="Center"
-                           HorizontalOptions="Start"/>
+                           HorizontalOptions="Start" />
 
-                    <!-- Picker Rol + Refrescar -->
+                    <!-- FILA 1: Selector de Rol + botón Refrescar -->
                     <Grid Grid.Row="1"
                           ColumnDefinitions="*,Auto"
                           ColumnSpacing="10">
+
+                        <!-- Picker de Roles. Muestra NombreRol y actualiza RolSeleccionado -->
                         <Picker Title="Seleccione un rol"
                                 ItemsSource="{Binding Roles}"
                                 ItemDisplayBinding="{Binding NombreRol}"
-                                SelectedItem="{Binding RolSeleccionado}"
-                                IsEnabled="{Binding !IsBusy}" />
+                                SelectedItem="{Binding RolSeleccionado}" />
+
+                        <!-- Botón para recargar lista de Roles -->
                         <Button Grid.Column="1"
-                                Style="{StaticResource RefreshButton}"
-                                Margin="{OnPlatform WinUI='0,30,0,0',Default='0,0,0,0'}"
+                                Style="{StaticResource UpdateButton}"
+                                Margin="{OnPlatform WinUI='0,30,0,0', Default='0,0,0,0'}"
                                 Text="Refrescar"
                                 Command="{Binding RefrescarCommand}"
                                 IsEnabled="{Binding !IsBusy}"
-                                HeightRequest="{OnPlatform Android=30,iOS=30}"
-                                WidthRequest="{OnPlatform Android=90,iOS=90}"
-                                FontSize="12"/>
+                                HeightRequest="{OnPlatform Android=30, iOS=30}"
+                                WidthRequest="{OnPlatform Android=90, iOS=90}"
+                                FontSize="12" />
                     </Grid>
 
-                    <!-- Buscar -->
+                    <!-- FILA 2: Cuadro de búsqueda de interfaces -->
+                    <!-- Filtra por NombrePermiso en PermisosFiltrados -->
                     <SearchBar Grid.Row="2"
                                Placeholder="Buscar interfaz..."
                                Text="{Binding Filtro}"
-                               IsEnabled="{Binding !IsBusy}"/>
+                               IsEnabled="{Binding !IsBusy}" />
 
-                    <!-- Encabezado compacto + acciones por columna (opcional) -->
-                    <VerticalStackLayout Grid.Row="3" Spacing="8">
-                        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Padding="0,6" ColumnSpacing="2">
+                    <!-- FILA 3: Encabezado de columnas + acciones por columna -->
+                    <VerticalStackLayout Grid.Row="3"
+                                         Spacing="8">
+
+                        <!-- Encabezado compacto: Interfaz + botones por columna (L/A/U/E) + limpiar todo -->
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto"
+                              Padding="0,6"
+                              ColumnSpacing="2">
+
+                            <!-- Título de la primera columna -->
                             <Label Text="Interfaz"
                                    FontAttributes="Bold"
-                                   VerticalOptions="Center"/>
+                                   VerticalOptions="Center" />
+
+                            <!-- Botón marcar columna Leer -->
                             <Button Grid.Column="1"
                                     Text="L"
                                     FontSize="12"
                                     Padding="8,4"
-                                    Command="{Binding MarcarColumnaCommand}" 
-                                    CommandParameter="leer"/>
+                                    Command="{Binding MarcarColumnaCommand}"
+                                    CommandParameter="leer"
+                                    Style="{StaticResource RefreshButton}" />
+
+                            <!-- Botón marcar columna Agregar -->
                             <Button Grid.Column="2"
                                     Text="A"
                                     FontSize="12"
                                     Padding="8,4"
-                                    Command="{Binding MarcarColumnaCommand}" 
-                                    CommandParameter="agregar"/>
+                                    Command="{Binding MarcarColumnaCommand}"
+                                    CommandParameter="agregar"
+                                    Style="{StaticResource AddButton}" />
+
+                            <!-- Botón marcar columna Actualizar -->
                             <Button Grid.Column="3"
                                     Text="U"
                                     FontSize="12"
                                     Padding="8,4"
-                                    Command="{Binding MarcarColumnaCommand}" 
-                                    CommandParameter="actualizar"/>
+                                    Command="{Binding MarcarColumnaCommand}"
+                                    CommandParameter="actualizar"
+                                    Style="{StaticResource UpdateButton}" />
+
+                            <!-- Botón marcar columna Eliminar -->
                             <Button Grid.Column="4"
                                     Text="E"
                                     FontSize="12"
                                     Padding="8,4"
-                                    Command="{Binding MarcarColumnaCommand}" 
-                                    CommandParameter="eliminar"/>
+                                    Command="{Binding MarcarColumnaCommand}"
+                                    CommandParameter="eliminar"
+                                    Style="{StaticResource DeleteButton}" />
+
+                            <!-- Botón para limpiar todos los checks de todas las filas -->
                             <Button Grid.Column="5"
                                     Text="Limpiar todo"
                                     FontSize="12"
                                     Padding="8,4"
                                     Command="{Binding LimpiarTodoCommand}"
-                                    Style="{StaticResource CancelButton}"/>
+                                    Style="{StaticResource CancelButton}" />
                         </Grid>
 
-                        <!-- LISTA SIN MATRIZ: cada ítem se despliega -->
+                        <!-- LISTA DE PERMISOS (versión sin matriz, expandible por ítem) -->
                         <CollectionView x:Name="PermisosList"
                                         ItemsSource="{Binding PermisosFiltrados}"
                                         SelectionMode="None">
+
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
-                                    <!-- Cada Interfaz -->
+
+                                    <!-- Un ítem representa una InterfazResponse -->
                                     <Grid>
+
+                                        <!-- Expander del CommunityToolkit para ver/ocultar detalle -->
                                         <toolkit:Expander IsExpanded="False">
-                                            <!-- Header del ítem (cerrado) -->
+
+                                            <!-- CABECERA DEL EXPANDER (estado colapsado) -->
                                             <toolkit:Expander.Header>
-                                                <Grid RowDefinitions="*" ColumnDefinitions="*" Padding="0,8">
-                                                    <Label  Text="{Binding NombrePermiso}"
-                                                            LineBreakMode="TailTruncation"
-                                                            VerticalTextAlignment="Start"/>
-                                                    <!-- Resumen rápido de checks -->
+                                                <Grid RowDefinitions="*"
+                                                      ColumnDefinitions="*,Auto"
+                                                      Padding="0,8">
+                                                    <!-- Nombre de la interfaz -->
+                                                    <Label Text="{Binding NombrePermiso}"
+                                                           LineBreakMode="TailTruncation"
+                                                           VerticalTextAlignment="Start" />
+
+                                                    <!-- Resumen rápido de flags (L/A/U/E) a la derecha -->
+                                                    <Label Grid.Column="1"
+                                                           FontSize="12"
+                                                           Opacity="0.7"
+                                                           VerticalTextAlignment="Center">
+                                                        <Label.FormattedText>
+                                                            <FormattedString>
+                                                                <Span Text="L:" />
+                                                                <Span Text="{Binding Leer}" />
+                                                                <Span Text="  A:" />
+                                                                <Span Text="{Binding Agregar}" />
+                                                                <Span Text="  U:" />
+                                                                <Span Text="{Binding Actualizar}" />
+                                                                <Span Text="  E:" />
+                                                                <Span Text="{Binding Eliminar}" />
+                                                            </FormattedString>
+                                                        </Label.FormattedText>
+                                                    </Label>
                                                 </Grid>
                                             </toolkit:Expander.Header>
 
-                                            <!-- Contenido (abierto) -->
+                                            <!-- CONTENIDO DEL EXPANDER (detalle abierto) -->
                                             <toolkit:Expander.Content>
-                                                <Grid ColumnDefinitions="*" RowDefinitions="*,*" RowSpacing="15">
-                                                    <!-- Opciones en vertical -->
-                                                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*,*,*, Auto">
-                                                        <Label Grid.Row="0" Grid.Column="0" Text="Leer" LineBreakMode="TailTruncation" MaxLines="1"/>
-                                                        <CheckBox Grid.Row="1" 
+
+                                                <!-- Contenedor del detalle con separación -->
+                                                <Grid ColumnDefinitions="*"
+                                                      RowDefinitions="*,*"
+                                                      RowSpacing="15">
+
+                                                    <!-- Fila de opciones (etiqueta + checkbox por permiso) -->
+                                                    <Grid RowDefinitions="Auto,Auto"
+                                                          ColumnDefinitions="*,*,*,*,Auto">
+
+                                                        <!-- Leer -->
+                                                        <Label Grid.Row="0"
+                                                               Grid.Column="0"
+                                                               Text="Leer"
+                                                               LineBreakMode="TailTruncation"
+                                                               MaxLines="1" />
+                                                        <CheckBox Grid.Row="1"
                                                                   Grid.Column="0"
                                                                   IsChecked="{Binding Leer}"
                                                                   Color="{StaticResource BlueUpdate}"
-                                                                  HorizontalOptions="Start"/>
+                                                                  HorizontalOptions="Start" />
 
-                                                        <Label Grid.Row="0" Grid.Column="1" Text="Agregar" LineBreakMode="TailTruncation" MaxLines="1"/>
-                                                        <CheckBox Grid.Row="1" Grid.Column="1"
+                                                        <!-- Agregar -->
+                                                        <Label Grid.Row="0"
+                                                               Grid.Column="1"
+                                                               Text="Agregar"
+                                                               LineBreakMode="TailTruncation"
+                                                               MaxLines="1" />
+                                                        <CheckBox Grid.Row="1"
+                                                                  Grid.Column="1"
                                                                   IsChecked="{Binding Agregar}"
                                                                   Color="{StaticResource BlueUpdate}"
-                                                                  HorizontalOptions="Start"/>
+                                                                  HorizontalOptions="Start" />
 
-                                                        <Label Grid.Row="0" Grid.Column="2" Text="Actualizar" LineBreakMode="TailTruncation" MaxLines="1"/>
-                                                        <CheckBox Grid.Row="1" Grid.Column="2"
+                                                        <!-- Actualizar -->
+                                                        <Label Grid.Row="0"
+                                                               Grid.Column="2"
+                                                               Text="Actualizar"
+                                                               LineBreakMode="TailTruncation"
+                                                               MaxLines="1" />
+                                                        <CheckBox Grid.Row="1"
+                                                                  Grid.Column="2"
                                                                   IsChecked="{Binding Actualizar}"
                                                                   Color="{StaticResource BlueUpdate}"
-                                                                  HorizontalOptions="Start"/>
+                                                                  HorizontalOptions="Start" />
 
-                                                        <Label Grid.Row="0" Grid.Column="3" Text="Eliminar" LineBreakMode="TailTruncation" MaxLines="1"/>
-                                                        <CheckBox Grid.Row="1" Grid.Column="3"
+                                                        <!-- Eliminar -->
+                                                        <Label Grid.Row="0"
+                                                               Grid.Column="3"
+                                                               Text="Eliminar"
+                                                               LineBreakMode="TailTruncation"
+                                                               MaxLines="1" />
+                                                        <CheckBox Grid.Row="1"
+                                                                  Grid.Column="3"
                                                                   IsChecked="{Binding Eliminar}"
                                                                   Color="{StaticResource BlueUpdate}"
-                                                                  HorizontalOptions="Start"/>
+                                                                  HorizontalOptions="Start" />
 
+                                                        <!-- Acciones por fila: marcar todo / ninguno -->
                                                         <Grid Grid.Row="0"
                                                               Grid.RowSpan="2"
                                                               Grid.Column="4"
                                                               ColumnDefinitions="Auto,Auto"
                                                               ColumnSpacing="10">
-                                                            <!-- Acciones por fila -->
-                                                            <Button Grid.Column="0"   
-                                                                    Text="Todo"                                                                    
-                                                                    Background="{StaticResource BlueUpdate}"
+
+                                                            <!-- Marca todas las flags de la fila -->
+                                                            <Button Grid.Column="0"
+                                                                    Text="Todo"
+                                                                    Style="{StaticResource AddButton}"
                                                                     CornerRadius="10"
                                                                     HeightRequest="40"
                                                                     Command="{Binding Source={x:Reference PermisosList}, Path=BindingContext.MarcarFilaCommand}"
-                                                                    CommandParameter="{Binding .}"/>
-                                                            <Button Grid.Column="1"   
+                                                                    CommandParameter="{Binding .}" />
+
+                                                            <!-- Limpia todas las flags de la fila -->
+                                                            <Button Grid.Column="1"
                                                                     Text="Ning."
-                                                                    Background="{StaticResource BlueUpdate}"
+                                                                    Style="{StaticResource CancelButton}"
                                                                     CornerRadius="10"
                                                                     HeightRequest="40"
                                                                     Command="{Binding Source={x:Reference PermisosList}, Path=BindingContext.LimpiarFilaCommand}"
-                                                                    CommandParameter="{Binding .}"/>
+                                                                    CommandParameter="{Binding .}" />
                                                         </Grid>
                                                     </Grid>
-                                                    <Label Grid.Row="1" 
-                                                            HeightRequest="5"
-                                                            Background="{StaticResource Color_Refrescar_Normal}"/>
+
+                                                    <!-- Separador visual inferior -->
+                                                    <Label Grid.Row="1"
+                                                           HeightRequest="5"
+                                                           Background="{StaticResource Color_Refrescar_Normal}" />
                                                 </Grid>
                                             </toolkit:Expander.Content>
 
@@ -177,22 +281,33 @@
                         </CollectionView>
                     </VerticalStackLayout>
 
-                    <!-- Barra inferior -->
-                    <Grid Grid.Row="4" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Padding="0,6">
+                    <!-- FILA 4: Barra inferior con acciones globales -->
+                    <Grid Grid.Row="4"
+                          ColumnDefinitions="Auto,*,Auto"
+                          ColumnSpacing="10"
+                          Padding="0,6">
+
+                        <!-- Revertir cambios no guardados -->
                         <Button Text="Revertir"
-                                Command="{Binding RevertirCambiosCommand}"
-                                IsEnabled="{Binding PuedeRevertir}" />
-                        <Label Grid.Column="1" Text="{Binding Estado}" VerticalTextAlignment="Center" Opacity="0.7" />
-                        <Button Grid.Column="2" Text="Guardar"
-                                Command="{Binding GuardarCommand}"
-                                IsEnabled="{Binding PuedeGuardar}" />
+                                HeightRequest="40"
+                                Style="{StaticResource CancelButton}"
+                                Command="{Binding RevertirCambiosCommand}" />
+
+                        <!-- Mensaje de estado (p. ej., "Permisos guardados", "Hay cambios sin guardar") -->
+                        <Label Grid.Column="1"
+                               Text="{Binding Estado}"
+                               VerticalTextAlignment="Center"
+                               Opacity="0.7" />
+
+                        <!-- Guardar permisos -->
+                        <Button Grid.Column="2"
+                                HeightRequest="40"  
+                                Text="Guardar"
+                                Style="{StaticResource AddButton}"
+                                Command="{Binding GuardarCommand}" />
                     </Grid>
-
-
-
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
-
     </ContentView>
 </ContentPage>

@@ -1,44 +1,94 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Página: cargoFormPage.xaml
+  Descripción: Vista para crear, editar o visualizar un cargo.
+  Se asocia al ViewModel correspondiente (CargoFormViewModel),
+  que maneja la lógica de guardado, cancelación y validaciones.
+-->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.cargoFormPage"
              Title="Formulario de cargo"
              Shell.NavBarIsVisible="False"
              Background="Transparent">
+
+    <!--
+      GRID PRINCIPAL:
+      2 filas -> 0: título, 1: contenido (con scroll)
+    -->
     <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
-        <Label Text="{Binding Title}"
-                FontSize="24"
-                FontAttributes="Bold"
-                HorizontalOptions="Start"
-                Grid.Row="0"
-                Margin="10,20,0,0"/>
+
+        <!--
+          ENCABEZADO / TÍTULO PRINCIPAL
+          Se enlaza a {Binding Title}: cambia según modo (Crear/Editar/Ver)
+        -->
+        <Label
+            Text="{Binding Title}"
+            TextColor="{StaticResource color_Verde}"
+            FontSize="24"
+            FontAttributes="Bold"
+            HorizontalOptions="Start"
+            Grid.Row="0"
+            Margin="10,20,0,0" />
+
+        <!-- SCROLL DEL CONTENIDO -->
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="10" Spacing="15">
-                <Border Style="{StaticResource BorderStyle}">                  
-                    <Entry  Placeholder="Nombre"
+
+                <!-- Campo: Nombre del cargo -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label
+                            Text="Nombre del cargo"
+                            FontAttributes="Bold"
+                            FontSize="14"
+                            TextColor="{StaticResource color_Negro}" />
+                        <Entry
+                            Placeholder="Nombre del cargo"
                             Style="{StaticResource EntryStyle}"
                             Text="{Binding NombreCargo}"
                             IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
                 </Border>
+
+                <!-- Campo: Descripción -->
                 <Border Style="{StaticResource BorderStyle}">
-                    <Entry  Placeholder="Descripcion"
-                        Style="{StaticResource EntryStyle}"
-                        Text="{Binding DescripcionCargo}"
-                        IsReadOnly="{Binding IsReadOnly}" />
+                    <VerticalStackLayout Spacing="5">
+                        <Label
+                            Text="Descripción"
+                            FontAttributes="Bold"
+                            FontSize="14"
+                            TextColor="{StaticResource color_Negro}" />
+                        <Entry
+                            Placeholder="Descripción"
+                            Style="{StaticResource EntryStyle}"
+                            Text="{Binding DescripcionCargo}"
+                            IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
                 </Border>
+
+                <!-- Botones de acción -->
                 <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">
-                    <Button Text="Guardar"
-                            Style="{StaticResource UpdateButton}"
-                            IsVisible="{Binding ShowSaveButton}"    
-                            Command="{Binding SaveCommand}"
-                            Grid.Column="0"
-                            Margin="10,0,10,0"/>
-                    <Button Text="Cancelar"
-                            Style="{StaticResource CancelButton}"
-                            Command="{Binding CancelCommand}" 
-                            Grid.Column="1"
-                            Margin="10,0,10,0"/>  
+
+                    <!-- Botón Guardar (visible solo si no es modo Ver) -->
+                    <Button
+                        Text="Guardar"
+                        Style="{StaticResource UpdateButton}"
+                        IsVisible="{Binding ShowSaveButton}"
+                        Command="{Binding SaveCommand}"
+                        Grid.Column="0"
+                        Margin="10,0,10,0" />
+
+                    <!-- Botón Cancelar -->
+                    <Button
+                        Text="Cancelar"
+                        Style="{StaticResource CancelButton}"
+                        Command="{Binding CancelCommand}"
+                        Grid.Column="1"
+                        Margin="10,0,10,0" />
+
                 </Grid>
+
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

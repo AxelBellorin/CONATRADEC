@@ -1,31 +1,77 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Página: rolFormPage.xaml
+  Descripción: Formulario de creación/edición/visualización de Roles.
+  ViewModel esperado: RolFormViewModel
+  Bindings clave: Title, NombreRol, DescripcionRol, IsReadOnly, ShowSaveButton, SaveCommand, CancelCommand.
+-->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.rolFormPage"
              Title="Formulario de rol"
              Shell.NavBarIsVisible="False"
              Background="Transparent">
+
+    <!--
+      Disposición general:
+      - Fila 0: Título (Label)
+      - Fila 1: Scroll con formulario (Entry + Labels) y botones de acción
+    -->
     <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
-        <Label Text="{Binding Title}"
-                FontSize="24"
-                FontAttributes="Bold"
-                HorizontalOptions="Start"
-                Grid.Row="0"
-                Margin="10,20,0,0"/>
+
+        <!-- Título principal: proviene del VM (Create/Edit/View) -->
+        <Label Text="{Binding Title}"               
+               TextColor="{StaticResource color_Verde}"
+               FontSize="24"
+               FontAttributes="Bold"
+               HorizontalOptions="Start"
+               Grid.Row="0"
+               Margin="10,20,0,0"/>
+
+        <!-- Contenido desplazable (útil en pantallas pequeñas/teclado abierto) -->
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="10" Spacing="15">
-                <Border Style="{StaticResource BorderStyle}">                  
-                    <Entry  Placeholder="Nombre"
-                            Style="{StaticResource EntryStyle}"
-                            Text="{Binding NombreRol}"
-                            IsReadOnly="{Binding IsReadOnly}" />
-                </Border>
+
+                <!-- Campo: Nombre del rol -->
                 <Border Style="{StaticResource BorderStyle}">
-                    <Entry  Placeholder="Descripcion"
-                        Style="{StaticResource EntryStyle}"
-                        Text="{Binding DescripcionRol}"
-                        IsReadOnly="{Binding IsReadOnly}" />
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Nombre del rol"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <!--
+                          Entry bindeado a NombreRol. Se bloquea en modo View
+                          gracias a IsReadOnly del VM.
+                        -->
+                        <Entry Placeholder="Nombre del rol"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding NombreRol}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
                 </Border>
+
+                <!-- Campo: Descripción del rol -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Descripción"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <!--
+                          Entry bindeado a DescripcionRol. Respeta IsReadOnly para modo View.
+                        -->
+                        <Entry Placeholder="Descripción"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding DescripcionRol}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Botonera: Guardar/Cancelar -->
+                <!--
+                  - Guardar: visible sólo si ShowSaveButton = true (Create/Edit)
+                  - Cancelar: siempre visible (vuelve o descarta cambios según VM)
+                -->
                 <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">
                     <Button Text="Guardar"
                             Style="{StaticResource UpdateButton}"
@@ -37,7 +83,7 @@
                             Style="{StaticResource CancelButton}"
                             Command="{Binding CancelCommand}" 
                             Grid.Column="1"
-                            Margin="10,0,10,0"/>  
+                            Margin="10,0,10,0"/>
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>

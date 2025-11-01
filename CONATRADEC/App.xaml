@@ -1,14 +1,54 @@
-﻿<?xml version = "1.0" encoding = "UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Archivo: App.xaml
+  Propósito: Define los recursos globales y la configuración base de la aplicación CONATRADEC.
+  Este archivo se carga al iniciar la app y proporciona acceso compartido a estilos, colores,
+  plantillas y otros recursos a lo largo de todas las páginas.
+
+  Clave:
+    - Define el espacio de nombres de la aplicación principal.
+    - Fusiona los diccionarios de recursos (Colors, Styles, Template).
+-->
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:CONATRADEC"
              x:Class="CONATRADEC.App">
+
+    <!--
+      Application.Resources:
+      Contenedor global de recursos XAML. Todo lo que se defina aquí
+      estará disponible en toda la aplicación (colores, estilos, etc.)
+    -->
     <Application.Resources>
         <ResourceDictionary>
+
+            <!--
+              MergedDictionaries:
+              Permite combinar varios diccionarios de recursos externos.
+              Cada archivo define un conjunto específico de recursos reutilizables.
+            -->
             <ResourceDictionary.MergedDictionaries>
+
+                <!--
+                  Colors.xaml:
+                  Define la paleta de colores de la aplicación (colores corporativos, de fondo, de texto, etc.)
+                -->
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+
+                <!--
+                  Styles.xaml:
+                  Contiene estilos reutilizables para controles como Label, Entry, Button, Border, etc.
+                -->
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
-                <ResourceDictionary Source="/Resources/Styles/Template.xaml"/>                
+
+                <!--
+                  Template.xaml:
+                  Define plantillas visuales personalizadas, como Footers, Headers o Layouts generales.
+                  *NOTA: Se recomienda verificar la ruta; en algunos entornos de MAUI, 
+                  puede requerir omitir el "/" inicial para evitar errores.
+                -->
+                <ResourceDictionary Source="/Resources/Styles/Template.xaml"/>
+
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

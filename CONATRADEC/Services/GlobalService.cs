@@ -10,64 +10,93 @@ using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
 {
+    // Servicio base compartido para navegación y estado común (IsBusy).
+    // Implementa INotifyPropertyChanged para permitir data binding desde ViewModels/Views.
     public class GlobalService : INotifyPropertyChanged
     {
-        public Command goToMainPageCommand { get; }
-        public Command goToUserPageButtonCommand { get; }
-        public Command goToRolPageButtonCommand { get; }
-        public Command goToCargoPageButtonCommand { get; }
-        public Command goToMatrizPermisosPageButtonCommad { get; }
-        public Command goToBack { get; }
+        // ===========================================================
+        // ======================== COMANDOS ==========================
+        // ===========================================================
+        public Command goToMainPageCommand { get; }                 // Comando para navegar a MainPage.
+        public Command goToUserPageButtonCommand { get; }           // Comando para navegar a UserPage.
+        public Command goToRolPageButtonCommand { get; }            // Comando para navegar a RolPage.
+        public Command goToCargoPageButtonCommand { get; }          // Comando para navegar a CargoPage.
+        public Command goToMatrizPermisosPageButtonCommad { get; }  // Comando para navegar a MatrizPermisosPage. (sic: nombre conserva 'Commad')
+        public Command goToBack { get; }                            // Comando para navegar hacia atrás en Shell.
 
-        private bool isBusy;
+        // ===========================================================
+        // =================== ESTADO / NOTIFICACIÓN =================
+        // ===========================================================
+        private bool isBusy;                                        // Bandera de operación en curso para bloquear UI/acciones concurrentes.
 
-
+        // Evento de notificación de cambios de propiedades (INotifyPropertyChanged).
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        // Propiedad enlazable que expone el estado de ocupación (busy).
         public bool IsBusy
         {
-            get =>  isBusy;
+            get => isBusy;                                         // Retorna el estado actual.
             set
             {
-                isBusy = value;
-                OnPropertyChanged();
+                isBusy = value;                                     // Actualiza el estado interno.
+                OnPropertyChanged();                                // Notifica a la UI el cambio de IsBusy.
+
+                // Propaga ChangeCanExecute a cada Command para recalcular su disponibilidad (CanExecute).
                 ((Command)goToMainPageCommand).ChangeCanExecute();
                 ((Command)goToUserPageButtonCommand).ChangeCanExecute();
                 ((Command)goToRolPageButtonCommand).ChangeCanExecute();
                 ((Command)goToCargoPageButtonCommand).ChangeCanExecute();
-                ((Command)goToMatrizPermisosPageButtonCommad).ChangeCanExecute();   
+                ((Command)goToMatrizPermisosPageButtonCommad).ChangeCanExecute();
             }
         }
 
+        // ===========================================================
+        // ======================= CONSTRUCTOR =======================
+        // ===========================================================
         public GlobalService()
         {
+            // Inicializa los comandos con acciones asincrónicas y predicados de habilitación basados en !IsBusy.
             goToMainPageCommand = new Command(async () => await GoToMainPage(), () => !IsBusy);
             goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusy);
             goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusy);
             goToCargoPageButtonCommand = new Command(async () => await GoToCargoPage(), () => !IsBusy);
             goToMatrizPermisosPageButtonCommad = new Command(async () => await GoToMatrizPermisosPage(), () => !IsBusy);
-            goToBack = new Command(async () => await Shell.Current.GoToAsync("//.."));
+
+            // Comando de navegación hacia atrás usando ruta relativa (“//..” mantiene esquema de Shell).
+            goToBack = new Command(async () => await GoToAsyncParameters("//.."));
         }
 
+        // ===========================================================
+        // =============== HELPER GENERAL DE NAVEGACIÓN ==============
+        // ===========================================================
         public async Task GoToAsyncParameters(string route, IDictionary<string, object>? parameters = null)
         {
+            // Si no hay parámetros, navega con animación deshabilitada (false).
             if (parameters == null)
-                await Shell.Current.GoToAsync(route);
+                await Shell.Current.GoToAsync(route, false);
             else
-                await Shell.Current.GoToAsync(route, parameters);
+                // Si hay parámetros, los inyecta en la navegación (también sin animación).
+                await Shell.Current.GoToAsync(route, false, parameters);
         }
+
+        // ===========================================================
+        // ================= HANDLERS DE NAVEGACIÓN ==================
+        // ===========================================================
         private async Task GoToMainPage()
         {
-            if (IsBusy) return;
-            //IsBusy = true;
+            if (IsBusy) return;                                     // Evita reentradas si ya está ocupado.
+            //IsBusy = true;                                        // Comentado: se mantiene la lógica actual que no marca busy al inicio.
 
-            await Shell.Current.GoToAsync("//MainPage");
+            await GoToAsyncParameters("//MainPage");                 // Navega a la ruta absoluta de MainPage.
 
-            // Buscar la página actual después de navegar
+            // Tras la navegación, intenta resolver la página actual y su VM para actualizar estado.
             if (Shell.Current.CurrentPage is MainPage page &&
                 page.BindingContext is MainPageViewModel vm)
-                vm.IsBusy = false;
+                vm.IsBusy = false;                                  // Fuerza a la VM a estado no ocupado.
 
+            IsBusy = false;                                         // Asegura liberar busy en el servicio.
+
+            // Bloque comentado: historial previo de carga de datos al navegar.
             //if (Shell.Current.CurrentPage is MainPage page &&
             //     page.BindingContext is MainPageViewModel vm)
             //{
@@ -76,59 +105,71 @@ namespace CONATRADEC.Services
             //}
             //IsBusy = false;
         }
+
         private async Task GoToUserPage()
         {
-            if (IsBusy) return;
-            IsBusy = true;
+            if (IsBusy) return;                                     // Evita dobles clics/condiciones de carrera.
+            IsBusy = true;                                          // Marca inicio de operación.
 
-            await Shell.Current.GoToAsync("//UserPage");
+            await GoToAsyncParameters("//UserPage");                // Navega a UserPage.
 
-            // Buscar la página actual después de navegar
+            // Resuelve la página actual y su VM para cargar datos específicos.
             if (Shell.Current.CurrentPage is userPage page &&
                 page.BindingContext is UserViewModel vm)
-                await vm.LoadUsers(IsBusy);
+                await vm.LoadUsers(IsBusy);                         // Llama al método de carga de usuarios.
+
+            IsBusy = false;                                         // Libera estado ocupado.
         }
 
         public async Task GoToRolPage()
         {
-            if (IsBusy) return;
-            IsBusy = true;
+            if (IsBusy) return;                                     // Evita reentradas.
+            IsBusy = true;                                          // Marca inicio de operación.
 
-            await Shell.Current.GoToAsync("//RolPage");
+            await GoToAsyncParameters("//RolPage");                 // Navega a RolPage.
 
-            // Buscar la página actual después de navegar
+            // Resuelve la página y VM, luego solicita carga de roles.
             if (Shell.Current.CurrentPage is rolPage page &&
                 page.BindingContext is RolViewModel vm)
-                await vm.LoadRol(IsBusy);
+                await vm.LoadRol(IsBusy);                           // Carga los roles desde la VM.
+
+            IsBusy = false;                                         // Libera estado ocupado.
         }
 
         public async Task GoToCargoPage()
         {
-            if (IsBusy) return;
-            IsBusy = true;
+            if (IsBusy) return;                                     // Evita reentradas.
+            IsBusy = true;                                          // Marca inicio de operación.
 
-            await Shell.Current.GoToAsync("//CargoPage");
+            await GoToAsyncParameters("//CargoPage");               // Navega a CargoPage.
 
-            // Buscar la página actual después de navegar
+            // Resuelve la página y VM, luego solicita carga de cargos.
             if (Shell.Current.CurrentPage is cargoPage page &&
                 page.BindingContext is CargoViewModel vm)
-                await vm.LoadCargo(IsBusy);
+                await vm.LoadCargo(IsBusy);                         // Carga los cargos desde la VM.
+
+            IsBusy = false;                                         // Libera estado ocupado.
         }
 
         public async Task GoToMatrizPermisosPage()
         {
-            if (IsBusy) return;
-            IsBusy = true;
+            if (IsBusy) return;                                     // Evita reentradas.
+            IsBusy = true;                                          // Marca inicio de operación.
 
-            await Shell.Current.GoToAsync("//MatrizPermisosPage");
+            await GoToAsyncParameters("//MatrizPermisosPage");      // Navega a MatrizPermisosPage.
 
-            // Buscar la página actual después de navegar
+            // Resuelve la página y VM; llamadas de carga están comentadas según lógica actual.
             if (Shell.Current.CurrentPage is matrizPermisosPage page &&
                 page.BindingContext is MatrizPermisosViewModel vm)
-                //await vm.LoadCargo(IsBusy);
-                await Task.Delay(1000);
+                //await vm.LoadCargo(IsBusy);                       // Comentado intencionalmente (respeta tu código).
+                //await Task.Delay(1000);                           // Comentado intencionalmente (respeta tu código).
+                IsBusy = false;                                         // Libera estado ocupado.
         }
+
+        // ===========================================================
+        // ===================== NOTIFICACIÓN INotify ================
+        // ===========================================================
         public void OnPropertyChanged([CallerMemberName] string name = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name)); // Dispara el evento con el nombre de la propiedad.
     }
 }
