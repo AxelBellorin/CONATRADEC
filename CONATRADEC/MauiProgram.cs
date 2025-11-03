@@ -93,7 +93,6 @@ namespace CONATRADEC
                 });
             });
 #endif       
-
             // ==========================================================
             // Retorna la instancia final configurada del aplicativo
             // ==========================================================

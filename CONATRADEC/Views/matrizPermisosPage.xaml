@@ -38,7 +38,7 @@
                       RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
 
                     <!-- TÍTULO -->
-                    <Label Text="Matriz de permisos"
+                    <Label Text="Permisos"
                            FontSize="30"
                            FontFamily="MontserratBold"
                            TextColor="{StaticResource color_Negro}"

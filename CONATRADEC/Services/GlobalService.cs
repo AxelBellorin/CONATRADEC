@@ -109,29 +109,17 @@ namespace CONATRADEC.Services
         private async Task GoToUserPage()
         {
             if (IsBusy) return;                                     // Evita dobles clics/condiciones de carrera.
-            IsBusy = true;                                          // Marca inicio de operación.
 
             await GoToAsyncParameters("//UserPage");                // Navega a UserPage.
 
-            // Resuelve la página actual y su VM para cargar datos específicos.
-            if (Shell.Current.CurrentPage is userPage page &&
-                page.BindingContext is UserViewModel vm)
-                await vm.LoadUsers(IsBusy);                         // Llama al método de carga de usuarios.
-
-            IsBusy = false;                                         // Libera estado ocupado.
+            //IsBusy = false;                                         // Libera estado ocupado.
         }
 
         public async Task GoToRolPage()
         {
             if (IsBusy) return;                                     // Evita reentradas.
-            IsBusy = true;                                          // Marca inicio de operación.
 
             await GoToAsyncParameters("//RolPage");                 // Navega a RolPage.
-
-            // Resuelve la página y VM, luego solicita carga de roles.
-            if (Shell.Current.CurrentPage is rolPage page &&
-                page.BindingContext is RolViewModel vm)
-                await vm.LoadRol(IsBusy);                           // Carga los roles desde la VM.
 
             IsBusy = false;                                         // Libera estado ocupado.
         }
@@ -139,16 +127,10 @@ namespace CONATRADEC.Services
         public async Task GoToCargoPage()
         {
             if (IsBusy) return;                                     // Evita reentradas.
-            IsBusy = true;                                          // Marca inicio de operación.
 
             await GoToAsyncParameters("//CargoPage");               // Navega a CargoPage.
 
-            // Resuelve la página y VM, luego solicita carga de cargos.
-            if (Shell.Current.CurrentPage is cargoPage page &&
-                page.BindingContext is CargoViewModel vm)
-                await vm.LoadCargo(IsBusy);                         // Carga los cargos desde la VM.
-
-            IsBusy = false;                                         // Libera estado ocupado.
+            //  IsBusy = false;                                         // Libera estado ocupado.
         }
 
         public async Task GoToMatrizPermisosPage()

@@ -28,5 +28,8 @@
 	</array>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
+
+	<key>NSFaceIDUsageDescription</key>
+	<string>Usamos Face ID para iniciar sesión de forma segura.</string>
 </dict>
 </plist>

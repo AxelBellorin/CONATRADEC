@@ -2,6 +2,10 @@
 using Android.Content.PM;
 using Android.OS;
 using AndroidX.Core.View;
+using Microsoft.Maui;                         
+using Microsoft.Maui.ApplicationModel;        // para Platform.CurrentActivity (opcional)
+using Plugin.Fingerprint;             // Plugin de biometría (huella/Face ID)
+using Plugin.Fingerprint.Abstractions; // Tipos del plugin (AuthenticationRequestConfiguration)        
 
 namespace CONATRADEC
 {
@@ -22,6 +26,18 @@ namespace CONATRADEC
                 if (insets is not null)
                     insets.AppearanceLightStatusBars = false; // false = iconos claros
             }
+
+            // ✅ Así es como se registra correctamente el resolver
+            CrossFingerprint.SetCurrentActivityResolver(() => this);
+        }
+
+        // (Opcional) si quieres asegurarte en reanudaciones:
+        protected override void OnResume()
+        {
+            base.OnResume();
+
+            // (Opcional, refuerza la asociación si la actividad se reanuda)
+            CrossFingerprint.SetCurrentActivityResolver(() => this);
         }
     }
 }

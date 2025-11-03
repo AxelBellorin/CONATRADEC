@@ -17,7 +17,7 @@
                     <!--Etiqueta para crear los botones-->
                     <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
                         <!--Imagen del boton-->
-                        <Image HeightRequest="30" WidthRequest="30"  Source="iconlibro.png">
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconhome.png">
                             <Image.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding goToMainPageCommand}"/>
                             </Image.GestureRecognizers>
@@ -77,14 +77,14 @@
 
                     <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
                         <!--Imagen del boton-->
-                        <Image HeightRequest="30" WidthRequest="30"  Source="iconjobposition.png">
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconpermission.png">
                             <Image.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding goToMatrizPermisosPageButtonCommad}"/>
                             </Image.GestureRecognizers>
                         </Image>
                         <!--Texto de la opción-->
                         <Label  HorizontalOptions="Center" 
-                                Text="Matriz de Permisos" 
+                                Text="Permisos" 
                                 FontSize="16" 
                                 TextColor="{StaticResource color_Negro}"
                                 FontFamily="MontserratMedium"/>

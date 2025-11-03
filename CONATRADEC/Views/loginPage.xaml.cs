@@ -18,5 +18,12 @@ public partial class loginPage : ContentPage
         //Ejecuta el botón al presionar Enter
         if(BindingContext is LoginViewModel viewModel)
             viewModel.LoginCommand.Execute(null);
-    }  
+    }
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (BindingContext is LoginViewModel vm)
+            await vm.LoadSavedAsync();
+    }
+
 }

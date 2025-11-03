@@ -3,9 +3,10 @@
   Página: loginPage.xaml
   Descripción:
   Pantalla de inicio de sesión de la aplicación ConatraCafé Soil.
-  Esta vista está vinculada al ViewModel: LoginViewModel.
-  Propiedades clave del ViewModel: Username, Password, IsBusy, IsPasswordHidden, PasswordToggleIcon.
-  Comandos: LoginCommand, TogglePasswordCommand.
+  VM: LoginViewModel
+  Bindings clave: Username, Password, IsBusy, IsPasswordHidden, PasswordToggleIcon,
+                  RememberMe, CanUseBiometrics, UseBiometrics, BiometricEnabled
+  Comandos: LoginCommand, TogglePasswordCommand, BiometricLoginCommand
 -->
 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -15,40 +16,29 @@
              Shell.NavBarIsVisible="False"
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <!-- ScrollView para permitir desplazamiento vertical en pantallas pequeñas -->
     <ScrollView>
-
-        <!-- Contenedor principal con espaciado y padding definido en VerticalStackLayoutStyle -->
         <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
 
-            <!-- 
-                LOGO DE LA APLICACIÓN 
-                - Se usa un ImageButton con clip circular (EllipseGeometry) para recortar la imagen.
-                - Puede servir también como acción futura (por ejemplo, recargar o mostrar info).
-            -->
+            <!-- LOGO -->
             <ImageButton Source="logocontradec.png"
                          Aspect="AspectFill"
                          Padding="0"
-                         HeightRequest="250"
-                         WidthRequest="250"
-                         CornerRadius="125">
+                         HeightRequest="200"
+                         WidthRequest="200"
+                         CornerRadius="100">
                 <ImageButton.Clip>
-                    <!-- Recorta la imagen en forma circular -->
-                    <EllipseGeometry Center="125,125" RadiusX="100" RadiusY="100" />
+                    <EllipseGeometry Center="100,100" RadiusX="80" RadiusY="80" />
                 </ImageButton.Clip>
             </ImageButton>
 
-            <!-- 
-                TÍTULO PRINCIPAL DE LA APLICACIÓN 
-                - Muestra el nombre de la app: ConatraCafé Soil
-            -->
+            <!-- TÍTULO -->
             <Label Text="ConatraCafé Soil"
                    FontSize="40"
                    FontFamily="MontserratBold"
                    HorizontalOptions="Center"
                    TextColor="{StaticResource color_Negro}" />
 
-            <!-- SUBTÍTULO / ENCABEZADO DEL FORMULARIO -->
+            <!-- SUBTÍTULO -->
             <Label Text="Iniciar sesión"
                    HorizontalOptions="Center"
                    TextColor="{StaticResource color_Negro}"
@@ -56,12 +46,7 @@
                    FontAttributes="Bold"
                    FontFamily="MontserratMedium" />
 
-            <!-- 
-                CAMPO DE CORREO ELECTRÓNICO 
-                - Enlazado a Username del ViewModel.
-                - Usa teclado tipo Email.
-                - Completed invoca evento en code-behind (UserNameEntryCompleted).
-            -->
+            <!-- EMAIL -->
             <Border Style="{StaticResource BorderStyle}">
                 <Entry Style="{StaticResource EntryStyle}"
                        Text="{Binding Username}"
@@ -71,15 +56,9 @@
                        Keyboard="Email" />
             </Border>
 
-            <!-- 
-                CAMPO DE CONTRASEÑA 
-                - Contiene Entry + botón (ojo) para alternar visibilidad.
-                - IsPassword se enlaza a IsPasswordHidden (booleano del ViewModel).
-                - Icono del ojo cambia según PasswordToggleIcon.
-            -->
+            <!-- PASSWORD -->
             <Border Style="{StaticResource BorderStyle}">
                 <Grid ColumnDefinitions="*, Auto">
-                    <!-- Entry de contraseña -->
                     <Entry Grid.Column="0"
                            x:Name="PasswordEntry"
                            Completed="PasswordEntryCompleted"
@@ -89,7 +68,6 @@
                            IsPassword="{Binding IsPasswordHidden}"
                            Background="Transparent" />
 
-                    <!-- Botón para mostrar/ocultar contraseña -->
                     <ImageButton Grid.Column="1"
                                  Margin="10,0,0,0"
                                  Source="{Binding PasswordToggleIcon}"
@@ -100,25 +78,70 @@
                 </Grid>
             </Border>
 
-            <!--
-                INDICADOR DE CARGA 
-                - Se muestra mientras IsBusy es true.
-                - Usado durante el proceso de login.
-            -->
+            <!-- RECORDARME -->
+            <HorizontalStackLayout Spacing="6" VerticalOptions="Center" HorizontalOptions="Start">
+                <CheckBox IsChecked="{Binding RememberMe}" Color="{StaticResource color_Verde}"/>
+                <Label Text="Recordarme"
+                       VerticalOptions="Center"
+                       FontFamily="MontserratMedium"
+                       FontSize="14"
+                       TextColor="{StaticResource color_Negro}" />
+            </HorizontalStackLayout>
+
+            <!-- SWITCH BIOMÉTRICO (solo si el dispositivo soporta biometría) -->
+            <Grid RowDefinitions="Auto,Auto" IsVisible="{Binding CanUseBiometrics}">
+                <Grid Padding="0,8,0,0" ColumnDefinitions="*,Auto">
+                    <Label Text="Usar huella / Face ID"
+                           Grid.Column="0"
+                           VerticalOptions="Center"
+                           FontFamily="MontserratMedium"
+                           FontSize="14"
+                           TextColor="{StaticResource color_Negro}" />
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding UseBiometrics}"
+                            IsEnabled="{Binding RememberMe}" />
+                </Grid>
+                <Label Grid.Row="1"
+                       Text="Requiere activar 'Recordarme'."
+                       FontSize="12"
+                       TextColor="{StaticResource color_Negro}"
+                       Opacity="0.6"
+                       IsVisible="{Binding RememberMe}"/>
+            </Grid>
+
+            <!-- LOADER -->
             <ActivityIndicator IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
                                Color="{StaticResource color_Naranja}" />
 
-            <!-- 
-                BOTÓN PRINCIPAL: INICIAR SESIÓN 
-                - Ejecuta LoginCommand del ViewModel.   
-                - Aplica estilo global "AddButton" para color y forma.
-            -->
+            <!-- BOTÓN LOGIN -->
             <Button Style="{StaticResource AddButton}"
                     Text="Iniciar Sesión"
                     Padding="0,18,0,18"
-                    Margin="0,20,0,0"
-                    Command="{Binding LoginCommand}" />
+                    Margin="0,10,0,0"
+                    Command="{Binding LoginCommand}" 
+                    IsVisible="{Binding LoginButtonVisible}"/>
+
+            <!-- BOTÓN BIOMÉTRICO (solo si está habilitado por switch + recordarme + hardware) -->
+            <Grid Margin="0,12,0,0" HorizontalOptions="Center"
+                  IsVisible="{Binding BiometricEnabled}">
+                <ImageButton
+                    Source="fingerprint.png"
+                    WidthRequest="72"
+                    HeightRequest="72"
+                    CornerRadius="36"
+                    Padding="0"
+                    Command="{Binding BiometricLoginCommand}">
+                    <!-- Agrega fingerprint.png en Resources/Images (Build Action: MauiImage) -->
+                </ImageButton>
+            </Grid>
+
+            <Label Text="Autenticar con huella / Face ID"
+                   FontSize="12"
+                   HorizontalOptions="Center"
+                   TextColor="{StaticResource color_Negro}"
+                   Margin="0,-4,0,0"
+                   IsVisible="{Binding BiometricEnabled}" />
 
         </VerticalStackLayout>
     </ScrollView>
