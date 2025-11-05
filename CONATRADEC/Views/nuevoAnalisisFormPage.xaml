@@ -38,102 +38,270 @@
                     <Label Grid.Row="1" Grid.Column="0" Text="Laboratorio:" VerticalOptions="Center" />
                     <Entry Grid.Row="1" Grid.Column="1" Placeholder="Laboratorio" x:Name="LaboratorioEntry" HorizontalOptions="FillAndExpand" />
 
-                    <!-- Fila 2: Tipo de muestra (estático) y Tipo de análisis (Entry) en la misma línea -->
+                    <!-- Fila 2: Tipo de muestra (estático) -->
                     <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Spacing="16">
+                        <VerticalStackLayout Spacing="4" HorizontalOptions="FillAndExpand">
                             <Label Text="Tipo de muestra:" />
                             <Label Text="Suelo" FontAttributes="Bold" FontSize="14" VerticalOptions="Center" />
+                        </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </Grid>
             </Frame>
 
-            <!-- Sección: Resultados (sin cambios) -->
+            <!-- Sección: Resultados (ahora con selector de unidad junto a cada Entry) -->
             <Label Text="Resultados del análisis" FontAttributes="Bold" FontSize="16" Margin="0,6,0,0" />
             <Frame CornerRadius="8" HasShadow="True" Padding="12" BackgroundColor="WhiteSmoke" Margin="0,6,0,0">
                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="12">
+                    <!-- Row 0 -->
                     <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="4">
                         <Label Text="pH:" />
-                        <Entry x:Name="pHEntry" Keyboard="Numeric" Placeholder="pH" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="pHEntry" Keyboard="Numeric" Placeholder="pH" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="pHUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>pH</x:String>
+                                    <x:String>sin unidad</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
+
                     <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="4">
                         <Label Text="Materia Orgánica:" />
-                        <Entry x:Name="MateriaOrganicaEntry" Keyboard="Numeric" Placeholder="%" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="MateriaOrganicaEntry" Keyboard="Numeric" Placeholder="%" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="MateriaOrganicaUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>%</x:String>
+                                    <x:String>g/kg</x:String>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
 
+                    <!-- Row 1 -->
                     <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="4">
                         <Label Text="Nitrógeno:" />
-                        <Entry x:Name="NitrogenoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="NitrogenoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="NitrogenoUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                    <x:String>g/kg</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
+
                     <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="4">
                         <Label Text="Fósforo disponible:" />
-                        <Entry x:Name="FosforoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="FosforoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="FosforoUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                    <x:String>g/kg</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
 
+                    <!-- Row 2 -->
                     <VerticalStackLayout Grid.Row="2" Grid.Column="0" Spacing="4">
                         <Label Text="Potasio:" />
-                        <Entry x:Name="PotasioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="PotasioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="PotasioUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
+
                     <VerticalStackLayout Grid.Row="2" Grid.Column="1" Spacing="4">
                         <Label Text="Sodio:" />
-                        <Entry x:Name="SodioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="SodioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="SodioUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
 
+                    <!-- Row 3 -->
                     <VerticalStackLayout Grid.Row="3" Grid.Column="0" Spacing="4">
                         <Label Text="Calcio:" />
-                        <Entry x:Name="CalcioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="CalcioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="CalcioUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>g/kg</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
+
                     <VerticalStackLayout Grid.Row="3" Grid.Column="1" Spacing="4">
                         <Label Text="Magnesio:" />
-                        <Entry x:Name="MagnesioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="MagnesioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="MagnesioUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>g/kg</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
 
+                    <!-- Row 4 -->
                     <VerticalStackLayout Grid.Row="4" Grid.Column="0" Spacing="4">
                         <Label Text="Azufre:" />
-                        <Entry x:Name="AzufreEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="AzufreEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="AzufreUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
+
                     <VerticalStackLayout Grid.Row="4" Grid.Column="1" Spacing="4">
                         <Label Text="Hierro:" />
-                        <Entry x:Name="HierroEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="HierroEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="HierroUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
 
+                    <!-- Row 5 -->
                     <VerticalStackLayout Grid.Row="5" Grid.Column="0" Spacing="4">
                         <Label Text="Manganeso:" />
-                        <Entry x:Name="ManganesoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="ManganesoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="ManganesoUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
+
                     <VerticalStackLayout Grid.Row="5" Grid.Column="1" Spacing="4">
                         <Label Text="Boro:" />
-                        <Entry x:Name="BoroEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="BoroEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="BoroUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
 
+                    <!-- Row 6 -->
                     <VerticalStackLayout Grid.Row="6" Grid.Column="0" Spacing="4">
                         <Label Text="Cobre:" />
-                        <Entry x:Name="CobreEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="CobreEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="CobreUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
+
                     <VerticalStackLayout Grid.Row="6" Grid.Column="1" Spacing="4">
                         <Label Text="Zinc:" />
-                        <Entry x:Name="ZincEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="ZincEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="ZincUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>mg/kg</x:String>
+                                    <x:String>ppm</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
 
+                    <!-- Row 7 -->
                     <VerticalStackLayout Grid.Row="7" Grid.Column="0" Spacing="4">
                         <Label Text="(Ca + Mg)/K:" />
-                        <Entry x:Name="CaMgKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
-                    </VerticalStackLayout>
-                    <VerticalStackLayout Grid.Row="7" Grid.Column="1" Spacing="4">
-                        <Label Text="Ca/Mg:" />
-                        <Entry x:Name="CaMgEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="CaMgKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="CaMgKUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>Ratio</x:String>
+                                    <x:String>sin unidad</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
 
+                    <VerticalStackLayout Grid.Row="7" Grid.Column="1" Spacing="4">
+                        <Label Text="Ca/Mg:" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="CaMgEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="CaMgUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>Ratio</x:String>
+                                    <x:String>sin unidad</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Row 8 -->
                     <VerticalStackLayout Grid.Row="8" Grid.Column="0" Spacing="4">
                         <Label Text="Ca/K:" />
-                        <Entry x:Name="CaKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="CaKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="CaKUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>Ratio</x:String>
+                                    <x:String>sin unidad</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
+
                     <VerticalStackLayout Grid.Row="8" Grid.Column="1" Spacing="4">
                         <Label Text="Mg/K:" />
-                        <Entry x:Name="MgKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Entry x:Name="MgKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                            <Picker x:Name="MgKUnitPicker" WidthRequest="110" HorizontalOptions="End" SelectedIndex="0">
+                                <Picker.Items>
+                                    <x:String>Ratio</x:String>
+                                    <x:String>sin unidad</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
                 </Grid>
             </Frame>
 
-            <Button Text="Guardar" Clicked="OnGuardarClicked" Margin="0,8,0,20" />
+            <Button Text="Enviar Análisis" Clicked="OnGuardarClicked" Margin="0,8,0,20" />
 
         </VerticalStackLayout>
     </ScrollView>
