@@ -57,7 +57,7 @@ namespace CONATRADEC.Views
 
         private async void OnGuardarClicked(object sender, EventArgs e)
         {
-            // Lógica de guardado (puedes reemplazar por la tuya)
+            // Lógica de guardado 
             await DisplayAlert("Guardado", "El análisis ha sido guardado.", "OK");
 
             // Navegar atrás usando Shell. Si la página fue abierta con rutas, ajusta según sea necesario.
