@@ -3,102 +3,138 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.NuevoAnalisisFormPage"
              Title="Nuevo Análisis">
-	<ScrollView>
-		<VerticalStackLayout Padding="16" Spacing="10">
-			<Label Text="Formulario de Análisis de Suelo" FontAttributes="Bold" FontSize="22" />
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12">
+            <Label Text="Formulario de Análisis de Suelo" FontAttributes="Bold" FontSize="22" />
 
-			<!-- Nombre del laboratorio -->
-			<Label Text="Nombre del laboratorio:" />
-			<Entry Placeholder="Laboratorio" x:Name="LaboratorioEntry" />
+            <!-- Sección: Detalles generales -->
+            <Label Text="Detalles generales" FontAttributes="Bold" FontSize="16" Margin="0,4,0,0" />
+            <Frame CornerRadius="8" HasShadow="True" Padding="12" BackgroundColor="WhiteSmoke" Margin="0,6,0,0">
+                <!-- Diseño mejorado: tarjeta de usuario arriba + campos alineados debajo -->
+                <Grid ColumnDefinitions="Auto, *"
+                      RowDefinitions="Auto, Auto, Auto"
+                      RowSpacing="10"
+                      ColumnSpacing="12">
 
-			<!-- Nombre de usuario (puedes programar esto para mostrar el valor real) -->
-			<Label Text="Usuario:" />
-			<Label x:Name="UsuarioLabel" Text="Usuario actual" FontAttributes="Italic" />
+                    <!-- Fila 0: tarjeta de usuario (avatar + nombre + correo) -->
+                    <Frame Grid.Row="0" Grid.Column="0"
+                           CornerRadius="24"
+                           HeightRequest="48"
+                           WidthRequest="48"
+                           Padding="0"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Start"
+                           BackgroundColor="#2E86AB" HasShadow="False">
+                        <!-- Avatar con iniciales (sustituir por Image si tienes recurso) -->
+                        <Label Text="JM" HorizontalOptions="Center" VerticalOptions="Center" TextColor="White" FontAttributes="Bold" />
+                    </Frame>
 
-			<!-- Tipo de muestra -->
-			<Label Text="Tipo de muestra:" />
-			<Picker x:Name="TipoMuestraPicker">
-				<Picker.ItemsSource>
-					<x:Array Type="{x:Type x:String}">
-						<x:String>Suelo</x:String>
-						<x:String>Agua</x:String>
-						<x:String>Planta</x:String>
-					</x:Array>
-				</Picker.ItemsSource>
-			</Picker>
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                        <Label x:Name="UsuarioLabel" Text="Jonathan Martinez" FontAttributes="Bold" FontSize="16" />
+                        <Label Text="26martinez.508@gmail.com" TextColor="Gray" FontSize="14" />
+                    </VerticalStackLayout>
 
-			<!-- Tipo de análisis -->
-			<Label Text="Tipo de análisis:" />
-			<Picker x:Name="TipoAnalisisPicker">
-				<Picker.ItemsSource>
-					<x:Array Type="{x:Type x:String}">
-						<x:String>Completo</x:String>
-						<x:String>Parcial</x:String>
-						<x:String>Otros</x:String>
-					</x:Array>
-				</Picker.ItemsSource>
-			</Picker>
+                    <!-- Fila 1: Laboratorio -->
+                    <Label Grid.Row="1" Grid.Column="0" Text="Laboratorio:" VerticalOptions="Center" />
+                    <Entry Grid.Row="1" Grid.Column="1" Placeholder="Laboratorio" x:Name="LaboratorioEntry" HorizontalOptions="FillAndExpand" />
 
-			<BoxView HeightRequest="1" Color="LightGray" />
+                    <!-- Fila 2: Tipo de muestra (estático) y Tipo de análisis (Entry) en la misma línea -->
+                    <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Spacing="16">
+                            <Label Text="Tipo de muestra:" />
+                            <Label Text="Suelo" FontAttributes="Bold" FontSize="14" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Grid>
+            </Frame>
 
-			<!-- Parámetros del suelo -->
-			<Label Text="Resultados del análisis:" FontAttributes="Bold" />
+            <!-- Sección: Resultados (sin cambios) -->
+            <Label Text="Resultados del análisis" FontAttributes="Bold" FontSize="16" Margin="0,6,0,0" />
+            <Frame CornerRadius="8" HasShadow="True" Padding="12" BackgroundColor="WhiteSmoke" Margin="0,6,0,0">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="12">
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="4">
+                        <Label Text="pH:" />
+                        <Entry x:Name="pHEntry" Keyboard="Numeric" Placeholder="pH" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="4">
+                        <Label Text="Materia Orgánica:" />
+                        <Entry x:Name="MateriaOrganicaEntry" Keyboard="Numeric" Placeholder="%" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
 
-			<Label Text="pH:" />
-			<Entry x:Name="pHEntry" Keyboard="Numeric" Placeholder="pH" />
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="4">
+                        <Label Text="Nitrógeno:" />
+                        <Entry x:Name="NitrogenoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="4">
+                        <Label Text="Fósforo disponible:" />
+                        <Entry x:Name="FosforoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
 
-			<Label Text="Materia Orgánica:" />
-			<Entry x:Name="MateriaOrganicaEntry" Keyboard="Numeric" Placeholder="%" />
+                    <VerticalStackLayout Grid.Row="2" Grid.Column="0" Spacing="4">
+                        <Label Text="Potasio:" />
+                        <Entry x:Name="PotasioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="2" Grid.Column="1" Spacing="4">
+                        <Label Text="Sodio:" />
+                        <Entry x:Name="SodioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
 
-			<Label Text="Nitrógeno:" />
-			<Entry x:Name="NitrogenoEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+                    <VerticalStackLayout Grid.Row="3" Grid.Column="0" Spacing="4">
+                        <Label Text="Calcio:" />
+                        <Entry x:Name="CalcioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="3" Grid.Column="1" Spacing="4">
+                        <Label Text="Magnesio:" />
+                        <Entry x:Name="MagnesioEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
 
-			<Label Text="Fósforo disponible:" />
-			<Entry x:Name="FosforoEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+                    <VerticalStackLayout Grid.Row="4" Grid.Column="0" Spacing="4">
+                        <Label Text="Azufre:" />
+                        <Entry x:Name="AzufreEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="4" Grid.Column="1" Spacing="4">
+                        <Label Text="Hierro:" />
+                        <Entry x:Name="HierroEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
 
-			<Label Text="Potasio:" />
-			<Entry x:Name="PotasioEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+                    <VerticalStackLayout Grid.Row="5" Grid.Column="0" Spacing="4">
+                        <Label Text="Manganeso:" />
+                        <Entry x:Name="ManganesoEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="5" Grid.Column="1" Spacing="4">
+                        <Label Text="Boro:" />
+                        <Entry x:Name="BoroEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
 
-			<Label Text="Sodio:" />
-			<Entry x:Name="SodioEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+                    <VerticalStackLayout Grid.Row="6" Grid.Column="0" Spacing="4">
+                        <Label Text="Cobre:" />
+                        <Entry x:Name="CobreEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="6" Grid.Column="1" Spacing="4">
+                        <Label Text="Zinc:" />
+                        <Entry x:Name="ZincEntry" Keyboard="Numeric" Placeholder="mg/kg" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
 
-			<Label Text="Calcio:" />
-			<Entry x:Name="CalcioEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+                    <VerticalStackLayout Grid.Row="7" Grid.Column="0" Spacing="4">
+                        <Label Text="(Ca + Mg)/K:" />
+                        <Entry x:Name="CaMgKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="7" Grid.Column="1" Spacing="4">
+                        <Label Text="Ca/Mg:" />
+                        <Entry x:Name="CaMgEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
 
-			<Label Text="Magnesio:" />
-			<Entry x:Name="MagnesioEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+                    <VerticalStackLayout Grid.Row="8" Grid.Column="0" Spacing="4">
+                        <Label Text="Ca/K:" />
+                        <Entry x:Name="CaKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="8" Grid.Column="1" Spacing="4">
+                        <Label Text="Mg/K:" />
+                        <Entry x:Name="MgKEntry" Keyboard="Numeric" Placeholder="Ratio" HorizontalOptions="FillAndExpand" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Frame>
 
-			<Label Text="Azufre:" />
-			<Entry x:Name="AzufreEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+            <Button Text="Guardar" Clicked="OnGuardarClicked" Margin="0,8,0,20" />
 
-			<Label Text="Hierro:" />
-			<Entry x:Name="HierroEntry" Keyboard="Numeric" Placeholder="mg/kg" />
-
-			<Label Text="Manganeso:" />
-			<Entry x:Name="ManganesoEntry" Keyboard="Numeric" Placeholder="mg/kg" />
-
-			<Label Text="Boro:" />
-			<Entry x:Name="BoroEntry" Keyboard="Numeric" Placeholder="mg/kg" />
-
-			<Label Text="Cobre:" />
-			<Entry x:Name="CobreEntry" Keyboard="Numeric" Placeholder="mg/kg" />
-
-			<Label Text="Zinc:" />
-			<Entry x:Name="ZincEntry" Keyboard="Numeric" Placeholder="mg/kg" />
-
-			<Label Text="(Ca + Mg)/K:" />
-			<Entry x:Name="CaMgKEntry" Keyboard="Numeric" Placeholder="Ratio" />
-
-			<Label Text="Ca/Mg:" />
-			<Entry x:Name="CaMgEntry" Keyboard="Numeric" Placeholder="Ratio" />
-
-			<Label Text="Ca/K:" />
-			<Entry x:Name="CaKEntry" Keyboard="Numeric" Placeholder="Ratio" />
-
-			<Label Text="Mg/K:" />
-			<Entry x:Name="MgKEntry" Keyboard="Numeric" Placeholder="Ratio" />
-
-			<Button Text="Guardar" Clicked="OnGuardarClicked" Margin="0,20,0,0"/>
-		</VerticalStackLayout>
-	</ScrollView>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>
