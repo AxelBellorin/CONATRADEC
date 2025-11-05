@@ -3,10 +3,102 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.NuevoAnalisisFormPage"
              Title="Nuevo Análisis">
-	<VerticalStackLayout Padding="16">
-		<Label Text="Crear nuevo análisis" FontAttributes="Bold" FontSize="20"/>
-		<Entry Placeholder="Nombre del análisis" x:Name="AnalysisNameEntry"/>
-		<Entry Placeholder="Descripción" x:Name="DescriptionEntry"/>
-		<Button Text="Guardar" Clicked="OnGuardarClicked"/>
-	</VerticalStackLayout>
+	<ScrollView>
+		<VerticalStackLayout Padding="16" Spacing="10">
+			<Label Text="Formulario de Análisis de Suelo" FontAttributes="Bold" FontSize="22" />
+
+			<!-- Nombre del laboratorio -->
+			<Label Text="Nombre del laboratorio:" />
+			<Entry Placeholder="Laboratorio" x:Name="LaboratorioEntry" />
+
+			<!-- Nombre de usuario (puedes programar esto para mostrar el valor real) -->
+			<Label Text="Usuario:" />
+			<Label x:Name="UsuarioLabel" Text="Usuario actual" FontAttributes="Italic" />
+
+			<!-- Tipo de muestra -->
+			<Label Text="Tipo de muestra:" />
+			<Picker x:Name="TipoMuestraPicker">
+				<Picker.ItemsSource>
+					<x:Array Type="{x:Type x:String}">
+						<x:String>Suelo</x:String>
+						<x:String>Agua</x:String>
+						<x:String>Planta</x:String>
+					</x:Array>
+				</Picker.ItemsSource>
+			</Picker>
+
+			<!-- Tipo de análisis -->
+			<Label Text="Tipo de análisis:" />
+			<Picker x:Name="TipoAnalisisPicker">
+				<Picker.ItemsSource>
+					<x:Array Type="{x:Type x:String}">
+						<x:String>Completo</x:String>
+						<x:String>Parcial</x:String>
+						<x:String>Otros</x:String>
+					</x:Array>
+				</Picker.ItemsSource>
+			</Picker>
+
+			<BoxView HeightRequest="1" Color="LightGray" />
+
+			<!-- Parámetros del suelo -->
+			<Label Text="Resultados del análisis:" FontAttributes="Bold" />
+
+			<Label Text="pH:" />
+			<Entry x:Name="pHEntry" Keyboard="Numeric" Placeholder="pH" />
+
+			<Label Text="Materia Orgánica:" />
+			<Entry x:Name="MateriaOrganicaEntry" Keyboard="Numeric" Placeholder="%" />
+
+			<Label Text="Nitrógeno:" />
+			<Entry x:Name="NitrogenoEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Fósforo disponible:" />
+			<Entry x:Name="FosforoEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Potasio:" />
+			<Entry x:Name="PotasioEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Sodio:" />
+			<Entry x:Name="SodioEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Calcio:" />
+			<Entry x:Name="CalcioEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Magnesio:" />
+			<Entry x:Name="MagnesioEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Azufre:" />
+			<Entry x:Name="AzufreEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Hierro:" />
+			<Entry x:Name="HierroEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Manganeso:" />
+			<Entry x:Name="ManganesoEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Boro:" />
+			<Entry x:Name="BoroEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Cobre:" />
+			<Entry x:Name="CobreEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="Zinc:" />
+			<Entry x:Name="ZincEntry" Keyboard="Numeric" Placeholder="mg/kg" />
+
+			<Label Text="(Ca + Mg)/K:" />
+			<Entry x:Name="CaMgKEntry" Keyboard="Numeric" Placeholder="Ratio" />
+
+			<Label Text="Ca/Mg:" />
+			<Entry x:Name="CaMgEntry" Keyboard="Numeric" Placeholder="Ratio" />
+
+			<Label Text="Ca/K:" />
+			<Entry x:Name="CaKEntry" Keyboard="Numeric" Placeholder="Ratio" />
+
+			<Label Text="Mg/K:" />
+			<Entry x:Name="MgKEntry" Keyboard="Numeric" Placeholder="Ratio" />
+
+			<Button Text="Guardar" Clicked="OnGuardarClicked" Margin="0,20,0,0"/>
+		</VerticalStackLayout>
+	</ScrollView>
 </ContentPage>
