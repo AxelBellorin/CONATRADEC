@@ -35,6 +35,18 @@
                   Route="LoginPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:loginPage}" />
+    
+    <!-- Gestión de paises -->
+    <ShellContent Title="PaisPage"
+                  Route="PaisPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:paisPage}" />
+
+    <!-- Formulario de pais (crear, editar, ver) -->
+    <ShellContent Title="PaisFormPage"
+                  Route="PaisFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:paisFormPage}" />
 
     <!-- Página principal después de iniciar sesión -->
     <ShellContent Title="MainPage"
@@ -67,21 +79,32 @@
                   ContentTemplate="{DataTemplate views:rolFormPage}" />
 
     <!-- Gestión de cargos -->
-    <ShellContent Title="CargoPage"
-                  Route="CargoPage"
+    <ShellContent Title="DepartamentoPage"
+                  Route="DepartamentoPage"
                   FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:cargoPage}" />
+                  ContentTemplate="{DataTemplate views:departamentoPage}" />
 
     <!-- Formulario de cargo -->
-    <ShellContent Title="CargoFormPage"
-                  Route="CargoFormPage"
+    <ShellContent Title="DepartamentoFormPage"
+                  Route="DepartamentoFormPage"
                   FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:cargoFormPage}" />
+                  ContentTemplate="{DataTemplate views:departamentoFormPage}" />
+
+    <!-- Gestión de municipio -->
+    <ShellContent Title="MunicipioPage"
+                  Route="MunicipioPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:municipioPage}" />
+
+     <!--Formulario de municipio-->
+    <ShellContent Title="MunicipioFormPage"
+                  Route="MunicipioFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:municipioFormPage}" />
 
     <!-- Matriz de permisos (Roles ↔ Interfaz) -->
     <ShellContent Title="MatrizPermisosPage"
                   Route="MatrizPermisosPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:matrizPermisosPage}" />
-
 </Shell>

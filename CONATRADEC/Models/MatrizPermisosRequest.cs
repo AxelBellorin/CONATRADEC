@@ -60,7 +60,7 @@ namespace CONATRADEC.Models
 
             // Se transforma la lista de InterfazResponse recibida en una lista de InterfazRequest,
             // mapeando cada elemento con su respectivo constructor.
-            Permisos = matrizPermisosResponse.Permisos
+            Permisos = matrizPermisosResponse.Interfaz
                 .Select(p => new InterfazRequest(p))
                 .ToList();
         }

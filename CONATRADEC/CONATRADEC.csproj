@@ -100,25 +100,52 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Views\municipioFormPage.xaml.cs">
+	    <DependentUpon>municipioFormPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\departamentoFormPage.xaml.cs">
+	    <DependentUpon>departamentoFormPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\municipioPage.xaml.cs">
+	    <DependentUpon>municipioPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\paisFormPage.xaml.cs">
+	    <DependentUpon>paisFormPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\paisPage.xaml.cs">
+	    <DependentUpon>paisPage.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\matrizPermisosPage.xaml.cs">
 	    <DependentUpon>matrizPermisosPage.xaml</DependentUpon>
 	  </Compile>
 	  <Compile Update="Views\loginPage.xaml.cs">
 	    <DependentUpon>loginPage.xaml</DependentUpon>
 	  </Compile>
-	  <Compile Update="Views\cargoFormPage.xaml.cs">
-	    <DependentUpon>cargoFormPage.xaml</DependentUpon>
-	  </Compile>
 	  <Compile Update="Views\rolFormPage.xaml.cs">
 	    <DependentUpon>rolFormPage.xaml</DependentUpon>
 	  </Compile>
-	  <Compile Update="Views\cargoPage.xaml.cs">
-	    <DependentUpon>cargoPage.xaml</DependentUpon>
+	  <Compile Update="Views\departamentoPage.xaml.cs">
+	    <DependentUpon>departamentoPage.xaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
 	  <MauiXaml Update="Resources\Styles\Template.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\municipioFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\departamentoFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\municipioPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\paisFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\paisPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\matrizPermisosPage.xaml">
@@ -130,13 +157,10 @@
 	  <MauiXaml Update="Views\loginPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\cargoFormPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
 	  <MauiXaml Update="Views\rolFormPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\cargoPage.xaml">
+	  <MauiXaml Update="Views\departamentoPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\rolPage.xaml">

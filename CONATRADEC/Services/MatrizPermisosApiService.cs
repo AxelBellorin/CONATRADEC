@@ -58,7 +58,7 @@ namespace CONATRADEC.Services
 
                 // Realiza GET al endpoint que retorna la matriz por nombre de rol.
                 var response = await httpClient.GetFromJsonAsync<ObservableCollection<MatrizPermisosResponse>>(
-                    $"api/rol-permisos/matriz-por-rol-nombre?nombreRol={encodedRol}");
+                    $"api/rol-interfaz/matriz-por-rol-nombre?nombreRol={encodedRol}");
 
                 // Si la respuesta es nula, devuelve una colección vacía para evitar null reference.
                 return response ?? new ObservableCollection<MatrizPermisosResponse>();

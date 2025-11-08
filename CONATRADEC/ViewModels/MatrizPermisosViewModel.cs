@@ -72,10 +72,10 @@ public class MatrizPermisosViewModel : GlobalService
     }
 
     // Vista filtrada (derivada) de la colección principal según el texto del filtro.
-    public IEnumerable<InterfazResponse> PermisosFiltrados => string.IsNullOrWhiteSpace(_filtro)
+    public ObservableCollection<InterfazResponse> PermisosFiltrados => string.IsNullOrWhiteSpace(_filtro)
         ? Permisos
         : Permisos
-            .Where(p => p.NombrePermiso.Contains(_filtro, StringComparison.OrdinalIgnoreCase))
+            .Where(p => p.NombreInterfaz.Contains(_filtro, StringComparison.OrdinalIgnoreCase))
             .ToObservableCollection();
 
     // Texto de filtro; notifica recalculado del filtrado al modificarse.
@@ -201,6 +201,9 @@ public class MatrizPermisosViewModel : GlobalService
             if (Roles is not null)
                 Roles.Clear();
 
+            if (Permisos is not null)
+                Permisos.Clear();
+
             // Llama al servicio que retorna los roles.
             var response = await rolApiService.GetRolAsync();
 
@@ -243,14 +246,14 @@ public class MatrizPermisosViewModel : GlobalService
             var matriz = response.FirstOrDefault();
 
             // Si por alguna razón viene null, sale con estado informativo (evita NRE).
-            if (matriz?.Permisos is null)
+            if (matriz?.Interfaz is null)
             {
                 Estado = "No se encontraron permisos para el rol seleccionado.";
                 return;
             }
 
             // Reemplaza la colección de permisos con la devuelta por la API.
-            Permisos = matriz.Permisos;
+            Permisos = matriz.Interfaz;
 
             // Marca como "limpios" los items recién cargados (no hay cambios pendientes).
             foreach (var p in Permisos)
@@ -317,7 +320,7 @@ public class MatrizPermisosViewModel : GlobalService
     {
         foreach (var s in _snapshot)
         {
-            var p = Permisos.FirstOrDefault(x => x.PermisoId == s.PermisoId);
+            var p = Permisos.FirstOrDefault(x => x.InterfazId == s.PermisoId);
             if (p is null) continue;
 
             p.Leer = s.Leer;
@@ -355,7 +358,7 @@ public class MatrizPermisosViewModel : GlobalService
         }
 
         // Si cambió el nombre, refresca la vista filtrada.
-        if (e.PropertyName == nameof(InterfazResponse.NombrePermiso))
+        if (e.PropertyName == nameof(InterfazResponse.NombreInterfaz))
             OnPropertyChanged(nameof(PermisosFiltrados));
 
         // Actualiza CanExecute de los botones Guardar/Revertir.
@@ -393,8 +396,8 @@ public class MatrizPermisosViewModel : GlobalService
                 },
                 Permisos = permisosParaEnviar.Select(p => new InterfazRequest
                 {
-                    PermisoId = p.PermisoId,
-                    NombrePermiso = p.NombrePermiso,
+                    InterfazId = p.InterfazId,
+                    NombreInterfaz = p.NombreInterfaz,
                     Leer = p.Leer,
                     Agregar = p.Agregar,
                     Actualizar = p.Actualizar,
@@ -447,5 +450,5 @@ public class MatrizPermisosViewModel : GlobalService
 public record PermisoSnapshot(int PermisoId, bool Leer, bool Agregar, bool Actualizar, bool Eliminar)
 {
     public static PermisoSnapshot From(InterfazResponse p)
-        => new(p.PermisoId, p.Leer, p.Agregar, p.Actualizar, p.Eliminar);
+        => new(p.InterfazId, p.Leer, p.Agregar, p.Actualizar, p.Eliminar);
 }

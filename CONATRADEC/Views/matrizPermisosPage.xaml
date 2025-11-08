@@ -7,7 +7,7 @@
                               PermisosFiltrados, RefrescarCommand, GuardarCommand,
                               RevertirCambiosCommand, MarcarColumnaCommand,
                               LimpiarTodoCommand, MarcarFilaCommand, LimpiarFilaCommand.
--->
+--> 
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
@@ -64,9 +64,8 @@
                                 Margin="{OnPlatform WinUI='0,30,0,0', Default='0,0,0,0'}"
                                 Text="Refrescar"
                                 Command="{Binding RefrescarCommand}"
-                                IsEnabled="{Binding !IsBusy}"
+                                IsEnabled="{Binding NotIsBusy}"
                                 HeightRequest="{OnPlatform Android=30, iOS=30}"
-                                WidthRequest="{OnPlatform Android=90, iOS=90}"
                                 FontSize="12" />
                     </Grid>
 
@@ -76,7 +75,7 @@
                                TextColor="{StaticResource color_Negro}"
                                Placeholder="Buscar interfaz..."
                                Text="{Binding Filtro}"
-                               IsEnabled="{Binding !IsBusy}" />
+                               IsEnabled="{Binding NotIsBusy}" />
 
                     <!-- FILA 3: Encabezado de columnas + acciones por columna -->
                     <VerticalStackLayout Grid.Row="3"
@@ -156,9 +155,10 @@
                                             <toolkit:Expander.Header>
                                                 <Grid RowDefinitions="*"
                                                       ColumnDefinitions="*,Auto"
-                                                      Padding="0,8">
+                                                      Padding="0,8"
+                                                      BindingContext="{Binding .}">
                                                     <!-- Nombre de la interfaz -->
-                                                    <Label Text="{Binding NombrePermiso}"
+                                                    <Label Text="{Binding NombreInterfaz}"
                                                            TextColor="{StaticResource color_Negro}"
                                                            LineBreakMode="TailTruncation"
                                                            VerticalTextAlignment="Start" />

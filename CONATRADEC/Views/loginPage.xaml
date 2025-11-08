@@ -57,7 +57,7 @@
             </Border>
 
             <!-- PASSWORD -->
-            <Border Style="{StaticResource BorderStyle}">
+            <Border Style="{StaticResource BorderStyle}" IsVisible="{Binding LoginButtonVisible}">
                 <Grid ColumnDefinitions="*, Auto">
                     <Entry Grid.Column="0"
                            x:Name="PasswordEntry"
@@ -65,6 +65,7 @@
                            Style="{StaticResource EntryStyle}"
                            Placeholder="Contraseña"
                            Text="{Binding Password}"
+                           Keyboard="Password"
                            IsPassword="{Binding IsPasswordHidden}"
                            Background="Transparent" />
 
@@ -99,14 +100,15 @@
                            TextColor="{StaticResource color_Negro}" />
                     <Switch Grid.Column="1"
                             IsToggled="{Binding UseBiometrics}"
-                            IsEnabled="{Binding RememberMe}" />
+                            IsEnabled="{Binding CanToggleBiometrics}" 
+                            Style="{StaticResource SwitchStyle}"/>
                 </Grid>
                 <Label Grid.Row="1"
                        Text="Requiere activar 'Recordarme'."
                        FontSize="12"
                        TextColor="{StaticResource color_Negro}"
                        Opacity="0.6"
-                       IsVisible="{Binding RememberMe}"/>
+                       IsVisible="{Binding TitleBiometric}"/>
             </Grid>
 
             <!-- LOADER -->

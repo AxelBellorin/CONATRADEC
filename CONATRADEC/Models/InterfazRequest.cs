@@ -19,11 +19,11 @@ namespace CONATRADEC.Models
         // ===========================================================
 
         // Campo que almacena el identificador único del permiso o interfaz.
-        private int permisoId;
+        private int interfazId;
 
         // Campo que almacena el nombre de la interfaz o permiso del sistema.
         // Se inicializa con una cadena vacía para evitar valores nulos.
-        private string nombrePermiso = string.Empty;
+        private string nombreInterfaz = string.Empty;
 
 
         // ===========================================================
@@ -31,10 +31,10 @@ namespace CONATRADEC.Models
         // ===========================================================
 
         // Propiedad pública para acceder o modificar el ID del permiso.
-        public int PermisoId { get => permisoId; set => permisoId = value; }
+        public int InterfazId { get => interfazId; set => interfazId = value; }
 
         // Propiedad pública para acceder o modificar el nombre de la interfaz o permiso.
-        public string NombrePermiso { get => nombrePermiso; set => nombrePermiso = value; }
+        public string NombreInterfaz { get => nombreInterfaz; set => nombreInterfaz = value; }
 
 
         // ===========================================================
@@ -54,10 +54,10 @@ namespace CONATRADEC.Models
         public InterfazRequest(InterfazResponse interfazResponse)
         {
             // Asigna el ID del permiso recibido.
-            PermisoId = interfazResponse.PermisoId;
+            InterfazId = interfazResponse.InterfazId;
 
             // Asigna el nombre del permiso recibido.
-            NombrePermiso = interfazResponse.NombrePermiso;
+            NombreInterfaz = interfazResponse.NombreInterfaz;
 
             // Las siguientes asignaciones copian los valores de acceso
             // (heredados de la clase base Permiso) desde el modelo de respuesta.

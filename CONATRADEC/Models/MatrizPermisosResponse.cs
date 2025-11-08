@@ -24,7 +24,7 @@ namespace CONATRADEC.Models
         // Campo que almacena la colección de permisos (interfaces) asociadas a ese rol.
         // Se usa ObservableCollection para que los cambios en la lista
         // se reflejen automáticamente en la interfaz de usuario (binding en MVVM).
-        private ObservableCollection<InterfazResponse> permisos;
+        private ObservableCollection<InterfazResponse> interfaz;
 
 
         // ===========================================================
@@ -36,6 +36,6 @@ namespace CONATRADEC.Models
 
         // Propiedad pública que expone la colección de permisos del rol.
         // Cada elemento representa una interfaz con sus permisos (leer, agregar, etc.).
-        public ObservableCollection<InterfazResponse> Permisos { get => permisos; set => permisos = value; }
+        public ObservableCollection<InterfazResponse> Interfaz { get => interfaz; set => interfaz = value; }
     }
 }

@@ -1,33 +1,35 @@
-﻿using CONATRADEC.Services;
+﻿using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
+using CONATRADEC.Models;
+using CONATRADEC.Services;
 using System.ComponentModel;
 using System.Windows.Input;
-using CONATRADEC.Models;
 
 namespace CONATRADEC.ViewModels
 {
-    // ViewModel del formulario de Cargos.
-    // Hereda de GlobalService para reutilizar navegación (GoToAsyncParameters/GoToCargoPage) y estado (IsBusy).
-    public class CargoFormViewModel : GlobalService
+    // ViewModel del formulario de País.
+    // Hereda de GlobalService para reutilizar navegación (GoToAsyncParameters) y estado (IsBusy).
+    public class PaisFormViewModel : GlobalService
     {
         // ===========================================================
         // ================= ESTADO / PROPIEDADES BINDABLE ===========
         // ===========================================================
 
         // Objeto de trabajo que se edita/crea desde el formulario.
-        private CargoRequest cargo;
+        private PaisRequest pais;
 
         // Bandera interna para controlar confirmaciones (cancelar/guardar).
         private bool isCancel;
 
-        // Campos editables desde la vista (Entry: Nombre/Descripción).
-        private string nombreCargo;
-        private string descripcionCargo;
+        // Campos editables desde la vista (Entry: Nombre/Código ISO).
+        private string nombrePais;
+        private string codigoISOPais;
 
         // Modo del formulario (Create / Edit / View).
         private FormMode.FormModeSelect mode = new FormMode.FormModeSelect();
 
-        // Servicio de API para persistir cambios de Cargo.
-        private readonly CargoApiService cargoApiService = new CargoApiService();
+        // Servicio de API para persistir cambios de País.
+        private readonly PaisApiService paisApiService = new PaisApiService();
 
         // Comandos expuestos a la vista (botones Guardar/Cancelar).
         public Command SaveCommand { get; }
@@ -37,7 +39,7 @@ namespace CONATRADEC.ViewModels
         // ========================= CTOR ============================
         // ===========================================================
 
-        public CargoFormViewModel()
+        public PaisFormViewModel()
         {
             // Guarda si el formulario no está en solo lectura (IsReadOnly).
             SaveCommand = new Command(async () => await SaveAsync(), () => !IsReadOnly);
@@ -50,18 +52,22 @@ namespace CONATRADEC.ViewModels
         // =============== PROPIEDADES CON NOTIFICACIÓN ==============
         // ===========================================================
 
-        // Nombre del Cargo (bindeado a Entry).
-        public string NombreCargo
+        // Nombre del País (bindeado a Entry).
+        public string NombrePais
         {
-            get => nombreCargo;
-            set { nombreCargo = value; OnPropertyChanged(); }
+            get => nombrePais;
+            set { nombrePais = value; OnPropertyChanged(); }
         }
 
-        // Descripción del Cargo (bindeado a Entry).
-        public string DescripcionCargo
+        // Código ISO del País (bindeado a Entry).
+        public string CodigoISOPais
         {
-            get => descripcionCargo;
-            set { descripcionCargo = value; OnPropertyChanged(); }
+            get => codigoISOPais;
+            set
+            {
+                codigoISOPais = value;
+                OnPropertyChanged();
+            }
         }
 
         // Bandera de flujo para confirmar acciones (no es bindable a UI).
@@ -71,17 +77,17 @@ namespace CONATRADEC.ViewModels
             set => isCancel = value;
         }
 
-        // Objeto Cargo seleccionado/creado. Al asignarlo, propaga valores a los campos editables.
-        public CargoRequest Cargo
+        // Objeto País seleccionado/creado. Al asignarlo, propaga valores a los campos editables.
+        public PaisRequest Pais
         {
-            get => cargo;
+            get => pais;
             set
             {
-                cargo = value;
+                pais = value;
                 OnPropertyChanged();
                 // Sincroniza el formulario con los datos del objeto.
-                NombreCargo = value.NombreCargo;
-                DescripcionCargo = value.DescripcionCargo;
+                NombrePais = value.NombrePais;
+                CodigoISOPais = value.CodigoISOPais;
             }
         }
 
@@ -97,29 +103,22 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(IsReadOnly));
                 OnPropertyChanged(nameof(Title));
                 OnPropertyChanged(nameof(ShowSaveButton));
-                // Si quisieras, aquí podrías forzar ChangeCanExecute de SaveCommand.
-                // ((Command)SaveCommand).ChangeCanExecute();
+                // ((Command)SaveCommand).ChangeCanExecute(); // opcional
             }
         }
 
         // Indica si los campos del formulario están bloqueados (solo lectura).
-        public bool IsReadOnly
-        {
-            get => Mode == FormMode.FormModeSelect.View ? true : false;
-        }
+        public bool IsReadOnly => Mode == FormMode.FormModeSelect.View;
 
         // Controla la visibilidad del botón Guardar (oculto en modo View).
-        public bool ShowSaveButton
-        {
-            get => Mode != FormMode.FormModeSelect.View ? true : false;
-        }
+        public bool ShowSaveButton => Mode != FormMode.FormModeSelect.View;
 
         // Título dinámico mostrado arriba del formulario según el modo.
         public string Title => Mode switch
         {
-            FormMode.FormModeSelect.Create => "Crear Cargo",
-            FormMode.FormModeSelect.Edit => "Editar Cargo",
-            FormMode.FormModeSelect.View => "Detalles del Cargo",
+            FormMode.FormModeSelect.Create => "Crear País",
+            FormMode.FormModeSelect.Edit => "Editar País",
+            FormMode.FormModeSelect.View => "Detalles del País",
             _ => "",
         };
 
@@ -146,13 +145,13 @@ namespace CONATRADEC.ViewModels
 
                     if (confirm)
                     {
-                        await GoToAsyncParameters("//CargoPage");
+                        await GoToAsyncParameters("//PaisPage");
                     }
                 }
                 else
                 {
                     // Si no hubo cambios, simplemente regresa.
-                    await GoToAsyncParameters("//CargoPage");
+                    await GoToAsyncParameters("//PaisPage");
                 }
             }
             catch (Exception ex)
@@ -177,9 +176,9 @@ namespace CONATRADEC.ViewModels
             try
             {
                 if (Mode == FormMode.FormModeSelect.Create)
-                    await CreateCargoAsync();
+                    await CreatePaisAsync();
                 else if (Mode == FormMode.FormModeSelect.Edit)
-                    await UpdateCargoAsync();
+                    await UpdatePaisAsync();
             }
             catch (Exception ex)
             {
@@ -187,11 +186,11 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        // Crea un nuevo Cargo (confirmación → persistir → navegar → feedback).
-        private async Task CreateCargoAsync()
+        // Crea un nuevo País (confirmación → persistir → navegar → feedback).
+        private async Task CreatePaisAsync()
         {
             try
-            {
+            {                
                 // Determina si hay cambios significativos para guardar.
                 IsCancel = ValidateFields();
 
@@ -200,26 +199,26 @@ namespace CONATRADEC.ViewModels
                     // Solicita confirmación antes de persistir.
                     bool confirm = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
-                        "¿Desea guardar los datos del cargo?",
+                        "¿Desea guardar los datos del país?",
                         "Aceptar",
                         "Cancelar");
 
                     if (confirm)
                     {
-                        // Propaga los valores del formulario al objeto Cargo.
-                        Cargo.NombreCargo = NombreCargo;
-                        Cargo.DescripcionCargo = DescripcionCargo;
+                        // Propaga los valores del formulario al objeto País.
+                        Pais.NombrePais = NombrePais;
+                        Pais.CodigoISOPais = CodigoISOPais;
 
                         // Llama a la API para crear el registro.
-                        var response = await cargoApiService.CreateCargoAsync(Cargo);
+                        var response = await paisApiService.CreatePaisAsync(Pais);
                         if (response)
                         {
-                            await GoToCargoPage(); // Navega al listado.
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Cargo guardado correctamente", "OK");
+                            await GoToAsyncParameters("//PaisPage"); // Navega al listado.
+                            await Application.Current.MainPage.DisplayAlert("Éxito", "País guardado correctamente", "OK");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "El cargo no se pudo guardar, intente nuevamente", "OK");
+                            await Application.Current.MainPage.DisplayAlert("Error", "El país no se pudo guardar, intente nuevamente", "OK");
                         }
                     }
                 }
@@ -234,8 +233,8 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        // Actualiza un Cargo existente (confirmación → persistir → navegar → feedback).
-        private async Task UpdateCargoAsync()
+        // Actualiza un País existente (confirmación → persistir → navegar → feedback).
+        private async Task UpdatePaisAsync()
         {
             try
             {
@@ -253,19 +252,19 @@ namespace CONATRADEC.ViewModels
                     if (confirm)
                     {
                         // Propaga al objeto principal los cambios del formulario.
-                        Cargo.NombreCargo = NombreCargo;
-                        Cargo.DescripcionCargo = DescripcionCargo;
+                        Pais.NombrePais = NombrePais;
+                        Pais.CodigoISOPais = CodigoISOPais;
 
                         // Llama a la API para actualizar.
-                        var response = await cargoApiService.UpdateCargoAsync(Cargo);
+                        var response = await paisApiService.UpdatePaisAsync(Pais);
                         if (response)
                         {
-                            await GoToCargoPage();
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Cargo actualizado correctamente", "OK");
+                            await GoToAsyncParameters("//PaisPage");
+                            await Application.Current.MainPage.DisplayAlert("Éxito", "País actualizado correctamente", "OK");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "El cargo no se pudo actualizar, intente nuevamente", "OK");
+                            await Application.Current.MainPage.DisplayAlert("Error", "El país no se pudo actualizar, intente nuevamente", "OK");
                         }
                     }
                 }
@@ -287,9 +286,33 @@ namespace CONATRADEC.ViewModels
         // Valida si los campos del formulario difieren de los del objeto original.
         private bool ValidateFields()
         {
-            if (NombreCargo != Cargo.NombreCargo) return true;
-            if (DescripcionCargo != Cargo.DescripcionCargo) return true;
+            if (NombrePais != Pais.NombrePais) return true;
+            if (CodigoISOPais != Pais.CodigoISOPais) return true;
+            
             return false;
         }
+
+        //// Valida si los campos del formulario estan correctos.
+        //private bool ValidateFieldsData()
+        //{
+        //    if (CodigoISOPais.Length > 3 || string.IsNullOrWhiteSpace(CodigoISOPais))
+        //    {
+        //        codigoISOPais = CodigoISOPais; // Mantiene el valor anterior si excede 3 caracteres.
+        //        _ = Snackbar.Make(
+        //                        "El código ISO debe tener exactamente 3 letras.",
+        //                        duration: TimeSpan.FromSeconds(3),
+        //                        visualOptions: new SnackbarOptions
+        //                        {
+        //                            BackgroundColor = Colors.Red,
+        //                            TextColor = Colors.White
+        //                        }).Show();
+        //    }
+        //    else
+        //    {
+        //        codigoISOPais = codigoISOPais.ToUpper();
+        //        return true;
+        //    }
+        //    return false;
+        //}
     }
 }
