@@ -113,23 +113,33 @@ namespace CONATRADEC.ViewModels
             IsBusy = isBusy;
             try
             {
-                // Llama al endpoint que devuelve los municipios por departamento.
-                var response = await municipioApiService.GetMunicipiosAsync(DepartamentoRequest);
+                List.Clear();
 
+                // Valida que el usaurio tenga conexion a internet
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
+
+                // Llama al endpoint que devuelve los municipios por departamento.
+                var response = await municipioApiService.GetMunicipiosAsync(DepartamentoRequest.DepartamentoId);
+  
                 if (response.Any())
                 {
-                    // Opción 1: Reemplazar referencia para refrescar toda la lista.
-                    List.Clear();
                     List = response;
                 }
                 else
                 {
-                    await App.Current.MainPage.DisplayAlert("Información", "No se encontraron municipios.", "OK");
+                    _ = MostrarToastAsync("No se encontraron municipios.");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex)    
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -162,7 +172,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
         }
 
@@ -187,7 +197,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
         }
 
@@ -201,27 +211,38 @@ namespace CONATRADEC.ViewModels
             IsBusy = true;
             try
             {
-                bool confirm = await App.Current.MainPage.DisplayAlert(
+                bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                     "Eliminar",
                     $"¿Deseas eliminar el municipio '{municipio.NombreMunicipio}'?",
                     "Sí", "No");
 
                 if (!confirm) return;
 
+                // Valida que el usaurio tenga conexion a internet
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
+
                 var response = await municipioApiService.DeleteMunicipioAsync(new MunicipioRequest(municipio));
+
                 if (response)
                 {
-                    await App.Current.MainPage.DisplayAlert("Éxito", "Municipio eliminado.", "OK");
+                    _ = MostrarToastAsync("Éxito" + "Municipio eliminado.");
                     await LoadMunicipio(true); // recargar lista
                 }
                 else
                 {
-                    await App.Current.MainPage.DisplayAlert("Error", "No se pudo eliminar el municipio.", "OK");
+                    _ = MostrarToastAsync("Error" + "No se pudo eliminar el municipio.");
                 }
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {

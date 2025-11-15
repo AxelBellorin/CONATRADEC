@@ -63,9 +63,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Muestra un mensaje de error en caso de excepción durante la llamada HTTP.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
-
                 // Devuelve una lista vacía para evitar interrupciones en la UI.
                 return new ObservableCollection<RolResponse>();
             }
@@ -92,8 +89,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Notifica el error y retorna false para indicar que la operación falló.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
                 return false;
             }
         }
@@ -119,8 +114,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Muestra alerta en caso de error y devuelve false.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
                 return false;
             }
         }
@@ -147,8 +140,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Notifica el error y devuelve false para indicar fallo.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
                 return false;
             }
         }

@@ -48,12 +48,6 @@
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:paisFormPage}" />
 
-    <!-- Página principal después de iniciar sesión -->
-    <ShellContent Title="MainPage"
-                  Route="MainPage"
-                  FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:MainPage}" />
-
     <!-- Gestión de usuarios -->
     <ShellContent Title="UserPage"
                   Route="UserPage"
@@ -65,6 +59,12 @@
                   Route="UserFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:userFormPage}" />
+
+    <!-- Página principal después de iniciar sesión -->
+    <ShellContent Title="MainPage"
+                  Route="MainPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:MainPage}" />
 
     <!-- Gestión de roles -->
     <ShellContent Title="RolPage"

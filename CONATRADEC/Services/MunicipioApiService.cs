@@ -59,21 +59,19 @@ namespace CONATRADEC.Services
         //   ObservableCollection<MunicipioResponse> con los datos o
         //   una colección vacía si ocurre un error o no hay resultados.
         // -----------------------------------------------------------
-        public async Task<ObservableCollection<MunicipioResponse>> GetMunicipiosAsync(DepartamentoRequest departamentoRequest)
+        public async Task<ObservableCollection<MunicipioResponse>> GetMunicipiosAsync(int? departamentoId)
         {
             try
             {
                 // Realiza una solicitud GET al endpoint correspondiente.
                 var response = await httpClient.GetFromJsonAsync<ObservableCollection<MunicipioResponse>>(
-                    $"/por-departamento/{departamentoRequest.DepartamentoId}");
+                    $"/por-departamento/{departamentoId}");
 
                 // Devuelve la respuesta o una colección vacía si no hay datos.
                 return response ?? new ObservableCollection<MunicipioResponse>();
             }
             catch (Exception ex)
             {
-                // Muestra un mensaje descriptivo en caso de error.
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return new ObservableCollection<MunicipioResponse>();
             }
         }
@@ -100,8 +98,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Muestra un mensaje de error al usuario.
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return false;
             }
         }
@@ -127,7 +123,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return false;
             }
         }
@@ -153,8 +148,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Muestra el error y devuelve false.
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return false;
             }
         }

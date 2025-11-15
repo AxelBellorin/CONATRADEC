@@ -61,9 +61,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Muestra un mensaje de error al usuario.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
-
                 // Devuelve una colección vacía para evitar interrupciones en la UI.
                 return new ObservableCollection<PaisResponse>();
             }
@@ -87,9 +84,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // En caso de error, muestra un mensaje al usuario.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
-
                 // Retorna false para indicar fallo en la operación.
                 return false;
             }
@@ -114,8 +108,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Notifica el error y retorna false.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
                 return false;
             }
         }
@@ -138,8 +130,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Muestra mensaje de error y devuelve false.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
                 return false;
             }
         }

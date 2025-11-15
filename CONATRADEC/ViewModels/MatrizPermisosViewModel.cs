@@ -204,6 +204,16 @@ public class MatrizPermisosViewModel : GlobalService
             if (Permisos is not null)
                 Permisos.Clear();
 
+            // Valida que el usaurio tenga conexion a internet
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                _ = MostrarToastAsync("Sin conexión a internet.");
+                IsBusy = false;
+                return;
+            }
+
             // Llama al servicio que retorna los roles.
             var response = await rolApiService.GetRolAsync();
 
@@ -228,6 +238,16 @@ public class MatrizPermisosViewModel : GlobalService
         try
         {
             IsBusy = true;
+
+            // Valida que el usaurio tenga conexion a internet
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                _ = MostrarToastAsync("Sin conexión a internet.");
+                IsBusy = false;
+                return;
+            }
 
             // Limpia colección previa solo si existe y tiene elementos.
             if (Permisos is not null && Permisos.Count > 0)
@@ -268,7 +288,7 @@ public class MatrizPermisosViewModel : GlobalService
         catch (Exception ex)
         {
             // Muestra una única alerta con el error (antes había dos seguidas con el mismo mensaje).
-            await App.Current.MainPage.DisplayAlert("Error", $"No se pudieron cargar los permisos: {ex.Message}", "Aceptar");
+            _ = MostrarToastAsync("Error " + $"No se pudieron cargar los permisos: {ex.Message}");
         }
         finally
         {
@@ -394,7 +414,7 @@ public class MatrizPermisosViewModel : GlobalService
                     RolId = RolSeleccionado.RolId,
                     NombreRol = RolSeleccionado.NombreRol
                 },
-                Permisos = permisosParaEnviar.Select(p => new InterfazRequest
+                Interfaz = permisosParaEnviar.Select(p => new InterfazRequest
                 {
                     InterfazId = p.InterfazId,
                     NombreInterfaz = p.NombreInterfaz,
@@ -405,10 +425,19 @@ public class MatrizPermisosViewModel : GlobalService
                 }).ToList()
             };
 
-            var payload = new List<MatrizPermisosRequest> { matriz };
+            // Valida que el usaurio tenga conexion a internet
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                _ = MostrarToastAsync("Sin conexión a internet.");
+                IsBusy = false;
+                return;
+            }
 
             // Llama a la API para guardar.
-            var ok = await matrizPermisosApiService.GuardarMatrizAsync(payload);
+            var ok = await matrizPermisosApiService.GuardarMatrizAsync(matriz);
+
             if (ok)
             {
                 // Opcional: marca limpios solo los que estaban sucios (mantiene semántica actual).
@@ -419,20 +448,20 @@ public class MatrizPermisosViewModel : GlobalService
                 _snapshot = Permisos.Select(PermisoSnapshot.From).ToList();
 
                 Estado = "Permisos guardados correctamente";
-                await App.Current.MainPage.DisplayAlert("Datos Guardados", "Se ha guardado correctamente", "OK");
+                _ = MostrarToastAsync("Se ha guardado correctamente");
 
                 ActualizarHabilitados();
             }
             else
             {
-                await App.Current.MainPage.DisplayAlert("Error", "No se pudieron guardar los permisos. Intente nuevamente.", "Aceptar");
+                _ = MostrarToastAsync("No se pudieron guardar los permisos. Intente nuevamente.");
             }
         }
         catch (Exception ex)
         {
             // Manejo genérico (puedes especializar por HttpRequestException/TaskCanceledException si lo deseas).
             Estado = "Error al guardar permisos";
-            await App.Current.MainPage.DisplayAlert("Error", ex.Message, "Aceptar");
+            _ = MostrarToastAsync("Error " + ex.Message);
         }
         finally
         {

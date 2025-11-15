@@ -54,21 +54,33 @@ namespace CONATRADEC.ViewModels
             IsBusy = isBusy;
             try
             {
-                var response = await departamentoApiService.GetDepartamentosAsync(PaisRequest);
+                List.Clear();
+
+                // Valida que el usaurio tenga conexion a internet
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
+
+                var response = await departamentoApiService.GetDepartamentosAsync(PaisRequest.PaisId);
+ 
                 // Revisar aca
                 if (response.Any())
                 {
-                    List.Clear();
                     List = response;
                 }
                 else
                 {
-                    await App.Current.MainPage.DisplayAlert("Información", "No se encontraron departamentos.", "OK");
+                    _ = MostrarToastAsync("No se encontraron departamentos.");
                 }
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error " + ex.Message);
             }
             finally { IsBusy = false; }
         }
@@ -89,7 +101,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error " + ex.Message);
             }
         }
 
@@ -109,7 +121,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error " + ex.Message);
             }
         }
 
@@ -120,25 +132,36 @@ namespace CONATRADEC.ViewModels
             IsBusy = true;
             try
             {
-                bool confirm = await App.Current.MainPage.DisplayAlert(
+                bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                     "Eliminar", $"¿Deseas eliminar el departamento '{dpto.NombreDepartamento}'?", "Sí", "No");
 
                 if (!confirm) return;
 
+                // Valida que el usaurio tenga conexion a internet
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
+
                 var response = await departamentoApiService.DeleteDepartamentoAsync(new DepartamentoRequest(dpto));
+
                 if (response)
                 {
-                    await App.Current.MainPage.DisplayAlert("Éxito", "Departamento eliminado.", "OK");
+                    _ = MostrarToastAsync("Departamento eliminado.");
                     await LoadDepartamento(true);
                 }
                 else
                 {
-                    await App.Current.MainPage.DisplayAlert("Error", "No se pudo eliminar el departamento.", "OK");
+                    _ = MostrarToastAsync("No se pudo eliminar el departamento.");
                 }
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error " + ex.Message);
             }
             finally { IsBusy = false; }
         }

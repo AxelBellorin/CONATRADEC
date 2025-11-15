@@ -24,17 +24,16 @@ namespace CONATRADEC.Services
         }
 
         // Listar
-        public async Task<ObservableCollection<DepartamentoResponse>> GetDepartamentosAsync(PaisRequest paisRequest)
+        public async Task<ObservableCollection<DepartamentoResponse>> GetDepartamentosAsync(int? paisId)
         {
             try
             {
                 // Ajusta la ruta si tu API usa otra convención
-                var response = await httpClient.GetFromJsonAsync<ObservableCollection<DepartamentoResponse>>($"api/departamento/por-pais/{paisRequest.PaisId}");
+                var response = await httpClient.GetFromJsonAsync<ObservableCollection<DepartamentoResponse>>($"api/departamento/por-pais/{paisId}");
                 return response ?? new ObservableCollection<DepartamentoResponse>();
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return new ObservableCollection<DepartamentoResponse>();
             }
         }
@@ -49,7 +48,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return false;
             }
         }
@@ -65,7 +63,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return false;
             }
         }
@@ -81,7 +78,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return false;
             }
         }

@@ -137,7 +137,7 @@ namespace CONATRADEC.ViewModels
                 if (IsCancel)
                 {
                     // Pide confirmación si los campos han cambiado.
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Cancelar",
                         "Desea no guardar los cambios",
                         "Aceptar",
@@ -197,7 +197,7 @@ namespace CONATRADEC.ViewModels
                 if (IsCancel)
                 {
                     // Solicita confirmación antes de persistir.
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
                         "¿Desea guardar los datos del país?",
                         "Aceptar",
@@ -209,8 +209,19 @@ namespace CONATRADEC.ViewModels
                         Pais.NombrePais = NombrePais;
                         Pais.CodigoISOPais = CodigoISOPais;
 
+                        // Valida que el usaurio tenga conexion a internet
+                        bool tieneInternet = await TieneInternetAsync();
+
+                        if (!tieneInternet)
+                        {
+                            _ = MostrarToastAsync("Sin conexión a internet.");
+                            IsBusy = false;
+                            return;
+                        }
+
                         // Llama a la API para crear el registro.
                         var response = await paisApiService.CreatePaisAsync(Pais);
+
                         if (response)
                         {
                             await GoToAsyncParameters("//PaisPage"); // Navega al listado.
@@ -243,7 +254,7 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
                         "¿Desea actualizar?",
                         "Aceptar",
@@ -255,8 +266,19 @@ namespace CONATRADEC.ViewModels
                         Pais.NombrePais = NombrePais;
                         Pais.CodigoISOPais = CodigoISOPais;
 
+                        // Valida que el usaurio tenga conexion a internet
+                        bool tieneInternet = await TieneInternetAsync();
+
+                        if (!tieneInternet)
+                        {
+                            _ = MostrarToastAsync("Sin conexión a internet.");
+                            IsBusy = false;
+                            return;
+                        }
+
                         // Llama a la API para actualizar.
                         var response = await paisApiService.UpdatePaisAsync(Pais);
+
                         if (response)
                         {
                             await GoToAsyncParameters("//PaisPage");

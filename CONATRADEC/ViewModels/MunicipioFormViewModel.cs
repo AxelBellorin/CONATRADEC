@@ -145,7 +145,7 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Cancelar",
                         "Desea no guardar los cambios",
                         "Aceptar",
@@ -219,7 +219,7 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
                         "¿Desea guardar los datos del municipio?",
                         "Aceptar",
@@ -231,8 +231,19 @@ namespace CONATRADEC.ViewModels
                         MunicipioRequest.NombreMunicipio = NombreMunicipio;
                         MunicipioRequest.DepartamentoId = DepartamentoRequest?.DepartamentoId;
 
+                        // Valida que el usaurio tenga conexion a internet
+                        bool tieneInternet = await TieneInternetAsync();
+
+                        if (!tieneInternet)
+                        {
+                            _ = MostrarToastAsync("Sin conexión a internet.");
+                            IsBusy = false;
+                            return;
+                        }
+
                         // Llama a la API para crear el registro.
                         var response = await municipioApiService.CreateMunicipioAsync(MunicipioRequest);
+
                         if (response)
                         {
                             var parameters = new Dictionary<string, object>
@@ -275,7 +286,7 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
                         "¿Desea actualizar?",
                         "Aceptar",

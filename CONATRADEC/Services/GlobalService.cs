@@ -156,6 +156,40 @@ namespace CONATRADEC.Services
             }
         }
 
+        public async Task<bool> TieneInternetAsync()
+        {
+            // 1) Verificación rápida del sistema
+            bool tieneInternet = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
+
+            // 2) Si el sistema dice que NO hay internet, igual verificamos con un ping real
+            if (!tieneInternet)
+            {
+                return await ValidacionRealInternetAsync();
+            }
+
+            // 3) Si el sistema dice que SÍ hay internet, igual confirmamos con ping real
+            return await ValidacionRealInternetAsync();
+        }
+
+        private async Task<bool> ValidacionRealInternetAsync()
+        {
+            try
+            {
+                using var http = new HttpClient
+                {
+                    Timeout = TimeSpan.FromSeconds(3)
+                };
+
+                var response = await http.GetAsync("https://www.google.com");
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
         // ===========================================================
         // ===================== NOTIFICACIÓN INotify ================
         // ===========================================================

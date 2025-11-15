@@ -265,10 +265,19 @@ namespace CONATRADEC.ViewModels
             {
                 var req = new LoginRequest
                 {
-                    Username = userTrim,
-                    Password = Password,
-                    ExpiresInMins = 60
+                    NombreUsuario = userTrim,
+                    ClaveUsuario = Password,
                 };
+
+                // Valida que el usaurio tenga conexion a internet
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
 
                 var resp = await apiServiceLogin.LoginAsync(req);
 
@@ -304,7 +313,7 @@ namespace CONATRADEC.ViewModels
                     RequirePasswordRelogin = false;
                 }
 
-                Message = $"Bienvenido {resp.FirstName} {resp.LastName}.";
+                Message = $"Bienvenido {resp.NombreCompletoUsuario}";
 
                 _= MostrarToastAsync(Message);
 

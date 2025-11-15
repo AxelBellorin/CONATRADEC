@@ -195,7 +195,7 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
                         "¿Desea guardar los datos del departamento?",
                         "Aceptar",
@@ -207,7 +207,18 @@ namespace CONATRADEC.ViewModels
                         Departamento.NombreDepartamento = NombreDepartamento;
                         Departamento.PaisId = PaisRequest.PaisId;
 
+                        // Valida que el usaurio tenga conexion a internet
+                        bool tieneInternet = await TieneInternetAsync();
+
+                        if (!tieneInternet)
+                        {
+                            _ = MostrarToastAsync("Sin conexión a internet.");
+                            IsBusy = false;
+                            return;
+                        }
+
                         var response = await departamentoApiService.CreateDepartamentoAsync(Departamento);
+
                         if (response)
                         {
                             var parameters = new Dictionary<string, object>
@@ -246,7 +257,7 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
                         "¿Desea actualizar?",
                         "Aceptar",
@@ -257,7 +268,18 @@ namespace CONATRADEC.ViewModels
                         Departamento.NombreDepartamento = NombreDepartamento;
                         Departamento.PaisId = PaisRequest.PaisId;
 
+                        // Valida que el usaurio tenga conexion a internet
+                        bool tieneInternet = await TieneInternetAsync();
+
+                        if (!tieneInternet)
+                        {
+                            _ = MostrarToastAsync("Sin conexión a internet.");
+                            IsBusy = false;
+                            return;
+                        }
+
                         var response = await departamentoApiService.UpdateDepartamentoAsync(Departamento);
+
                         if (response)
                         {
                             var parameters = new Dictionary<string, object>

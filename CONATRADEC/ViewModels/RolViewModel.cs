@@ -64,17 +64,28 @@ namespace CONATRADEC.ViewModels
         {
             IsBusy = isBusy; // Propiedad heredada de GlobalService (puede activar spinners/disable botones).
 
+            List.Clear();   // Limpia lista actual.
+
+            // Valida que el usaurio tenga conexion a internet
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                _ = MostrarToastAsync("Sin conexión a internet.");
+                IsBusy = false;
+                return;
+            }
+
             var response = await rolApiService.GetRolAsync();
 
             if (response.Count() != 0)
             {
-                List.Clear();   // Limpia lista actual.
                 List = response; // Asigna la colección devuelta por la API (ObservableCollection).
             }
             else
             {
                 // Mensaje informativo si no hay registros.
-                await App.Current.MainPage.DisplayAlert("Información", "No se encontraron roles.", "OK");
+                _ = MostrarToastAsync("Información" + "No se encontraron roles.");
                 // (Nota: el texto dice "cargos", probablemente quisiste decir "roles". Mantengo tu literal.)
             }
 
@@ -103,7 +114,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", $"No se pudo conectar al servidor {ex}", "OK");
+                _ = MostrarToastAsync("Error" + $"No se pudo conectar al servidor {ex}");
             }
         }
 
@@ -126,7 +137,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+                _ = MostrarToastAsync("Error" + $"{ex}");
             }
         }
 
@@ -141,7 +152,7 @@ namespace CONATRADEC.ViewModels
                 if (rol == null) return;
 
                 // Confirmación con el usuario antes de eliminar.
-                bool confirm = await App.Current.MainPage.DisplayAlert(
+                bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                     "Eliminar",
                     $"¿Seguro que deseas eliminar al rol {rol.NombreRol}",
                     "Sí",
@@ -149,16 +160,27 @@ namespace CONATRADEC.ViewModels
 
                 if (confirm)
                 {
+                    // Valida que el usaurio tenga conexion a internet
+                    bool tieneInternet = await TieneInternetAsync();
+
+                    if (!tieneInternet)
+                    {
+                        _ = MostrarToastAsync("Sin conexión a internet.");
+                        IsBusy = false;
+                        return;
+                    }
+
                     // Llama al servicio de eliminación. (Asegúrate que el método exista con el nombre exacto.)
                     var response = await rolApiService.DeleteRolAsync(new RolRequest(rol));
+
                     if (response)
                     {
-                        await App.Current.MainPage.DisplayAlert("Éxito", "Rol eliminado correctamente", "OK");
+                        _ = MostrarToastAsync("Éxito" + "Rol eliminado correctamente");
                         await LoadRol(IsBusy); // Recarga la lista. (IsBusy es true en este punto.)
                     }
                     else
                     {
-                        await App.Current.MainPage.DisplayAlert("Error", "El rol no se pudo eliminar, intente nuevamente", "OK");
+                        _ = MostrarToastAsync("Error" + "El rol no se pudo eliminar, intente nuevamente");
                     }
                 }
                 else
@@ -168,7 +190,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+                _ = MostrarToastAsync("Error" + $"{ex}");
             }
         }
 

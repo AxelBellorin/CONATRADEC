@@ -78,31 +78,33 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                // Verifica la conectividad (opcional)
-                // bool tieneInternet = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
-                // if (!tieneInternet)
-                // {
-                //     await App.Current.MainPage.DisplayAlert("Error", "Sin conexión a internet.", "OK");
-                //     IsBusy = false;
-                //     return;
-                // }
+                List.Clear();
+
+                // Valida que el usaurio tenga conexion a internet
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
 
                 // Llama al servicio API
                 var response = await paisApiService.GetPaisAsync();
 
                 if (response.Any())
                 {
-                    List.Clear();
                     List = response;
                 }
                 else
                 {
-                    await App.Current.MainPage.DisplayAlert("Información", "No se encontraron países registrados.", "OK");
+                    _ = MostrarToastAsync("Información" + "No se encontraron países registrados.");
                 }
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", $"No se pudo obtener la lista de países.\n{ex.Message}", "OK");
+                _ = MostrarToastAsync("Error" + $"No se pudo obtener la lista de países.\n{ex.Message}");
             }
             finally
             {
@@ -131,7 +133,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", $"No se pudo abrir el formulario.\n{ex.Message}", "OK");
+                _ = MostrarToastAsync("Error" + $"No se pudo abrir el formulario.\n{ex.Message}");
             }
         }
 
@@ -152,7 +154,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
         }
 
@@ -164,7 +166,7 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                bool confirm = await App.Current.MainPage.DisplayAlert(
+                bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                     "Eliminar país",
                     $"¿Deseas eliminar el país '{pais.NombrePais}'?",
                     "Sí", "No");
@@ -175,21 +177,31 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
+                // Valida que el usaurio tenga conexion a internet
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
+
                 var result = await paisApiService.DeletePaisAsync(new PaisRequest(pais));
 
                 if (result)
                 {
-                    await App.Current.MainPage.DisplayAlert("Éxito", "País eliminado correctamente.", "OK");
+                    _ = MostrarToastAsync("Éxito" + "País eliminado correctamente.");
                     await LoadPais(true);
                 }
                 else
                 {
-                    await App.Current.MainPage.DisplayAlert("Error", "No se pudo eliminar el país. Intenta nuevamente.", "OK");
+                    _ = MostrarToastAsync("Error" + "No se pudo eliminar el país. Intenta nuevamente.");
                 }
             }
             catch (Exception ex)
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {

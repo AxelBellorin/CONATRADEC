@@ -134,7 +134,7 @@ namespace CONATRADEC.ViewModels
                 if (IsCancel)
                 {
                     // Si hay cambios, confirma con el usuario.
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Cancelar",
                         "Desea no guardar los cambios",
                         "Aceptar",
@@ -197,7 +197,7 @@ namespace CONATRADEC.ViewModels
                 {
                     // 📝 Texto original decía "datos del usuario", lo mantengo para no alterar tu UI.
                     // (Sugerencia futura: cambiar a "datos del rol")
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
                         "¿Desea guardar los datos del rol?",
                         "Aceptar",
@@ -209,8 +209,19 @@ namespace CONATRADEC.ViewModels
                         Rol.NombreRol = NombreRol;
                         Rol.DescripcionRol = DescripcionRol;
 
+                        // Valida que el usaurio tenga conexion a internet
+                        bool tieneInternet = await TieneInternetAsync();
+
+                        if (!tieneInternet)
+                        {
+                            _ = MostrarToastAsync("Sin conexión a internet.");
+                            IsBusy = false;
+                            return;
+                        }
+
                         // Invoca creación en la API.
                         var response = await rolApiService.CreateRolAsync(Rol);
+
                         if (response)
                         {
                             await GoToRolPage(); // Navega al listado.
@@ -242,7 +253,7 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                         "Confirmar",
                         "¿Desea actualizar?",
                         "Aceptar",
@@ -254,8 +265,19 @@ namespace CONATRADEC.ViewModels
                         Rol.NombreRol = NombreRol;
                         Rol.DescripcionRol = DescripcionRol;
 
+                        // Valida que el usaurio tenga conexion a internet
+                        bool tieneInternet = await TieneInternetAsync();
+
+                        if (!tieneInternet)
+                        {
+                            _ = MostrarToastAsync("Sin conexión a internet.");
+                            IsBusy = false;
+                            return;
+                        }
+
                         // Invoca actualización en la API.
                         var response = await rolApiService.UpdateRolAsync(Rol);
+
                         if (response)
                         {
                             await GoToRolPage();

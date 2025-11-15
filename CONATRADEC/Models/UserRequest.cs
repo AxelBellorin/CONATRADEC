@@ -1,9 +1,10 @@
-﻿using System;
+﻿using CONATRADEC.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using CONATRADEC.Models;
 
 // Espacio de nombres que contiene los modelos del proyecto CONATRADEC.
 namespace CONATRADEC.Models
@@ -15,48 +16,71 @@ namespace CONATRADEC.Models
         // ===========================================================
         // =============== CAMPOS PRIVADOS DE LA CLASE ===============
         // ===========================================================
+        private int? usuarioId;
 
-        // Campo que almacena el identificador único del usuario.
-        // Nullable (int?) para permitir la creación de nuevos usuarios sin ID asignado aún.
-        private int? id;
+        // Campo que almacena el nombre de usuario con el que el usuario inició sesión.
+        private string? nombreUsuario;
 
-        // Campo que almacena el primer nombre del usuario.
-        private string? firstName;
+        // Campo que almacena la clave de usuario con el que el usuario inició sesión.
+        private string? claveUsuario;
 
-        // Campo que almacena el apellido del usuario.
-        private string? lastName;
+        // Campo que almacena la identificacion del usuario autenticado.
+        private string? identificacionUsuario;
 
-        // Campo que almacena la edad del usuario.
-        private int? age;
+        // Campo que almacena el nombre completo del usuario autenticado.
+        private string? nombreCompletoUsuario;
 
-        // Campo que almacena el correo electrónico del usuario.
-        private string? email;
+        // Campo que almacena el correo electrónico del usuario autenticado.
+        private string? correoUsuario;
 
-        // Campo que almacena la ruta o URL de la imagen de perfil del usuario.
-        private string? image;
+        //Campo que almacena el correo electrónico del usuario autenticado.
+        private string? telefonoUsuario;
 
+        //Campo que almacena la fecha de nacimiento del usuario autenticado.
+        private DateOnly? fechaNacimientoUsuario;
+
+        //Campo que almacena el rol del usuario autenticado.
+        private int? rolId;
+
+        //Campo que almacena el rol del usuario autenticado.
+        private int? procedenciaId;
+
+        //Campo que almacena el municipio del usuario autenticado.
+        private int? municipioId;
+
+        // Campo que almacena el nombre del rol asignado al usuario.
+        private string? rolNombre;
+
+        // Campo que almacena el nombre del la procedencia asignado al usuario.
+        private string? procedenciaNombre;
+
+        // Campo que almacena la url de la imagen asignado al usuario.
+        private string? urlImagenUsuario;
+
+        private bool? esInterno;
 
         // ===========================================================
         // ============= PROPIEDADES PÚBLICAS CON ENCAPSULAMIENTO ====
         // ===========================================================
 
-        // Propiedad pública para acceder o modificar el ID del usuario.
-        public int? Id { get => id; set => id = value; }
+        public int? UsuarioId { get => usuarioId; set => usuarioId = value; }
+        public string? NombreUsuario { get => nombreUsuario; set => nombreUsuario = value; }
+        public string? IdentificacionUsuario { get => identificacionUsuario; set => identificacionUsuario = value; }
+        public string? NombreCompletoUsuario { get => nombreCompletoUsuario; set => nombreCompletoUsuario = value; }
+        public string? CorreoUsuario { get => correoUsuario; set => correoUsuario = value; }
+        public string? TelefonoUsuario { get => telefonoUsuario; set => telefonoUsuario = value; }
+        public DateOnly? FechaNacimientoUsuario { get => fechaNacimientoUsuario; set => fechaNacimientoUsuario = value; }
+        public int? RolId { get => rolId; set => rolId = value; }
+        public int? ProcedenciaId { get => procedenciaId; set => procedenciaId = value; }
+        public int? MunicipioId { get => municipioId; set => municipioId = value; }
+        public string? RolNombre { get => rolNombre; set => rolNombre = value; }
+        public string? ProcedenciaNombre { get => procedenciaNombre; set => procedenciaNombre = value; }
+        public string? UrlImagenUsuario { get => urlImagenUsuario; set => urlImagenUsuario = value; }
+        public bool? EsInterno { get => esInterno; set => esInterno = value; }
 
-        // Propiedad pública para acceder o modificar el primer nombre.
-        public string? FirstName { get => firstName; set => firstName = value; }
-
-        // Propiedad pública para acceder o modificar el apellido.
-        public string? LastName { get => lastName; set => lastName = value; }
-
-        // Propiedad pública para acceder o modificar la edad.
-        public int? Age { get => age; set => age = value; }
-
-        // Propiedad pública para acceder o modificar el correo electrónico.
-        public string? Email { get => email; set => email = value; }
-
-        // Propiedad pública para acceder o modificar la imagen de perfil.
-        public string? Image { get => image; set => image = value; }
+        // Propiedad pública para acceder o modificar la contraseña.
+        [JsonPropertyName("Clave")]
+        public string? ClaveUsuario { get => claveUsuario; set => claveUsuario = value; }
 
 
         // ===========================================================
@@ -70,25 +94,23 @@ namespace CONATRADEC.Models
         // Constructor que inicializa una nueva instancia de UserRequest
         // a partir de un objeto de tipo UserRP (respuesta del servidor).
         // Facilita la conversión entre los modelos de respuesta y solicitud.
-        public UserRequest(UserRP user)
+        public UserRequest(UserResponse user)
         {
-            // Copia el ID del usuario.
-            Id = user.Id;
-
-            // Copia el nombre del usuario.
-            FirstName = user.FirstName;
-
-            // Copia el apellido del usuario.
-            LastName = user.LastName;
-
-            // Copia la edad del usuario.
-            Age = user.Age;
-
-            // Copia el correo electrónico del usuario.
-            Email = user.Email;
-
-            // Copia la imagen del usuario correctamente.
-            Image = user.Image;
+            UsuarioId = user.UsuarioId;
+            NombreUsuario = user.NombreUsuario;
+            IdentificacionUsuario = user.IdentificacionUsuario;
+            NombreCompletoUsuario = user.NombreCompletoUsuario;
+            CorreoUsuario = user.CorreoUsuario;
+            TelefonoUsuario = user.TelefonoUsuario;
+            FechaNacimientoUsuario = user.FechaNacimientoUsuario;
+            RolId = user.RolId;
+            ProcedenciaId = user.ProcedenciaId;
+            MunicipioId = user.MunicipioId;
+            RolNombre = user.RolNombre;
+            ProcedenciaNombre = user.ProcedenciaNombre;
+            UrlImagenUsuario = user.UrlImagenUsuario;
+            ClaveUsuario = user.ClaveUsuario;
+            EsInterno = user.EsInterno;
         }
     }
 }

@@ -1,4 +1,6 @@
 ﻿// Espacio de nombres que contiene los modelos utilizados en el proyecto CONATRADEC.
+using System.Text.Json.Serialization;
+
 namespace CONATRADEC.Models
 {
     // Clase que representa la estructura del objeto de solicitud (Request)
@@ -11,15 +13,11 @@ namespace CONATRADEC.Models
 
         // Campo que almacena el nombre de usuario o identificador con el que el usuario inicia sesión.
         // Se declara como nullable (?) para permitir que el valor sea opcional durante la creación del objeto.
-        private string? username;
+        private string? nombreUsuario;
 
         // Campo que almacena la contraseña del usuario.
         // También es nullable, aunque en la práctica siempre debería tener un valor al autenticar.
-        private string? password;
-
-        // Campo que indica el tiempo de expiración del token (en minutos) que se solicita al servidor.
-        // Puede ser útil para personalizar la duración de la sesión del usuario.
-        private int? expiresInMins;
+        private string? claveUsuario;
 
 
         // ===========================================================
@@ -27,12 +25,12 @@ namespace CONATRADEC.Models
         // ===========================================================
 
         // Propiedad pública para acceder o modificar el nombre de usuario.
-        public string? Username { get => username; set => username = value; }
+        [JsonPropertyName("UsuarioOEmail")]
+        public string? NombreUsuario { get => nombreUsuario; set => nombreUsuario = value; }
 
         // Propiedad pública para acceder o modificar la contraseña.
-        public string? Password { get => password; set => password = value; }
+        [JsonPropertyName("Clave")]
+        public string? ClaveUsuario { get => claveUsuario; set => claveUsuario = value; }
 
-        // Propiedad pública para acceder o modificar el tiempo de expiración del token.
-        public int? ExpiresInMins { get => expiresInMins; set => expiresInMins = value; }
     }
 }
