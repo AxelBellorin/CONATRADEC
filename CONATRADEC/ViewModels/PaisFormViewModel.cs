@@ -157,7 +157,7 @@ namespace CONATRADEC.ViewModels
             catch (Exception ex)
             {
                 // Notifica cualquier error en la operación de cancelación.
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -182,7 +182,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
         }
 
@@ -190,7 +190,10 @@ namespace CONATRADEC.ViewModels
         private async Task CreatePaisAsync()
         {
             try
-            {                
+            {
+                // Validación de datos (formulario).
+                if (!ValidateFieldsData()) return;
+
                 // Determina si hay cambios significativos para guardar.
                 IsCancel = ValidateFields();
 
@@ -225,18 +228,18 @@ namespace CONATRADEC.ViewModels
                         if (response)
                         {
                             await GoToAsyncParameters("//PaisPage"); // Navega al listado.
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "País guardado correctamente", "OK");
+                            _ = MostrarToastAsync("Éxito" + "País guardado correctamente");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "El país no se pudo guardar, intente nuevamente", "OK");
+                            _ = MostrarToastAsync("Error" + "El país no se pudo guardar, intente nuevamente");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -249,6 +252,9 @@ namespace CONATRADEC.ViewModels
         {
             try
             {
+                // Validación de datos (formulario).
+                if (!ValidateFieldsData()) return;
+
                 // Determina si hay cambios antes de pedir confirmación.
                 IsCancel = ValidateFields();
 
@@ -282,18 +288,18 @@ namespace CONATRADEC.ViewModels
                         if (response)
                         {
                             await GoToAsyncParameters("//PaisPage");
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "País actualizado correctamente", "OK");
+                            _ = MostrarToastAsync("Éxito" + "País actualizado correctamente");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "El país no se pudo actualizar, intente nuevamente", "OK");
+                            _ = MostrarToastAsync("Error" + "El país no se pudo actualizar, intente nuevamente");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -314,27 +320,28 @@ namespace CONATRADEC.ViewModels
             return false;
         }
 
-        //// Valida si los campos del formulario estan correctos.
-        //private bool ValidateFieldsData()
-        //{
-        //    if (CodigoISOPais.Length > 3 || string.IsNullOrWhiteSpace(CodigoISOPais))
-        //    {
-        //        codigoISOPais = CodigoISOPais; // Mantiene el valor anterior si excede 3 caracteres.
-        //        _ = Snackbar.Make(
-        //                        "El código ISO debe tener exactamente 3 letras.",
-        //                        duration: TimeSpan.FromSeconds(3),
-        //                        visualOptions: new SnackbarOptions
-        //                        {
-        //                            BackgroundColor = Colors.Red,
-        //                            TextColor = Colors.White
-        //                        }).Show();
-        //    }
-        //    else
-        //    {
-        //        codigoISOPais = codigoISOPais.ToUpper();
-        //        return true;
-        //    }
-        //    return false;
-        //}
+        // Valida si los campos del formulario estan correctos.
+        private bool ValidateFieldsData()
+        {
+            // Validar que tenga exactamente 3 caracteres
+            if (string.IsNullOrWhiteSpace(CodigoISOPais) || CodigoISOPais.Length != 3)
+            {
+                _ = Snackbar.Make(
+                                "El código ISO debe tener exactamente 3 letras.",
+                                duration: TimeSpan.FromSeconds(3),
+                                visualOptions: new SnackbarOptions
+                                {
+                                    BackgroundColor = Colors.Red,
+                                    TextColor = Colors.White
+                                }).Show();
+
+                return false;
+            }
+
+            // Si es válido
+            codigoISOPais = CodigoISOPais.ToUpper();
+            return true;
+        }
+
     }
 }

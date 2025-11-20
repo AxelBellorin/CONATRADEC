@@ -153,7 +153,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -182,7 +182,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
         }
 
@@ -225,18 +225,18 @@ namespace CONATRADEC.ViewModels
                         if (response)
                         {
                             await GoToRolPage(); // Navega al listado.
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Rol guardado correctamente", "OK");
+                            _ = MostrarToastAsync("Éxito \nRol guardado correctamente");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "El rol no se pudo guardar, intente nuevamente", "OK");
+                            _ = MostrarToastAsync("Error \nEl rol no se pudo guardar, intente nuevamente");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -281,18 +281,18 @@ namespace CONATRADEC.ViewModels
                         if (response)
                         {
                             await GoToRolPage();
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Rol actualizado correctamente", "OK");
+                            _ = MostrarToastAsync("Éxito \nRol actualizado correctamente");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "El rol no se pudo actualizar, intente nuevamente", "OK");
+                            _ = MostrarToastAsync("Error \nEl rol no se pudo actualizar, intente nuevamente");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {

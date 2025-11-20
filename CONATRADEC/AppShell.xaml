@@ -36,6 +36,19 @@
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:loginPage}" />
     
+    <!-- Gestión de terreno -->
+    <ShellContent Title="TerrenoPage"
+                  Route="TerrenoPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:terrenoPage}" />
+
+    <!--Formulario de terreno-->
+    <ShellContent Title="TerrenoFormPage"
+                  Route="TerrenoFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:terrenoFormPage}" />
+   
+    
     <!-- Gestión de paises -->
     <ShellContent Title="PaisPage"
                   Route="PaisPage"
@@ -101,6 +114,25 @@
                   Route="MunicipioFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:municipioFormPage}" />
+
+    <!-- Gestión de elemento quimico -->
+    <ShellContent Title="ElementoQuimicoPage"
+                  Route="ElementoQuimicoPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:elementoQuimicoPage}" />
+
+    <!--Formulario de elemento quimico-->
+    <ShellContent Title="ElementoQuimicoFormPage"
+                  Route="ElementoQuimicoFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:elementoQuimicoFormPage}" />
+
+    <ShellContent 
+            Title="MapaSeleccionPage"
+            Route="MapaSeleccionPage"
+            FlyoutItemIsVisible="False"
+            ContentTemplate="{DataTemplate views:MapaSeleccionPage}" />
+
 
     <!-- Matriz de permisos (Roles ↔ Interfaz) -->
     <ShellContent Title="MatrizPermisosPage"

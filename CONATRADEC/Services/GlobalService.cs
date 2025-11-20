@@ -25,7 +25,9 @@ namespace CONATRADEC.Services
         public Command goToRolPageButtonCommand { get; }            // Comando para navegar a RolPage.
         public Command goToCargoPageButtonCommand { get; }          // Comando para navegar a CargoPage.
         public Command goToMatrizPermisosPageButtonCommad { get; }  // Comando para navegar a MatrizPermisosPage. (sic: nombre conserva 'Commad')
-        public Command goToPaisPageButtonCommand { get; }          // Comando para navegar a CargoPage.
+        public Command goToPaisPageButtonCommand { get; }           // Comando para navegar a CargoPage.
+        public Command goToElementoQuimicoPageButtonCommand { get; }    // Comando para navegar a ElementoQuimicoPage.
+        public Command goToTerrenoPageButtonCommand { get; }        // Comando para navegar a TerrenoPage.
         public Command goToBack { get; }                            // Comando para navegar hacia atrás en Shell.
 
         // ===========================================================
@@ -52,7 +54,10 @@ namespace CONATRADEC.Services
                 ((Command)goToRolPageButtonCommand).ChangeCanExecute();
                 ((Command)goToCargoPageButtonCommand).ChangeCanExecute();
                 ((Command)goToMatrizPermisosPageButtonCommad).ChangeCanExecute();
+                ((Command)goToElementoQuimicoPageButtonCommand).ChangeCanExecute();
                 ((Command)goToPaisPageButtonCommand).ChangeCanExecute();
+                ((Command)goToBack).ChangeCanExecute();
+                ((Command)goToTerrenoPageButtonCommand).ChangeCanExecute();
             }
         }
 
@@ -70,7 +75,8 @@ namespace CONATRADEC.Services
             goToCargoPageButtonCommand = new Command(async () => await GoToCargoPage(), () => !IsBusy);
             goToMatrizPermisosPageButtonCommad = new Command(async () => await GoToMatrizPermisosPage(), () => !IsBusy);
             goToPaisPageButtonCommand = new Command(async () => await GoToPaisPage(), () => !IsBusy);
-
+            goToElementoQuimicoPageButtonCommand = new Command(async () => await GoToElementoQuimicoPage(), () => !IsBusy);
+            goToTerrenoPageButtonCommand = new Command(async () => await GoToTerrenoPage(), () => !IsBusy);
             // Comando de navegación hacia atrás usando ruta relativa (“//..” mantiene esquema de Shell).
             goToBack = new Command(async () => await GoToAsyncParameters("//.."));
         }
@@ -133,6 +139,20 @@ namespace CONATRADEC.Services
             if (IsBusy) return;                                     // Evita reentradas.
 
             await GoToAsyncParameters("//PaisPage");               // Navega a CargoPage.
+        }
+
+        public async Task GoToElementoQuimicoPage()
+        {
+            if (IsBusy) return;                                     // Evita reentradas.
+
+            await GoToAsyncParameters("//ElementoQuimicoPage");                 // Navega a ElementoQuimicoPage.
+        }
+
+        public async Task GoToTerrenoPage()
+        {
+            if (IsBusy) return;                                     // Evita reentradas.
+
+            await GoToAsyncParameters("//TerrenoPage");                 // Navega a TerrenoPage.
         }
 
         /// <summary>

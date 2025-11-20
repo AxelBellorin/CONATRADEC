@@ -84,6 +84,34 @@
                                 TextColor="{StaticResource color_Negro}"
                                 FontFamily="MontserratMedium"/>
                     </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding goToElementoQuimicoPageButtonCommand}"/>
+                        </VerticalStackLayout.GestureRecognizers>
+                        <!--Imagen del boton-->
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconchemicalelement.png"/>
+                        <!--Texto de la opción-->
+                        <Label  HorizontalOptions="Center" 
+                                Text="Elementos" 
+                                FontSize="16" 
+                                TextColor="{StaticResource color_Negro}"
+                                FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding goToTerrenoPageButtonCommand}"/>
+                        </VerticalStackLayout.GestureRecognizers>
+                        <!--Imagen del boton-->
+                        <Image HeightRequest="30" WidthRequest="30"  Source="iconland.png"/>
+                        <!--Texto de la opción-->
+                        <Label  HorizontalOptions="Center" 
+                                Text="Terreno" 
+                                FontSize="16" 
+                                TextColor="{StaticResource color_Negro}"
+                                FontFamily="MontserratMedium"/>
+                    </VerticalStackLayout>
                 </HorizontalStackLayout>
             </ScrollView>
             <!--#endregion-->

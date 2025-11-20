@@ -31,5 +31,11 @@
 
 	<key>NSFaceIDUsageDescription</key>
 	<string>Usamos Face ID para iniciar sesión de forma segura.</string>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>La aplicación necesita acceder a tu ubicación para mostrar el mapa correctamente.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>La aplicación necesita acceder a tu ubicación.</string>
 </dict>
 </plist>

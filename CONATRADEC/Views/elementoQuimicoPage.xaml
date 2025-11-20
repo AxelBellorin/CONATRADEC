@@ -1,41 +1,21 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--
-  Página: paisPage.xaml
-  Descripción: Listado de Países con acciones (Agregar / Editar / Eliminar / Ver).
-  ViewModel esperado (ejemplo): PaisViewModel
-    - Propiedades: ObservableCollection<PaisResponse> List, bool IsBusy
-    - Comandos: ICommand AddCommand, EditCommand, DeleteCommand, ViewCommand
--->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.paisPage"
+             x:Class="CONATRADEC.Views.elementoQuimicoPage"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <!--
-      Contenedor que aplica un ControlTemplate compartido (FooterTemplate).
-      x:Name permite referenciar el BindingContext del Page desde dentro del árbol (x:Reference).
-    -->
-    <ContentView x:Name="PaisPage"
+    <ContentView x:Name="ElementoQuimicoPage"
                  ControlTemplate="{StaticResource FooterTemplate}">
 
-        <!--
-          GRID PRINCIPAL
-          Filas:
-            0: Encabezado (título + botón Agregar)
-            1: Indicador de carga (ActivityIndicator)
-            2: Lista (CollectionView)
-        -->
         <Grid ColumnDefinitions="*"
-              RowDefinitions="Auto,Auto,*">
+              RowDefinitions="Auto,auto,*">
 
             <!-- Encabezado -->
-            <Grid ColumnDefinitions="*,Auto"
+            <Grid ColumnDefinitions="*,auto"
                   Grid.Row="0"
                   Padding="0,10,0,0">
-
-                <!-- Título -->
-                <Label Text="País"
+                <Label Text="Elementos Químicos"
                        FontSize="30"
                        FontFamily="MontserratBold"
                        TextColor="{StaticResource color_Negro}"
@@ -44,7 +24,6 @@
                        HorizontalOptions="Start"
                        Padding="30,0,0,0" />
 
-                <!-- Botón Agregar: ejecuta AddCommand del ViewModel -->
                 <ImageButton Source="iconadd.png"
                              WidthRequest="60"
                              HeightRequest="60"
@@ -54,102 +33,83 @@
                              Command="{Binding AddCommand}" />
             </Grid>
 
-            <!-- Indicador de carga: visible cuando IsBusy == true -->
+            <!-- Loading -->
             <ActivityIndicator Grid.Row="1"
                                IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
                                Color="{StaticResource color_Naranja}" />
 
-            <!--
-              LISTA DE PAÍSES
-              - ItemsSource: List (ObservableCollection<PaisResponse>)
-              - SelectionMode None: las acciones se manejan por gestos y botones (Swipe/Tap)
-            -->
+            <!-- Lista de elementos químicos -->
             <CollectionView Grid.Row="2"
                             ItemsSource="{Binding List}"
                             SelectionMode="None">
-
-                <!-- Layout vertical con espaciado entre ítems -->
                 <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical"
-                                       ItemSpacing="2" />
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="2" />
                 </CollectionView.ItemsLayout>
 
-                <!-- Vista vacía cuando no hay datos -->
                 <CollectionView.EmptyView>
                     <Grid Padding="20">
-                        <Label Text="No hay países para mostrar."
+                        <Label Text="No hay elementos químicos para mostrar."
                                HorizontalOptions="Center"
                                VerticalOptions="Center" />
                     </Grid>
                 </CollectionView.EmptyView>
 
-                <!-- Plantilla de cada ítem -->
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-
-                        <!--
-                          SwipeView: acciones por deslizamiento a la derecha
-                          - Editar: EditCommand (CommandParameter = item)
-                          - Eliminar: DeleteCommand (CommandParameter = item)
-                          Nota: usamos {x:Reference PaisPage} para alcanzar el BindingContext del page.
-                        -->
                         <SwipeView>
+
                             <SwipeView.RightItems>
                                 <SwipeItems Mode="Reveal">
 
                                     <SwipeItem Text="Editar"
                                                IconImageSource="iconupdate.png"
                                                BackgroundColor="{StaticResource BlueUpdate}"
-                                               Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.EditCommand}"
+                                               Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.EditCommand}"
                                                CommandParameter="{Binding .}" />
 
                                     <SwipeItem Text="Eliminar"
                                                IconImageSource="icondelete.png"
                                                BackgroundColor="{StaticResource RedDelete}"
-                                               Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.DeleteCommand}"
+                                               Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.DeleteCommand}"
                                                CommandParameter="{Binding .}" />
 
                                 </SwipeItems>
                             </SwipeView.RightItems>
 
-                            <!--
-                              Contenido visual del ítem:
-                              - Border con estilo (sin borde en móvil, sin esquinas en WinUI)
-                              - Grid con imagen a la izquierda y datos a la derecha
-                              - Tap en toda la fila para ejecutar ViewCommand (ver detalles)
-                            -->
-                            <Border Style="{StaticResource BorderStyleNoCornerRadius}">
+                            <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
+                                                    Default={StaticResource BorderStyleNoBorder}}">
 
-                                <Grid Padding="10"
-                                      ColumnDefinitions="Auto,*">
-
-                                    <!-- Tap en toda la fila: ver detalle del país -->
+                                <Grid Padding="10" ColumnDefinitions="Auto,*">
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.ViewCommand}"
+                                        <TapGestureRecognizer Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.ViewCommand}"
                                                               CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
 
-                                    <!-- Codigo ISO (lado izquierdo) -->
+                                    <!-- Símbolo (lado izquierdo) -->
                                     <StackLayout Grid.Column="0"
                                                  VerticalOptions="Center"
                                                  HorizontalOptions="Center"
                                                  Margin="0,0,10,0">
-                                        <Label Text="{Binding CodigoISOPais}"
+                                        <Label Text="{Binding SimboloElementoQuimico}"
                                                FontAttributes="Bold"
                                                FontSize="20"
                                                FontFamily="MontserratBold"
                                                TextColor="{StaticResource color_Verde}" />
                                     </StackLayout>
-                                    
-                                    <!-- Datos del país -->
+
+                                    <!-- Nombre + Peso -->
                                     <StackLayout Grid.Column="1"
                                                  VerticalOptions="Center">
-                                        <Label Text="{Binding NombrePais}"
+                                        <Label Text="{Binding NombreElementoQuimico}"
                                                FontAttributes="Bold"
                                                FontSize="20"
                                                FontFamily="MontserratBold"
                                                TextColor="{StaticResource color_Negro}" />
+
+                                        <Label Text="{Binding PesoEquivalentEelementoQuimico, StringFormat='Peso equivalente: {0:F4}'}"
+                                               FontSize="14"
+                                               TextColor="{StaticResource color_GrisOscuro}" />
                                     </StackLayout>
                                 </Grid>
                             </Border>

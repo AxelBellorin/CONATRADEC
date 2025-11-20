@@ -449,7 +449,7 @@ namespace CONATRADEC.ViewModels
                     var ext = Path.GetExtension(resultado.FileName)?.ToLower();
                     if (ext is not ".jpg" and not ".png")
                     {
-                        await Application.Current.MainPage.DisplayAlert("Formato inválido", "Solo JPG o PNG.", "OK");
+                        _ = GlobalService.MostrarToastAsync("Formato inválido" + "Solo JPG o PNG.");
                         return;
                     }
 
@@ -458,7 +458,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = GlobalService.MostrarToastAsync("Error" + ex.Message);
             }
         }
 
@@ -527,7 +527,7 @@ namespace CONATRADEC.ViewModels
                     await userApiService.SubirImagenAsync(usuarioCreado.UsuarioId, ImagenSeleccionada);
 
                 await GoToAsyncParameters("//UserPage");
-                await Application.Current.MainPage.DisplayAlert("Éxito", "Usuario creado.", "OK");
+                _ = GlobalService.MostrarToastAsync("Éxito" + "Usuario creado.");
             }
         }
 
@@ -582,7 +582,7 @@ namespace CONATRADEC.ViewModels
                 UrlImagenUsuario = usuarioActualizado.UrlImagenUsuario ?? UrlImagenUsuario;
 
                 await GoToAsyncParameters("//UserPage");
-                await Application.Current.MainPage.DisplayAlert("Éxito", "Usuario actualizado.", "OK");
+                _ = GlobalService.MostrarToastAsync("Éxito" + "Usuario actualizado.");
             }
         }
 
@@ -635,7 +635,7 @@ namespace CONATRADEC.ViewModels
         }
 
         private void Display(string msg) =>
-            Application.Current.MainPage.DisplayAlert("Validación", msg, "OK");
+            _ = MostrarToastAsync("Validación" + msg);
 
         public bool EsTelefonoValido(string telefono) =>
             !string.IsNullOrWhiteSpace(telefono) && telefono.All(char.IsDigit);
@@ -692,7 +692,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = GlobalService.MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {

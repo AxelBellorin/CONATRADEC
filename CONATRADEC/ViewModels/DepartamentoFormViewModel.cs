@@ -156,7 +156,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -179,7 +179,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
         }
 
@@ -228,18 +228,18 @@ namespace CONATRADEC.ViewModels
                             };
                             await GoToAsyncParameters("//DepartamentoPage", parameters);
 
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Departamento guardado correctamente.", "OK");
+                            _ = MostrarToastAsync("Éxito\nDepartamento guardado correctamente.");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "No se pudo guardar el departamento.", "OK");
+                            _ = MostrarToastAsync("Error" + "\nNo se pudo guardar el departamento.");
                         }
                     }
                 }
             }
             catch (Exception ex)
-            {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+            {   
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -289,18 +289,18 @@ namespace CONATRADEC.ViewModels
                             };
                             await GoToAsyncParameters("//DepartamentoPage", parameters);
 
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Departamento actualizado correctamente.", "OK");
+                            _ = MostrarToastAsync("Éxito" + "Departamento actualizado correctamente.");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "No se pudo actualizar el departamento.", "OK");
+                            _ = MostrarToastAsync("Error" + "No se pudo actualizar el departamento.");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {

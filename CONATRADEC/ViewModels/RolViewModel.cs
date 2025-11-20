@@ -175,12 +175,12 @@ namespace CONATRADEC.ViewModels
 
                     if (response)
                     {
-                        _ = MostrarToastAsync("Éxito" + "Rol eliminado correctamente");
+                        _ = MostrarToastAsync("Éxito" + "\nRol eliminado correctamente");
                         await LoadRol(IsBusy); // Recarga la lista. (IsBusy es true en este punto.)
                     }
                     else
                     {
-                        _ = MostrarToastAsync("Error" + "El rol no se pudo eliminar, intente nuevamente");
+                        _ = MostrarToastAsync("Error" + "\nEl rol no se pudo eliminar, intente nuevamente");
                     }
                 }
                 else

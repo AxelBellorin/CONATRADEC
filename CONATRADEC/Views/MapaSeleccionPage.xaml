@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    x:Class="CONATRADEC.Views.MapaSeleccionPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="Black">
+
+    <Grid>
+
+        <!-- MAPA UNIVERSAL (Android / iOS / Windows / Mac) -->
+        <WebView 
+            x:Name="MapaWeb"
+            Navigated="MapaWeb_Navigated"
+            Navigating="MapaWeb_Navigating" />
+
+        <!-- Botones -->
+        <Grid VerticalOptions="End"
+              Margin="0,0,0,25">
+
+            <Frame BackgroundColor="#CCFFFFFF"
+                   CornerRadius="20"
+                   Padding="15"
+                   WidthRequest="340"
+                   HorizontalOptions="Center">
+
+                <VerticalStackLayout Spacing="10">
+
+                    <Button Text="Confirmar ubicación"
+                            BackgroundColor="#3B655B"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            CornerRadius="14"
+                            Clicked="BtnConfirmar_Clicked" />
+
+                    <Button Text="Centrar en mi ubicación"
+                            BackgroundColor="#0099FF"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            CornerRadius="14"
+                            Clicked="BtnCentrarUbicacion_Clicked" />
+
+                    <Button Text="Cancelar"
+                            BackgroundColor="Gray"
+                            TextColor="White"
+                            CornerRadius="14"
+                            Clicked="BtnCancelar_Clicked" />
+
+                </VerticalStackLayout>
+
+            </Frame>
+
+        </Grid>
+
+    </Grid>
+
+</ContentPage>

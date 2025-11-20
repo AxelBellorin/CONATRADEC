@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.terrenoFormPage"
+             Title="Formulario de Terreno"
+             Shell.NavBarIsVisible="False"
+             Background="Transparent">
+
+    <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
+
+        <Label Text="{Binding Title}"
+               TextColor="{StaticResource color_Verde}"
+               FontSize="24"
+               FontAttributes="Bold"
+               HorizontalOptions="Start"
+               Grid.Row="0"
+               Margin="10,20,0,0" />
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="10" Spacing="15">
+
+                <!-- Código Terreno -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Código del terreno"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Código único del terreno"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding CodigoTerreno}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Identificación, nombre, teléfono, correo -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Identificación del propietario"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Cédula o identificación"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding IdentificacionPropietarioTerreno}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Nombre del propietario"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Nombre completo"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding NombrePropietarioTerreno}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Teléfono del propietario"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Número de teléfono"
+                               Style="{StaticResource EntryStyle}"
+                               Keyboard="Telephone"
+                               Text="{Binding TelefonoPropietarioTexto}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Correo del propietario"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="correo@ejemplo.com"
+                               Style="{StaticResource EntryStyle}"
+                               Keyboard="Email"
+                               Text="{Binding CorreoPropietario}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Dirección -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Dirección del terreno"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Editor Placeholder="Dirección detallada"
+                                AutoSize="TextChanges"
+                                Text="{Binding DireccionTerreno}"
+                                IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Extensión y quintales -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Extensión (manzanas)"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Ej: 3.50"
+                               Style="{StaticResource EntryStyle}"
+                               Keyboard="Numeric"
+                               Text="{Binding ExtensionManzanaTerreno}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Cantidad (quintales oro)"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Ej: 25.00"
+                               Style="{StaticResource EntryStyle}"
+                               Keyboard="Numeric"
+                               Text="{Binding CantidadQuintalesOro}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Fecha de ingreso -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Fecha de ingreso"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <DatePicker Date="{Binding FechaIngresoDate}"
+                                    MinimumDate="2000-01-01"
+                                    IsEnabled="{Binding IsEnabled}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- País / Depto / Municipio -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+
+                        <Label Text="País"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+
+                        <Picker ItemsSource="{Binding Paises}"
+                                ItemDisplayBinding="{Binding NombrePais}"
+                                SelectedItem="{Binding PaisSeleccionado}"
+                                IsEnabled="{Binding IsEnabled}" />
+
+                        <Label Text="Departamento"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}"
+                               Margin="0,10,0,0" />
+
+                        <Picker ItemsSource="{Binding Departamentos}"
+                                ItemDisplayBinding="{Binding NombreDepartamento}"
+                                SelectedItem="{Binding DepartamentoSeleccionado}"
+                                IsEnabled="{Binding CanPickDepartamento}" />
+
+                        <Label Text="Municipio"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}"
+                               Margin="0,10,0,0" />
+
+                        <Picker ItemsSource="{Binding Municipios}"
+                                ItemDisplayBinding="{Binding NombreMunicipio}"
+                                SelectedItem="{Binding MunicipioSeleccionado}"
+                                IsEnabled="{Binding CanPickMunicipio}" />
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Coordenadas (Lat / Lon) -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="8">
+
+                        <Label Text="Coordenadas"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0">
+                                <Label Text="Latitud" FontSize="14" />
+                                <Entry Style="{StaticResource EntryStyle}"
+                                       IsReadOnly="True"
+                                       Text="{Binding Latitud}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1">
+                                <Label Text="Longitud" FontSize="14" />
+                                <Entry Style="{StaticResource EntryStyle}"
+                                       IsReadOnly="True"
+                                       Text="{Binding Longitud}" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Button Text="Obtener ubicación actual (GPS)"
+                                Style="{StaticResource UpdateButton}"
+                                Command="{Binding ObtenerGpsCommand}" />
+
+                        <!-- NUEVO: Selección en mapa -->
+                        <Button Text="Seleccionar en mapa"
+                                Style="{StaticResource UpdateButton}"
+                                Command="{Binding SeleccionarMapaCommand}" />
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- BOTONES GUARDAR / CANCELAR -->
+                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,20">
+                    <Button Text="Guardar"
+                            Style="{StaticResource UpdateButton}"
+                            IsVisible="{Binding ShowSaveButton}"
+                            Command="{Binding SaveCommand}" />
+                    <Button Text="Cancelar"
+                            Style="{StaticResource CancelButton}"
+                            Command="{Binding CancelCommand}" />
+                </Grid>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+
+</ContentPage>

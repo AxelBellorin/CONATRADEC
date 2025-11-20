@@ -177,7 +177,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -202,7 +202,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
         }
 
@@ -254,18 +254,18 @@ namespace CONATRADEC.ViewModels
                             };
 
                             await GoToAsyncParameters("//MunicipioPage", parameters);
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Municipio guardado correctamente.", "OK");
+                            _ = MostrarToastAsync("Éxito" + "Municipio guardado correctamente.");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "No se pudo guardar el municipio.", "OK");
+                            _ = MostrarToastAsync("Error" + "No se pudo guardar el municipio.");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {
@@ -310,18 +310,18 @@ namespace CONATRADEC.ViewModels
                             };
 
                             await GoToAsyncParameters("//MunicipioPage", parameters);
-                            await Application.Current.MainPage.DisplayAlert("Éxito", "Municipio actualizado correctamente.", "OK");
+                            _ = MostrarToastAsync("Éxito" + "Municipio actualizado correctamente.");
                         }
                         else
                         {
-                            await Application.Current.MainPage.DisplayAlert("Error", "No se pudo actualizar el municipio.", "OK");
+                            _ = MostrarToastAsync("Error" + "No se pudo actualizar el municipio.");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                _ = MostrarToastAsync("Error" + ex.Message);
             }
             finally
             {

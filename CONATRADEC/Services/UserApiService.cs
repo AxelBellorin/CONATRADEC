@@ -134,12 +134,12 @@ namespace CONATRADEC.Services
                 // 🔹 Verificar resultado
                 if (!response.IsSuccessStatusCode)
                 {
-                    await Application.Current.MainPage.DisplayAlert("Advertencia", "No se pudo subir la imagen.", "OK");
+                    _ = GlobalService.MostrarToastAsync("Advertencia" + "No se pudo subir la imagen.");
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", $"Error al subir imagen: {ex.Message}", "OK");
+                _ = GlobalService.MostrarToastAsync("Error" + $"Error al subir imagen: {ex.Message}");
             }
         }
 
