@@ -229,7 +229,7 @@
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
 
-                        <WebView x:Name="MiniMapaWeb"
+                        <WebView x:Name="MiniMapaWeb"   
                                  HeightRequest="200" />
                     </VerticalStackLayout>
                 </Border>

@@ -7,9 +7,11 @@ using CONATRADEC.Models;
 namespace CONATRADEC.Views;
 
 [QueryProperty(nameof(Mode), "Mode")]
+[QueryProperty(nameof(Terreno), "Terreno")]
 public partial class MapaSeleccionPage : ContentPage
 {
     private FormMode.FormModeSelect mode = new();
+    private TerrenoRequest terreno;
     public double? LatitudActual { get; set; }
     public double? LongitudActual { get; set; }
 
@@ -38,6 +40,8 @@ public partial class MapaSeleccionPage : ContentPage
             OnPropertyChanged(nameof(Title));
         }
     }
+
+    public TerrenoRequest Terreno { get => terreno; set => terreno = value; }
 
     protected override void OnAppearing()
     {
@@ -86,7 +90,8 @@ public partial class MapaSeleccionPage : ContentPage
         {
             { "latitud", Convert.ToString(_ultimoLat, CultureInfo.InvariantCulture) },
             { "longitud", Convert.ToString(_ultimoLon, CultureInfo.InvariantCulture) },
-            { "Mode", Mode }
+            { "Mode", Mode },
+            { "Terreno", Terreno }
         });
 
     }
@@ -133,7 +138,8 @@ public partial class MapaSeleccionPage : ContentPage
     {
         await Shell.Current.GoToAsync("//TerrenoFormPage", new Dictionary<string, object>
         {
-            { "Mode", Mode }
+            { "Mode", Mode },
+            { "Terreno", Terreno }
         });
     }
 

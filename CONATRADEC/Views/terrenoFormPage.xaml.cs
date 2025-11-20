@@ -1,7 +1,5 @@
-using CONATRADEC.ViewModels;
+﻿using CONATRADEC.ViewModels;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.Controls.Xaml;
-using Microsoft.Maui.Controls; // por si acaso
 using System.Globalization;
 
 namespace CONATRADEC.Views
@@ -13,8 +11,15 @@ namespace CONATRADEC.Views
         public terrenoFormPage()
         {
             InitializeComponent();
+
             viewModel = new TerrenoFormViewModel();
             BindingContext = viewModel;
+
+            // Vinculamos el refresco del mapa al ViewModel
+            viewModel.RefrescarMapaAction = (lat, lon) =>
+            {
+                ActualizarMiniMapa(lat, lon);
+            };
         }
 
         protected override async void OnAppearing()
@@ -22,21 +27,49 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             await viewModel.InicializarAsync();
-            CargarMiniMapa();
+            CargarMiniMapa(); // primera carga
         }
 
+        // ============================================================
+        //                   MINI MAPA — CARGA INICIAL
+        // ============================================================
         private void CargarMiniMapa()
         {
             double lat = viewModel.Latitud ?? 12.1364;
             double lon = viewModel.Longitud ?? -86.2510;
 
-            var html = BuildLeafletHtml(lat, lon);
             MiniMapaWeb.Source = new HtmlWebViewSource
             {
-                Html = html
+                Html = BuildLeafletHtml(lat, lon)
             };
         }
 
+        // ============================================================
+        //              MINI MAPA — ACTUALIZAR DESPUÉS DE GPS / MAPA
+        // ============================================================
+        private void ActualizarMiniMapa(double? lat, double? lon)
+        {
+            if (lat == null || lon == null)
+                return;
+
+            string html = BuildLeafletHtml(
+                lat.Value,
+                lon.Value
+            );
+
+            // 🔁 Esto obliga al WebView a RECARGAR (si no, no lo actualiza)
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                MiniMapaWeb.Source = new HtmlWebViewSource
+                {
+                    Html = html
+                };
+            });
+        }
+
+        // ============================================================
+        //                       HTML DEL MAPA
+        // ============================================================
         private string BuildLeafletHtml(double lat, double lon)
         {
             string latStr = lat.ToString(CultureInfo.InvariantCulture);
@@ -51,7 +84,7 @@ namespace CONATRADEC.Views
 <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
 <style>
 html, body {{ margin:0; padding:0; height:100%; }}
-#map {{ width:100%; height:100%; }}
+#map {{ width:100%; height:100%; border-radius:10px; }}
 </style>
 </head>
 <body>

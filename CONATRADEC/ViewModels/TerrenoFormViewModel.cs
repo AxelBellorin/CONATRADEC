@@ -14,8 +14,8 @@ namespace CONATRADEC.ViewModels
     // Recibe parámetros desde Shell (latitud / longitud / Terreno / Mode)
     [QueryProperty(nameof(LatitudParam), "latitud")]
     [QueryProperty(nameof(LongitudParam), "longitud")]
-    [QueryProperty(nameof(Terreno), "Terreno")]
     [QueryProperty(nameof(Mode), "Mode")]
+    [QueryProperty(nameof(Terreno), "Terreno")]
     public class TerrenoFormViewModel : GlobalService
     {
         // ==================== Estado interno ====================
@@ -46,6 +46,12 @@ namespace CONATRADEC.ViewModels
         private readonly DepartamentoApiService departamentoApiService = new();
         private readonly MunicipioApiService municipioApiService = new();
 
+        // Bandera para no re-ejecutar InicializarAsync al volver del mapa
+        private bool inicializado = false;
+
+        // Delegate para que la vista pueda refrescar el mapa cuando cambian las coordenadas
+        public Action<double?, double?> RefrescarMapaAction { get; set; }
+
         // ==================== Comandos ====================
 
         public Command SaveCommand { get; }
@@ -70,7 +76,7 @@ namespace CONATRADEC.ViewModels
             {
                 latitudParam = value;
                 if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lat))
-                    Latitud = lat;
+                    Latitud = lat; // dispara RefrescarMapaAction
             }
         }
 
@@ -81,7 +87,7 @@ namespace CONATRADEC.ViewModels
             {
                 longitudParam = value;
                 if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lon))
-                    Longitud = lon;
+                    Longitud = lon; // dispara RefrescarMapaAction
             }
         }
 
@@ -196,13 +202,23 @@ namespace CONATRADEC.ViewModels
         public double? Latitud
         {
             get => latitud;
-            set { latitud = value; OnPropertyChanged(); }
+            set
+            {
+                latitud = value;
+                OnPropertyChanged();
+                RefrescarMapaAction?.Invoke(latitud, longitud);
+            }
         }
 
         public double? Longitud
         {
             get => longitud;
-            set { longitud = value; OnPropertyChanged(); }
+            set
+            {
+                longitud = value;
+                OnPropertyChanged();
+                RefrescarMapaAction?.Invoke(latitud, longitud);
+            }
         }
 
         public DateOnly? FechaIngresoTerreno
@@ -300,11 +316,13 @@ namespace CONATRADEC.ViewModels
 
         public async Task InicializarAsync()
         {
-            if (IsBusy) return;
+            // 🔒 Evitamos recargar pickers cuando volvemos del mapa
+            if (inicializado) return;
 
             try
             {
                 IsBusy = true;
+                inicializado = true;
 
                 await CargarPaisesAsync();
 
@@ -465,7 +483,8 @@ namespace CONATRADEC.ViewModels
             {
                 { "latitudActual", Latitud ?? 12.1364 },
                 { "longitudActual", Longitud ?? -86.2510 },
-                { "Mode", Mode }
+                { "Mode", Mode },
+                { "Terreno", Terreno }
             });
         }
 
