@@ -2,11 +2,14 @@
 using Microsoft.Maui.Devices.Sensors;
 using System;
 using System.Globalization;
+using CONATRADEC.Models;
 
 namespace CONATRADEC.Views;
 
+[QueryProperty(nameof(Mode), "Mode")]
 public partial class MapaSeleccionPage : ContentPage
 {
+    private FormMode.FormModeSelect mode = new();
     public double? LatitudActual { get; set; }
     public double? LongitudActual { get; set; }
 
@@ -24,6 +27,16 @@ public partial class MapaSeleccionPage : ContentPage
         {
             Html = BuildLeafletHtml()
         };
+    }
+
+    public FormMode.FormModeSelect Mode
+    {
+        get => mode;
+        set
+        {
+            mode = value;
+            OnPropertyChanged(nameof(Title));
+        }
     }
 
     protected override void OnAppearing()
@@ -72,7 +85,8 @@ public partial class MapaSeleccionPage : ContentPage
         await Shell.Current.GoToAsync("//TerrenoFormPage", new Dictionary<string, object>
         {
             { "latitud", Convert.ToString(_ultimoLat, CultureInfo.InvariantCulture) },
-            { "longitud", Convert.ToString(_ultimoLon, CultureInfo.InvariantCulture) }
+            { "longitud", Convert.ToString(_ultimoLon, CultureInfo.InvariantCulture) },
+            { "Mode", Mode }
         });
 
     }
@@ -117,7 +131,10 @@ public partial class MapaSeleccionPage : ContentPage
     // Botón cancelar
     private async void BtnCancelar_Clicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("//TerrenoFormPage");
+        await Shell.Current.GoToAsync("//TerrenoFormPage", new Dictionary<string, object>
+        {
+            { "Mode", Mode }
+        });
     }
 
     private string BuildLeafletHtml()

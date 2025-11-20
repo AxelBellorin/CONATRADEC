@@ -183,7 +183,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Coordenadas (Lat / Lon) -->
+                <!-- Coordenadas (Lat / Lon) + botones -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="8">
 
@@ -210,13 +210,27 @@
 
                         <Button Text="Obtener ubicación actual (GPS)"
                                 Style="{StaticResource UpdateButton}"
-                                Command="{Binding ObtenerGpsCommand}" />
+                                Command="{Binding ObtenerGpsCommand}"
+                                IsVisible="{Binding IsEnabled}" />
 
-                        <!-- NUEVO: Selección en mapa -->
                         <Button Text="Seleccionar en mapa"
                                 Style="{StaticResource UpdateButton}"
-                                Command="{Binding SeleccionarMapaCommand}" />
+                                Command="{Binding SeleccionarMapaCommand}"
+                                IsVisible="{Binding IsEnabled}" />
 
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Mini mapa solo visual -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Mapa de ubicación"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+
+                        <WebView x:Name="MiniMapaWeb"
+                                 HeightRequest="200" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -225,10 +239,14 @@
                     <Button Text="Guardar"
                             Style="{StaticResource UpdateButton}"
                             IsVisible="{Binding ShowSaveButton}"
-                            Command="{Binding SaveCommand}" />
+                            Command="{Binding SaveCommand}"
+                            Grid.Column="0"
+                            Margin="10,0,10,0" />
                     <Button Text="Cancelar"
                             Style="{StaticResource CancelButton}"
-                            Command="{Binding CancelCommand}" />
+                            Command="{Binding CancelCommand}"
+                            Grid.Column="1"
+                            Margin="10,0,10,0" />
                 </Grid>
 
             </VerticalStackLayout>

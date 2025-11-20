@@ -1,80 +1,71 @@
-using Microsoft.Maui.Controls.Maps;
-using Microsoft.Maui.Maps;
-using System.Globalization;
 using CONATRADEC.ViewModels;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Xaml;
+using Microsoft.Maui.Controls; // por si acaso
+using System.Globalization;
 
-namespace CONATRADEC.Views;
-
-public partial class terrenoFormPage : ContentPage
+namespace CONATRADEC.Views
 {
-    private readonly TerrenoFormViewModel vm;
-
-    public terrenoFormPage()
+    public partial class terrenoFormPage : ContentPage
     {
-        InitializeComponent();
-        vm = new TerrenoFormViewModel();
-        BindingContext = vm;
-    }
+        private readonly TerrenoFormViewModel viewModel;
 
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
+        public terrenoFormPage()
+        {
+            InitializeComponent();
+            viewModel = new TerrenoFormViewModel();
+            BindingContext = viewModel;
+        }
 
-        await vm.InicializarAsync();
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
 
-        //CargarMiniMapa();
-    }
+            await viewModel.InicializarAsync();
+            CargarMiniMapa();
+        }
 
-//    private void CargarMiniMapa()
-//    {
-//#if WINDOWS
-//        MiniMapa.IsVisible = false;
-//        MiniMapaWeb.IsVisible = true;
+        private void CargarMiniMapa()
+        {
+            double lat = viewModel.Latitud ?? 12.1364;
+            double lon = viewModel.Longitud ?? -86.2510;
 
-//        MiniMapaWeb.Source = new HtmlWebViewSource
-//        {
-//            Html = BuildLeafletHtml(vm.Latitud ?? 12.1364,
-//                                    vm.Longitud ?? -86.2510)
-//        };
-//#else
-//        MiniMapa.IsVisible = true;
-//        MiniMapaWeb.IsVisible = false;
+            var html = BuildLeafletHtml(lat, lon);
+            MiniMapaWeb.Source = new HtmlWebViewSource
+            {
+                Html = html
+            };
+        }
 
-//        var loc = new Location(vm.Latitud ?? 12.1364, vm.Longitud ?? -86.2510);
+        private string BuildLeafletHtml(double lat, double lon)
+        {
+            string latStr = lat.ToString(CultureInfo.InvariantCulture);
+            string lonStr = lon.ToString(CultureInfo.InvariantCulture);
 
-//        MiniMapa.MoveToRegion(MapSpan.FromCenterAndRadius(loc, Distance.FromKilometers(1)));
-
-//        MiniMapa.Pins.Clear();
-//        MiniMapa.Pins.Add(new Pin
-//        {
-//            Label = "Terreno",
-//            Location = loc
-//        });
-//#endif
-//    }
-
-    private string BuildLeafletHtml(double lat, double lon)
-    {
-        return @$"
+            return $@"
 <!DOCTYPE html>
 <html>
 <head>
-<meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
 <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' />
 <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
 <style>
-html, body, #map {{ height: 100%; margin: 0; }}
+html, body {{ margin:0; padding:0; height:100%; }}
+#map {{ width:100%; height:100%; }}
 </style>
 </head>
-
 <body>
 <div id='map'></div>
 <script>
-var map = L.map('map').setView([{lat}, {lon}], 16);
-L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(map);
-L.marker([{lat}, {lon}]).addTo(map);
+    var map = L.map('map').setView([{latStr}, {lonStr}], 16);
+    L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+        maxZoom: 19
+    }}).addTo(map);
+
+    var marker = L.marker([{latStr}, {lonStr}]).addTo(map);
 </script>
 </body>
 </html>";
+        }
     }
 }

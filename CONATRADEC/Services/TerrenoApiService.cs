@@ -50,7 +50,7 @@ namespace CONATRADEC.Services
             {
                 var response = await httpClient.PutAsJsonAsync(
                     $"api/terreno/editar/{terreno.TerrenoId}",
-                    terreno);
+                    terreno);   
                 return response.IsSuccessStatusCode;
             }
             catch
