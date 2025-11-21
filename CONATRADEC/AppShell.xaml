@@ -139,4 +139,10 @@
                   Route="MatrizPermisosPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:matrizPermisosPage}" />
+
+    <ShellContent Title="Nuevo Análisis"
+              Route="NuevoAnalisisFormPage"
+              FlyoutItemIsVisible="False"
+              ContentTemplate="{DataTemplate views:NuevoAnalisisFormPage}" />
+
 </Shell>
