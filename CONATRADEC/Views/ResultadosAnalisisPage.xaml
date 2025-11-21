@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+ xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+ x:Class="CONATRADEC.Views.ResultadosAnalisisPage"
+ Title="Resultados del Análisis"
+ Shell.NavBarIsVisible="False"
+ BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+ <ContentView x:Name="UserPage"
+ ControlTemplate="{StaticResource FooterTemplate}">
+
+ <!-- Grid para permitir que el menú quede encima del FooterTemplate (fila inferior) -->
+ <Grid RowDefinitions="*,Auto" ColumnDefinitions="*">
+
+ <!-- Contenido principal (scrollable) -->
+ <ScrollView Grid.Row="0">
+ <VerticalStackLayout Padding="16" Spacing="12">
+
+ <Label Text="Requerimiento Anual" FontAttributes="Bold" FontSize="22" />
+
+ <!-- Seccion: Datos generales (formato tipo tabla para responsividad) -->
+ <Label Text="Datos generales" FontAttributes="Bold" FontSize="16" Margin="0,4,0,0" />
+
+ <Frame CornerRadius="8" HasShadow="True" Padding="12" BackgroundColor="White" Margin="0,6,0,0">
+ <Grid ColumnDefinitions="Auto,*,110,90"
+ RowDefinitions="Auto,Auto,Auto"
+ RowSpacing="12"
+ ColumnSpacing="12">
+
+ <Label Grid.Row="0" Grid.Column="0" Text="Fecha" FontAttributes="Bold" VerticalOptions="Center" />
+ <Label Grid.Row="0" Grid.Column="1" x:Name="FechaLabel" Text="01/01/2025" TextColor="Gray" FontSize="14" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+
+ <Label Grid.Row="1" Grid.Column="0" Text="Deficiencia del suelo" FontAttributes="Bold" VerticalOptions="Center" />
+ <Label Grid.Row="1" Grid.Column="1" x:Name="DeficienciaLabel" Text="Nitrógeno" TextColor="Gray" FontSize="14" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+
+ <Label Grid.Row="2" Grid.Column="0" Text="Breve descripción" FontAttributes="Bold" VerticalOptions="Start" />
+ <Label Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" x:Name="DescripcionLabel"
+ Text="Suelo con baja disponibilidad de N; considerar fertilización nitrogenada y enmiendas orgánicas."
+ LineBreakMode="WordWrap"
+ FontSize="14"
+ TextColor="Gray" />
+
+ </Grid>
+ </Frame>
+
+ <!-- Input: ¿Cuánto desea producir? en QQ -->
+ <HorizontalStackLayout Spacing="12" Margin="0,6,0,0" VerticalOptions="Center" HorizontalOptions="FillAndExpand">
+ <Label Text="¿Cuánto desea producir?" VerticalOptions="Center" FontSize="16" />
+ <Entry x:Name="ProduccionEntry" Placeholder="Cantidad (QQ)" Keyboard="Numeric" HorizontalOptions="Start" WidthRequest="140" />
+ </HorizontalStackLayout>
+
+ <!-- Título de la tabla de resultados -->
+ <Label Text="Resultados" FontAttributes="Bold" FontSize="16" Margin="0,6,0,0" />
+
+ <!-- Seccion: Resultados con columna adicional de unidad (lb/Mz) -->
+ <Frame CornerRadius="8" HasShadow="True" Padding="12" BackgroundColor="WhiteSmoke" Margin="0,6,0,20">
+ <Grid ColumnDefinitions="Auto,*,110,90"
+ RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+ RowSpacing="12"
+ ColumnSpacing="12">
+
+ <!-- Fila de títulos -->
+ <Label Grid.Row="0" Grid.Column="0" Text="Elemento" FontAttributes="Bold" VerticalOptions="Center" />
+ <Label Grid.Row="0" Grid.Column="1" Text="Cantidad actual" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+ <Label Grid.Row="0" Grid.Column="2" Text="Cantidad necesaria" FontAttributes="Bold" WidthRequest="110" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+ <Label Grid.Row="0" Grid.Column="3" Text="Unidad" FontAttributes="Bold" WidthRequest="90" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+
+ <!-- Nitrogeno -->
+ <Label Grid.Row="1" Grid.Column="0" VerticalOptions="Center" Text="Nitrogeno:" />
+ <Label Grid.Row="1" Grid.Column="1" x:Name="NitrogenoValueLabel" Text="95.7" VerticalOptions="Center" HorizontalTextAlignment="Center" />
+ <Label Grid.Row="1" Grid.Column="2" x:Name="NitrogenoNeededLabel" Text="46.2" WidthRequest="110" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+ <Label Grid.Row="1" Grid.Column="3" x:Name="NitrogenoUnitLabel" Text="lb/Mz" WidthRequest="90" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+
+ <!-- Potacio -->
+ <Label Grid.Row="2" Grid.Column="0" VerticalOptions="Center" Text="Potacio:" />
+ <Label Grid.Row="2" Grid.Column="1" x:Name="PotacioValueLabel" Text="108.3" VerticalOptions="Center" HorizontalTextAlignment="Center" />
+ <Label Grid.Row="2" Grid.Column="2" x:Name="PotacioNeededLabel" Text="108.8" WidthRequest="110" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+ <Label Grid.Row="2" Grid.Column="3" x:Name="PotacioUnitLabel" Text="lb/Mz" WidthRequest="90" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+
+ <!-- Fosforo -->
+ <Label Grid.Row="3" Grid.Column="0" VerticalOptions="Center" Text="Fosforo:" />
+ <Label Grid.Row="3" Grid.Column="1" x:Name="FosforoValueLabel" Text="18.6" VerticalOptions="Center" HorizontalTextAlignment="Center" />
+ <Label Grid.Row="3" Grid.Column="2" x:Name="FosforoNeededLabel" Text="3.5" WidthRequest="110" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+ <Label Grid.Row="3" Grid.Column="3" x:Name="FosforoUnitLabel" Text="lb/Mz" WidthRequest="90" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+
+ <!-- Calcio -->
+ <Label Grid.Row="4" Grid.Column="0" VerticalOptions="Center" Text="Calcio:" />
+ <Label Grid.Row="4" Grid.Column="1" x:Name="CalcioValueLabel" Text="13.5" VerticalOptions="Center" HorizontalTextAlignment="Center" />
+ <Label Grid.Row="4" Grid.Column="2" x:Name="CalcioNeededLabel" Text="46.2" WidthRequest="110" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+ <Label Grid.Row="4" Grid.Column="3" x:Name="CalcioUnitLabel" Text="lb/Mz" WidthRequest="90" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+
+ <!-- Magnesio -->
+ <Label Grid.Row="5" Grid.Column="0" VerticalOptions="Center" Text="Magnesio:" />
+ <Label Grid.Row="5" Grid.Column="1" x:Name="MagnesioValueLabel" Text="7.8" VerticalOptions="Center" HorizontalTextAlignment="Center" />
+ <Label Grid.Row="5" Grid.Column="2" x:Name="MagnesioNeededLabel" Text="66.5" WidthRequest="110" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+ <Label Grid.Row="5" Grid.Column="3" x:Name="MagnesioUnitLabel" Text="lb/Mz" WidthRequest="90" HorizontalTextAlignment="Center" VerticalOptions="Center" />
+
+ </Grid>
+ </Frame>
+
+ </VerticalStackLayout>
+ </ScrollView>
+
+ <!-- Menú fijo encima del FooterTemplate (con estilo igual al FooterTemplate) -->
+ <Frame Grid.Row="1" BackgroundColor="{StaticResource color_Blanco}" Padding="8,6" HasShadow="False" BorderColor="{StaticResource color_Blanco}">
+ <ScrollView Orientation="Horizontal">
+ <HorizontalStackLayout Spacing="10" Padding="10,0,10,0">
+ <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconhome.png">
+ <Image.GestureRecognizers>
+ <TapGestureRecognizer Tapped="OnMenuReqTapped"/>
+ </Image.GestureRecognizers>
+ </Image>
+ <Label HorizontalOptions="Center"
+ Text="Requerimiento Anual"
+ FontSize="16"
+ TextColor="{StaticResource color_Negro}"
+ FontFamily="MontserratMedium" />
+ </VerticalStackLayout>
+
+ <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconpermission.png">
+ <Image.GestureRecognizers>
+ <TapGestureRecognizer Tapped="OnMenuBalanceTapped"/>
+ </Image.GestureRecognizers>
+ </Image>
+ <Label HorizontalOptions="Center"
+ Text="Balance de fórmulas"
+ FontSize="16"
+ TextColor="{StaticResource color_Negro}"
+ FontFamily="MontserratMedium" />
+ </VerticalStackLayout>
+
+ <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconuser.png">
+ <Image.GestureRecognizers>
+ <TapGestureRecognizer Tapped="OnMenuEnmiendasTapped"/>
+ </Image.GestureRecognizers>
+ </Image>
+ <Label HorizontalOptions="Center"
+ Text="Enmiendas Calcareas"
+ FontSize="16"
+ TextColor="{StaticResource color_Negro}"
+ FontFamily="MontserratMedium" />
+ </VerticalStackLayout>
+
+ <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconjobposition.png">
+ <Image.GestureRecognizers>
+ <TapGestureRecognizer Tapped="OnMenuFertMixtaTapped"/>
+ </Image.GestureRecognizers>
+ </Image>
+ <Label HorizontalOptions="Center"
+ Text="Fertilización Mixta"
+ FontSize="16"
+ TextColor="{StaticResource color_Negro}"
+ FontFamily="MontserratMedium" />
+ </VerticalStackLayout>
+ </HorizontalStackLayout>
+ </ScrollView>
+ </Frame>
+
+ </Grid>
+
+ </ContentView>
+</ContentPage>

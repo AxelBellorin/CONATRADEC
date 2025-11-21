@@ -17,7 +17,7 @@ namespace CONATRADEC.Views
         {
             InitializeComponent();
 
-            // Inicializar comandos de navegación
+            // Inicializar comandos de navegacion
             goToMainPageCommand = new Command(async () =>
             {
                 try { await Shell.Current.GoToAsync("//MainPage"); }
@@ -51,16 +51,15 @@ namespace CONATRADEC.Views
 
             // Exponer los comandos al ControlTemplate: el ContentView con x:Name="UserPage"
             // debe heredar el BindingContext que contiene los comandos.
-            // Aseguramos que el ContentView use este objeto como BindingContext.
             UserPage.BindingContext = this;
         }
 
         private async void OnGuardarClicked(object sender, EventArgs e)
         {
-            // Lógica de guardado 
-            await DisplayAlert("Guardado", "El análisis ha sido guardado.", "OK");
+            // Logica de guardado
+            await DisplayAlert("Guardado", "El an\u00E1lisis ha sido guardado.", "OK");
 
-            // Navegar atrás usando Shell. Si la página fue abierta con rutas, ajusta según sea necesario.
+            // Navegar atras usando Shell. Si la pagina fue abierta con rutas, ajustar segun sea necesario.
             try
             {
                 await Shell.Current.GoToAsync("..");
@@ -69,6 +68,21 @@ namespace CONATRADEC.Views
             {
                 // fallback: PopAsync si no se usa Shell
                 await Navigation.PopAsync();
+            }
+        }
+
+        // Cuando el usuario pulsa "Enviar analisis" mostramos la pagina de resultados
+        private async void OnEnviarAnalisisClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                // Intentamos navegacion por Shell (ruta absoluta)
+                await Shell.Current.GoToAsync("//ResultadosAnalisisPage");
+            }
+            catch
+            {
+                // Fallback: push explicito de la pagina si la ruta no esta registrada
+                await Navigation.PushAsync(new ResultadosAnalisisPage());
             }
         }
     }
