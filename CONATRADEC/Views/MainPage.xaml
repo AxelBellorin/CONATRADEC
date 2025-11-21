@@ -43,7 +43,8 @@
                         FontSize="18"
                         CornerRadius="12"
                         HeightRequest="50"
-                        HorizontalOptions="Fill" />
+                        HorizontalOptions="Fill"
+                        Clicked="OnNuevoAnalisisClicked" />
 
                 <!-- ===================================================== -->
                 <!-- BLOQUE: ÚLTIMO ANÁLISIS (ejemplo estático) -->
