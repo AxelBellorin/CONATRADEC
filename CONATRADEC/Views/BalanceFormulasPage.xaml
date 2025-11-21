@@ -56,133 +56,133 @@
 
  <!-- Urea -->
  <Label Grid.Row="1" Grid.Column="0" Text="Urea" />
- <Entry Grid.Row="1" Grid.Column="1" x:Name="Urea_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="2" x:Name="Urea_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="3" x:Name="Urea_N" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="4" x:Name="Urea_P" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="5" x:Name="Urea_K" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="6" x:Name="Urea_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="7" x:Name="Urea_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="8" x:Name="Urea_S" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="9" x:Name="Urea_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="1" Grid.Column="10" x:Name="Urea_B" Keyboard="Numeric" />
+ <Entry Grid.Row="1" Grid.Column="1" x:Name="Urea_Libras" Keyboard="Numeric" Text="380" />
+ <Entry Grid.Row="1" Grid.Column="2" x:Name="Urea_QQ" Keyboard="Numeric" Text="3.8" />
+ <Entry Grid.Row="1" Grid.Column="3" x:Name="Urea_N" Keyboard="Numeric" Text="129.2" />
+ <Entry Grid.Row="1" Grid.Column="4" x:Name="Urea_P" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="1" Grid.Column="5" x:Name="Urea_K" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="1" Grid.Column="6" x:Name="Urea_Ca" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="1" Grid.Column="7" x:Name="Urea_Mg" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="1" Grid.Column="8" x:Name="Urea_S" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="1" Grid.Column="9" x:Name="Urea_Zn" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="1" Grid.Column="10" x:Name="Urea_B" Keyboard="Numeric" Text="0.0" />
 
  <!--18-46-00 -->
  <Label Grid.Row="2" Grid.Column="0" Text="18-46-00" />
- <Entry Grid.Row="2" Grid.Column="1" x:Name="F184600_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="2" x:Name="F184600_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="3" x:Name="F184600_N" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="4" x:Name="F184600_P" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="5" x:Name="F184600_K" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="6" x:Name="F184600_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="7" x:Name="F184600_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="8" x:Name="F184600_S" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="9" x:Name="F184600_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="2" Grid.Column="10" x:Name="F184600_B" Keyboard="Numeric" />
+ <Entry Grid.Row="2" Grid.Column="1" x:Name="F184600_Libras" Keyboard="Numeric" Text="88" />
+ <Entry Grid.Row="2" Grid.Column="2" x:Name="F184600_QQ" Keyboard="Numeric" Text="0.88" />
+ <Entry Grid.Row="2" Grid.Column="3" x:Name="F184600_N" Keyboard="Numeric" Text="10.56" />
+ <Entry Grid.Row="2" Grid.Column="4" x:Name="F184600_P" Keyboard="Numeric" Text="21.12" />
+ <Entry Grid.Row="2" Grid.Column="5" x:Name="F184600_K" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="2" Grid.Column="6" x:Name="F184600_Ca" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="2" Grid.Column="7" x:Name="F184600_Mg" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="2" Grid.Column="8" x:Name="F184600_S" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="2" Grid.Column="9" x:Name="F184600_Zn" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="2" Grid.Column="10" x:Name="F184600_B" Keyboard="Numeric" Text="0.0" />
 
  <!-- KCL -->
  <Label Grid.Row="3" Grid.Column="0" Text="KCL" />
- <Entry Grid.Row="3" Grid.Column="1" x:Name="KCL_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="2" x:Name="KCL_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="3" x:Name="KCL_N" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="4" x:Name="KCL_P" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="5" x:Name="KCL_K" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="6" x:Name="KCL_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="7" x:Name="KCL_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="8" x:Name="KCL_S" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="9" x:Name="KCL_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="3" Grid.Column="10" x:Name="KCL_B" Keyboard="Numeric" />
+ <Entry Grid.Row="3" Grid.Column="1" x:Name="KCL_Libras" Keyboard="Numeric" Text="208" />
+ <Entry Grid.Row="3" Grid.Column="2" x:Name="KCL_QQ" Keyboard="Numeric" Text="2.8" />
+ <Entry Grid.Row="3" Grid.Column="3" x:Name="KCL_N" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="3" Grid.Column="4" x:Name="KCL_P" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="3" Grid.Column="5" x:Name="KCL_K" Keyboard="Numeric" Text="102.4" />
+ <Entry Grid.Row="3" Grid.Column="6" x:Name="KCL_Ca" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="3" Grid.Column="7" x:Name="KCL_Mg" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="3" Grid.Column="8" x:Name="KCL_S" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="3" Grid.Column="9" x:Name="KCL_Zn" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="3" Grid.Column="10" x:Name="KCL_B" Keyboard="Numeric" Text="0.0" />
 
  <!-- Ca(NO3)2 -->
  <Label Grid.Row="4" Grid.Column="0" Text="Ca(NO3)2" />
- <Entry Grid.Row="4" Grid.Column="1" x:Name="CaNO32_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="2" x:Name="CaNO32_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="3" x:Name="CaNO32_N" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="4" x:Name="CaNO32_P" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="5" x:Name="CaNO32_K" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="6" x:Name="CaNO32_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="7" x:Name="CaNO32_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="8" x:Name="CaNO32_S" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="9" x:Name="CaNO32_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="4" Grid.Column="10" x:Name="CaNO32_B" Keyboard="Numeric" />
+ <Entry Grid.Row="4" Grid.Column="1" x:Name="CaNO32_Libras" Keyboard="Numeric" Text="80" />
+ <Entry Grid.Row="4" Grid.Column="2" x:Name="CaNO32_QQ" Keyboard="Numeric" Text="80" />
+ <Entry Grid.Row="4" Grid.Column="3" x:Name="CaNO32_N" Keyboard="Numeric" Text="12" />
+ <Entry Grid.Row="4" Grid.Column="4" x:Name="CaNO32_P" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="4" Grid.Column="5" x:Name="CaNO32_K" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="4" Grid.Column="6" x:Name="CaNO32_Ca" Keyboard="Numeric" Text="20.0" />
+ <Entry Grid.Row="4" Grid.Column="7" x:Name="CaNO32_Mg" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="4" Grid.Column="8" x:Name="CaNO32_S" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="4" Grid.Column="9" x:Name="CaNO32_Zn" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="4" Grid.Column="10" x:Name="CaNO32_B" Keyboard="Numeric" Text="0.0" />
 
  <!-- Kmg -->
  <Label Grid.Row="5" Grid.Column="0" Text="Kmg" />
- <Entry Grid.Row="5" Grid.Column="1" x:Name="Kmg_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="2" x:Name="Kmg_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="3" x:Name="Kmg_N" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="4" x:Name="Kmg_P" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="5" x:Name="Kmg_K" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="6" x:Name="Kmg_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="7" x:Name="Kmg_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="8" x:Name="Kmg_S" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="9" x:Name="Kmg_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="5" Grid.Column="10" x:Name="Kmg_B" Keyboard="Numeric" />
+ <Entry Grid.Row="5" Grid.Column="1" x:Name="Kmg_Libras" Keyboard="Numeric" Text="60" />
+ <Entry Grid.Row="5" Grid.Column="2" x:Name="Kmg_QQ" Keyboard="Numeric" Text="0.8" />
+ <Entry Grid.Row="5" Grid.Column="3" x:Name="Kmg_N" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="5" Grid.Column="4" x:Name="Kmg_P" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="5" Grid.Column="5" x:Name="Kmg_K" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="5" Grid.Column="6" x:Name="Kmg_Ca" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="5" Grid.Column="7" x:Name="Kmg_Mg" Keyboard="Numeric" Text="18.0" />
+ <Entry Grid.Row="5" Grid.Column="8" x:Name="Kmg_S" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="5" Grid.Column="9" x:Name="Kmg_Zn" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="5" Grid.Column="10" x:Name="Kmg_B" Keyboard="Numeric" Text="0.0" />
 
  <!-- ZnSO4 -->
  <Label Grid.Row="6" Grid.Column="0" Text="ZnSO4" />
- <Entry Grid.Row="6" Grid.Column="1" x:Name="ZnSO4_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="2" x:Name="ZnSO4_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="3" x:Name="ZnSO4_N" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="4" x:Name="ZnSO4_P" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="5" x:Name="ZnSO4_K" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="6" x:Name="ZnSO4_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="7" x:Name="ZnSO4_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="8" x:Name="ZnSO4_S" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="9" x:Name="ZnSO4_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="6" Grid.Column="10" x:Name="ZnSO4_B" Keyboard="Numeric" />
+ <Entry Grid.Row="6" Grid.Column="1" x:Name="ZnSO4_Libras" Keyboard="Numeric" Text="30" />
+ <Entry Grid.Row="6" Grid.Column="2" x:Name="ZnSO4_QQ" Keyboard="Numeric" Text="0.6" />
+ <Entry Grid.Row="6" Grid.Column="3" x:Name="ZnSO4_N" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="6" Grid.Column="4" x:Name="ZnSO4_P" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="6" Grid.Column="5" x:Name="ZnSO4_K" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="6" Grid.Column="6" x:Name="ZnSO4_Ca" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="6" Grid.Column="7" x:Name="ZnSO4_Mg" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="6" Grid.Column="8" x:Name="ZnSO4_S" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="6" Grid.Column="9" x:Name="ZnSO4_Zn" Keyboard="Numeric" Text="14.0" />
+ <Entry Grid.Row="6" Grid.Column="10" x:Name="ZnSO4_B" Keyboard="Numeric" Text="0.0" />
 
  <!-- H3B04 -->
  <Label Grid.Row="7" Grid.Column="0" Text="H3B04" />
- <Entry Grid.Row="7" Grid.Column="1" x:Name="H3B04_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="2" x:Name="H3B04_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="3" x:Name="H3B04_N" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="4" x:Name="H3B04_P" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="5" x:Name="H3B04_K" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="6" x:Name="H3B04_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="7" x:Name="H3B04_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="8" x:Name="H3B04_S" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="9" x:Name="H3B04_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="7" Grid.Column="10" x:Name="H3B04_B" Keyboard="Numeric" />
+ <Entry Grid.Row="7" Grid.Column="1" x:Name="H3B04_Libras" Keyboard="Numeric" Text="20" />
+ <Entry Grid.Row="7" Grid.Column="2" x:Name="H3B04_QQ" Keyboard="Numeric" Text="0.3" />
+ <Entry Grid.Row="7" Grid.Column="3" x:Name="H3B04_N" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="7" Grid.Column="4" x:Name="H3B04_P" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="7" Grid.Column="5" x:Name="H3B04_K" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="7" Grid.Column="6" x:Name="H3B04_Ca" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="7" Grid.Column="7" x:Name="H3B04_Mg" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="7" Grid.Column="8" x:Name="H3B04_S" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="7" Grid.Column="9" x:Name="H3B04_Zn" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="7" Grid.Column="10" x:Name="H3B04_B" Keyboard="Numeric" Text="5.0" />
 
  <!-- H3B04 (dup) -->
  <Label Grid.Row="8" Grid.Column="0" Text="H3B04" />
- <Entry Grid.Row="8" Grid.Column="1" x:Name="H3B04b_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="2" x:Name="H3B04b_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="3" x:Name="H3B04b_N" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="4" x:Name="H3B04b_P" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="5" x:Name="H3B04b_K" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="6" x:Name="H3B04b_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="7" x:Name="H3B04b_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="8" x:Name="H3B04b_S" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="9" x:Name="H3B04b_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="8" Grid.Column="10" x:Name="H3B04b_B" Keyboard="Numeric" />
+ <Entry Grid.Row="8" Grid.Column="1" x:Name="H3B04b_Libras" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="8" Grid.Column="2" x:Name="H3B04b_QQ" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="8" Grid.Column="3" x:Name="H3B04b_N" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="8" Grid.Column="4" x:Name="H3B04b_P" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="8" Grid.Column="5" x:Name="H3B04b_K" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="8" Grid.Column="6" x:Name="H3B04b_Ca" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="8" Grid.Column="7" x:Name="H3B04b_Mg" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="8" Grid.Column="8" x:Name="H3B04b_S" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="8" Grid.Column="9" x:Name="H3B04b_Zn" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="8" Grid.Column="10" x:Name="H3B04b_B" Keyboard="Numeric" Text="0.0" />
 
  <!-- Asufre -->
  <Label Grid.Row="9" Grid.Column="0" Text="Asufre" />
- <Entry Grid.Row="9" Grid.Column="1" x:Name="Asufre_Libras" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="2" x:Name="Asufre_QQ" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="3" x:Name="Asufre_N" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="4" x:Name="Asufre_P" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="5" x:Name="Asufre_K" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="6" x:Name="Asufre_Ca" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="7" x:Name="Asufre_Mg" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="8" x:Name="Asufre_S" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="9" x:Name="Asufre_Zn" Keyboard="Numeric" />
- <Entry Grid.Row="9" Grid.Column="10" x:Name="Asufre_B" Keyboard="Numeric" />
+ <Entry Grid.Row="9" Grid.Column="1" x:Name="Asufre_Libras" Keyboard="Numeric" Text="82" />
+ <Entry Grid.Row="9" Grid.Column="2" x:Name="Asufre_QQ" Keyboard="Numeric" Text="0.2" />
+ <Entry Grid.Row="9" Grid.Column="3" x:Name="Asufre_N" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="9" Grid.Column="4" x:Name="Asufre_P" Keyboard="Numeric" Text="0" />
+ <Entry Grid.Row="9" Grid.Column="5" x:Name="Asufre_K" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="9" Grid.Column="6" x:Name="Asufre_Ca" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="9" Grid.Column="7" x:Name="Asufre_Mg" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="9" Grid.Column="8" x:Name="Asufre_S" Keyboard="Numeric" Text="25.0" />
+ <Entry Grid.Row="9" Grid.Column="9" x:Name="Asufre_Zn" Keyboard="Numeric" Text="0.0" />
+ <Entry Grid.Row="9" Grid.Column="10" x:Name="Asufre_B" Keyboard="Numeric" Text="0.0" />
 
  <!-- Total -->
  <Label Grid.Row="10" Grid.Column="0" Text="Total" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="1" x:Name="Total_Libras" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="2" x:Name="Total_QQ" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="3" x:Name="Total_N" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="4" x:Name="Total_P" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="5" x:Name="Total_K" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="6" x:Name="Total_Ca" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="7" x:Name="Total_Mg" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="8" x:Name="Total_S" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="9" x:Name="Total_Zn" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
- <Label Grid.Row="10" Grid.Column="10" x:Name="Total_B" Text="0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="1" x:Name="Total_Libras" Text="948" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="2" x:Name="Total_QQ" Text="9.48" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="3" x:Name="Total_N" Text="16.01" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="4" x:Name="Total_P" Text="9.48" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="5" x:Name="Total_K" Text="102.4" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="6" x:Name="Total_Ca" Text="20.0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="7" x:Name="Total_Mg" Text="18.0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="8" x:Name="Total_S" Text="25.0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="9" x:Name="Total_Zn" Text="14.0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+ <Label Grid.Row="10" Grid.Column="10" x:Name="Total_B" Text="5.0" HorizontalTextAlignment="Center" FontAttributes="Bold" />
 
  </Grid>
  </Frame>

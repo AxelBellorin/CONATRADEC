@@ -5,7 +5,7 @@ using CONATRADEC.Views;                          // Espacio de nombres de las vi
 using Microsoft.Extensions.DependencyInjection;  // Permite registrar servicios y ViewModels (Inyección de dependencias)
 using Microsoft.Extensions.Logging;              // Habilita el sistema de logging para depuración
 using Microsoft.Maui.LifecycleEvents;            // Permite configurar eventos del ciclo de vida (Android, Windows, iOS)
-using Microsoft.Maui.Controls.Maps;
+using Microsoft.Maui.Controls; // Importa solo el espacio de nombres principal de Controls
 
 
 
@@ -35,9 +35,9 @@ namespace CONATRADEC
             // ==========================================================
             builder
                 .UseMauiApp<App>()
-#if !WINDOWS
-        .UseMauiMaps()
-#endif
+                // Si necesita usar Maps, agregue el paquete NuGet "Microsoft.Maui.Controls.Maps"
+                // y la directiva using correspondiente, y habilite UseMauiMaps() aquí.
+
                 // ======================================================
                 // Habilita la librería CommunityToolkit.Maui
                 //    (para usar DisplaySnackbar, Popup, Alert, etc.)
