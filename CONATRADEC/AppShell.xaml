@@ -29,13 +29,13 @@
         - Se usan rutas absolutas en navegación (//RouteName).
         - El "ContentTemplate" vincula el nombre de la vista (Page) con su clase correspondiente.
     -->
-
+    
     <!-- Pantalla de autenticación -->
     <ShellContent Title="Login"
                   Route="LoginPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:loginPage}" />
-    
+
     <!-- Gestión de terreno -->
     <ShellContent Title="TerrenoPage"
                   Route="TerrenoPage"
