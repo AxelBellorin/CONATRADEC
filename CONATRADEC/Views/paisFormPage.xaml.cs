@@ -1,37 +1,37 @@
 // ================================================================
-//  Archivo: cargoFormPage.xaml.cs
+//  Archivo: paisFormPage.xaml.cs
 //  Propósito:
-//     Code-behind (código detrás) de la vista cargoFormPage.xaml.
+//     Code-behind (código detrás) de la vista paisFormPage.xaml.
 //     Gestiona la inicialización del BindingContext y recibe parámetros
-//     desde la navegación Shell (por ejemplo, el modo del formulario y el cargo actual).
+//     desde la navegación Shell (por ejemplo, el modo del formulario y el país actual).
 // ================================================================
 
 namespace CONATRADEC.Views;
 
 using static CONATRADEC.Models.FormMode;  // Importa el enum FormModeSelect directamente
-using CONATRADEC.Models;                  // Importa los modelos (CargoRequest, etc.)
-using CONATRADEC.ViewModels;              // Importa el ViewModel asociado (CargoFormViewModel)
+using CONATRADEC.Models;                  // Importa los modelos (PaisRequest, etc.)
+using CONATRADEC.ViewModels;              // Importa el ViewModel asociado (PaisFormViewModel)
 
 // ================================================================
 // Atributos QueryProperty
 // ---------------------------------------------------------------
 // Permiten que la página reciba parámetros desde la navegación Shell.
 // Ejemplo:
-//     await Shell.Current.GoToAsync("//CargoFormPage", parameters);
-// Donde 'parameters' contiene las claves "Mode" y "Cargo".
+//     await Shell.Current.GoToAsync("//PaisFormPage", parameters);
+// Donde 'parameters' contiene las claves "Mode" y "Pais".
 // ================================================================
-[QueryProperty(nameof(Mode), "Mode")]     // Recibe el modo del formulario (Create, Edit, View)
-[QueryProperty(nameof(Cargo), "Cargo")]   // Recibe el objeto Cargo (CargoRequest)
+[QueryProperty(nameof(Mode), "Mode")]   // Recibe el modo del formulario (Create, Edit, View)
+[QueryProperty(nameof(Pais), "Pais")]   // Recibe el objeto País (PaisRequest)
 
 // ================================================================
 //  Clase principal de la página
 // ================================================================
-public partial class cargoFormPage : ContentPage
+public partial class paisFormPage : ContentPage
 {
     // ------------------------------------------------------------
-    // ViewModel principal de esta vista (MVVM Pattern)
+    // ViewModel principal de esta vista (patrón MVVM)
     // ------------------------------------------------------------
-    private CargoFormViewModel viewModel = new CargoFormViewModel();
+    private readonly PaisFormViewModel viewModel = new PaisFormViewModel();
 
     // ============================================================
     //  Propiedad: Mode
@@ -40,7 +40,7 @@ public partial class cargoFormPage : ContentPage
     // Actualiza la propiedad Mode del ViewModel para controlar el comportamiento:
     // - Create: Campos editables y botón "Guardar".
     // - Edit:   Carga datos y permite modificar.
-    // - View:   Solo lectura, sin botones de edición.
+    // - View:   Solo lectura, sin botón Guardar.
     // ============================================================
     public FormModeSelect Mode
     {
@@ -48,14 +48,14 @@ public partial class cargoFormPage : ContentPage
     }
 
     // ============================================================
-    // Propiedad: Cargo
+    // Propiedad: Pais
     // ------------------------------------------------------------
-    // Recibe un objeto CargoRequest con la información del cargo
-    // que será editado o mostrado.
+    // Recibe un objeto PaisRequest con la información del país
+    // que será creado, editado o mostrado.
     // ============================================================
-    public CargoRequest Cargo
+    public PaisRequest Pais
     {
-        set => viewModel.Cargo = value;
+        set => viewModel.Pais = value;
     }
 
     // ============================================================
@@ -66,7 +66,7 @@ public partial class cargoFormPage : ContentPage
     // - Asigna el ViewModel al contexto de enlace (BindingContext),
     //   permitiendo que la vista acceda a sus propiedades y comandos.
     // ============================================================
-    public cargoFormPage()
+    public paisFormPage()
     {
         // Deshabilita el menú lateral de Shell (evita abrirlo en formularios)
         Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
@@ -74,7 +74,7 @@ public partial class cargoFormPage : ContentPage
         // Conecta la vista con su ViewModel (MVVM binding)
         BindingContext = viewModel;
 
-        // Carga el diseño visual (cargoFormPage.xaml)
+        // Carga el diseño visual (paisFormPage.xaml)
         InitializeComponent();
     }
 }

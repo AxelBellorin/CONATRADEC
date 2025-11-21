@@ -1,4 +1,7 @@
-﻿using CONATRADEC.ViewModels;
+﻿using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Core;
+using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 using System;
 using System.Collections.Generic;
@@ -22,6 +25,9 @@ namespace CONATRADEC.Services
         public Command goToRolPageButtonCommand { get; }            // Comando para navegar a RolPage.
         public Command goToCargoPageButtonCommand { get; }          // Comando para navegar a CargoPage.
         public Command goToMatrizPermisosPageButtonCommad { get; }  // Comando para navegar a MatrizPermisosPage. (sic: nombre conserva 'Commad')
+        public Command goToPaisPageButtonCommand { get; }           // Comando para navegar a CargoPage.
+        public Command goToElementoQuimicoPageButtonCommand { get; }    // Comando para navegar a ElementoQuimicoPage.
+        public Command goToTerrenoPageButtonCommand { get; }        // Comando para navegar a TerrenoPage.
         public Command goToBack { get; }                            // Comando para navegar hacia atrás en Shell.
 
         // ===========================================================
@@ -40,6 +46,7 @@ namespace CONATRADEC.Services
             {
                 isBusy = value;                                     // Actualiza el estado interno.
                 OnPropertyChanged();                                // Notifica a la UI el cambio de IsBusy.
+                OnPropertyChanged(nameof(NotIsBusy));                                // Notifica a la UI el cambio de IsBusy.
 
                 // Propaga ChangeCanExecute a cada Command para recalcular su disponibilidad (CanExecute).
                 ((Command)goToMainPageCommand).ChangeCanExecute();
@@ -47,8 +54,14 @@ namespace CONATRADEC.Services
                 ((Command)goToRolPageButtonCommand).ChangeCanExecute();
                 ((Command)goToCargoPageButtonCommand).ChangeCanExecute();
                 ((Command)goToMatrizPermisosPageButtonCommad).ChangeCanExecute();
+                ((Command)goToElementoQuimicoPageButtonCommand).ChangeCanExecute();
+                ((Command)goToPaisPageButtonCommand).ChangeCanExecute();
+                ((Command)goToBack).ChangeCanExecute();
+                ((Command)goToTerrenoPageButtonCommand).ChangeCanExecute();
             }
         }
+
+        public bool NotIsBusy => !IsBusy;
 
         // ===========================================================
         // ======================= CONSTRUCTOR =======================
@@ -61,7 +74,9 @@ namespace CONATRADEC.Services
             goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusy);
             goToCargoPageButtonCommand = new Command(async () => await GoToCargoPage(), () => !IsBusy);
             goToMatrizPermisosPageButtonCommad = new Command(async () => await GoToMatrizPermisosPage(), () => !IsBusy);
-
+            goToPaisPageButtonCommand = new Command(async () => await GoToPaisPage(), () => !IsBusy);
+            goToElementoQuimicoPageButtonCommand = new Command(async () => await GoToElementoQuimicoPage(), () => !IsBusy);
+            goToTerrenoPageButtonCommand = new Command(async () => await GoToTerrenoPage(), () => !IsBusy);
             // Comando de navegación hacia atrás usando ruta relativa (“//..” mantiene esquema de Shell).
             goToBack = new Command(async () => await GoToAsyncParameters("//.."));
         }
@@ -88,22 +103,6 @@ namespace CONATRADEC.Services
             //IsBusy = true;                                        // Comentado: se mantiene la lógica actual que no marca busy al inicio.
 
             await GoToAsyncParameters("//MainPage");                 // Navega a la ruta absoluta de MainPage.
-
-            // Tras la navegación, intenta resolver la página actual y su VM para actualizar estado.
-            if (Shell.Current.CurrentPage is MainPage page &&
-                page.BindingContext is MainPageViewModel vm)
-                vm.IsBusy = false;                                  // Fuerza a la VM a estado no ocupado.
-
-            IsBusy = false;                                         // Asegura liberar busy en el servicio.
-
-            // Bloque comentado: historial previo de carga de datos al navegar.
-            //if (Shell.Current.CurrentPage is MainPage page &&
-            //     page.BindingContext is MainPageViewModel vm)
-            //{
-            //    //await vm.LoadUsers(IsBusy);
-            //   // vm.IsBusy = false;
-            //}
-            //IsBusy = false;
         }
 
         private async Task GoToUserPage()
@@ -111,8 +110,6 @@ namespace CONATRADEC.Services
             if (IsBusy) return;                                     // Evita dobles clics/condiciones de carrera.
 
             await GoToAsyncParameters("//UserPage");                // Navega a UserPage.
-
-            //IsBusy = false;                                         // Libera estado ocupado.
         }
 
         public async Task GoToRolPage()
@@ -120,8 +117,6 @@ namespace CONATRADEC.Services
             if (IsBusy) return;                                     // Evita reentradas.
 
             await GoToAsyncParameters("//RolPage");                 // Navega a RolPage.
-
-            IsBusy = false;                                         // Libera estado ocupado.
         }
 
         public async Task GoToCargoPage()
@@ -129,8 +124,6 @@ namespace CONATRADEC.Services
             if (IsBusy) return;                                     // Evita reentradas.
 
             await GoToAsyncParameters("//CargoPage");               // Navega a CargoPage.
-
-            //  IsBusy = false;                                         // Libera estado ocupado.
         }
 
         public async Task GoToMatrizPermisosPage()
@@ -139,14 +132,83 @@ namespace CONATRADEC.Services
             IsBusy = true;                                          // Marca inicio de operación.
 
             await GoToAsyncParameters("//MatrizPermisosPage");      // Navega a MatrizPermisosPage.
-
-            // Resuelve la página y VM; llamadas de carga están comentadas según lógica actual.
-            if (Shell.Current.CurrentPage is matrizPermisosPage page &&
-                page.BindingContext is MatrizPermisosViewModel vm)
-                //await vm.LoadCargo(IsBusy);                       // Comentado intencionalmente (respeta tu código).
-                //await Task.Delay(1000);                           // Comentado intencionalmente (respeta tu código).
-                IsBusy = false;                                         // Libera estado ocupado.
         }
+
+        public async Task GoToPaisPage()
+        {
+            if (IsBusy) return;                                     // Evita reentradas.
+
+            await GoToAsyncParameters("//PaisPage");               // Navega a CargoPage.
+        }
+
+        public async Task GoToElementoQuimicoPage()
+        {
+            if (IsBusy) return;                                     // Evita reentradas.
+
+            await GoToAsyncParameters("//ElementoQuimicoPage");                 // Navega a ElementoQuimicoPage.
+        }
+
+        public async Task GoToTerrenoPage()
+        {
+            if (IsBusy) return;                                     // Evita reentradas.
+
+            await GoToAsyncParameters("//TerrenoPage");                 // Navega a TerrenoPage.
+        }
+
+        /// <summary>
+        /// Muestra un mensaje tipo toast corto (≈2 s) en la parte inferior de la pantalla.
+        /// </summary>
+        /// <param name="mensaje">Texto que se mostrará al usuario.</param>
+        public static async Task MostrarToastAsync(string mensaje)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(mensaje))
+                    return;
+
+                // Crear toast de corta duración (Short = ~2 s)
+                var toast = Toast.Make(mensaje, ToastDuration.Short, 14);
+                await toast.Show();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ToastError] {ex.Message}");
+            }
+        }
+
+        public async Task<bool> TieneInternetAsync()
+        {
+            // 1) Verificación rápida del sistema
+            bool tieneInternet = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
+
+            // 2) Si el sistema dice que NO hay internet, igual verificamos con un ping real
+            if (!tieneInternet)
+            {
+                return await ValidacionRealInternetAsync();
+            }
+
+            // 3) Si el sistema dice que SÍ hay internet, igual confirmamos con ping real
+            return await ValidacionRealInternetAsync();
+        }
+
+        private async Task<bool> ValidacionRealInternetAsync()
+        {
+            try
+            {
+                using var http = new HttpClient
+                {
+                    Timeout = TimeSpan.FromSeconds(3)
+                };
+
+                var response = await http.GetAsync("https://www.google.com");
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
 
         // ===========================================================
         // ===================== NOTIFICACIÓN INotify ================

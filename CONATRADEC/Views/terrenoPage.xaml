@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.terrenoPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <ContentView x:Name="TerrenoPage"
+                 ControlTemplate="{StaticResource FooterTemplate}">
+
+        <Grid ColumnDefinitions="*"
+              RowDefinitions="Auto,auto,*">
+
+            <!-- Encabezado -->
+            <Grid ColumnDefinitions="*,auto"
+                  Grid.Row="0"
+                  Padding="0,10,0,0">
+                <Label Text="Terrenos"
+                       FontSize="30"
+                       FontFamily="MontserratBold"
+                       TextColor="{StaticResource color_Negro}"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"
+                       HorizontalOptions="Start"
+                       Padding="30,0,0,0" />
+
+                <ImageButton Source="iconadd.png"
+                             WidthRequest="60"
+                             HeightRequest="60"
+                             CornerRadius="30"
+                             Grid.Column="1"
+                             Padding="0,0,20,0"
+                             Command="{Binding AddCommand}" />
+            </Grid>
+
+            <!-- Loading -->
+            <ActivityIndicator Grid.Row="1"
+                               IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource color_Naranja}" />
+
+            <!-- Lista de terrenos -->
+            <CollectionView Grid.Row="2"
+                            ItemsSource="{Binding List}"
+                            SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="2" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.EmptyView>
+                    <Grid Padding="20">
+                        <Label Text="No hay terrenos para mostrar."
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Grid>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <SwipeView>
+
+                            <SwipeView.RightItems>
+                                <SwipeItems Mode="Reveal">
+                                    <SwipeItem Text="Editar"
+                                               IconImageSource="iconupdate.png"
+                                               BackgroundColor="{StaticResource BlueUpdate}"
+                                               Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.EditCommand}"
+                                               CommandParameter="{Binding .}" />
+
+                                    <SwipeItem Text="Eliminar"
+                                               IconImageSource="icondelete.png"
+                                               BackgroundColor="{StaticResource RedDelete}"
+                                               Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.DeleteCommand}"
+                                               CommandParameter="{Binding .}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+
+                            <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
+                                                    Default={StaticResource BorderStyleNoBorder}}">
+                                <Grid Padding="10" ColumnDefinitions="*,*">
+
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.ViewCommand}"
+                                                              CommandParameter="{Binding .}" />
+                                    </Grid.GestureRecognizers>
+
+                                    <!-- Izquierda: Código y propietario -->
+                                    <VerticalStackLayout Grid.Column="0"
+                                                         Spacing="2"
+                                                         VerticalOptions="Center">
+                                        <Label Text="{Binding CodigoTerreno}"
+                                               FontSize="18"
+                                               FontFamily="MontserratBold"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource color_Negro}" />
+                                        <Label Text="{Binding NombrePropietarioTerreno}"
+                                               FontSize="14"
+                                               TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <!-- Derecha: Ubicación completa y extensión -->
+                                    <VerticalStackLayout Grid.Column="1"
+                                                         Spacing="2"
+                                                         VerticalOptions="Center"
+                                                         HorizontalOptions="EndAndExpand">
+                                        <Label Text="{Binding Ubicacion.NombrePais}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource color_Verde}" />
+                                        <Label Text="{Binding Ubicacion.NombreDepartamento}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource color_Verde}" />
+                                        <Label Text="{Binding Ubicacion.NombreMunicipio}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource color_Verde}" />
+                                        <Label Text="{Binding ExtensionManzanaTerreno, StringFormat='Extensión: {0:F2} mz'}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </ContentView>
+</ContentPage>

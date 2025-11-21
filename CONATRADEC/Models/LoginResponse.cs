@@ -11,22 +11,38 @@ namespace CONATRADEC.Models
         // ===========================================================
 
         // Campo que almacena el identificador único del usuario.
-        private int? id;
+        private int? usuarioId;
 
         // Campo que almacena el nombre de usuario con el que el usuario inició sesión.
-        private string? username;
+        private string? nombreUsuario;
+
+        // Campo que almacena la identificacion del usuario autenticado.
+        private string? identificacionUsuario;
+
+        // Campo que almacena el nombre completo del usuario autenticado.
+        private string? nombreCompletoUsuario;
 
         // Campo que almacena el correo electrónico del usuario autenticado.
-        private string? email;
+        private string? correoUsuario;
 
-        // Campo que almacena el primer nombre del usuario.
-        private string? firstName;
+        //Campo que almacena el rol del usuario autenticado.
+        private int? rolId;
 
-        // Campo que almacena el apellido del usuario.
-        private string? lastName;
+        // Campo que almacena el nombre del rol asignado al usuario.
+        private string? rolNombre;
+
+
+        //Campo que almacena el rol del usuario autenticado.
+        private int? procedenciaId;
+
+        // Campo que almacena el nombre del la procedencia asignado al usuario.
+        private string? procedenciaNombre;
+
+        private bool? esInterno;
+
 
         // Campo que almacena la URL o ruta de la imagen de perfil del usuario (si existe).
-        private string? image;
+        //private string? image;
 
         // Campo que almacena el token de acceso (JWT o similar),
         // utilizado para autenticar solicitudes posteriores al servidor.
@@ -34,35 +50,27 @@ namespace CONATRADEC.Models
 
         // Campo que almacena el token de actualización (refresh token),
         // utilizado para obtener un nuevo access token cuando el actual expira.
-        private string? refreshToken;
+        //private string? refreshToken;
 
 
         // ===========================================================
         // ============= PROPIEDADES PÚBLICAS CON ENCAPSULAMIENTO ====
         // ===========================================================
 
-        // Propiedad pública para acceder o modificar el ID del usuario.
-        public int? Id { get => id; set => id = value; }
-
-        // Propiedad pública para acceder o modificar el nombre de usuario.
-        public string? Username { get => username; set => username = value; }
-
-        // Propiedad pública para acceder o modificar el correo electrónico del usuario.
-        public string? Email { get => email; set => email = value; }
-
-        // Propiedad pública para acceder o modificar el primer nombre del usuario.
-        public string? FirstName { get => firstName; set => firstName = value; }
-
-        // Propiedad pública para acceder o modificar el apellido del usuario.
-        public string? LastName { get => lastName; set => lastName = value; }
-
-        // Propiedad pública para acceder o modificar la imagen del usuario.
-        public string? Image { get => image; set => image = value; }
-
-        // Propiedad pública para acceder o modificar el token de acceso (Access Token).
+        public int? UsuarioId { get => usuarioId; set => usuarioId = value; }
+        public string? NombreUsuario { get => nombreUsuario; set => nombreUsuario = value; }
+        public string? IdentificacionUsuario { get => identificacionUsuario; set => identificacionUsuario = value; }
+        public string? NombreCompletoUsuario { get => nombreCompletoUsuario; set => nombreCompletoUsuario = value; }
+        public string? CorreoUsuario { get => correoUsuario; set => correoUsuario = value; }
+        public int? RolId { get => rolId; set => rolId = value; }
+        public int? ProcedenciaId { get => procedenciaId; set => procedenciaId = value; }
+        public string? RolNombre { get => rolNombre; set => rolNombre = value; }
+        public string? ProcedenciaNombre { get => procedenciaNombre; set => procedenciaNombre = value; }
+        public bool? EsInterno { get => esInterno; set => esInterno = value; }
         public string? AccessToken { get => accessToken; set => accessToken = value; }
 
-        // Propiedad pública para acceder o modificar el token de actualización (Refresh Token).
-        public string? RefreshToken { get => refreshToken; set => refreshToken = value; }
+        public LoginResponse()
+        {
+        }
     }
 }

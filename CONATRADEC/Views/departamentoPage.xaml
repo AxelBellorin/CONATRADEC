@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Página: departamentoPage.xaml
+  Descripción: Listado de Departamentos con acciones (Agregar / Editar / Eliminar / Ver).
+  ViewModel esperado: DepartamentoViewModel
+    - Propiedades: ObservableCollection<DepartamentoResponse> List, bool IsBusy
+    - Comandos: ICommand AddCommand, EditCommand, DeleteCommand, ViewCommand
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.departamentoPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <!--
+      ContentView con ControlTemplate (FooterTemplate) para un pie de página común.
+      x:Name permite referenciar el BindingContext desde gestos/Swipe (via {x:Reference}).
+    -->
+    <ContentView x:Name="DepartamentoPage"
+                 ControlTemplate="{StaticResource FooterTemplate}">
+
+        <!--
+          GRID PRINCIPAL:
+          - Fila 0: Encabezado (título + botón agregar)
+          - Fila 1: ActivityIndicator (carga)
+          - Fila 2: CollectionView (lista de departamentos)
+        -->
+        <Grid ColumnDefinitions="*"
+              RowDefinitions="Auto,Auto,*">
+
+            <!-- Encabezado: título + botón agregar -->
+            <Grid ColumnDefinitions="Auto,*,Auto"
+                  Grid.Row="0"
+                  Padding="0,10,0,0">
+
+                <!-- Botón Retroceder (dispara ReturnCommand del VM) -->
+                <ImageButton Grid.Column="0"
+                             Source="iconbackbutton.png"
+                             WidthRequest="60"
+                             HeightRequest="60"
+                             Padding="10,0,20,0"
+                             Margin="20,0,0,0"
+                             Background="Transparent"
+                             Command="{Binding ReturnCommand}" />
+
+                <!-- Título de la página -->
+                <Label  Grid.Column="1"
+                        Text="{Binding TitlePage}"
+                        FontSize="30"
+                        FontFamily="MontserratBold"
+                        TextColor="{StaticResource color_Negro}"
+                        FontAttributes="Bold"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Start" />
+
+
+                <!-- Botón Agregar (dispara AddCommand del VM) -->
+                <ImageButton Source="iconadd.png"
+                             WidthRequest="60"
+                             HeightRequest="60"
+                             Grid.Column="2"
+                             Background="Transparent"
+                             Padding="0,0,20,0"
+                             HorizontalOptions="End"
+                             Command="{Binding AddCommand}" />
+            </Grid>
+
+            <!-- Indicador de carga (visible cuando IsBusy == true) -->
+            <ActivityIndicator Grid.Row="1"
+                               IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource color_Naranja}" />
+
+            <!--
+              LISTA DE DEPARTAMENTOS:
+              - ItemsSource => List (ObservableCollection<DepartamentoResponse>)
+              - SelectionMode None para manejar acciones por gestos y botones
+            -->
+            <CollectionView Grid.Row="2"
+                            ItemsSource="{Binding List}"
+                            SelectionMode="None">
+
+                <!-- Layout vertical simple para los ítems -->
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical"
+                                       ItemSpacing="2" />
+                </CollectionView.ItemsLayout>
+
+                <!-- Muestra un mensaje si la lista es vacía -->
+                <CollectionView.EmptyView>
+                    <Grid Padding="20">
+                        <Label Text="No hay departamentos para mostrar."
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Grid>
+                </CollectionView.EmptyView>
+
+                <!-- Template de cada ítem -->
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+
+                        <!--
+                          SwipeView: acciones laterales por ítem
+                          - Editar -> EditCommand
+                          - Eliminar -> DeleteCommand
+                          Uso de {x:Reference DepartamentoPage} para alcanzar el BindingContext del ContentView
+                        -->
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems Mode="Reveal">
+
+                                    <!-- Acción: Editar -->
+                                    <SwipeItem Text="Editar"
+                                               IconImageSource="iconupdate.png"
+                                               BackgroundColor="{StaticResource BlueUpdate}"
+                                               Command="{Binding Source={x:Reference DepartamentoPage}, Path=BindingContext.EditCommand}"
+                                               CommandParameter="{Binding .}" />
+
+                                    <!-- Acción: Eliminar -->
+                                    <SwipeItem Text="Eliminar"
+                                               IconImageSource="icondelete.png"
+                                               BackgroundColor="{StaticResource RedDelete}"
+                                               Command="{Binding Source={x:Reference DepartamentoPage}, Path=BindingContext.DeleteCommand}"
+                                               CommandParameter="{Binding .}" />
+
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+
+                            <!--
+                              CONTENIDO DEL ÍTEM:
+                              - Border con estilo responsive por plataforma
+                              - Grid con imagen (izquierda) y datos (derecha)
+                              - TapGestureRecognizer para ver detalles (ViewCommand)
+                            -->
+                            <Border Style="{StaticResource BorderStyleNoCornerRadius}">
+
+                                <Grid Padding="10"
+                                      ColumnDefinitions="*">
+
+                                    <!-- Tap en toda la fila para abrir detalles -->
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={x:Reference DepartamentoPage}, Path=BindingContext.ViewCommand}"
+                                                              CommandParameter="{Binding .}" />
+                                    </Grid.GestureRecognizers>
+
+                                    <!-- Datos del departamento -->
+                                    <StackLayout Grid.Column="1"
+                                                 VerticalOptions="Center">
+                                        <!-- CAMBIO: antes estaba {Binding DepartamentoPage} -->
+                                        <Label Text="{Binding NombreDepartamento}"
+                                               FontAttributes="Bold"
+                                               FontSize="20"
+                                               FontFamily="MontserratBold"
+                                               TextColor="{StaticResource color_Negro}" />
+                                    </StackLayout>
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </ContentView>
+</ContentPage>

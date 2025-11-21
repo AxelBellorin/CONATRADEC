@@ -17,7 +17,7 @@ namespace CONATRADEC.ViewModels
         // ============ CAMPOS PRIVADOS Y DEPENDENCIAS ===============
         // ===========================================================
 
-        private ObservableCollection<UserRP> usersList = new();  // Lista observable enlazada a la UI.
+        private ObservableCollection<UserResponse> usersList = new();  // Lista observable enlazada a la UI.
         private readonly UserApiService userApiService;          // Servicio API encargado de obtener los usuarios.
 
         // ===========================================================
@@ -30,7 +30,7 @@ namespace CONATRADEC.ViewModels
         public Command ViewUserCommand { get; }     // Ver detalles de usuario.
 
         // Lista observable que se muestra en la interfaz (CollectionView, ListView, etc.).
-        public ObservableCollection<UserRP> UsersList
+        public ObservableCollection<UserResponse> UsersList
         {
             get => usersList;
             set { usersList = value; OnPropertyChanged(); } // Notifica a la UI cuando cambia.
@@ -46,9 +46,9 @@ namespace CONATRADEC.ViewModels
 
             // Inicializa comandos con sus respectivos métodos.
             AddUserCommand = new Command(async () => await OnAddUser());
-            EditUserCommand = new Command<UserRP>(OnEditUser);
-            DeleteUserCommand = new Command<UserRP>(OnDeleteUser);
-            ViewUserCommand = new Command<UserRP>(OnViewUser);
+            EditUserCommand = new Command<UserResponse>(OnEditUser);
+            DeleteUserCommand = new Command<UserResponse>(OnDeleteUser);
+            ViewUserCommand = new Command<UserResponse>(OnViewUser);
         }
 
         // ===========================================================
@@ -59,16 +59,26 @@ namespace CONATRADEC.ViewModels
         {
             IsBusy = isBusy; // Activa indicador visual (binding IsBusy en la vista).
 
+            UsersList.Clear(); // Limpia lista anterior.
+
+            // Valida que el usaurio tenga conexion a internet
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                _ = MostrarToastAsync("Sin conexión a internet.");
+                IsBusy = false;
+                return;
+            }
+
             // Llama al servicio para obtener los usuarios.
             var usersresponse = await userApiService.GetUsersAsync();
 
             // Si la respuesta contiene usuarios, los ordena y actualiza la lista.
-            if (usersresponse.Users.Count() != 0)
+            if (usersresponse.Count() != 0)
             {
-                UsersList.Clear(); // Limpia lista anterior.
-
                 // Ordena por nombre y agrega uno a uno.
-                foreach (var user in usersresponse.Users.OrderBy(r => r.FirstName).ToList())
+                foreach (var user in usersresponse.OrderBy(r => r.NombreCompletoUsuario).ToList())
                 {
                     UsersList.Add(user);
                 }
@@ -76,7 +86,7 @@ namespace CONATRADEC.ViewModels
             else
             {
                 // Si la lista viene vacía, muestra mensaje informativo.
-                await App.Current.MainPage.DisplayAlert("Información", "No se encontraron usuarios.", "OK");
+                _ = MostrarToastAsync("Información" + "No se encontraron usuarios.");
             }
 
             IsBusy = false; // Libera el estado ocupado.
@@ -93,7 +103,7 @@ namespace CONATRADEC.ViewModels
                 var parameters = new Dictionary<string, object>
                 {
                     { "Mode", FormMode.FormModeSelect.Create },     // Modo de creación.
-                    { "User", new UserRequest(new UserRP()) }       // Objeto vacío para inicializar.
+                    { "User", new UserRequest(new UserResponse()) }       // Objeto vacío para inicializar.
                 };
 
                 // Navega a la página de formulario (UserFormPage) pasando los parámetros.
@@ -102,14 +112,14 @@ namespace CONATRADEC.ViewModels
             catch (Exception ex)
             {
                 // Muestra error si no logra conectar con el servicio o Shell.
-                await App.Current.MainPage.DisplayAlert("Error", $"No se pudo conectar al servidor {ex}", "OK");
+                _ = MostrarToastAsync("Error" + $"No se pudo conectar al servidor {ex}");
             }
         }
 
         // ===========================================================
         // ====================== EDITAR USUARIO =====================
         // ===========================================================
-        private async void OnEditUser(UserRP user)
+        private async void OnEditUser(UserResponse user)
         {
             try
             {
@@ -129,14 +139,14 @@ namespace CONATRADEC.ViewModels
             catch (Exception ex)
             {
                 // Captura y muestra errores (por ejemplo, problemas con Shell o datos corruptos).
-                await App.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+                _ = MostrarToastAsync("Error" + $"{ex}");
             }
         }
 
         // ===========================================================
         // ===================== ELIMINAR USUARIO ====================
         // ===========================================================
-        private async void OnDeleteUser(UserRP user)
+        private async void OnDeleteUser(UserResponse user)
         {
             try
             {
@@ -144,27 +154,54 @@ namespace CONATRADEC.ViewModels
                 if (user == null) return;
 
                 // Solicita confirmación al usuario antes de eliminar.
-                bool confirm = await App.Current.MainPage.DisplayAlert(
+                bool confirm = _ = await App.Current.MainPage.DisplayAlert(
                     "Eliminar",
-                    $"¿Seguro que deseas eliminar a {user.FirstName + " " + user.LastName}?",
+                    $"¿Seguro que deseas eliminar a {user.NombreCompletoUsuario} ?",
                     "Sí",
                     "No");
 
                 // Si confirma, elimina el usuario de la lista local (sin API real).
                 if (confirm)
-                    UsersList.Remove(user);
+                {
+                    // Valida que el usaurio tenga conexion a internet
+                    bool tieneInternet = await TieneInternetAsync();
+
+                    if (!tieneInternet)
+                    {
+                        _ = MostrarToastAsync("Sin conexión a internet.");
+                        IsBusy = false;
+                        return;
+                    }
+
+                    // Llama al servicio de eliminación. (Asegúrate que el método exista con el nombre exacto.)
+                    var response = await userApiService.DeleteUserAsync(new UserRequest(user));
+
+                    if (response)
+                    {
+                        _ = MostrarToastAsync("Éxito" + "Usuario eliminado correctamente");
+                        _= LoadUsers(IsBusy); // Recarga la lista. (IsBusy es true en este punto.)
+                    }
+                    else
+                    {
+                        _ = MostrarToastAsync("Error" + "El usuario no se pudo eliminar, intente nuevamente");
+                    }
+                }
+                else
+                {
+                    IsBusy = false; // Si canceló, restablece la UI manualmente.
+                }
             }
             catch (Exception ex)
             {
                 // Muestra cualquier error ocurrido durante el proceso.
-                await App.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
+                _ = MostrarToastAsync("Error" + $"{ex}");
             }
         }
 
         // ===========================================================
         // ====================== VER DETALLES =======================
         // ===========================================================
-        private async void OnViewUser(UserRP user)
+        private async void OnViewUser(UserResponse user)
         {
             // Prepara parámetros para abrir la vista de detalles en modo "View".
             var parameters = new Dictionary<string, object>

@@ -23,7 +23,7 @@ namespace CONATRADEC.Models
 
         // Campo que almacena la lista de permisos asociados al rol.
         // Cada permiso representa una interfaz del sistema con sus acciones (leer, agregar, etc.).
-        private List<InterfazRequest> permisos;
+        private List<InterfazRequest> interfaz;
 
 
         // ===========================================================
@@ -34,7 +34,7 @@ namespace CONATRADEC.Models
         public RolRequest Rol { get => rol; set => rol = value; }
 
         // Propiedad pública que expone la lista de permisos del rol.
-        public List<InterfazRequest> Permisos { get => permisos; set => permisos = value; }
+        public List<InterfazRequest> Interfaz { get => interfaz; set => interfaz = value; }
 
 
         // ===========================================================
@@ -60,7 +60,7 @@ namespace CONATRADEC.Models
 
             // Se transforma la lista de InterfazResponse recibida en una lista de InterfazRequest,
             // mapeando cada elemento con su respectivo constructor.
-            Permisos = matrizPermisosResponse.Permisos
+            Interfaz = matrizPermisosResponse.Interfaz
                 .Select(p => new InterfazRequest(p))
                 .ToList();
         }

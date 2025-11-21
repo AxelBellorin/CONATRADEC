@@ -13,10 +13,13 @@ namespace CONATRADEC.Services
     {
         // ===========================================================
         // =================== DEPENDENCIAS / ESTADO =================
-        // ===========================================================
+        // ===========================================================          
 
         // Cliente HTTP utilizado para realizar solicitudes a la API.
         private readonly HttpClient httpClient;
+
+        // Servicio para obtener la BaseUrl de la API.
+        private readonly UrlApiService urlApiService = new UrlApiService(); 
 
         // ===========================================================
         // ======================== CONSTRUCTOR ======================
@@ -26,7 +29,7 @@ namespace CONATRADEC.Services
         {
             // Inicializa el cliente HTTP con la dirección base de la API.
             // En este caso, se utiliza "dummyjson.com" como entorno de prueba.
-            httpClient = new HttpClient { BaseAddress = new Uri("https://dummyjson.com/") };
+            httpClient = new HttpClient { BaseAddress = new Uri(urlApiService.BaseUrlApi) };
 
             httpClient.Timeout = TimeSpan.FromSeconds(20); // Espera máxima de respuesta
         }
@@ -54,7 +57,7 @@ namespace CONATRADEC.Services
         public async Task<LoginResponse> LoginAsync(LoginRequest request)
         {
             // Realiza una solicitud POST enviando el objeto LoginRequest en formato JSON.
-            var response = await httpClient.PostAsJsonAsync("auth/login", request);
+            var response = await httpClient.PostAsJsonAsync("api/auth/login", request);
 
             // Si la API responde con éxito (código 200 OK, etc.)
             if (response.IsSuccessStatusCode)

@@ -25,11 +25,11 @@ namespace CONATRADEC.Services
 
         // Constante que almacena la dirección base del servidor remoto (Azure).
         // Esta URL se utiliza cuando la aplicación se ejecuta en entorno de producción.
-        private const string baseUrlApi = "https://conatradecnic.azurewebsites.net/";
+        //private const string baseUrlApi = "https://conatradecnic.azurewebsites.net/";
 
         // Alternativa comentada: URL local usada durante el desarrollo y pruebas.
         // Puede activarse según necesidad para conectar con un servidor local.
-        // private const string baseUrlApi = "https://localhost:7176/";
+        private const string baseUrlApi = "https://localhost:7176/";
 
         // ===========================================================
         // ======================= CONSTRUCTOR =======================

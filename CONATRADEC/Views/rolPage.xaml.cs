@@ -11,7 +11,7 @@ public partial class rolPage : ContentPage
         InitializeComponent();      
     }
 
-    protected override async void OnAppearing()
+    protected override async void OnAppearing() 
     {
         base.OnAppearing();
         await viewModel.LoadRol(true);  // Carga los rol desde la VM.

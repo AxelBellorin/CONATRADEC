@@ -1,10 +1,10 @@
 using CONATRADEC.ViewModels;
 namespace CONATRADEC.Views;
 
-public partial class cargoPage : ContentPage
+public partial class paisPage : ContentPage
 {
-    private  CargoViewModel viewModel = new CargoViewModel();
-    public cargoPage()
+    PaisViewModel viewModel = new PaisViewModel();
+    public paisPage()
     {
         Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
         BindingContext = viewModel;
@@ -14,6 +14,6 @@ public partial class cargoPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await viewModel.LoadCargo(true);  // Carga los cargos desde la VM.
+        await viewModel.LoadPais(true);  // Carga los paises desde la VM.
     }
 }

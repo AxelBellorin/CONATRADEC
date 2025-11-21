@@ -1,10 +1,13 @@
 ﻿using CommunityToolkit.Maui;                     // Importa la extensión CommunityToolkit para MAUI (Snackbar, Toast, etc.)
-using Microsoft.Extensions.DependencyInjection;  // Permite registrar servicios y ViewModels (Inyección de dependencias)
-using Microsoft.Extensions.Logging;              // Habilita el sistema de logging para depuración
-using Microsoft.Maui.LifecycleEvents;            // Permite configurar eventos del ciclo de vida (Android, Windows, iOS)
 using CONATRADEC.Services;                       // Espacio de nombres de los servicios de la aplicación
 using CONATRADEC.ViewModels;                     // Espacio de nombres de los ViewModels
 using CONATRADEC.Views;                          // Espacio de nombres de las vistas (Pages)
+using Microsoft.Extensions.DependencyInjection;  // Permite registrar servicios y ViewModels (Inyección de dependencias)
+using Microsoft.Extensions.Logging;              // Habilita el sistema de logging para depuración
+using Microsoft.Maui.LifecycleEvents;            // Permite configurar eventos del ciclo de vida (Android, Windows, iOS)
+using Microsoft.Maui.Controls.Maps;
+
+
 
 #if WINDOWS
 using Microsoft.UI;                              // API de interfaz de usuario de Windows
@@ -32,7 +35,9 @@ namespace CONATRADEC
             // ==========================================================
             builder
                 .UseMauiApp<App>()
-
+#if !WINDOWS
+        .UseMauiMaps()
+#endif
                 // ======================================================
                 // Habilita la librería CommunityToolkit.Maui
                 //    (para usar DisplaySnackbar, Popup, Alert, etc.)
@@ -50,8 +55,8 @@ namespace CONATRADEC
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                    fonts.AddFont("Montserrat-Bold", "MontserratBold");
-                    fonts.AddFont("Montserrat-Medium", "MontserratMedium");
+                    fonts.AddFont("Montserrat-Bold.ttf", "MontserratBold");
+                    fonts.AddFont("Montserrat-Medium.ttf", "MontserratMedium");
                 });
 
             // ==========================================================

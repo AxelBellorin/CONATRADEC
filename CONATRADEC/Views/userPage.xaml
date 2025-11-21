@@ -137,7 +137,7 @@
                                             WidthRequest="65"
                                             HeightRequest="65"
                                             Margin="0,0,10,0">
-                                        <Image Source="{Binding Image}"
+                                        <Image Source="{Binding UrlImagenUsuario}"
                                                Aspect="AspectFill"
                                                BackgroundColor="Transparent" />
                                     </Border>
@@ -146,14 +146,14 @@
                                     <StackLayout Grid.Column="1"
                                                  VerticalOptions="Center">
                                         <!-- Nombre -->
-                                        <Label Text="{Binding FirstName}"
+                                        <Label Text="{Binding NombreCompletoUsuario}"
                                                FontAttributes="Bold"
                                                FontSize="20"
                                                FontFamily="MontserratBold"
                                                TextColor="{StaticResource color_Negro}" />
 
                                         <!-- Correo electrónico -->
-                                        <Label Text="{Binding Email}"
+                                        <Label Text="{Binding CorreoUsuario}"
                                                FontSize="14"
                                                FontFamily="MontserratMedium"
                                                TextColor="{StaticResource color_Negro}" />

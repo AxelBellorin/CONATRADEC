@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.elementoQuimicoFormPage"
+             Title="Formulario de elemento químico"
+             Shell.NavBarIsVisible="False"
+             Background="Transparent">
+
+    <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
+
+        <Label Text="{Binding Title}"
+               TextColor="{StaticResource color_Verde}"
+               FontSize="24"
+               FontAttributes="Bold"
+               HorizontalOptions="Start"
+               Grid.Row="0"
+               Margin="10,20,0,0" />
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="10" Spacing="15">
+
+                <!-- Símbolo -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Símbolo del elemento"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Ej: N, P, K"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding SimboloElementoQuimico}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Nombre -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Nombre del elemento"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Nombre del elemento químico"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding NombreElementoQuimico}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Peso equivalente -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Peso equivalente"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Ej: 14.0067"
+                               Style="{StaticResource EntryStyle}"
+                               Keyboard="Numeric"
+                               Text="{Binding PesoEquivalentEelementoQuimico}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Botones -->
+                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">
+                    <Button Text="Guardar"
+                            Style="{StaticResource UpdateButton}"
+                            IsVisible="{Binding ShowSaveButton}"
+                            Command="{Binding SaveCommand}"
+                            Grid.Column="0"
+                            Margin="10,0,10,0" />
+                    <Button Text="Cancelar"
+                            Style="{StaticResource CancelButton}"
+                            Command="{Binding CancelCommand}"
+                            Grid.Column="1"
+                            Margin="10,0,10,0" />
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

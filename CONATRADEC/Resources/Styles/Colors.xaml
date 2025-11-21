@@ -12,6 +12,7 @@
     <Color x:Key="color_Blanco">#FFF5FF</Color>
     <Color x:Key="color_Negro">#000000</Color>
     <Color x:Key="color_Naranja">#FF9800</Color>
+    <Color x:Key="color_Gris">#B0B0B0</Color>
 
     <!--Colores Funcionales-->
     

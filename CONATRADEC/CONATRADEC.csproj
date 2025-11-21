@@ -96,24 +96,37 @@
 		<PackageReference Include="CommunityToolkit.Maui" Version="9.1.1" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
+		<PackageReference Include="Microsoft.Maui.Controls.Maps" Version="8.0.100" />
 		<PackageReference Include="Plugin.Fingerprint" Version="3.0.0-beta.1" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Update="Views\municipioFormPage.xaml.cs">
+	    <DependentUpon>municipioFormPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\departamentoFormPage.xaml.cs">
+	    <DependentUpon>departamentoFormPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\municipioPage.xaml.cs">
+	    <DependentUpon>municipioPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\paisFormPage.xaml.cs">
+	    <DependentUpon>paisFormPage.xaml</DependentUpon>
+	  </Compile>
+	  <Compile Update="Views\paisPage.xaml.cs">
+	    <DependentUpon>paisPage.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Views\matrizPermisosPage.xaml.cs">
 	    <DependentUpon>matrizPermisosPage.xaml</DependentUpon>
 	  </Compile>
 	  <Compile Update="Views\loginPage.xaml.cs">
 	    <DependentUpon>loginPage.xaml</DependentUpon>
 	  </Compile>
-	  <Compile Update="Views\cargoFormPage.xaml.cs">
-	    <DependentUpon>cargoFormPage.xaml</DependentUpon>
-	  </Compile>
 	  <Compile Update="Views\rolFormPage.xaml.cs">
 	    <DependentUpon>rolFormPage.xaml</DependentUpon>
 	  </Compile>
-	  <Compile Update="Views\cargoPage.xaml.cs">
-	    <DependentUpon>cargoPage.xaml</DependentUpon>
+	  <Compile Update="Views\departamentoPage.xaml.cs">
+	    <DependentUpon>departamentoPage.xaml</DependentUpon>
 	  </Compile>
 	</ItemGroup>
 
@@ -127,13 +140,34 @@
 	  <MauiXaml Update="Views\matrizPermisosPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\loginPage.xaml">
+	  <MauiXaml Update="Views\elementoQuimicoPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\MapaSeleccionPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\municipioFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\departamentoFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\municipioPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\paisFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\paisPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\matrizPermisosPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\loginPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\cargoFormPage.xaml">
+	  <MauiXaml Update="Views\loginPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\nuevoAnalisisFormPage - Copia.xaml">
@@ -148,10 +182,16 @@
 	  <MauiXaml Update="Views\rolFormPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\cargoPage.xaml">
+	  <MauiXaml Update="Views\departamentoPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\rolPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\terrenoFormPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Views\terrenoPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Views\userFormPage.xaml">

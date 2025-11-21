@@ -72,10 +72,10 @@ public class MatrizPermisosViewModel : GlobalService
     }
 
     // Vista filtrada (derivada) de la colección principal según el texto del filtro.
-    public IEnumerable<InterfazResponse> PermisosFiltrados => string.IsNullOrWhiteSpace(_filtro)
+    public ObservableCollection<InterfazResponse> PermisosFiltrados => string.IsNullOrWhiteSpace(_filtro)
         ? Permisos
         : Permisos
-            .Where(p => p.NombrePermiso.Contains(_filtro, StringComparison.OrdinalIgnoreCase))
+            .Where(p => p.NombreInterfaz.Contains(_filtro, StringComparison.OrdinalIgnoreCase))
             .ToObservableCollection();
 
     // Texto de filtro; notifica recalculado del filtrado al modificarse.
@@ -201,6 +201,19 @@ public class MatrizPermisosViewModel : GlobalService
             if (Roles is not null)
                 Roles.Clear();
 
+            if (Permisos is not null)
+                Permisos.Clear();
+
+            // Valida que el usaurio tenga conexion a internet
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                _ = MostrarToastAsync("Sin conexión a internet.");
+                IsBusy = false;
+                return;
+            }
+
             // Llama al servicio que retorna los roles.
             var response = await rolApiService.GetRolAsync();
 
@@ -226,6 +239,16 @@ public class MatrizPermisosViewModel : GlobalService
         {
             IsBusy = true;
 
+            // Valida que el usaurio tenga conexion a internet
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                _ = MostrarToastAsync("Sin conexión a internet.");
+                IsBusy = false;
+                return;
+            }
+
             // Limpia colección previa solo si existe y tiene elementos.
             if (Permisos is not null && Permisos.Count > 0)
                 Permisos.Clear();
@@ -243,14 +266,14 @@ public class MatrizPermisosViewModel : GlobalService
             var matriz = response.FirstOrDefault();
 
             // Si por alguna razón viene null, sale con estado informativo (evita NRE).
-            if (matriz?.Permisos is null)
+            if (matriz?.Interfaz is null)
             {
                 Estado = "No se encontraron permisos para el rol seleccionado.";
                 return;
             }
 
             // Reemplaza la colección de permisos con la devuelta por la API.
-            Permisos = matriz.Permisos;
+            Permisos = matriz.Interfaz;
 
             // Marca como "limpios" los items recién cargados (no hay cambios pendientes).
             foreach (var p in Permisos)
@@ -265,7 +288,7 @@ public class MatrizPermisosViewModel : GlobalService
         catch (Exception ex)
         {
             // Muestra una única alerta con el error (antes había dos seguidas con el mismo mensaje).
-            await App.Current.MainPage.DisplayAlert("Error", $"No se pudieron cargar los permisos: {ex.Message}", "Aceptar");
+            _ = MostrarToastAsync("Error " + $"No se pudieron cargar los permisos: {ex.Message}");
         }
         finally
         {
@@ -317,7 +340,7 @@ public class MatrizPermisosViewModel : GlobalService
     {
         foreach (var s in _snapshot)
         {
-            var p = Permisos.FirstOrDefault(x => x.PermisoId == s.PermisoId);
+            var p = Permisos.FirstOrDefault(x => x.InterfazId == s.PermisoId);
             if (p is null) continue;
 
             p.Leer = s.Leer;
@@ -355,7 +378,7 @@ public class MatrizPermisosViewModel : GlobalService
         }
 
         // Si cambió el nombre, refresca la vista filtrada.
-        if (e.PropertyName == nameof(InterfazResponse.NombrePermiso))
+        if (e.PropertyName == nameof(InterfazResponse.NombreInterfaz))
             OnPropertyChanged(nameof(PermisosFiltrados));
 
         // Actualiza CanExecute de los botones Guardar/Revertir.
@@ -391,10 +414,10 @@ public class MatrizPermisosViewModel : GlobalService
                     RolId = RolSeleccionado.RolId,
                     NombreRol = RolSeleccionado.NombreRol
                 },
-                Permisos = permisosParaEnviar.Select(p => new InterfazRequest
+                Interfaz = permisosParaEnviar.Select(p => new InterfazRequest
                 {
-                    PermisoId = p.PermisoId,
-                    NombrePermiso = p.NombrePermiso,
+                    InterfazId = p.InterfazId,
+                    NombreInterfaz = p.NombreInterfaz,
                     Leer = p.Leer,
                     Agregar = p.Agregar,
                     Actualizar = p.Actualizar,
@@ -402,10 +425,19 @@ public class MatrizPermisosViewModel : GlobalService
                 }).ToList()
             };
 
-            var payload = new List<MatrizPermisosRequest> { matriz };
+            // Valida que el usaurio tenga conexion a internet
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                _ = MostrarToastAsync("Sin conexión a internet.");
+                IsBusy = false;
+                return;
+            }
 
             // Llama a la API para guardar.
-            var ok = await matrizPermisosApiService.GuardarMatrizAsync(payload);
+            var ok = await matrizPermisosApiService.GuardarMatrizAsync(matriz);
+
             if (ok)
             {
                 // Opcional: marca limpios solo los que estaban sucios (mantiene semántica actual).
@@ -416,20 +448,20 @@ public class MatrizPermisosViewModel : GlobalService
                 _snapshot = Permisos.Select(PermisoSnapshot.From).ToList();
 
                 Estado = "Permisos guardados correctamente";
-                await App.Current.MainPage.DisplayAlert("Datos Guardados", "Se ha guardado correctamente", "OK");
+                _ = MostrarToastAsync("Se ha guardado correctamente");
 
                 ActualizarHabilitados();
             }
             else
             {
-                await App.Current.MainPage.DisplayAlert("Error", "No se pudieron guardar los permisos. Intente nuevamente.", "Aceptar");
+                _ = MostrarToastAsync("No se pudieron guardar los permisos. Intente nuevamente.");
             }
         }
         catch (Exception ex)
         {
             // Manejo genérico (puedes especializar por HttpRequestException/TaskCanceledException si lo deseas).
             Estado = "Error al guardar permisos";
-            await App.Current.MainPage.DisplayAlert("Error", ex.Message, "Aceptar");
+            _ = MostrarToastAsync("Error " + ex.Message);
         }
         finally
         {
@@ -447,5 +479,5 @@ public class MatrizPermisosViewModel : GlobalService
 public record PermisoSnapshot(int PermisoId, bool Leer, bool Agregar, bool Actualizar, bool Eliminar)
 {
     public static PermisoSnapshot From(InterfazResponse p)
-        => new(p.PermisoId, p.Leer, p.Agregar, p.Actualizar, p.Eliminar);
+        => new(p.InterfazId, p.Leer, p.Agregar, p.Actualizar, p.Eliminar);
 }

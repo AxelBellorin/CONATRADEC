@@ -115,22 +115,12 @@
 
                                 <!-- Grid interno con imagen + texto del Rol -->
                                 <Grid Padding="10"
-                                      ColumnDefinitions="Auto,*">
+                                      ColumnDefinitions="*">
                                     <!-- Tap en toda la fila para ver detalles (ViewCommand) -->
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding Source={x:Reference RolPage}, Path=BindingContext.ViewCommand}"
                                                               CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
-
-                                    <!-- Imagen decorativa -->
-                                    <Border Style="{StaticResource BorderStyleImage}"
-                                            WidthRequest="65"
-                                            HeightRequest="65"
-                                            Margin="0,0,10,0">
-                                        <Image Source="coffesplash.png"
-                                               Aspect="AspectFill"
-                                               BackgroundColor="Transparent" />
-                                    </Border>
 
                                     <!-- Texto principal: Nombre del Rol -->
                                     <StackLayout Grid.Column="1"

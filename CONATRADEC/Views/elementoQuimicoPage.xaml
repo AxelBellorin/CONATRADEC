@@ -1,38 +1,21 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--
-  Página: cargoPage.xaml
-  Descripción: Listado de Cargos con acciones (Agregar / Editar / Eliminar / Ver).
-  ViewModel esperado: CargoViewModel (propiedades/comandos: List, IsBusy, AddCommand, EditCommand, DeleteCommand, ViewCommand).
--->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.cargoPage"
+             x:Class="CONATRADEC.Views.elementoQuimicoPage"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <!--
-      ContentView que usa un ControlTemplate (FooterTemplate) para dibujar pie de página común.
-      x:Name se usa para referenciar el BindingContext desde swipe/gestos con {x:Reference}.
-    -->
-    <ContentView x:Name="CargoPage"
+    <ContentView x:Name="ElementoQuimicoPage"
                  ControlTemplate="{StaticResource FooterTemplate}">
 
-        <!--
-          GRID PRINCIPAL:
-          - Fila 0: Encabezado (título + botón agregar)
-          - Fila 1: ActivityIndicator (loading)
-          - Fila 2: CollectionView (lista)
-        -->
         <Grid ColumnDefinitions="*"
-              RowDefinitions="Auto,Auto,*">
+              RowDefinitions="Auto,auto,*">
 
-            <!-- Encabezado: título + botón agregar -->
-            <Grid ColumnDefinitions="*,Auto"
+            <!-- Encabezado -->
+            <Grid ColumnDefinitions="*,auto"
                   Grid.Row="0"
                   Padding="0,10,0,0">
-
-                <!-- Título de la página -->
-                <Label Text="Cargo"
+                <Label Text="Elementos Químicos"
                        FontSize="30"
                        FontFamily="MontserratBold"
                        TextColor="{StaticResource color_Negro}"
@@ -41,7 +24,6 @@
                        HorizontalOptions="Start"
                        Padding="30,0,0,0" />
 
-                <!-- Botón Agregar (dispara AddCommand del VM) -->
                 <ImageButton Source="iconadd.png"
                              WidthRequest="60"
                              HeightRequest="60"
@@ -51,101 +33,83 @@
                              Command="{Binding AddCommand}" />
             </Grid>
 
-            <!-- Indicador de carga (visible cuando IsBusy == true) -->
+            <!-- Loading -->
             <ActivityIndicator Grid.Row="1"
                                IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
                                Color="{StaticResource color_Naranja}" />
 
-            <!--
-              LISTA DE CARGOS:
-              - ItemsSource => List (ObservableCollection<CargoResponse>)
-              - SelectionMode None para manejar acciones por gestos y botones
-            -->
+            <!-- Lista de elementos químicos -->
             <CollectionView Grid.Row="2"
                             ItemsSource="{Binding List}"
                             SelectionMode="None">
-
-                <!-- Layout vertical simple para los ítems -->
                 <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical"
-                                       ItemSpacing="2" />
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="2" />
                 </CollectionView.ItemsLayout>
 
-                <!-- Muestra un mensaje si la lista es vacia-->
                 <CollectionView.EmptyView>
                     <Grid Padding="20">
-                        <Label Text="No hay cargos para mostrar." HorizontalOptions="Center" VerticalOptions="Center" />
+                        <Label Text="No hay elementos químicos para mostrar."
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
                     </Grid>
                 </CollectionView.EmptyView>
 
-                <!-- Template de cada ítem -->
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-
-                        <!--
-                          SwipeView: acciones laterales por ítem
-                          - Editar -> EditCommand
-                          - Eliminar -> DeleteCommand
-                          Se usa {x:Reference CargoPage} para acceder al BindingContext del ContentView
-                        -->
                         <SwipeView>
+
                             <SwipeView.RightItems>
                                 <SwipeItems Mode="Reveal">
 
-                                    <!-- Acción: Editar -->
                                     <SwipeItem Text="Editar"
                                                IconImageSource="iconupdate.png"
                                                BackgroundColor="{StaticResource BlueUpdate}"
-                                               Command="{Binding Source={x:Reference CargoPage}, Path=BindingContext.EditCommand}"
+                                               Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.EditCommand}"
                                                CommandParameter="{Binding .}" />
 
-                                    <!-- Acción: Eliminar -->
                                     <SwipeItem Text="Eliminar"
                                                IconImageSource="icondelete.png"
                                                BackgroundColor="{StaticResource RedDelete}"
-                                               Command="{Binding Source={x:Reference CargoPage}, Path=BindingContext.DeleteCommand}"
+                                               Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.DeleteCommand}"
                                                CommandParameter="{Binding .}" />
 
                                 </SwipeItems>
                             </SwipeView.RightItems>
 
-                            <!--
-                              CONTENIDO DEL ÍTEM:
-                              - Border con estilo responsive por plataforma
-                              - Grid con imagen a la izquierda y datos a la derecha
-                              - TapGestureRecognizer para Ver detalles (ViewCommand)
-                            -->
                             <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
                                                     Default={StaticResource BorderStyleNoBorder}}">
 
-                                <Grid Padding="10"
-                                      ColumnDefinitions="Auto,*">
-
-                                    <!-- Tap en toda la fila para abrir detalles -->
+                                <Grid Padding="10" ColumnDefinitions="Auto,*">
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={x:Reference CargoPage}, Path=BindingContext.ViewCommand}"
+                                        <TapGestureRecognizer Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.ViewCommand}"
                                                               CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
 
-                                    <!-- Imagen del ítem (estática/decorativa) -->
-                                    <Border Style="{StaticResource BorderStyleImage}"
-                                            WidthRequest="65"
-                                            HeightRequest="65"
-                                            Margin="0,0,10,0">
-                                        <Image Source="coffesplash.png"
-                                               Aspect="AspectFill"
-                                               BackgroundColor="Transparent" />
-                                    </Border>
+                                    <!-- Símbolo (lado izquierdo) -->
+                                    <StackLayout Grid.Column="0"
+                                                 VerticalOptions="Center"
+                                                 HorizontalOptions="Center"
+                                                 Margin="0,0,10,0">
+                                        <Label Text="{Binding SimboloElementoQuimico}"
+                                               FontAttributes="Bold"
+                                               FontSize="20"
+                                               FontFamily="MontserratBold"
+                                               TextColor="{StaticResource color_Verde}" />
+                                    </StackLayout>
 
-                                    <!-- Datos del cargo -->
+                                    <!-- Nombre + Peso -->
                                     <StackLayout Grid.Column="1"
                                                  VerticalOptions="Center">
-                                        <Label Text="{Binding NombreCargo}"
+                                        <Label Text="{Binding NombreElementoQuimico}"
                                                FontAttributes="Bold"
                                                FontSize="20"
                                                FontFamily="MontserratBold"
                                                TextColor="{StaticResource color_Negro}" />
+
+                                        <Label Text="{Binding PesoEquivalentEelementoQuimico, StringFormat='Peso equivalente: {0:F4}'}"
+                                               FontSize="14"
+                                               TextColor="{StaticResource color_GrisOscuro}" />
                                     </StackLayout>
                                 </Grid>
                             </Border>

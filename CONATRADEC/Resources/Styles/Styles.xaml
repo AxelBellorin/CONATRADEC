@@ -6,7 +6,51 @@
 
     <!--#region Estilos Propios-->
 
-        <!-- Estilo para Border de Imagenes -->
+    <!-- Estilo para Switch con colores CONATRADEC -->
+    <Style x:Key="SwitchStyle" TargetType="Switch">
+        <!-- Estado inicial (apagado) -->
+        <Setter Property="OnColor" Value="{StaticResource color_Verde}" />
+        <Setter Property="ThumbColor" Value="{StaticResource color_Blanco}" />
+        <Setter Property="Scale" Value="1.1" />
+        <!-- un leve aumento visual -->
+
+        <!-- Estados dinámicos -->
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+
+                    <!-- Apagado -->
+                    <VisualState x:Name="Normal">
+                        <VisualState.Setters>
+                            <Setter Property="OnColor" Value="{StaticResource color_Blanco}" />
+                            <Setter Property="ThumbColor" Value="{StaticResource color_Verde}" />
+                        </VisualState.Setters>
+                    </VisualState>
+
+                    <!-- Encendido -->
+                    <VisualState x:Name="On">
+                        <VisualState.Setters>
+                            <Setter Property="OnColor" Value="{StaticResource color_Verde}" />
+                            <Setter Property="ThumbColor" Value="{StaticResource color_Blanco}" />
+                        </VisualState.Setters>
+                    </VisualState>
+
+                    <!-- Deshabilitado -->
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="OnColor" Value="{StaticResource color_Gris}" />
+                            <Setter Property="ThumbColor" Value="{StaticResource color_Negro}" />
+                            <Setter Property="Opacity" Value="0.6" />
+                        </VisualState.Setters>
+                    </VisualState>
+
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+
+    <!-- Estilo para Border de Imagenes -->
 
     <Style TargetType="Border" x:Key="BorderStyleImage">
         <Setter Property="Stroke" Value="{StaticResource color_Verde}"/>    <!-- Color del borde -->

@@ -58,27 +58,21 @@ namespace CONATRADEC.Services
 
                 // Realiza GET al endpoint que retorna la matriz por nombre de rol.
                 var response = await httpClient.GetFromJsonAsync<ObservableCollection<MatrizPermisosResponse>>(
-                    $"api/rol-permisos/matriz-por-rol-nombre?nombreRol={encodedRol}");
+                    $"api/rol-interfaz/matriz-por-rol-nombre?nombreRol={encodedRol}");
 
                 // Si la respuesta es nula, devuelve una colección vacía para evitar null reference.
                 return response ?? new ObservableCollection<MatrizPermisosResponse>();
             }
             catch (HttpRequestException ex)
             {
-                // Error típico de red/conectividad (timeout, DNS, etc.).
-                await Application.Current.MainPage.DisplayAlert("Error de conexión", ex.Message, "OK");
                 return new ObservableCollection<MatrizPermisosResponse>();
             }
             catch (NotSupportedException ex)
             {
-                // El contenido devuelto no es JSON o no coincide con el tipo destino.
-                await Application.Current.MainPage.DisplayAlert("Error de formato", "Respuesta no JSON.", "OK");
                 return new ObservableCollection<MatrizPermisosResponse>();
             }
             catch (Exception ex)
             {
-                // Cualquier otro error no contemplado arriba.
-                await Application.Current.MainPage.DisplayAlert("Error inesperado", ex.Message, "OK");
                 return new ObservableCollection<MatrizPermisosResponse>();
             }
         }
@@ -92,13 +86,13 @@ namespace CONATRADEC.Services
         // Retorna:
         //   true si la actualización fue exitosa; false en error.
         // -----------------------------------------------------------
-        public async Task<bool> GuardarMatrizAsync(List<MatrizPermisosRequest> matrizPermisosRequest)
+        public async Task<bool> GuardarMatrizAsync(MatrizPermisosRequest matrizPermisosRequest)
         {
             try
             {
                 // Envía el payload como JSON mediante PUT al endpoint de actualización de permisos.
                 var response = await httpClient.PutAsJsonAsync(
-                    "api/rol-permisos/actualizar-permisos/",
+                    "api/rol-permisos/actualizar-interfaz",
                     matrizPermisosRequest);
 
                 // Indica éxito si el código HTTP es 2xx.
@@ -106,8 +100,6 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                // Muestra un mensaje de error y retorna false para indicar fallo.
-                await Application.Current.MainPage.DisplayAlert("Error", $"{ex}", "OK");
                 return false;
             }
         }
