@@ -145,4 +145,9 @@
               FlyoutItemIsVisible="False"
               ContentTemplate="{DataTemplate views:NuevoAnalisisFormPage}" />
 
+    <ShellContent Title="Enmiendas Calcareas"
+                  Route="EnmiendasCalcareasPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:EnmiendasCalcareasPage}" />
+
 </Shell>

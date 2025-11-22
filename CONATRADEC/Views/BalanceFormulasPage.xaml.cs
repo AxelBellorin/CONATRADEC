@@ -36,7 +36,14 @@ namespace CONATRADEC.Views
 
 		private async void OnMenuEnmiendasTapped(object sender, EventArgs e)
 		{
-			await DisplayAlert("Navegación", "Enmiendas Calcareas (implementar ruta)", "OK");
+			try
+			{
+				await Shell.Current.GoToAsync("//EnmiendasCalcareasPage");
+			}
+			catch (Exception ex)
+			{
+				await DisplayAlert("Error", $"No se pudo navegar: {ex.Message}", "OK");
+			}
 		}
 
 		private async void OnMenuFertMixtaTapped(object sender, EventArgs e)

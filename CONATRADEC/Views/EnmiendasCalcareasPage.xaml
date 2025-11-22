@@ -1,0 +1,47 @@
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+ xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+ x:Class="CONATRADEC.Views.EnmiendasCalcareasPage"
+ Title="Enmiendas Calcareas"
+ Shell.NavBarIsVisible="False"
+ BackgroundColor="{StaticResource color_Blanco}">
+
+ <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+ <Grid RowDefinitions="Auto, *" ColumnDefinitions="*">
+ <VerticalStackLayout Padding="16" Spacing="12">
+ <Label Text="Enmiendas Calcareas" FontAttributes="Bold" FontSize="22" />
+
+ <ScrollView>
+ <Frame CornerRadius="8" Padding="8" BackgroundColor="WhiteSmoke">
+ <Grid ColumnSpacing="8" RowSpacing="8">
+ <Grid.ColumnDefinitions>
+ <ColumnDefinition Width="*" />
+ <ColumnDefinition Width="*" />
+ </Grid.ColumnDefinitions>
+
+ <Grid.RowDefinitions>
+ <RowDefinition Height="Auto" />
+ <RowDefinition Height="Auto" />
+ <RowDefinition Height="Auto" />
+ <RowDefinition Height="Auto" />
+ </Grid.RowDefinitions>
+
+ <!-- Header Row -->
+ <Label Grid.Row="0" Grid.Column="0" Text="Elemento" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+ <Label Grid.Row="0" Grid.Column="1" Text="Cantidad" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+
+ <!-- Example Data Rows -->
+ <Label Grid.Row="1" Grid.Column="0" Text="Calcio" HorizontalTextAlignment="Center" />
+ <Entry Grid.Row="1" Grid.Column="1" Placeholder="0.0" Keyboard="Numeric" HorizontalTextAlignment="Center" />
+
+ <Label Grid.Row="2" Grid.Column="0" Text="Magnesio" HorizontalTextAlignment="Center" />
+ <Entry Grid.Row="2" Grid.Column="1" Placeholder="0.0" Keyboard="Numeric" HorizontalTextAlignment="Center" />
+
+ <Label Grid.Row="3" Grid.Column="0" Text="Azufre" HorizontalTextAlignment="Center" />
+ <Entry Grid.Row="3" Grid.Column="1" Placeholder="0.0" Keyboard="Numeric" HorizontalTextAlignment="Center" />
+ </Grid>
+ </Frame>
+ </ScrollView>
+ </VerticalStackLayout>
+ </Grid>
+ </ContentView>
+</ContentPage>
