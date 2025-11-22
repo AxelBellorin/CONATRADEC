@@ -128,7 +128,10 @@
                     </Grid>
                 </Frame>
 
-                <Button Text="Enviar Anlisislisis" Clicked="OnEnviarAnalisisClicked" Margin="0,8,0,20" />
+                <Button Text="Enviar Anlisislisis" 
+                        Clicked="OnEnviarAnalisisClicked" 
+                        Margin="0,8,0,20" 
+                        Style="{StaticResource AddButton}"/>
 
             </VerticalStackLayout>
         </ScrollView>
