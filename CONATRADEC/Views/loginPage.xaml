@@ -65,7 +65,6 @@
                            Style="{StaticResource EntryStyle}"
                            Placeholder="Contraseña"
                            Text="{Binding Password}"
-                           Keyboard="Password"
                            IsPassword="{Binding IsPasswordHidden}"
                            Background="Transparent" />
 

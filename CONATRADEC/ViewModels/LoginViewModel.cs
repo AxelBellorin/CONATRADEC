@@ -28,27 +28,26 @@ namespace CONATRADEC.ViewModels
         private bool titlebiometric;
 
         // ==================== Biometría ====================
-        private bool canUseBiometrics;      // HW/config del SO ok
-        private bool useBiometrics;         // Preferencia del usuario (Switch)
-        private bool requirePasswordRelogin; // NUEVO: bloquea biometría hasta login con password
-        private bool loginViaBiometric;     // para saber si el login fue biométrico o no
+        private bool canUseBiometrics;
+        private bool useBiometrics;
+        private bool requirePasswordRelogin;
+        private bool loginViaBiometric;
 
-        // ==================== Comandos (UI) ====================
+        // ==================== Comandos ====================
         public Command TogglePasswordCommand { get; }
         public Command LoginCommand { get; }
         public Command BiometricLoginCommand { get; }
         public ICommand OnTogglePasswordClickedCommand { get; }
 
-        // Servicio HTTP de autenticación
         private readonly LoginApiService apiServiceLogin;
 
-        // ==================== Claves de almacenamiento ====================
+        // ==================== Storage Keys ====================
         private const string KeyRemember = "login.remember";
         private const string KeyUser = "login.username";
         private const string KeyToken = "auth.token";
         private const string KeyPass = "login.password";
         private const string KeyUseBiometrics = "login.use_biometrics";
-        private const string KeyRequireRelogin = "login.require_pwd_relogin"; // NUEVO
+        private const string KeyRequireRelogin = "login.require_pwd_relogin";
 
         // ==================== CTOR ====================
         public LoginViewModel()
@@ -59,10 +58,11 @@ namespace CONATRADEC.ViewModels
             TogglePasswordCommand = new Command(() => OnTogglePassword());
             BiometricLoginCommand = new Command(async () => await TryBiometricLoginAsync(), () => BiometricEnabled);
 
-            _ = LoadSavedAsync();
+            // ❌ ESTA LÍNEA CAUSABA LAG EN ANDROID — ELIMINADA
+            // _ = LoadSavedAsync();
         }
 
-        // ==================== Propiedades Bindables ====================
+        // ==================== Propiedades ====================
         public string Username
         {
             get => username;
@@ -123,10 +123,8 @@ namespace CONATRADEC.ViewModels
                 rememberMe = value;
                 OnPropertyChanged();
 
-                // Si desactiva "Recordarme", apagamos biometría sin bloquear relogin forzoso
                 if (!rememberMe && UseBiometrics)
                 {
-                    // Apaga el switch, pero NO exigimos relogin por password en este caso
                     useBiometrics = false;
                     Preferences.Remove(KeyUseBiometrics);
                     OnPropertyChanged(nameof(UseBiometrics));
@@ -154,16 +152,11 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        /// <summary>
-        /// NUEVO: si estaba encendido y lo apagan, obliga a pedir contraseña de nuevo
-        /// y bloquea volver a encender hasta que se haga login con password.
-        /// </summary>
         public bool UseBiometrics
         {
             get => useBiometrics;
             set
             {
-                // Detecta transición ON -> OFF
                 bool turningOff = useBiometrics && !value;
 
                 useBiometrics = value;
@@ -172,18 +165,10 @@ namespace CONATRADEC.ViewModels
 
                 if (turningOff)
                 {
-                    // 1) Bloquea re-encendido hasta relogin por password
                     RequirePasswordRelogin = true;
-
-                    // 2) Borra credenciales sensibles
                     SecureStorage.Remove(KeyPass);
-
-                    // 3) Limpia el Entry y vuelve a ocultar
                     Password = string.Empty;
                     IsPasswordHidden = true;
-
-                    // (opcional) aviso de UX
-                    // _ = Application.Current.MainPage.DisplayAlert("Seguridad", "Vuelve a iniciar sesión con tu contraseña para reactivar la huella.", "OK");
                 }
 
                 OnPropertyChanged(nameof(BiometricEnabled));
@@ -193,9 +178,6 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        /// <summary>
-        /// NUEVO: marca si debe forzarse login por password antes de habilitar biometría otra vez.
-        /// </summary>
         public bool RequirePasswordRelogin
         {
             get => requirePasswordRelogin;
@@ -211,29 +193,12 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        /// <summary>
-        /// Botón de huella visible/habilitado solo si:
-        /// - HW biométrico OK
-        /// - Recordarme activo
-        /// - Switch ON
-        /// - Y NO hay bloqueo por relogin de password pendiente
-        /// </summary>
         public bool BiometricEnabled => CanUseBiometrics && RememberMe && UseBiometrics && !RequirePasswordRelogin;
-
-        /// <summary>
-        /// Botón "Iniciar Sesión" se oculta sólo si la biometría está lista para usarse.
-        /// </summary>
         public bool LoginButtonVisible => !BiometricEnabled;
-
-        /// <summary>
-        /// NUEVO: Habilitación del Switch en la UI. 
-        /// No se puede re-encender mientras RequirePasswordRelogin sea true.
-        /// </summary>
         public bool CanToggleBiometrics => CanUseBiometrics && !RequirePasswordRelogin;
-
         public bool TitleBiometric => !RememberMe;
 
-        // ==================== Login normal (usuario/contraseña) ====================
+        // ==================== LOGIN NORMAL ====================
         public async Task LoginAsync()
         {
             if (IsBusy) return;
@@ -269,7 +234,6 @@ namespace CONATRADEC.ViewModels
                     ClaveUsuario = Password,
                 };
 
-                // Valida que el usaurio tenga conexion a internet
                 bool tieneInternet = await TieneInternetAsync();
 
                 if (!tieneInternet)
@@ -281,7 +245,6 @@ namespace CONATRADEC.ViewModels
 
                 var resp = await apiServiceLogin.LoginAsync(req);
 
-                // === Persistencia local de sesión (según RememberMe) ===
                 try
                 {
                     if (RememberMe)
@@ -289,10 +252,6 @@ namespace CONATRADEC.ViewModels
                         Preferences.Set(KeyRemember, true);
                         Preferences.Set(KeyUser, userTrim);
 
-                        // RECOMENDADO: guardar token cuando tu API lo devuelva
-                        // await SecureStorage.SetAsync(KeyToken, resp.Token ?? string.Empty);
-
-                        // Mientras tanto: guardar password (menos seguro)
                         await SecureStorage.SetAsync(KeyPass, Password);
                     }
                     else
@@ -302,20 +261,16 @@ namespace CONATRADEC.ViewModels
                         SecureStorage.Remove(KeyToken);
                         SecureStorage.Remove(KeyPass);
                         Preferences.Remove(KeyUseBiometrics);
-                        UseBiometrics = false; // apagar switch
+                        UseBiometrics = false;
                     }
                 }
-                catch { /* no romper flujo si falla storage */ }
+                catch { }
 
-                // Si el login fue con contraseña (NO biométrico), libera el bloqueo
                 if (!loginViaBiometric)
-                {
                     RequirePasswordRelogin = false;
-                }
 
                 Message = $"Bienvenido {resp.NombreCompletoUsuario}";
-
-                _= MostrarToastAsync(Message);
+                _ = MostrarToastAsync(Message);
 
                 if (!RememberMe)
                 {
@@ -350,24 +305,25 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                loginViaBiometric = false; // reset
+                loginViaBiometric = false;
                 IsBusy = false;
             }
         }
 
-        // ==================== Alternar visibilidad de contraseña ====================
+        // ==================== TOGGLE PASSWORD ====================
         public void OnTogglePassword()
         {
             IsPasswordHidden = !IsPasswordHidden;
             PasswordToggleIcon = IsPasswordHidden ? "eye.png" : "eyeoff.png";
         }
 
-        // ==================== Carga de preferencias guardadas + biometría ====================
+        // ==================== LOAD SAVED SETTINGS ====================
         public async Task LoadSavedAsync()
         {
             try
             {
                 RememberMe = Preferences.Get(KeyRemember, false);
+
                 if (RememberMe)
                 {
                     Username = Preferences.Get(KeyUser, string.Empty);
@@ -395,10 +351,9 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        // ==================== Flujo de login con huella/Face ID ====================
+        // ==================== LOGIN BIOMÉTRICO ====================
         private async Task TryBiometricLoginAsync()
         {
-            // Si está bloqueado por relogin de password, no permitir
             if (RequirePasswordRelogin)
                 return;
 
@@ -415,20 +370,16 @@ namespace CONATRADEC.ViewModels
                 "Autentícate con huella/Face ID para continuar");
 
             var result = await CrossFingerprint.Current.AuthenticateAsync(reason);
-            if (!result.Authenticated) return;
+            if (!result.Authenticated)
+                return;
 
-            // Marca que este login es biométrico (para no limpiar el bloqueo)
             loginViaBiometric = true;
 
-            // Si ya usas token:
             var token = await SecureStorage.GetAsync(KeyToken);
             if (!string.IsNullOrWhiteSpace(token))
             {
                 try
                 {
-                    // var ok = await apiServiceLogin.RefreshAsync(token);
-                    // if (!ok) { await Application.Current.MainPage.DisplayAlert("Sesión", "Token inválido", "OK"); return; }
-
                     await GoToAsyncParameters("//MainPage");
                     return;
                 }
@@ -438,11 +389,11 @@ namespace CONATRADEC.ViewModels
                 }
             }
 
-            // Ruta con password guardada (si existe)
             var savedPass = await SecureStorage.GetAsync(KeyPass);
             var savedUser = Preferences.Get(KeyUser, string.Empty);
 
-            if (!string.IsNullOrWhiteSpace(savedUser) && !string.IsNullOrWhiteSpace(savedPass))
+            if (!string.IsNullOrWhiteSpace(savedUser) &&
+                !string.IsNullOrWhiteSpace(savedPass))
             {
                 Username = savedUser;
                 Password = savedPass;

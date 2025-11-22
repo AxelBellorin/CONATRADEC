@@ -15,7 +15,6 @@ namespace CONATRADEC.Views
             viewModel = new TerrenoFormViewModel();
             BindingContext = viewModel;
 
-            // Vinculamos el refresco del mapa al ViewModel
             viewModel.RefrescarMapaAction = (lat, lon) =>
             {
                 ActualizarMiniMapa(lat, lon);
@@ -25,14 +24,10 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-
             await viewModel.InicializarAsync();
-            CargarMiniMapa(); // primera carga
+            CargarMiniMapa();
         }
 
-        // ============================================================
-        //                   MINI MAPA — CARGA INICIAL
-        // ============================================================
         private void CargarMiniMapa()
         {
             double lat = viewModel.Latitud ?? 12.1364;
@@ -44,20 +39,13 @@ namespace CONATRADEC.Views
             };
         }
 
-        // ============================================================
-        //              MINI MAPA — ACTUALIZAR DESPUÉS DE GPS / MAPA
-        // ============================================================
         private void ActualizarMiniMapa(double? lat, double? lon)
         {
             if (lat == null || lon == null)
                 return;
 
-            string html = BuildLeafletHtml(
-                lat.Value,
-                lon.Value
-            );
+            string html = BuildLeafletHtml(lat.Value, lon.Value);
 
-            // 🔁 Esto obliga al WebView a RECARGAR (si no, no lo actualiza)
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 MiniMapaWeb.Source = new HtmlWebViewSource
@@ -67,9 +55,23 @@ namespace CONATRADEC.Views
             });
         }
 
-        // ============================================================
-        //                       HTML DEL MAPA
-        // ============================================================
+        private async void BtnAbrirEnMaps_Clicked(object sender, EventArgs e)
+        {
+            if (BindingContext is TerrenoFormViewModel vm)
+            {
+                if (vm.Latitud != null && vm.Longitud != null)
+                {
+                    await vm.AbrirEnGoogleMaps(vm.Latitud.Value, vm.Longitud.Value);
+                }
+            }
+        }
+
+        private void EntryDMS_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (BindingContext is TerrenoFormViewModel vm)
+                vm.ConvertirDesdeGoogleMaps(e.NewTextValue);
+        }
+
         private string BuildLeafletHtml(double lat, double lon)
         {
             string latStr = lat.ToString(CultureInfo.InvariantCulture);
@@ -90,12 +92,12 @@ html, body {{ margin:0; padding:0; height:100%; }}
 <body>
 <div id='map'></div>
 <script>
-    var map = L.map('map').setView([{latStr}, {lonStr}], 16);
-    L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-        maxZoom: 19
-    }}).addTo(map);
+var map = L.map('map').setView([{latStr}, {lonStr}], 16);
+L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+    maxZoom: 19
+}}).addTo(map);
 
-    var marker = L.marker([{latStr}, {lonStr}]).addTo(map);
+var marker = L.marker([{latStr}, {lonStr}]).addTo(map);
 </script>
 </body>
 </html>";

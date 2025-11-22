@@ -29,26 +29,13 @@
         - Se usan rutas absolutas en navegación (//RouteName).
         - El "ContentTemplate" vincula el nombre de la vista (Page) con su clase correspondiente.
     -->
-
+    
     <!-- Pantalla de autenticación -->
     <ShellContent Title="Login"
                   Route="LoginPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:loginPage}" />
-    
-    <!-- Gestión de terreno -->
-    <ShellContent Title="TerrenoPage"
-                  Route="TerrenoPage"
-                  FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:terrenoPage}" />
 
-    <!--Formulario de terreno-->
-    <ShellContent Title="TerrenoFormPage"
-                  Route="TerrenoFormPage"
-                  FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:terrenoFormPage}" />
-   
-    
     <!-- Gestión de paises -->
     <ShellContent Title="PaisPage"
                   Route="PaisPage"
@@ -60,6 +47,18 @@
                   Route="PaisFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:paisFormPage}" />
+
+    <!-- Gestión de terreno -->
+    <ShellContent Title="TerrenoPage"
+                  Route="TerrenoPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:terrenoPage}" />
+    
+    <!--Formulario de terreno-->
+    <ShellContent Title="TerrenoFormPage"
+                  Route="TerrenoFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:terrenoFormPage}" />
 
     <!-- Gestión de usuarios -->
     <ShellContent Title="UserPage"

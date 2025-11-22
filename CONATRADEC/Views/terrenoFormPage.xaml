@@ -183,6 +183,22 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label  Text="Coordenadas (pegar desde Google Maps)"
+                                FontAttributes="Bold"
+                                FontSize="17"
+                                TextColor="{StaticResource color_Negro}" />  
+
+                        <Entry Placeholder="Ej: 12°13'35.8N 86°28'06.9W ó 12.1234, -86.1234"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding CoordenadasTexto}"
+                               IsEnabled="{Binding IsEnabled}" />
+                    </VerticalStackLayout>
+                </Border>
+
+
+
                 <!-- Coordenadas (Lat / Lon) + botones -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="8">
@@ -209,12 +225,12 @@
                         </Grid>
 
                         <Button Text="Obtener ubicación actual (GPS)"
-                                Style="{StaticResource UpdateButton}"
+                                Style="{StaticResource AddButton}"
                                 Command="{Binding ObtenerGpsCommand}"
                                 IsVisible="{Binding IsEnabled}" />
 
                         <Button Text="Seleccionar en mapa"
-                                Style="{StaticResource UpdateButton}"
+                                Style="{StaticResource AddButton}"
                                 Command="{Binding SeleccionarMapaCommand}"
                                 IsVisible="{Binding IsEnabled}" />
 
@@ -233,6 +249,11 @@
                                  HeightRequest="200" />
                     </VerticalStackLayout>
                 </Border>
+
+                <Button Text="Abrir en Google Maps"
+                        Clicked="BtnAbrirEnMaps_Clicked"
+                        Style="{StaticResource AddButton}" />
+
 
                 <!-- BOTONES GUARDAR / CANCELAR -->
                 <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,20">

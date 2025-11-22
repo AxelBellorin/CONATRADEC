@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+
 namespace CONATRADEC.ViewModels
 {
     // Recibe parámetros desde Shell (latitud / longitud / Terreno / Mode)
@@ -32,6 +33,7 @@ namespace CONATRADEC.ViewModels
         private decimal? cantidadQuintalesOro;
         private double? latitud;
         private double? longitud;
+        private string coordenadasTexto;
 
         private DateOnly? fechaIngresoTerreno;
         private DateTime fechaIngresoDate = DateTime.Today;
@@ -75,8 +77,12 @@ namespace CONATRADEC.ViewModels
             set
             {
                 latitudParam = value;
+
                 if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lat))
-                    Latitud = lat; // dispara RefrescarMapaAction
+                {
+                    Latitud = lat;
+                    RefrescarMapaAction?.Invoke(Latitud, Longitud); // <- NUEVO
+                }
             }
         }
 
@@ -86,8 +92,23 @@ namespace CONATRADEC.ViewModels
             set
             {
                 longitudParam = value;
+
                 if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lon))
-                    Longitud = lon; // dispara RefrescarMapaAction
+                {
+                    Longitud = lon;
+                    RefrescarMapaAction?.Invoke(Latitud, Longitud); // <- NUEVO
+                }
+            }
+        }
+
+        public string CoordenadasTexto
+        {
+            get => coordenadasTexto;
+            set
+            {
+                coordenadasTexto = value;
+                OnPropertyChanged();
+                ProcesarCoordenadas(value); // ← convierte y asigna Latitud/Longitud
             }
         }
 
@@ -109,13 +130,39 @@ namespace CONATRADEC.ViewModels
                     ExtensionManzanaTerreno = value.ExtensionManzanaTerreno;
                     CantidadQuintalesOro = value.CantidadQuintalesOro;
                     FechaIngresoTerreno = value.FechaIngresoTerreno ?? DateOnly.FromDateTime(DateTime.Today);
-                    Latitud = value.Latitud;
-                    Longitud = value.Longitud;
+
+                    // ⭐ IMPORTANTE:
+                    if (LatitudParam == null && LongitudParam == null)
+                    {
+                        Latitud = value.Latitud;
+                        Longitud = value.Longitud;
+                    }
                 }
 
                 OnPropertyChanged();
+
+                // SOLO en actualización
+                if (Mode == FormMode.FormModeSelect.Edit)
+                {
+                    _ = ReasignarSeleccionPickersAsync();
+                }
+
             }
         }
+
+        public async Task ReasignarSeleccionPickersAsync()
+        {
+            try
+            {
+                if (Terreno?.MunicipioId > 0)
+                {
+                    await ResolverSeleccionPorMunicipioIdAsync(Terreno.MunicipioId);
+                }
+            }
+            catch { }
+        }
+
+
 
         public FormMode.FormModeSelect Mode
         {
@@ -479,14 +526,34 @@ namespace CONATRADEC.ViewModels
         {
             if (!AllowEdit) return;
 
-            await GoToAsyncParameters("//MapaSeleccionPage", new Dictionary<string, object>
+            // Guardamos temporalmente el objeto
+            Terreno.CodigoTerreno = CodigoTerreno;
+            Terreno.IdentificacionPropietarioTerreno = IdentificacionPropietarioTerreno;
+            Terreno.NombrePropietarioTerreno = NombrePropietarioTerreno;
+            Terreno.TelefonoPropietario = ParseTelefono(TelefonoPropietarioTexto);
+            Terreno.CorreoPropietario = CorreoPropietario;
+            Terreno.DireccionTerreno = DireccionTerreno;
+            Terreno.ExtensionManzanaTerreno = ExtensionManzanaTerreno;
+            Terreno.CantidadQuintalesOro = CantidadQuintalesOro;
+            Terreno.FechaIngresoTerreno = FechaIngresoTerreno;
+            Terreno.MunicipioId = MunicipioSeleccionado?.MunicipioId ?? 0;
+
+            await Shell.Current.GoToAsync("MapaSeleccionPage", true, new Dictionary<string, object>
             {
-                { "latitudActual", Latitud ?? 12.1364 },
-                { "longitudActual", Longitud ?? -86.2510 },
+                {
+                    "latitudActual",
+                    (Latitud ?? 12.1364).ToString(CultureInfo.InvariantCulture)
+                },
+                {
+                    "longitudActual",
+                    (Longitud ?? -86.2510).ToString(CultureInfo.InvariantCulture)
+},
                 { "Mode", Mode },
                 { "Terreno", Terreno }
             });
+
         }
+
 
         // ==================== Guardar / Actualizar ====================
 
@@ -606,6 +673,63 @@ namespace CONATRADEC.ViewModels
                 _ = MostrarToastAsync("Error \nEl terreno no se pudo actualizar, intente nuevamente");
             }
         }
+
+        public async Task AbrirEnGoogleMaps(double lat, double lon)
+        {
+            try
+            {
+                string url = $"https://www.google.com/maps?q={lat.ToString(CultureInfo.InvariantCulture)},{lon.ToString(CultureInfo.InvariantCulture)}";
+
+                await Launcher.OpenAsync(url);
+            }
+            catch (Exception ex)
+            {
+                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+            }
+        }
+
+        public void ConvertirDesdeGoogleMaps(string texto)
+        {
+            try
+            {
+                // Ejemplo esperado:
+                // 12°13'35.8"N 86°28'06.9"W
+
+                var partes = texto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (partes.Length != 2)
+                    throw new Exception("Formato inválido");
+
+                Latitud = ConvertDmsToDecimal(partes[0]);
+                Longitud = ConvertDmsToDecimal(partes[1]);
+            }
+            catch
+            {
+                _ = MostrarToastAsync("Formato inválido. Ejemplo: 12°13'35.8\"N 86°28'06.9\"W");
+            }
+        }
+
+        private double ConvertDmsToDecimal(string dms)
+        {
+            // Extraer grados, minutos, segundos y símbolo N/S/E/W
+
+            var grados = dms.Split('°')[0];
+            var minutos = dms.Split('°')[1].Split('\'')[0];
+            var segundosParte = dms.Split('\'')[1];
+            var segundos = new string(segundosParte.TakeWhile(char.IsDigit).ToArray());
+            var direccion = new string(dms.Where(char.IsLetter).ToArray());
+
+            double d = double.Parse(grados, CultureInfo.InvariantCulture);
+            double m = double.Parse(minutos, CultureInfo.InvariantCulture);
+            double s = double.Parse(segundos, CultureInfo.InvariantCulture);
+
+            double decimalValue = d + (m / 60.0) + (s / 3600.0);
+
+            if (direccion == "S" || direccion == "W")
+                decimalValue *= -1;
+
+            return decimalValue;
+        }
+
 
         private Task GoToTerrenoPage()
         {
@@ -731,5 +855,68 @@ namespace CONATRADEC.ViewModels
 
             return false;
         }
+
+        private void ProcesarCoordenadas(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+                return;
+
+            texto = texto.Trim();
+
+            // Formato decimal: "12.1234, -86.1234" o "12,1234 -86,1234"
+            var numeros = Regex.Matches(texto.Replace(",", "."), @"-?\d+(\.\d+)?");
+
+            if (numeros.Count == 2)
+            {
+                if (double.TryParse(numeros[0].Value, NumberStyles.Any,
+                        CultureInfo.InvariantCulture, out var lat) &&
+                    double.TryParse(numeros[1].Value, NumberStyles.Any,
+                        CultureInfo.InvariantCulture, out var lon))
+                {
+                    Latitud = lat;
+                    Longitud = lon;
+                    return;
+                }
+            }
+
+            // Formato DMS "12°13'35.8"N 86°28'06.9"W"
+            if (texto.Contains("°"))
+            {
+                var partes = texto.Split(new[] { 'N', 'S', 'E', 'W' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (partes.Length >= 2)
+                {
+                    var latDms = partes[0].Trim();
+                    var lonDms = partes[1].Trim();
+
+                    var latDecimal = ConvertirDMSToDecimal(latDms);
+                    var lonDecimal = ConvertirDMSToDecimal(lonDms);
+
+                    // identificar hemisferio
+                    if (texto.Contains("S")) latDecimal *= -1;
+                    if (texto.Contains("W")) lonDecimal *= -1;
+
+                    Latitud = latDecimal;
+                    Longitud = lonDecimal;
+                }
+            }
+        }       
+
+        private double ConvertirDMSToDecimal(string dms)
+        {
+            // Extrae grados, minutos y segundos correctamente (incluyendo decimales)
+            var regex = new Regex(@"(\d+)°(\d+)'(\d+(?:\.\d+)?)""?");
+            var match = regex.Match(dms);
+
+            if (!match.Success)
+                return 0;
+
+            double grados = double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            double minutos = double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+            double segundos = double.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
+
+            return grados + (minutos / 60) + (segundos / 3600);
+        }
+
     }
 }

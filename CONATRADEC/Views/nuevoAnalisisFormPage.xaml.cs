@@ -1,6 +1,7 @@
 using System;
 using System.Windows.Input;
 using Microsoft.Maui.Controls;
+using CONATRADEC.Services;
 
 namespace CONATRADEC.Views
 {
