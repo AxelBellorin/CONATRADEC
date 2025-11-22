@@ -8,15 +8,14 @@
 
     <Grid>
 
-        <!-- MAPA UNIVERSAL (Android / iOS / Windows / Mac) -->
+        <!-- MAPA -->
         <WebView 
             x:Name="MapaWeb"
             Navigated="MapaWeb_Navigated"
             Navigating="MapaWeb_Navigating" />
 
         <!-- Botones -->
-        <Grid VerticalOptions="End"
-              Margin="0,0,0,25">
+        <Grid VerticalOptions="End" Margin="0,0,0,25">
 
             <Frame BackgroundColor="#CCFFFFFF"
                    CornerRadius="20"
@@ -32,13 +31,6 @@
                             FontAttributes="Bold"
                             CornerRadius="14"
                             Clicked="BtnConfirmar_Clicked" />
-
-                    <Button Text="Centrar en mi ubicación"
-                            BackgroundColor="#0099FF"
-                            TextColor="White"
-                            FontAttributes="Bold"
-                            CornerRadius="14"
-                            Clicked="BtnCentrarUbicacion_Clicked" />
 
                     <Button Text="Cancelar"
                             BackgroundColor="Gray"

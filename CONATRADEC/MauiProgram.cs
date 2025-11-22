@@ -35,9 +35,9 @@ namespace CONATRADEC
             // ==========================================================
             builder
                 .UseMauiApp<App>()
-#if !WINDOWS
-        .UseMauiMaps()
-#endif
+//#if !WINDOWS
+//        .UseMauiMaps()
+//#endif
                 // ======================================================
                 // Habilita la librería CommunityToolkit.Maui
                 //    (para usar DisplaySnackbar, Popup, Alert, etc.)

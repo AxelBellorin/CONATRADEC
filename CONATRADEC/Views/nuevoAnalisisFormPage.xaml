@@ -29,6 +29,7 @@
                                Padding="0"
                                VerticalOptions="Center"
                                HorizontalOptions="Start"
+                               Margin="10,20,0,0"
                                BackgroundColor="#2E86AB" HasShadow="False">
                             <Label Text="JM" HorizontalOptions="Center" VerticalOptions="Center" TextColor="White" FontAttributes="Bold" />
                         </Frame>
