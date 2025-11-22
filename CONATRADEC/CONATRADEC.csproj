@@ -21,7 +21,7 @@
 		<PackageId>ConatraCafeSoil</PackageId>
 
 		<!-- Display name -->
-		<ApplicationTitle>ConatraCafé Soil</ApplicationTitle>
+		<ApplicationTitle>ConatraCafé Soil</ApplicationTitle>	
 
 		<!-- App Identifier -->
 		<ApplicationId>com.conatradec.conatradec</ApplicationId>

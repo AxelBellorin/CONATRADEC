@@ -106,7 +106,7 @@
  <ScrollView Orientation="Horizontal">
  <HorizontalStackLayout Spacing="10" Padding="10,0,10,0">
  <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
- <Image HeightRequest="30" WidthRequest="30" Source="iconhome.png">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconrequerimentoanual.png">
  <Image.GestureRecognizers>
  <TapGestureRecognizer Tapped="OnMenuReqTapped"/>
  </Image.GestureRecognizers>
@@ -116,10 +116,13 @@
  FontSize="16"
  TextColor="{StaticResource color_Negro}"
  FontFamily="MontserratMedium" />
- </VerticalStackLayout>
+                            <BoxView HeightRequest="1"
+         BackgroundColor="Black"
+         HorizontalOptions="Fill" />
+                        </VerticalStackLayout>
 
  <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
- <Image HeightRequest="30" WidthRequest="30" Source="iconpermission.png">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconbalanceformula.png">
  <Image.GestureRecognizers>
  <TapGestureRecognizer Tapped="OnMenuBalanceTapped"/>
  </Image.GestureRecognizers>
@@ -129,10 +132,13 @@
  FontSize="16"
  TextColor="{StaticResource color_Negro}"
  FontFamily="MontserratMedium" />
- </VerticalStackLayout>
+                            <BoxView HeightRequest="1"
+         BackgroundColor="Black"
+         HorizontalOptions="Fill" />
+                        </VerticalStackLayout>
 
  <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
- <Image HeightRequest="30" WidthRequest="30" Source="iconuser.png">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconenmiendacalcaeras.png">
  <Image.GestureRecognizers>
  <TapGestureRecognizer Tapped="OnMenuEnmiendasTapped"/>
  </Image.GestureRecognizers>
@@ -142,10 +148,13 @@
  FontSize="16"
  TextColor="{StaticResource color_Negro}"
  FontFamily="MontserratMedium" />
- </VerticalStackLayout>
+                            <BoxView HeightRequest="1"
+         BackgroundColor="Black"
+         HorizontalOptions="Fill" />
+                        </VerticalStackLayout>
 
  <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
- <Image HeightRequest="30" WidthRequest="30" Source="iconjobposition.png">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconfertilizacionmixta.png">
  <Image.GestureRecognizers>
  <TapGestureRecognizer Tapped="OnMenuFertMixtaTapped"/>
  </Image.GestureRecognizers>
@@ -155,7 +164,10 @@
  FontSize="16"
  TextColor="{StaticResource color_Negro}"
  FontFamily="MontserratMedium" />
- </VerticalStackLayout>
+                            <BoxView HeightRequest="1"
+         BackgroundColor="Black"
+         HorizontalOptions="Fill" />
+                        </VerticalStackLayout>
  </HorizontalStackLayout>
  </ScrollView>
  </Frame>

@@ -128,7 +128,7 @@
                     </Grid>
                 </Frame>
 
-                <Button Text="Enviar Anlisislisis" 
+                <Button Text="Enviar Analisis" 
                         Clicked="OnEnviarAnalisisClicked" 
                         Margin="0,8,0,20" 
                         Style="{StaticResource AddButton}"/>
