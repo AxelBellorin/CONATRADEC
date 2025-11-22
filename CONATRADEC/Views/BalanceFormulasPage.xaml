@@ -190,6 +190,66 @@
  </ScrollView>
 
  </VerticalStackLayout>
+
+ <!-- Menú fijo encima del FooterTemplate -->
+ <Frame Grid.Row="2" BackgroundColor="{StaticResource color_Blanco}" Padding="8,6" HasShadow="False" BorderColor="{StaticResource color_Blanco}">
+ <ScrollView Orientation="Horizontal">
+ <HorizontalStackLayout Spacing="10" Padding="10,0,10,0">
+ <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconhome.png">
+ <Image.GestureRecognizers>
+ <TapGestureRecognizer Tapped="OnMenuReqTapped"/>
+ </Image.GestureRecognizers>
+ </Image>
+ <Label HorizontalOptions="Center"
+ Text="Requerimiento Anual"
+ FontSize="16"
+ TextColor="{StaticResource color_Negro}"
+ FontFamily="MontserratMedium" />
+ </VerticalStackLayout>
+
+ <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconpermission.png">
+ <Image.GestureRecognizers>
+ <TapGestureRecognizer Tapped="OnMenuBalanceTapped"/>
+ </Image.GestureRecognizers>
+ </Image>
+ <Label HorizontalOptions="Center"
+ Text="Balance de fórmulas"
+ FontSize="16"
+ TextColor="{StaticResource color_Negro}"
+ FontFamily="MontserratMedium" />
+ </VerticalStackLayout>
+
+ <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconuser.png">
+ <Image.GestureRecognizers>
+ <TapGestureRecognizer Tapped="OnMenuEnmiendasTapped"/>
+ </Image.GestureRecognizers>
+ </Image>
+ <Label HorizontalOptions="Center"
+ Text="Enmiendas Calcareas"
+ FontSize="16"
+ TextColor="{StaticResource color_Negro}"
+ FontFamily="MontserratMedium" />
+ </VerticalStackLayout>
+
+ <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+ <Image HeightRequest="30" WidthRequest="30" Source="iconjobposition.png">
+ <Image.GestureRecognizers>
+ <TapGestureRecognizer Tapped="OnMenuFertMixtaTapped"/>
+ </Image.GestureRecognizers>
+ </Image>
+ <Label HorizontalOptions="Center"
+ Text="Fertilización Mixta"
+ FontSize="16"
+ TextColor="{StaticResource color_Negro}"
+ FontFamily="MontserratMedium" />
+ </VerticalStackLayout>
+ </HorizontalStackLayout>
+ </ScrollView>
+ </Frame>
+
  </Grid>
  </ContentView>
 </ContentPage>
