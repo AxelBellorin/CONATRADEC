@@ -5,111 +5,111 @@
  Shell.NavBarIsVisible="False"
  BackgroundColor="{StaticResource color_Blanco}">
 
- <ContentView ControlTemplate="{StaticResource FooterTemplate}">
- <Grid RowDefinitions="Auto, * , Auto" ColumnDefinitions="*">
- <VerticalStackLayout Padding="16" Spacing="12">
- <Label Text="Enmiendas Calcareas" FontAttributes="Bold" FontSize="22" />
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid RowDefinitions="Auto, * , Auto" ColumnDefinitions="*">
+            <VerticalStackLayout Padding="16" Spacing="12">
+                <Label Text="Enmiendas Calcareas" FontAttributes="Bold" FontSize="22" />
 
- <ScrollView HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand">
- <Frame CornerRadius="8" Padding="8" BackgroundColor="WhiteSmoke">
- <Grid ColumnSpacing="8" RowSpacing="8">
- <Grid.ColumnDefinitions>
- <ColumnDefinition Width="*" />
- <ColumnDefinition Width="*" />
- </Grid.ColumnDefinitions>
+                <ScrollView HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand">
+                    <Frame CornerRadius="8" Padding="8" BackgroundColor="WhiteSmoke">
+                        <Grid ColumnSpacing="8" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
- <Grid.RowDefinitions>
- <RowDefinition Height="Auto" />
- <RowDefinition Height="Auto" />
- <RowDefinition Height="Auto" />
- <RowDefinition Height="Auto" />
- <RowDefinition Height="Auto" />
- <RowDefinition Height="Auto" />
- </Grid.RowDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
- <!-- Header Row -->
- <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="Suelos" FontAttributes="Bold" HorizontalTextAlignment="Center" FontSize="18" BackgroundColor="LightGray" Padding="8" />
+                            <!-- Header Row -->
+                            <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Text="Suelos" FontAttributes="Bold" HorizontalTextAlignment="Center" FontSize="18" BackgroundColor="LightGray" Padding="8" />
 
- <!-- Data Rows -->
- <Label Grid.Row="1" Grid.Column="0" Text="pH" HorizontalTextAlignment="Start" Padding="8" />
- <Label Grid.Row="1" Grid.Column="1" Text="4.17" HorizontalTextAlignment="End" Padding="8" />
+                            <!-- Data Rows -->
+                            <Label Grid.Row="1" Grid.Column="0" Text="pH" HorizontalTextAlignment="Start" Padding="8" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="4.17" HorizontalTextAlignment="End" Padding="8" />
 
- <Label Grid.Row="2" Grid.Column="0" Text="Ca" HorizontalTextAlignment="Start" Padding="8" />
- <Label Grid.Row="2" Grid.Column="1" Text="1.32 meg/100 g" HorizontalTextAlignment="End" Padding="8" />
+                            <Label Grid.Row="2" Grid.Column="0" Text="Ca" HorizontalTextAlignment="Start" Padding="8" />
+                            <Label Grid.Row="2" Grid.Column="1" Text="1.32 meg/100 g" HorizontalTextAlignment="End" Padding="8" />
 
- <Label Grid.Row="3" Grid.Column="0" Text="Mg" HorizontalTextAlignment="Start" Padding="8" />
- <Label Grid.Row="3" Grid.Column="1" Text="0.32 meg/100 g" HorizontalTextAlignment="End" Padding="8" />
+                            <Label Grid.Row="3" Grid.Column="0" Text="Mg" HorizontalTextAlignment="Start" Padding="8" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="0.32 meg/100 g" HorizontalTextAlignment="End" Padding="8" />
 
- <Label Grid.Row="4" Grid.Column="0" Text="K" HorizontalTextAlignment="Start" Padding="8" />
- <Label Grid.Row="4" Grid.Column="1" Text="0.14 meg/100 g" HorizontalTextAlignment="End" Padding="8" />
+                            <Label Grid.Row="4" Grid.Column="0" Text="K" HorizontalTextAlignment="Start" Padding="8" />
+                            <Label Grid.Row="4" Grid.Column="1" Text="0.14 meg/100 g" HorizontalTextAlignment="End" Padding="8" />
 
- <Label Grid.Row="5" Grid.Column="0" Text="AT" HorizontalTextAlignment="Start" Padding="8" />
- <Label Grid.Row="5" Grid.Column="1" Text="5.18 meg/100 g" HorizontalTextAlignment="End" Padding="8" />
- </Grid>
- </Frame>
- </ScrollView>
+                            <Label Grid.Row="5" Grid.Column="0" Text="AT" HorizontalTextAlignment="Start" Padding="8" />
+                            <Label Grid.Row="5" Grid.Column="1" Text="5.18 meg/100 g" HorizontalTextAlignment="End" Padding="8" />
+                        </Grid>
+                    </Frame>
+                </ScrollView>
 
- </VerticalStackLayout>
+            </VerticalStackLayout>
 
- <!-- Menú fijo encima del FooterTemplate -->
- <Frame Grid.Row="2" BackgroundColor="{StaticResource color_Blanco}" Padding="8,6" HasShadow="False" BorderColor="{StaticResource color_Blanco}">
- <ScrollView Orientation="Horizontal">
- <HorizontalStackLayout Spacing="10" Padding="10,0,10,0">
- <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
- <Image HeightRequest="30" WidthRequest="30" Source="iconhome.png">
- <Image.GestureRecognizers>
- <TapGestureRecognizer Tapped="OnMenuReqTapped"/>
- </Image.GestureRecognizers>
- </Image>
- <Label HorizontalOptions="Center"
- Text="Requerimiento Anual"
- FontSize="16"
- TextColor="{StaticResource color_Negro}"
- FontFamily="MontserratMedium" />
- </VerticalStackLayout>
+            <!-- Menu fijo encima del FooterTemplate -->
+            <Frame Grid.Row="2" BackgroundColor="{StaticResource color_Blanco}" Padding="8,6" HasShadow="False" BorderColor="{StaticResource color_Blanco}">
+                <ScrollView Orientation="Horizontal">
+                    <HorizontalStackLayout Spacing="10" Padding="10,0,10,0">
+                        <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+                            <Image HeightRequest="30" WidthRequest="30" Source="iconhome.png">
+                                <Image.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMenuReqTapped"/>
+                                </Image.GestureRecognizers>
+                            </Image>
+                            <Label  HorizontalOptions="Center"
+                                    Text="Requerimiento Anual"
+                                    FontSize="16"
+                                    TextColor="{StaticResource color_Negro}"
+                                    FontFamily="MontserratMedium" />
+                        </VerticalStackLayout>
 
- <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
- <Image HeightRequest="30" WidthRequest="30" Source="iconpermission.png">
- <Image.GestureRecognizers>
- <TapGestureRecognizer Tapped="OnMenuBalanceTapped"/>
- </Image.GestureRecognizers>
- </Image>
- <Label HorizontalOptions="Center"
- Text="Balance de fórmulas"
- FontSize="16"
- TextColor="{StaticResource color_Negro}"
- FontFamily="MontserratMedium" />
- </VerticalStackLayout>
+                        <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+                            <Image HeightRequest="30" WidthRequest="30" Source="iconpermission.png">
+                                <Image.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMenuBalanceTapped"/>
+                                </Image.GestureRecognizers>
+                            </Image>
+                            <Label  HorizontalOptions="Center"
+                                    Text="Balance de formulas"
+                                    FontSize="16"
+                                    TextColor="{StaticResource color_Negro}"
+                                    FontFamily="MontserratMedium" />
+                        </VerticalStackLayout>
 
- <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
- <Image HeightRequest="30" WidthRequest="30" Source="iconuser.png">
- <Image.GestureRecognizers>
- <TapGestureRecognizer Tapped="OnMenuEnmiendasTapped"/>
- </Image.GestureRecognizers>
- </Image>
- <Label HorizontalOptions="Center"
- Text="Enmiendas Calcareas"
- FontSize="16"
- TextColor="{StaticResource color_Negro}"
- FontFamily="MontserratMedium" />
- </VerticalStackLayout>
+                        <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+                            <Image HeightRequest="30" WidthRequest="30" Source="iconuser.png">
+                                <Image.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMenuEnmiendasTapped"/>
+                                </Image.GestureRecognizers>
+                            </Image>
+                            <Label  HorizontalOptions="Center"
+                                    Text="Enmiendas Calcareas"
+                                    FontSize="16"
+                                    TextColor="{StaticResource color_Negro}"
+                                    FontFamily="MontserratMedium" />
+                        </VerticalStackLayout>
 
- <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
- <Image HeightRequest="30" WidthRequest="30" Source="iconjobposition.png">
- <Image.GestureRecognizers>
- <TapGestureRecognizer Tapped="OnMenuFertMixtaTapped"/>
- </Image.GestureRecognizers>
- </Image>
- <Label HorizontalOptions="Center"
- Text="Fertilización Mixta"
- FontSize="16"
- TextColor="{StaticResource color_Negro}"
- FontFamily="MontserratMedium" />
- </VerticalStackLayout>
- </HorizontalStackLayout>
- </ScrollView>
- </Frame>
+                        <VerticalStackLayout Spacing="3" Margin="0,0,30,0">
+                            <Image HeightRequest="30" WidthRequest="30" Source="iconjobposition.png">
+                                <Image.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMenuFertMixtaTapped"/>
+                                </Image.GestureRecognizers>
+                            </Image>
+                            <Label  HorizontalOptions="Center"
+                                    Text="Fertilizacion Mixta"
+                                    FontSize="16"
+                                    TextColor="{StaticResource color_Negro}"
+                                    FontFamily="MontserratMedium" />
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </ScrollView>
+            </Frame>
 
- </Grid>
- </ContentView>
+        </Grid>
+    </ContentView>
 </ContentPage>

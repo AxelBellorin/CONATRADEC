@@ -1,16 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!--
-  Archivo: AppShell.xaml
-  Descripción:
-    Define la estructura de navegación principal de la aplicación CONATRADEC.
-    Utiliza el patrón Shell de .NET MAUI para manejar rutas, navegación jerárquica
-    y el menú Flyout.
-
-  Contiene:
-    - Configuración visual del Shell (colores, encabezado, fondo del menú).
-    - Definición de rutas de las páginas (ShellContent).
-    - Cada ShellContent representa una vista registrada para navegación.
--->
+<?xml version="1.0" encoding="utf-8" ?>
 <Shell
     x:Class="CONATRADEC.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -22,131 +10,129 @@
     Shell.DisabledColor="Gray"
     Shell.FlyoutBackgroundColor="LightBlue">
 
-    <!--
-      NOTAS:
-        - Cada <ShellContent> define una página registrada con una "Route".
-        - FlyoutItemIsVisible="False" oculta la página del menú lateral (solo accesible por código).
-        - Se usan rutas absolutas en navegación (//RouteName).
-        - El "ContentTemplate" vincula el nombre de la vista (Page) con su clase correspondiente.
-    -->
-    
-    <!-- Pantalla de autenticación -->
-    <ShellContent Title="Login"
+    <!-- LOGIN -->
+    <ShellContent Title="LoginPage"
                   Route="LoginPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:loginPage}" />
 
-    <!-- Gestión de paises -->
+    <!-- PAIS -->
     <ShellContent Title="PaisPage"
                   Route="PaisPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:paisPage}" />
 
-    <!-- Formulario de pais (crear, editar, ver) -->
     <ShellContent Title="PaisFormPage"
                   Route="PaisFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:paisFormPage}" />
 
-    <!-- Gestión de terreno -->
+    <!-- TERRENO -->
     <ShellContent Title="TerrenoPage"
                   Route="TerrenoPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:terrenoPage}" />
-    
-    <!--Formulario de terreno-->
+
     <ShellContent Title="TerrenoFormPage"
                   Route="TerrenoFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:terrenoFormPage}" />
 
-    <!-- Gestión de usuarios -->
+    <!-- USUARIO -->
     <ShellContent Title="UserPage"
                   Route="UserPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:userPage}" />
 
-    <!-- Formulario de usuario (crear, editar, ver) -->
     <ShellContent Title="UserFormPage"
                   Route="UserFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:userFormPage}" />
 
-    <!-- Página principal después de iniciar sesión -->
+    <!-- MAIN -->
     <ShellContent Title="MainPage"
                   Route="MainPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:MainPage}" />
 
-    <!-- Gestión de roles -->
+    <!-- ROL -->
     <ShellContent Title="RolPage"
                   Route="RolPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:rolPage}" />
 
-    <!-- Formulario de rol -->
     <ShellContent Title="RolFormPage"
                   Route="RolFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:rolFormPage}" />
 
-    <!-- Gestión de cargos -->
+    <!-- DEPARTAMENTO -->
     <ShellContent Title="DepartamentoPage"
                   Route="DepartamentoPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:departamentoPage}" />
 
-    <!-- Formulario de cargo -->
     <ShellContent Title="DepartamentoFormPage"
                   Route="DepartamentoFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:departamentoFormPage}" />
 
-    <!-- Gestión de municipio -->
+    <!-- MUNICIPIO -->
     <ShellContent Title="MunicipioPage"
                   Route="MunicipioPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:municipioPage}" />
 
-     <!--Formulario de municipio-->
     <ShellContent Title="MunicipioFormPage"
                   Route="MunicipioFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:municipioFormPage}" />
 
-    <!-- Gestión de elemento quimico -->
+    <!-- ELEMENTO QUIMICO -->
     <ShellContent Title="ElementoQuimicoPage"
                   Route="ElementoQuimicoPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:elementoQuimicoPage}" />
 
-    <!--Formulario de elemento quimico-->
     <ShellContent Title="ElementoQuimicoFormPage"
                   Route="ElementoQuimicoFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:elementoQuimicoFormPage}" />
 
-    <ShellContent 
-            Title="MapaSeleccionPage"
-            Route="MapaSeleccionPage"
-            FlyoutItemIsVisible="False"
-            ContentTemplate="{DataTemplate views:MapaSeleccionPage}" />
+    <!-- MAPA -->
+    <ShellContent Title="MapaSeleccionPage"
+                  Route="MapaSeleccionPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:MapaSeleccionPage}" />
 
-
-    <!-- Matriz de permisos (Roles ↔ Interfaz) -->
+    <!-- MATRIZ PERMISOS -->
     <ShellContent Title="MatrizPermisosPage"
                   Route="MatrizPermisosPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:matrizPermisosPage}" />
 
-    <ShellContent Title="Nuevo Análisis"
-              Route="NuevoAnalisisFormPage"
-              FlyoutItemIsVisible="False"
-              ContentTemplate="{DataTemplate views:NuevoAnalisisFormPage}" />
+    <!-- NUEVO ANÁLISIS -->
+    <ShellContent Title="NuevoAnalisisFormPage"
+                  Route="NuevoAnalisisFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:NuevoAnalisisFormPage}" />
 
-    <ShellContent Title="Enmiendas Calcareas"
+    <!-- ENMIENDAS CALCÁREAS -->
+    <ShellContent Title="EnmiendasCalcareasPage"
                   Route="EnmiendasCalcareasPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:EnmiendasCalcareasPage}" />
+
+    <!-- BALANCE FÓRMULAS -->
+    <ShellContent Title="BalanceFormulasPage"
+                  Route="BalanceFormulasPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:BalanceFormulasPage}" />
+
+    <!-- RESULTADOS ANÁLISIS -->
+    <ShellContent Title="ResultadosAnalisisPage"
+                  Route="ResultadosAnalisisPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:ResultadosAnalisisPage}" />
 
 </Shell>
