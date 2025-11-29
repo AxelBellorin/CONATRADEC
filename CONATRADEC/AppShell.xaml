@@ -22,6 +22,17 @@
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:paisPage}" />
 
+    <!-- ELEMENTO QUIMICO -->
+    <ShellContent Title="ElementoQuimicoPage"
+                  Route="ElementoQuimicoPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:elementoQuimicoPage}" />
+
+    <ShellContent Title="ElementoQuimicoFormPage"
+                  Route="ElementoQuimicoFormPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:elementoQuimicoFormPage}" />
+
     <ShellContent Title="PaisFormPage"
                   Route="PaisFormPage"
                   FlyoutItemIsVisible="False"
@@ -87,17 +98,6 @@
                   Route="MunicipioFormPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:municipioFormPage}" />
-
-    <!-- ELEMENTO QUIMICO -->
-    <ShellContent Title="ElementoQuimicoPage"
-                  Route="ElementoQuimicoPage"
-                  FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:elementoQuimicoPage}" />
-
-    <ShellContent Title="ElementoQuimicoFormPage"
-                  Route="ElementoQuimicoFormPage"
-                  FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:elementoQuimicoFormPage}" />
 
     <!-- MAPA -->
     <ShellContent Title="MapaSeleccionPage"

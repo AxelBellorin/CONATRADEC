@@ -107,9 +107,9 @@
                                                FontFamily="MontserratBold"
                                                TextColor="{StaticResource color_Negro}" />
 
-                                        <Label Text="{Binding PesoEquivalentEelementoQuimico, StringFormat='Peso equivalente: {0:F4}'}"
+                                        <Label Text="{Binding PesoEquivalentElementoQuimico, StringFormat='Peso equivalente: {0:F4}'}"
                                                FontSize="14"
-                                               TextColor="{StaticResource color_GrisOscuro}" />
+                                               TextColor="{StaticResource color_Gris}" />
                                     </StackLayout>
                                 </Grid>
                             </Border>

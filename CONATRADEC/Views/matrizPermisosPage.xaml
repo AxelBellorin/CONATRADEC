@@ -11,6 +11,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:views="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui"
+             xmlns:controls="clr-namespace:CONATRADEC.Controls"
              x:Class="CONATRADEC.Views.matrizPermisosPage"
              Shell.NavBarIsVisible="False"
              Title="Matriz de permisos"
@@ -149,10 +151,11 @@
                                     <Grid>
 
                                         <!-- Expander del CommunityToolkit para ver/ocultar detalle -->
-                                        <toolkit:Expander IsExpanded="False">
+                                        <views:Expander IsExpanded="{Binding IsExpanded}"
+                                                        ExpandedChanged="OnExpanderExpandedChanged">
 
                                             <!-- CABECERA DEL EXPANDER (estado colapsado) -->
-                                            <toolkit:Expander.Header>
+                                            <views:Expander.Header>
                                                 <Grid RowDefinitions="*"
                                                       ColumnDefinitions="*,Auto"
                                                       Padding="0,8"
@@ -185,10 +188,10 @@
                                                         </Label.FormattedText>
                                                     </Label>
                                                 </Grid>
-                                            </toolkit:Expander.Header>
+                                            </views:Expander.Header>
 
                                             <!-- CONTENIDO DEL EXPANDER (detalle abierto) -->
-                                            <toolkit:Expander.Content>
+                                            <views:Expander.Content>
 
                                                 <!-- Contenedor del detalle con separación -->
                                                 <Grid ColumnDefinitions="*"
@@ -285,9 +288,8 @@
                                                            HeightRequest="5"
                                                            Background="{StaticResource Color_Refrescar_Normal}" />
                                                 </Grid>
-                                            </toolkit:Expander.Content>
-
-                                        </toolkit:Expander>
+                                            </views:Expander.Content>
+                                        </views:Expander>
                                     </Grid>
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>

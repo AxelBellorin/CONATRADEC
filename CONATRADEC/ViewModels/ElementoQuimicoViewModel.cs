@@ -36,7 +36,6 @@ namespace CONATRADEC.ViewModels
         public async Task LoadElementoQuimico(bool isBusy)
         {
             IsBusy = isBusy;
-            List.Clear();
 
             bool tieneInternet = await TieneInternetAsync();
             if (!tieneInternet)
@@ -48,13 +47,16 @@ namespace CONATRADEC.ViewModels
 
             var response = await elementoApiService.GetElementoQuimicoAsync();
 
-            if (response.Count != 0)
+            List.Clear();
+
+            if (response.Count > 0)
             {
-                List = response;
+                foreach (var item in response)
+                    List.Add(item);
             }
             else
             {
-                _ = MostrarToastAsync("Información" + "No se encontraron elementos químicos.");
+                _ = MostrarToastAsync("No se encontraron elementos químicos.");
             }
 
             IsBusy = false;

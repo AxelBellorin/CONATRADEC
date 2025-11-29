@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
@@ -12,7 +13,7 @@ namespace CONATRADEC.Models
         private int? elementoQuimicosId;
         private string? simboloElementoQuimico;
         private string? nombreElementoQuimico;
-        private decimal? pesoEquivalentEelementoQuimico; // decimal(10,4) en BD
+        private decimal? pesoEquivalentElementoQuimico;
 
         // Propiedades públicas
         public int? ElementoQuimicosId
@@ -36,10 +37,12 @@ namespace CONATRADEC.Models
         /// <summary>
         /// Peso equivalente del elemento químico (decimal(10,4) en la base de datos).
         /// </summary>
-        public decimal? PesoEquivalentEelementoQuimico
+        /// 
+        [JsonPropertyName("pesoEquivalentEelementoQuimico")]
+        public decimal? PesoEquivalentElementoQuimico
         {
-            get => pesoEquivalentEelementoQuimico;
-            set => pesoEquivalentEelementoQuimico = value;
+            get => pesoEquivalentElementoQuimico;
+            set => pesoEquivalentElementoQuimico = value;
         }
 
         public ElementoQuimicoResponse() { }

@@ -95,7 +95,7 @@
                                                TextColor="{StaticResource color_Negro}" />
                                         <Label Text="{Binding NombrePropietarioTerreno}"
                                                FontSize="14"
-                                               TextColor="{StaticResource color_GrisOscuro}" />
+                                               TextColor="{StaticResource color_Gris}" />
                                     </VerticalStackLayout>
 
                                     <!-- Derecha: Ubicación completa y extensión -->

@@ -26,6 +26,8 @@ namespace CONATRADEC.Models
         // Se inicializa con una cadena vacía para evitar valores nulos.
         private string nombreInterfaz = string.Empty;
 
+        private bool _isExpanded;
+
 
         // ===========================================================
         // ============= PROPIEDADES PÚBLICAS CON NOTIFICACIÓN =======
@@ -38,6 +40,19 @@ namespace CONATRADEC.Models
         // Propiedad pública para acceder o modificar el nombre del permiso.
         // También notifica cambios al UI cuando su valor cambia.
         public string NombreInterfaz { get => nombreInterfaz; set { nombreInterfaz = value; OnPropertyChanged(); } }
+
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set
+            {
+                if (_isExpanded == value)
+                    return;
+
+                _isExpanded = value;
+                OnPropertyChanged(nameof(IsExpanded));
+            }
+        }
 
 
         // ===========================================================
