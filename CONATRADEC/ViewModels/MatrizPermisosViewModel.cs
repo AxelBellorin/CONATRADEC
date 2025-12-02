@@ -2,8 +2,6 @@
 using CONATRADEC.Models;                    // Modelos: RolResponse, InterfazResponse, etc.
 using System.Collections.ObjectModel;       // Colecciones observables para data binding.
 using System.ComponentModel;                // INotifyPropertyChanged (usado por items).
-using System.Runtime.CompilerServices;
-using System.Windows.Input;
 using CommunityToolkit.Maui.Core.Extensions; // Extensiones (ToObservableCollection).
 
 namespace CONATRADEC.ViewModels;
@@ -21,7 +19,29 @@ public class MatrizPermisosViewModel : GlobalService
     private List<PermisoSnapshot> _snapshot = new();                 // Copia del estado actual (para Revertir).
     private RolResponse? _rolSeleccionado;                           // Rol actualmente seleccionado.
     private string _filtro = string.Empty;                            // Texto para filtrar por NombrePermiso.
-    private string _estado = string.Empty;                            // Mensaje de estado para la UI.
+    private string _estado = string.Empty;                            // Mensaje de estado para la UI.  
+    public bool EsAdministrador => RolSeleccionado?.NombreRol?.Equals("ADMINISTRADOR", StringComparison.OrdinalIgnoreCase) == true;
+    private bool _usuarioPuedeEditar;
+    private bool _puedeEditarColumnasbtn;
+    public bool UsuarioPuedeEditar
+    {
+        get => _usuarioPuedeEditar;
+        set
+        {
+            _usuarioPuedeEditar = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool PuedeEditarColumnasBtn
+    {
+        get => _puedeEditarColumnasbtn;
+        set
+        {
+            _puedeEditarColumnasbtn = value;
+            OnPropertyChanged();
+        }
+    }
 
     // ====================================================
     // Servicios API
@@ -106,6 +126,8 @@ public class MatrizPermisosViewModel : GlobalService
             }
         }
     }
+    public bool PuedeEditarColumnas => UsuarioPuedeEditar && !EsAdministrador;
+
 
     // Lista de roles (para un Picker/ComboBox).
     public ObservableCollection<RolResponse> Roles
@@ -123,6 +145,7 @@ public class MatrizPermisosViewModel : GlobalService
             if (_rolSeleccionado != value)
             {
                 _rolSeleccionado = value;
+
                 _ = CargarPermisosDelRolAsync(value); // Fire-and-forget; evita bloquear el setter.
             }
         }
@@ -142,6 +165,7 @@ public class MatrizPermisosViewModel : GlobalService
         matrizPermisosApiService = new MatrizPermisosApiService();
         rolApiService = new RolApiService();
 
+        UsuarioPuedeEditar = PermissionService.Instance.HasUpdate("matrizPermisosPage");
         // Inicialización de comandos y sus CanExecute.
         RefrescarCommand = new Command(async () => await CargarRolesAsync());
         GuardarCommand = new Command(async () => await GuardarAsync(), () => PuedeGuardar);
@@ -239,21 +263,18 @@ public class MatrizPermisosViewModel : GlobalService
         {
             IsBusy = true;
 
-            // Valida que el usaurio tenga conexion a internet
+            // Validación de internet
             bool tieneInternet = await TieneInternetAsync();
-
             if (!tieneInternet)
             {
                 _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
                 return;
             }
 
-            // Limpia colección previa solo si existe y tiene elementos.
-            if (Permisos is not null && Permisos.Count > 0)
-                Permisos.Clear();
+            // Limpieza previa
+            Permisos?.Clear();
 
-            // Pide al servicio la(s) matriz/matrices para el rol.
+            // Llamada a API
             var response = await matrizPermisosApiService.GetMatrizByRolAsync(new RolRequest(rolResponse));
 
             if (response is null || response.Count < 1)
@@ -262,32 +283,75 @@ public class MatrizPermisosViewModel : GlobalService
                 return;
             }
 
-            // Toma la primera matriz devuelta (según contrato actual de tu API).
             var matriz = response.FirstOrDefault();
 
-            // Si por alguna razón viene null, sale con estado informativo (evita NRE).
             if (matriz?.Interfaz is null)
             {
                 Estado = "No se encontraron permisos para el rol seleccionado.";
                 return;
             }
 
-            // Reemplaza la colección de permisos con la devuelta por la API.
+            // Reemplazar permisos
             Permisos = matriz.Interfaz;
 
-            // Marca como "limpios" los items recién cargados (no hay cambios pendientes).
+            // Marcar limpios
             foreach (var p in Permisos)
                 p.AcceptChanges();
 
-            // Actualiza el snapshot para poder revertir los cambios luego.
+            // Actualizar snapshot
             _snapshot = Permisos.Select(PermisoSnapshot.From).ToList();
+
+
+            // ============================================================
+            // LÓGICA DE BLOQUEO DE PERMISOS
+            // ============================================================
+
+            // ¿El usuario actual tiene permiso para actualizar matrizPermisosPage?
+            bool usuarioPuedeEditar = PermissionService.Instance.HasUpdate("matrizPermisosPage");
+
+            // ¿El rol seleccionado es "Administrador"?
+            bool esRolAdmin = RolSeleccionado.NombreRol.Equals("Administrador", StringComparison.OrdinalIgnoreCase);
+
+            foreach (var p in Permisos)
+            {
+                if (esRolAdmin)
+                {
+                    // El rol administrador NO debe ser editable
+                    p.CanEdit = false;
+
+                    p.Leer = true;
+                    p.Actualizar = true;
+                    // (esto es opcional según tu lógica)
+                }
+                else
+                {
+                    // Solo puede editar si TIENE permiso en matrizPermisosPage
+                    p.CanEdit = usuarioPuedeEditar;
+                }
+            }
+
+            // REGLA: El administrador NO puede modificar la matriz
+            if (EsAdministrador)
+            {
+                PuedeEditarColumnasBtn = false;
+            }
+            else
+            {
+                // Los demás roles dependen del permiso real de UPDATE
+                PuedeEditarColumnasBtn = UsuarioPuedeEditar;
+            }
+
+            OnPropertyChanged(nameof(PuedeEditarColumnasBtn));
+
+
+            // Notificar cambios
+            OnPropertyChanged(nameof(PermisosFiltrados));
 
             Estado = $"Permisos cargados para {RolSeleccionado.NombreRol}";
             ActualizarHabilitados();
         }
         catch (Exception ex)
         {
-            // Muestra una única alerta con el error (antes había dos seguidas con el mismo mensaje).
             _ = MostrarToastAsync("Error " + $"No se pudieron cargar los permisos: {ex.Message}");
         }
         finally
@@ -295,6 +359,7 @@ public class MatrizPermisosViewModel : GlobalService
             IsBusy = false;
         }
     }
+
 
     // ====================================================
     // COMPORTAMIENTO DE LOS COMANDOS
@@ -405,6 +470,15 @@ public class MatrizPermisosViewModel : GlobalService
 
             // Envía SIEMPRE la lista completa de permisos según el contrato actual del endpoint.
             var permisosParaEnviar = Permisos;
+
+            if (EsAdministrador)
+            {
+                foreach (var p in Permisos)
+                {
+                    p.Leer = true;
+                    p.Actualizar = true;
+                }
+            }
 
             // Construye el request para la API.
             var matriz = new MatrizPermisosRequest

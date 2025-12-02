@@ -4,7 +4,7 @@ namespace CONATRADEC.Views
 {
     public partial class terrenoPage : ContentPage
     {
-        private TerrenoViewModel viewModel = new TerrenoViewModel();
+        private readonly TerrenoViewModel viewModel = new();
 
         public terrenoPage()
         {
@@ -16,6 +16,21 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            // Carga permisos
+            viewModel.LoadPagePermissions("terrenoPage");
+
+            if (!viewModel.CanView)
+            {
+                await App.Current.MainPage.DisplayAlert(
+                    "Permiso denegado",
+                    "No tiene permisos para ver los terrenos.",
+                    "Aceptar");
+
+                await Shell.Current.GoToAsync("//MainPage");
+                return;
+            }
+
             await viewModel.LoadTerrenosAsync(true);
         }
     }

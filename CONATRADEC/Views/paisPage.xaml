@@ -1,40 +1,22 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--
-  Página: paisPage.xaml
-  Descripción: Listado de Países con acciones (Agregar / Editar / Eliminar / Ver).
-  ViewModel esperado (ejemplo): PaisViewModel
-    - Propiedades: ObservableCollection<PaisResponse> List, bool IsBusy
-    - Comandos: ICommand AddCommand, EditCommand, DeleteCommand, ViewCommand
--->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.paisPage"
-             Shell.NavBarIsVisible="False"
-             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="CONATRADEC.Views.paisPage"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{StaticResource color_Blanco}">
 
-    <!--
-      Contenedor que aplica un ControlTemplate compartido (FooterTemplate).
-      x:Name permite referenciar el BindingContext del Page desde dentro del árbol (x:Reference).
-    -->
     <ContentView x:Name="PaisPage"
                  ControlTemplate="{StaticResource FooterTemplate}">
 
-        <!--
-          GRID PRINCIPAL
-          Filas:
-            0: Encabezado (título + botón Agregar)
-            1: Indicador de carga (ActivityIndicator)
-            2: Lista (CollectionView)
-        -->
-        <Grid ColumnDefinitions="*"
-              RowDefinitions="Auto,Auto,*">
+        <Grid RowDefinitions="Auto,Auto,*"
+              ColumnDefinitions="*">
 
-            <!-- Encabezado -->
-            <Grid ColumnDefinitions="*,Auto"
-                  Grid.Row="0"
+            <!-- ENCABEZADO -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="*,Auto"
                   Padding="0,10,0,0">
 
-                <!-- Título -->
                 <Label Text="País"
                        FontSize="30"
                        FontFamily="MontserratBold"
@@ -44,38 +26,33 @@
                        HorizontalOptions="Start"
                        Padding="30,0,0,0" />
 
-                <!-- Botón Agregar: ejecuta AddCommand del ViewModel -->
+                <!-- AGREGAR -->
                 <ImageButton Source="iconadd.png"
                              WidthRequest="60"
                              HeightRequest="60"
-                             CornerRadius="30"
                              Grid.Column="1"
+                             Background="Transparent"
                              Padding="0,0,20,0"
-                             Command="{Binding AddCommand}" />
+                             Command="{Binding AddCommand}"
+                             IsVisible="{Binding CanAdd}" />
             </Grid>
 
-            <!-- Indicador de carga: visible cuando IsBusy == true -->
+            <!-- LOADING -->
             <ActivityIndicator Grid.Row="1"
                                IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
                                Color="{StaticResource color_Naranja}" />
 
-            <!--
-              LISTA DE PAÍSES
-              - ItemsSource: List (ObservableCollection<PaisResponse>)
-              - SelectionMode None: las acciones se manejan por gestos y botones (Swipe/Tap)
-            -->
+            <!-- LISTA -->
             <CollectionView Grid.Row="2"
                             ItemsSource="{Binding List}"
                             SelectionMode="None">
 
-                <!-- Layout vertical con espaciado entre ítems -->
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical"
                                        ItemSpacing="2" />
                 </CollectionView.ItemsLayout>
 
-                <!-- Vista vacía cuando no hay datos -->
                 <CollectionView.EmptyView>
                     <Grid Padding="20">
                         <Label Text="No hay países para mostrar."
@@ -84,67 +61,54 @@
                     </Grid>
                 </CollectionView.EmptyView>
 
-                <!-- Plantilla de cada ítem -->
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
 
-                        <!--
-                          SwipeView: acciones por deslizamiento a la derecha
-                          - Editar: EditCommand (CommandParameter = item)
-                          - Eliminar: DeleteCommand (CommandParameter = item)
-                          Nota: usamos {x:Reference PaisPage} para alcanzar el BindingContext del page.
-                        -->
-                        <SwipeView>
+                        <SwipeView IsEnabled="{Binding Source={x:Reference PaisPage}, Path=BindingContext.CanView}">
                             <SwipeView.RightItems>
                                 <SwipeItems Mode="Reveal">
 
+                                    <!-- EDITAR -->
                                     <SwipeItem Text="Editar"
                                                IconImageSource="iconupdate.png"
                                                BackgroundColor="{StaticResource BlueUpdate}"
                                                Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.EditCommand}"
-                                               CommandParameter="{Binding .}" />
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference PaisPage}, Path=BindingContext.CanEdit}" />
 
+                                    <!-- ELIMINAR -->
                                     <SwipeItem Text="Eliminar"
                                                IconImageSource="icondelete.png"
                                                BackgroundColor="{StaticResource RedDelete}"
                                                Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.DeleteCommand}"
-                                               CommandParameter="{Binding .}" />
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference PaisPage}, Path=BindingContext.CanDelete}" />
 
                                 </SwipeItems>
                             </SwipeView.RightItems>
 
-                            <!--
-                              Contenido visual del ítem:
-                              - Border con estilo (sin borde en móvil, sin esquinas en WinUI)
-                              - Grid con imagen a la izquierda y datos a la derecha
-                              - Tap en toda la fila para ejecutar ViewCommand (ver detalles)
-                            -->
+                            <!-- CONTENIDO -->
                             <Border Style="{StaticResource BorderStyleNoCornerRadius}">
 
                                 <Grid Padding="10"
-                                      ColumnDefinitions="Auto,*">
+                                      ColumnDefinitions="Auto,*"
+                                      IsEnabled="{Binding Source={x:Reference PaisPage}, Path=BindingContext.CanView}">
 
-                                    <!-- Tap en toda la fila: ver detalle del país -->
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.ViewCommand}"
-                                                              CommandParameter="{Binding .}" />
+                                        <TapGestureRecognizer 
+                                            Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.ViewCommand}"
+                                            CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
 
-                                    <!-- Codigo ISO (lado izquierdo) -->
-                                    <StackLayout Grid.Column="0"
-                                                 VerticalOptions="Center"
-                                                 HorizontalOptions="Center"
-                                                 Margin="0,0,10,0">
+                                    <StackLayout Grid.Column="0" Margin="0,0,10,0">
                                         <Label Text="{Binding CodigoISOPais}"
                                                FontAttributes="Bold"
                                                FontSize="20"
                                                FontFamily="MontserratBold"
                                                TextColor="{StaticResource color_Verde}" />
                                     </StackLayout>
-                                    
-                                    <!-- Datos del país -->
-                                    <StackLayout Grid.Column="1"
-                                                 VerticalOptions="Center">
+
+                                    <StackLayout Grid.Column="1">
                                         <Label Text="{Binding NombrePais}"
                                                FontAttributes="Bold"
                                                FontSize="20"
@@ -154,6 +118,7 @@
                                 </Grid>
                             </Border>
                         </SwipeView>
+
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

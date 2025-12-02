@@ -1,58 +1,53 @@
 ﻿using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
-using CommunityToolkit.Maui.Core;
 using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
 {
-    // Servicio base compartido para navegación y estado común (IsBusy).
-    // Implementa INotifyPropertyChanged para permitir data binding desde ViewModels/Views.
     public class GlobalService : INotifyPropertyChanged
     {
-        // ===========================================================
-        // ======================== COMANDOS ==========================
-        // ===========================================================
-        public Command goToMainPageCommand { get; }                 // Comando para navegar a MainPage.
-        public Command goToUserPageButtonCommand { get; }           // Comando para navegar a UserPage.
-        public Command goToRolPageButtonCommand { get; }            // Comando para navegar a RolPage.
-        public Command goToCargoPageButtonCommand { get; }          // Comando para navegar a CargoPage.
-        public Command goToMatrizPermisosPageButtonCommad { get; }  // Comando para navegar a MatrizPermisosPage. (sic: nombre conserva 'Commad')
-        public Command goToPaisPageButtonCommand { get; }           // Comando para navegar a CargoPage.
-        public Command goToElementoQuimicoPageButtonCommand { get; }    // Comando para navegar a ElementoQuimicoPage.
-        public Command goToTerrenoPageButtonCommand { get; }        // Comando para navegar a TerrenoPage.
-        public Command goToBack { get; }                            // Comando para navegar hacia atrás en Shell.
+        // ================== PERMISOS GLOBALES POR PAGE ==================
+        public bool CanAdd { get; protected set; }
+        public bool CanEdit { get; protected set; }
+        public bool CanDelete { get; protected set; }
+        public bool CanView { get; protected set; }
 
-        // ===========================================================
-        // =================== ESTADO / NOTIFICACIÓN =================
-        // ===========================================================
-        private bool isBusy;                                        // Bandera de operación en curso para bloquear UI/acciones concurrentes.
+        // ============================
+        // COMANDOS DE NAVEGACIÓN
+        // ============================
+        public Command goToMainPageCommand { get; }
+        public Command goToUserPageButtonCommand { get; }
+        public Command goToRolPageButtonCommand { get; }
+        public Command goToMatrizPermisosPageButtonCommad { get; }
+        public Command goToPaisPageButtonCommand { get; }
+        public Command goToElementoQuimicoPageButtonCommand { get; }
+        public Command goToTerrenoPageButtonCommand { get; }
+        public Command goToBack { get; }
 
-        // Evento de notificación de cambios de propiedades (INotifyPropertyChanged).
+        // ============================
+        // ESTADO Y NOTIFICACIONES
+        // ============================
+        private bool isBusy;
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        // Propiedad enlazable que expone el estado de ocupación (busy).
         public bool IsBusy
         {
-            get => isBusy;                                         // Retorna el estado actual.
+            get => isBusy;
             set
             {
-                isBusy = value;                                     // Actualiza el estado interno.
-                OnPropertyChanged();                                // Notifica a la UI el cambio de IsBusy.
-                OnPropertyChanged(nameof(NotIsBusy));                                // Notifica a la UI el cambio de IsBusy.
+                isBusy = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(NotIsBusy));
 
-                // Propaga ChangeCanExecute a cada Command para recalcular su disponibilidad (CanExecute).
                 ((Command)goToMainPageCommand).ChangeCanExecute();
                 ((Command)goToUserPageButtonCommand).ChangeCanExecute();
                 ((Command)goToRolPageButtonCommand).ChangeCanExecute();
-                ((Command)goToCargoPageButtonCommand).ChangeCanExecute();
                 ((Command)goToMatrizPermisosPageButtonCommad).ChangeCanExecute();
                 ((Command)goToElementoQuimicoPageButtonCommand).ChangeCanExecute();
                 ((Command)goToPaisPageButtonCommand).ChangeCanExecute();
@@ -63,102 +58,126 @@ namespace CONATRADEC.Services
 
         public bool NotIsBusy => !IsBusy;
 
-        // ===========================================================
-        // ======================= CONSTRUCTOR =======================
-        // ===========================================================
+        // ============================
+        // CONSTRUCTOR
+        // ============================
         public GlobalService()
         {
-            // Inicializa los comandos con acciones asincrónicas y predicados de habilitación basados en !IsBusy.
             goToMainPageCommand = new Command(async () => await GoToMainPage(), () => !IsBusy);
             goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusy);
             goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusy);
-            goToCargoPageButtonCommand = new Command(async () => await GoToCargoPage(), () => !IsBusy);
             goToMatrizPermisosPageButtonCommad = new Command(async () => await GoToMatrizPermisosPage(), () => !IsBusy);
             goToPaisPageButtonCommand = new Command(async () => await GoToPaisPage(), () => !IsBusy);
             goToElementoQuimicoPageButtonCommand = new Command(async () => await GoToElementoQuimicoPage(), () => !IsBusy);
             goToTerrenoPageButtonCommand = new Command(async () => await GoToTerrenoPage(), () => !IsBusy);
-            // Comando de navegación hacia atrás usando ruta relativa (“//..” mantiene esquema de Shell).
+
             goToBack = new Command(async () => await GoToAsyncParameters("//.."));
         }
 
-        // ===========================================================
-        // =============== HELPER GENERAL DE NAVEGACIÓN ==============
-        // ===========================================================
+        // ============================
+        // HELPER DE NAVEGACIÓN
+        // ============================
         public async Task GoToAsyncParameters(string route, IDictionary<string, object>? parameters = null)
         {
-            // Si no hay parámetros, navega con animación deshabilitada (false).
             if (parameters == null)
                 await Shell.Current.GoToAsync(route, false);
             else
-                // Si hay parámetros, los inyecta en la navegación (también sin animación).
                 await Shell.Current.GoToAsync(route, false, parameters);
         }
 
-        // ===========================================================
-        // ================= HANDLERS DE NAVEGACIÓN ==================
-        // ===========================================================
+        // ============================
+        // VALIDACIÓN DE PERMISOS
+        // ============================
+        public bool ValidateNavigation(string interfaz)
+        {
+            var permiso = PermissionService.Instance.Get(interfaz);
+
+            if (permiso == null || !permiso.leer)
+            {
+                _ = MostrarToastAsync("No tiene permisos para acceder a esta sección.");
+                return false;
+            }
+
+            return true;
+        }
+
+        // ============================
+        // MÉTODOS DE NAVEGACIÓN
+        // ============================
+
         private async Task GoToMainPage()
         {
-            if (IsBusy) return;                                     // Evita reentradas si ya está ocupado.
-            //IsBusy = true;                                        // Comentado: se mantiene la lógica actual que no marca busy al inicio.
+            if (IsBusy) return;
 
-            await GoToAsyncParameters("//MainPage");                 // Navega a la ruta absoluta de MainPage.
+            if (!ValidateNavigation("MainPage"))
+                return;
+
+            await GoToAsyncParameters("//MainPage");
         }
 
         private async Task GoToUserPage()
         {
-            if (IsBusy) return;                                     // Evita dobles clics/condiciones de carrera.
+            if (IsBusy) return;
 
-            await GoToAsyncParameters("//UserPage");                // Navega a UserPage.
+            if (!ValidateNavigation("userPage"))
+                return;
+
+            await GoToAsyncParameters("//UserPage");
         }
 
         public async Task GoToRolPage()
         {
-            if (IsBusy) return;                                     // Evita reentradas.
+            if (IsBusy) return;
 
-            await GoToAsyncParameters("//RolPage");                 // Navega a RolPage.
-        }
+            if (!ValidateNavigation("rolPage"))
+                return;
 
-        public async Task GoToCargoPage()
-        {
-            if (IsBusy) return;                                     // Evita reentradas.
-
-            await GoToAsyncParameters("//CargoPage");               // Navega a CargoPage.
+            await GoToAsyncParameters("//RolPage");
         }
 
         public async Task GoToMatrizPermisosPage()
         {
-            if (IsBusy) return;                                     // Evita reentradas.
-            IsBusy = true;                                          // Marca inicio de operación.
+            if (IsBusy) return;
 
-            await GoToAsyncParameters("//MatrizPermisosPage");      // Navega a MatrizPermisosPage.
+            if (!ValidateNavigation("matrizPermisosPage"))
+                return;
+
+            await GoToAsyncParameters("//MatrizPermisosPage");
         }
 
         public async Task GoToPaisPage()
         {
-            if (IsBusy) return;                                     // Evita reentradas.
+            if (IsBusy) return;
 
-            await GoToAsyncParameters("//PaisPage");               // Navega a CargoPage.
+            if (!ValidateNavigation("paisPage"))
+                return;
+
+            await GoToAsyncParameters("//PaisPage");
         }
 
         public async Task GoToElementoQuimicoPage()
         {
-            if (IsBusy) return;                                     // Evita reentradas.
+            if (IsBusy) return;
 
-            await GoToAsyncParameters("//ElementoQuimicoPage");                 // Navega a ElementoQuimicoPage.
+            if (!ValidateNavigation("elementoQuimicoPage"))
+                return;
+
+            await GoToAsyncParameters("//ElementoQuimicoPage");
         }
 
         public async Task GoToTerrenoPage()
         {
-            if (IsBusy) return;                                     // Evita reentradas.
+            if (IsBusy) return;
 
-            await GoToAsyncParameters("//TerrenoPage");                 // Navega a TerrenoPage.
+            if (!ValidateNavigation("terrenoPage"))
+                return;
+
+            await GoToAsyncParameters("//TerrenoPage");
         }
 
-        /// <summary>
-        /// Muestra un mensaje tipo toast corto (≈2 s) en la parte inferior de la pantalla.
-        /// </summary>
-        /// <param name="mensaje">Texto que se mostrará al usuario.</param>
+        // ============================
+        // UTILIDADES
+        // ============================
         public static async Task MostrarToastAsync(string mensaje)
         {
             try
@@ -166,28 +185,18 @@ namespace CONATRADEC.Services
                 if (string.IsNullOrWhiteSpace(mensaje))
                     return;
 
-                // Crear toast de corta duración (Short = ~2 s)
                 var toast = Toast.Make(mensaje, ToastDuration.Short, 14);
                 await toast.Show();
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ToastError] {ex.Message}");
-            }
+            catch { }
         }
 
         public async Task<bool> TieneInternetAsync()
         {
-            // 1) Verificación rápida del sistema
             bool tieneInternet = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
-
-            // 2) Si el sistema dice que NO hay internet, igual verificamos con un ping real
             if (!tieneInternet)
-            {
                 return await ValidacionRealInternetAsync();
-            }
 
-            // 3) Si el sistema dice que SÍ hay internet, igual confirmamos con ping real
             return await ValidacionRealInternetAsync();
         }
 
@@ -195,11 +204,7 @@ namespace CONATRADEC.Services
         {
             try
             {
-                using var http = new HttpClient
-                {
-                    Timeout = TimeSpan.FromSeconds(3)
-                };
-
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
                 var response = await http.GetAsync("https://www.google.com");
                 return response.IsSuccessStatusCode;
             }
@@ -209,11 +214,26 @@ namespace CONATRADEC.Services
             }
         }
 
+        public void LoadPagePermissions(string pageName)
+        {
+            var permiso = PermissionService.Instance.Get(pageName);
 
-        // ===========================================================
-        // ===================== NOTIFICACIÓN INotify ================
-        // ===========================================================
+            CanAdd = permiso.agregar;
+            CanEdit = permiso.actualizar;
+            CanDelete = permiso.eliminar;
+            CanView = permiso.leer;
+
+            OnPropertyChanged(nameof(CanAdd));
+            OnPropertyChanged(nameof(CanEdit));
+            OnPropertyChanged(nameof(CanDelete));
+            OnPropertyChanged(nameof(CanView));
+        }
+
+
+        // ============================
+        // INotifyPropertyChanged
+        // ============================
         public void OnPropertyChanged([CallerMemberName] string name = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name)); // Dispara el evento con el nombre de la propiedad.
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

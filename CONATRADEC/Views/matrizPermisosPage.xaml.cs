@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
 using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.Controls;
 
@@ -10,11 +11,12 @@ public partial class matrizPermisosPage : ContentPage
 {
     // LISTA PARA GUARDAR TODOS LOS EXPANDERS GENERADOS EN LA COLLECTIONVIEW
     private readonly List<Expander> _expanders = new();
+    private readonly MatrizPermisosViewModel viewModel = new();
 
     public matrizPermisosPage()
     {
         Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-        BindingContext = new MatrizPermisosViewModel();
+        BindingContext = viewModel;
         InitializeComponent();
     }
 
@@ -59,9 +61,29 @@ public partial class matrizPermisosPage : ContentPage
     }
 
     // LIMPIA LISTA CUANDO ENTRAMOS A LA PÁGINA (POR SEGURIDAD)
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // ?? Cargar los permisos de la página
+        (BindingContext as MatrizPermisosViewModel)?.LoadPagePermissions("matrizPermisosPage");
+
+        var vm = BindingContext as MatrizPermisosViewModel;
+
+        // ?? Primero validar si puede ver la interfaz
+        if (vm is not null && !vm.CanView)
+        {
+            await GlobalService.MostrarToastAsync("No tiene permisos para ver la matriz de permisos.");
+            await Shell.Current.GoToAsync("//MainPage");
+            return;
+        }
+
+        // ?? Asignar permiso de edición al ViewModel
+        vm.UsuarioPuedeEditar = vm.CanEdit;
+        // ó, si prefieres directo del PermissionService:
+        // vm.UsuarioPuedeEditar = PermissionService.Instance.HasUpdate("matrizPermisosPage");
+
         _expanders.Clear();
     }
+
 }

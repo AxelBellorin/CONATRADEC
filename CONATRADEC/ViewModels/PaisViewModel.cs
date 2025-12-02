@@ -1,110 +1,69 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
-using Microsoft.Maui.Networking;
 using System.Collections.ObjectModel;
-using System.Windows.Input;
 
 namespace CONATRADEC.ViewModels
 {
-    // ===============================================================
-    // ViewModel: PaisViewModel
-    // Descripción:
-    //     Gestiona el listado, creación, edición, eliminación y visualización
-    //     de países en la interfaz. Se comunica con PaisApiService para las
-    //     operaciones CRUD.
-    //
-    //     Hereda de GlobalService para reutilizar propiedades y métodos comunes
-    //     como IsBusy, GoToAsyncParameters, etc.
-    // ===============================================================
     public class PaisViewModel : GlobalService
     {
-        // ===========================================================
-        // ================= ESTADO / PROPIEDADES BINDABLE ===========
-        // ===========================================================
-
-        // Colección observable de países para enlazar con la UI.
         private ObservableCollection<PaisResponse> list = new();
-
-        // Servicio de API para las operaciones de País.
         private readonly PaisApiService paisApiService;
 
-        // Propiedad pública enlazable (observable) de la lista.
         public ObservableCollection<PaisResponse> List
         {
             get => list;
             set { list = value; OnPropertyChanged(); }
         }
 
-        // ===========================================================
-        // ========================= COMANDOS ========================
-        // ===========================================================
-
-        // Comando: Agregar nuevo país
         public Command AddCommand { get; }
-
-        // Comando: Editar país existente
         public Command EditCommand { get; }
-
-        // Comando: Eliminar país existente
         public Command DeleteCommand { get; }
-
-        // Comando: Ver detalles del país
         public Command ViewCommand { get; }
-
-        // ===========================================================
-        // ======================= CONSTRUCTOR =======================
-        // ===========================================================
 
         public PaisViewModel()
         {
-            // Instancia del servicio de API.
             paisApiService = new PaisApiService();
 
-            // Inicialización de comandos y sus manejadores.
             AddCommand = new Command(async () => await OnAdd());
             EditCommand = new Command<PaisResponse>(OnEdit);
             DeleteCommand = new Command<PaisResponse>(OnDelete);
             ViewCommand = new Command<PaisResponse>(OnView);
         }
 
-        // ===========================================================
-        // ====================== MÉTODOS PÚBLICOS ===================
-        // ===========================================================
-
-        // Carga la lista de países desde la API.
+        // ---------------------------------------------------------
+        //   CARGAR LISTA DE PAÍSES
+        // ---------------------------------------------------------
         public async Task LoadPais(bool isBusy)
         {
+            if (!CanView)
+            {
+                await MostrarToastAsync("No tiene permisos para ver países.");
+                return;
+            }
+
             IsBusy = isBusy;
 
             try
             {
                 List.Clear();
 
-                // Valida que el usaurio tenga conexion a internet
                 bool tieneInternet = await TieneInternetAsync();
-
                 if (!tieneInternet)
                 {
                     _ = MostrarToastAsync("Sin conexión a internet.");
-                    IsBusy = false;
                     return;
                 }
 
-                // Llama al servicio API
                 var response = await paisApiService.GetPaisAsync();
 
                 if (response.Any())
-                {
                     List = response;
-                }
                 else
-                {
-                    _ = MostrarToastAsync("Información" + "No se encontraron países registrados.");
-                }
+                    _ = MostrarToastAsync("No se encontraron países registrados.");
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + $"No se pudo obtener la lista de países.\n{ex.Message}");
+                _ = MostrarToastAsync("Error al cargar países: " + ex.Message);
             }
             finally
             {
@@ -112,13 +71,17 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        // ===========================================================
-        // ===================== HANDLERS (COMANDOS) =================
-        // ===========================================================
-
-        // Agregar un nuevo país
+        // ---------------------------------------------------------
+        //   AGREGAR
+        // ---------------------------------------------------------
         private async Task OnAdd()
         {
+            if (!CanAdd)
+            {
+                await MostrarToastAsync("No tiene permisos para agregar países.");
+                return;
+            }
+
             if (IsBusy) return;
 
             try
@@ -133,13 +96,21 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + $"No se pudo abrir el formulario.\n{ex.Message}");
+                _ = MostrarToastAsync("Error al abrir el formulario: " + ex.Message);
             }
         }
 
-        // Editar país seleccionado
+        // ---------------------------------------------------------
+        //   EDITAR
+        // ---------------------------------------------------------
         private async void OnEdit(PaisResponse pais)
         {
+            if (!CanEdit)
+            {
+                await MostrarToastAsync("No tiene permisos para editar países.");
+                return;
+            }
+
             if (IsBusy || pais == null) return;
 
             try
@@ -154,36 +125,38 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                _ = MostrarToastAsync("Error al abrir el formulario: " + ex.Message);
             }
         }
 
-        // Eliminar país seleccionado
+        // ---------------------------------------------------------
+        //   ELIMINAR
+        // ---------------------------------------------------------
         private async void OnDelete(PaisResponse pais)
         {
+            if (!CanDelete)
+            {
+                await MostrarToastAsync("No tiene permisos para eliminar países.");
+                return;
+            }
+
             if (IsBusy || pais == null) return;
+
             IsBusy = true;
 
             try
             {
-                bool confirm = _ = await App.Current.MainPage.DisplayAlert(
+                bool confirm = await App.Current.MainPage.DisplayAlert(
                     "Eliminar país",
                     $"¿Deseas eliminar el país '{pais.NombrePais}'?",
                     "Sí", "No");
 
-                if (!confirm)
-                {
-                    IsBusy = false;
-                    return;
-                }
+                if (!confirm) return;
 
-                // Valida que el usaurio tenga conexion a internet
                 bool tieneInternet = await TieneInternetAsync();
-
                 if (!tieneInternet)
                 {
                     _ = MostrarToastAsync("Sin conexión a internet.");
-                    IsBusy = false;
                     return;
                 }
 
@@ -191,17 +164,17 @@ namespace CONATRADEC.ViewModels
 
                 if (result)
                 {
-                    _ = MostrarToastAsync("Éxito" + "País eliminado correctamente.");
+                    _ = MostrarToastAsync("País eliminado correctamente.");
                     await LoadPais(true);
                 }
                 else
                 {
-                    _ = MostrarToastAsync("Error" + "No se pudo eliminar el país. Intenta nuevamente.");
+                    _ = MostrarToastAsync("No se pudo eliminar el país.");
                 }
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                _ = MostrarToastAsync("Error al eliminar: " + ex.Message);
             }
             finally
             {
@@ -209,15 +182,23 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        // Ver detalles del país seleccionado
+        // ---------------------------------------------------------
+        //   VER DETALLES
+        // ---------------------------------------------------------
         private async void OnView(PaisResponse pais)
         {
+            if (!CanView)
+            {
+                await MostrarToastAsync("No tiene permisos para ver detalles.");
+                return;
+            }
+
             if (IsBusy || pais == null) return;
 
             var parameters = new Dictionary<string, object>
             {
                 { "Pais", new PaisRequest(pais) },
-                { "TitlePage", $"Departamento de {pais.NombrePais.ToString()}"}
+                { "TitlePage", $"Departamento de {pais.NombrePais}" }
             };
 
             await GoToAsyncParameters("//DepartamentoPage", parameters);

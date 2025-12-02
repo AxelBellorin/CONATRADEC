@@ -15,6 +15,7 @@
             <Grid ColumnDefinitions="*,auto"
                   Grid.Row="0"
                   Padding="0,10,0,0">
+
                 <Label Text="Terrenos"
                        FontSize="30"
                        FontFamily="MontserratBold"
@@ -24,13 +25,15 @@
                        HorizontalOptions="Start"
                        Padding="30,0,0,0" />
 
+                <!-- Botón agregar SOLO SI CanAdd -->
                 <ImageButton Source="iconadd.png"
                              WidthRequest="60"
                              HeightRequest="60"
                              CornerRadius="30"
                              Grid.Column="1"
                              Padding="0,0,20,0"
-                             Command="{Binding AddCommand}" />
+                             Command="{Binding AddCommand}"
+                             IsVisible="{Binding CanAdd}" />
             </Grid>
 
             <!-- Loading -->
@@ -43,6 +46,7 @@
             <CollectionView Grid.Row="2"
                             ItemsSource="{Binding List}"
                             SelectionMode="None">
+
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="2" />
                 </CollectionView.ItemsLayout>
@@ -57,34 +61,43 @@
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <SwipeView>
+
+                        <SwipeView IsEnabled="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.CanView}">
 
                             <SwipeView.RightItems>
                                 <SwipeItems Mode="Reveal">
+
+                                    <!-- EDITAR -->
                                     <SwipeItem Text="Editar"
                                                IconImageSource="iconupdate.png"
                                                BackgroundColor="{StaticResource BlueUpdate}"
                                                Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.EditCommand}"
-                                               CommandParameter="{Binding .}" />
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.CanEdit}" />
 
+                                    <!-- ELIMINAR -->
                                     <SwipeItem Text="Eliminar"
                                                IconImageSource="icondelete.png"
                                                BackgroundColor="{StaticResource RedDelete}"
                                                Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.DeleteCommand}"
-                                               CommandParameter="{Binding .}" />
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.CanDelete}" />
+
                                 </SwipeItems>
                             </SwipeView.RightItems>
 
                             <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
                                                     Default={StaticResource BorderStyleNoBorder}}">
-                                <Grid Padding="10" ColumnDefinitions="*,*">
+
+                                <Grid Padding="10" ColumnDefinitions="*,*"
+                                      IsEnabled="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.CanView}">
 
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.ViewCommand}"
                                                               CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
 
-                                    <!-- Izquierda: Código y propietario -->
+                                    <!-- Izquierda -->
                                     <VerticalStackLayout Grid.Column="0"
                                                          Spacing="2"
                                                          VerticalOptions="Center">
@@ -98,11 +111,11 @@
                                                TextColor="{StaticResource color_Gris}" />
                                     </VerticalStackLayout>
 
-                                    <!-- Derecha: Ubicación completa y extensión -->
+                                    <!-- Derecha -->
                                     <VerticalStackLayout Grid.Column="1"
                                                          Spacing="2"
-                                                         VerticalOptions="Center"
-                                                         HorizontalOptions="EndAndExpand">
+                                                         HorizontalOptions="End"
+                                                         VerticalOptions="Center">
                                         <Label Text="{Binding Ubicacion.NombrePais}"
                                                FontSize="12"
                                                TextColor="{StaticResource color_Verde}" />
@@ -116,12 +129,15 @@
                                                FontSize="12"
                                                TextColor="{StaticResource color_GrisOscuro}" />
                                     </VerticalStackLayout>
+
                                 </Grid>
                             </Border>
                         </SwipeView>
+
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+
         </Grid>
     </ContentView>
 </ContentPage>

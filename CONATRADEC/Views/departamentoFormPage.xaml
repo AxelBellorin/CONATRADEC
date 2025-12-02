@@ -1,21 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--
-  Página: departamentoFormPage.xaml
-  Descripción: Vista para crear, editar o visualizar un departamento.
-  Se asocia al ViewModel correspondiente (DepartamentoFormViewModel),
-  que maneja la lógica de guardado, cancelación y validaciones.
--->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.departamentoFormPage"
-             Title="Formulario de departamento"
-             Shell.NavBarIsVisible="False"
-             Background="Transparent">
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="CONATRADEC.Views.departamentoFormPage"
+    Shell.NavBarIsVisible="False"
+    Background="Transparent">
 
-    <!-- GRID PRINCIPAL: 2 filas -> 0: título, 1: contenido (con scroll) -->
-    <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
+    <Grid RowDefinitions="auto, *">
 
-        <!-- ENCABEZADO / TÍTULO PRINCIPAL -->
+        <!-- TÍTULO -->
         <Label
             Text="{Binding Title}"
             TextColor="{StaticResource color_Verde}"
@@ -25,49 +18,48 @@
             Grid.Row="0"
             Margin="10,20,0,0" />
 
-        <!-- SCROLL DEL CONTENIDO -->
+        <!-- CONTENIDO -->
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="10" Spacing="15">
 
-                <!-- Campo: Nombre del departamento -->
+                <!-- CAMPO NOMBRE -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label
-                            Text="Nombre del departamento"
-                            FontAttributes="Bold"
-                            FontSize="14"
-                            TextColor="{StaticResource color_Negro}" />
+
+                        <Label Text="Nombre del departamento"
+                               FontAttributes="Bold"
+                               FontSize="14"
+                               TextColor="{StaticResource color_Negro}" />
+
                         <Entry
                             Placeholder="Nombre del departamento"
                             Style="{StaticResource EntryStyle}"
                             Text="{Binding NombreDepartamento}"
-                            IsReadOnly="{Binding IsReadOnly}" />
+                            IsReadOnly="{Binding IsEntryReadOnly}" />
+
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Botones de acción -->
-                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">
+                <!-- BOTONES -->
+                <Grid ColumnDefinitions="*, *" Margin="10,0,10,0">
 
-                    <!-- Botón Guardar (visible solo si no es modo Ver) -->
-                    <Button
-                        Text="Guardar"
-                        Style="{StaticResource UpdateButton}"
-                        IsVisible="{Binding ShowSaveButton}"
-                        Command="{Binding SaveCommand}"
-                        Grid.Column="0"
-                        Margin="10,0,10,0" />
+                    <!-- GUARDAR -->
+                    <Button Text="Guardar"
+                            Style="{StaticResource UpdateButton}"
+                            Command="{Binding SaveCommand}"
+                            IsVisible="{Binding CanSave}"
+                            Grid.Column="0" />
 
-                    <!-- Botón Cancelar -->
-                    <Button
-                        Text="Cancelar"
-                        Style="{StaticResource CancelButton}"
-                        Command="{Binding CancelCommand}"
-                        Grid.Column="1"
-                        Margin="10,0,10,0" />
+                    <!-- CANCELAR -->
+                    <Button Text="Cancelar"
+                            Style="{StaticResource CancelButton}"
+                            Command="{Binding CancelCommand}"
+                            Grid.Column="1" />
 
                 </Grid>
 
             </VerticalStackLayout>
         </ScrollView>
+
     </Grid>
 </ContentPage>

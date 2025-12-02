@@ -99,6 +99,7 @@
                                     Text="L"
                                     FontSize="12"
                                     Padding="8,4"
+                                    IsEnabled="{Binding PuedeEditarColumnasBtn}"
                                     Command="{Binding MarcarColumnaCommand}"
                                     CommandParameter="leer"
                                     Style="{StaticResource RefreshButton}" />
@@ -108,6 +109,7 @@
                                     Text="A"
                                     FontSize="12"
                                     Padding="8,4"
+                                    IsEnabled="{Binding PuedeEditarColumnasBtn}"
                                     Command="{Binding MarcarColumnaCommand}"
                                     CommandParameter="agregar"
                                     Style="{StaticResource AddButton}" />
@@ -117,6 +119,7 @@
                                     Text="U"
                                     FontSize="12"
                                     Padding="8,4"
+                                    IsEnabled="{Binding PuedeEditarColumnasBtn}"
                                     Command="{Binding MarcarColumnaCommand}"
                                     CommandParameter="actualizar"
                                     Style="{StaticResource UpdateButton}" />
@@ -126,6 +129,7 @@
                                     Text="E"
                                     FontSize="12"
                                     Padding="8,4"
+                                    IsEnabled="{Binding PuedeEditarColumnasBtn}"
                                     Command="{Binding MarcarColumnaCommand}"
                                     CommandParameter="eliminar"
                                     Style="{StaticResource DeleteButton}" />
@@ -135,6 +139,7 @@
                                     Text="Limpiar todo"
                                     FontSize="12"
                                     Padding="8,4"
+                                    IsEnabled="{Binding PuedeEditarColumnasBtn}"
                                     Command="{Binding LimpiarTodoCommand}"
                                     Style="{StaticResource CancelButton}" />
                         </Grid>
@@ -214,6 +219,7 @@
                                                         <CheckBox Grid.Row="1"
                                                                   Grid.Column="0"
                                                                   IsChecked="{Binding Leer}"
+                                                                  IsEnabled="{Binding CanEdit}" 
                                                                   Color="{StaticResource BlueUpdate}"
                                                                   HorizontalOptions="Start" />
 
@@ -227,6 +233,7 @@
                                                         <CheckBox Grid.Row="1"
                                                                   Grid.Column="1"
                                                                   IsChecked="{Binding Agregar}"
+                                                                  IsEnabled="{Binding CanEdit}"
                                                                   Color="{StaticResource BlueUpdate}"
                                                                   HorizontalOptions="Start" />
 
@@ -240,6 +247,7 @@
                                                         <CheckBox Grid.Row="1"
                                                                   Grid.Column="2"
                                                                   IsChecked="{Binding Actualizar}"
+                                                                  IsEnabled="{Binding CanEdit}"
                                                                   Color="{StaticResource BlueUpdate}"
                                                                   HorizontalOptions="Start" />
 
@@ -253,6 +261,7 @@
                                                         <CheckBox Grid.Row="1"
                                                                   Grid.Column="3"
                                                                   IsChecked="{Binding Eliminar}"
+                                                                  IsEnabled="{Binding CanEdit}"
                                                                   Color="{StaticResource BlueUpdate}"
                                                                   HorizontalOptions="Start" />
 
@@ -269,6 +278,7 @@
                                                                     Style="{StaticResource AddButton}"
                                                                     CornerRadius="10"
                                                                     HeightRequest="40"
+                                                                    IsEnabled="{Binding CanEdit}"
                                                                     Command="{Binding Source={x:Reference PermisosList}, Path=BindingContext.MarcarFilaCommand}"
                                                                     CommandParameter="{Binding .}" />
 
@@ -278,6 +288,7 @@
                                                                     Style="{StaticResource CancelButton}"
                                                                     CornerRadius="10"
                                                                     HeightRequest="40"
+                                                                    IsEnabled="{Binding CanEdit}"
                                                                     Command="{Binding Source={x:Reference PermisosList}, Path=BindingContext.LimpiarFilaCommand}"
                                                                     CommandParameter="{Binding .}" />
                                                         </Grid>

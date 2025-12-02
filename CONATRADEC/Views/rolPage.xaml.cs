@@ -1,19 +1,25 @@
 using CONATRADEC.ViewModels;
+
 namespace CONATRADEC.Views;
 
 public partial class rolPage : ContentPage
 {
-    private RolViewModel viewModel = new RolViewModel();
+    private readonly RolViewModel viewModel = new();
+
     public rolPage()
     {
         Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
         BindingContext = viewModel;
-        InitializeComponent();      
+        InitializeComponent();
     }
 
-    protected override async void OnAppearing() 
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await viewModel.LoadRol(true);  // Carga los rol desde la VM.
+
+        // CARGAR PERMISOS DE ESTA PAGE
+        viewModel.LoadPagePermissions("rolPage");
+
+        await viewModel.LoadRol(true);
     }
 }

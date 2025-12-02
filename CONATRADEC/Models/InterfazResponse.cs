@@ -28,6 +28,8 @@ namespace CONATRADEC.Models
 
         private bool _isExpanded;
 
+        private bool _canEdit = true;
+
 
         // ===========================================================
         // ============= PROPIEDADES PÚBLICAS CON NOTIFICACIÓN =======
@@ -40,6 +42,13 @@ namespace CONATRADEC.Models
         // Propiedad pública para acceder o modificar el nombre del permiso.
         // También notifica cambios al UI cuando su valor cambia.
         public string NombreInterfaz { get => nombreInterfaz; set { nombreInterfaz = value; OnPropertyChanged(); } }
+
+        
+        public bool CanEdit
+        {
+            get => _canEdit;
+            set { _canEdit = value; OnPropertyChanged(); }
+        }
 
         public bool IsExpanded
         {

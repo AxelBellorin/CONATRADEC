@@ -1,74 +1,37 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
-using System.Windows.Input;
 
 namespace CONATRADEC.ViewModels
 {
-    // ViewModel del formulario de Departamento (sin Snackbar).
-    // Hereda de GlobalService para reutilizar navegación (GoToAsyncParameters) y estado (IsBusy).
     public class DepartamentoFormViewModel : GlobalService
     {
-        // ===========================================================
-        // ================= ESTADO / PROPIEDADES BINDABLE ===========
-        // ===========================================================
-
-        // Objeto de trabajo que se edita/crea desde el formulario.
         private DepartamentoRequest departamento;
         private PaisRequest paisRequest;
-        private MunicipioRequest municipioRequest;
 
-        // Bandera interna para controlar confirmaciones (cancelar/guardar).
-        private bool isCancel;
-
-        // Campos editables desde la vista.
         private string nombreDepartamento = string.Empty;
 
-        // Modo del formulario (Create / Edit / View).
-        private FormMode.FormModeSelect mode = new();
+        private FormMode.FormModeSelect mode;
 
-        // Servicio de API para persistir cambios de Departamento.
         private readonly DepartamentoApiService departamentoApiService = new();
 
-        // Comandos expuestos a la vista (botones Guardar/Cancelar).
         public Command SaveCommand { get; }
         public Command CancelCommand { get; }
 
-        // ===========================================================
-        // ========================= CTOR ============================
-        // ===========================================================
-
         public DepartamentoFormViewModel()
         {
-            SaveCommand = new Command(async () => await SaveAsync(), () => !IsReadOnly);
+            SaveCommand = new Command(async () => await SaveAsync());
             CancelCommand = new Command(async () => await CancelAsync());
         }
 
-        // ===========================================================
-        // =============== PROPIEDADES CON NOTIFICACIÓN ==============
-        // ===========================================================
-
-        public string NombreDepartamento
-        {
-            get => nombreDepartamento;
-            set { nombreDepartamento = value; OnPropertyChanged(); }
-        }
-
-        public bool IsCancel
-        {
-            get => isCancel;
-            set => isCancel = value;
-        }
-
+        // OBJETO EDITADO
         public DepartamentoRequest Departamento
         {
             get => departamento;
             set
             {
                 departamento = value;
+                NombreDepartamento = value?.NombreDepartamento ?? string.Empty;
                 OnPropertyChanged();
-
-                // Sincroniza el formulario con los datos del objeto.
-                NombreDepartamento = value.NombreDepartamento ?? string.Empty;
             }
         }
 
@@ -78,6 +41,14 @@ namespace CONATRADEC.ViewModels
             set { paisRequest = value; OnPropertyChanged(); }
         }
 
+        // CAMPOS
+        public string NombreDepartamento
+        {
+            get => nombreDepartamento;
+            set { nombreDepartamento = value; OnPropertyChanged(); }
+        }
+
+        // MODO DEL FORMULARIO
         public FormMode.FormModeSelect Mode
         {
             get => mode;
@@ -85,253 +56,89 @@ namespace CONATRADEC.ViewModels
             {
                 mode = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(IsReadOnly));
+                OnPropertyChanged(nameof(IsEntryReadOnly));
+                OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(Title));
-                OnPropertyChanged(nameof(ShowSaveButton));
-                // ((Command)SaveCommand).ChangeCanExecute(); // opcional
             }
         }
 
-        public MunicipioRequest MunicipioRequest 
-        { 
-            get => municipioRequest; 
-            set 
-            { 
-                municipioRequest = value; 
-                OnPropertyChanged(); 
-            } 
+        // UI BINDINGS
+        public bool IsEntryReadOnly => Mode == FormMode.FormModeSelect.View;
+
+        public bool CanSave => Mode != FormMode.FormModeSelect.View;
+
+        public string Title =>
+            Mode == FormMode.FormModeSelect.Create ? "Crear Departamento" :
+            Mode == FormMode.FormModeSelect.Edit ? "Editar Departamento" :
+            "Detalles del Departamento";
+
+        // LÓGICA PRINCIPAL
+        private async Task SaveAsync()
+        {
+            if (!CanSave)
+            {
+                await MostrarToastAsync("No se puede guardar en modo vista.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(NombreDepartamento))
+            {
+                await App.Current.MainPage.DisplayAlert("Validación", "Ingrese un nombre.", "Aceptar");
+                return;
+            }
+
+            if (Mode == FormMode.FormModeSelect.Create)
+                await CreateAsync();
+            else if (Mode == FormMode.FormModeSelect.Edit)
+                await UpdateAsync();
         }
 
-        public bool IsReadOnly => Mode == FormMode.FormModeSelect.View;
-        public bool ShowSaveButton => Mode != FormMode.FormModeSelect.View;
-
-        public string Title => Mode switch
+        private async Task CreateAsync()
         {
-            FormMode.FormModeSelect.Create => "Crear Departamento",
-            FormMode.FormModeSelect.Edit => "Editar Departamento",
-            FormMode.FormModeSelect.View => "Detalles del Departamento",
-            _ => "",
-        };
+            Departamento.NombreDepartamento = NombreDepartamento;
+            Departamento.PaisId = PaisRequest.PaisId;
 
-        // ===========================================================
-        // ======================= MÉTODOS UI ========================
-        // ===========================================================
+            var ok = await departamentoApiService.CreateDepartamentoAsync(Departamento);
+
+            if (ok)
+            {
+                await MostrarToastAsync("Departamento creado.");
+                await ReturnToList();
+            }
+            else
+                await MostrarToastAsync("No se pudo guardar.");
+        }
+
+        private async Task UpdateAsync()
+        {
+            Departamento.NombreDepartamento = NombreDepartamento;
+            Departamento.PaisId = PaisRequest.PaisId;
+
+            var ok = await departamentoApiService.UpdateDepartamentoAsync(Departamento);
+
+            if (ok)
+            {
+                await MostrarToastAsync("Departamento actualizado.");
+                await ReturnToList();
+            }
+            else
+                await MostrarToastAsync("No se pudo actualizar.");
+        }
 
         private async Task CancelAsync()
         {
-            try
-            {
-                IsCancel = ValidateFields();
-
-                if (IsCancel)
-                {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
-                        "Cancelar",
-                        "Desea no guardar los cambios",
-                        "Aceptar",
-                        "Cancelar");
-
-                    if (confirm)
-                    {
-                        var parameters = new Dictionary<string, object>
-                        {
-                            { "Pais", PaisRequest },
-                            { "TitlePage", $"Departamento de {PaisRequest.NombrePais.ToString()}"}
-                        };
-
-                        await GoToAsyncParameters("//DepartamentoPage", parameters);
-                    }
-
-                }
-                else
-                {
-                    var parameters = new Dictionary<string, object>
-                    {
-                        { "Pais", PaisRequest },
-                        { "TitlePage", $"Departamento de {PaisRequest.NombrePais.ToString()}"}
-                    };
-
-                    await GoToAsyncParameters("//DepartamentoPage", parameters);
-                }
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error" + ex.Message);
-            }
-            finally
-            {
-                IsCancel = false;
-            }
+            await ReturnToList();
         }
 
-        // ===========================================================
-        // ===================== LÓGICA DE GUARDADO ==================
-        // ===========================================================
-
-        private async Task SaveAsync()
+        private Task ReturnToList()
         {
-            try
+            var parameters = new Dictionary<string, object>
             {
-                if (Mode == FormMode.FormModeSelect.Create)
-                    await CreateDepartamentoAsync();
-                else if (Mode == FormMode.FormModeSelect.Edit)
-                    await UpdateDepartamentoAsync();
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error" + ex.Message);
-            }
-        }
+                { "Pais", PaisRequest },
+                { "TitlePage", $"Departamento de {PaisRequest.NombrePais}" }
+            };
 
-        private async Task CreateDepartamentoAsync()
-        {
-            try
-            {
-                // Validación de datos
-                if (!ValidateFieldsData()) return;
-
-                // Determina si hay cambios significativos para guardar.
-                IsCancel = ValidateFields();
-
-                if (IsCancel)
-                {
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Confirmar",
-                        "¿Desea guardar los datos del departamento?",
-                        "Aceptar",
-                        "Cancelar");
-
-                    if (confirm)
-                    {
-                        // Propaga los valores del formulario al objeto.
-                        Departamento.NombreDepartamento = NombreDepartamento;
-                        Departamento.PaisId = PaisRequest.PaisId;
-
-                        // Valida que el usaurio tenga conexion a internet
-                        bool tieneInternet = await TieneInternetAsync();
-
-                        if (!tieneInternet)
-                        {
-                            _ = MostrarToastAsync("Sin conexión a internet.");
-                            IsBusy = false;
-                            return;
-                        }
-
-                        var response = await departamentoApiService.CreateDepartamentoAsync(Departamento);
-
-                        if (response)
-                        {
-                            var parameters = new Dictionary<string, object>
-                            {
-                                { "Pais", PaisRequest },
-                                { "TitlePage", $"Departamento de {PaisRequest.NombrePais.ToString()}"}
-                            };
-                            await GoToAsyncParameters("//DepartamentoPage", parameters);
-
-                            _ = MostrarToastAsync("Éxito\nDepartamento guardado correctamente.");
-                        }
-                        else
-                        {
-                            _ = MostrarToastAsync("Error" + "\nNo se pudo guardar el departamento.");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {   
-                _ = MostrarToastAsync("Error" + ex.Message);
-            }
-            finally
-            {
-                IsCancel = false;
-            }
-        }
-
-        private async Task UpdateDepartamentoAsync()
-        {
-            try
-            {
-                if (!ValidateFieldsData()) return;
-
-                IsCancel = ValidateFields();
-
-                if (IsCancel)
-                {
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Confirmar",
-                        "¿Desea actualizar?",
-                        "Aceptar",
-                        "Cancelar");
-
-                    if (confirm)
-                    {
-                        Departamento.NombreDepartamento = NombreDepartamento;
-                        Departamento.PaisId = PaisRequest.PaisId;
-
-                        // Valida que el usaurio tenga conexion a internet
-                        bool tieneInternet = await TieneInternetAsync();
-
-                        if (!tieneInternet)
-                        {
-                            _ = MostrarToastAsync("Sin conexión a internet.");
-                            IsBusy = false;
-                            return;
-                        }
-
-                        var response = await departamentoApiService.UpdateDepartamentoAsync(Departamento);
-
-                        if (response)
-                        {
-                            var parameters = new Dictionary<string, object>
-                            {
-                                { "Pais", PaisRequest },
-                                { "TitlePage", $"Departamento de {PaisRequest.NombrePais.ToString()}"}
-                            };
-                            await GoToAsyncParameters("//DepartamentoPage", parameters);
-
-                            _ = MostrarToastAsync("Éxito" + "Departamento actualizado correctamente.");
-                        }
-                        else
-                        {
-                            _ = MostrarToastAsync("Error" + "No se pudo actualizar el departamento.");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error" + ex.Message);
-            }
-            finally
-            {
-                IsCancel = false;
-            }
-        }
-
-        // ===========================================================
-        // ===================== MÉTODOS AUXILIARES ==================
-        // ===========================================================
-
-        // ¿Hay cambios respecto al objeto original?
-        private bool ValidateFields()
-        {
-            if (Departamento is null) return true;
-
-            if ((NombreDepartamento ?? string.Empty) != (Departamento.NombreDepartamento ?? string.Empty)) return true;
-
-            return false;
-        }
-
-        // ¿Los datos del formulario son válidos?
-        private bool ValidateFieldsData()
-        {
-            if (string.IsNullOrWhiteSpace(NombreDepartamento))
-            {
-                _ = App.Current.MainPage.DisplayAlert("Validación", "Ingrese el nombre del departamento.", "OK");
-                return false;
-            }
-
-            return true;
+            return GoToAsyncParameters("//DepartamentoPage", parameters);
         }
     }
 }

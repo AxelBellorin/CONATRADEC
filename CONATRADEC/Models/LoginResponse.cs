@@ -1,4 +1,6 @@
 ﻿// Espacio de nombres que agrupa todos los modelos del proyecto CONATRADEC.
+using CONATRADEC.Services;
+
 namespace CONATRADEC.Models
 {
     // Clase que representa la estructura de la respuesta (Response)
@@ -69,6 +71,7 @@ namespace CONATRADEC.Models
         public bool? EsInterno { get => esInterno; set => esInterno = value; }
         public string? AccessToken { get => accessToken; set => accessToken = value; }
 
+        public List<UserPermissionDTO>? permisos { get; set; }
         public LoginResponse()
         {
         }

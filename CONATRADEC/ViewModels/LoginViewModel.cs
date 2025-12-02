@@ -245,6 +245,9 @@ namespace CONATRADEC.ViewModels
 
                 var resp = await apiServiceLogin.LoginAsync(req);
 
+                PermissionService.Instance.Load(resp.permisos);
+
+
                 try
                 {
                     if (RememberMe)

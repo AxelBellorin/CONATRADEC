@@ -1,9 +1,6 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
-using System;
 using System.Collections.ObjectModel;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace CONATRADEC.ViewModels
 {
@@ -31,10 +28,19 @@ namespace CONATRADEC.ViewModels
             EditCommand = new Command<ElementoQuimicoResponse>(OnEdit);
             DeleteCommand = new Command<ElementoQuimicoResponse>(OnDelete);
             ViewCommand = new Command<ElementoQuimicoResponse>(OnView);
+
+            // Cargar permisos de la página
+            LoadPagePermissions("elementoQuimicoPage");
         }
 
         public async Task LoadElementoQuimico(bool isBusy)
         {
+            if (!CanView)
+            {
+                await MostrarToastAsync("No tiene permisos para ver elementos químicos.");
+                return;
+            }
+
             IsBusy = isBusy;
 
             bool tieneInternet = await TieneInternetAsync();
@@ -64,6 +70,12 @@ namespace CONATRADEC.ViewModels
 
         private async Task OnAdd()
         {
+            if (!CanAdd)
+            {
+                await MostrarToastAsync("No tiene permisos para agregar.");
+                return;
+            }
+
             if (IsBusy) return;
 
             try
@@ -84,6 +96,12 @@ namespace CONATRADEC.ViewModels
 
         private async void OnEdit(ElementoQuimicoResponse elemento)
         {
+            if (!CanEdit)
+            {
+                await MostrarToastAsync("No tiene permisos para editar.");
+                return;
+            }
+
             if (IsBusy || elemento == null) return;
 
             try
@@ -104,53 +122,68 @@ namespace CONATRADEC.ViewModels
 
         private async void OnDelete(ElementoQuimicoResponse elemento)
         {
+            if (!CanDelete)
+            {
+                await MostrarToastAsync("No tiene permisos para eliminar.");
+                return;
+            }
+
             if (IsBusy || elemento == null) return;
 
             IsBusy = true;
             try
             {
-                bool confirm = _ = await App.Current.MainPage.DisplayAlert(
+                bool confirm = await App.Current.MainPage.DisplayAlert(
                     "Eliminar",
                     $"¿Seguro que deseas eliminar el elemento {elemento.NombreElementoQuimico}?",
                     "Sí",
                     "No");
 
-                if (confirm)
+                if (!confirm)
                 {
-                    bool tieneInternet = await TieneInternetAsync();
-                    if (!tieneInternet)
-                    {
-                        _ = MostrarToastAsync("Sin conexión a internet.");
-                        IsBusy = false;
-                        return;
-                    }
+                    IsBusy = false;
+                    return;
+                }
 
-                    var response = await elementoApiService.DeleteElementoQuimicoAsync(
-                        new ElementoQuimicoRequest(elemento));
+                bool tieneInternet = await TieneInternetAsync();
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
 
-                    if (response)
-                    {
-                        _ = MostrarToastAsync("Éxito\nElemento químico eliminado correctamente");
-                        await LoadElementoQuimico(IsBusy);
-                    }
-                    else
-                    {
-                        _ = MostrarToastAsync("Error\nEl elemento no se pudo eliminar, intente nuevamente");
-                    }
+                var response = await elementoApiService.DeleteElementoQuimicoAsync(
+                    new ElementoQuimicoRequest(elemento));
+
+                if (response)
+                {
+                    _ = MostrarToastAsync("Éxito\nElemento químico eliminado correctamente");
+                    await LoadElementoQuimico(true);
                 }
                 else
                 {
-                    IsBusy = false;
+                    _ = MostrarToastAsync("Error\nEl elemento no se pudo eliminar, intente nuevamente");
                 }
             }
             catch (Exception ex)
             {
                 _ = MostrarToastAsync("Error" + $"{ex}");
             }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         private async void OnView(ElementoQuimicoResponse elemento)
         {
+            if (!CanView)
+            {
+                await MostrarToastAsync("No tiene permisos para ver detalles.");
+                return;
+            }
+
             if (IsBusy || elemento == null) return;
 
             var parameters = new Dictionary<string, object>

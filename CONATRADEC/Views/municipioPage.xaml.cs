@@ -1,28 +1,31 @@
 using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
-    // Recibe desde Shell los parámetros "Pais", "Departamento" y "TitlePage"
-
-    [QueryProperty(nameof(Pais), "Pais")]   // Recibe el objeto Cargo (CargoRequest)
+    [QueryProperty(nameof(Pais), "Pais")]
     [QueryProperty(nameof(Departamento), "Departamento")]
     [QueryProperty(nameof(TitlePage), "TitlePage")]
     public partial class municipioPage : ContentPage
     {
-        private readonly MunicipioViewModel viewModel = new MunicipioViewModel();
+        private readonly MunicipioViewModel viewModel = new();
+        private string paisNombre;
 
-        // Título dinámico de la página (si lo usás en el VM)
         public string TitlePage
         {
             set => viewModel.TitlePage = value;
         }
+
         public PaisRequest Pais
         {
-            set => viewModel.PaisRequest = value;
+            set 
+            { 
+                viewModel.PaisRequest = value;
+                paisNombre = value.NombrePais;
+            }
         }
 
-        // Recibe el Departamento seleccionado y dispara la carga de municipios
         public DepartamentoRequest Departamento
         {
             set
@@ -37,6 +40,21 @@ namespace CONATRADEC.Views
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
             BindingContext = viewModel;
             InitializeComponent();
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+            if (!PermissionService.Instance.HasRead("municipioPage"))
+            {
+                _ = GlobalService.MostrarToastAsync("No tiene permisos para ver municipios.");
+
+                Shell.Current.GoToAsync("//MainPage");
+                return;
+            }
+
+            viewModel.LoadPagePermissions("municipioPage");
         }
     }
 }

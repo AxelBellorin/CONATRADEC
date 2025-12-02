@@ -24,13 +24,15 @@
                        HorizontalOptions="Start"
                        Padding="30,0,0,0" />
 
+                <!-- Botón agregar protegido por permisos -->
                 <ImageButton Source="iconadd.png"
                              WidthRequest="60"
                              HeightRequest="60"
                              CornerRadius="30"
                              Grid.Column="1"
                              Padding="0,0,20,0"
-                             Command="{Binding AddCommand}" />
+                             Command="{Binding AddCommand}"
+                             IsVisible="{Binding CanAdd}" />
             </Grid>
 
             <!-- Loading -->
@@ -43,6 +45,7 @@
             <CollectionView Grid.Row="2"
                             ItemsSource="{Binding List}"
                             SelectionMode="None">
+
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="2" />
                 </CollectionView.ItemsLayout>
@@ -57,7 +60,7 @@
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <SwipeView>
+                        <SwipeView IsEnabled="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.CanView}">
 
                             <SwipeView.RightItems>
                                 <SwipeItems Mode="Reveal">
@@ -66,13 +69,15 @@
                                                IconImageSource="iconupdate.png"
                                                BackgroundColor="{StaticResource BlueUpdate}"
                                                Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.EditCommand}"
-                                               CommandParameter="{Binding .}" />
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.CanEdit}" />
 
                                     <SwipeItem Text="Eliminar"
                                                IconImageSource="icondelete.png"
                                                BackgroundColor="{StaticResource RedDelete}"
                                                Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.DeleteCommand}"
-                                               CommandParameter="{Binding .}" />
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.CanDelete}" />
 
                                 </SwipeItems>
                             </SwipeView.RightItems>
@@ -80,7 +85,10 @@
                             <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
                                                     Default={StaticResource BorderStyleNoBorder}}">
 
-                                <Grid Padding="10" ColumnDefinitions="Auto,*">
+                                <Grid Padding="10"
+                                      ColumnDefinitions="Auto,*"
+                                      IsEnabled="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.CanView}">
+
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer Command="{Binding Source={x:Reference ElementoQuimicoPage}, Path=BindingContext.ViewCommand}"
                                                               CommandParameter="{Binding .}" />

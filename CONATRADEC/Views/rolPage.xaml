@@ -1,130 +1,105 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--
-  Página: rolPage.xaml
-  Descripción: Listado de Roles con acciones (Agregar, Editar, Eliminar, Ver).
-  ViewModel esperado: RolViewModel
-  Bindings clave:
-    - List (ObservableCollection<RolResponse>)
-    - IsBusy (bool)
-    - AddCommand, EditCommand, DeleteCommand, ViewCommand
-  Notas:
-    - El texto de encabezados/comentarios internos menciona "usuarios" y "cargos" en algunos lugares;
-      se deja tal cual para no modificar funcionalidad, pero es una página de Roles.
--->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.rolPage"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <!--
-      Contenedor con plantilla de pie de página (FooterTemplate),
-      expone x:Name="RolPage" para referenciar el BindingContext desde SwipeItems.
-    -->
     <ContentView x:Name="RolPage"
                  ControlTemplate="{StaticResource FooterTemplate}">
 
-        <!-- Layout principal con cabecera y lista -->
         <Grid ColumnDefinitions="*"
               RowDefinitions="Auto,auto,*">
 
-            <!-- Encabezado: Título + botón Agregar -->
+            <!-- ENCABEZADO -->
             <Grid ColumnDefinitions="*,auto"
                   Grid.Row="0"
                   Padding="0,10,0,0">
+
                 <Label Text="Rol"
                        FontSize="30"
                        FontFamily="MontserratBold"
                        TextColor="{StaticResource color_Negro}"
                        FontAttributes="Bold"
-                       VerticalOptions="Center"
-                       HorizontalOptions="Start"
                        Padding="30,0,0,0" />
-                <!-- Botón para crear un nuevo Rol (vinculado a AddCommand del VM) -->
+
+                <!-- BOTÓN AGREGAR (oculto si no hay permiso) -->
                 <ImageButton Source="iconadd.png"
                              WidthRequest="60"
                              HeightRequest="60"
                              CornerRadius="30"
                              Grid.Column="1"
                              Padding="0,0,20,0"
-                             Command="{Binding AddCommand}" />
+                             Command="{Binding AddCommand}"
+                             IsVisible="{Binding CanAdd}" />
             </Grid>
 
-            <!-- Indicador de carga: visible cuando IsBusy = true -->
+            <!-- LOADER -->
             <ActivityIndicator Grid.Row="1"
                                IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
                                Color="{StaticResource color_Naranja}" />
 
-            <!--
-              Lista de Roles
-              NOTA: El comentario original decía "Lista de usuarios". Se conserva el comentario,
-              pero recuerda que aquí se listan Roles (propiedad 'List').
-            -->
+            <!-- LISTA -->
             <CollectionView Grid.Row="2"
                             ItemsSource="{Binding List}"
                             SelectionMode="None">
+
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="2" />
                 </CollectionView.ItemsLayout>
 
-                <!--
-                  Vista vacía cuando no hay elementos.
-                  NOTA: El texto muestra "No hay cargos para mostrar." aunque es una página de Roles.
-                  Se deja tal cual para no alterar contenido; considera ajustar el texto en tu diseño final.
-                -->
                 <CollectionView.EmptyView>
                     <Grid Padding="20">
-                        <Label Text="No hay cargos para mostrar."
+                        <Label Text="No hay roles para mostrar."
                                HorizontalOptions="Center"
                                VerticalOptions="Center" />
                     </Grid>
                 </CollectionView.EmptyView>
 
-                <!-- Template de cada ítem de la lista -->
+                <!-- ITEM -->
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <!-- SwipeView para acciones de fila (Editar / Eliminar) -->
+
                         <SwipeView>
 
-                            <!-- Acciones al deslizar a la izquierda/derecha (RightItems) -->
+                            <!-- ACCIONES SWIPE -->
                             <SwipeView.RightItems>
                                 <SwipeItems Mode="Reveal">
 
-                                    <!-- Acción: Editar Rol -->
-                                    <!-- Usa el BindingContext de RolPage para alcanzar EditCommand del VM -->
+                                    <!-- EDITAR -->
                                     <SwipeItem Text="Editar"
                                                IconImageSource="iconupdate.png"
                                                BackgroundColor="{StaticResource BlueUpdate}"
                                                Command="{Binding Source={x:Reference RolPage}, Path=BindingContext.EditCommand}"
-                                               CommandParameter="{Binding .}" />
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference RolPage}, Path=BindingContext.CanEdit}" />
 
-                                    <!-- Acción: Eliminar Rol -->
+                                    <!-- ELIMINAR -->
                                     <SwipeItem Text="Eliminar"
                                                IconImageSource="icondelete.png"
                                                BackgroundColor="{StaticResource RedDelete}"
                                                Command="{Binding Source={x:Reference RolPage}, Path=BindingContext.DeleteCommand}"
-                                               CommandParameter="{Binding .}" />
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference RolPage}, Path=BindingContext.CanDelete}" />
 
                                 </SwipeItems>
                             </SwipeView.RightItems>
 
-                            <!-- Contenido visual de la fila -->
+                            <!-- CUERPO -->
                             <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
                                                     Default={StaticResource BorderStyleNoBorder}}">
 
-                                <!-- Grid interno con imagen + texto del Rol -->
                                 <Grid Padding="10"
                                       ColumnDefinitions="*">
-                                    <!-- Tap en toda la fila para ver detalles (ViewCommand) -->
+
                                     <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={x:Reference RolPage}, Path=BindingContext.ViewCommand}"
-                                                              CommandParameter="{Binding .}" />
+                                        <TapGestureRecognizer 
+                                            Command="{Binding Source={x:Reference RolPage}, Path=BindingContext.ViewCommand}"
+                                            CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
 
-                                    <!-- Texto principal: Nombre del Rol -->
-                                    <StackLayout Grid.Column="1"
-                                                 VerticalOptions="Center">
+                                    <StackLayout VerticalOptions="Center">
                                         <Label Text="{Binding NombreRol}"
                                                FontAttributes="Bold"
                                                FontSize="20"
@@ -133,10 +108,15 @@
                                     </StackLayout>
                                 </Grid>
                             </Border>
+
                         </SwipeView>
+
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
+
             </CollectionView>
+
         </Grid>
+
     </ContentView>
 </ContentPage>

@@ -1,4 +1,5 @@
 using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 namespace CONATRADEC.Views;
 
@@ -27,5 +28,20 @@ public partial class departamentoPage : ContentPage
         Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
         BindingContext = viewModel;
         InitializeComponent();
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (!PermissionService.Instance.HasRead("departamentoPage"))
+        {
+            _ = GlobalService.MostrarToastAsync("No tiene permiso para ver departamentos.");
+            Shell.Current.GoToAsync("//MainPage");
+            return;
+        }
+
+        // CARGAR PERMISOS EN EL VM
+        viewModel.LoadPagePermissions("departamentoPage");
     }
 }
