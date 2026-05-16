@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
 using Microsoft.Maui.Storage;
 using System.Net.Http.Json;
-using System.Linq;  
+using System.Linq;
 
 namespace CONATRADEC.ViewModels
 {
@@ -613,6 +613,12 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
+            if (!EsTelefonoValidoCaracteres(TelefonoUsuario))
+            {
+                Display("Teléfono de contener 8 caracteres");
+                return false;
+            }
+
             if (!EsContrasenaSegura(ClaveUsuario) && Mode == FormMode.FormModeSelect.Create)
             {
                 Display("Contraseña insegura.");
@@ -637,8 +643,12 @@ namespace CONATRADEC.ViewModels
         private void Display(string msg) =>
             _ = MostrarToastAsync("Validación" + msg);
 
-        public bool EsTelefonoValido(string telefono) =>
+        public bool EsTelefonoValidoCaracteres(string telefono) =>
+            Regex.IsMatch(telefono ?? "", @"^\d{8}$");
+
+        public bool EsTelefonoValido(string telefono) => 
             !string.IsNullOrWhiteSpace(telefono) && telefono.All(char.IsDigit);
+
 
         public bool EsCorreoValido(string correo)
         {

@@ -44,6 +44,7 @@ namespace CONATRADEC.ViewModels
         // ==================== Storage Keys ====================
         private const string KeyRemember = "login.remember";
         private const string KeyUser = "login.username";
+        private const string KeyUserObject = "login.user_object";
         private const string KeyToken = "auth.token";
         private const string KeyPass = "login.password";
         private const string KeyUseBiometrics = "login.use_biometrics";

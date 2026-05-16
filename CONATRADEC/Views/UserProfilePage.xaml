@@ -1,0 +1,67 @@
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.UserProfilePage"
+             BackgroundColor="{StaticResource color_Blanco}">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+
+        <ScrollView>
+
+            <VerticalStackLayout Padding="20" Spacing="25">
+
+                <!-- Avatar -->
+                <Frame WidthRequest="100" HeightRequest="100"
+                       CornerRadius="50"
+                       BackgroundColor="{StaticResource color_GrisClaro}"
+                       HorizontalOptions="Center">
+                    <Label Text="{Binding Initial}" 
+                           VerticalOptions="Center" 
+                           HorizontalOptions="Center"
+                           FontSize="40"
+                           TextColor="White"
+                           FontFamily="MontserratBold"/>
+                </Frame>
+
+                <!-- Datos de usuario -->
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding NombreCompleto}" 
+                           FontSize="22"
+                           FontFamily="MontserratBold"
+                           TextColor="{StaticResource color_Negro}"/>
+
+                    <Label Text="{Binding Correo}"
+                           FontSize="14"
+                           TextColor="{StaticResource color_GrisOscuro}"/>
+
+                    <Label Text="Rol: {Binding Rol}"
+                           FontSize="14"
+                           TextColor="{StaticResource color_GrisOscuro}"/>
+
+                    <Label Text="Miembro desde: {Binding FechaCreacion}"
+                           FontSize="14"
+                           TextColor="{StaticResource color_GrisOscuro}"/>
+                </VerticalStackLayout>
+
+
+                <!-- Acciones -->
+                <VerticalStackLayout Spacing="15">
+
+                    <Button Text="Editar información"
+                            Style="{StaticResource UpdateButton}"
+                            Command="{Binding EditarInfoCommand}"/>
+
+                    <Button Text="Cambiar contraseña"
+                            Style="{StaticResource BlueButton}"
+                            Command="{Binding CambiarPasswordCommand}"/>
+
+                    <Button Text="Cerrar sesión"
+                            Style="{StaticResource RedButton}"
+                            Command="{Binding LogoutCommand}"/>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+
+        </ScrollView>
+
+    </ContentView>
+</ContentPage>
