@@ -13,7 +13,7 @@ namespace CONATRADEC.Models
         private int? elementoQuimicosId;
         private string? simboloElementoQuimico;
         private string? nombreElementoQuimico;
-        private decimal? pesoEquivalentElementoQuimico; // decimal(10,4)
+        private decimal? pesoEquivalenteElementoQuimico; // decimal(10,4)
 
         // Propiedades públicas
         public int? ElementoQuimicosId
@@ -35,10 +35,10 @@ namespace CONATRADEC.Models
         }
 
         [JsonPropertyName("pesoEquivalentEelementoQuimico")]
-        public decimal? PesoEquivalentElementoQuimico
+        public decimal? PesoEquivalenteElementoQuimico
         {
-            get => pesoEquivalentElementoQuimico;
-            set => pesoEquivalentElementoQuimico = value;
+            get => pesoEquivalenteElementoQuimico;
+            set => pesoEquivalenteElementoQuimico = value;
         }
 
         public ElementoQuimicoRequest() { }
@@ -48,7 +48,7 @@ namespace CONATRADEC.Models
             ElementoQuimicosId = elementoRP.ElementoQuimicosId;
             SimboloElementoQuimico = elementoRP.SimboloElementoQuimico;
             NombreElementoQuimico = elementoRP.NombreElementoQuimico;
-            PesoEquivalentElementoQuimico = elementoRP.PesoEquivalentElementoQuimico;
+            pesoEquivalenteElementoQuimico = elementoRP.PesoEquivalenteElementoQuimico;
         }
     }
 }

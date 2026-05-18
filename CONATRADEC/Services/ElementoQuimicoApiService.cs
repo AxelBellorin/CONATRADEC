@@ -23,7 +23,7 @@ namespace CONATRADEC.Services
             {
                 // Ajusta la ruta según tu controlador real
                 var response = await httpClient.GetFromJsonAsync<ObservableCollection<ElementoQuimicoResponse>>(
-                    "api/elemento-quimico/listar");
+                    "api/ElementoQuimico");
 
                 return response ?? new ObservableCollection<ElementoQuimicoResponse>();
             }

@@ -13,7 +13,7 @@ namespace CONATRADEC.ViewModels
 
         private string simboloElementoQuimico;
         private string nombreElementoQuimico;
-        private decimal? pesoEquivalentElementoQuimico;
+        private decimal? pesoEquivalenteElementoQuimico;
 
         private FormMode.FormModeSelect mode = new FormMode.FormModeSelect();
 
@@ -42,8 +42,8 @@ namespace CONATRADEC.ViewModels
 
         public decimal? PesoEquivalentEelementoQuimico
         {
-            get => pesoEquivalentElementoQuimico;
-            set { pesoEquivalentElementoQuimico = value; OnPropertyChanged(); }
+            get => pesoEquivalenteElementoQuimico;
+            set { pesoEquivalenteElementoQuimico = value; OnPropertyChanged(); }
         }
 
         public bool IsCancel
@@ -62,7 +62,7 @@ namespace CONATRADEC.ViewModels
 
                 SimboloElementoQuimico = value.SimboloElementoQuimico;
                 NombreElementoQuimico = value.NombreElementoQuimico;
-                PesoEquivalentEelementoQuimico = value.PesoEquivalentElementoQuimico;
+                PesoEquivalentEelementoQuimico = value.PesoEquivalenteElementoQuimico;
             }
         }
 
@@ -132,7 +132,7 @@ namespace CONATRADEC.ViewModels
 
             if (SimboloElementoQuimico != ElementoQuimico.SimboloElementoQuimico) return true;
             if (NombreElementoQuimico != ElementoQuimico.NombreElementoQuimico) return true;
-            if (PesoEquivalentEelementoQuimico != ElementoQuimico.PesoEquivalentElementoQuimico) return true;
+            if (PesoEquivalentEelementoQuimico != ElementoQuimico.PesoEquivalenteElementoQuimico) return true;
 
             return false;
         }
@@ -170,8 +170,8 @@ namespace CONATRADEC.ViewModels
                     {
                         ElementoQuimico.SimboloElementoQuimico = SimboloElementoQuimico;
                         ElementoQuimico.NombreElementoQuimico = NombreElementoQuimico;
-                        ElementoQuimico.PesoEquivalentElementoQuimico = PesoEquivalentEelementoQuimico;
-
+                        ElementoQuimico.PesoEquivalenteElementoQuimico = PesoEquivalentEelementoQuimico;
+                            
                         bool tieneInternet = await TieneInternetAsync();
                         if (!tieneInternet)
                         {
@@ -222,7 +222,7 @@ namespace CONATRADEC.ViewModels
                     {
                         ElementoQuimico.SimboloElementoQuimico = SimboloElementoQuimico;
                         ElementoQuimico.NombreElementoQuimico = NombreElementoQuimico;
-                        ElementoQuimico.PesoEquivalentElementoQuimico = PesoEquivalentEelementoQuimico;
+                        ElementoQuimico.PesoEquivalenteElementoQuimico = PesoEquivalentEelementoQuimico;
 
                         bool tieneInternet = await TieneInternetAsync();
                         if (!tieneInternet)

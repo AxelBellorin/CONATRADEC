@@ -16,6 +16,19 @@
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:loginPage}" />
     
+    <!-- MATRIZ PERMISOS -->
+    <ShellContent Title="MatrizPermisosPage"
+                  Route="MatrizPermisosPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:matrizPermisosPage}" />
+    
+        <!-- MATRIZ PERMISOS -->
+    <ShellContent Title="MainPage"
+                  Route="MainPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:MainPage}" />
+
+    
     <!-- USUARIO -->
     <ShellContent Title="UserPage"
                   Route="UserPage"
@@ -100,12 +113,6 @@
                   Route="MapaSeleccionPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:MapaSeleccionPage}" />
-
-    <!-- MATRIZ PERMISOS -->
-    <ShellContent Title="MatrizPermisosPage"
-                  Route="MatrizPermisosPage"
-                  FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:matrizPermisosPage}" />
 
     <!-- NUEVO ANÁLISIS -->
     <ShellContent Title="NuevoAnalisisFormPage"
