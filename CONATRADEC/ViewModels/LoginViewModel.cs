@@ -43,8 +43,10 @@ namespace CONATRADEC.ViewModels
 
         // ==================== Storage Keys ====================
         private const string KeyRemember = "login.remember";
+        private const string KeyUserId = "login.userid";
         private const string KeyUser = "login.username";
-        private const string KeyUserObject = "login.user_object";
+        public const string KeyCorreoUsuario = "CorreoUsuario";
+        public const string KeyUrlImagenUsuario = "UrlImagenUsuario";
         private const string KeyToken = "auth.token";
         private const string KeyPass = "login.password";
         private const string KeyUseBiometrics = "login.use_biometrics";
@@ -255,6 +257,10 @@ namespace CONATRADEC.ViewModels
                     {
                         Preferences.Set(KeyRemember, true);
                         Preferences.Set(KeyUser, userTrim);
+                        Preferences.Set(SessionKeys.KeyUserId, resp.UsuarioId.ToString());
+                        Preferences.Set(SessionKeys.KeyNombreCompletoUsuario, resp.NombreCompletoUsuario ?? string.Empty);
+                        Preferences.Set(SessionKeys.KeyCorreoUsuario, resp.CorreoUsuario ?? string.Empty);
+                        Preferences.Set(SessionKeys.KeyUrlImagenUsuario, resp.UrlImagenUsuario ?? string.Empty);
 
                         await SecureStorage.SetAsync(KeyPass, Password);
                     }
@@ -265,6 +271,10 @@ namespace CONATRADEC.ViewModels
                         SecureStorage.Remove(KeyToken);
                         SecureStorage.Remove(KeyPass);
                         Preferences.Remove(KeyUseBiometrics);
+                        Preferences.Remove(SessionKeys.KeyUserId);
+                        Preferences.Remove(SessionKeys.KeyUrlImagenUsuario);
+                        Preferences.Remove(SessionKeys.KeyCorreoUsuario);
+                        Preferences.Remove(SessionKeys.KeyNombreCompletoUsuario);
                         UseBiometrics = false;
                     }
                 }

@@ -37,7 +37,7 @@ namespace CONATRADEC.ViewModels
         {
             if (!CanView)
             {
-                await MostrarToastAsync("No tiene permisos para ver elementos químicos.");
+                await MostrarToastAsync("No tiene permisos para ver elementos químicos.");      
                 return;
             }
 

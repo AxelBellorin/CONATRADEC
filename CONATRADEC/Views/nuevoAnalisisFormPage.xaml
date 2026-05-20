@@ -2,253 +2,578 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.NuevoAnalisisFormPage"
+             x:Name="NuevoAnalisisPage"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}"
+             BackgroundColor="{StaticResource color_Blanco}"
              Title="Nuevo Análisis">
+
+    <ContentPage.Resources>
+
+        <!-- Contenedor corregido para campos del formulario.
+             Evita que Picker / DatePicker / Entry queden cortados. -->
+        <Style x:Key="FormInputContainerStyle"
+               TargetType="Border"
+               BasedOn="{StaticResource InputContainerStyle}">
+            <Setter Property="HeightRequest" Value="64" />
+            <Setter Property="Padding" Value="14,4" />
+            <Setter Property="VerticalOptions" Value="Center" />
+        </Style>
+
+        <Style x:Key="FormEntryStyle"
+               TargetType="Entry"
+               BasedOn="{StaticResource InputEntryStyle}">
+            <Setter Property="HeightRequest" Value="56" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+        </Style>
+
+        <Style x:Key="FormPickerStyle"
+               TargetType="Picker"
+               BasedOn="{StaticResource InputPickerStyle}">
+            <Setter Property="HeightRequest" Value="56" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+        </Style>
+
+        <Style x:Key="FormSearchBarStyle"
+               TargetType="SearchBar">
+            <Setter Property="HeightRequest" Value="56" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="{StaticResource color_Negro}" />
+            <Setter Property="PlaceholderColor" Value="{StaticResource color_Gris}" />
+        </Style>
+
+        <Style x:Key="FormDatePickerStyle"
+               TargetType="DatePicker">
+            <Setter Property="HeightRequest" Value="56" />
+            <Setter Property="VerticalOptions" Value="Center" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="{StaticResource color_Negro}" />
+        </Style>
+
+    </ContentPage.Resources>
 
     <ContentView x:Name="UserPage"
                  ControlTemplate="{StaticResource FooterTemplate}">
 
-        <ScrollView>
-            <VerticalStackLayout Padding="16" Spacing="12">
+        <Grid RowDefinitions="*,Auto">
 
-                <Label Text="Formulario de Análisis de Suelo"
-                       FontAttributes="Bold"
-                       FontSize="22" />
+            <ScrollView Grid.Row="0">
+                <VerticalStackLayout Padding="18,14"
+                                     Spacing="0"
+                                     HorizontalOptions="Fill">
 
-                <!-- Seccion: Detalles generales (sin cambios) -->
-                <Label Text="Detalles generales"
-                       FontAttributes="Bold"
-                       FontSize="16"
-                       Margin="0,4,0,0" />
+                    <!-- Encabezado -->
+                    <VerticalStackLayout Spacing="8"
+                                         Margin="0,4,0,24">
 
-                <Frame CornerRadius="8"
-                       HasShadow="True"
-                       Padding="12"
-                       BackgroundColor="WhiteSmoke"
-                       Margin="0,6,0,0">
+                        <Label Text="Formulario de Análisis de Suelo"
+                               FontAttributes="Bold"
+                               FontSize="30"
+                               TextColor="{StaticResource color_Verde}" />
 
-                    <Grid ColumnDefinitions="Auto, *"
-                          RowDefinitions="Auto, Auto, Auto"
-                          RowSpacing="10"
-                          ColumnSpacing="12">
+                        <Label Text="Ingrese los datos del terreno, laboratorio y valores reportados para iniciar el procesamiento nutricional."
+                               FontSize="15"
+                               TextColor="{StaticResource color_GrisOscuro}" />
 
-                        <!-- Usuario -->
-                        <Frame Grid.Row="0" Grid.Column="0"
-                               CornerRadius="24"
-                               HeightRequest="48"
-                               WidthRequest="48"
-                               Padding="0"
-                               VerticalOptions="Center"
-                               HorizontalOptions="Start"
-                               Margin="10,20,0,0"
-                               BackgroundColor="#2E86AB"
-                               HasShadow="False">
-                            <Label Text="JM" 
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"
-                                   TextColor="White"
-                                   FontAttributes="Bold" />
-                        </Frame>
+                        <Border BackgroundColor="#EEF5F2"
+                                Stroke="{StaticResource color_Verde}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 18"
+                                Padding="16,8"
+                                HorizontalOptions="Start">
 
-                        <VerticalStackLayout Grid.Row="0"
-                                             Grid.Column="1"
-                                             Spacing="2"
-                                             VerticalOptions="Center">
-                            <Label x:Name="UsuarioLabel"
-                                   Text="Jonathan Martinez"
-                                   FontAttributes="Bold"
-                                   FontSize="16" />
-                            <Label Text="26martinez.508@gmail.com"
-                                   TextColor="Gray"
-                                   FontSize="14" />
-                        </VerticalStackLayout>
+                            <HorizontalStackLayout Spacing="8">
+                                <BoxView WidthRequest="8"
+                                         HeightRequest="8"
+                                         CornerRadius="4"
+                                         BackgroundColor="{StaticResource color_Verde}"
+                                         VerticalOptions="Center" />
 
-                        <!-- Laboratorio -->
-                        <Label Grid.Row="1" Grid.Column="0"
-                               Text="Laboratorio:"
-                               VerticalOptions="Center" />
-                        <Entry Grid.Row="1" Grid.Column="1"
-                               Placeholder="Laboratorio"
-                               x:Name="LaboratorioEntry"
-                               HorizontalOptions="FillAndExpand" />
-
-                        <!-- Tipo de muestra -->
-                        <HorizontalStackLayout Grid.Row="2"
-                                               Grid.Column="0"
-                                               Grid.ColumnSpan="2"
-                                               Spacing="16">
-                            <VerticalStackLayout Spacing="4"
-                                                 HorizontalOptions="FillAndExpand">
-                                <Label Text="Tipo de muestra:" />
-                                <Label Text="Suelo"
+                                <Label Text="Nuevo análisis"
+                                       TextColor="{StaticResource color_Verde}"
                                        FontAttributes="Bold"
-                                       FontSize="14"
+                                       FontSize="13"
                                        VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Border>
+
+                    </VerticalStackLayout>
+
+                    <!-- Datos del usuario -->
+                    <Border Style="{StaticResource CardAnalisisStyle}">
+
+                        <VerticalStackLayout Spacing="18">
+
+                            <HorizontalStackLayout Spacing="16">
+
+                                <Border WidthRequest="66"
+                                        HeightRequest="66"
+                                        StrokeShape="Ellipse"
+                                        Stroke="{StaticResource color_Verde}"
+                                        StrokeThickness="2"
+                                        BackgroundColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Start">
+
+                                    <Grid>
+                                        <Image Source="{Binding UrlImagenUsuario}"
+                                               Aspect="AspectFill"
+                                               IsVisible="{Binding TieneImagenUsuario}" />
+
+                                        <Label Text="{Binding InicialesUsuario}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"
+                                               TextColor="{StaticResource color_Blanco}"
+                                               FontAttributes="Bold"
+                                               FontSize="18"
+                                               IsVisible="{Binding NoTieneImagenUsuario}" />
+                                    </Grid>
+                                </Border>
+
+                                <VerticalStackLayout Spacing="4"
+                                                     VerticalOptions="Center"
+                                                     HorizontalOptions="FillAndExpand">
+
+                                    <Label Text="{Binding NombreCompletoUsuario}"
+                                           FontAttributes="Bold"
+                                           FontSize="20"
+                                           TextColor="{StaticResource color_Negro}" />
+
+                                    <Label Text="{Binding CorreoUsuario}"
+                                           TextColor="{StaticResource color_GrisOscuro}"
+                                           FontSize="14" />
+
+                                </VerticalStackLayout>
+
+                            </HorizontalStackLayout>
+
+                            <HorizontalStackLayout Spacing="10">
+
+                                <Border Style="{StaticResource MiniTagStyle}"
+                                        BackgroundColor="#EEF5F2">
+                                    <Label Text="{Binding TextoTipoMuestra}"
+                                           TextColor="{StaticResource color_Verde}"
+                                           FontAttributes="Bold"
+                                           FontSize="13" />
+                                </Border>
+
+                                <Border Style="{StaticResource MiniTagStyle}"
+                                        BackgroundColor="#FFF6DF">
+                                    <Label Text="Análisis nutricional"
+                                           TextColor="{StaticResource color_Cafe}"
+                                           FontAttributes="Bold"
+                                           FontSize="13" />
+                                </Border>
+
+                            </HorizontalStackLayout>
+
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Cliente y terreno -->
+                    <Border Style="{StaticResource CardAnalisisStyle}">
+
+                        <VerticalStackLayout Spacing="16">
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Cliente y terreno"
+                                       Style="{StaticResource SectionTitleStyle}" />
+
+                                <Label Text="Busque el cliente, código o nombre del terreno asociado al análisis de suelo."
+                                       Style="{StaticResource SectionSubtitleStyle}" />
                             </VerticalStackLayout>
+
+                            <!-- Buscar terreno -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Buscar cliente / terreno"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <SearchBar Text="{Binding TextoBusquedaTerreno}"
+                                               Placeholder="Buscar por cliente, código o nombre del terreno"
+                                               SearchCommand="{Binding BuscarTerrenoCommand}"
+                                               Style="{StaticResource FormSearchBarStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Lista de terrenos -->
+                            <CollectionView ItemsSource="{Binding TerrenosFiltrados}"
+                                            SelectionMode="None"
+                                            HeightRequest="260">
+
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+
+                                        <Border BackgroundColor="#F9FAFB"
+                                                Stroke="#E5E7EB"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 14"
+                                                Padding="12"
+                                                Margin="0,0,0,8">
+
+                                            <VerticalStackLayout Spacing="8">
+
+                                                <Label Text="{Binding NombreCliente}"
+                                                       FontAttributes="Bold"
+                                                       FontSize="15"
+                                                       TextColor="{StaticResource color_Negro}" />
+
+                                                <Label Text="{Binding CodigoTerreno}"
+                                                       FontAttributes="Bold"
+                                                       FontSize="13"
+                                                       TextColor="{StaticResource color_Verde}" />
+
+                                                <Label Text="{Binding NombreTerreno}"
+                                                       FontSize="13"
+                                                       TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Label Text="{Binding TamanoFinca, StringFormat='Finca: {0} mz'}"
+                                                       FontSize="13"
+                                                       TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Label Text="{Binding CantidadQuintalesOro, StringFormat='Quintales oro: {0}'}"
+                                                       FontSize="13"
+                                                       TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Button Text="Seleccionar terreno"
+                                                        Style="{StaticResource AddButton}"
+                                                        FontSize="13"
+                                                        Padding="10,8"
+                                                        Command="{Binding BindingContext.SeleccionarTerrenoCommand, Source={x:Reference NuevoAnalisisPage}}"
+                                                        CommandParameter="{Binding .}" />
+
+                                            </VerticalStackLayout>
+
+                                        </Border>
+
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                            <!-- Terreno seleccionado -->
+                            <Border BackgroundColor="#EEF5F2"
+                                    Stroke="{StaticResource color_Verde}"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 14"
+                                    Padding="12"
+                                    IsVisible="{Binding TieneTerrenoSeleccionado}">
+
+                                <VerticalStackLayout Spacing="4">
+
+                                    <Label Text="Terreno seleccionado"
+                                           FontAttributes="Bold"
+                                           FontSize="14"
+                                           TextColor="{StaticResource color_Verde}" />
+
+                                    <Label Text="{Binding TerrenoSeleccionado.NombreCliente}"
+                                           FontAttributes="Bold"
+                                           FontSize="15"
+                                           TextColor="{StaticResource color_Negro}" />
+
+                                    <Label Text="{Binding TerrenoSeleccionado.NombreTerreno}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label Text="{Binding TerrenoSeleccionado.CodigoTerreno}"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource color_Cafe}" />
+
+                                </VerticalStackLayout>
+                            </Border>
+
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Datos del análisis -->
+                    <Border Style="{StaticResource CardAnalisisStyle}">
+
+                        <VerticalStackLayout Spacing="16">
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Datos del análisis"
+                                       Style="{StaticResource SectionTitleStyle}" />
+
+                                <Label Text="Complete la información general del análisis emitido por el laboratorio."
+                                       Style="{StaticResource SectionSubtitleStyle}" />
+                            </VerticalStackLayout>
+
+                            <!-- Tipo de cultivo -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Tipo de cultivo"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Picker ItemsSource="{Binding TiposCultivo}"
+                                            SelectedItem="{Binding TipoCultivoSeleccionado}"
+                                            Title="Seleccione cultivo"
+                                            Style="{StaticResource FormPickerStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Tipo de análisis -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Tipo de análisis de suelo"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Picker ItemsSource="{Binding TiposAnalisisSuelo}"
+                                            SelectedItem="{Binding TipoAnalisisSueloSeleccionado}"
+                                            Title="Seleccione análisis"
+                                            Style="{StaticResource FormPickerStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Fecha laboratorio -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Fecha del análisis del laboratorio"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <DatePicker Date="{Binding FechaAnalisisLaboratorio}"
+                                                Style="{StaticResource FormDatePickerStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Laboratorio -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Laboratorio análisis de suelo"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding Laboratorio}"
+                                           Placeholder="Nombre del laboratorio"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Identificador análisis -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Identificador de análisis de suelo"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding IdentificadorAnalisisSuelo}"
+                                           Placeholder="Código único del laboratorio"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Cantidad quintales oro -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Cantidad quintales oro"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding CantidadQuintalesOro}"
+                                           Keyboard="Numeric"
+                                           Placeholder="Ejemplo: 25"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Tamaño finca -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Tamaño de la finca"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding TamanoFinca}"
+                                           Keyboard="Numeric"
+                                           Placeholder="Ejemplo: 3.5"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
+
+                                <Label Text="Este valor viene del terreno, pero puede modificarse si es necesario."
+                                       FontSize="12"
+                                       TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
+
+                            <!-- Tipo muestra -->
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Tipo de muestra"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border BackgroundColor="#F9FAFB"
+                                        Stroke="#E5E7EB"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 14"
+                                        Padding="14,14"
+                                        MinimumHeightRequest="58">
+
+                                    <Label Text="{Binding TipoMuestra}"
+                                           FontAttributes="Bold"
+                                           FontSize="15"
+                                           TextColor="{StaticResource color_Negro}"
+                                           VerticalOptions="Center" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Resultados -->
+                    <Border Style="{StaticResource CardAnalisisStyle}">
+
+                        <VerticalStackLayout Spacing="16">
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Resultados del análisis"
+                                       Style="{StaticResource SectionTitleStyle}" />
+
+                                <Label Text="Digite cada valor según el reporte del laboratorio y seleccione la unidad correspondiente."
+                                       Style="{StaticResource SectionSubtitleStyle}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="12"
+                                                 BindableLayout.ItemsSource="{Binding ResultadosAnalisis}">
+
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+
+                                        <Border BackgroundColor="#F9FAFB"
+                                                Stroke="#E5E7EB"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 14"
+                                                Padding="14"
+                                                Margin="0,0,0,4">
+
+                                            <VerticalStackLayout Spacing="10">
+
+                                                <Label Text="{Binding NombreParametro}"
+                                                       FontAttributes="Bold"
+                                                       FontSize="15"
+                                                       TextColor="{StaticResource color_Negro}" />
+
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Label Text="Valor reportado"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                    <Border Style="{StaticResource FormInputContainerStyle}">
+                                                        <Entry Text="{Binding Valor}"
+                                                               Keyboard="Numeric"
+                                                               Placeholder="{Binding PlaceholderValor}"
+                                                               HorizontalOptions="Fill"
+                                                               Style="{StaticResource FormEntryStyle}" />
+                                                    </Border>
+                                                </VerticalStackLayout>
+
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Label Text="Unidad"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                    <Border Style="{StaticResource FormInputContainerStyle}">
+                                                        <Picker ItemsSource="{Binding UnidadesMedida}"
+                                                                SelectedItem="{Binding UnidadSeleccionada}"
+                                                                Style="{StaticResource FormPickerStyle}" />
+                                                    </Border>
+                                                </VerticalStackLayout>
+
+                                            </VerticalStackLayout>
+                                        </Border>
+
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Nota informativa -->
+                    <Border BackgroundColor="#EEF5F2"
+                            Stroke="Transparent"
+                            StrokeShape="RoundRectangle 16"
+                            Padding="16"
+                            Margin="0,0,0,18">
+
+                        <HorizontalStackLayout Spacing="12">
+
+                            <Border WidthRequest="34"
+                                    HeightRequest="34"
+                                    StrokeShape="Ellipse"
+                                    BackgroundColor="{StaticResource color_Verde}"
+                                    VerticalOptions="Start">
+
+                                <Label Text="i"
+                                       TextColor="{StaticResource color_Blanco}"
+                                       FontAttributes="Bold"
+                                       FontSize="18"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <Label Text="Al enviar el análisis, el sistema validará los valores capturados y preparará los datos para conversión, clasificación y procesamiento nutricional."
+                                   TextColor="{StaticResource color_Verde}"
+                                   FontSize="14"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="FillAndExpand" />
                         </HorizontalStackLayout>
+                    </Border>
 
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <!-- Barra inferior -->
+            <Border Grid.Row="1"
+                    BackgroundColor="White"
+                    Stroke="#E5E7EB"
+                    StrokeThickness="1"
+                    Padding="18,12">
+
+                <VerticalStackLayout Spacing="10">
+
+                    <Label Text="Revise que los valores coincidan con el reporte del laboratorio antes de enviar."
+                           FontSize="13"
+                           TextColor="{StaticResource color_GrisOscuro}" />
+
+                    <Grid ColumnDefinitions="*,*"
+                          ColumnSpacing="10">
+
+                        <Button Grid.Column="0"
+                                Text="Cancelar"
+                                Command="{Binding CancelarCommand}"
+                                Style="{StaticResource CancelButton}" />
+
+                        <Button Grid.Column="1"
+                                Text="Enviar Análisis"
+                                Command="{Binding EnviarAnalisisCommand}"
+                                Style="{StaticResource AddButton}"
+                                IsEnabled="{Binding PuedeEnviar}" />
                     </Grid>
-                </Frame>
 
-                <!-- Sección: Resultados -->
-                <Label Text="Resultados del análisis"
-                       FontAttributes="Bold"
-                       FontSize="16"
-                       Margin="0,6,0,0" />
+                </VerticalStackLayout>
+            </Border>
 
-                <Frame CornerRadius="8"
-                       HasShadow="True"
-                       Padding="12"
-                       BackgroundColor="WhiteSmoke"
-                       Margin="0,6,0,0">
+            <!-- Overlay de carga -->
+            <Grid Grid.RowSpan="2"
+                  BackgroundColor="#80000000"
+                  IsVisible="{Binding IsBusy}">
 
-                    <Grid ColumnDefinitions="Auto,*,110"
-                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
-                          RowSpacing="12"
-                          ColumnSpacing="12">
+                <VerticalStackLayout HorizontalOptions="Center"
+                                     VerticalOptions="Center"
+                                     Spacing="12">
 
-                        <!-- pH -->
-                        <Label Grid.Row="0" Grid.Column="0"
-                               VerticalOptions="Center"
-                               Text="pH:" />
-                        <Entry Grid.Row="0" Grid.Column="1"
-                               x:Name="pHEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Valor"
-                               HorizontalOptions="FillAndExpand" />
-                        <Picker Grid.Row="0" Grid.Column="2"
-                                x:Name="pHUnitPicker"
-                                SelectedIndex="0"
-                                WidthRequest="110"
-                                VerticalOptions="Center">
-                            <Picker.Items>
-                                <x:String>pH</x:String>
-                                <x:String>sin unidad</x:String>
-                            </Picker.Items>
-                        </Picker>
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       Color="{StaticResource color_Verde}"
+                                       WidthRequest="42"
+                                       HeightRequest="42" />
 
-                        <!-- Materia Orgánica -->
-                        <Label Grid.Row="1" Grid.Column="0"
-                               VerticalOptions="Center"
-                               Text="Materia Orgánica:" />
-                        <Entry Grid.Row="1" Grid.Column="1"
-                               x:Name="MateriaOrganicaEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Valor"
-                               HorizontalOptions="FillAndExpand" />
-                        <Picker Grid.Row="1" Grid.Column="2"
-                                x:Name="MateriaOrganicaUnitPicker"
-                                SelectedIndex="0"
-                                WidthRequest="110"
-                                VerticalOptions="Center">
-                            <Picker.Items>
-                                <x:String>%</x:String>
-                                <x:String>g/kg</x:String>
-                                <x:String>mg/kg</x:String>
-                                <x:String>ppm</x:String>
-                            </Picker.Items>
-                        </Picker>
+                    <Label Text="Procesando análisis..."
+                           TextColor="White"
+                           FontSize="16"
+                           FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Grid>
 
-                        <!-- Potasio -->
-                        <Label Grid.Row="2" Grid.Column="0"
-                               VerticalOptions="Center"
-                               Text="Potasio:" />
-                        <Entry Grid.Row="2" Grid.Column="1"
-                               x:Name="PotasioEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Valor"
-                               HorizontalOptions="FillAndExpand" />
-                        <Picker Grid.Row="2" Grid.Column="2"
-                                x:Name="PotasioUnitPicker"
-                                SelectedIndex="0"
-                                WidthRequest="110"
-                                VerticalOptions="Center">
-                            <Picker.Items>
-                                <x:String>mg/kg</x:String>
-                                <x:String>ppm</x:String>
-                            </Picker.Items>
-                        </Picker>
-
-                        <!-- Fósforo disponible -->
-                        <Label Grid.Row="3"
-                               Grid.Column="0"
-                               VerticalOptions="Center"
-                               Text="Fósforo disponible:" />
-                        <Entry Grid.Row="3"
-                               Grid.Column="1"
-                               x:Name="FosforoEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Valor"
-                               HorizontalOptions="FillAndExpand" />
-                        <Picker Grid.Row="3"
-                                Grid.Column="2"
-                                x:Name="FosforoUnitPicker"
-                                SelectedIndex="0"
-                                WidthRequest="110"
-                                VerticalOptions="Center">
-                            <Picker.Items>
-                                <x:String>mg/kg</x:String>
-                                <x:String>ppm</x:String>
-                                <x:String>g/kg</x:String>
-                            </Picker.Items>
-                        </Picker>
-
-                        <!-- Calcio -->
-                        <Label Grid.Row="4"
-                               Grid.Column="0"
-                               VerticalOptions="Center"
-                               Text="Calcio:" />
-                        <Entry Grid.Row="4"
-                               Grid.Column="1"
-                               x:Name="CalcioEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Valor"
-                               HorizontalOptions="FillAndExpand" />
-                        <Picker Grid.Row="4"
-                                Grid.Column="2"
-                                x:Name="CalcioUnitPicker"
-                                SelectedIndex="0"
-                                WidthRequest="110"
-                                VerticalOptions="Center">
-                            <Picker.Items>
-                                <x:String>mg/kg</x:String>
-                                <x:String>g/kg</x:String>
-                            </Picker.Items>
-                        </Picker>
-
-                        <!-- Magnesio -->
-                        <Label Grid.Row="5"
-                               Grid.Column="0"
-                               VerticalOptions="Center"
-                               Text="Magnesio:" />
-                        <Entry Grid.Row="5"
-                               Grid.Column="1"
-                               x:Name="MagnesioEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Valor"
-                               HorizontalOptions="FillAndExpand" />
-                        <Picker Grid.Row="5"
-                                Grid.Column="2"
-                                x:Name="MagnesioUnitPicker"
-                                SelectedIndex="0"
-                                WidthRequest="110"
-                                VerticalOptions="Center">
-                            <Picker.Items>
-                                <x:String>mg/kg</x:String>
-                                <x:String>g/kg</x:String>
-                            </Picker.Items>
-                        </Picker>
-
-                    </Grid>
-                </Frame>
-
-                <Button Text="Enviar Análisis"
-                        Clicked="OnEnviarAnalisisClicked"
-                        Margin="0,8,0,20"
-                        Style="{StaticResource AddButton}" />
-
-            </VerticalStackLayout>
-        </ScrollView>
+        </Grid>
     </ContentView>
 </ContentPage>

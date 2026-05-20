@@ -294,6 +294,73 @@
         </Setter>
     </Style>
 
+
+    <Style x:Key="CardAnalisisStyle" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="White"/>
+        <Setter Property="Stroke" Value="#E5E7EB"/>
+        <Setter Property="StrokeThickness" Value="1"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 20"/>
+        <Setter Property="Padding" Value="22"/>
+        <Setter Property="Margin" Value="0,0,0,18"/>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="Black"
+                    Offset="0,4"
+                    Radius="14"
+                    Opacity="0.12"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="InputContainerStyle" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#FAFAFA"/>
+        <Setter Property="Stroke" Value="#E5E7EB"/>
+        <Setter Property="StrokeThickness" Value="1"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+        <Setter Property="Padding" Value="12,2"/>
+        <Setter Property="HeightRequest" Value="52"/>
+    </Style>
+
+    <Style x:Key="SectionTitleStyle" TargetType="Label">
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="TextColor" Value="{StaticResource color_Negro}"/>
+    </Style>
+
+    <Style x:Key="SectionSubtitleStyle" TargetType="Label">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="TextColor" Value="{StaticResource color_GrisOscuro}"/>
+    </Style>
+
+    <Style x:Key="FieldLabelStyle" TargetType="Label">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="TextColor" Value="{StaticResource color_GrisOscuro}"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
+    <Style x:Key="InputEntryStyle" TargetType="Entry" BasedOn="{StaticResource EntryStyle}">
+        <Setter Property="BackgroundColor" Value="Transparent"/>
+        <Setter Property="PlaceholderColor" Value="{StaticResource color_Gris}"/>
+        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="HeightRequest" Value="48"/>
+        <Setter Property="ClearButtonVisibility" Value="WhileEditing"/>
+    </Style>
+
+    <Style x:Key="InputPickerStyle" TargetType="Picker">
+        <Setter Property="BackgroundColor" Value="Transparent"/>
+        <Setter Property="TextColor" Value="{StaticResource color_Negro}"/>
+        <Setter Property="TitleColor" Value="{StaticResource color_Gris}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="HeightRequest" Value="48"/>
+    </Style>
+
+    <Style x:Key="MiniTagStyle" TargetType="Border">
+        <Setter Property="Stroke" Value="Transparent"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 12"/>
+        <Setter Property="Padding" Value="12,6"/>
+    </Style>
+
     <!--#endregion-->
     
     <!-- #region Estilos Incluidos -->

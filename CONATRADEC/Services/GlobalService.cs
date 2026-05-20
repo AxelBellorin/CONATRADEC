@@ -30,6 +30,8 @@ namespace CONATRADEC.Services
         public Command goToTerrenoPageButtonCommand { get; }
         public Command goToBack { get; }
 
+        public Command CerrarSesionCommand { get; }
+
         // ============================
         // ESTADO Y NOTIFICACIONES
         // ============================
@@ -70,8 +72,31 @@ namespace CONATRADEC.Services
             goToPaisPageButtonCommand = new Command(async () => await GoToPaisPage(), () => !IsBusy);
             goToElementoQuimicoPageButtonCommand = new Command(async () => await GoToElementoQuimicoPage(), () => !IsBusy);
             goToTerrenoPageButtonCommand = new Command(async () => await GoToTerrenoPage(), () => !IsBusy);
+            CerrarSesionCommand = new Command(async () => await CerrarSesionAsync());
 
             goToBack = new Command(async () => await GoToAsyncParameters("//.."));
+        }
+
+        private async Task CerrarSesionAsync()
+        {
+            bool confirmar = await Application.Current.MainPage.DisplayAlert(
+                "Cerrar sesión",
+                "¿Está seguro que desea cerrar sesión?",
+                "Sí, cerrar",
+                "Cancelar"
+            );
+
+            if (!confirmar)
+                return;
+
+            Preferences.Remove(SessionKeys.KeyUserId);
+            Preferences.Remove(SessionKeys.KeyNombreCompletoUsuario);
+            Preferences.Remove(SessionKeys.KeyCorreoUsuario);
+            Preferences.Remove(SessionKeys.KeyUrlImagenUsuario);
+
+            //PermissionService.Instance.ClearPermissions();
+
+            await Shell.Current.GoToAsync("//LoginPage");
         }
 
         // ============================

@@ -1,90 +1,43 @@
+using CONATRADEC.Services;
+using CONATRADEC.ViewModels;
+using Microsoft.Maui.Controls;
 using System;
 using System.Windows.Input;
-using Microsoft.Maui.Controls;
-using CONATRADEC.Services;
 
 namespace CONATRADEC.Views
 {
     public partial class NuevoAnalisisFormPage : ContentPage
     {
-        // Comandos usados por FooterTemplate (nombres deben coincidir exactamente con Template.xaml)
-        public ICommand goToMainPageCommand { get; }
-        public ICommand goToUserPageButtonCommand { get; }
-        public ICommand goToRolPageButtonCommand { get; }
-        public ICommand goToCargoPageButtonCommand { get; }
-        public ICommand goToMatrizPermisosPageButtonCommad { get; } // nombre con typo para emparejar plantilla
-
+        private readonly NuevoAnalisisFormViewModel viewModel = new();
         public NuevoAnalisisFormPage()
         {
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+            BindingContext = viewModel;
             InitializeComponent();
-
-            // Inicializar comandos de navegacion
-            goToMainPageCommand = new Command(async () =>
-            {
-                try { await Shell.Current.GoToAsync("//MainPage"); }
-                catch (Exception ex) { await DisplayAlert("Error", $"No se pudo navegar: {ex.Message}", "OK"); }
-            });
-
-            goToUserPageButtonCommand = new Command(async () =>
-            {
-                try { await Shell.Current.GoToAsync("//UserPage"); }
-                catch (Exception ex) { await DisplayAlert("Error", $"No se pudo navegar: {ex.Message}", "OK"); }
-            });
-
-            goToRolPageButtonCommand = new Command(async () =>
-            {
-                try { await Shell.Current.GoToAsync("//RolPage"); }
-                catch (Exception ex) { await DisplayAlert("Error", $"No se pudo navegar: {ex.Message}", "OK"); }
-            });
-
-            goToCargoPageButtonCommand = new Command(async () =>
-            {
-                try { await Shell.Current.GoToAsync("//CargoPage"); }
-                catch (Exception ex) { await DisplayAlert("Error", $"No se pudo navegar: {ex.Message}", "OK"); }
-            });
-
-            // Usamos el nombre con typo igual que en Template.xaml
-            goToMatrizPermisosPageButtonCommad = new Command(async () =>
-            {
-                try { await Shell.Current.GoToAsync("//MatrizPermisosPage"); }
-                catch (Exception ex) { await DisplayAlert("Error", $"No se pudo navegar: {ex.Message}", "OK"); }
-            });
-
-            // Exponer los comandos al ControlTemplate: el ContentView con x:Name="UserPage"
-            // debe heredar el BindingContext que contiene los comandos.
-            UserPage.BindingContext = this;
         }
 
-        private async void OnGuardarClicked(object sender, EventArgs e)
+        protected override async void OnAppearing()
         {
-            // Logica de guardado
-            await DisplayAlert("Guardado", "El an\u00E1lisis ha sido guardado.", "OK");
+            base.OnAppearing();
 
-            // Navegar atras usando Shell. Si la pagina fue abierta con rutas, ajustar segun sea necesario.
-            try
+            // VALIDAR PERMISOS DE LECTURA
+            if (!PermissionService.Instance.HasRead("NuevoAnalisisFormPage"))
             {
-                await Shell.Current.GoToAsync("..");
-            }
-            catch
-            {
-                // fallback: PopAsync si no se usa Shell
-                await Navigation.PopAsync();
-            }
-        }
+                await DisplayAlert("Acceso denegado",
+                                   "No tiene permisos para ver el formulario de análisis de suelo.",
+                                   "Aceptar");
 
-        // Cuando el usuario pulsa "Enviar analisis" mostramos la pagina de resultados
-        private async void OnEnviarAnalisisClicked(object sender, EventArgs e)
-        {
-            try
-            {
-                // Intentamos navegacion por Shell (ruta absoluta)
-                await Shell.Current.GoToAsync("//ResultadosAnalisisPage");
+                await Shell.Current.GoToAsync("//MainPage");
+                return;
             }
-            catch
-            {
-                // Fallback: push explicito de la pagina si la ruta no esta registrada
-                await Navigation.PushAsync(new ResultadosAnalisisPage());
-            }
+
+            // CARGAR PERMISOS EN EL VM
+            viewModel.LoadPagePermissions("NuevoAnalisisFormPage");
+
+
+            // CARGAR DATOS
+            await viewModel.InicializarAsync(true);
+
         }
     }
 }

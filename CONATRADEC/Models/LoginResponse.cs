@@ -44,7 +44,7 @@ namespace CONATRADEC.Models
 
 
         // Campo que almacena la URL o ruta de la imagen de perfil del usuario (si existe).
-        //private string? image;
+        private string? urlImagenUsuario;
 
         // Campo que almacena el token de acceso (JWT o similar),
         // utilizado para autenticar solicitudes posteriores al servidor.
@@ -70,8 +70,10 @@ namespace CONATRADEC.Models
         public string? ProcedenciaNombre { get => procedenciaNombre; set => procedenciaNombre = value; }
         public bool? EsInterno { get => esInterno; set => esInterno = value; }
         public string? AccessToken { get => accessToken; set => accessToken = value; }
+        public string? UrlImagenUsuario { get => urlImagenUsuario; set => urlImagenUsuario = value; }
 
         public List<UserPermissionDTO>? permisos { get; set; }
+
         public LoginResponse()
         {
         }
