@@ -52,6 +52,15 @@
             <Setter Property="TextColor" Value="{StaticResource color_Negro}" />
         </Style>
 
+
+        <Style x:Key="ValidationErrorLabelStyle"
+               TargetType="Label">
+            <Setter Property="TextColor" Value="{StaticResource RedDelete}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="2,-2,0,0" />
+            <Setter Property="FontAttributes" Value="Bold" />
+        </Style>
+
     </ContentPage.Resources>
 
     <ContentView x:Name="UserPage"
@@ -148,26 +157,6 @@
 
                             </HorizontalStackLayout>
 
-                            <HorizontalStackLayout Spacing="10">
-
-                                <Border Style="{StaticResource MiniTagStyle}"
-                                        BackgroundColor="#EEF5F2">
-                                    <Label Text="{Binding TextoTipoMuestra}"
-                                           TextColor="{StaticResource color_Verde}"
-                                           FontAttributes="Bold"
-                                           FontSize="13" />
-                                </Border>
-
-                                <Border Style="{StaticResource MiniTagStyle}"
-                                        BackgroundColor="#FFF6DF">
-                                    <Label Text="Análisis nutricional"
-                                           TextColor="{StaticResource color_Cafe}"
-                                           FontAttributes="Bold"
-                                           FontSize="13" />
-                                </Border>
-
-                            </HorizontalStackLayout>
-
                         </VerticalStackLayout>
                     </Border>
 
@@ -195,6 +184,10 @@
                                                SearchCommand="{Binding BuscarTerrenoCommand}"
                                                Style="{StaticResource FormSearchBarStyle}" />
                                 </Border>
+
+                                <Label Text="{Binding ErrorTerreno}"
+                                       IsVisible="{Binding TieneErrorTerreno}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                             <!-- Lista de terrenos -->
@@ -310,6 +303,10 @@
                                             Title="Seleccione cultivo"
                                             Style="{StaticResource FormPickerStyle}" />
                                 </Border>
+
+                                <Label Text="{Binding ErrorTipoCultivo}"
+                                       IsVisible="{Binding TieneErrorTipoCultivo}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                             <!-- Tipo de análisis -->
@@ -323,6 +320,10 @@
                                             Title="Seleccione análisis"
                                             Style="{StaticResource FormPickerStyle}" />
                                 </Border>
+
+                                <Label Text="{Binding ErrorTipoAnalisisSuelo}"
+                                       IsVisible="{Binding TieneErrorTipoAnalisisSuelo}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                             <!-- Fecha laboratorio -->
@@ -334,6 +335,10 @@
                                     <DatePicker Date="{Binding FechaAnalisisLaboratorio}"
                                                 Style="{StaticResource FormDatePickerStyle}" />
                                 </Border>
+
+                                <Label Text="{Binding ErrorFechaAnalisisLaboratorio}"
+                                       IsVisible="{Binding TieneErrorFechaAnalisisLaboratorio}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                             <!-- Laboratorio -->
@@ -347,6 +352,10 @@
                                            HorizontalOptions="Fill"
                                            Style="{StaticResource FormEntryStyle}" />
                                 </Border>
+
+                                <Label Text="{Binding ErrorLaboratorio}"
+                                       IsVisible="{Binding TieneErrorLaboratorio}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                             <!-- Identificador análisis -->
@@ -360,6 +369,10 @@
                                            HorizontalOptions="Fill"
                                            Style="{StaticResource FormEntryStyle}" />
                                 </Border>
+
+                                <Label Text="{Binding ErrorIdentificadorAnalisisSuelo}"
+                                       IsVisible="{Binding TieneErrorIdentificadorAnalisisSuelo}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                             <!-- Cantidad quintales oro -->
@@ -374,6 +387,10 @@
                                            HorizontalOptions="Fill"
                                            Style="{StaticResource FormEntryStyle}" />
                                 </Border>
+
+                                <Label Text="{Binding ErrorCantidadQuintalesOro}"
+                                       IsVisible="{Binding TieneErrorCantidadQuintalesOro}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                             <!-- Tamaño finca -->
@@ -388,6 +405,10 @@
                                            HorizontalOptions="Fill"
                                            Style="{StaticResource FormEntryStyle}" />
                                 </Border>
+
+                                <Label Text="{Binding ErrorTamanoFinca}"
+                                       IsVisible="{Binding TieneErrorTamanoFinca}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
 
                                 <Label Text="Este valor viene del terreno, pero puede modificarse si es necesario."
                                        FontSize="12"
@@ -417,21 +438,21 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Resultados -->
+                    <!-- Parámetros constantes -->
                     <Border Style="{StaticResource CardAnalisisStyle}">
 
                         <VerticalStackLayout Spacing="16">
 
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Resultados del análisis"
+                                <Label Text="Parámetros constantes"
                                        Style="{StaticResource SectionTitleStyle}" />
 
-                                <Label Text="Digite cada valor según el reporte del laboratorio y seleccione la unidad correspondiente."
+                                <Label Text="Estos parámetros forman parte fija del análisis de suelo y no se pueden quitar."
                                        Style="{StaticResource SectionSubtitleStyle}" />
                             </VerticalStackLayout>
 
                             <VerticalStackLayout Spacing="12"
-                                                 BindableLayout.ItemsSource="{Binding ResultadosAnalisis}">
+                                                 BindableLayout.ItemsSource="{Binding ParametrosConstantesAnalisis}">
 
                                 <BindableLayout.ItemTemplate>
                                     <DataTemplate>
@@ -449,6 +470,10 @@
                                                        FontAttributes="Bold"
                                                        FontSize="15"
                                                        TextColor="{StaticResource color_Negro}" />
+
+                                                <Label Text="Parámetro constante"
+                                                       FontSize="12"
+                                                       TextColor="{StaticResource color_GrisOscuro}" />
 
                                                 <VerticalStackLayout Spacing="6">
                                                     <Label Text="Valor reportado"
@@ -477,7 +502,96 @@
                                                                 Style="{StaticResource FormPickerStyle}" />
                                                     </Border>
                                                 </VerticalStackLayout>
+                                            </VerticalStackLayout>
+                                        </Border>
 
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Elementos químicos -->
+                    <Border Style="{StaticResource CardAnalisisStyle}">
+
+                        <VerticalStackLayout Spacing="16">
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Elementos químicos"
+                                       Style="{StaticResource SectionTitleStyle}" />
+
+                                <Label Text="Estos elementos se cargan dinámicamente desde el catálogo de elementos químicos. Puede quitar los que no aparecen en el reporte del laboratorio."
+                                       Style="{StaticResource SectionSubtitleStyle}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="12"
+                                                 BindableLayout.ItemsSource="{Binding ElementosQuimicosAnalisis}">
+
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+
+                                        <Border BackgroundColor="#F9FAFB"
+                                                Stroke="#E5E7EB"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 14"
+                                                Padding="14"
+                                                Margin="0,0,0,4">
+
+                                            <VerticalStackLayout Spacing="10">
+
+                                                <Grid ColumnDefinitions="*,Auto"
+                                                      ColumnSpacing="10">
+
+                                                    <VerticalStackLayout Grid.Column="0"
+                                                                         Spacing="2">
+                                                        <Label Text="{Binding NombreParametro}"
+                                                               FontAttributes="Bold"
+                                                               FontSize="15"
+                                                               TextColor="{StaticResource color_Negro}" />
+
+                                                        <Label Text="Elemento químico"
+                                                               FontSize="12"
+                                                               TextColor="{StaticResource color_GrisOscuro}" />
+                                                    </VerticalStackLayout>
+
+                                                    <Button Grid.Column="1"
+                                                            Text="Quitar"
+                                                            Style="{StaticResource DeleteButton}"
+                                                            FontSize="12"
+                                                            Padding="10,6"
+                                                            IsVisible="{Binding PuedeEliminar}"
+                                                            Command="{Binding BindingContext.QuitarElementoQuimicoCommand, Source={x:Reference NuevoAnalisisPage}}"
+                                                            CommandParameter="{Binding .}" />
+                                                </Grid>
+
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Label Text="Valor reportado"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                    <Border Style="{StaticResource FormInputContainerStyle}">
+                                                        <Entry Text="{Binding Valor}"
+                                                               Keyboard="Numeric"
+                                                               Placeholder="{Binding PlaceholderValor}"
+                                                               HorizontalOptions="Fill"
+                                                               Style="{StaticResource FormEntryStyle}" />
+                                                    </Border>
+                                                </VerticalStackLayout>
+
+                                                <VerticalStackLayout Spacing="6">
+                                                    <Label Text="Unidad"
+                                                           FontSize="13"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                    <Border Style="{StaticResource FormInputContainerStyle}">
+                                                        <Picker ItemsSource="{Binding UnidadesMedida}"
+                                                                SelectedItem="{Binding UnidadSeleccionada}"
+                                                                Style="{StaticResource FormPickerStyle}" />
+                                                    </Border>
+                                                </VerticalStackLayout>
                                             </VerticalStackLayout>
                                         </Border>
 

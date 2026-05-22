@@ -4,90 +4,47 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-// Espacio de nombres donde se agrupan todos los modelos del proyecto CONATRADEC.
 namespace CONATRADEC.Models
 {
     // ===============================================================
     // Clase: NuevoAnalisisRequest
     // Descripción:
-    //   Representa la estructura de solicitud utilizada para enviar
-    //   la información capturada en el formulario de análisis de suelo
-    //   hacia la API.
-    //   Se usa principalmente para registrar un nuevo análisis y sus
-    //   resultados nutricionales.
+    //   Representa la solicitud para registrar un nuevo análisis de suelo.
     // ===============================================================
     public class NuevoAnalisisRequest
     {
-        // ===========================================================
-        // =============== CAMPOS PRIVADOS DE LA CLASE ===============
-        // ===========================================================
-
-        // Campo que almacena el identificador del análisis.
-        // Se declara como nullable porque al crear un nuevo análisis
-        // todavía no existe un ID generado por la base de datos.
         private int? analisisId;
-
-        // Campo que almacena el nombre del laboratorio donde se realizó el análisis.
-        private string? laboratorio;
-
-        // Campo que almacena el tipo de muestra, por ejemplo: "Suelo".
-        private string? tipoMuestra;
-
-        // Campo que almacena el identificador del usuario que registra el análisis.
         private int? usuarioId;
-
-        // Campo que almacena el listado de resultados capturados por parámetro.
-        private List<ResultadoAnalisisRequest>? resultados;
-
         private int? terrenoId;
+
         private string? nombreCliente;
         private string? codigoTerreno;
         private string? nombreTerreno;
+
         private string? tipoCultivo;
         private string? tipoAnalisisSuelo;
         private DateTime? fechaAnalisisLaboratorio;
+
+        private string? laboratorio;
         private string? identificadorAnalisisSuelo;
+
         private decimal? cantidadQuintalesOro;
-        private decimal? tamanoFinca;   
+        private decimal? tamanoFinca;
 
+        private string? tipoMuestra;
 
-        // ===========================================================
-        // ============= PROPIEDADES PÚBLICAS CON ENCAPSULAMIENTO ====
-        // ===========================================================
+        private List<ResultadoAnalisisRequest>? resultados;
 
-        // Propiedad pública para acceder o modificar el ID del análisis.
         public int? AnalisisId
         {
             get => analisisId;
             set => analisisId = value;
         }
 
-        // Propiedad pública para acceder o modificar el laboratorio.
-        public string? Laboratorio
-        {
-            get => laboratorio;
-            set => laboratorio = value;
-        }
-
-        // Propiedad pública para acceder o modificar el tipo de muestra.
-        public string? TipoMuestra
-        {
-            get => tipoMuestra;
-            set => tipoMuestra = value;
-        }
-
-        // Propiedad pública para acceder o modificar el ID del usuario.
         public int? UsuarioId
         {
             get => usuarioId;
             set => usuarioId = value;
-        }
-
-        // Propiedad pública para acceder o modificar la lista de resultados.
-        public List<ResultadoAnalisisRequest>? Resultados
-        {
-            get => resultados;
-            set => resultados = value;
         }
 
         public int? TerrenoId
@@ -132,6 +89,12 @@ namespace CONATRADEC.Models
             set => fechaAnalisisLaboratorio = value;
         }
 
+        public string? Laboratorio
+        {
+            get => laboratorio;
+            set => laboratorio = value;
+        }
+
         public string? IdentificadorAnalisisSuelo
         {
             get => identificadorAnalisisSuelo;
@@ -150,74 +113,58 @@ namespace CONATRADEC.Models
             set => tamanoFinca = value;
         }
 
-        // ===========================================================
-        // ================ CONSTRUCTORES DE LA CLASE ================
-        // ===========================================================
+        public string? TipoMuestra
+        {
+            get => tipoMuestra;
+            set => tipoMuestra = value;
+        }
 
-        // Constructor vacío.
-        // Permite crear una instancia sin valores iniciales.
+        public List<ResultadoAnalisisRequest>? Resultados
+        {
+            get => resultados;
+            set => resultados = value;
+        }
+
         public NuevoAnalisisRequest()
         {
             Resultados = new List<ResultadoAnalisisRequest>();
         }
-
-        // Constructor que inicializa una nueva instancia de NuevoAnalisisRequest
-        // tomando como base un objeto de tipo NuevoAnalisisResponse.
-        // Es útil cuando se desea convertir una respuesta de la API
-        // en una solicitud para actualizar o reenviar información.
-        public NuevoAnalisisRequest(NuevoAnalisisResponse analisisRP)
-        {
-            AnalisisId = analisisRP.AnalisisId;
-            Laboratorio = analisisRP.Laboratorio;
-            TipoMuestra = analisisRP.TipoMuestra;
-
-            Resultados = analisisRP.Resultados?
-                .Select(resultado => new ResultadoAnalisisRequest(resultado))
-                .ToList() ?? new List<ResultadoAnalisisRequest>();
-        }
     }
-
 
     // ===============================================================
     // Clase: ResultadoAnalisisRequest
     // Descripción:
-    //   Representa cada resultado individual capturado dentro de un
-    //   análisis de suelo.
-    //   Ejemplo: pH, Materia Orgánica, Potasio, Fósforo disponible,
-    //   Calcio, Magnesio, etc.
+    //   Representa cada resultado capturado dentro del análisis.
+    //   Puede ser un parámetro constante o un elemento químico.
     // ===============================================================
     public class ResultadoAnalisisRequest
     {
-        // ===========================================================
-        // =============== CAMPOS PRIVADOS DE LA CLASE ===============
-        // ===========================================================
-
-        // Campo que almacena el identificador del resultado.
         private int? resultadoAnalisisId;
 
-        // Campo que almacena el código interno del parámetro.
-        // Ejemplo: PH, MATERIA_ORGANICA, POTASIO.
+        private int? elementoQuimicoId;
+
         private string? codigoParametro;
 
-        // Campo que almacena el nombre visible del parámetro.
         private string? nombreParametro;
 
-        // Campo que almacena el valor digitado por el usuario.
         private decimal? valor;
 
-        // Campo que almacena la unidad de medida seleccionada.
-        // Ejemplo: pH, %, mg/kg, ppm, g/kg.
         private string? unidadMedida;
 
+        private bool? esConstante;
 
-        // ===========================================================
-        // ============= PROPIEDADES PÚBLICAS CON ENCAPSULAMIENTO ====
-        // ===========================================================
+        private bool? esElementoQuimico;
 
         public int? ResultadoAnalisisId
         {
             get => resultadoAnalisisId;
             set => resultadoAnalisisId = value;
+        }
+
+        public int? ElementoQuimicoId
+        {
+            get => elementoQuimicoId;
+            set => elementoQuimicoId = value;
         }
 
         public string? CodigoParametro
@@ -244,23 +191,18 @@ namespace CONATRADEC.Models
             set => unidadMedida = value;
         }
 
-
-        // ===========================================================
-        // ================ CONSTRUCTORES DE LA CLASE ================
-        // ===========================================================
-
-        // Constructor vacío.
-        public ResultadoAnalisisRequest() { }
-
-        // Constructor que inicializa una nueva instancia de ResultadoAnalisisRequest
-        // tomando como base un objeto de tipo ResultadoAnalisisResponse.
-        public ResultadoAnalisisRequest(ResultadoAnalisisResponse resultadoRP)
+        public bool? EsConstante
         {
-            ResultadoAnalisisId = resultadoRP.ResultadoAnalisisId;
-            CodigoParametro = resultadoRP.CodigoParametro;
-            NombreParametro = resultadoRP.NombreParametro;
-            Valor = resultadoRP.ValorRecibido;
-            UnidadMedida = resultadoRP.UnidadRecibida;
+            get => esConstante;
+            set => esConstante = value;
         }
+
+        public bool? EsElementoQuimico
+        {
+            get => esElementoQuimico;
+            set => esElementoQuimico = value;
+        }
+
+        public ResultadoAnalisisRequest() { }
     }
 }

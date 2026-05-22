@@ -1,42 +1,28 @@
-﻿using CONATRADEC.Services;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace CONATRADEC.ViewModels
 {
-    // ===============================================================
-    // Clase: ResultadoAnalisisItemViewModel
-    // Descripción:
-    //   Representa cada fila visible en el formulario de análisis.
-    //   Cada fila contiene:
-    //     - Parámetro
-    //     - Valor digitado
-    //     - Unidad seleccionada
-    // ===============================================================
-    public class ResultadoAnalisisItemViewModel : GlobalService
+    public class ResultadoAnalisisItemViewModel : INotifyPropertyChanged
     {
-        // ===========================================================
-        // =============== CAMPOS PRIVADOS DE LA CLASE ===============
-        // ===========================================================
-
+        private int? elementoQuimicoId;
         private string codigoParametro = string.Empty;
         private string nombreParametro = string.Empty;
         private string valor = string.Empty;
         private string unidadSeleccionada = string.Empty;
         private string placeholderValor = "Valor";
-
-
-        // ===========================================================
-        // ================= EVENTO PROPERTYCHANGED ==================
-        // ===========================================================
+        private bool esConstante;
+        private bool esElementoQuimico;
+        private bool puedeEliminar;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-
-        // ===========================================================
-        // ============= PROPIEDADES PÚBLICAS CON ENCAPSULAMIENTO ====
-        // ===========================================================
+        public int? ElementoQuimicoId
+        {
+            get => elementoQuimicoId;
+            set => SetProperty(ref elementoQuimicoId, value);
+        }
 
         public string CodigoParametro
         {
@@ -68,12 +54,25 @@ namespace CONATRADEC.ViewModels
             set => SetProperty(ref placeholderValor, value);
         }
 
+        public bool EsConstante
+        {
+            get => esConstante;
+            set => SetProperty(ref esConstante, value);
+        }
+
+        public bool EsElementoQuimico
+        {
+            get => esElementoQuimico;
+            set => SetProperty(ref esElementoQuimico, value);
+        }
+
+        public bool PuedeEliminar
+        {
+            get => puedeEliminar;
+            set => SetProperty(ref puedeEliminar, value);
+        }
+
         public ObservableCollection<string> UnidadesMedida { get; set; } = new();
-
-
-        // ===========================================================
-        // ===================== MÉTODOS AUXILIARES ==================
-        // ===========================================================
 
         private bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
         {
