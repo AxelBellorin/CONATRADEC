@@ -30,10 +30,10 @@ namespace CONATRADEC.Services
         // Alternativa comentada: URL local usada durante el desarrollo y pruebas.
         // Puede activarse según necesidad para conectar con un servidor local.
         //private const string baseUrlApi = "https://localhost:5083/";
-            
+
         // Alternativa comentada: URL local usada durante el desarrollo y pruebas.
         // Puede activarse según necesidad para conectar con un servidor local para dispositivo móvil.
-        private const string baseUrlApi = "https://192.168.0.100:5083/";
+        private const string baseUrlApi = "https://localhost:7176/";  
 
         // ===========================================================
         // ======================= CONSTRUCTOR =======================

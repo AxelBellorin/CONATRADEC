@@ -15,6 +15,8 @@ namespace CONATRADEC.ViewModels
     {
         private readonly ElementoQuimicoApiService elementoQuimicoApiService = new();
         private readonly AnalisisSueloApiService analisisSueloApiService = new();
+        private readonly UnidadMedidaApiService unidadMedidaApiService = new();
+        private readonly TerrenoApiService terrenoApiService = new();
 
         private int? usuarioId;
         private string inicialesUsuario = string.Empty;
@@ -23,9 +25,9 @@ namespace CONATRADEC.ViewModels
         private string urlImagenUsuario = string.Empty;
 
         private string textoBusquedaTerreno = string.Empty;
-        private TerrenoAnalisisResponse? terrenoSeleccionado;
+        private TerrenoResponse? terrenoSeleccionado;
 
-        private string tipoCultivoSeleccionado = string.Empty;
+        private TipoCultivoResponse? tipoCultivoSeleccionado;
         private string tipoAnalisisSueloSeleccionado = string.Empty;
         private DateTime fechaAnalisisLaboratorio = DateTime.Today;
 
@@ -37,20 +39,31 @@ namespace CONATRADEC.ViewModels
 
         private string estadoInicialFormulario = string.Empty;
 
+        private string errorTerreno = string.Empty;
+        private string errorTipoCultivo = string.Empty;
+        private string errorTipoAnalisisSuelo = string.Empty;
+        private string errorFechaAnalisisLaboratorio = string.Empty;
+        private string errorLaboratorio = string.Empty;
+        private string errorIdentificadorAnalisisSuelo = string.Empty;
+        private string errorCantidadQuintalesOro = string.Empty;
+        private string errorTamanoFinca = string.Empty;
+
         public NuevoAnalisisFormViewModel()
         {
             ParametrosConstantesAnalisis = new ObservableCollection<ResultadoAnalisisItemViewModel>();
             ElementosQuimicosAnalisis = new ObservableCollection<ResultadoAnalisisItemViewModel>();
 
-            Terrenos = new ObservableCollection<TerrenoAnalisisResponse>();
-            TerrenosFiltrados = new ObservableCollection<TerrenoAnalisisResponse>();
+            Terrenos = new ObservableCollection<TerrenoResponse>();
+            TerrenosFiltrados = new ObservableCollection<TerrenoResponse>();
 
-            TiposCultivo = new ObservableCollection<string>();
+            TiposCultivo = new ObservableCollection<TipoCultivoResponse>();
             TiposAnalisisSuelo = new ObservableCollection<string>();
+
+            UnidadesMedidaCatalogo = new ObservableCollection<UnidadMedidaResponse>();
 
             BuscarTerrenoCommand = new Command(FiltrarTerrenos);
 
-            SeleccionarTerrenoCommand = new Command<TerrenoAnalisisResponse>(
+            SeleccionarTerrenoCommand = new Command<TerrenoResponse>(
                 terreno => SeleccionarTerreno(terreno)
             );
 
@@ -125,9 +138,15 @@ namespace CONATRADEC.ViewModels
 
         public bool NoTieneImagenUsuario => string.IsNullOrWhiteSpace(UrlImagenUsuario);
 
-        public ObservableCollection<TerrenoAnalisisResponse> Terrenos { get; }
+        public ObservableCollection<TerrenoResponse> Terrenos { get; }
 
-        public ObservableCollection<TerrenoAnalisisResponse> TerrenosFiltrados { get; }
+        public ObservableCollection<TerrenoResponse> TerrenosFiltrados { get; }
+
+        public ObservableCollection<TipoCultivoResponse> TiposCultivo { get; }
+
+        public ObservableCollection<string> TiposAnalisisSuelo { get; }
+
+        public ObservableCollection<UnidadMedidaResponse> UnidadesMedidaCatalogo { get; }
 
         public string TextoBusquedaTerreno
         {
@@ -140,7 +159,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public TerrenoAnalisisResponse? TerrenoSeleccionado
+        public TerrenoResponse? TerrenoSeleccionado
         {
             get => terrenoSeleccionado;
             set
@@ -161,20 +180,19 @@ namespace CONATRADEC.ViewModels
 
         public bool TieneTerrenoSeleccionado => TerrenoSeleccionado != null;
 
-        public ObservableCollection<string> TiposCultivo { get; }
-
-        public ObservableCollection<string> TiposAnalisisSuelo { get; }
-
-        public string TipoCultivoSeleccionado
+        public TipoCultivoResponse? TipoCultivoSeleccionado
         {
             get => tipoCultivoSeleccionado;
             set
             {
                 tipoCultivoSeleccionado = value;
                 OnPropertyChanged(nameof(TipoCultivoSeleccionado));
+                OnPropertyChanged(nameof(TipoCultivoSeleccionadoTexto));
                 RefrescarComandos();
             }
         }
+
+        public string TipoCultivoSeleccionadoTexto => TipoCultivoSeleccionado?.NombreMostrar ?? string.Empty;
 
         public string TipoAnalisisSueloSeleccionado
         {
@@ -253,6 +271,110 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public string ErrorTerreno
+        {
+            get => errorTerreno;
+            set
+            {
+                errorTerreno = value;
+                OnPropertyChanged(nameof(ErrorTerreno));
+                OnPropertyChanged(nameof(TieneErrorTerreno));
+            }
+        }
+
+        public bool TieneErrorTerreno => !string.IsNullOrWhiteSpace(ErrorTerreno);
+
+        public string ErrorTipoCultivo
+        {
+            get => errorTipoCultivo;
+            set
+            {
+                errorTipoCultivo = value;
+                OnPropertyChanged(nameof(ErrorTipoCultivo));
+                OnPropertyChanged(nameof(TieneErrorTipoCultivo));
+            }
+        }
+
+        public bool TieneErrorTipoCultivo => !string.IsNullOrWhiteSpace(ErrorTipoCultivo);
+
+        public string ErrorTipoAnalisisSuelo
+        {
+            get => errorTipoAnalisisSuelo;
+            set
+            {
+                errorTipoAnalisisSuelo = value;
+                OnPropertyChanged(nameof(ErrorTipoAnalisisSuelo));
+                OnPropertyChanged(nameof(TieneErrorTipoAnalisisSuelo));
+            }
+        }
+
+        public bool TieneErrorTipoAnalisisSuelo => !string.IsNullOrWhiteSpace(ErrorTipoAnalisisSuelo);
+
+        public string ErrorFechaAnalisisLaboratorio
+        {
+            get => errorFechaAnalisisLaboratorio;
+            set
+            {
+                errorFechaAnalisisLaboratorio = value;
+                OnPropertyChanged(nameof(ErrorFechaAnalisisLaboratorio));
+                OnPropertyChanged(nameof(TieneErrorFechaAnalisisLaboratorio));
+            }
+        }
+
+        public bool TieneErrorFechaAnalisisLaboratorio => !string.IsNullOrWhiteSpace(ErrorFechaAnalisisLaboratorio);
+
+        public string ErrorLaboratorio
+        {
+            get => errorLaboratorio;
+            set
+            {
+                errorLaboratorio = value;
+                OnPropertyChanged(nameof(ErrorLaboratorio));
+                OnPropertyChanged(nameof(TieneErrorLaboratorio));
+            }
+        }
+
+        public bool TieneErrorLaboratorio => !string.IsNullOrWhiteSpace(ErrorLaboratorio);
+
+        public string ErrorIdentificadorAnalisisSuelo
+        {
+            get => errorIdentificadorAnalisisSuelo;
+            set
+            {
+                errorIdentificadorAnalisisSuelo = value;
+                OnPropertyChanged(nameof(ErrorIdentificadorAnalisisSuelo));
+                OnPropertyChanged(nameof(TieneErrorIdentificadorAnalisisSuelo));
+            }
+        }
+
+        public bool TieneErrorIdentificadorAnalisisSuelo => !string.IsNullOrWhiteSpace(ErrorIdentificadorAnalisisSuelo);
+
+        public string ErrorCantidadQuintalesOro
+        {
+            get => errorCantidadQuintalesOro;
+            set
+            {
+                errorCantidadQuintalesOro = value;
+                OnPropertyChanged(nameof(ErrorCantidadQuintalesOro));
+                OnPropertyChanged(nameof(TieneErrorCantidadQuintalesOro));
+            }
+        }
+
+        public bool TieneErrorCantidadQuintalesOro => !string.IsNullOrWhiteSpace(ErrorCantidadQuintalesOro);
+
+        public string ErrorTamanoFinca
+        {
+            get => errorTamanoFinca;
+            set
+            {
+                errorTamanoFinca = value;
+                OnPropertyChanged(nameof(ErrorTamanoFinca));
+                OnPropertyChanged(nameof(TieneErrorTamanoFinca));
+            }
+        }
+
+        public bool TieneErrorTamanoFinca => !string.IsNullOrWhiteSpace(ErrorTamanoFinca);
+
         public string TextoTipoMuestra => $"Tipo de muestra: {TipoMuestra}";
 
         public ObservableCollection<ResultadoAnalisisItemViewModel> ParametrosConstantesAnalisis { get; }
@@ -261,7 +383,7 @@ namespace CONATRADEC.ViewModels
 
         public Command BuscarTerrenoCommand { get; }
 
-        public Command<TerrenoAnalisisResponse> SeleccionarTerrenoCommand { get; }
+        public Command<TerrenoResponse> SeleccionarTerrenoCommand { get; }
 
         public Command<ResultadoAnalisisItemViewModel> QuitarElementoQuimicoCommand { get; }
 
@@ -284,10 +406,13 @@ namespace CONATRADEC.ViewModels
                 CargarDatosUsuario();
 
                 if (forceReload || TiposCultivo.Count == 0 || TiposAnalisisSuelo.Count == 0)
-                    CargarCatalogosFormulario();
+                    await CargarCatalogosFormularioAsync();
 
                 if (forceReload || Terrenos.Count == 0)
-                    CargarTerrenosPrueba();
+                    await CargarTerrenosAsync();
+
+                if (forceReload || UnidadesMedidaCatalogo.Count == 0)
+                    await CargarUnidadesMedidaAsync();
 
                 if (forceReload || ParametrosConstantesAnalisis.Count == 0)
                     CargarParametrosConstantesAnalisis();
@@ -324,57 +449,121 @@ namespace CONATRADEC.ViewModels
             TipoMuestra = "Suelo";
         }
 
-        private void CargarCatalogosFormulario()
+        private async Task CargarCatalogosFormularioAsync()
         {
-            TiposCultivo.Clear();
-            TiposCultivo.Add("Café");
+            await CargarTiposCultivoAsync();
 
             TiposAnalisisSuelo.Clear();
             TiposAnalisisSuelo.Add("Análisis químico de suelo");
             TiposAnalisisSuelo.Add("Análisis físico de suelo");
             TiposAnalisisSuelo.Add("Análisis completo de suelo");
 
-            TipoCultivoSeleccionado = "Café";
-            TipoAnalisisSueloSeleccionado = "Análisis químico de suelo";
+            TipoAnalisisSueloSeleccionado = TiposAnalisisSuelo.FirstOrDefault() ?? string.Empty;
             FechaAnalisisLaboratorio = DateTime.Today;
         }
 
-        private void CargarTerrenosPrueba()
+        private async Task CargarTiposCultivoAsync()
+        {
+            TiposCultivo.Clear();
+
+            ObservableCollection<TipoCultivoResponse> tipos =
+                await analisisSueloApiService.ListarTiposCultivoAsync();
+
+            foreach (var tipo in tipos)
+            {
+                if (tipo == null)
+                    continue;
+
+                if (tipo.TipoCultivoId == null || tipo.TipoCultivoId <= 0)
+                    continue;
+
+                if (tipo.Activo == false)
+                    continue;
+
+                TiposCultivo.Add(tipo);
+            }
+
+            TipoCultivoSeleccionado = TiposCultivo.FirstOrDefault();
+
+            if (TiposCultivo.Count == 0)
+            {
+                await MostrarMensajeAsync(
+                    "Tipo de cultivo",
+                    "No se encontraron tipos de cultivo activos para seleccionar."
+                );
+            }
+        }
+
+        private async Task CargarTerrenosAsync()
         {
             Terrenos.Clear();
+            TerrenosFiltrados.Clear();
 
-            string nombreCliente = string.IsNullOrWhiteSpace(NombreCompletoUsuario)
-                ? "Cliente no definido"
-                : NombreCompletoUsuario;
+            ObservableCollection<TerrenoResponse> terrenos =
+                await terrenoApiService.GetTerrenosAsync();
 
-            Terrenos.Add(new TerrenoAnalisisResponse
+            foreach (var terreno in terrenos)
             {
-                TerrenoId = 1,
-                UsuarioId = UsuarioId,
-                CodigoTerreno = "TER-001",
-                NombreTerreno = "Lote El Porvenir",
-                NombreCliente = nombreCliente,
-                CantidadQuintalesOro = 25,
-                TamanoFinca = 3.5m
-            });
+                if (terreno == null)
+                    continue;
 
-            Terrenos.Add(new TerrenoAnalisisResponse
-            {
-                TerrenoId = 2,
-                UsuarioId = UsuarioId,
-                CodigoTerreno = "TER-002",
-                NombreTerreno = "Lote La Esperanza",
-                NombreCliente = nombreCliente,
-                CantidadQuintalesOro = 40,
-                TamanoFinca = 5m
-            });
+                if (terreno.TerrenoId == null || terreno.TerrenoId <= 0)
+                    continue;
+
+                if (terreno.Activo == false)
+                    continue;
+
+                Terrenos.Add(terreno);
+            }
 
             FiltrarTerrenos();
+
+            if (Terrenos.Count == 0)
+            {
+                await MostrarMensajeAsync(
+                    "Terrenos",
+                    "No se encontraron terrenos activos para seleccionar."
+                );
+            }
+        }
+
+        private async Task CargarUnidadesMedidaAsync()
+        {
+            UnidadesMedidaCatalogo.Clear();
+
+            ObservableCollection<UnidadMedidaResponse> unidades =
+                await unidadMedidaApiService.GetUnidadMedidaAsync();
+
+            foreach (var unidad in unidades)
+            {
+                if (unidad == null)
+                    continue;
+
+                if (unidad.UnidadMedidaId == null || unidad.UnidadMedidaId <= 0)
+                    continue;
+
+                if (unidad.Activo == false)
+                    continue;
+
+                UnidadesMedidaCatalogo.Add(unidad);
+            }
+
+            if (UnidadesMedidaCatalogo.Count == 0)
+            {
+                await MostrarMensajeAsync(
+                    "Unidades de medida",
+                    "No se encontraron unidades de medida activas para cargar en el formulario."
+                );
+            }
         }
 
         private void CargarParametrosConstantesAnalisis()
         {
             ParametrosConstantesAnalisis.Clear();
+
+            ObservableCollection<UnidadMedidaResponse> unidadesPh = ClonarUnidadesMedida();
+            ObservableCollection<UnidadMedidaResponse> unidadesMateriaOrganica = ClonarUnidadesMedida();
+            ObservableCollection<UnidadMedidaResponse> unidadesAcidezTotal = ClonarUnidadesMedida();
 
             ParametrosConstantesAnalisis.Add(new ResultadoAnalisisItemViewModel
             {
@@ -384,8 +573,8 @@ namespace CONATRADEC.ViewModels
                 EsConstante = true,
                 EsElementoQuimico = false,
                 PuedeEliminar = false,
-                UnidadesMedida = new ObservableCollection<string> { "pH", "sin unidad" },
-                UnidadSeleccionada = "pH"
+                UnidadesMedida = unidadesPh,
+                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesPh, "PH", "SIN UNIDAD")
             });
 
             ParametrosConstantesAnalisis.Add(new ResultadoAnalisisItemViewModel
@@ -396,8 +585,8 @@ namespace CONATRADEC.ViewModels
                 EsConstante = true,
                 EsElementoQuimico = false,
                 PuedeEliminar = false,
-                UnidadesMedida = new ObservableCollection<string> { "%", "g/kg", "mg/kg", "ppm" },
-                UnidadSeleccionada = "%"
+                UnidadesMedida = unidadesMateriaOrganica,
+                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesMateriaOrganica, "%", "PORCENTAJE")
             });
 
             ParametrosConstantesAnalisis.Add(new ResultadoAnalisisItemViewModel
@@ -408,8 +597,8 @@ namespace CONATRADEC.ViewModels
                 EsConstante = true,
                 EsElementoQuimico = false,
                 PuedeEliminar = false,
-                UnidadesMedida = new ObservableCollection<string> { "meq/100g", "cmol/kg" },
-                UnidadSeleccionada = "meq/100g"
+                UnidadesMedida = unidadesAcidezTotal,
+                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesAcidezTotal, "MEQ/100G", "CMOL/KG")
             });
         }
 
@@ -442,6 +631,8 @@ namespace CONATRADEC.ViewModels
                 if (string.IsNullOrWhiteSpace(simbolo) && string.IsNullOrWhiteSpace(nombre))
                     continue;
 
+                ObservableCollection<UnidadMedidaResponse> unidadesElemento = ClonarUnidadesMedida();
+
                 ElementosQuimicosAnalisis.Add(new ResultadoAnalisisItemViewModel
                 {
                     ElementoQuimicoId = elementoQuimicoId,
@@ -453,40 +644,63 @@ namespace CONATRADEC.ViewModels
                     EsConstante = false,
                     EsElementoQuimico = true,
                     PuedeEliminar = true,
-                    UnidadesMedida = ObtenerUnidadesElementoQuimico(simbolo),
-                    UnidadSeleccionada = ObtenerUnidadPredeterminadaElementoQuimico(simbolo)
+                    UnidadesMedida = unidadesElemento,
+                    UnidadSeleccionada = ObtenerUnidadPredeterminadaElementoQuimico(unidadesElemento, simbolo)
                 });
             }
         }
 
-        private static ObservableCollection<string> ObtenerUnidadesElementoQuimico(string? simbolo)
+        private ObservableCollection<UnidadMedidaResponse> ClonarUnidadesMedida()
         {
-            string simboloNormalizado = (simbolo ?? string.Empty).Trim().ToUpper();
-
-            if (simboloNormalizado == "N")
-                return new ObservableCollection<string> { "%", "ppm", "mg/kg" };
-
-            if (simboloNormalizado == "K" ||
-                simboloNormalizado == "CA" ||
-                simboloNormalizado == "MG")
-                return new ObservableCollection<string> { "cmol/kg", "meq/100g", "mg/kg", "ppm", "g/kg" };
-
-            return new ObservableCollection<string> { "mg/kg", "ppm", "g/kg", "%", "meq/100g", "cmol/kg" };
+            return new ObservableCollection<UnidadMedidaResponse>(
+                UnidadesMedidaCatalogo
+            );
         }
 
-        private static string ObtenerUnidadPredeterminadaElementoQuimico(string? simbolo)
+        private UnidadMedidaResponse? ObtenerUnidadPredeterminadaElementoQuimico(
+            ObservableCollection<UnidadMedidaResponse> unidades,
+            string? simbolo)
         {
             string simboloNormalizado = (simbolo ?? string.Empty).Trim().ToUpper();
 
             if (simboloNormalizado == "N")
-                return "%";
+                return BuscarUnidadMedidaEnLista(unidades, "%", "PORCENTAJE", "PPM", "MG/KG");
 
             if (simboloNormalizado == "K" ||
                 simboloNormalizado == "CA" ||
                 simboloNormalizado == "MG")
-                return "cmol/kg";
+                return BuscarUnidadMedidaEnLista(unidades, "CMOL/KG", "MEQ/100G", "PPM", "MG/KG");
 
-            return "mg/kg";
+            return BuscarUnidadMedidaEnLista(unidades, "MG/KG", "PPM", "G/KG", "%");
+        }
+
+        private UnidadMedidaResponse? BuscarUnidadMedidaEnLista(
+            IEnumerable<UnidadMedidaResponse> unidades,
+            params string[] posiblesValores)
+        {
+            foreach (string valor in posiblesValores)
+            {
+                string valorNormalizado = NormalizarTextoUnidad(valor);
+
+                UnidadMedidaResponse? unidad = unidades.FirstOrDefault(x =>
+                    NormalizarTextoUnidad(x.TextoBusqueda).Contains(valorNormalizado)
+                );
+
+                if (unidad != null)
+                    return unidad;
+            }
+
+            return unidades.FirstOrDefault();
+        }
+
+        private static string NormalizarTextoUnidad(string? texto)
+        {
+            return (texto ?? string.Empty)
+                .Trim()
+                .ToUpper()
+                .Replace(" ", "")
+                .Replace("_", "")
+                .Replace("-", "");
         }
 
         private void FiltrarTerrenos()
@@ -495,19 +709,22 @@ namespace CONATRADEC.ViewModels
 
             string texto = TextoBusquedaTerreno?.Trim().ToLower() ?? string.Empty;
 
-            IEnumerable<TerrenoAnalisisResponse> lista = string.IsNullOrWhiteSpace(texto)
+            IEnumerable<TerrenoResponse> lista = string.IsNullOrWhiteSpace(texto)
                 ? Terrenos
                 : Terrenos.Where(t =>
                     (t.NombreCliente ?? string.Empty).ToLower().Contains(texto) ||
                     (t.CodigoTerreno ?? string.Empty).ToLower().Contains(texto) ||
-                    (t.NombreTerreno ?? string.Empty).ToLower().Contains(texto)
+                    (t.NombreTerreno ?? string.Empty).ToLower().Contains(texto) ||
+                    (t.NombrePropietarioTerreno ?? string.Empty).ToLower().Contains(texto) ||
+                    (t.DireccionTerreno ?? string.Empty).ToLower().Contains(texto) ||
+                    (t.TextoUbicacion ?? string.Empty).ToLower().Contains(texto)
                 );
 
             foreach (var item in lista)
                 TerrenosFiltrados.Add(item);
         }
 
-        private void SeleccionarTerreno(TerrenoAnalisisResponse? terreno)
+        private void SeleccionarTerreno(TerrenoResponse? terreno)
         {
             if (terreno == null)
                 return;
@@ -585,11 +802,29 @@ namespace CONATRADEC.ViewModels
                     });
                 }
 
-                var request = new AnalisisSueloGuardarCalculoRequest
+                int tipoCultivoId = ObtenerTipoCultivoIdSeleccionado();
+                int tipoAnalisisSueloId = ObtenerTipoAnalisisSueloIdSeleccionado();
+
+                var calcularRequest = new AnalisisSueloCalcularRequest
                 {
                     TerrenoId = TerrenoSeleccionado?.TerrenoId,
-                    TipoCultivoId = ObtenerTipoCultivoIdSeleccionado(),
-                    TipoAnalisisSueloId = ObtenerTipoAnalisisSueloIdSeleccionado(),
+                    TipoCultivoId = tipoCultivoId,
+                    TipoAnalisisSueloId = tipoAnalisisSueloId,
+                    UsuarioId = UsuarioId,
+                    CantidadQuintalesOro = quintalesOro,
+                    TamanoFinca = tamanoFincaDecimal,
+                    Ph = ph,
+                    MateriaOrganica = materiaOrganica,
+                    AcidezTotal = acidezTotal,
+                    ElementosQuimicos = elementosQuimicosRequest,
+                    FuentesOrganicas = new List<FuenteOrganicaAnalisisRequest>()
+                };
+
+                var guardarRequest = new AnalisisSueloGuardarCalculoRequest
+                {
+                    TerrenoId = TerrenoSeleccionado?.TerrenoId,
+                    TipoCultivoId = tipoCultivoId,
+                    TipoAnalisisSueloId = tipoAnalisisSueloId,
                     UsuarioId = UsuarioId,
                     CantidadQuintalesOro = quintalesOro,
                     TamanoFinca = tamanoFincaDecimal,
@@ -604,7 +839,7 @@ namespace CONATRADEC.ViewModels
                 };
 
                 AnalisisSueloCalculoResponse? response =
-                    await analisisSueloApiService.GuardarCalculoAsync(request);
+                    await analisisSueloApiService.CalcularAsync(calcularRequest);
 
                 if (response == null)
                 {
@@ -612,24 +847,21 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                if (!response.Success)
+                if (!response.Success || response.Data == null)
                 {
-                    await MostrarMensajeAsync("Error", response.Message ?? "No se pudo procesar el análisis de suelo.");
+                    await MostrarMensajeAsync("Error", response.Message ?? "No se pudo calcular el análisis de suelo.");
                     return;
                 }
 
                 estadoInicialFormulario = ObtenerEstadoActualFormulario();
 
-                await MostrarMensajeAsync(
-                    "Correcto",
-                    response.Message ?? "Análisis de suelo calculado y guardado correctamente."
-                );
+                var parametros = new Dictionary<string, object>
+                {
+                    { "resultadoCalculo", response.Data },
+                    { "requestGuardarAnalisis", guardarRequest }
+                };
 
-                /*
-                 * Siguiente paso:
-                 * guardar response en un servicio de estado temporal
-                 * y navegar a la pantalla de resultados.
-                 */
+                await GoToAsyncParameters("//ResultadoAnalisisSueloPage", parametros);
             }
             catch (Exception ex)
             {
@@ -644,6 +876,8 @@ namespace CONATRADEC.ViewModels
 
         private async Task<bool> ValidarFormularioAsync()
         {
+            LimpiarErroresFormulario();
+
             if (UsuarioId == null || UsuarioId <= 0)
             {
                 await MostrarMensajeAsync("Sesión", "No se encontró el usuario autenticado.");
@@ -652,49 +886,92 @@ namespace CONATRADEC.ViewModels
 
             if (TerrenoSeleccionado == null)
             {
-                await MostrarMensajeAsync("Validación", "Debe seleccionar un cliente/terreno.");
+                ErrorTerreno = "Debe seleccionar un cliente/terreno.";
+                await MostrarMensajeAsync("Validación", ErrorTerreno);
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(TipoCultivoSeleccionado))
+            if (TipoCultivoSeleccionado == null || TipoCultivoSeleccionado.TipoCultivoId == null || TipoCultivoSeleccionado.TipoCultivoId <= 0)
             {
-                await MostrarMensajeAsync("Validación", "Debe seleccionar el tipo de cultivo.");
+                ErrorTipoCultivo = "Debe seleccionar el tipo de cultivo.";
+                await MostrarMensajeAsync("Validación", ErrorTipoCultivo);
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(TipoAnalisisSueloSeleccionado))
             {
-                await MostrarMensajeAsync("Validación", "Debe seleccionar el tipo de análisis de suelo.");
+                ErrorTipoAnalisisSuelo = "Debe seleccionar el tipo de análisis de suelo.";
+                await MostrarMensajeAsync("Validación", ErrorTipoAnalisisSuelo);
                 return false;
             }
 
             if (FechaAnalisisLaboratorio.Date > DateTime.Today)
             {
-                await MostrarMensajeAsync("Validación", "La fecha del análisis no puede ser futura.");
+                ErrorFechaAnalisisLaboratorio = "La fecha del análisis no puede ser futura.";
+                await MostrarMensajeAsync("Validación", ErrorFechaAnalisisLaboratorio);
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(Laboratorio) || Laboratorio.Trim().Length < 3)
+            if (string.IsNullOrWhiteSpace(Laboratorio))
             {
-                await MostrarMensajeAsync("Validación", "Debe ingresar un laboratorio válido.");
+                ErrorLaboratorio = "Debe ingresar el laboratorio del análisis.";
+                await MostrarMensajeAsync("Validación", ErrorLaboratorio);
+                return false;
+            }
+
+            if (Laboratorio.Trim().Length < 3)
+            {
+                ErrorLaboratorio = "El laboratorio debe tener al menos 3 caracteres.";
+                await MostrarMensajeAsync("Validación", ErrorLaboratorio);
+                return false;
+            }
+
+            if (Laboratorio.Trim().Length > 150)
+            {
+                ErrorLaboratorio = "El laboratorio no puede tener más de 150 caracteres.";
+                await MostrarMensajeAsync("Validación", ErrorLaboratorio);
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(IdentificadorAnalisisSuelo))
             {
-                await MostrarMensajeAsync("Validación", "Debe ingresar el identificador del análisis de suelo.");
+                ErrorIdentificadorAnalisisSuelo = "Debe ingresar el identificador del análisis de suelo.";
+                await MostrarMensajeAsync("Validación", ErrorIdentificadorAnalisisSuelo);
                 return false;
             }
 
-            if (!TryParseDecimal(CantidadQuintalesOro, out decimal quintalesOro) || quintalesOro <= 0)
+            if (IdentificadorAnalisisSuelo.Trim().Length > 50)
             {
-                await MostrarMensajeAsync("Validación", "La cantidad de quintales oro debe ser mayor que cero.");
+                ErrorIdentificadorAnalisisSuelo = "El identificador no puede tener más de 50 caracteres.";
+                await MostrarMensajeAsync("Validación", ErrorIdentificadorAnalisisSuelo);
                 return false;
             }
 
-            if (!TryParseDecimal(TamanoFinca, out decimal tamanoFincaDecimal) || tamanoFincaDecimal <= 0)
+            if (!TryParseDecimal(CantidadQuintalesOro, out decimal quintalesOro))
             {
-                await MostrarMensajeAsync("Validación", "El tamaño de la finca debe ser mayor que cero.");
+                ErrorCantidadQuintalesOro = "La cantidad de quintales oro debe ser numérica.";
+                await MostrarMensajeAsync("Validación", ErrorCantidadQuintalesOro);
+                return false;
+            }
+
+            if (quintalesOro <= 0)
+            {
+                ErrorCantidadQuintalesOro = "La cantidad de quintales oro debe ser mayor que cero.";
+                await MostrarMensajeAsync("Validación", ErrorCantidadQuintalesOro);
+                return false;
+            }
+
+            if (!TryParseDecimal(TamanoFinca, out decimal tamanoFincaDecimal))
+            {
+                ErrorTamanoFinca = "El tamaño de la finca debe ser numérico.";
+                await MostrarMensajeAsync("Validación", ErrorTamanoFinca);
+                return false;
+            }
+
+            if (tamanoFincaDecimal <= 0)
+            {
+                ErrorTamanoFinca = "El tamaño de la finca debe ser mayor que cero.";
+                await MostrarMensajeAsync("Validación", ErrorTamanoFinca);
                 return false;
             }
 
@@ -719,13 +996,13 @@ namespace CONATRADEC.ViewModels
                     return false;
                 }
 
-                if (item.UnidadSeleccionada == "%" && valor > 100)
+                if (EsUnidadPorcentaje(item.UnidadSeleccionada) && valor > 100)
                 {
                     await MostrarMensajeAsync("Validación", $"El porcentaje de {item.NombreParametro} no puede ser mayor a 100.");
                     return false;
                 }
 
-                if (string.IsNullOrWhiteSpace(item.UnidadSeleccionada))
+                if (!UnidadMedidaValida(item.UnidadSeleccionada))
                 {
                     await MostrarMensajeAsync("Validación", $"Debe seleccionar la unidad de {item.NombreParametro}.");
                     return false;
@@ -758,13 +1035,13 @@ namespace CONATRADEC.ViewModels
                     return false;
                 }
 
-                if (item.UnidadSeleccionada == "%" && valor > 100)
+                if (EsUnidadPorcentaje(item.UnidadSeleccionada) && valor > 100)
                 {
                     await MostrarMensajeAsync("Validación", $"El porcentaje de {item.NombreParametro} no puede ser mayor a 100.");
                     return false;
                 }
 
-                if (string.IsNullOrWhiteSpace(item.UnidadSeleccionada))
+                if (!UnidadMedidaValida(item.UnidadSeleccionada))
                 {
                     await MostrarMensajeAsync("Validación", $"Debe seleccionar la unidad de {item.NombreParametro}.");
                     return false;
@@ -772,6 +1049,23 @@ namespace CONATRADEC.ViewModels
             }
 
             return true;
+        }
+
+        private static bool UnidadMedidaValida(UnidadMedidaResponse? unidad)
+        {
+            return unidad != null &&
+                   unidad.UnidadMedidaId != null &&
+                   unidad.UnidadMedidaId > 0;
+        }
+
+        private static bool EsUnidadPorcentaje(UnidadMedidaResponse? unidad)
+        {
+            if (unidad == null)
+                return false;
+
+            string texto = NormalizarTextoUnidad(unidad.TextoBusqueda);
+
+            return texto.Contains("%") || texto.Contains("PORCENTAJE");
         }
 
         private decimal ObtenerValorParametroConstante(string codigoParametro)
@@ -792,7 +1086,7 @@ namespace CONATRADEC.ViewModels
 
         private int ObtenerTipoCultivoIdSeleccionado()
         {
-            return 1;
+            return TipoCultivoSeleccionado?.TipoCultivoId ?? 0;
         }
 
         private int ObtenerTipoAnalisisSueloIdSeleccionado()
@@ -800,22 +1094,9 @@ namespace CONATRADEC.ViewModels
             return 1;
         }
 
-        private int ObtenerUnidadMedidaId(string? unidad)
+        private int ObtenerUnidadMedidaId(UnidadMedidaResponse? unidad)
         {
-            string unidadNormalizada = (unidad ?? string.Empty).Trim().ToUpper();
-
-            return unidadNormalizada switch
-            {
-                "MG/KG" => 1,
-                "PPM" => 1,
-                "CMOL/KG" => 2,
-                "MEQ/100G" => 2,
-                "LB/MZ" => 3,
-                "KG/HA" => 4,
-                "G/KG" => 5,
-                "%" => 6,
-                _ => 1
-            };
+            return unidad?.UnidadMedidaId ?? 0;
         }
 
         private async Task CancelarAsync()
@@ -855,7 +1136,8 @@ namespace CONATRADEC.ViewModels
             var partes = new List<string>
             {
                 $"TerrenoId:{TerrenoSeleccionado?.TerrenoId}",
-                $"TipoCultivo:{TipoCultivoSeleccionado?.Trim()}",
+                $"TipoCultivoId:{TipoCultivoSeleccionado?.TipoCultivoId}",
+                $"TipoCultivo:{TipoCultivoSeleccionado?.NombreMostrar}",
                 $"TipoAnalisis:{TipoAnalisisSueloSeleccionado?.Trim()}",
                 $"FechaLaboratorio:{FechaAnalisisLaboratorio:yyyy-MM-dd}",
                 $"Laboratorio:{Laboratorio?.Trim()}",
@@ -867,12 +1149,12 @@ namespace CONATRADEC.ViewModels
 
             foreach (var item in ParametrosConstantesAnalisis)
             {
-                partes.Add($"CONST:{item.CodigoParametro}|{item.Valor?.Trim()}|{item.UnidadSeleccionada?.Trim()}");
+                partes.Add($"CONST:{item.CodigoParametro}|{item.Valor?.Trim()}|{item.UnidadSeleccionada?.UnidadMedidaId}");
             }
 
             foreach (var item in ElementosQuimicosAnalisis)
             {
-                partes.Add($"ELEM:{item.ElementoQuimicoId}|{item.CodigoParametro}|{item.Valor?.Trim()}|{item.UnidadSeleccionada?.Trim()}");
+                partes.Add($"ELEM:{item.ElementoQuimicoId}|{item.CodigoParametro}|{item.Valor?.Trim()}|{item.UnidadSeleccionada?.UnidadMedidaId}");
             }
 
             return string.Join(";", partes);
@@ -939,10 +1221,22 @@ namespace CONATRADEC.ViewModels
             return $"{inicialNombre}{inicialApellido}".ToUpper();
         }
 
-        private static async Task MostrarMensajeAsync(string titulo, string mensaje)
+        private static async Task MostrarMensajeAsync(string titulo, string mensaje)    
         {
             if (Application.Current?.MainPage != null)
                 await Application.Current.MainPage.DisplayAlert(titulo, mensaje, "Aceptar");
+        }
+
+        private void LimpiarErroresFormulario()
+        {
+            ErrorTerreno = string.Empty;
+            ErrorTipoCultivo = string.Empty;
+            ErrorTipoAnalisisSuelo = string.Empty;
+            ErrorFechaAnalisisLaboratorio = string.Empty;
+            ErrorLaboratorio = string.Empty;
+            ErrorIdentificadorAnalisisSuelo = string.Empty;
+            ErrorCantidadQuintalesOro = string.Empty;
+            ErrorTamanoFinca = string.Empty;
         }
     }
 }

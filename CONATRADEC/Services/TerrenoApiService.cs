@@ -1,6 +1,7 @@
 ﻿using CONATRADEC.Models;
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 
@@ -23,7 +24,12 @@ namespace CONATRADEC.Services
                 var response = await httpClient.GetFromJsonAsync<ObservableCollection<TerrenoResponse>>(
                     "api/terreno/listar");
 
-                return response ?? new ObservableCollection<TerrenoResponse>();
+                if (response == null)
+                    return new ObservableCollection<TerrenoResponse>();
+
+                return new ObservableCollection<TerrenoResponse>(
+                    response.Where(t => t.Activo != false)
+                );
             }
             catch
             {
@@ -50,7 +56,8 @@ namespace CONATRADEC.Services
             {
                 var response = await httpClient.PutAsJsonAsync(
                     $"api/terreno/editar/{terreno.TerrenoId}",
-                    terreno);   
+                    terreno);
+
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -65,6 +72,7 @@ namespace CONATRADEC.Services
             {
                 var response = await httpClient.DeleteAsync(
                     $"api/terreno/eliminar/{terreno.TerrenoId}");
+
                 return response.IsSuccessStatusCode;
             }
             catch

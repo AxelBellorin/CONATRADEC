@@ -9,8 +9,6 @@
 
     <ContentPage.Resources>
 
-        <!-- Contenedor corregido para campos del formulario.
-             Evita que Picker / DatePicker / Entry queden cortados. -->
         <Style x:Key="FormInputContainerStyle"
                TargetType="Border"
                BasedOn="{StaticResource InputContainerStyle}">
@@ -52,7 +50,6 @@
             <Setter Property="TextColor" Value="{StaticResource color_Negro}" />
         </Style>
 
-
         <Style x:Key="ValidationErrorLabelStyle"
                TargetType="Label">
             <Setter Property="TextColor" Value="{StaticResource RedDelete}" />
@@ -73,7 +70,6 @@
                                      Spacing="0"
                                      HorizontalOptions="Fill">
 
-                    <!-- Encabezado -->
                     <VerticalStackLayout Spacing="8"
                                          Margin="0,4,0,24">
 
@@ -110,7 +106,6 @@
 
                     </VerticalStackLayout>
 
-                    <!-- Datos del usuario -->
                     <Border Style="{StaticResource CardAnalisisStyle}">
 
                         <VerticalStackLayout Spacing="18">
@@ -160,7 +155,6 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Cliente y terreno -->
                     <Border Style="{StaticResource CardAnalisisStyle}">
 
                         <VerticalStackLayout Spacing="16">
@@ -173,7 +167,6 @@
                                        Style="{StaticResource SectionSubtitleStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Buscar terreno -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Buscar cliente / terreno"
                                        Style="{StaticResource FieldLabelStyle}" />
@@ -190,7 +183,6 @@
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Lista de terrenos -->
                             <CollectionView ItemsSource="{Binding TerrenosFiltrados}"
                                             SelectionMode="None"
                                             HeightRequest="260">
@@ -244,7 +236,6 @@
                                 </CollectionView.ItemTemplate>
                             </CollectionView>
 
-                            <!-- Terreno seleccionado -->
                             <Border BackgroundColor="#EEF5F2"
                                     Stroke="{StaticResource color_Verde}"
                                     StrokeThickness="1"
@@ -279,7 +270,6 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Datos del análisis -->
                     <Border Style="{StaticResource CardAnalisisStyle}">
 
                         <VerticalStackLayout Spacing="16">
@@ -292,14 +282,14 @@
                                        Style="{StaticResource SectionSubtitleStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Tipo de cultivo -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Tipo de cultivo"
-                                       Style="{StaticResource FieldLabelStyle}" />
+                                        Style="{StaticResource FieldLabelStyle}" />
 
                                 <Border Style="{StaticResource FormInputContainerStyle}">
                                     <Picker ItemsSource="{Binding TiposCultivo}"
-                                            SelectedItem="{Binding TipoCultivoSeleccionado}"
+                                            SelectedItem="{Binding TipoCultivoSeleccionado, Mode=TwoWay}"
+                                            ItemDisplayBinding="{Binding NombreMostrar}"
                                             Title="Seleccione cultivo"
                                             Style="{StaticResource FormPickerStyle}" />
                                 </Border>
@@ -309,7 +299,6 @@
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Tipo de análisis -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Tipo de análisis de suelo"
                                        Style="{StaticResource FieldLabelStyle}" />
@@ -326,7 +315,6 @@
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Fecha laboratorio -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Fecha del análisis del laboratorio"
                                        Style="{StaticResource FieldLabelStyle}" />
@@ -341,7 +329,6 @@
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Laboratorio -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Laboratorio análisis de suelo"
                                        Style="{StaticResource FieldLabelStyle}" />
@@ -358,7 +345,6 @@
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Identificador análisis -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Identificador de análisis de suelo"
                                        Style="{StaticResource FieldLabelStyle}" />
@@ -375,7 +361,6 @@
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Cantidad quintales oro -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Cantidad quintales oro"
                                        Style="{StaticResource FieldLabelStyle}" />
@@ -393,7 +378,6 @@
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
-                            <!-- Tamaño finca -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Tamaño de la finca"
                                        Style="{StaticResource FieldLabelStyle}" />
@@ -415,7 +399,6 @@
                                        TextColor="{StaticResource color_GrisOscuro}" />
                             </VerticalStackLayout>
 
-                            <!-- Tipo muestra -->
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Tipo de muestra"
                                        Style="{StaticResource FieldLabelStyle}" />
@@ -438,7 +421,6 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Parámetros constantes -->
                     <Border Style="{StaticResource CardAnalisisStyle}">
 
                         <VerticalStackLayout Spacing="16">
@@ -499,6 +481,7 @@
                                                     <Border Style="{StaticResource FormInputContainerStyle}">
                                                         <Picker ItemsSource="{Binding UnidadesMedida}"
                                                                 SelectedItem="{Binding UnidadSeleccionada}"
+                                                                ItemDisplayBinding="{Binding TextoMostrar}"
                                                                 Style="{StaticResource FormPickerStyle}" />
                                                     </Border>
                                                 </VerticalStackLayout>
@@ -512,7 +495,6 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Elementos químicos -->
                     <Border Style="{StaticResource CardAnalisisStyle}">
 
                         <VerticalStackLayout Spacing="16">
@@ -589,6 +571,7 @@
                                                     <Border Style="{StaticResource FormInputContainerStyle}">
                                                         <Picker ItemsSource="{Binding UnidadesMedida}"
                                                                 SelectedItem="{Binding UnidadSeleccionada}"
+                                                                ItemDisplayBinding="{Binding TextoMostrar}"
                                                                 Style="{StaticResource FormPickerStyle}" />
                                                     </Border>
                                                 </VerticalStackLayout>
@@ -602,7 +585,6 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Nota informativa -->
                     <Border BackgroundColor="#EEF5F2"
                             Stroke="Transparent"
                             StrokeShape="RoundRectangle 16"
@@ -636,7 +618,6 @@
                 </VerticalStackLayout>
             </ScrollView>
 
-            <!-- Barra inferior -->
             <Border Grid.Row="1"
                     BackgroundColor="White"
                     Stroke="#E5E7EB"
@@ -667,7 +648,6 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Overlay de carga -->
             <Grid Grid.RowSpan="2"
                   BackgroundColor="#80000000"
                   IsVisible="{Binding IsBusy}">

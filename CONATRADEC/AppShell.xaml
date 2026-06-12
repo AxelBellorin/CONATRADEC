@@ -15,26 +15,26 @@
                   Route="LoginPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:loginPage}" />
-    
+
     <!-- MATRIZ PERMISOS -->
     <ShellContent Title="MatrizPermisosPage"
                   Route="MatrizPermisosPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:matrizPermisosPage}" />
-    
-        <!-- MATRIZ PERMISOS -->
+
+    <!-- MATRIZ PERMISOS -->
     <ShellContent Title="MainPage"
                   Route="MainPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:MainPage}" />
 
-    
+
     <!-- USUARIO -->
     <ShellContent Title="UserPage"
                   Route="UserPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:userPage}" />
-    
+
     <!-- PAIS -->
     <ShellContent Title="PaisPage"
                   Route="PaisPage"
@@ -137,5 +137,29 @@
                   Route="ResultadosAnalisisPage"
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:ResultadosAnalisisPage}" />
+
+    <ShellContent 
+                Title="Resultado análisis"
+                Route="ResultadoAnalisisSueloPage"
+                FlyoutItemIsVisible="False"
+                ContentTemplate="{DataTemplate views:ResultadoAnalisisSueloPage}" />
+
+    <ShellContent 
+                Title="Balance de fórmula"
+                Route="BalanceFormulaPage"
+                FlyoutItemIsVisible="False"
+                ContentTemplate="{DataTemplate views:BalanceFormulaPage}" />
+
+    <ShellContent 
+                Title="Enmienda calcárea"
+                Route="EnmiendaCalcareaPage"
+                FlyoutItemIsVisible="False"
+                ContentTemplate="{DataTemplate views:EnmiendaCalcareaPage}" />
+
+    <ShellContent 
+                Title="Fertilización mixta"
+                Route="FertilizacionMixtaPage"
+                FlyoutItemIsVisible="False"
+                ContentTemplate="{DataTemplate views:FertilizacionMixtaPage}" />
 
 </Shell>

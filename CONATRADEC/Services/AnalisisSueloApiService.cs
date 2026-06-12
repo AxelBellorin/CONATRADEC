@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -11,6 +13,7 @@ namespace CONATRADEC.Services
     {
         private const string EndpointCalcular = "api/analisis-suelo/calcular";
         private const string EndpointGuardarCalculo = "api/analisis-suelo/guardar-calculo";
+        private const string EndpointTipoCultivoListar = "api/analisis-suelo/tipo-cultivo/listar";
 
         private readonly HttpClient httpClient;
 
@@ -37,6 +40,50 @@ namespace CONATRADEC.Services
         public async Task<AnalisisSueloCalculoResponse?> GuardarCalculoAsync(AnalisisSueloGuardarCalculoRequest request)
         {
             return await PostAnalisisSueloAsync(EndpointGuardarCalculo, request);
+        }
+
+        public async Task<ObservableCollection<TipoCultivoResponse>> ListarTiposCultivoAsync()
+        {
+            try
+            {
+                HttpResponseMessage response = await httpClient.GetAsync(EndpointTipoCultivoListar);
+
+                string jsonRespuesta = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                    return new ObservableCollection<TipoCultivoResponse>();
+
+                if (string.IsNullOrWhiteSpace(jsonRespuesta))
+                    return new ObservableCollection<TipoCultivoResponse>();
+
+                string jsonTrim = jsonRespuesta.Trim();
+
+                if (jsonTrim.StartsWith("["))
+                {
+                    ObservableCollection<TipoCultivoResponse>? listaDirecta =
+                        JsonSerializer.Deserialize<ObservableCollection<TipoCultivoResponse>>(
+                            jsonRespuesta,
+                            jsonOptions
+                        );
+
+                    return listaDirecta ?? new ObservableCollection<TipoCultivoResponse>();
+                }
+
+                ApiListaResponse<TipoCultivoResponse>? respuesta =
+                    JsonSerializer.Deserialize<ApiListaResponse<TipoCultivoResponse>>(
+                        jsonRespuesta,
+                        jsonOptions
+                    );
+
+                if (respuesta?.Data == null)
+                    return new ObservableCollection<TipoCultivoResponse>();
+
+                return new ObservableCollection<TipoCultivoResponse>(respuesta.Data);
+            }
+            catch
+            {
+                return new ObservableCollection<TipoCultivoResponse>();
+            }
         }
 
         private async Task<AnalisisSueloCalculoResponse?> PostAnalisisSueloAsync<TRequest>(
@@ -87,6 +134,15 @@ namespace CONATRADEC.Services
                     Message = $"No se pudo conectar con la API: {ex.Message}"
                 };
             }
+        }
+
+        private class ApiListaResponse<T>
+        {
+            public bool Success { get; set; }
+
+            public string? Message { get; set; }
+
+            public List<T>? Data { get; set; }
         }
     }
 }
