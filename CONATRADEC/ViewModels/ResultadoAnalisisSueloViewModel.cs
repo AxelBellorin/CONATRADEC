@@ -353,9 +353,14 @@ namespace CONATRADEC.ViewModels
             return parametros;
         }
 
+        //private async Task VolverAsync()
+        //{
+        //    await GoToAsyncParameters("..");
+        //}
+
         private async Task VolverAsync()
         {
-            await GoToAsyncParameters("..");
+            await GoToAsyncParameters("//NuevoAnalisisFormPage");
         }
 
         private void RefrescarComandos()
