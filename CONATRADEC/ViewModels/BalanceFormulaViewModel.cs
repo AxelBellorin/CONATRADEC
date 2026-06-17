@@ -589,11 +589,11 @@ namespace CONATRADEC.ViewModels
 
                 CalcularBalanceLocal(elementosSeleccionados, plantas, aplicaciones);
 
-                Mensaje = "Balance calculado localmente correctamente.";
+                Mensaje = "Balance calculado correctamente.";
             }
             catch (Exception ex)
             {
-                await MostrarMensajeAsync("Error", $"No se pudo calcular el balance local: {ex.Message}");
+                await MostrarMensajeAsync("Error", $"No se pudo calcular el balance: {ex.Message}");
             }
             finally
             {
@@ -750,7 +750,7 @@ namespace CONATRADEC.ViewModels
             ResultadoBalance = new BalanceNutricionalResponse
             {
                 Success = true,
-                Message = "Balance calculado localmente.",
+                Message = "Balance calculado.",
                 BalanceNutricionalId = null,
                 NombreFormula = string.IsNullOrWhiteSpace(NombreFormula)
                     ? "Fórmula balance nutricional"
