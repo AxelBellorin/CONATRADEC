@@ -35,6 +35,7 @@
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:userPage}" />
 
+    
     <!-- PAIS -->
     <ShellContent Title="PaisPage"
                   Route="PaisPage"

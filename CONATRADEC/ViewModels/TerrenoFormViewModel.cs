@@ -34,6 +34,7 @@ namespace CONATRADEC.ViewModels
         private double? latitud;
         private double? longitud;
         private string coordenadasTexto;
+        private int? cantidadPlantasTerreno;
 
         private DateOnly? fechaIngresoTerreno;
         private DateTime fechaIngresoDate = DateTime.Today;
@@ -130,6 +131,7 @@ namespace CONATRADEC.ViewModels
                     ExtensionManzanaTerreno = value.ExtensionManzanaTerreno;
                     CantidadQuintalesOro = value.CantidadQuintalesOro;
                     FechaIngresoTerreno = value.FechaIngresoTerreno ?? DateOnly.FromDateTime(DateTime.Today);
+                    CantidadPlantasTerreno = value.CantidadPlantasTerreno;
 
                     // ⭐ IMPORTANTE:
                     if (LatitudParam == null && LongitudParam == null)
@@ -358,6 +360,8 @@ namespace CONATRADEC.ViewModels
 
         public bool CanPickDepartamento => IsEnabled && PaisSeleccionado != null;
         public bool CanPickMunicipio => IsEnabled && DepartamentoSeleccionado != null;
+
+        public int? CantidadPlantasTerreno { get => cantidadPlantasTerreno; set { cantidadPlantasTerreno = value; OnPropertyChanged(); } }
 
         // ==================== Inicialización ====================
 
@@ -597,6 +601,7 @@ namespace CONATRADEC.ViewModels
                 DireccionTerreno = DireccionTerreno,
                 ExtensionManzanaTerreno = ExtensionManzanaTerreno,
                 CantidadQuintalesOro = CantidadQuintalesOro,
+                CantidadPlantasTerreno=CantidadPlantasTerreno,
                 FechaIngresoTerreno = FechaIngresoTerreno,
                 MunicipioId = MunicipioSeleccionado?.MunicipioId ?? 0,
                 Latitud = Latitud,
@@ -647,6 +652,7 @@ namespace CONATRADEC.ViewModels
                 DireccionTerreno = DireccionTerreno,
                 ExtensionManzanaTerreno = ExtensionManzanaTerreno,
                 CantidadQuintalesOro = CantidadQuintalesOro,
+                CantidadPlantasTerreno = CantidadPlantasTerreno,
                 FechaIngresoTerreno = FechaIngresoTerreno,
                 MunicipioId = MunicipioSeleccionado?.MunicipioId ?? Terreno.MunicipioId,
                 Latitud = Latitud,

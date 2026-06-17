@@ -11,31 +11,35 @@ namespace CONATRADEC.ViewModels
 {
     public class ResultadoAnalisisSueloViewModel : GlobalService, IQueryAttributable
     {
-        private readonly AnalisisSueloApiService analisisSueloApiService = new();
-
         private AnalisisSueloCalculoDataResponse? resultado;
         private AnalisisSueloGuardarCalculoRequest? requestGuardarAnalisis;
 
         private string tituloResultado = "Resultado del análisis de suelo";
         private string recomendacionGeneral = string.Empty;
         private string sugerenciaSiguienteCalculo = string.Empty;
-        private string mensajeGuardado = string.Empty;
+        private string mensajeSeleccionCalculo = string.Empty;
 
         private bool tieneObservaciones;
         private bool tieneElementos;
         private bool phMuyAcido;
-        private bool analisisGuardado;
+
+        private bool calcularBalanceFormula;
+        private bool calcularEnmiendaCalcarea;
+        private bool calcularFertilizacionMixta;
+        private int? cantidadPlantas;
 
         public ResultadoAnalisisSueloViewModel()
         {
             Elementos = new ObservableCollection<ElementoResultadoCalculoResponse>();
             Observaciones = new ObservableCollection<string>();
 
-            GuardarAnalisisCommand = new Command(async () => await GuardarAnalisisAsync(), () => PuedeGuardarAnalisis);
-            IrBalanceFormulaCommand = new Command(async () => await IrBalanceFormulaAsync());
-            IrEnmiendaCalcareaCommand = new Command(async () => await IrEnmiendaCalcareaAsync());
-            IrFertilizacionMixtaCommand = new Command(async () => await IrFertilizacionMixtaAsync());
-            VolverCommand = new Command(async () => await VolverAsync());
+            ProcesarSeleccionCommand = new Command(
+                async () => await ProcesarSeleccionAsync()
+            );
+
+            VolverCommand = new Command(
+                async () => await VolverAsync()
+            );
         }
 
         public AnalisisSueloCalculoDataResponse? Resultado
@@ -61,8 +65,16 @@ namespace CONATRADEC.ViewModels
             {
                 requestGuardarAnalisis = value;
                 OnPropertyChanged(nameof(RequestGuardarAnalisis));
-                OnPropertyChanged(nameof(PuedeGuardarAnalisis));
-                GuardarAnalisisCommand.ChangeCanExecute();
+            }
+        }
+
+        public int? CantidadPlantas
+        {
+            get => cantidadPlantas;
+            set
+            {
+                cantidadPlantas = value;
+                OnPropertyChanged(nameof(CantidadPlantas));
             }
         }
 
@@ -96,18 +108,18 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public string MensajeGuardado
+        public string MensajeSeleccionCalculo
         {
-            get => mensajeGuardado;
+            get => mensajeSeleccionCalculo;
             set
             {
-                mensajeGuardado = value;
-                OnPropertyChanged(nameof(MensajeGuardado));
-                OnPropertyChanged(nameof(TieneMensajeGuardado));
+                mensajeSeleccionCalculo = value;
+                OnPropertyChanged(nameof(MensajeSeleccionCalculo));
+                OnPropertyChanged(nameof(TieneMensajeSeleccionCalculo));
             }
         }
 
-        public bool TieneMensajeGuardado => !string.IsNullOrWhiteSpace(MensajeGuardado);
+        public bool TieneMensajeSeleccionCalculo => !string.IsNullOrWhiteSpace(MensajeSeleccionCalculo);
 
         public bool TieneObservaciones
         {
@@ -139,22 +151,68 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool AnalisisGuardado
+        public bool CalcularBalanceFormula
         {
-            get => analisisGuardado;
+            get => calcularBalanceFormula;
             set
             {
-                analisisGuardado = value;
-                OnPropertyChanged(nameof(AnalisisGuardado));
-                OnPropertyChanged(nameof(PuedeGuardarAnalisis));
-                GuardarAnalisisCommand.ChangeCanExecute();
+                calcularBalanceFormula = value;
+                OnPropertyChanged(nameof(CalcularBalanceFormula));
+                OnPropertyChanged(nameof(TieneSeleccionCalculo));
+                OnPropertyChanged(nameof(TextoSeleccionCalculo));
+
+                if (value)
+                    MensajeSeleccionCalculo = string.Empty;
             }
         }
 
-        public bool PuedeGuardarAnalisis =>
-            !IsBusy &&
-            !AnalisisGuardado &&
-            RequestGuardarAnalisis != null;
+        public bool CalcularEnmiendaCalcarea
+        {
+            get => calcularEnmiendaCalcarea;
+            set
+            {
+                calcularEnmiendaCalcarea = value;
+                OnPropertyChanged(nameof(CalcularEnmiendaCalcarea));
+                OnPropertyChanged(nameof(TieneSeleccionCalculo));
+                OnPropertyChanged(nameof(TextoSeleccionCalculo));
+
+                if (value)
+                    MensajeSeleccionCalculo = string.Empty;
+            }
+        }
+
+        public bool CalcularFertilizacionMixta
+        {
+            get => calcularFertilizacionMixta;
+            set
+            {
+                calcularFertilizacionMixta = value;
+                OnPropertyChanged(nameof(CalcularFertilizacionMixta));
+                OnPropertyChanged(nameof(TieneSeleccionCalculo));
+                OnPropertyChanged(nameof(TextoSeleccionCalculo));
+
+                if (value)
+                    MensajeSeleccionCalculo = string.Empty;
+            }
+        }
+
+        public bool TieneSeleccionCalculo =>
+            CalcularBalanceFormula ||
+            CalcularEnmiendaCalcarea ||
+            CalcularFertilizacionMixta;
+
+        public string TextoSeleccionCalculo
+        {
+            get
+            {
+                List<string> seleccionados = ObtenerCalculosSeleccionadosTexto();
+
+                if (seleccionados.Count == 0)
+                    return "No se ha seleccionado ningún cálculo.";
+
+                return string.Join(", ", seleccionados);
+            }
+        }
 
         public string TipoCultivo => Resultado?.TipoCultivo ?? string.Empty;
 
@@ -172,18 +230,14 @@ namespace CONATRADEC.ViewModels
 
         public ObservableCollection<string> Observaciones { get; }
 
-        public Command GuardarAnalisisCommand { get; }
-
-        public Command IrBalanceFormulaCommand { get; }
-
-        public Command IrEnmiendaCalcareaCommand { get; }
-
-        public Command IrFertilizacionMixtaCommand { get; }
+        public Command ProcesarSeleccionCommand { get; }
 
         public Command VolverCommand { get; }
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
+            LimpiarPantallaTemporal();
+
             if (query.ContainsKey("resultadoCalculo"))
             {
                 AnalisisSueloCalculoDataResponse? resultadoApi =
@@ -200,6 +254,21 @@ namespace CONATRADEC.ViewModels
                 RequestGuardarAnalisis =
                     query["requestGuardarAnalisis"] as AnalisisSueloGuardarCalculoRequest;
             }
+
+            if (query.ContainsKey("cantidadPlantas"))
+            {
+                if (int.TryParse(query["cantidadPlantas"]?.ToString(), out int plantas))
+                    CantidadPlantas = plantas;
+            }
+        }
+
+        private void LimpiarPantallaTemporal()
+        {
+            MensajeSeleccionCalculo = string.Empty;
+
+            CalcularBalanceFormula = false;
+            CalcularEnmiendaCalcarea = false;
+            CalcularFertilizacionMixta = false;
         }
 
         private void CargarResultado(AnalisisSueloCalculoDataResponse resultadoApi)
@@ -213,7 +282,11 @@ namespace CONATRADEC.ViewModels
 
             if (resultadoApi.Elementos != null)
             {
-                foreach (var elemento in resultadoApi.Elementos)
+                var elementosOrdenados = resultadoApi.Elementos
+                    .OrderByDescending(x => x.RequerimientoCalculado ?? 0)
+                    .ToList();
+
+                foreach (var elemento in elementosOrdenados)
                 {
                     Elementos.Add(elemento);
                 }
@@ -243,7 +316,7 @@ namespace CONATRADEC.ViewModels
             if (ph > 0 && ph < 5.5m)
             {
                 SugerenciaSiguienteCalculo =
-                    "El pH está muy ácido. Se recomienda revisar primero la enmienda calcárea.";
+                    "El pH está muy ácido. Se recomienda revisar la enmienda calcárea como uno de los cálculos opcionales.";
                 return;
             }
 
@@ -255,118 +328,103 @@ namespace CONATRADEC.ViewModels
             if (hayDeficiencia)
             {
                 SugerenciaSiguienteCalculo =
-                    "Hay elementos con deficiencia. Puede continuar con balance de fórmula o fertilización mixta.";
+                    "Hay elementos con deficiencia. Puede seleccionar balance de fórmula o fertilización mixta.";
                 return;
             }
 
             SugerenciaSiguienteCalculo =
-                "Seleccione el tipo de cálculo que desea realizar con base en el resultado obtenido.";
+                "Seleccione uno o varios cálculos opcionales según lo que desea procesar.";
         }
 
-        private async Task GuardarAnalisisAsync()
+        private async Task ProcesarSeleccionAsync()
         {
             if (IsBusy)
                 return;
 
-            if (RequestGuardarAnalisis == null)
-            {
-                await MostrarMensajeAsync("Guardar análisis", "No se encontró la información necesaria para guardar el análisis.");
-                return;
-            }
-
-            try
-            {
-                IsBusy = true;
-                RefrescarComandos();
-
-                AnalisisSueloCalculoResponse? response =
-                    await analisisSueloApiService.GuardarCalculoAsync(RequestGuardarAnalisis);
-
-                if (response == null)
-                {
-                    await MostrarMensajeAsync("Error", "La API no devolvió una respuesta válida.");
-                    return;
-                }
-
-                if (!response.Success)
-                {
-                    await MostrarMensajeAsync("Error", response.Message ?? "No se pudo guardar el análisis de suelo.");
-                    return;
-                }
-
-                AnalisisGuardado = true;
-                MensajeGuardado = response.Message ?? "Análisis de suelo guardado correctamente.";
-
-                await MostrarMensajeAsync("Correcto", MensajeGuardado);
-            }
-            catch (Exception ex)
-            {
-                await MostrarMensajeAsync("Error", $"No se pudo guardar el análisis: {ex.Message}");
-            }
-            finally
-            {
-                IsBusy = false;
-                RefrescarComandos();
-            }
-        }
-
-        private async Task IrBalanceFormulaAsync()
-        {
             if (Resultado == null)
-                return;
+            {
+                await MostrarMensajeAsync(
+                    "Resultado no disponible",
+                    "No se encontró el resultado del análisis de suelo."
+                );
 
-            var parametros = CrearParametrosNavegacion();
+                return;
+            }
+
+            if (!TieneSeleccionCalculo)
+            {
+                MensajeSeleccionCalculo = "Debe seleccionar al menos un cálculo para continuar.";
+                await MostrarMensajeAsync("Validación", MensajeSeleccionCalculo);
+                return;
+            }
+
+            if (!CalcularBalanceFormula)
+            {
+                await MostrarMensajeAsync(
+                    "Proceso pendiente",
+                    "Por ahora solo está disponible el cálculo de Balance de fórmula."
+                );
+
+                return;
+            }
+
+            var parametros = new Dictionary<string, object>
+            {
+                { "resultadoCalculo", Resultado },
+                { "calcularBalanceFormula", CalcularBalanceFormula },
+                { "calcularEnmiendaCalcarea", CalcularEnmiendaCalcarea },
+                { "calcularFertilizacionMixta", CalcularFertilizacionMixta }
+            };
+
+            if (RequestGuardarAnalisis != null)
+            {
+                parametros.Add("requestGuardarAnalisis", RequestGuardarAnalisis);
+
+                if (RequestGuardarAnalisis.TerrenoId != null && RequestGuardarAnalisis.TerrenoId > 0)
+                    parametros.Add("terrenoId", RequestGuardarAnalisis.TerrenoId.Value);
+            }
+
+            if (CantidadPlantas != null && CantidadPlantas > 0)
+                parametros.Add("cantidadPlantas", CantidadPlantas.Value);
 
             await GoToAsyncParameters("//BalanceFormulaPage", parametros);
         }
 
-        private async Task IrEnmiendaCalcareaAsync()
+        private List<string> ObtenerCalculosSeleccionadosTexto()
         {
-            if (Resultado == null)
-                return;
+            var seleccionados = new List<string>();
 
-            var parametros = CrearParametrosNavegacion();
+            if (CalcularBalanceFormula)
+                seleccionados.Add("Balance de fórmula");
 
-            await GoToAsyncParameters("//EnmiendaCalcareaPage", parametros);
+            if (CalcularEnmiendaCalcarea)
+                seleccionados.Add("Enmienda calcárea");
+
+            if (CalcularFertilizacionMixta)
+                seleccionados.Add("Fertilización mixta");
+
+            return seleccionados;
         }
 
-        private async Task IrFertilizacionMixtaAsync()
+        private List<string> ObtenerCalculosSeleccionadosCodigo()
         {
-            if (Resultado == null)
-                return;
+            var seleccionados = new List<string>();
 
-            var parametros = CrearParametrosNavegacion();
+            if (CalcularBalanceFormula)
+                seleccionados.Add("BALANCE_FORMULA");
 
-            await GoToAsyncParameters("//FertilizacionMixtaPage", parametros);
+            if (CalcularEnmiendaCalcarea)
+                seleccionados.Add("ENMIENDA_CALCAREA");
+
+            if (CalcularFertilizacionMixta)
+                seleccionados.Add("FERTILIZACION_MIXTA");
+
+            return seleccionados;
         }
-
-        private Dictionary<string, object> CrearParametrosNavegacion()
-        {
-            var parametros = new Dictionary<string, object>
-            {
-                { "resultadoCalculo", Resultado! }
-            };
-
-            if (RequestGuardarAnalisis != null)
-                parametros.Add("requestGuardarAnalisis", RequestGuardarAnalisis);
-
-            return parametros;
-        }
-
-        //private async Task VolverAsync()
-        //{
-        //    await GoToAsyncParameters("..");
-        //}
 
         private async Task VolverAsync()
         {
             await GoToAsyncParameters("//NuevoAnalisisFormPage");
-        }
-
-        private void RefrescarComandos()
-        {
-            OnPropertyChanged(nameof(PuedeGuardarAnalisis));
-            GuardarAnalisisCommand.ChangeCanExecute();
         }
 
         private static async Task MostrarMensajeAsync(string titulo, string mensaje)

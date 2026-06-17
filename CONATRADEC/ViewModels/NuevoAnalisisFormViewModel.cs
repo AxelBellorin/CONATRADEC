@@ -35,9 +35,11 @@ namespace CONATRADEC.ViewModels
         private string identificadorAnalisisSuelo = string.Empty;
         private string cantidadQuintalesOro = string.Empty;
         private string tamanoFinca = string.Empty;
-        private string tipoMuestra = "Suelo";
+        private string cantidadPlantas = string.Empty;
 
         private string estadoInicialFormulario = string.Empty;
+
+        private bool debeLimpiarFormulario = true;
 
         private string errorTerreno = string.Empty;
         private string errorTipoCultivo = string.Empty;
@@ -47,6 +49,7 @@ namespace CONATRADEC.ViewModels
         private string errorIdentificadorAnalisisSuelo = string.Empty;
         private string errorCantidadQuintalesOro = string.Empty;
         private string errorTamanoFinca = string.Empty;
+        private string errorCantidadPlantas = string.Empty;
 
         public NuevoAnalisisFormViewModel()
         {
@@ -172,6 +175,7 @@ namespace CONATRADEC.ViewModels
                 {
                     CantidadQuintalesOro = terrenoSeleccionado.CantidadQuintalesOro?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
                     TamanoFinca = terrenoSeleccionado.TamanoFinca?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+                    CantidadPlantas = terrenoSeleccionado.CantidadPlantasTerreno?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
                 }
 
                 RefrescarComandos();
@@ -260,14 +264,14 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public string TipoMuestra
+        public string CantidadPlantas
         {
-            get => tipoMuestra;
+            get => cantidadPlantas;
             set
             {
-                tipoMuestra = value;
-                OnPropertyChanged(nameof(TipoMuestra));
-                OnPropertyChanged(nameof(TextoTipoMuestra));
+                cantidadPlantas = value;
+                OnPropertyChanged(nameof(CantidadPlantas));
+                RefrescarComandos();
             }
         }
 
@@ -375,7 +379,18 @@ namespace CONATRADEC.ViewModels
 
         public bool TieneErrorTamanoFinca => !string.IsNullOrWhiteSpace(ErrorTamanoFinca);
 
-        public string TextoTipoMuestra => $"Tipo de muestra: {TipoMuestra}";
+        public string ErrorCantidadPlantas
+        {
+            get => errorCantidadPlantas;
+            set
+            {
+                errorCantidadPlantas = value;
+                OnPropertyChanged(nameof(ErrorCantidadPlantas));
+                OnPropertyChanged(nameof(TieneErrorCantidadPlantas));
+            }
+        }
+
+        public bool TieneErrorCantidadPlantas => !string.IsNullOrWhiteSpace(ErrorCantidadPlantas);
 
         public ObservableCollection<ResultadoAnalisisItemViewModel> ParametrosConstantesAnalisis { get; }
 
@@ -414,11 +429,19 @@ namespace CONATRADEC.ViewModels
                 if (forceReload || UnidadesMedidaCatalogo.Count == 0)
                     await CargarUnidadesMedidaAsync();
 
-                if (forceReload || ParametrosConstantesAnalisis.Count == 0)
-                    CargarParametrosConstantesAnalisis();
+                if (forceReload || debeLimpiarFormulario)
+                {
+                    await LimpiarFormularioNuevoCalculoAsync();
+                    debeLimpiarFormulario = false;
+                }
+                else
+                {
+                    if (ParametrosConstantesAnalisis.Count == 0)
+                        CargarParametrosConstantesAnalisis();
 
-                if (forceReload || ElementosQuimicosAnalisis.Count == 0)
-                    await CargarElementosQuimicosAnalisisAsync();
+                    if (ElementosQuimicosAnalisis.Count == 0)
+                        await CargarElementosQuimicosAnalisisAsync();
+                }
 
                 estadoInicialFormulario = ObtenerEstadoActualFormulario();
             }
@@ -431,6 +454,44 @@ namespace CONATRADEC.ViewModels
                 IsBusy = false;
                 RefrescarComandos();
             }
+        }
+
+        private async Task LimpiarFormularioNuevoCalculoAsync()
+        {
+            LimpiarErroresFormulario();
+
+            terrenoSeleccionado = null;
+            OnPropertyChanged(nameof(TerrenoSeleccionado));
+            OnPropertyChanged(nameof(TieneTerrenoSeleccionado));
+
+            textoBusquedaTerreno = string.Empty;
+            OnPropertyChanged(nameof(TextoBusquedaTerreno));
+
+            TipoCultivoSeleccionado = TiposCultivo.FirstOrDefault();
+            TipoAnalisisSueloSeleccionado = TiposAnalisisSuelo.FirstOrDefault() ?? string.Empty;
+
+            FechaAnalisisLaboratorio = DateTime.Today;
+
+            Laboratorio = string.Empty;
+            IdentificadorAnalisisSuelo = string.Empty;
+            CantidadQuintalesOro = string.Empty;
+            TamanoFinca = string.Empty;
+            CantidadPlantas = string.Empty;
+
+            ParametrosConstantesAnalisis.Clear();
+            CargarParametrosConstantesAnalisis();
+
+            ElementosQuimicosAnalisis.Clear();
+            await CargarElementosQuimicosAnalisisAsync();
+
+            TerrenosFiltrados.Clear();
+
+            foreach (var terreno in Terrenos)
+                TerrenosFiltrados.Add(terreno);
+
+            estadoInicialFormulario = ObtenerEstadoActualFormulario();
+
+            RefrescarComandos();
         }
 
         private void CargarDatosUsuario()
@@ -446,7 +507,6 @@ namespace CONATRADEC.ViewModels
             UrlImagenUsuario = Preferences.Get(SessionKeys.KeyUrlImagenUsuario, string.Empty);
 
             InicialesUsuario = ObtenerIniciales(NombreCompletoUsuario);
-            TipoMuestra = "Suelo";
         }
 
         private async Task CargarCatalogosFormularioAsync()
@@ -574,7 +634,7 @@ namespace CONATRADEC.ViewModels
                 EsElementoQuimico = false,
                 PuedeEliminar = false,
                 UnidadesMedida = unidadesPh,
-                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesPh, "PH", "SIN UNIDAD")
+                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesPh, "PH", "SIN UNIDAD", "S/M")
             });
 
             ParametrosConstantesAnalisis.Add(new ResultadoAnalisisItemViewModel
@@ -586,7 +646,7 @@ namespace CONATRADEC.ViewModels
                 EsElementoQuimico = false,
                 PuedeEliminar = false,
                 UnidadesMedida = unidadesMateriaOrganica,
-                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesMateriaOrganica, "%", "PORCENTAJE")
+                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesMateriaOrganica, "PPM", "%","PORCENTAJE")
             });
 
             ParametrosConstantesAnalisis.Add(new ResultadoAnalisisItemViewModel
@@ -652,9 +712,7 @@ namespace CONATRADEC.ViewModels
 
         private ObservableCollection<UnidadMedidaResponse> ClonarUnidadesMedida()
         {
-            return new ObservableCollection<UnidadMedidaResponse>(
-                UnidadesMedidaCatalogo
-            );
+            return new ObservableCollection<UnidadMedidaResponse>(UnidadesMedidaCatalogo);
         }
 
         private UnidadMedidaResponse? ObtenerUnidadPredeterminadaElementoQuimico(
@@ -785,6 +843,7 @@ namespace CONATRADEC.ViewModels
 
                 decimal quintalesOro = ConvertirDecimal(CantidadQuintalesOro);
                 decimal tamanoFincaDecimal = ConvertirDecimal(TamanoFinca);
+                int cantidadPlantasValidada = int.Parse(CantidadPlantas);
 
                 decimal ph = ObtenerValorParametroConstante("PH");
                 decimal materiaOrganica = ObtenerValorParametroConstante("MATERIA_ORGANICA");
@@ -858,8 +917,10 @@ namespace CONATRADEC.ViewModels
                 var parametros = new Dictionary<string, object>
                 {
                     { "resultadoCalculo", response.Data },
-                    { "requestGuardarAnalisis", guardarRequest }
+                    { "requestGuardarAnalisis", guardarRequest },
+                    { "cantidadPlantas", cantidadPlantasValidada }
                 };
+                debeLimpiarFormulario = true;
 
                 await GoToAsyncParameters("//ResultadoAnalisisSueloPage", parametros);
             }
@@ -891,7 +952,9 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
-            if (TipoCultivoSeleccionado == null || TipoCultivoSeleccionado.TipoCultivoId == null || TipoCultivoSeleccionado.TipoCultivoId <= 0)
+            if (TipoCultivoSeleccionado == null ||
+                TipoCultivoSeleccionado.TipoCultivoId == null ||
+                TipoCultivoSeleccionado.TipoCultivoId <= 0)
             {
                 ErrorTipoCultivo = "Debe seleccionar el tipo de cultivo.";
                 await MostrarMensajeAsync("Validación", ErrorTipoCultivo);
@@ -972,6 +1035,20 @@ namespace CONATRADEC.ViewModels
             {
                 ErrorTamanoFinca = "El tamaño de la finca debe ser mayor que cero.";
                 await MostrarMensajeAsync("Validación", ErrorTamanoFinca);
+                return false;
+            }
+
+            if (!int.TryParse(CantidadPlantas, out int cantidadPlantasValidada))
+            {
+                ErrorCantidadPlantas = "La cantidad de plantas debe ser numérica.";
+                await MostrarMensajeAsync("Validación", ErrorCantidadPlantas);
+                return false;
+            }
+
+            if (cantidadPlantasValidada <= 0)
+            {
+                ErrorCantidadPlantas = "La cantidad de plantas debe ser mayor que cero.";
+                await MostrarMensajeAsync("Validación", ErrorCantidadPlantas);
                 return false;
             }
 
@@ -1144,7 +1221,7 @@ namespace CONATRADEC.ViewModels
                 $"Identificador:{IdentificadorAnalisisSuelo?.Trim()}",
                 $"Quintales:{CantidadQuintalesOro?.Trim()}",
                 $"TamanoFinca:{TamanoFinca?.Trim()}",
-                $"TipoMuestra:{TipoMuestra?.Trim()}"
+                $"CantidadPlantas:{CantidadPlantas?.Trim()}"
             };
 
             foreach (var item in ParametrosConstantesAnalisis)
@@ -1221,7 +1298,7 @@ namespace CONATRADEC.ViewModels
             return $"{inicialNombre}{inicialApellido}".ToUpper();
         }
 
-        private static async Task MostrarMensajeAsync(string titulo, string mensaje)    
+        private static async Task MostrarMensajeAsync(string titulo, string mensaje)
         {
             if (Application.Current?.MainPage != null)
                 await Application.Current.MainPage.DisplayAlert(titulo, mensaje, "Aceptar");
@@ -1237,6 +1314,7 @@ namespace CONATRADEC.ViewModels
             ErrorIdentificadorAnalisisSuelo = string.Empty;
             ErrorCantidadQuintalesOro = string.Empty;
             ErrorTamanoFinca = string.Empty;
+            ErrorCantidadPlantas = string.Empty;
         }
     }
 }

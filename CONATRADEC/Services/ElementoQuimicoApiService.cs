@@ -23,7 +23,7 @@ namespace CONATRADEC.Services
             {
                 // Ajusta la ruta según tu controlador real
                 var response = await httpClient.GetFromJsonAsync<ObservableCollection<ElementoQuimicoResponse>>(
-                    "api/ElementoQuimico");
+                    "api/elemento-quimico/listar");
 
                 return response ?? new ObservableCollection<ElementoQuimicoResponse>();
             }
@@ -70,7 +70,7 @@ namespace CONATRADEC.Services
             {
                 var response = await httpClient.PutAsJsonAsync(
                     $"api/elemento-quimico/editar/{elemento.ElementoQuimicosId}",
-                    elemento);
+                elemento);
 
                 return response.IsSuccessStatusCode;
             }

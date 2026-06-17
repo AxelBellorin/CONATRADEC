@@ -9,6 +9,7 @@
     <ScrollView>
         <VerticalStackLayout Padding="18" Spacing="16">
 
+            <!-- Encabezado -->
             <Border
                 BackgroundColor="#3B655B"
                 StrokeThickness="0"
@@ -23,13 +24,15 @@
                         FontAttributes="Bold" />
 
                     <Label
-                        Text="Resultado generado desde el cálculo de análisis de suelo."
+                        Text="Resultado generado desde el cálculo preliminar del análisis de suelo."
                         TextColor="White"
                         FontSize="14"
-                        Opacity="0.9" />
+                        Opacity="0.9"
+                        LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Recomendación general -->
             <Border
                 BackgroundColor="White"
                 Stroke="#E5E7EB"
@@ -62,25 +65,6 @@
                             TextColor="#14532D"
                             LineBreakMode="WordWrap" />
                     </Border>
-
-                    <VerticalStackLayout
-                        IsVisible="{Binding TieneMensajeGuardado}"
-                        Spacing="8">
-
-                        <Border
-                            BackgroundColor="#EFF6FF"
-                            Stroke="#BFDBFE"
-                            Padding="10"
-                            StrokeShape="RoundRectangle 10">
-
-                            <Label
-                                Text="{Binding MensajeGuardado}"
-                                TextColor="#1E3A8A"
-                                FontSize="14"
-                                LineBreakMode="WordWrap" />
-                        </Border>
-
-                    </VerticalStackLayout>
 
                     <VerticalStackLayout IsVisible="{Binding TieneObservaciones}" Spacing="8">
 
@@ -115,6 +99,7 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Datos base -->
             <Border
                 BackgroundColor="White"
                 Stroke="#E5E7EB"
@@ -170,14 +155,19 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Requerimientos por elemento -->
             <Label
                 Text="Requerimientos por elemento"
                 FontSize="19"
                 FontAttributes="Bold"
                 TextColor="#3B655B"
-                Margin="0,4,0,0" />
+                Margin="0,4,0,0"
+                IsVisible="{Binding TieneElementos}" />
 
-            <CollectionView ItemsSource="{Binding Elementos}">
+            <CollectionView
+                ItemsSource="{Binding Elementos}"
+                IsVisible="{Binding TieneElementos}">
+
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
 
@@ -306,58 +296,146 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
+            <!-- Selección de cálculos opcionales -->
             <Border
                 BackgroundColor="White"
                 Stroke="#E5E7EB"
                 Padding="16"
                 StrokeShape="RoundRectangle 16">
 
-                <VerticalStackLayout Spacing="12">
+                <VerticalStackLayout Spacing="14">
 
-                    <Label
-                        Text="Acciones del análisis"
-                        FontSize="18"
-                        FontAttributes="Bold"
-                        TextColor="#3B655B" />
+                    <VerticalStackLayout Spacing="4">
+                        <Label
+                            Text="Cálculos opcionales"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            TextColor="#3B655B" />
+
+                        <Label
+                            Text="Seleccione uno o varios cálculos que desea procesar. Estos cálculos no son obligatorios."
+                            FontSize="14"
+                            TextColor="#6B7280"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+
+                    <!-- Balance de fórmula -->
+                    <Border
+                        BackgroundColor="#F9FAFB"
+                        Stroke="#E5E7EB"
+                        Padding="12"
+                        StrokeShape="RoundRectangle 14">
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+
+                            <CheckBox
+                                Grid.Column="0"
+                                Color="#3B655B"
+                                IsChecked="{Binding CalcularBalanceFormula}"
+                                VerticalOptions="Center" />
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label
+                                    Text="Balance de fórmula"
+                                    FontSize="15"
+                                    FontAttributes="Bold"
+                                    TextColor="#111827" />
+
+                                <Label
+                                    Text="Permite calcular la fórmula de fertilización según los requerimientos detectados."
+                                    FontSize="13"
+                                    TextColor="#6B7280"
+                                    LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </Border>
+
+                    <!-- Enmienda calcárea -->
+                    <Border
+                        BackgroundColor="#F9FAFB"
+                        Stroke="#E5E7EB"
+                        Padding="12"
+                        StrokeShape="RoundRectangle 14">
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+
+                            <CheckBox
+                                Grid.Column="0"
+                                Color="#9B552C"
+                                IsChecked="{Binding CalcularEnmiendaCalcarea}"
+                                VerticalOptions="Center" />
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label
+                                    Text="Enmienda calcárea"
+                                    FontSize="15"
+                                    FontAttributes="Bold"
+                                    TextColor="#111827" />
+
+                                <Label
+                                    Text="Recomendado cuando el pH o la acidez indican necesidad de corrección del suelo."
+                                    FontSize="13"
+                                    TextColor="#6B7280"
+                                    LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </Border>
+
+                    <!-- Fertilización mixta -->
+                    <Border
+                        BackgroundColor="#F9FAFB"
+                        Stroke="#E5E7EB"
+                        Padding="12"
+                        StrokeShape="RoundRectangle 14">
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+
+                            <CheckBox
+                                Grid.Column="0"
+                                Color="#F2C94C"
+                                IsChecked="{Binding CalcularFertilizacionMixta}"
+                                VerticalOptions="Center" />
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label
+                                    Text="Fertilización mixta"
+                                    FontSize="15"
+                                    FontAttributes="Bold"
+                                    TextColor="#111827" />
+
+                                <Label
+                                    Text="Permite combinar diferentes criterios de fertilización según el análisis obtenido."
+                                    FontSize="13"
+                                    TextColor="#6B7280"
+                                    LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding TieneMensajeSeleccionCalculo}"
+                        BackgroundColor="#FEF2F2"
+                        Stroke="#FECACA"
+                        Padding="10"
+                        StrokeShape="RoundRectangle 10">
+
+                        <Label
+                            Text="{Binding MensajeSeleccionCalculo}"
+                            TextColor="#991B1B"
+                            FontSize="14"
+                            LineBreakMode="WordWrap" />
+                    </Border>
 
                     <Button
-                        Text="Guardar análisis"
-                        BackgroundColor="#3B82F6"
-                        TextColor="White"
-                        CornerRadius="12"
-                        HeightRequest="48"
-                        IsEnabled="{Binding PuedeGuardarAnalisis}"
-                        Command="{Binding GuardarAnalisisCommand}" />
-
-                    <Label
-                        Text="Seleccione el siguiente proceso usando los requerimientos calculados anteriormente."
-                        FontSize="14"
-                        TextColor="#6B7280"
-                        LineBreakMode="WordWrap" />
-
-                    <Button
-                        Text="Balance de fórmula"
+                        Text="Procesar selección"
                         BackgroundColor="#3B655B"
                         TextColor="White"
                         CornerRadius="12"
                         HeightRequest="48"
-                        Command="{Binding IrBalanceFormulaCommand}" />
-
-                    <Button
-                        Text="Enmienda calcárea"
-                        BackgroundColor="#9B552C"
-                        TextColor="White"
-                        CornerRadius="12"
-                        HeightRequest="48"
-                        Command="{Binding IrEnmiendaCalcareaCommand}" />
-
-                    <Button
-                        Text="Fertilización mixta"
-                        BackgroundColor="#F2C94C"
-                        TextColor="Black"
-                        CornerRadius="12"
-                        HeightRequest="48"
-                        Command="{Binding IrFertilizacionMixtaCommand}" />
+                        Command="{Binding ProcesarSeleccionCommand}" />
 
                     <Button
                         Text="Volver"
@@ -369,6 +447,8 @@
 
                 </VerticalStackLayout>
             </Border>
+
+            <BoxView HeightRequest="12" Color="Transparent" />
 
         </VerticalStackLayout>
     </ScrollView>

@@ -15,8 +15,10 @@ namespace CONATRADEC.Models
         private DateOnly? fechaIngresoTerreno;
         private int? municipioId;
         private decimal? cantidadQuintalesOro;
+        private int? cantidadPlantasTerreno;
         private double? latitud;
         private double? longitud;
+
 
         public int? TerrenoId { get => terrenoId; set => terrenoId = value; }
         public string? CodigoTerreno { get => codigoTerreno; set => codigoTerreno = value; }
@@ -30,7 +32,17 @@ namespace CONATRADEC.Models
         public int? MunicipioId { get => municipioId; set => municipioId = value; }
         public decimal? CantidadQuintalesOro { get => cantidadQuintalesOro; set => cantidadQuintalesOro = value; }
         public double? Latitud { get => latitud; set => latitud = value; }
-        public double? Longitud { get => longitud; set => longitud = value; }
+        public double? Longitud
+        {
+            get => longitud; set => longitud = value;
+        }
+
+        public string TextoCantidadPlantas =>
+            CantidadPlantasTerreno == null || CantidadPlantasTerreno <= 0
+                ? "Plantas no registradas"
+                : $"{CantidadPlantasTerreno:N0} plantas";
+
+        public int? CantidadPlantasTerreno { get => cantidadPlantasTerreno; set => cantidadPlantasTerreno = value; }
 
         public TerrenoRequest() { }
 
@@ -49,6 +61,7 @@ namespace CONATRADEC.Models
             CantidadQuintalesOro = t.CantidadQuintalesOro;
             Latitud = t.Latitud;
             Longitud = t.Longitud;
+            CantidadPlantasTerreno = t.CantidadPlantasTerreno;
         }
     }
 }

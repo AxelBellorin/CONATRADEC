@@ -220,6 +220,10 @@
                                                 <Label Text="{Binding CantidadQuintalesOro, StringFormat='Quintales oro: {0}'}"
                                                        FontSize="13"
                                                        TextColor="{StaticResource color_GrisOscuro}" />
+                                                    
+                                                <Label Text="{Binding CantidadPlantasTerreno, StringFormat='Plantas: {0}'}"
+                                                       FontSize="13"
+                                                       TextColor="{StaticResource color_GrisOscuro}" />
 
                                                 <Button Text="Seleccionar terreno"
                                                         Style="{StaticResource AddButton}"
@@ -264,6 +268,10 @@
                                            FontAttributes="Bold"
                                            TextColor="{StaticResource color_Cafe}" />
 
+                                    <Label Text="{Binding TerrenoSeleccionado.CantidadPlantasTerreno, StringFormat='Plantas registradas: {0}'}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource color_GrisOscuro}" />
+
                                 </VerticalStackLayout>
                             </Border>
 
@@ -298,6 +306,7 @@
                                        IsVisible="{Binding TieneErrorTipoCultivo}"
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
+                            
 
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Tipo de análisis de suelo"
@@ -400,22 +409,24 @@
                             </VerticalStackLayout>
 
                             <VerticalStackLayout Spacing="6">
-                                <Label Text="Tipo de muestra"
+                                <Label Text="Cantidad de plantas"
                                        Style="{StaticResource FieldLabelStyle}" />
 
-                                <Border BackgroundColor="#F9FAFB"
-                                        Stroke="#E5E7EB"
-                                        StrokeThickness="1"
-                                        StrokeShape="RoundRectangle 14"
-                                        Padding="14,14"
-                                        MinimumHeightRequest="58">
+                                        <Border Style="{StaticResource FormInputContainerStyle}">
+                                            <Entry Text="{Binding CantidadPlantas}"
+                                                    Keyboard="Numeric"
+                                                    Placeholder="Ejemplo: 3500"
+                                                    HorizontalOptions="Fill"
+                                                    Style="{StaticResource FormEntryStyle}" />
+                                        </Border>
 
-                                    <Label Text="{Binding TipoMuestra}"
-                                           FontAttributes="Bold"
-                                           FontSize="15"
-                                           TextColor="{StaticResource color_Negro}"
-                                           VerticalOptions="Center" />
-                                </Border>
+                                        <Label Text="{Binding ErrorCantidadPlantas}"
+                                               IsVisible="{Binding TieneErrorCantidadPlantas}"
+                                               Style="{StaticResource ValidationErrorLabelStyle}" />
+
+                                        <Label Text="Este valor viene del terreno, pero puede modificarse si es necesario para calcular aplicaciones."
+                                                FontSize="12"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
                             </VerticalStackLayout>
 
                         </VerticalStackLayout>

@@ -131,6 +131,21 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Cantidad de plantas"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Ejemplo: 3500"
+                               Style="{StaticResource EntryStyle}"
+                               Keyboard="Numeric"
+                               Text="{Binding CantidadPlantasTerreno}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+                    </VerticalStackLayout>
+                </Border>
+
+
                 <!-- Fecha de ingreso -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">

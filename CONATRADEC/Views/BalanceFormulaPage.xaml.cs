@@ -10,8 +10,8 @@ namespace CONATRADEC.Views
         public BalanceFormulaPage()
         {
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
             InitializeComponent();
+            BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()

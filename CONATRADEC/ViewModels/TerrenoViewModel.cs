@@ -8,11 +8,22 @@ namespace CONATRADEC.ViewModels
     {
         private ObservableCollection<TerrenoResponse> list = new();
         private readonly TerrenoApiService terrenoApiService = new();
+        private string cantidadPlantasTerreno = string.Empty;
 
         public ObservableCollection<TerrenoResponse> List
         {
             get => list;
             set { list = value; OnPropertyChanged(); }
+        }
+
+        public string CantidadPlantasTerreno
+        {
+            get => cantidadPlantasTerreno;
+            set
+            {
+                cantidadPlantasTerreno = value;
+                OnPropertyChanged(nameof(CantidadPlantasTerreno));
+            }
         }
 
         public Command AddCommand { get; }

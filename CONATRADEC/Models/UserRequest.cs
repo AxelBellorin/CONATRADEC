@@ -11,7 +11,7 @@ namespace CONATRADEC.Models
 {
     // Clase que representa la estructura del objeto de solicitud (Request)
     // utilizada para enviar información de un usuario hacia la API.
-    public class UserRequest
+    public class    UserRequest
     {
         // ===========================================================
         // =============== CAMPOS PRIVADOS DE LA CLASE ===============

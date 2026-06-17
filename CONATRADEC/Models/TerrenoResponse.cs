@@ -34,6 +34,7 @@ namespace CONATRADEC.Models
         private DateOnly? fechaIngresoTerreno;
         private int? municipioId;
         private decimal? cantidadQuintalesOro;
+        private int? cantidadPlantasTerreno;
         private double? latitud;
         private double? longitud;
         private bool? activo;
@@ -60,6 +61,8 @@ namespace CONATRADEC.Models
         public int? MunicipioId { get => municipioId; set => municipioId = value; }
 
         public decimal? CantidadQuintalesOro { get => cantidadQuintalesOro; set => cantidadQuintalesOro = value; }
+
+        public int? CantidadPlantasTerreno { get => cantidadPlantasTerreno; set => cantidadPlantasTerreno = value; }
 
         public double? Latitud { get => latitud; set => latitud = value; }
 
