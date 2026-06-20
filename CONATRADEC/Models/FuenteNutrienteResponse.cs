@@ -47,8 +47,34 @@ namespace CONATRADEC.Models
             }
         }
 
+        public string PrecioMostrar =>
+            PrecioNutriente.HasValue
+                ? $"C$ {PrecioNutriente.Value:N2} por quintal"
+                : "Sin precio por quintal";
+
+        public string EstadoMostrar =>
+            Activo == true ? "Activo" : "Inactivo";
+
+        public bool IsActivo => Activo == true;
+
         public bool TieneAportes =>
             ElementosQuimicos != null && ElementosQuimicos.Count > 0;
+
+        public string AportesMostrar
+        {
+            get
+            {
+                if (!TieneAportes)
+                    return "Sin aportes registrados";
+
+                return string.Join(
+                    " · ",
+                    ElementosQuimicos
+                        .Where(x => !string.IsNullOrWhiteSpace(x.SimboloElementoQuimico))
+                        .Select(x => $"{x.SimboloElementoQuimico?.Trim()}: {x.CantidadAporte:N0}%")
+                );
+            }
+        }
     }
 
     public class FuenteNutrienteElementoQuimicoResponse

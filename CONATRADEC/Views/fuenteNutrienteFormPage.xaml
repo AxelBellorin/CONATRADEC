@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.fuenteNutrienteFormPage"
+             x:Name="FuenteNutrienteFormPageRoot"
+             Title="Formulario de fuente de nutriente"
+             Shell.NavBarIsVisible="False"
+             Background="Transparent">
+
+    <Grid RowDefinitions="Auto,*"
+          BackgroundColor="Transparent">
+
+        <Label Text="{Binding Title}"
+               TextColor="{StaticResource color_Verde}"
+               FontSize="24"
+               FontAttributes="Bold"
+               HorizontalOptions="Start"
+               Grid.Row="0"
+               Margin="10,20,0,0" />
+
+        <ActivityIndicator Grid.Row="0"
+                           HorizontalOptions="End"
+                           Margin="0,20,20,0"
+                           IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="{StaticResource color_Naranja}" />
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="10"
+                                 Spacing="15">
+
+                <!-- NOMBRE -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+
+                        <Label Text="Nombre de la fuente"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+
+                        <Entry Placeholder="Ejemplo: Urea 46%"
+                               Style="{StaticResource EntryStyle}"
+                               Text="{Binding NombreNutriente}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+
+                        <Label Text="{Binding ErrorNombre}"
+                               IsVisible="{Binding TieneErrorNombre}"
+                               TextColor="{StaticResource RedDelete}"
+                               FontSize="12" />
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- DESCRIPCIÓN -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+
+                        <Label Text="Descripción"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+
+                        <Editor Placeholder="Descripción de la fuente de nutriente"
+                                Text="{Binding DescripcionNutriente}"
+                                IsReadOnly="{Binding IsReadOnly}"
+                                AutoSize="TextChanges"
+                                MinimumHeightRequest="90"
+                                TextColor="{StaticResource color_Negro}" />
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- PRECIO -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="5">
+
+                        <Label Text="Precio por quintal"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+
+                        <Entry Placeholder="Ejemplo: 1945.94"
+                               Style="{StaticResource EntryStyle}"
+                               Keyboard="Numeric"
+                               Text="{Binding PrecioNutrienteTexto}"
+                               IsReadOnly="{Binding IsReadOnly}" />
+
+                        <Label Text="{Binding ErrorPrecio}"
+                               IsVisible="{Binding TieneErrorPrecio}"
+                               TextColor="{StaticResource RedDelete}"
+                               FontSize="12" />
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- APORTES -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="10">
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Aportes de elementos químicos"
+                                       FontAttributes="Bold"
+                                       FontSize="17"
+                                       TextColor="{StaticResource color_Negro}" />
+
+                                <Label Text="Agregue los elementos que aporta esta fuente y su porcentaje."
+                                       FontSize="12"
+                                       TextColor="{StaticResource color_Gris}" />
+                            </VerticalStackLayout>
+
+                            <ImageButton Grid.Column="1"
+                                         Source="iconadd.png"
+                                         WidthRequest="46"
+                                         HeightRequest="46"
+                                         Padding="6"
+                                         Command="{Binding AddAporteCommand}"
+                                         IsVisible="{Binding ShowSaveButton}" />
+                        </Grid>
+
+                        <Label Text="{Binding ErrorAportes}"
+                               IsVisible="{Binding TieneErrorAportes}"
+                               TextColor="{StaticResource RedDelete}"
+                               FontSize="12" />
+
+                        <CollectionView ItemsSource="{Binding Aportes}"
+                                        SelectionMode="None">
+
+                            <CollectionView.EmptyView>
+                                <Grid Padding="10">
+                                    <Label Text="No hay aportes agregados."
+                                           TextColor="{StaticResource color_Gris}"
+                                           HorizontalOptions="Center" />
+                                </Grid>
+                            </CollectionView.EmptyView>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+
+                                    <Border Margin="0,4"
+                                            Padding="10"
+                                            Stroke="{StaticResource color_Gris}"
+                                            StrokeThickness="0.5"
+                                            BackgroundColor="White">
+
+                                        <Grid ColumnDefinitions="2*,*,Auto"
+                                              ColumnSpacing="10"
+                                              RowDefinitions="Auto,Auto">
+
+                                            <Label Text="Elemento"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource color_Negro}" />
+
+                                            <Label Grid.Column="1"
+                                                   Text="% Aporte"
+                                                   FontSize="12"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{StaticResource color_Negro}" />
+
+                                            <Picker Grid.Row="1"
+                                                    Grid.Column="0"
+                                                    Title="Seleccione"
+                                                    ItemsSource="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.ElementosQuimicos}"
+                                                    ItemDisplayBinding="{Binding NombreElementoQuimico}"
+                                                    SelectedItem="{Binding ElementoSeleccionado}"
+                                                    IsEnabled="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsFormEnabled}" />
+
+                                            <Entry Grid.Row="1"
+                                                   Grid.Column="1"
+                                                   Placeholder="0"
+                                                   Keyboard="Numeric"
+                                                   Text="{Binding CantidadAporteTexto}"
+                                                   IsReadOnly="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsReadOnly}" />
+
+                                            <ImageButton Grid.Row="1"
+                                                         Grid.Column="2"
+                                                         Source="icondelete.png"
+                                                         WidthRequest="42"
+                                                         HeightRequest="42"
+                                                         Padding="7"
+                                                         Command="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.RemoveAporteCommand}"
+                                                         CommandParameter="{Binding .}"
+                                                         IsVisible="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.ShowSaveButton}" />
+
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- BOTONES -->
+                <Grid ColumnDefinitions="*,*"
+                      RowDefinitions="Auto"
+                      Margin="10,0,10,20">
+
+                    <Button Text="Guardar"
+                            Style="{StaticResource UpdateButton}"
+                            IsVisible="{Binding ShowSaveButton}"
+                            Command="{Binding SaveCommand}"
+                            Grid.Column="0"
+                            Margin="10,0,10,0" />
+
+                    <Button Text="Cancelar"
+                            Style="{StaticResource CancelButton}"
+                            Command="{Binding CancelCommand}"
+                            Grid.Column="1"
+                            Margin="10,0,10,0" />
+
+                </Grid>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

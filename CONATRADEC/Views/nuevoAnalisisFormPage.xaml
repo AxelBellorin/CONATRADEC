@@ -439,9 +439,6 @@
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Parámetros constantes"
                                        Style="{StaticResource SectionTitleStyle}" />
-
-                                <Label Text="Estos parámetros forman parte fija del análisis de suelo y no se pueden quitar."
-                                       Style="{StaticResource SectionSubtitleStyle}" />
                             </VerticalStackLayout>
 
                             <VerticalStackLayout Spacing="12"

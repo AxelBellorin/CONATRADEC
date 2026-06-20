@@ -75,6 +75,17 @@
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:userFormPage}" />
 
+    <!-- FUENTE NUTRIENTE -->
+    <ShellContent Title="FuenteNutrientePage"
+              Route="FuenteNutrientePage"
+              FlyoutItemIsVisible="False"
+              ContentTemplate="{DataTemplate views:fuenteNutrientePage}" />
+
+    <ShellContent Title="FuenteNutrienteFormPage"
+              Route="FuenteNutrienteFormPage"
+              FlyoutItemIsVisible="False"
+              ContentTemplate="{DataTemplate views:fuenteNutrienteFormPage}" />
+
 
     <!-- ROL -->
     <ShellContent Title="RolPage"

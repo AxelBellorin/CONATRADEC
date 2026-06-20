@@ -28,6 +28,7 @@ namespace CONATRADEC.Services
         public Command goToPaisPageButtonCommand { get; }
         public Command goToElementoQuimicoPageButtonCommand { get; }
         public Command goToTerrenoPageButtonCommand { get; }
+        public Command goToFuenteNutrientePageButtonCommand { get; }
         public Command goToBack { get; }
 
         public Command CerrarSesionCommand { get; }
@@ -55,6 +56,7 @@ namespace CONATRADEC.Services
                 ((Command)goToPaisPageButtonCommand).ChangeCanExecute();
                 ((Command)goToBack).ChangeCanExecute();
                 ((Command)goToTerrenoPageButtonCommand).ChangeCanExecute();
+                ((Command)goToFuenteNutrientePageButtonCommand).ChangeCanExecute();
             }
         }
 
@@ -72,6 +74,7 @@ namespace CONATRADEC.Services
             goToPaisPageButtonCommand = new Command(async () => await GoToPaisPage(), () => !IsBusy);
             goToElementoQuimicoPageButtonCommand = new Command(async () => await GoToElementoQuimicoPage(), () => !IsBusy);
             goToTerrenoPageButtonCommand = new Command(async () => await GoToTerrenoPage(), () => !IsBusy);
+            goToFuenteNutrientePageButtonCommand = new Command(async () => await GoToFuenteNutrientePage(), () => !IsBusy);
             CerrarSesionCommand = new Command(async () => await CerrarSesionAsync());
 
             goToBack = new Command(async () => await GoToAsyncParameters("//.."));
@@ -178,6 +181,16 @@ namespace CONATRADEC.Services
                 return;
 
             await GoToAsyncParameters("//PaisPage");
+        }
+
+        public async Task GoToFuenteNutrientePage()
+        {
+            if (IsBusy) return;
+
+            if (!ValidateNavigation("fuenteNutrientePage"))
+                return;
+
+            await GoToAsyncParameters("//FuenteNutrientePage");
         }
 
         public async Task GoToElementoQuimicoPage()

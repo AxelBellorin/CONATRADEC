@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.fuenteNutrientePage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <ContentView x:Name="FuenteNutrientePage"
+                 ControlTemplate="{StaticResource FooterTemplate}">
+
+        <Grid ColumnDefinitions="*"
+              RowDefinitions="Auto,Auto,*">
+
+            <!-- ENCABEZADO GENERAL -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="*,Auto"
+                  Padding="0,10,0,0">
+
+                <Label Text="Fuentes de Nutrientes"
+                       FontSize="30"
+                       FontFamily="MontserratBold"
+                       TextColor="{StaticResource color_Negro}"
+                       FontAttributes="Bold"
+                       Padding="30,0,0,0"
+                       VerticalOptions="Center" />
+
+                <!-- BOTÓN AGREGAR -->
+                <ImageButton Source="iconadd.png"
+                             WidthRequest="60"
+                             HeightRequest="60"
+                             CornerRadius="30"
+                             Grid.Column="1"
+                             Padding="0,0,20,0"
+                             Command="{Binding AddCommand}"
+                             IsVisible="{Binding CanAdd}" />
+            </Grid>
+
+            <!-- LOADER -->
+            <ActivityIndicator Grid.Row="1"
+                               IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource color_Naranja}" />
+
+            <!-- CONTENIDO PRINCIPAL -->
+            <Grid Grid.Row="2"
+                  RowDefinitions="Auto,*,Auto"
+                  Padding="0,0,0,10">
+
+                <!-- ===================================================== -->
+                <!-- APARTADO 1: TARJETAS DE FUENTES DE NUTRIENTES -->
+                <!-- ===================================================== -->
+                <VerticalStackLayout Grid.Row="0"
+                                     Padding="20,10,20,5"
+                                     Spacing="2">
+
+                    <Label Text="Administrar fuentes"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           FontFamily="MontserratBold"
+                           TextColor="{StaticResource color_Negro}" />
+
+                    <Label Text="Toque una fuente para visualizarla o deslice hacia la izquierda para editar o eliminar."
+                           FontSize="12"
+                           TextColor="{StaticResource color_Gris}" />
+
+                </VerticalStackLayout>
+
+                <CollectionView Grid.Row="1"
+                                ItemsSource="{Binding List}"
+                                SelectionMode="None">
+
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical"
+                                           ItemSpacing="2" />
+                    </CollectionView.ItemsLayout>
+
+                    <CollectionView.EmptyView>
+                        <Grid Padding="20">
+                            <Label Text="No hay fuentes de nutrientes para mostrar."
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   TextColor="{StaticResource color_Gris}" />
+                        </Grid>
+                    </CollectionView.EmptyView>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+
+                            <SwipeView>
+
+                                <!-- ACCIONES AL DESLIZAR -->
+                                <SwipeView.RightItems>
+                                    <SwipeItems Mode="Reveal">
+
+                                        <!-- EDITAR -->
+                                        <SwipeItem Text="Editar"
+                                                   IconImageSource="iconupdate.png"
+                                                   BackgroundColor="{StaticResource BlueUpdate}"
+                                                   Command="{Binding Source={x:Reference FuenteNutrientePage}, Path=BindingContext.EditCommand}"
+                                                   CommandParameter="{Binding .}"
+                                                   IsVisible="{Binding Source={x:Reference FuenteNutrientePage}, Path=BindingContext.CanEdit}" />
+
+                                        <!-- ELIMINAR -->
+                                        <SwipeItem Text="Eliminar"
+                                                   IconImageSource="icondelete.png"
+                                                   BackgroundColor="{StaticResource RedDelete}"
+                                                   Command="{Binding Source={x:Reference FuenteNutrientePage}, Path=BindingContext.DeleteCommand}"
+                                                   CommandParameter="{Binding .}"
+                                                   IsVisible="{Binding Source={x:Reference FuenteNutrientePage}, Path=BindingContext.CanDelete}" />
+
+                                    </SwipeItems>
+                                </SwipeView.RightItems>
+
+                                <!-- TARJETA DE FUENTE -->
+                                <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
+                                                        Default={StaticResource BorderStyleNoBorder}}">
+
+                                    <Grid Padding="14"
+                                          RowDefinitions="Auto,Auto,Auto"
+                                          ColumnDefinitions="*"
+                                          RowSpacing="4">
+
+                                        <!-- TOCAR PARA VISUALIZAR -->
+                                        <Grid.GestureRecognizers>
+                                            <TapGestureRecognizer 
+                                                Command="{Binding Source={x:Reference FuenteNutrientePage}, Path=BindingContext.ViewCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </Grid.GestureRecognizers>
+
+                                        <!-- NOMBRE DE LA FUENTE -->
+                                        <Label Grid.Row="0"
+                                               Text="{Binding NombreNutriente}"
+                                               FontAttributes="Bold"
+                                               FontSize="19"
+                                               FontFamily="MontserratBold"
+                                               TextColor="{StaticResource color_Negro}" />
+
+                                        <!-- DESCRIPCIÓN -->
+                                        <Label Grid.Row="1"
+                                               Text="{Binding DescripcionNutriente}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource color_Gris}"
+                                               LineBreakMode="TailTruncation"
+                                               MaxLines="2"
+                                               Margin="0,4,0,0" />
+
+                                        <!-- PRECIO -->
+                                        <Label Grid.Row="2"
+                                               Text="{Binding PrecioMostrar}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource color_Cafe}"
+                                               Margin="0,6,0,0" />
+
+                                    </Grid>
+                                </Border>
+
+                            </SwipeView>
+
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- ===================================================== -->
+                <!-- APARTADO 2: TABLA DINÁMICA DE COMPOSICIÓN -->
+                <!-- ===================================================== -->
+                <Border Grid.Row="2"
+                        Margin="10,8,10,0"
+                        Padding="10"
+                        BackgroundColor="White"
+                        Stroke="{StaticResource color_Gris}"
+                        StrokeThickness="0.5">
+
+                    <VerticalStackLayout Spacing="8">
+
+                        <!-- ENCABEZADO DE TABLA OCULTABLE -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              ColumnSpacing="10">
+
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Composición de fuentes"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       FontFamily="MontserratBold"
+                                       TextColor="{StaticResource color_Negro}" />
+
+                                <Label Text="Se muestran únicamente los elementos que aportan algo en alguna fuente."
+                                       FontSize="12"
+                                       TextColor="{StaticResource color_Gris}" />
+                            </VerticalStackLayout>
+
+                            <Button Grid.Column="1"
+                                    Text="{Binding TextoBotonTablaComposicion}"
+                                    Command="{Binding ToggleTablaComposicionCommand}"
+                                    BackgroundColor="{StaticResource color_Verde}"
+                                    TextColor="White"
+                                    FontSize="12"
+                                    HeightRequest="36"
+                                    CornerRadius="18"
+                                    Padding="14,0"
+                                    VerticalOptions="Center" />
+
+                        </Grid>
+
+                        <!-- MENSAJE CUANDO NO HAY ELEMENTOS CON APORTE -->
+                        <Label Text="Aún no hay elementos con aporte registrado en ninguna fuente."
+                               IsVisible="{Binding MostrarMensajeTablaVacia}"
+                               FontSize="13"
+                               TextColor="{StaticResource color_Gris}"
+                               Margin="0,5,0,0" />
+
+                        <!-- TABLA DINÁMICA -->
+                        <ScrollView Orientation="Both"
+                                    HeightRequest="230"
+                                    IsVisible="{Binding MostrarTablaConDatos}">
+
+                            <VerticalStackLayout>
+
+                                <!-- HEADER DINÁMICO -->
+                                <HorizontalStackLayout Spacing="0">
+
+                                    <Grid WidthRequest="230"
+                                          Padding="8"
+                                          BackgroundColor="{StaticResource color_Verde}">
+
+                                        <Label Text="Fuente"
+                                               TextColor="White"
+                                               FontAttributes="Bold" />
+
+                                    </Grid>
+
+                                    <HorizontalStackLayout BindableLayout.ItemsSource="{Binding ElementosTabla}"
+                                                           Spacing="0">
+
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate>
+
+                                                <Grid WidthRequest="70"
+                                                      Padding="8"
+                                                      BackgroundColor="{StaticResource color_Verde}">
+
+                                                    <Label Text="{Binding .}"
+                                                           TextColor="White"
+                                                           FontAttributes="Bold"
+                                                           HorizontalTextAlignment="Center" />
+
+                                                </Grid>
+
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </HorizontalStackLayout>
+
+                                </HorizontalStackLayout>
+
+                                <!-- FILAS DINÁMICAS -->
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding TablaComposicion}"
+                                                     Spacing="0">
+
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate>
+
+                                            <HorizontalStackLayout Spacing="0">
+
+                                                <Grid WidthRequest="230"
+                                                      Padding="8"
+                                                      BackgroundColor="White">
+
+                                                    <Label Text="{Binding Fuente}"
+                                                           FontSize="12"
+                                                           TextColor="{StaticResource color_Negro}"
+                                                           LineBreakMode="TailTruncation" />
+
+                                                </Grid>
+
+                                                <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Celdas}"
+                                                                       Spacing="0">
+
+                                                    <BindableLayout.ItemTemplate>
+                                                        <DataTemplate>
+
+                                                            <Grid WidthRequest="70"
+                                                                  Padding="8"
+                                                                  BackgroundColor="White">
+
+                                                                <Label Text="{Binding Texto}"
+                                                                       FontSize="12"
+                                                                       TextColor="{StaticResource color_Negro}"
+                                                                       HorizontalTextAlignment="Center" />
+
+                                                            </Grid>
+
+                                                        </DataTemplate>
+                                                    </BindableLayout.ItemTemplate>
+                                                </HorizontalStackLayout>
+
+                                            </HorizontalStackLayout>
+
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+
+                            </VerticalStackLayout>
+                        </ScrollView>
+
+                    </VerticalStackLayout>
+                </Border>
+
+            </Grid>
+
+        </Grid>
+
+    </ContentView>
+</ContentPage>
