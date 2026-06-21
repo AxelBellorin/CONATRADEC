@@ -54,12 +54,13 @@
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="Ej: 14.0067"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Numeric"
-                               Text="{Binding PesoEquivalentEelementoQuimico}"
+                               Text="{Binding PesoEquivalenteTexto}"
                                IsReadOnly="{Binding IsReadOnly}" />
-                    </VerticalStackLayout>
+                        </VerticalStackLayout>
                 </Border>
 
                 <!-- Botones -->

@@ -133,9 +133,6 @@
 	  <MauiXaml Update="Views\BalanceFormulaPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\BalanceFormulasPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
 	  <MauiXaml Update="Views\EnmiendaCalcareaPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

@@ -138,11 +138,6 @@
                   FlyoutItemIsVisible="False"
                   ContentTemplate="{DataTemplate views:EnmiendasCalcareasPage}" />
 
-    <!-- BALANCE FÓRMULAS -->
-    <ShellContent Title="BalanceFormulasPage"
-                  Route="BalanceFormulasPage"
-                  FlyoutItemIsVisible="False"
-                  ContentTemplate="{DataTemplate views:BalanceFormulasPage}" />
 
     <!-- RESULTADOS ANÁLISIS -->
     <ShellContent Title="ResultadosAnalisisPage"

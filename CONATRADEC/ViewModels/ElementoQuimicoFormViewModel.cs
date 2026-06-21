@@ -1,19 +1,24 @@
-﻿using CONATRADEC.Services;
+﻿using CONATRADEC.Models;
+using CONATRADEC.Services;
+using System;
+using System.Globalization;
 using System.Threading.Tasks;
-using CONATRADEC.Models;
-using System.Windows.Input;
-
 
 namespace CONATRADEC.ViewModels
 {
     public class ElementoQuimicoFormViewModel : GlobalService
     {
-        private ElementoQuimicoRequest elementoQuimico;
+        private ElementoQuimicoRequest elementoQuimico = new();
         private bool isCancel;
 
-        private string simboloElementoQuimico;
-        private string nombreElementoQuimico;
+        private string simboloElementoQuimico = string.Empty;
+        private string nombreElementoQuimico = string.Empty;
+
+        // Se mantiene por compatibilidad interna, pero ya NO debe usarse directo en Entry.Text.
         private decimal? pesoEquivalenteElementoQuimico;
+
+        // Esta es la propiedad correcta para enlazar con Entry.Text.
+        private string pesoEquivalenteTexto = string.Empty;
 
         private FormMode.FormModeSelect mode = new FormMode.FormModeSelect();
 
@@ -31,19 +36,41 @@ namespace CONATRADEC.ViewModels
         public string SimboloElementoQuimico
         {
             get => simboloElementoQuimico;
-            set { simboloElementoQuimico = value; OnPropertyChanged(); }
+            set
+            {
+                simboloElementoQuimico = value;
+                OnPropertyChanged();
+            }
         }
 
         public string NombreElementoQuimico
         {
             get => nombreElementoQuimico;
-            set { nombreElementoQuimico = value; OnPropertyChanged(); }
+            set
+            {
+                nombreElementoQuimico = value;
+                OnPropertyChanged();
+            }
         }
 
         public decimal? PesoEquivalentEelementoQuimico
         {
             get => pesoEquivalenteElementoQuimico;
-            set { pesoEquivalenteElementoQuimico = value; OnPropertyChanged(); }
+            set
+            {
+                pesoEquivalenteElementoQuimico = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string PesoEquivalenteTexto
+        {
+            get => pesoEquivalenteTexto;
+            set
+            {
+                pesoEquivalenteTexto = value;
+                OnPropertyChanged();
+            }
         }
 
         public bool IsCancel
@@ -57,12 +84,17 @@ namespace CONATRADEC.ViewModels
             get => elementoQuimico;
             set
             {
-                elementoQuimico = value;
+                elementoQuimico = value ?? new ElementoQuimicoRequest();
                 OnPropertyChanged();
 
-                SimboloElementoQuimico = value.SimboloElementoQuimico;
-                NombreElementoQuimico = value.NombreElementoQuimico;
-                PesoEquivalentEelementoQuimico = value.PesoEquivalenteElementoQuimico;
+                SimboloElementoQuimico = elementoQuimico.SimboloElementoQuimico ?? string.Empty;
+                NombreElementoQuimico = elementoQuimico.NombreElementoQuimico ?? string.Empty;
+
+                PesoEquivalentEelementoQuimico = elementoQuimico.PesoEquivalenteElementoQuimico;
+
+                PesoEquivalenteTexto = elementoQuimico.PesoEquivalenteElementoQuimico.HasValue
+                    ? elementoQuimico.PesoEquivalenteElementoQuimico.Value.ToString("0.##", CultureInfo.InvariantCulture)
+                    : string.Empty;
             }
         }
 
@@ -76,7 +108,8 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(IsReadOnly));
                 OnPropertyChanged(nameof(Title));
                 OnPropertyChanged(nameof(ShowSaveButton));
-                // ((Command)SaveCommand).ChangeCanExecute(); // si lo querés recalcular
+
+                SaveCommand.ChangeCanExecute();
             }
         }
 
@@ -96,29 +129,34 @@ namespace CONATRADEC.ViewModels
         {
             try
             {
-                IsCancel = ValidateFieldsAsync();
+                decimal? pesoActual = null;
 
-                if (IsCancel)
+                if (TryParseDecimal(PesoEquivalenteTexto, out decimal pesoParseado))
+                    pesoActual = pesoParseado;
+
+                IsCancel = ValidateFieldsAsync(pesoActual);
+
+                if (IsCancel && !IsReadOnly)
                 {
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = await App.Current.MainPage.DisplayAlert(
                         "Cancelar",
-                        "Desea no guardar los cambios",
+                        "¿Desea salir sin guardar los cambios?",
                         "Aceptar",
                         "Cancelar");
 
                     if (confirm)
                     {
-                        await GoToAsyncParameters("//ElementoQuimicoPage");
+                        await GoToElementoQuimicoPage();
                     }
                 }
                 else
                 {
-                    await GoToAsyncParameters("//ElementoQuimicoPage");
+                    await GoToElementoQuimicoPage();
                 }
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarToastAsync("Error " + ex.Message);
             }
             finally
             {
@@ -126,13 +164,19 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private bool ValidateFieldsAsync()
+        private bool ValidateFieldsAsync(decimal? pesoActual)
         {
-            if (ElementoQuimico == null) return false;
+            if (ElementoQuimico == null)
+                return false;
 
-            if (SimboloElementoQuimico != ElementoQuimico.SimboloElementoQuimico) return true;
-            if (NombreElementoQuimico != ElementoQuimico.NombreElementoQuimico) return true;
-            if (PesoEquivalentEelementoQuimico != ElementoQuimico.PesoEquivalenteElementoQuimico) return true;
+            if ((SimboloElementoQuimico ?? string.Empty).Trim() != (ElementoQuimico.SimboloElementoQuimico ?? string.Empty).Trim())
+                return true;
+
+            if ((NombreElementoQuimico ?? string.Empty).Trim() != (ElementoQuimico.NombreElementoQuimico ?? string.Empty).Trim())
+                return true;
+
+            if (pesoActual != ElementoQuimico.PesoEquivalenteElementoQuimico)
+                return true;
 
             return false;
         }
@@ -141,62 +185,28 @@ namespace CONATRADEC.ViewModels
         {
             try
             {
+                if (IsReadOnly)
+                    return;
+
+                if (!ValidarFormulario(out decimal pesoEquivalente))
+                    return;
+
+                IsCancel = ValidateFieldsAsync(pesoEquivalente);
+
+                if (!IsCancel)
+                {
+                    await MostrarToastAsync("No hay cambios para guardar.");
+                    return;
+                }
+
                 if (Mode == FormMode.FormModeSelect.Create)
-                    await CreateElementoQuimicoAsync();
+                    await CreateElementoQuimicoAsync(pesoEquivalente);
                 else if (Mode == FormMode.FormModeSelect.Edit)
-                    await UpdateElementoQuimicoAsync();
+                    await UpdateElementoQuimicoAsync(pesoEquivalente);
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
-            }
-        }
-
-        private async Task CreateElementoQuimicoAsync()
-        {
-            try
-            {
-                IsCancel = ValidateFieldsAsync();
-
-                if (IsCancel)
-                {
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Confirmar",
-                        "¿Desea guardar los datos del elemento químico?",
-                        "Aceptar",
-                        "Cancelar");
-
-                    if (confirm)
-                    {
-                        ElementoQuimico.SimboloElementoQuimico = SimboloElementoQuimico;
-                        ElementoQuimico.NombreElementoQuimico = NombreElementoQuimico;
-                        ElementoQuimico.PesoEquivalenteElementoQuimico = PesoEquivalentEelementoQuimico;
-                            
-                        bool tieneInternet = await TieneInternetAsync();
-                        if (!tieneInternet)
-                        {
-                            _ = MostrarToastAsync("Sin conexión a internet.");
-                            IsBusy = false;
-                            return;
-                        }
-
-                        var response = await elementoApiService.CreateElementoQuimicoAsync(ElementoQuimico);
-
-                        if (response)
-                        {
-                            await GoToElementoQuimicoPage();
-                            _ = MostrarToastAsync("Éxito \nElemento químico guardado correctamente");
-                        }
-                        else
-                        {
-                            _ = MostrarToastAsync("Error \nEl elemento no se pudo guardar, intente nuevamente");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarToastAsync("Error " + ex.Message);
             }
             finally
             {
@@ -204,56 +214,171 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task UpdateElementoQuimicoAsync()
+        private bool ValidarFormulario(out decimal pesoEquivalente)
+        {
+            pesoEquivalente = 0;
+
+            if (string.IsNullOrWhiteSpace(SimboloElementoQuimico))
+            {
+                _ = MostrarToastAsync("Ingrese el símbolo del elemento químico.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(NombreElementoQuimico))
+            {
+                _ = MostrarToastAsync("Ingrese el nombre del elemento químico.");
+                return false;
+            }
+
+            if (!TryParseDecimal(PesoEquivalenteTexto, out pesoEquivalente))
+            {
+                _ = MostrarToastAsync("Ingrese un peso equivalente válido.");
+                return false;
+            }
+
+            if (pesoEquivalente <= 0)
+            {
+                _ = MostrarToastAsync("El peso equivalente debe ser mayor a cero.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private async Task CreateElementoQuimicoAsync(decimal pesoEquivalente)
         {
             try
             {
-                IsCancel = ValidateFieldsAsync();
+                bool confirm = await App.Current.MainPage.DisplayAlert(
+                    "Confirmar",
+                    "¿Desea guardar los datos del elemento químico?",
+                    "Aceptar",
+                    "Cancelar");
 
-                if (IsCancel)
+                if (!confirm)
+                    return;
+
+                ElementoQuimico.SimboloElementoQuimico = SimboloElementoQuimico.Trim();
+                ElementoQuimico.NombreElementoQuimico = NombreElementoQuimico.Trim();
+                ElementoQuimico.PesoEquivalenteElementoQuimico = pesoEquivalente;
+
+                PesoEquivalentEelementoQuimico = pesoEquivalente;
+
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
                 {
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Confirmar",
-                        "¿Desea actualizar?",
-                        "Aceptar",
-                        "Cancelar");
+                    await MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
 
-                    if (confirm)
-                    {
-                        ElementoQuimico.SimboloElementoQuimico = SimboloElementoQuimico;
-                        ElementoQuimico.NombreElementoQuimico = NombreElementoQuimico;
-                        ElementoQuimico.PesoEquivalenteElementoQuimico = PesoEquivalentEelementoQuimico;
+                IsBusy = true;
 
-                        bool tieneInternet = await TieneInternetAsync();
-                        if (!tieneInternet)
-                        {
-                            _ = MostrarToastAsync("Sin conexión a internet.");
-                            IsBusy = false;
-                            return;
-                        }
+                var response = await elementoApiService.CreateElementoQuimicoAsync(ElementoQuimico);
 
-                        var response = await elementoApiService.UpdateElementoQuimicoAsync(ElementoQuimico);
-
-                        if (response)
-                        {
-                            await GoToElementoQuimicoPage();
-                            _ = MostrarToastAsync("Éxito \nElemento químico actualizado correctamente");
-                        }
-                        else
-                        {
-                            _ = MostrarToastAsync("Error \nEl elemento no se pudo actualizar, intente nuevamente");
-                        }
-                    }
+                if (response)
+                {
+                    await GoToElementoQuimicoPage();
+                    await MostrarToastAsync("Éxito \nElemento químico guardado correctamente");
+                }
+                else
+                {
+                    await MostrarToastAsync("Error \nEl elemento no se pudo guardar, intente nuevamente");
                 }
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarToastAsync("Error " + ex.Message);
             }
             finally
             {
-                IsCancel = false;
+                IsBusy = false;
             }
+        }
+
+        private async Task UpdateElementoQuimicoAsync(decimal pesoEquivalente)
+        {
+            try
+            {
+                bool confirm = await App.Current.MainPage.DisplayAlert(
+                    "Confirmar",
+                    "¿Desea actualizar?",
+                    "Aceptar",
+                    "Cancelar");
+
+                if (!confirm)
+                    return;
+
+                ElementoQuimico.SimboloElementoQuimico = SimboloElementoQuimico.Trim();
+                ElementoQuimico.NombreElementoQuimico = NombreElementoQuimico.Trim();
+                ElementoQuimico.PesoEquivalenteElementoQuimico = pesoEquivalente;
+
+                PesoEquivalentEelementoQuimico = pesoEquivalente;
+
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    await MostrarToastAsync("Sin conexión a internet.");
+                    IsBusy = false;
+                    return;
+                }
+
+                IsBusy = true;
+
+                var response = await elementoApiService.UpdateElementoQuimicoAsync(ElementoQuimico);
+
+                if (response)
+                {
+                    await GoToElementoQuimicoPage();
+                    await MostrarToastAsync("Éxito \nElemento químico actualizado correctamente");
+                }
+                else
+                {
+                    await MostrarToastAsync("Error \nEl elemento no se pudo actualizar, intente nuevamente");
+                }
+            }
+            catch (Exception ex)
+            {
+                await MostrarToastAsync("Error " + ex.Message);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private bool TryParseDecimal(string value, out decimal result)
+        {
+            result = 0;
+
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            value = value.Trim();
+
+            if (decimal.TryParse(
+                    value,
+                    NumberStyles.Number,
+                    CultureInfo.CurrentCulture,
+                    out result))
+                return true;
+
+            if (decimal.TryParse(
+                    value,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out result))
+                return true;
+
+            value = value.Replace(",", ".");
+
+            return decimal.TryParse(
+                value,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out result);
         }
 
         private Task GoToElementoQuimicoPage()

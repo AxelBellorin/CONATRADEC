@@ -44,14 +44,14 @@ namespace CONATRADEC.Views
             try
             {
                 // Intentamos navegar por Shell si se registró la ruta
-                await Shell.Current.GoToAsync("//BalanceFormulasPage");
+                await Shell.Current.GoToAsync("//BalanceFormulaPage");
             }
             catch
             {
                 // Fallback: instanciar directamente la nueva página
                 try
                 {
-                    await Navigation.PushAsync(new BalanceFormulasPage());
+                    await Navigation.PushAsync(new BalanceFormulaPage());
                 }
                 catch
                 {
