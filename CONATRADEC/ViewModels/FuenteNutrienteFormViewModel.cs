@@ -446,6 +446,8 @@ namespace CONATRADEC.ViewModels
                 .Where(x => x.ElementoQuimicosId.HasValue || !string.IsNullOrWhiteSpace(x.CantidadAporteTexto))
                 .ToList();
 
+            decimal totalAporte = 0;
+
             foreach (var aporte in aportesCompletos)
             {
                 if (!aporte.ElementoQuimicosId.HasValue)
@@ -471,6 +473,15 @@ namespace CONATRADEC.ViewModels
                     valido = false;
                     break;
                 }
+
+                totalAporte += cantidad;
+            }
+
+            if (valido && totalAporte > 100)
+            {
+                ErrorAportes = $"La suma total de los aportes no puede superar el 100%. Total actual: {totalAporte:N2}%.";
+                TieneErrorAportes = true;
+                valido = false;
             }
 
             var duplicados = aportesCompletos

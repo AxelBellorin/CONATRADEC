@@ -97,7 +97,7 @@ namespace CONATRADEC.Services
             Preferences.Remove(SessionKeys.KeyCorreoUsuario);
             Preferences.Remove(SessionKeys.KeyUrlImagenUsuario);
 
-            //PermissionService.Instance.ClearPermissions();
+            PermissionService.Instance.ClearPermissions();
 
             await Shell.Current.GoToAsync("//LoginPage");
         }

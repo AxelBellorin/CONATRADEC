@@ -248,7 +248,8 @@ namespace CONATRADEC.ViewModels
 
                 var resp = await apiServiceLogin.LoginAsync(req);
 
-                PermissionService.Instance.Load(resp.permisos);
+                PermissionService.Instance.Load(resp.permisos ?? new List<UserPermissionDTO>());
+
 
 
                 try
