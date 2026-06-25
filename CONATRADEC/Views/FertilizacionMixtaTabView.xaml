@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="CONATRADEC.Views.FertilizacionMixtaTabView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <VerticalStackLayout Spacing="16">
+
+        <Border
+            BackgroundColor="White"
+            Stroke="#E5E7EB"
+            Padding="16"
+            StrokeShape="RoundRectangle 16">
+
+            <VerticalStackLayout Spacing="14">
+
+                <VerticalStackLayout Spacing="4">
+
+                    <Label
+                        Text="Fertilización mixta"
+                        FontSize="21"
+                        FontAttributes="Bold"
+                        TextColor="#B08900" />
+
+                    <Label
+                        Text="Esta sección queda preparada para combinar diferentes criterios de fertilización."
+                        FontSize="14"
+                        TextColor="{StaticResource color_GrisOscuro}"
+                        LineBreakMode="WordWrap" />
+
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="6">
+
+                    <Label
+                        Text="Nombre del plan"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding NombrePlan}"
+                            Placeholder="Ejemplo: Plan mixto café"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="6">
+
+                    <Label
+                        Text="Observación temporal"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding Observacion}"
+                            Placeholder="Escriba una nota mientras se define la lógica"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+
+                </VerticalStackLayout>
+
+                <Border
+                    BackgroundColor="#FFFBEB"
+                    Stroke="#FDE68A"
+                    Padding="12"
+                    StrokeShape="RoundRectangle 12">
+
+                    <VerticalStackLayout Spacing="6">
+
+                        <Label
+                            Text="Pendiente de configuración"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            TextColor="#92400E" />
+
+                        <Label
+                            Text="{Binding Mensaje}"
+                            FontSize="14"
+                            TextColor="#92400E"
+                            LineBreakMode="WordWrap" />
+
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </Border>
+
+    </VerticalStackLayout>
+</ContentView>

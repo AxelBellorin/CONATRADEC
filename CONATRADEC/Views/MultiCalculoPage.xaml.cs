@@ -3,26 +3,26 @@ using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
-    public partial class EnmiendaCalcareaPage : ContentPage
+    public partial class MultiCalculoPage : ContentPage
     {
-        private readonly EnmiendaCalcareaViewModel viewModel = new EnmiendaCalcareaViewModel();
+        private readonly MultiCalculoViewModel viewModel = new MultiCalculoViewModel();
 
-        public EnmiendaCalcareaPage()
+        public MultiCalculoPage()
         {
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
             InitializeComponent();
+            BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            viewModel.LoadPagePermissions("EnmiendaCalcareaPage");
+            viewModel.LoadPagePermissions("ResultadoAnalisisSueloPage");
 
             if (!viewModel.CanView)
             {
-                await GlobalService.MostrarToastAsync("No tiene permisos para ver enmienda calcárea.");
+                await GlobalService.MostrarToastAsync("No tiene permisos para ver los cálculos complementarios.");
                 await Shell.Current.GoToAsync("//MainPage");
                 return;
             }

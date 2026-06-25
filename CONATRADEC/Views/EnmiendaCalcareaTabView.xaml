@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="CONATRADEC.Views.EnmiendaCalcareaTabView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <VerticalStackLayout Spacing="16">
+
+        <!-- ===================================================== -->
+        <!-- FORMULARIO DE ENMIENDA CALCÁREA -->
+        <!-- Pensado para sistema multiplataforma, pero optimizado -->
+        <!-- principalmente para móvil: campos uno debajo del otro. -->
+        <!-- ===================================================== -->
+        <Border
+            BackgroundColor="White"
+            Stroke="#E5E7EB"
+            Padding="16"
+            StrokeShape="RoundRectangle 16">
+
+            <VerticalStackLayout Spacing="14">
+
+                <!-- ENCABEZADO -->
+                <VerticalStackLayout Spacing="4">
+                    <Label
+                        Text="Enmienda calcárea"
+                        FontSize="21"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource color_Cafe}" />
+
+                    <Label
+                        Text="Ingrese los datos CICE específicos para calcular la necesidad de encalado."
+                        FontSize="14"
+                        TextColor="{StaticResource color_GrisOscuro}"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+
+                <!-- NOMBRE DEL ANÁLISIS -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="Nombre del análisis"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding NombreAnalisis}"
+                            Placeholder="Ejemplo: Enmienda Café 2026"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- TIPO DE CAL -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="Tipo de cal"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border
+                        BackgroundColor="White"
+                        Stroke="#E5E7EB"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 14"
+                        Padding="14,4"
+                        HeightRequest="76">
+
+                        <Picker
+                            ItemsSource="{Binding EnmiendasCalcareas}"
+                            SelectedItem="{Binding EnmiendaSeleccionada, Mode=TwoWay}"
+                            ItemDisplayBinding="{Binding NombreMostrar}"
+                            Title="Seleccione tipo de cal"
+                            HeightRequest="64"
+                            VerticalOptions="Center"
+                            HorizontalOptions="FillAndExpand"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource color_Negro}"
+                            TitleColor="{StaticResource color_Gris}"
+                            FontSize="14" />
+                    </Border>
+
+                    <Label
+                        Text="{Binding TextoEnmiendaSeleccionada}"
+                        IsVisible="{Binding TieneEnmiendaSeleccionada}"
+                        FontSize="12"
+                        TextColor="{StaticResource color_Cafe}"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+
+                <!-- AVISO DATOS CICE -->
+                <Border
+                    BackgroundColor="#FFF7ED"
+                    Stroke="#FED7AA"
+                    Padding="12"
+                    StrokeShape="RoundRectangle 12">
+
+                    <VerticalStackLayout Spacing="6">
+
+                        <Label
+                            Text="Datos CICE"
+                            FontSize="15"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Cafe}" />
+
+                        <Label
+                            Text="Estos valores son específicos para la enmienda calcárea: pH, Ca, Mg, K y AT."
+                            FontSize="13"
+                            TextColor="#7C2D12"
+                            LineBreakMode="WordWrap" />
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- PH -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="pH"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding Ph}"
+                            Keyboard="Numeric"
+                            Placeholder="Ejemplo: 4.17"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- CA -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="Ca"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding Ca}"
+                            Keyboard="Numeric"
+                            Placeholder="Ejemplo: 1.32"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- MG -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="Mg"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding Mg}"
+                            Keyboard="Numeric"
+                            Placeholder="Ejemplo: 0.32"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- K -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="K"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding K}"
+                            Keyboard="Numeric"
+                            Placeholder="Ejemplo: 0.14"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- AT / ACIDEZ TOTAL -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="AT / Acidez total"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding AcidezTotal}"
+                            Keyboard="Numeric"
+                            Placeholder="Ejemplo: 5.18"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- TOTAL DE PLANTAS -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="Total de plantas"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding TotalPlantas}"
+                            Keyboard="Numeric"
+                            Placeholder="Ejemplo: 3500"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- TOTAL DE APLICACIONES -->
+                <VerticalStackLayout Spacing="6">
+                    <Label
+                        Text="Aplicaciones"
+                        Style="{StaticResource FieldLabelStyle}" />
+
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry
+                            Text="{Binding TotalAplicaciones}"
+                            Keyboard="Numeric"
+                            Placeholder="Ejemplo: 3"
+                            MaxLength="1"
+                            Style="{StaticResource InputEntryStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- ERROR -->
+                <Border
+                    IsVisible="{Binding TieneErrorFormulario}"
+                    BackgroundColor="#FEF2F2"
+                    Stroke="#FECACA"
+                    Padding="10"
+                    StrokeShape="RoundRectangle 10">
+
+                    <Label
+                        Text="{Binding ErrorFormulario}"
+                        TextColor="#991B1B"
+                        FontSize="14"
+                        LineBreakMode="WordWrap" />
+                </Border>
+
+                <!-- MENSAJE -->
+                <Border
+                    IsVisible="{Binding TieneMensaje}"
+                    BackgroundColor="#EEF5F2"
+                    Stroke="#D1FAE5"
+                    Padding="10"
+                    StrokeShape="RoundRectangle 10">
+
+                    <Label
+                        Text="{Binding Mensaje}"
+                        TextColor="{StaticResource color_Verde}"
+                        FontSize="14"
+                        LineBreakMode="WordWrap" />
+                </Border>
+
+                <!-- BOTÓN CALCULAR -->
+                <Button
+                    Text="Calcular enmienda"
+                    Command="{Binding CalcularCommand}"
+                    IsEnabled="{Binding PuedeCalcular}"
+                    BackgroundColor="{StaticResource color_Cafe}"
+                    TextColor="White"
+                    CornerRadius="12"
+                    HeightRequest="48" />
+
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- ===================================================== -->
+        <!-- RESULTADO DE ENMIENDA CALCÁREA -->
+        <!-- Se deja como estaba antes: resumen en 2 columnas. -->
+        <!-- Valores mostrados con 2 decimales. -->
+        <!-- ===================================================== -->
+        <Border
+            BackgroundColor="White"
+            Stroke="#E5E7EB"
+            Padding="16"
+            StrokeShape="RoundRectangle 16"
+            IsVisible="{Binding TieneResultado}">
+
+            <VerticalStackLayout Spacing="14">
+
+                <!-- ENCABEZADO RESULTADO -->
+                <VerticalStackLayout Spacing="4">
+                    <Label
+                        Text="Resultado de enmienda"
+                        FontSize="19"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource color_Cafe}" />
+
+                    <Label
+                        Text="{Binding ResultadoEnmienda.FuenteNutriente}"
+                        FontSize="14"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource color_Negro}" />
+                </VerticalStackLayout>
+
+                <!-- RESUMEN TÉCNICO -->
+                <Border
+                    BackgroundColor="#FFF7ED"
+                    Stroke="#FED7AA"
+                    Padding="14"
+                    StrokeShape="RoundRectangle 14">
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        RowDefinitions="Auto,Auto,Auto,Auto"
+                        ColumnSpacing="12"
+                        RowSpacing="12">
+
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="0">
+                            <Label Text="Suma de bases" FontSize="12" TextColor="#7C2D12" />
+                            <Label Text="{Binding ResultadoEnmienda.SumaBases, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="1">
+                            <Label Text="CICE" FontSize="12" TextColor="#7C2D12" />
+                            <Label Text="{Binding ResultadoEnmienda.Cice, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="0">
+                            <Label Text="Saturación actual" FontSize="12" TextColor="#7C2D12" />
+                            <Label Text="{Binding ResultadoEnmienda.SaturacionActual, StringFormat='{0:N2}%'}" FontSize="15" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="1">
+                            <Label Text="Saturación deseada" FontSize="12" TextColor="#7C2D12" />
+                            <Label Text="{Binding ResultadoEnmienda.SaturacionDeseada, StringFormat='{0:N2}%'}" FontSize="15" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="2" Grid.Column="0">
+                            <Label Text="PRNT" FontSize="12" TextColor="#7C2D12" />
+                            <Label Text="{Binding ResultadoEnmienda.Prnt, StringFormat='{0:N2}%'}" FontSize="15" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="2" Grid.Column="1">
+                            <Label Text="Ton/Ha" FontSize="12" TextColor="#7C2D12" />
+                            <Label Text="{Binding ResultadoEnmienda.NecesidadEncaladoTonHa, StringFormat='{0:N2} ton/ha'}" FontSize="15" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="3" Grid.Column="0">
+                            <Label Text="Lb/Mz" FontSize="12" TextColor="#7C2D12" />
+                            <Label Text="{Binding ResultadoEnmienda.NecesidadEncaladoLbMz, StringFormat='{0:N2} lb/mz'}" FontSize="15" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="3" Grid.Column="1">
+                            <Label Text="Oz/Mz" FontSize="12" TextColor="#7C2D12" />
+                            <Label Text="{Binding ResultadoEnmienda.NecesidadEncaladoOzMz, StringFormat='{0:N2} oz/mz'}" FontSize="15" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+
+                    </Grid>
+                </Border>
+
+                <!-- DOSIS POR PLANTA -->
+                <Border
+                    BackgroundColor="#EEF5F2"
+                    Stroke="{StaticResource color_Verde}"
+                    Padding="14"
+                    StrokeShape="RoundRectangle 14">
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="12">
+
+                        <VerticalStackLayout Grid.Column="0">
+                            <Label
+                                Text="Dosis anual por planta"
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.DosisPlantaAnualOz, StringFormat='{0:N2} oz/planta'}"
+                                FontSize="15"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="1">
+                            <Label
+                                Text="Dosis por aplicación"
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.DosisPlantaPorAplicacionOz, StringFormat='{0:N2} oz/planta'}"
+                                FontSize="15"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+                        </VerticalStackLayout>
+
+                    </Grid>
+                </Border>
+
+            </VerticalStackLayout>
+        </Border>
+
+    </VerticalStackLayout>
+</ContentView>

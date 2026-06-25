@@ -358,16 +358,6 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (!CalcularBalanceFormula)
-            {
-                await MostrarMensajeAsync(
-                    "Proceso pendiente",
-                    "Por ahora solo está disponible el cálculo de Balance de fórmula."
-                );
-
-                return;
-            }
-
             var parametros = new Dictionary<string, object>
             {
                 { "resultadoCalculo", Resultado },
@@ -387,7 +377,7 @@ namespace CONATRADEC.ViewModels
             if (CantidadPlantas != null && CantidadPlantas > 0)
                 parametros.Add("cantidadPlantas", CantidadPlantas.Value);
 
-            await GoToAsyncParameters("//BalanceFormulaPage", parametros);
+            await GoToAsyncParameters("//MultiCalculoPage", parametros);
         }
 
         private List<string> ObtenerCalculosSeleccionadosTexto()

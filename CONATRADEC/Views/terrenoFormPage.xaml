@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.terrenoFormPage"
+             x:Name="TerrenoFormPage"
              Title="Formulario de Terreno"
              Shell.NavBarIsVisible="False"
              Background="Transparent">
@@ -26,6 +27,7 @@
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="Código único del terreno"
                                Style="{StaticResource EntryStyle}"
                                Text="{Binding CodigoTerreno}"
@@ -33,13 +35,14 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Identificación, nombre, teléfono, correo -->
+                <!-- Identificación propietario -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Identificación del propietario"
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="Cédula o identificación"
                                Style="{StaticResource EntryStyle}"
                                Text="{Binding IdentificacionPropietarioTerreno}"
@@ -47,12 +50,14 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Nombre propietario -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Nombre del propietario"
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="Nombre completo"
                                Style="{StaticResource EntryStyle}"
                                Text="{Binding NombrePropietarioTerreno}"
@@ -60,12 +65,14 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Teléfono propietario -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Teléfono del propietario"
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="Número de teléfono"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Telephone"
@@ -74,12 +81,14 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Correo propietario -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Correo del propietario"
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="correo@ejemplo.com"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Email"
@@ -95,6 +104,7 @@
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Editor Placeholder="Dirección detallada"
                                 AutoSize="TextChanges"
                                 Text="{Binding DireccionTerreno}"
@@ -102,13 +112,14 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Extensión y quintales -->
+                <!-- Extensión -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Extensión (manzanas)"
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="Ej: 3.50"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Numeric"
@@ -117,12 +128,14 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Quintales -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Cantidad (quintales oro)"
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="Ej: 25.00"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Numeric"
@@ -131,12 +144,14 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Plantas -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Cantidad de plantas"
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <Entry Placeholder="Ejemplo: 3500"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Numeric"
@@ -145,7 +160,6 @@
                     </VerticalStackLayout>
                 </Border>
 
-
                 <!-- Fecha de ingreso -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
@@ -153,13 +167,14 @@
                                FontAttributes="Bold"
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
+
                         <DatePicker Date="{Binding FechaIngresoDate}"
                                     MinimumDate="2000-01-01"
                                     IsEnabled="{Binding IsEnabled}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- País / Depto / Municipio -->
+                <!-- País / Departamento / Municipio -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
 
@@ -198,12 +213,13 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Coordenadas pegadas -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label  Text="Coordenadas (pegar desde Google Maps)"
-                                FontAttributes="Bold"
-                                FontSize="17"
-                                TextColor="{StaticResource color_Negro}" />  
+                        <Label Text="Coordenadas (pegar desde Google Maps)"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
 
                         <Entry Placeholder="Ej: 12°13'35.8N 86°28'06.9W ó 12.1234, -86.1234"
                                Style="{StaticResource EntryStyle}"
@@ -212,9 +228,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-
-
-                <!-- Coordenadas (Lat / Lon) + botones -->
+                <!-- Coordenadas Lat / Lon -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="8">
 
@@ -225,14 +239,18 @@
 
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                             <VerticalStackLayout Grid.Column="0">
-                                <Label Text="Latitud" FontSize="14" />
+                                <Label Text="Latitud"
+                                       FontSize="14" />
+
                                 <Entry Style="{StaticResource EntryStyle}"
                                        IsReadOnly="True"
                                        Text="{Binding Latitud}" />
                             </VerticalStackLayout>
 
                             <VerticalStackLayout Grid.Column="1">
-                                <Label Text="Longitud" FontSize="14" />
+                                <Label Text="Longitud"
+                                       FontSize="14" />
+
                                 <Entry Style="{StaticResource EntryStyle}"
                                        IsReadOnly="True"
                                        Text="{Binding Longitud}" />
@@ -252,7 +270,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Mini mapa solo visual -->
+                <!-- Mini mapa -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Mapa de ubicación"
@@ -260,7 +278,7 @@
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
 
-                        <WebView x:Name="MiniMapaWeb"   
+                        <WebView x:Name="MiniMapaWeb"
                                  HeightRequest="200" />
                     </VerticalStackLayout>
                 </Border>
@@ -269,15 +287,111 @@
                         Clicked="BtnAbrirEnMaps_Clicked"
                         Style="{StaticResource AddButton}" />
 
+                <!-- Fotos del terreno -->
+                <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="12">
 
-                <!-- BOTONES GUARDAR / CANCELAR -->
-                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,20">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="3">
+                                <Label Text="Fotos del terreno"
+                                       FontAttributes="Bold"
+                                       FontSize="17"
+                                       TextColor="{StaticResource color_Negro}" />
+
+                                <Label Text="Puede agregar una o varias fotos del terreno."
+                                       FontSize="13"
+                                       TextColor="{StaticResource color_Gris}" />
+                            </VerticalStackLayout>
+
+                            <Button Text="Agregar fotos"
+                                    Grid.Column="1"
+                                    Style="{StaticResource AddButton}"
+                                    Command="{Binding SeleccionarFotosCommand}"
+                                    IsVisible="{Binding AllowEdit}" />
+                        </Grid>
+
+                        <Label Text="No hay fotos agregadas."
+                               FontSize="14"
+                               TextColor="{StaticResource color_Gris}"
+                               IsVisible="{Binding NoTieneFotosTerreno}" />
+
+                        <CollectionView ItemsSource="{Binding FotosTerreno}"
+                                        IsVisible="{Binding TieneFotosTerreno}"
+                                        HeightRequest="175"
+                                        Margin="0,8,0,0"
+                                        ItemSizingStrategy="MeasureFirstItem">
+
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Horizontal"
+                                                   ItemSpacing="18" />
+                            </CollectionView.ItemsLayout>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid WidthRequest="155"
+                                          HeightRequest="165">
+
+                                        <Border StrokeShape="RoundRectangle 12"
+                                                StrokeThickness="1"
+                                                Stroke="{StaticResource color_Gris}"
+                                                BackgroundColor="{StaticResource color_Blanco}"
+                                                WidthRequest="145"
+                                                HeightRequest="145"
+                                                Margin="0,10,0,0"
+                                                Padding="0"
+                                                HorizontalOptions="Start"
+                                                VerticalOptions="Start">
+
+                                            <Image Source="{Binding Imagen}"
+                                                   Aspect="AspectFill"
+                                                   WidthRequest="145"
+                                                   HeightRequest="145">
+
+                                                <Image.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding BindingContext.AbrirGaleriaFotosCommand, Source={x:Reference TerrenoFormPage}}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Image.GestureRecognizers>
+
+                                            </Image>
+
+                                        </Border>
+
+                                        <Button Text="X"
+                                                WidthRequest="34"
+                                                HeightRequest="34"
+                                                CornerRadius="17"
+                                                FontSize="12"
+                                                Padding="0"
+                                                BackgroundColor="#EF4444"
+                                                TextColor="White"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Start"
+                                                Margin="0,2,8,0"
+                                                IsVisible="{Binding BindingContext.AllowEdit, Source={x:Reference TerrenoFormPage}}"
+                                                Command="{Binding BindingContext.QuitarFotoCommand, Source={x:Reference TerrenoFormPage}}"
+                                                CommandParameter="{Binding .}" />
+
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+
+                        </CollectionView>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Botones -->
+                <Grid ColumnDefinitions="*, *"
+                      RowDefinitions="Auto"
+                      Margin="10,0,10,20">
+
                     <Button Text="Guardar"
                             Style="{StaticResource UpdateButton}"
                             IsVisible="{Binding ShowSaveButton}"
                             Command="{Binding SaveCommand}"
                             Grid.Column="0"
                             Margin="10,0,10,0" />
+
                     <Button Text="Cancelar"
                             Style="{StaticResource CancelButton}"
                             Command="{Binding CancelCommand}"

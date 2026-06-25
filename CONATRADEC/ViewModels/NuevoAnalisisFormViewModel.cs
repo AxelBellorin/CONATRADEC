@@ -16,7 +16,12 @@ namespace CONATRADEC.ViewModels
         private readonly ElementoQuimicoApiService elementoQuimicoApiService = new();
         private readonly AnalisisSueloApiService analisisSueloApiService = new();
         private readonly UnidadMedidaApiService unidadMedidaApiService = new();
-        private readonly TerrenoApiService terrenoApiService = new();
+        private readonly TerrenoBusquedaApiService terrenoBusquedaApiService = new();
+
+        // Servicios reales que ya existen y funcionan en tu sistema.
+        private readonly PaisApiService paisApiService = new();
+        private readonly DepartamentoApiService departamentoApiService = new();
+        private readonly MunicipioApiService municipioApiService = new();
 
         private int? usuarioId;
         private string inicialesUsuario = string.Empty;
@@ -26,6 +31,10 @@ namespace CONATRADEC.ViewModels
 
         private string textoBusquedaTerreno = string.Empty;
         private TerrenoResponse? terrenoSeleccionado;
+
+        private PaisResponse? paisSeleccionado;
+        private DepartamentoResponse? departamentoSeleccionado;
+        private MunicipioResponse? municipioSeleccionado;
 
         private TipoCultivoResponse? tipoCultivoSeleccionado;
         private string tipoAnalisisSueloSeleccionado = string.Empty;
@@ -40,6 +49,7 @@ namespace CONATRADEC.ViewModels
         private string estadoInicialFormulario = string.Empty;
 
         private bool debeLimpiarFormulario = true;
+        private bool cargandoUbicacion;
 
         private string errorTerreno = string.Empty;
         private string errorTipoCultivo = string.Empty;
@@ -56,15 +66,26 @@ namespace CONATRADEC.ViewModels
             ParametrosConstantesAnalisis = new ObservableCollection<ResultadoAnalisisItemViewModel>();
             ElementosQuimicosAnalisis = new ObservableCollection<ResultadoAnalisisItemViewModel>();
 
-            Terrenos = new ObservableCollection<TerrenoResponse>();
             TerrenosFiltrados = new ObservableCollection<TerrenoResponse>();
+
+            Paises = new ObservableCollection<PaisResponse>();
+            Departamentos = new ObservableCollection<DepartamentoResponse>();
+            Municipios = new ObservableCollection<MunicipioResponse>();
 
             TiposCultivo = new ObservableCollection<TipoCultivoResponse>();
             TiposAnalisisSuelo = new ObservableCollection<string>();
 
             UnidadesMedidaCatalogo = new ObservableCollection<UnidadMedidaResponse>();
 
-            BuscarTerrenoCommand = new Command(FiltrarTerrenos);
+            BuscarTerrenoCommand = new Command(
+                async () => await BuscarTerrenosAsync(),
+                () => !IsBusy
+            );
+
+            LimpiarFiltrosTerrenoCommand = new Command(
+                async () => await LimpiarFiltrosTerrenoAsync(),
+                () => !IsBusy
+            );
 
             SeleccionarTerrenoCommand = new Command<TerrenoResponse>(
                 terreno => SeleccionarTerreno(terreno)
@@ -141,9 +162,13 @@ namespace CONATRADEC.ViewModels
 
         public bool NoTieneImagenUsuario => string.IsNullOrWhiteSpace(UrlImagenUsuario);
 
-        public ObservableCollection<TerrenoResponse> Terrenos { get; }
-
         public ObservableCollection<TerrenoResponse> TerrenosFiltrados { get; }
+
+        public ObservableCollection<PaisResponse> Paises { get; }
+
+        public ObservableCollection<DepartamentoResponse> Departamentos { get; }
+
+        public ObservableCollection<MunicipioResponse> Municipios { get; }
 
         public ObservableCollection<TipoCultivoResponse> TiposCultivo { get; }
 
@@ -156,9 +181,44 @@ namespace CONATRADEC.ViewModels
             get => textoBusquedaTerreno;
             set
             {
-                textoBusquedaTerreno = value;
+                textoBusquedaTerreno = value ?? string.Empty;
                 OnPropertyChanged(nameof(TextoBusquedaTerreno));
-                FiltrarTerrenos();
+            }
+        }
+
+        public PaisResponse? PaisSeleccionado
+        {
+            get => paisSeleccionado;
+            set
+            {
+                paisSeleccionado = value;
+                OnPropertyChanged(nameof(PaisSeleccionado));
+
+                if (!cargandoUbicacion)
+                    _ = AlCambiarPaisAsync();
+            }
+        }
+
+        public DepartamentoResponse? DepartamentoSeleccionado
+        {
+            get => departamentoSeleccionado;
+            set
+            {
+                departamentoSeleccionado = value;
+                OnPropertyChanged(nameof(DepartamentoSeleccionado));
+
+                if (!cargandoUbicacion)
+                    _ = AlCambiarDepartamentoAsync();
+            }
+        }
+
+        public MunicipioResponse? MunicipioSeleccionado
+        {
+            get => municipioSeleccionado;
+            set
+            {
+                municipioSeleccionado = value;
+                OnPropertyChanged(nameof(MunicipioSeleccionado));
             }
         }
 
@@ -398,6 +458,8 @@ namespace CONATRADEC.ViewModels
 
         public Command BuscarTerrenoCommand { get; }
 
+        public Command LimpiarFiltrosTerrenoCommand { get; }
+
         public Command<TerrenoResponse> SeleccionarTerrenoCommand { get; }
 
         public Command<ResultadoAnalisisItemViewModel> QuitarElementoQuimicoCommand { get; }
@@ -423,8 +485,8 @@ namespace CONATRADEC.ViewModels
                 if (forceReload || TiposCultivo.Count == 0 || TiposAnalisisSuelo.Count == 0)
                     await CargarCatalogosFormularioAsync();
 
-                if (forceReload || Terrenos.Count == 0)
-                    await CargarTerrenosAsync();
+                if (forceReload || Paises.Count == 0)
+                    await CargarUbicacionAsync();
 
                 if (forceReload || UnidadesMedidaCatalogo.Count == 0)
                     await CargarUnidadesMedidaAsync();
@@ -467,6 +529,8 @@ namespace CONATRADEC.ViewModels
             textoBusquedaTerreno = string.Empty;
             OnPropertyChanged(nameof(TextoBusquedaTerreno));
 
+            TerrenosFiltrados.Clear();
+
             TipoCultivoSeleccionado = TiposCultivo.FirstOrDefault();
             TipoAnalisisSueloSeleccionado = TiposAnalisisSuelo.FirstOrDefault() ?? string.Empty;
 
@@ -483,11 +547,6 @@ namespace CONATRADEC.ViewModels
 
             ElementosQuimicosAnalisis.Clear();
             await CargarElementosQuimicosAnalisisAsync();
-
-            TerrenosFiltrados.Clear();
-
-            foreach (var terreno in Terrenos)
-                TerrenosFiltrados.Add(terreno);
 
             estadoInicialFormulario = ObtenerEstadoActualFormulario();
 
@@ -554,36 +613,172 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CargarTerrenosAsync()
+        private async Task CargarUbicacionAsync()
         {
-            Terrenos.Clear();
-            TerrenosFiltrados.Clear();
-
-            ObservableCollection<TerrenoResponse> terrenos =
-                await terrenoApiService.GetTerrenosAsync();
-
-            foreach (var terreno in terrenos)
+            try
             {
-                if (terreno == null)
-                    continue;
+                cargandoUbicacion = true;
 
-                if (terreno.TerrenoId == null || terreno.TerrenoId <= 0)
-                    continue;
+                Paises.Clear();
+                Departamentos.Clear();
+                Municipios.Clear();
 
-                if (terreno.Activo == false)
-                    continue;
+                ObservableCollection<PaisResponse> paises =
+                    await paisApiService.GetPaisAsync();
 
-                Terrenos.Add(terreno);
+                foreach (var pais in paises)
+                {
+                    if (pais == null)
+                        continue;
+
+                    if (pais.PaisId == null || pais.PaisId <= 0)
+                        continue;
+
+                    Paises.Add(pais);
+                }
+
+                PaisResponse? paisNicaragua = Paises.FirstOrDefault(x =>
+                    (x.NombrePais ?? string.Empty).Trim().Equals("Nicaragua", StringComparison.OrdinalIgnoreCase)
+                );
+
+                paisSeleccionado = paisNicaragua ?? Paises.FirstOrDefault();
+                OnPropertyChanged(nameof(PaisSeleccionado));
+            }
+            finally
+            {
+                cargandoUbicacion = false;
             }
 
-            FiltrarTerrenos();
+            await CargarDepartamentosPorPaisAsync();
+        }
 
-            if (Terrenos.Count == 0)
+        private async Task AlCambiarPaisAsync()
+        {
+            departamentoSeleccionado = null;
+            municipioSeleccionado = null;
+
+            OnPropertyChanged(nameof(DepartamentoSeleccionado));
+            OnPropertyChanged(nameof(MunicipioSeleccionado));
+
+            Departamentos.Clear();
+            Municipios.Clear();
+
+            await CargarDepartamentosPorPaisAsync();
+        }
+
+        private async Task CargarDepartamentosPorPaisAsync()
+        {
+            Departamentos.Clear();
+            Municipios.Clear();
+
+            departamentoSeleccionado = null;
+            municipioSeleccionado = null;
+
+            OnPropertyChanged(nameof(DepartamentoSeleccionado));
+            OnPropertyChanged(nameof(MunicipioSeleccionado));
+
+            if (PaisSeleccionado?.PaisId == null || PaisSeleccionado.PaisId <= 0)
+                return;
+
+            ObservableCollection<DepartamentoResponse> departamentos =
+                await departamentoApiService.GetDepartamentosAsync(PaisSeleccionado.PaisId);
+
+            foreach (var departamento in departamentos)
             {
-                await MostrarMensajeAsync(
-                    "Terrenos",
-                    "No se encontraron terrenos activos para seleccionar."
-                );
+                if (departamento == null)
+                    continue;
+
+                if (departamento.DepartamentoId == null || departamento.DepartamentoId <= 0)
+                    continue;
+
+                Departamentos.Add(departamento);
+            }
+        }
+
+        private async Task AlCambiarDepartamentoAsync()
+        {
+            municipioSeleccionado = null;
+            OnPropertyChanged(nameof(MunicipioSeleccionado));
+
+            Municipios.Clear();
+
+            await CargarMunicipiosPorDepartamentoAsync();
+        }
+
+        private async Task CargarMunicipiosPorDepartamentoAsync()
+        {
+            Municipios.Clear();
+
+            municipioSeleccionado = null;
+            OnPropertyChanged(nameof(MunicipioSeleccionado));
+
+            if (DepartamentoSeleccionado?.DepartamentoId == null || DepartamentoSeleccionado.DepartamentoId <= 0)
+                return;
+
+            ObservableCollection<MunicipioResponse> municipios =
+                await municipioApiService.GetMunicipiosAsync(DepartamentoSeleccionado.DepartamentoId);
+
+            foreach (var municipio in municipios)
+            {
+                if (municipio == null)
+                    continue;
+
+                if (municipio.MunicipioId == null || municipio.MunicipioId <= 0)
+                    continue;
+
+                Municipios.Add(municipio);
+            }
+        }
+
+        private async Task BuscarTerrenosAsync()
+        {
+            if (IsBusy)
+                return;
+
+            try
+            {
+                IsBusy = true;
+                RefrescarComandos();
+
+                ErrorTerreno = string.Empty;
+
+                TerrenosFiltrados.Clear();
+
+                ObservableCollection<TerrenoResponse> terrenos =
+                    await terrenoBusquedaApiService.BuscarTerrenosAsync(
+                        texto: TextoBusquedaTerreno,
+                        paisId: PaisSeleccionado?.PaisId,
+                        departamentoId: DepartamentoSeleccionado?.DepartamentoId,
+                        municipioId: MunicipioSeleccionado?.MunicipioId,
+                        page: 1,
+                        pageSize: 50
+                    );
+
+                foreach (var terreno in terrenos)
+                {
+                    if (terreno == null)
+                        continue;
+
+                    if (terreno.TerrenoId == null || terreno.TerrenoId <= 0)
+                        continue;
+
+                    if (terreno.Activo == false)
+                        continue;
+
+                    TerrenosFiltrados.Add(terreno);
+                }
+
+                if (TerrenosFiltrados.Count == 0)
+                    ErrorTerreno = "No se encontraron terrenos con los filtros ingresados.";
+            }
+            catch (Exception ex)
+            {
+                ErrorTerreno = $"No se pudo buscar terrenos: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+                RefrescarComandos();
             }
         }
 
@@ -621,21 +816,7 @@ namespace CONATRADEC.ViewModels
         {
             ParametrosConstantesAnalisis.Clear();
 
-            ObservableCollection<UnidadMedidaResponse> unidadesPh = ClonarUnidadesMedida();
             ObservableCollection<UnidadMedidaResponse> unidadesMateriaOrganica = ClonarUnidadesMedida();
-            ObservableCollection<UnidadMedidaResponse> unidadesAcidezTotal = ClonarUnidadesMedida();
-
-            ParametrosConstantesAnalisis.Add(new ResultadoAnalisisItemViewModel
-            {
-                CodigoParametro = "PH",
-                NombreParametro = "pH",
-                PlaceholderValor = "Ejemplo: 5.8",
-                EsConstante = true,
-                EsElementoQuimico = false,
-                PuedeEliminar = false,
-                UnidadesMedida = unidadesPh,
-                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesPh, "PH", "SIN UNIDAD", "S/M")
-            });
 
             ParametrosConstantesAnalisis.Add(new ResultadoAnalisisItemViewModel
             {
@@ -646,19 +827,7 @@ namespace CONATRADEC.ViewModels
                 EsElementoQuimico = false,
                 PuedeEliminar = false,
                 UnidadesMedida = unidadesMateriaOrganica,
-                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesMateriaOrganica, "PPM", "%","PORCENTAJE")
-            });
-
-            ParametrosConstantesAnalisis.Add(new ResultadoAnalisisItemViewModel
-            {
-                CodigoParametro = "ACIDEZ_TOTAL",
-                NombreParametro = "Acidez Total",
-                PlaceholderValor = "Ejemplo: 0.5",
-                EsConstante = true,
-                EsElementoQuimico = false,
-                PuedeEliminar = false,
-                UnidadesMedida = unidadesAcidezTotal,
-                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesAcidezTotal, "MEQ/100G", "CMOL/KG")
+                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesMateriaOrganica, "PPM", "%", "PORCENTAJE")
             });
         }
 
@@ -761,27 +930,6 @@ namespace CONATRADEC.ViewModels
                 .Replace("-", "");
         }
 
-        private void FiltrarTerrenos()
-        {
-            TerrenosFiltrados.Clear();
-
-            string texto = TextoBusquedaTerreno?.Trim().ToLower() ?? string.Empty;
-
-            IEnumerable<TerrenoResponse> lista = string.IsNullOrWhiteSpace(texto)
-                ? Terrenos
-                : Terrenos.Where(t =>
-                    (t.NombreCliente ?? string.Empty).ToLower().Contains(texto) ||
-                    (t.CodigoTerreno ?? string.Empty).ToLower().Contains(texto) ||
-                    (t.NombreTerreno ?? string.Empty).ToLower().Contains(texto) ||
-                    (t.NombrePropietarioTerreno ?? string.Empty).ToLower().Contains(texto) ||
-                    (t.DireccionTerreno ?? string.Empty).ToLower().Contains(texto) ||
-                    (t.TextoUbicacion ?? string.Empty).ToLower().Contains(texto)
-                );
-
-            foreach (var item in lista)
-                TerrenosFiltrados.Add(item);
-        }
-
         private void SeleccionarTerreno(TerrenoResponse? terreno)
         {
             if (terreno == null)
@@ -794,6 +942,76 @@ namespace CONATRADEC.ViewModels
 
             TerrenosFiltrados.Clear();
             TerrenosFiltrados.Add(terreno);
+        }
+
+        private async Task LimpiarFiltrosTerrenoAsync()
+        {
+            if (IsBusy)
+                return;
+
+            try
+            {
+                IsBusy = true;
+                RefrescarComandos();
+
+                ErrorTerreno = string.Empty;
+
+                textoBusquedaTerreno = string.Empty;
+                OnPropertyChanged(nameof(TextoBusquedaTerreno));
+
+                terrenoSeleccionado = null;
+                OnPropertyChanged(nameof(TerrenoSeleccionado));
+                OnPropertyChanged(nameof(TieneTerrenoSeleccionado));
+
+                CantidadQuintalesOro = string.Empty;
+                TamanoFinca = string.Empty;
+                CantidadPlantas = string.Empty;
+
+                TerrenosFiltrados.Clear();
+
+                cargandoUbicacion = true;
+
+                municipioSeleccionado = null;
+                departamentoSeleccionado = null;
+
+                OnPropertyChanged(nameof(MunicipioSeleccionado));
+                OnPropertyChanged(nameof(DepartamentoSeleccionado));
+
+                Municipios.Clear();
+                Departamentos.Clear();
+
+                if (Paises.Count == 0)
+                {
+                    ObservableCollection<PaisResponse> paises =
+                        await paisApiService.GetPaisAsync();
+
+                    foreach (var pais in paises)
+                    {
+                        if (pais == null)
+                            continue;
+
+                        if (pais.PaisId == null || pais.PaisId <= 0)
+                            continue;
+
+                        Paises.Add(pais);
+                    }
+                }
+
+                PaisResponse? paisNicaragua = Paises.FirstOrDefault(x =>
+                    (x.NombrePais ?? string.Empty).Trim().Equals("Nicaragua", StringComparison.OrdinalIgnoreCase)
+                );
+
+                paisSeleccionado = paisNicaragua ?? Paises.FirstOrDefault();
+                OnPropertyChanged(nameof(PaisSeleccionado));
+            }
+            finally
+            {
+                cargandoUbicacion = false;
+                IsBusy = false;
+                RefrescarComandos();
+            }
+
+            await CargarDepartamentosPorPaisAsync();
         }
 
         private async Task QuitarElementoQuimicoAsync(ResultadoAnalisisItemViewModel? item)
@@ -845,9 +1063,7 @@ namespace CONATRADEC.ViewModels
                 decimal tamanoFincaDecimal = ConvertirDecimal(TamanoFinca);
                 int cantidadPlantasValidada = int.Parse(CantidadPlantas);
 
-                decimal ph = ObtenerValorParametroConstante("PH");
                 decimal materiaOrganica = ObtenerValorParametroConstante("MATERIA_ORGANICA");
-                decimal acidezTotal = ObtenerValorParametroConstante("ACIDEZ_TOTAL");
 
                 var elementosQuimicosRequest = new List<ElementoQuimicoAnalisisRequest>();
 
@@ -872,9 +1088,7 @@ namespace CONATRADEC.ViewModels
                     UsuarioId = UsuarioId,
                     CantidadQuintalesOro = quintalesOro,
                     TamanoFinca = tamanoFincaDecimal,
-                    Ph = ph,
                     MateriaOrganica = materiaOrganica,
-                    AcidezTotal = acidezTotal,
                     ElementosQuimicos = elementosQuimicosRequest,
                     FuentesOrganicas = new List<FuenteOrganicaAnalisisRequest>()
                 };
@@ -887,9 +1101,7 @@ namespace CONATRADEC.ViewModels
                     UsuarioId = UsuarioId,
                     CantidadQuintalesOro = quintalesOro,
                     TamanoFinca = tamanoFincaDecimal,
-                    Ph = ph,
                     MateriaOrganica = materiaOrganica,
-                    AcidezTotal = acidezTotal,
                     ElementosQuimicos = elementosQuimicosRequest,
                     FuentesOrganicas = new List<FuenteOrganicaAnalisisRequest>(),
                     FechaAnalisisSuelo = FechaAnalisisLaboratorio.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -920,6 +1132,7 @@ namespace CONATRADEC.ViewModels
                     { "requestGuardarAnalisis", guardarRequest },
                     { "cantidadPlantas", cantidadPlantasValidada }
                 };
+
                 debeLimpiarFormulario = true;
 
                 await GoToAsyncParameters("//ResultadoAnalisisSueloPage", parametros);
@@ -1066,13 +1279,6 @@ namespace CONATRADEC.ViewModels
                     return false;
                 }
 
-                if (string.Equals(item.CodigoParametro, "PH", StringComparison.OrdinalIgnoreCase) &&
-                    (valor < 0 || valor > 14))
-                {
-                    await MostrarMensajeAsync("Validación", "El pH debe estar entre 0 y 14.");
-                    return false;
-                }
-
                 if (EsUnidadPorcentaje(item.UnidadSeleccionada) && valor > 100)
                 {
                     await MostrarMensajeAsync("Validación", $"El porcentaje de {item.NombreParametro} no puede ser mayor a 100.");
@@ -1213,6 +1419,10 @@ namespace CONATRADEC.ViewModels
             var partes = new List<string>
             {
                 $"TerrenoId:{TerrenoSeleccionado?.TerrenoId}",
+                $"TextoBusqueda:{TextoBusquedaTerreno?.Trim()}",
+                $"PaisId:{PaisSeleccionado?.PaisId}",
+                $"DepartamentoId:{DepartamentoSeleccionado?.DepartamentoId}",
+                $"MunicipioId:{MunicipioSeleccionado?.MunicipioId}",
                 $"TipoCultivoId:{TipoCultivoSeleccionado?.TipoCultivoId}",
                 $"TipoCultivo:{TipoCultivoSeleccionado?.NombreMostrar}",
                 $"TipoAnalisis:{TipoAnalisisSueloSeleccionado?.Trim()}",
@@ -1260,6 +1470,8 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(PuedeEnviar));
             EnviarAnalisisCommand.ChangeCanExecute();
             CancelarCommand.ChangeCanExecute();
+            BuscarTerrenoCommand.ChangeCanExecute();
+            LimpiarFiltrosTerrenoCommand.ChangeCanExecute();
         }
 
         private static bool TryParseDecimal(string valor, out decimal resultado)

@@ -1,0 +1,427 @@
+﻿using CONATRADEC.Models;
+using CONATRADEC.Services;
+using Microsoft.Maui.Controls;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace CONATRADEC.ViewModels
+{
+    public class MultiCalculoViewModel : GlobalService, IQueryAttributable
+    {
+        private const string TabBalanceFormula = "BALANCE_FORMULA";
+        private const string TabEnmiendaCalcarea = "ENMIENDA_CALCAREA";
+        private const string TabFertilizacionMixta = "FERTILIZACION_MIXTA";
+
+        private AnalisisSueloCalculoDataResponse? resultadoCalculo;
+        private AnalisisSueloGuardarCalculoRequest? requestGuardarAnalisis;
+
+        private bool mostrarBalanceFormula;
+        private bool mostrarEnmiendaCalcarea;
+        private bool mostrarFertilizacionMixta;
+
+        private string tabSeleccionada = string.Empty;
+        private string mensaje = string.Empty;
+
+        private int? terrenoId;
+        private int? cantidadPlantas;
+
+        public MultiCalculoViewModel()
+        {
+            BalanceFormula = new BalanceFormulaViewModel();
+            EnmiendaCalcarea = new EnmiendaCalcareaTabViewModel();
+            FertilizacionMixta = new FertilizacionMixtaTabViewModel();
+
+            SeleccionarBalanceCommand = new Command(SeleccionarBalance);
+            SeleccionarEnmiendaCommand = new Command(SeleccionarEnmienda);
+            SeleccionarFertilizacionCommand = new Command(SeleccionarFertilizacion);
+
+            VolverCommand = new Command(
+                async () => await VolverAsync()
+            );
+
+            FinalizarCommand = new Command(
+                async () => await FinalizarAsync()
+            );
+        }
+
+        public BalanceFormulaViewModel BalanceFormula { get; }
+
+        public EnmiendaCalcareaTabViewModel EnmiendaCalcarea { get; }
+
+        public FertilizacionMixtaTabViewModel FertilizacionMixta { get; }
+
+        public AnalisisSueloCalculoDataResponse? ResultadoCalculo
+        {
+            get => resultadoCalculo;
+            set
+            {
+                resultadoCalculo = value;
+                OnPropertyChanged(nameof(ResultadoCalculo));
+                OnPropertyChanged(nameof(TipoCultivo));
+                OnPropertyChanged(nameof(TipoAnalisisSuelo));
+                OnPropertyChanged(nameof(Ph));
+                OnPropertyChanged(nameof(AcidezTotal));
+                OnPropertyChanged(nameof(TamanoFinca));
+                OnPropertyChanged(nameof(CantidadQuintalesOro));
+            }
+        }
+
+        public AnalisisSueloGuardarCalculoRequest? RequestGuardarAnalisis
+        {
+            get => requestGuardarAnalisis;
+            set
+            {
+                requestGuardarAnalisis = value;
+                OnPropertyChanged(nameof(RequestGuardarAnalisis));
+            }
+        }
+
+        public int? TerrenoId
+        {
+            get => terrenoId;
+            set
+            {
+                terrenoId = value;
+                OnPropertyChanged(nameof(TerrenoId));
+            }
+        }
+
+        public int? CantidadPlantas
+        {
+            get => cantidadPlantas;
+            set
+            {
+                cantidadPlantas = value;
+                OnPropertyChanged(nameof(CantidadPlantas));
+                OnPropertyChanged(nameof(CantidadPlantasTexto));
+            }
+        }
+
+        public bool MostrarBalanceFormula
+        {
+            get => mostrarBalanceFormula;
+            set
+            {
+                mostrarBalanceFormula = value;
+                OnPropertyChanged(nameof(MostrarBalanceFormula));
+            }
+        }
+
+        public bool MostrarEnmiendaCalcarea
+        {
+            get => mostrarEnmiendaCalcarea;
+            set
+            {
+                mostrarEnmiendaCalcarea = value;
+                OnPropertyChanged(nameof(MostrarEnmiendaCalcarea));
+            }
+        }
+
+        public bool MostrarFertilizacionMixta
+        {
+            get => mostrarFertilizacionMixta;
+            set
+            {
+                mostrarFertilizacionMixta = value;
+                OnPropertyChanged(nameof(MostrarFertilizacionMixta));
+            }
+        }
+
+        public string TabSeleccionada
+        {
+            get => tabSeleccionada;
+            set
+            {
+                tabSeleccionada = value ?? string.Empty;
+
+                OnPropertyChanged(nameof(TabSeleccionada));
+                OnPropertyChanged(nameof(EsBalanceSeleccionado));
+                OnPropertyChanged(nameof(EsEnmiendaSeleccionada));
+                OnPropertyChanged(nameof(EsFertilizacionSeleccionada));
+                OnPropertyChanged(nameof(NombreTabActual));
+                OnPropertyChanged(nameof(TextoEncabezado));
+            }
+        }
+
+        public bool EsBalanceSeleccionado =>
+            string.Equals(TabSeleccionada, TabBalanceFormula, StringComparison.OrdinalIgnoreCase);
+
+        public bool EsEnmiendaSeleccionada =>
+            string.Equals(TabSeleccionada, TabEnmiendaCalcarea, StringComparison.OrdinalIgnoreCase);
+
+        public bool EsFertilizacionSeleccionada =>
+            string.Equals(TabSeleccionada, TabFertilizacionMixta, StringComparison.OrdinalIgnoreCase);
+
+        public string NombreTabActual
+        {
+            get
+            {
+                if (EsBalanceSeleccionado)
+                    return "Balance";
+
+                if (EsEnmiendaSeleccionada)
+                    return "Enmienda";
+
+                if (EsFertilizacionSeleccionada)
+                    return "Mixta";
+
+                return "Sin selección";
+            }
+        }
+
+        public string TextoEncabezado
+        {
+            get
+            {
+                if (EsBalanceSeleccionado)
+                    return "Está trabajando en el balance de fórmula. Puede cambiar de pestaña sin perder los datos.";
+
+                if (EsEnmiendaSeleccionada)
+                    return "Está trabajando en la enmienda calcárea. Puede volver al balance sin perder los datos.";
+
+                if (EsFertilizacionSeleccionada)
+                    return "Está trabajando en fertilización mixta. Puede cambiar de pestaña sin perder los datos.";
+
+                return "Cambie entre los cálculos seleccionados desde las pestañas inferiores.";
+            }
+        }
+
+        public string Mensaje
+        {
+            get => mensaje;
+            set
+            {
+                mensaje = value;
+                OnPropertyChanged(nameof(Mensaje));
+                OnPropertyChanged(nameof(TieneMensaje));
+            }
+        }
+
+        public bool TieneMensaje =>
+            !string.IsNullOrWhiteSpace(Mensaje);
+
+        public string TipoCultivo =>
+            ResultadoCalculo?.TipoCultivo ?? "No disponible";
+
+        public string TipoAnalisisSuelo =>
+            ResultadoCalculo?.TipoAnalisisSuelo ?? "No disponible";
+
+        public decimal Ph =>
+            ResultadoCalculo?.Ph ?? 0;
+
+        public decimal AcidezTotal =>
+            ResultadoCalculo?.AcidezTotal ?? 0;
+
+        public decimal TamanoFinca =>
+            ResultadoCalculo?.TamanoFinca ?? 0;
+
+        public decimal CantidadQuintalesOro =>
+            ResultadoCalculo?.CantidadQuintalesOro ?? 0;
+
+        public string CantidadPlantasTexto =>
+            CantidadPlantas.HasValue && CantidadPlantas.Value > 0
+                ? $"{CantidadPlantas.Value:N0} plantas"
+                : "No disponible";
+
+        public Command SeleccionarBalanceCommand { get; }
+
+        public Command SeleccionarEnmiendaCommand { get; }
+
+        public Command SeleccionarFertilizacionCommand { get; }
+
+        public Command VolverCommand { get; }
+
+        public Command FinalizarCommand { get; }
+
+        public void ApplyQueryAttributes(IDictionary<string, object> query)
+        {
+            Limpiar();
+
+            if (query.ContainsKey("resultadoCalculo"))
+                ResultadoCalculo = query["resultadoCalculo"] as AnalisisSueloCalculoDataResponse;
+
+            if (query.ContainsKey("requestGuardarAnalisis"))
+                RequestGuardarAnalisis = query["requestGuardarAnalisis"] as AnalisisSueloGuardarCalculoRequest;
+
+            if (query.ContainsKey("terrenoId"))
+            {
+                if (int.TryParse(query["terrenoId"]?.ToString(), out int idTerreno))
+                    TerrenoId = idTerreno;
+            }
+
+            if (TerrenoId == null &&
+                RequestGuardarAnalisis?.TerrenoId != null &&
+                RequestGuardarAnalisis.TerrenoId > 0)
+            {
+                TerrenoId = RequestGuardarAnalisis.TerrenoId;
+            }
+
+            if (query.ContainsKey("cantidadPlantas"))
+            {
+                if (int.TryParse(query["cantidadPlantas"]?.ToString(), out int plantas))
+                    CantidadPlantas = plantas;
+            }
+
+            MostrarBalanceFormula = ObtenerBoolQuery(query, "calcularBalanceFormula");
+            MostrarEnmiendaCalcarea = ObtenerBoolQuery(query, "calcularEnmiendaCalcarea");
+            MostrarFertilizacionMixta = ObtenerBoolQuery(query, "calcularFertilizacionMixta");
+
+            InicializarTabs();
+
+            SeleccionarPrimeraPestanaDisponible();
+
+            Mensaje = "Seleccione una pestaña inferior para continuar con los cálculos complementarios.";
+        }
+
+        private void InicializarTabs()
+        {
+            var parametros = CrearParametrosBase();
+
+            if (MostrarBalanceFormula)
+                BalanceFormula.ApplyQueryAttributes(parametros);
+
+            if (MostrarEnmiendaCalcarea)
+            {
+                EnmiendaCalcarea.Inicializar(
+                    ResultadoCalculo,
+                    RequestGuardarAnalisis,
+                    TerrenoId,
+                    CantidadPlantas
+                );
+            }
+
+            if (MostrarFertilizacionMixta)
+                FertilizacionMixta.Inicializar(ResultadoCalculo, RequestGuardarAnalisis);
+        }
+
+        private void Limpiar()
+        {
+            ResultadoCalculo = null;
+            RequestGuardarAnalisis = null;
+
+            MostrarBalanceFormula = false;
+            MostrarEnmiendaCalcarea = false;
+            MostrarFertilizacionMixta = false;
+
+            TabSeleccionada = string.Empty;
+            Mensaje = string.Empty;
+
+            TerrenoId = null;
+            CantidadPlantas = null;
+
+            // =======================================================
+            // LIMPIEZA DE ENMIENDA CALCÁREA
+            // =======================================================
+            // Este método se ejecuta cuando MultiCalculoPage recibe
+            // nuevamente parámetros desde ResultadoAnalisisSueloPage.
+            //
+            // Por eso limpia la pestaña de Enmienda cuando el usuario:
+            // Enmienda -> Volver -> Resultado -> Entrar otra vez.
+            //
+            // No se ejecuta al cambiar entre pestañas internas,
+            // entonces no borra datos al moverse entre:
+            // Balance -> Enmienda -> Mixta.
+            // =======================================================
+            EnmiendaCalcarea.ReiniciarParaNuevoCalculo();
+        }
+
+        private static bool ObtenerBoolQuery(IDictionary<string, object> query, string key)
+        {
+            if (!query.ContainsKey(key))
+                return false;
+
+            object? valor = query[key];
+
+            if (valor is bool boolValor)
+                return boolValor;
+
+            if (bool.TryParse(valor?.ToString(), out bool resultado))
+                return resultado;
+
+            return false;
+        }
+
+        private void SeleccionarPrimeraPestanaDisponible()
+        {
+            if (MostrarBalanceFormula)
+            {
+                TabSeleccionada = TabBalanceFormula;
+                return;
+            }
+
+            if (MostrarEnmiendaCalcarea)
+            {
+                TabSeleccionada = TabEnmiendaCalcarea;
+                return;
+            }
+
+            if (MostrarFertilizacionMixta)
+            {
+                TabSeleccionada = TabFertilizacionMixta;
+                return;
+            }
+
+            Mensaje = "No se recibió ningún cálculo seleccionado.";
+        }
+
+        private void SeleccionarBalance()
+        {
+            if (!MostrarBalanceFormula)
+                return;
+
+            TabSeleccionada = TabBalanceFormula;
+        }
+
+        private void SeleccionarEnmienda()
+        {
+            if (!MostrarEnmiendaCalcarea)
+                return;
+
+            TabSeleccionada = TabEnmiendaCalcarea;
+        }
+
+        private void SeleccionarFertilizacion()
+        {
+            if (!MostrarFertilizacionMixta)
+                return;
+
+            TabSeleccionada = TabFertilizacionMixta;
+        }
+
+        private async Task VolverAsync()
+        {
+            var parametros = CrearParametrosBase();
+
+            await GoToAsyncParameters("//ResultadoAnalisisSueloPage", parametros);
+        }
+
+        private async Task FinalizarAsync()
+        {
+            await GoToAsyncParameters("//MainPage");
+        }
+
+        private Dictionary<string, object> CrearParametrosBase()
+        {
+            var parametros = new Dictionary<string, object>();
+
+            if (ResultadoCalculo != null)
+                parametros.Add("resultadoCalculo", ResultadoCalculo);
+
+            if (RequestGuardarAnalisis != null)
+                parametros.Add("requestGuardarAnalisis", RequestGuardarAnalisis);
+
+            if (TerrenoId != null && TerrenoId > 0)
+                parametros.Add("terrenoId", TerrenoId.Value);
+
+            if (CantidadPlantas != null && CantidadPlantas > 0)
+                parametros.Add("cantidadPlantas", CantidadPlantas.Value);
+
+            parametros.Add("calcularBalanceFormula", MostrarBalanceFormula);
+            parametros.Add("calcularEnmiendaCalcarea", MostrarEnmiendaCalcarea);
+            parametros.Add("calcularFertilizacionMixta", MostrarFertilizacionMixta);
+
+            return parametros;
+        }
+    }
+}

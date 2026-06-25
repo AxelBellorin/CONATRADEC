@@ -155,6 +155,7 @@
                         </VerticalStackLayout>
                     </Border>
 
+                    <!-- CLIENTE Y TERRENO -->
                     <Border Style="{StaticResource CardAnalisisStyle}">
 
                         <VerticalStackLayout Spacing="16">
@@ -173,8 +174,7 @@
 
                                 <Border Style="{StaticResource FormInputContainerStyle}">
                                     <SearchBar Text="{Binding TextoBusquedaTerreno}"
-                                               Placeholder="Buscar por cliente, código o nombre del terreno"
-                                               SearchCommand="{Binding BuscarTerrenoCommand}"
+                                               Placeholder="Buscar por cliente, código, cédula o terreno"
                                                Style="{StaticResource FormSearchBarStyle}" />
                                 </Border>
 
@@ -182,6 +182,60 @@
                                        IsVisible="{Binding TieneErrorTerreno}"
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="País"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Picker ItemsSource="{Binding Paises}"
+                                            SelectedItem="{Binding PaisSeleccionado, Mode=TwoWay}"
+                                            ItemDisplayBinding="{Binding NombrePais}"
+                                            Title="Seleccione país"
+                                            Style="{StaticResource FormPickerStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Departamento"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Picker ItemsSource="{Binding Departamentos}"
+                                            SelectedItem="{Binding DepartamentoSeleccionado, Mode=TwoWay}"
+                                            ItemDisplayBinding="{Binding NombreDepartamento}"
+                                            Title="Seleccione departamento"
+                                            Style="{StaticResource FormPickerStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Municipio"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Picker ItemsSource="{Binding Municipios}"
+                                            SelectedItem="{Binding MunicipioSeleccionado, Mode=TwoWay}"
+                                            ItemDisplayBinding="{Binding NombreMunicipio}"
+                                            Title="Seleccione municipio"
+                                            Style="{StaticResource FormPickerStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <Grid ColumnDefinitions="*,*"
+                                  ColumnSpacing="10">
+
+                                <Button Grid.Column="0"
+                                        Text="Buscar terreno"
+                                        Command="{Binding BuscarTerrenoCommand}"
+                                        Style="{StaticResource AddButton}" />
+
+                                <Button Grid.Column="1"
+                                        Text="Limpiar filtros"
+                                        Command="{Binding LimpiarFiltrosTerrenoCommand}"
+                                        Style="{StaticResource CancelButton}" />
+
+                            </Grid>
 
                             <CollectionView ItemsSource="{Binding TerrenosFiltrados}"
                                             SelectionMode="None"
@@ -213,6 +267,10 @@
                                                        FontSize="13"
                                                        TextColor="{StaticResource color_GrisOscuro}" />
 
+                                                <Label Text="{Binding TextoUbicacion}"
+                                                       FontSize="13"
+                                                       TextColor="{StaticResource color_GrisOscuro}" />
+
                                                 <Label Text="{Binding TamanoFinca, StringFormat='Finca: {0} mz'}"
                                                        FontSize="13"
                                                        TextColor="{StaticResource color_GrisOscuro}" />
@@ -220,7 +278,7 @@
                                                 <Label Text="{Binding CantidadQuintalesOro, StringFormat='Quintales oro: {0}'}"
                                                        FontSize="13"
                                                        TextColor="{StaticResource color_GrisOscuro}" />
-                                                    
+
                                                 <Label Text="{Binding CantidadPlantasTerreno, StringFormat='Plantas: {0}'}"
                                                        FontSize="13"
                                                        TextColor="{StaticResource color_GrisOscuro}" />
@@ -263,6 +321,10 @@
                                            FontSize="13"
                                            TextColor="{StaticResource color_GrisOscuro}" />
 
+                                    <Label Text="{Binding TerrenoSeleccionado.TextoUbicacion}"
+                                           FontSize="13"
+                                           TextColor="{StaticResource color_GrisOscuro}" />
+
                                     <Label Text="{Binding TerrenoSeleccionado.CodigoTerreno}"
                                            FontSize="13"
                                            FontAttributes="Bold"
@@ -292,7 +354,7 @@
 
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Tipo de cultivo"
-                                        Style="{StaticResource FieldLabelStyle}" />
+                                       Style="{StaticResource FieldLabelStyle}" />
 
                                 <Border Style="{StaticResource FormInputContainerStyle}">
                                     <Picker ItemsSource="{Binding TiposCultivo}"
@@ -306,7 +368,6 @@
                                        IsVisible="{Binding TieneErrorTipoCultivo}"
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
-                            
 
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Tipo de análisis de suelo"
@@ -412,21 +473,21 @@
                                 <Label Text="Cantidad de plantas"
                                        Style="{StaticResource FieldLabelStyle}" />
 
-                                        <Border Style="{StaticResource FormInputContainerStyle}">
-                                            <Entry Text="{Binding CantidadPlantas}"
-                                                    Keyboard="Numeric"
-                                                    Placeholder="Ejemplo: 3500"
-                                                    HorizontalOptions="Fill"
-                                                    Style="{StaticResource FormEntryStyle}" />
-                                        </Border>
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding CantidadPlantas}"
+                                           Keyboard="Numeric"
+                                           Placeholder="Ejemplo: 3500"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
 
-                                        <Label Text="{Binding ErrorCantidadPlantas}"
-                                               IsVisible="{Binding TieneErrorCantidadPlantas}"
-                                               Style="{StaticResource ValidationErrorLabelStyle}" />
+                                <Label Text="{Binding ErrorCantidadPlantas}"
+                                       IsVisible="{Binding TieneErrorCantidadPlantas}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
 
-                                        <Label Text="Este valor viene del terreno, pero puede modificarse si es necesario para calcular aplicaciones."
-                                                FontSize="12"
-                                                TextColor="{StaticResource color_GrisOscuro}" />
+                                <Label Text="Este valor viene del terreno, pero puede modificarse si es necesario para calcular aplicaciones."
+                                       FontSize="12"
+                                       TextColor="{StaticResource color_GrisOscuro}" />
                             </VerticalStackLayout>
 
                         </VerticalStackLayout>

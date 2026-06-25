@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
@@ -28,14 +27,8 @@ namespace CONATRADEC.Models
         [JsonPropertyName("tamanoFinca")]
         public decimal? TamanoFinca { get; set; }
 
-        [JsonPropertyName("ph")]
-        public decimal? Ph { get; set; }
-
         [JsonPropertyName("materiaOrganica")]
         public decimal? MateriaOrganica { get; set; }
-
-        [JsonPropertyName("acidezTotal")]
-        public decimal? AcidezTotal { get; set; }
 
         [JsonPropertyName("elementosQuimicos")]
         public List<ElementoQuimicoAnalisisRequest> ElementosQuimicos { get; set; } = new();

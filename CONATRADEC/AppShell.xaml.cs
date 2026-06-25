@@ -14,6 +14,7 @@ namespace CONATRADEC
             // Rutas ya existentes
             Routing.RegisterRoute(nameof(terrenoFormPage), typeof(terrenoFormPage));
             Routing.RegisterRoute(nameof(MapaSeleccionPage), typeof(MapaSeleccionPage));
+            Routing.RegisterRoute("FotosTerrenoGaleriaPage", typeof(FotosTerrenoGaleriaPage));
         }
     }
 }

@@ -1,18 +1,16 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
-using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Controls;
-using System;
+using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.Storage;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-
 
 namespace CONATRADEC.ViewModels
 {
-    // Recibe parámetros desde Shell (latitud / longitud / Terreno / Mode)
     [QueryProperty(nameof(LatitudParam), "latitud")]
     [QueryProperty(nameof(LongitudParam), "longitud")]
     [QueryProperty(nameof(Mode), "Mode")]
@@ -20,27 +18,28 @@ namespace CONATRADEC.ViewModels
     public class TerrenoFormViewModel : GlobalService
     {
         // ==================== Estado interno ====================
-        private TerrenoRequest terreno;
+
+        private TerrenoRequest? terreno;
         private bool isCancel;
 
-        private string codigoTerreno;
-        private string identificacionPropietarioTerreno;
-        private string nombrePropietarioTerreno;
-        private string telefonoPropietarioTexto;
-        private string correoPropietario;
-        private string direccionTerreno;
+        private string? codigoTerreno;
+        private string? identificacionPropietarioTerreno;
+        private string? nombrePropietarioTerreno;
+        private string? telefonoPropietarioTexto;
+        private string? correoPropietario;
+        private string? direccionTerreno;
         private decimal? extensionManzanaTerreno;
         private decimal? cantidadQuintalesOro;
         private double? latitud;
         private double? longitud;
-        private string coordenadasTexto;
+        private string? coordenadasTexto;
         private int? cantidadPlantasTerreno;
 
         private DateOnly? fechaIngresoTerreno;
         private DateTime fechaIngresoDate = DateTime.Today;
 
-        private string latitudParam;
-        private string longitudParam;
+        private string? latitudParam;
+        private string? longitudParam;
 
         private FormMode.FormModeSelect mode = new();
 
@@ -48,12 +47,13 @@ namespace CONATRADEC.ViewModels
         private readonly PaisApiService paisApiService = new();
         private readonly DepartamentoApiService departamentoApiService = new();
         private readonly MunicipioApiService municipioApiService = new();
+        private readonly FotoTerrenoApiService fotoTerrenoApiService = new();
 
-        // Bandera para no re-ejecutar InicializarAsync al volver del mapa
         private bool inicializado = false;
 
-        // Delegate para que la vista pueda refrescar el mapa cuando cambian las coordenadas
-        public Action<double?, double?> RefrescarMapaAction { get; set; }
+        private int? fotosCargadasTerrenoId = null;
+
+        public Action<double?, double?>? RefrescarMapaAction { get; set; }
 
         // ==================== Comandos ====================
 
@@ -62,17 +62,31 @@ namespace CONATRADEC.ViewModels
         public Command ObtenerGpsCommand { get; }
         public Command SeleccionarMapaCommand { get; }
 
+        public Command SeleccionarFotosCommand { get; }
+        public Command<FotoTerrenoItem> QuitarFotoCommand { get; }
+        public Command<FotoTerrenoItem> AbrirGaleriaFotosCommand { get; }
+
         public TerrenoFormViewModel()
         {
             SaveCommand = new Command(async () => await SaveAsync(), () => !IsReadOnly);
             CancelCommand = new Command(async () => await CancelAsync());
             ObtenerGpsCommand = new Command(async () => await ObtenerGpsAsync(), () => !IsReadOnly);
             SeleccionarMapaCommand = new Command(async () => await SeleccionarMapaAsync(), () => !IsReadOnly);
+
+            SeleccionarFotosCommand = new Command(async () => await SeleccionarFotosAsync(), () => !IsReadOnly);
+            QuitarFotoCommand = new Command<FotoTerrenoItem>(async foto => await QuitarFotoAsync(foto), foto => !IsReadOnly);
+            AbrirGaleriaFotosCommand = new Command<FotoTerrenoItem>(async foto => await AbrirGaleriaFotosAsync(foto));
+
+            FotosTerreno.CollectionChanged += (s, e) =>
+            {
+                OnPropertyChanged(nameof(TieneFotosTerreno));
+                OnPropertyChanged(nameof(NoTieneFotosTerreno));
+            };
         }
 
         // ==================== Query properties ====================
 
-        public string LatitudParam
+        public string? LatitudParam
         {
             get => latitudParam;
             set
@@ -82,12 +96,12 @@ namespace CONATRADEC.ViewModels
                 if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lat))
                 {
                     Latitud = lat;
-                    RefrescarMapaAction?.Invoke(Latitud, Longitud); // <- NUEVO
+                    RefrescarMapaAction?.Invoke(Latitud, Longitud);
                 }
             }
         }
 
-        public string LongitudParam
+        public string? LongitudParam
         {
             get => longitudParam;
             set
@@ -97,28 +111,41 @@ namespace CONATRADEC.ViewModels
                 if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lon))
                 {
                     Longitud = lon;
-                    RefrescarMapaAction?.Invoke(Latitud, Longitud); // <- NUEVO
+                    RefrescarMapaAction?.Invoke(Latitud, Longitud);
                 }
             }
         }
 
-        public string CoordenadasTexto
+        public string? CoordenadasTexto
         {
             get => coordenadasTexto;
             set
             {
                 coordenadasTexto = value;
                 OnPropertyChanged();
-                ProcesarCoordenadas(value); // ← convierte y asigna Latitud/Longitud
+                ProcesarCoordenadas(value);
             }
         }
 
-        public TerrenoRequest Terreno
+        public TerrenoRequest? Terreno
         {
             get => terreno;
             set
             {
+                int terrenoAnteriorId = terreno?.TerrenoId ?? 0;
+                int terrenoNuevoId = value?.TerrenoId ?? 0;
+
                 terreno = value;
+
+                if (terrenoAnteriorId != terrenoNuevoId)
+                {
+                    LimpiarFotosTerreno();
+                }
+
+                if (Mode == FormMode.FormModeSelect.Create && terrenoNuevoId <= 0)
+                {
+                    LimpiarFotosSiSonDeTerrenoAnterior();
+                }
 
                 if (value != null)
                 {
@@ -133,7 +160,6 @@ namespace CONATRADEC.ViewModels
                     FechaIngresoTerreno = value.FechaIngresoTerreno ?? DateOnly.FromDateTime(DateTime.Today);
                     CantidadPlantasTerreno = value.CantidadPlantasTerreno;
 
-                    // ⭐ IMPORTANTE:
                     if (LatitudParam == null && LongitudParam == null)
                     {
                         Latitud = value.Latitud;
@@ -143,28 +169,12 @@ namespace CONATRADEC.ViewModels
 
                 OnPropertyChanged();
 
-                // SOLO en actualización
                 if (Mode == FormMode.FormModeSelect.Edit)
                 {
                     _ = ReasignarSeleccionPickersAsync();
                 }
-
             }
         }
-
-        public async Task ReasignarSeleccionPickersAsync()
-        {
-            try
-            {
-                if (Terreno?.MunicipioId > 0)
-                {
-                    await ResolverSeleccionPorMunicipioIdAsync(Terreno.MunicipioId);
-                }
-            }
-            catch { }
-        }
-
-
 
         public FormMode.FormModeSelect Mode
         {
@@ -172,16 +182,27 @@ namespace CONATRADEC.ViewModels
             set
             {
                 mode = value;
+
+                if (mode == FormMode.FormModeSelect.Create)
+                {
+                    LimpiarFotosSiSonDeTerrenoAnterior();
+                }
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
                 OnPropertyChanged(nameof(IsEnabled));
                 OnPropertyChanged(nameof(ShowSaveButton));
                 OnPropertyChanged(nameof(AllowEdit));
                 OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(CanPickDepartamento));
+                OnPropertyChanged(nameof(CanPickMunicipio));
 
                 SaveCommand.ChangeCanExecute();
                 ObtenerGpsCommand.ChangeCanExecute();
                 SeleccionarMapaCommand.ChangeCanExecute();
+                SeleccionarFotosCommand.ChangeCanExecute();
+                QuitarFotoCommand.ChangeCanExecute();
+                AbrirGaleriaFotosCommand.ChangeCanExecute();
             }
         }
 
@@ -200,52 +221,94 @@ namespace CONATRADEC.ViewModels
 
         // ==================== Propiedades bindables ====================
 
-        public string CodigoTerreno
+        public string? CodigoTerreno
         {
             get => codigoTerreno;
-            set { codigoTerreno = value; OnPropertyChanged(); }
+            set
+            {
+                codigoTerreno = value;
+                OnPropertyChanged();
+            }
         }
 
-        public string IdentificacionPropietarioTerreno
+        public string? IdentificacionPropietarioTerreno
         {
             get => identificacionPropietarioTerreno;
-            set { identificacionPropietarioTerreno = value; OnPropertyChanged(); }
+            set
+            {
+                identificacionPropietarioTerreno = value;
+                OnPropertyChanged();
+            }
         }
 
-        public string NombrePropietarioTerreno
+        public string? NombrePropietarioTerreno
         {
             get => nombrePropietarioTerreno;
-            set { nombrePropietarioTerreno = value; OnPropertyChanged(); }
+            set
+            {
+                nombrePropietarioTerreno = value;
+                OnPropertyChanged();
+            }
         }
 
-        public string TelefonoPropietarioTexto
+        public string? TelefonoPropietarioTexto
         {
             get => telefonoPropietarioTexto;
-            set { telefonoPropietarioTexto = value; OnPropertyChanged(); }
+            set
+            {
+                telefonoPropietarioTexto = value;
+                OnPropertyChanged();
+            }
         }
 
-        public string CorreoPropietario
+        public string? CorreoPropietario
         {
             get => correoPropietario;
-            set { correoPropietario = value; OnPropertyChanged(); }
+            set
+            {
+                correoPropietario = value;
+                OnPropertyChanged();
+            }
         }
 
-        public string DireccionTerreno
+        public string? DireccionTerreno
         {
             get => direccionTerreno;
-            set { direccionTerreno = value; OnPropertyChanged(); }
+            set
+            {
+                direccionTerreno = value;
+                OnPropertyChanged();
+            }
         }
 
         public decimal? ExtensionManzanaTerreno
         {
             get => extensionManzanaTerreno;
-            set { extensionManzanaTerreno = value; OnPropertyChanged(); }
+            set
+            {
+                extensionManzanaTerreno = value;
+                OnPropertyChanged();
+            }
         }
 
         public decimal? CantidadQuintalesOro
         {
             get => cantidadQuintalesOro;
-            set { cantidadQuintalesOro = value; OnPropertyChanged(); }
+            set
+            {
+                cantidadQuintalesOro = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public int? CantidadPlantasTerreno
+        {
+            get => cantidadPlantasTerreno;
+            set
+            {
+                cantidadPlantasTerreno = value;
+                OnPropertyChanged();
+            }
         }
 
         public double? Latitud
@@ -308,17 +371,45 @@ namespace CONATRADEC.ViewModels
             set => isCancel = value;
         }
 
-        // ==================== Pickers País / Depto / Municipio ====================
+        // ==================== Fotos ====================
+
+        public ObservableCollection<FotoTerrenoItem> FotosTerreno { get; } = new();
+
+        public bool TieneFotosTerreno => FotosTerreno.Count > 0;
+
+        public bool NoTieneFotosTerreno => FotosTerreno.Count == 0;
+
+        private void LimpiarFotosSiSonDeTerrenoAnterior()
+        {
+            bool hayFotosCargadasDesdeApi = fotosCargadasTerrenoId != null;
+            bool hayFotosExistentes = FotosTerreno.Any(f => !f.EsNueva);
+
+            if (hayFotosCargadasDesdeApi || hayFotosExistentes)
+            {
+                LimpiarFotosTerreno();
+            }
+        }
+
+        private void LimpiarFotosTerreno()
+        {
+            FotosTerreno.Clear();
+            fotosCargadasTerrenoId = null;
+
+            OnPropertyChanged(nameof(TieneFotosTerreno));
+            OnPropertyChanged(nameof(NoTieneFotosTerreno));
+        }
+
+        // ==================== Pickers ====================
 
         public ObservableCollection<PaisResponse> Paises { get; } = new();
         public ObservableCollection<DepartamentoResponse> Departamentos { get; } = new();
         public ObservableCollection<MunicipioResponse> Municipios { get; } = new();
 
-        private PaisResponse paisSeleccionado;
-        private DepartamentoResponse departamentoSeleccionado;
-        private MunicipioResponse municipioSeleccionado;
+        private PaisResponse? paisSeleccionado;
+        private DepartamentoResponse? departamentoSeleccionado;
+        private MunicipioResponse? municipioSeleccionado;
 
-        public PaisResponse PaisSeleccionado
+        public PaisResponse? PaisSeleccionado
         {
             get => paisSeleccionado;
             set
@@ -327,16 +418,19 @@ namespace CONATRADEC.ViewModels
                 {
                     paisSeleccionado = value;
                     OnPropertyChanged();
+
                     _ = CargarDepartamentosAsync(value?.PaisId);
+
                     DepartamentoSeleccionado = null;
                     MunicipioSeleccionado = null;
+
                     OnPropertyChanged(nameof(CanPickDepartamento));
                     OnPropertyChanged(nameof(CanPickMunicipio));
                 }
             }
         }
 
-        public DepartamentoResponse DepartamentoSeleccionado
+        public DepartamentoResponse? DepartamentoSeleccionado
         {
             get => departamentoSeleccionado;
             set
@@ -345,40 +439,62 @@ namespace CONATRADEC.ViewModels
                 {
                     departamentoSeleccionado = value;
                     OnPropertyChanged();
+
                     _ = CargarMunicipiosAsync(value?.DepartamentoId);
+
                     MunicipioSeleccionado = null;
+
                     OnPropertyChanged(nameof(CanPickMunicipio));
                 }
             }
         }
 
-        public MunicipioResponse MunicipioSeleccionado
+        public MunicipioResponse? MunicipioSeleccionado
         {
             get => municipioSeleccionado;
-            set { municipioSeleccionado = value; OnPropertyChanged(); }
+            set
+            {
+                municipioSeleccionado = value;
+                OnPropertyChanged();
+            }
         }
 
         public bool CanPickDepartamento => IsEnabled && PaisSeleccionado != null;
         public bool CanPickMunicipio => IsEnabled && DepartamentoSeleccionado != null;
 
-        public int? CantidadPlantasTerreno { get => cantidadPlantasTerreno; set { cantidadPlantasTerreno = value; OnPropertyChanged(); } }
-
         // ==================== Inicialización ====================
 
         public async Task InicializarAsync()
         {
-            // 🔒 Evitamos recargar pickers cuando volvemos del mapa
-            if (inicializado) return;
-
             try
             {
                 IsBusy = true;
+
+                if (Mode == FormMode.FormModeSelect.Create)
+                {
+                    LimpiarFotosSiSonDeTerrenoAnterior();
+                }
+
+                if (inicializado)
+                {
+                    if (Terreno?.TerrenoId > 0 &&
+                        fotosCargadasTerrenoId != Terreno.TerrenoId)
+                    {
+                        await CargarFotosTerrenoAsync();
+                    }
+
+                    return;
+                }
+
                 inicializado = true;
 
                 await CargarPaisesAsync();
 
                 if (Terreno?.MunicipioId > 0)
                     await ResolverSeleccionPorMunicipioIdAsync(Terreno.MunicipioId);
+
+                if (Terreno?.TerrenoId > 0)
+                    await CargarFotosTerrenoAsync();
             }
             finally
             {
@@ -386,9 +502,24 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public async Task ReasignarSeleccionPickersAsync()
+        {
+            try
+            {
+                if (Terreno?.MunicipioId > 0)
+                {
+                    await ResolverSeleccionPorMunicipioIdAsync(Terreno.MunicipioId);
+                }
+            }
+            catch
+            {
+            }
+        }
+
         private async Task CargarPaisesAsync()
         {
             bool tieneInternet = await TieneInternetAsync();
+
             if (!tieneInternet)
             {
                 _ = MostrarToastAsync("Sin conexión a internet.");
@@ -397,8 +528,11 @@ namespace CONATRADEC.ViewModels
             }
 
             Paises.Clear();
+
             var data = await paisApiService.GetPaisAsync();
-            foreach (var p in data) Paises.Add(p);
+
+            foreach (var p in data)
+                Paises.Add(p);
 
             OnPropertyChanged(nameof(Paises));
             OnPropertyChanged(nameof(CanPickDepartamento));
@@ -409,9 +543,12 @@ namespace CONATRADEC.ViewModels
         {
             Departamentos.Clear();
             Municipios.Clear();
-            if (paisId == null) return;
+
+            if (paisId == null)
+                return;
 
             bool tieneInternet = await TieneInternetAsync();
+
             if (!tieneInternet)
             {
                 _ = MostrarToastAsync("Sin conexión a internet.");
@@ -420,7 +557,9 @@ namespace CONATRADEC.ViewModels
             }
 
             var data = await departamentoApiService.GetDepartamentosAsync(paisId);
-            foreach (var d in data) Departamentos.Add(d);
+
+            foreach (var d in data)
+                Departamentos.Add(d);
 
             OnPropertyChanged(nameof(Departamentos));
             OnPropertyChanged(nameof(CanPickDepartamento));
@@ -429,9 +568,12 @@ namespace CONATRADEC.ViewModels
         private async Task CargarMunicipiosAsync(int? departamentoId)
         {
             Municipios.Clear();
-            if (departamentoId == null) return;
+
+            if (departamentoId == null)
+                return;
 
             bool tieneInternet = await TieneInternetAsync();
+
             if (!tieneInternet)
             {
                 _ = MostrarToastAsync("Sin conexión a internet.");
@@ -440,7 +582,9 @@ namespace CONATRADEC.ViewModels
             }
 
             var data = await municipioApiService.GetMunicipiosAsync(departamentoId);
-            foreach (var m in data) Municipios.Add(m);
+
+            foreach (var m in data)
+                Municipios.Add(m);
 
             OnPropertyChanged(nameof(Municipios));
             OnPropertyChanged(nameof(CanPickMunicipio));
@@ -451,9 +595,9 @@ namespace CONATRADEC.ViewModels
             if (municipioId == null || municipioId <= 0)
                 return;
 
-            PaisResponse paisEncontrado = null;
-            DepartamentoResponse depEncontrado = null;
-            MunicipioResponse muniEncontrado = null;
+            PaisResponse? paisEncontrado = null;
+            DepartamentoResponse? depEncontrado = null;
+            MunicipioResponse? muniEncontrado = null;
 
             foreach (var pais in Paises.ToList())
             {
@@ -464,6 +608,7 @@ namespace CONATRADEC.ViewModels
                     await CargarMunicipiosAsync(dep.DepartamentoId);
 
                     var muni = Municipios.FirstOrDefault(m => m.MunicipioId == municipioId);
+
                     if (muni != null)
                     {
                         paisEncontrado = pais;
@@ -491,6 +636,221 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        // ==================== Fotos API / Local ====================
+
+        private async Task AbrirGaleriaFotosAsync(FotoTerrenoItem foto)
+        {
+            try
+            {
+                if (foto == null)
+                    return;
+
+                if (FotosTerreno == null || FotosTerreno.Count == 0)
+                    return;
+
+                await Shell.Current.GoToAsync("FotosTerrenoGaleriaPage", true, new Dictionary<string, object>
+                {
+                    { "Fotos", FotosTerreno.ToList() },
+                    { "FotoInicial", foto }
+                });
+            }
+            catch (Exception ex)
+            {
+                _ = MostrarToastAsync("Error al abrir galería: " + ex.Message);
+            }
+        }
+
+        private async Task CargarFotosTerrenoAsync()
+        {
+            try
+            {
+                if (Terreno == null || Terreno.TerrenoId == null || Terreno.TerrenoId <= 0)
+                    return;
+
+                int terrenoIdActual = Terreno.TerrenoId.Value;
+
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    return;
+                }
+
+                LimpiarFotosTerreno();
+
+                var fotos = await fotoTerrenoApiService.GetFotosPorTerrenoAsync(terrenoIdActual);
+
+                foreach (var foto in fotos)
+                {
+                    string urlCompleta = fotoTerrenoApiService.ConstruirUrlCompleta(foto.UrlFotoTerreno);
+
+                    if (string.IsNullOrWhiteSpace(urlCompleta))
+                        continue;
+
+                    FotosTerreno.Add(new FotoTerrenoItem
+                    {
+                        FotoTerrenoId = foto.FotoTerrenoId,
+                        TerrenoId = foto.TerrenoId,
+                        UrlFotoTerreno = urlCompleta,
+                        LocalPath = null,
+                        NombreArchivo = Path.GetFileName(urlCompleta),
+                        EsNueva = false,
+                        Imagen = ImageSource.FromUri(new Uri(urlCompleta))
+                    });
+                }
+
+                fotosCargadasTerrenoId = terrenoIdActual;
+
+                OnPropertyChanged(nameof(TieneFotosTerreno));
+                OnPropertyChanged(nameof(NoTieneFotosTerreno));
+            }
+            catch (Exception ex)
+            {
+                _ = MostrarToastAsync("Error al cargar fotos: " + ex.Message);
+            }
+        }
+
+        private async Task SeleccionarFotosAsync()
+        {
+            try
+            {
+                if (!AllowEdit)
+                    return;
+
+                var opciones = new PickOptions
+                {
+                    PickerTitle = "Seleccione fotos del terreno",
+                    FileTypes = FilePickerFileType.Images
+                };
+
+                var archivos = await FilePicker.PickMultipleAsync(opciones);
+
+                if (archivos == null)
+                    return;
+
+                foreach (var archivo in archivos)
+                {
+                    string extension = Path.GetExtension(archivo.FileName);
+
+                    if (string.IsNullOrWhiteSpace(extension))
+                        extension = ".jpg";
+
+                    string nombreTemporal = $"{Guid.NewGuid()}{extension}";
+                    string rutaTemporal = Path.Combine(FileSystem.CacheDirectory, nombreTemporal);
+
+                    await using var origen = await archivo.OpenReadAsync();
+                    await using var destino = File.Create(rutaTemporal);
+
+                    await origen.CopyToAsync(destino);
+
+                    FotosTerreno.Add(new FotoTerrenoItem
+                    {
+                        FotoTerrenoId = null,
+                        TerrenoId = Terreno?.TerrenoId,
+                        UrlFotoTerreno = null,
+                        LocalPath = rutaTemporal,
+                        NombreArchivo = archivo.FileName,
+                        EsNueva = true,
+                        Imagen = ImageSource.FromFile(rutaTemporal)
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _ = MostrarToastAsync("Error al seleccionar fotos: " + ex.Message);
+            }
+        }
+
+        private async Task QuitarFotoAsync(FotoTerrenoItem foto)
+        {
+            try
+            {
+                if (foto == null || !AllowEdit)
+                    return;
+
+                if (foto.EsNueva || foto.FotoTerrenoId == null || foto.FotoTerrenoId <= 0)
+                {
+                    FotosTerreno.Remove(foto);
+                    return;
+                }
+
+                bool confirm = await App.Current.MainPage.DisplayAlert(
+                    "Eliminar foto",
+                    "¿Desea eliminar esta foto del terreno?",
+                    "Aceptar",
+                    "Cancelar");
+
+                if (!confirm)
+                    return;
+
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    return;
+                }
+
+                bool eliminado = await fotoTerrenoApiService.EliminarFotoAsync(foto.FotoTerrenoId.Value);
+
+                if (eliminado)
+                {
+                    FotosTerreno.Remove(foto);
+                    _ = MostrarToastAsync("Foto eliminada correctamente.");
+                }
+                else
+                {
+                    _ = MostrarToastAsync("No se pudo eliminar la foto.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _ = MostrarToastAsync("Error al eliminar foto: " + ex.Message);
+            }
+        }
+
+        private async Task<bool> SubirFotosPendientesAsync(int terrenoId)
+        {
+            try
+            {
+                var fotosNuevas = FotosTerreno
+                    .Where(f => f.EsNueva && !string.IsNullOrWhiteSpace(f.LocalPath))
+                    .ToList();
+
+                if (!fotosNuevas.Any())
+                    return true;
+
+                bool tieneInternet = await TieneInternetAsync();
+
+                if (!tieneInternet)
+                {
+                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    return false;
+                }
+
+                bool subidas = await fotoTerrenoApiService.SubirFotosAsync(terrenoId, fotosNuevas);
+
+                if (!subidas)
+                    return false;
+
+                foreach (var foto in fotosNuevas)
+                {
+                    foto.EsNueva = false;
+                    foto.TerrenoId = terrenoId;
+                }
+
+                fotosCargadasTerrenoId = terrenoId;
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _ = MostrarToastAsync("Error al subir fotos: " + ex.Message);
+                return false;
+            }
+        }
+
         // ==================== GPS ====================
 
         private async Task ObtenerGpsAsync()
@@ -498,6 +858,7 @@ namespace CONATRADEC.ViewModels
             try
             {
                 var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+
                 if (status != PermissionStatus.Granted)
                     status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
 
@@ -528,9 +889,11 @@ namespace CONATRADEC.ViewModels
 
         private async Task SeleccionarMapaAsync()
         {
-            if (!AllowEdit) return;
+            if (!AllowEdit)
+                return;
 
-            // Guardamos temporalmente el objeto
+            Terreno ??= new TerrenoRequest();
+
             Terreno.CodigoTerreno = CodigoTerreno;
             Terreno.IdentificacionPropietarioTerreno = IdentificacionPropietarioTerreno;
             Terreno.NombrePropietarioTerreno = NombrePropietarioTerreno;
@@ -539,8 +902,11 @@ namespace CONATRADEC.ViewModels
             Terreno.DireccionTerreno = DireccionTerreno;
             Terreno.ExtensionManzanaTerreno = ExtensionManzanaTerreno;
             Terreno.CantidadQuintalesOro = CantidadQuintalesOro;
+            Terreno.CantidadPlantasTerreno = CantidadPlantasTerreno;
             Terreno.FechaIngresoTerreno = FechaIngresoTerreno;
             Terreno.MunicipioId = MunicipioSeleccionado?.MunicipioId ?? 0;
+            Terreno.Latitud = Latitud;
+            Terreno.Longitud = Longitud;
 
             await Shell.Current.GoToAsync("MapaSeleccionPage", true, new Dictionary<string, object>
             {
@@ -551,19 +917,19 @@ namespace CONATRADEC.ViewModels
                 {
                     "longitudActual",
                     (Longitud ?? -86.2510).ToString(CultureInfo.InvariantCulture)
-},
+                },
                 { "Mode", Mode },
                 { "Terreno", Terreno }
             });
-
         }
-
 
         // ==================== Guardar / Actualizar ====================
 
         private async Task SaveAsync()
         {
-            if (IsBusy) return;
+            if (IsBusy)
+                return;
+
             IsBusy = true;
 
             try
@@ -581,7 +947,8 @@ namespace CONATRADEC.ViewModels
 
         private async Task CreateTerrenoAsync()
         {
-            if (!ValidateFieldsData()) return;
+            if (!ValidateFieldsData())
+                return;
 
             bool confirm = await App.Current.MainPage.DisplayAlert(
                 "Confirmar",
@@ -589,7 +956,8 @@ namespace CONATRADEC.ViewModels
                 "Aceptar",
                 "Cancelar");
 
-            if (!confirm) return;
+            if (!confirm)
+                return;
 
             var request = new TerrenoRequest
             {
@@ -601,7 +969,7 @@ namespace CONATRADEC.ViewModels
                 DireccionTerreno = DireccionTerreno,
                 ExtensionManzanaTerreno = ExtensionManzanaTerreno,
                 CantidadQuintalesOro = CantidadQuintalesOro,
-                CantidadPlantasTerreno=CantidadPlantasTerreno,
+                CantidadPlantasTerreno = CantidadPlantasTerreno,
                 FechaIngresoTerreno = FechaIngresoTerreno,
                 MunicipioId = MunicipioSeleccionado?.MunicipioId ?? 0,
                 Latitud = Latitud,
@@ -609,6 +977,7 @@ namespace CONATRADEC.ViewModels
             };
 
             bool tieneInternet = await TieneInternetAsync();
+
             if (!tieneInternet)
             {
                 _ = MostrarToastAsync("Sin conexión a internet.");
@@ -616,12 +985,24 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            var response = await terrenoApiService.CreateTerrenoAsync(request);
+            var terrenoCreado = await terrenoApiService.CreateTerrenoRetornandoAsync(request);
 
-            if (response)
+            if (terrenoCreado != null &&
+                terrenoCreado.TerrenoId.HasValue &&
+                terrenoCreado.TerrenoId.Value > 0)
             {
+                bool fotosSubidas = await SubirFotosPendientesAsync(terrenoCreado.TerrenoId.Value);
+
                 await GoToTerrenoPage();
-                _ = MostrarToastAsync("Éxito \nTerreno guardado correctamente");
+
+                if (fotosSubidas)
+                {
+                    _ = MostrarToastAsync("Éxito \nTerreno guardado correctamente");
+                }
+                else
+                {
+                    _ = MostrarToastAsync("Terreno guardado, pero algunas fotos no se pudieron subir.");
+                }
             }
             else
             {
@@ -631,7 +1012,14 @@ namespace CONATRADEC.ViewModels
 
         private async Task UpdateTerrenoAsync()
         {
-            if (!ValidateFieldsData()) return;
+            if (!ValidateFieldsData())
+                return;
+
+            if (Terreno == null || Terreno.TerrenoId == null || Terreno.TerrenoId <= 0)
+            {
+                _ = MostrarToastAsync("Error: no se encontró el terreno a actualizar.");
+                return;
+            }
 
             bool confirm = await App.Current.MainPage.DisplayAlert(
                 "Confirmar",
@@ -639,7 +1027,8 @@ namespace CONATRADEC.ViewModels
                 "Aceptar",
                 "Cancelar");
 
-            if (!confirm) return;
+            if (!confirm)
+                return;
 
             var request = new TerrenoRequest
             {
@@ -660,6 +1049,7 @@ namespace CONATRADEC.ViewModels
             };
 
             bool tieneInternet = await TieneInternetAsync();
+
             if (!tieneInternet)
             {
                 _ = MostrarToastAsync("Sin conexión a internet.");
@@ -671,14 +1061,31 @@ namespace CONATRADEC.ViewModels
 
             if (response)
             {
+                bool fotosSubidas = await SubirFotosPendientesAsync(Terreno.TerrenoId.Value);
+
                 await GoToTerrenoPage();
-                _ = MostrarToastAsync("Éxito \nTerreno actualizado correctamente");
+
+                if (fotosSubidas)
+                {
+                    _ = MostrarToastAsync("Éxito \nTerreno actualizado correctamente");
+                }
+                else
+                {
+                    _ = MostrarToastAsync("Terreno actualizado, pero algunas fotos no se pudieron subir.");
+                }
             }
             else
             {
                 _ = MostrarToastAsync("Error \nEl terreno no se pudo actualizar, intente nuevamente");
             }
         }
+
+        private Task GoToTerrenoPage()
+        {
+            return GoToAsyncParameters("//TerrenoPage");
+        }
+
+        // ==================== Google Maps ====================
 
         public async Task AbrirEnGoogleMaps(double lat, double lon)
         {
@@ -698,10 +1105,8 @@ namespace CONATRADEC.ViewModels
         {
             try
             {
-                // Ejemplo esperado:
-                // 12°13'35.8"N 86°28'06.9"W
-
                 var partes = texto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
                 if (partes.Length != 2)
                     throw new Exception("Formato inválido");
 
@@ -716,12 +1121,15 @@ namespace CONATRADEC.ViewModels
 
         private double ConvertDmsToDecimal(string dms)
         {
-            // Extraer grados, minutos, segundos y símbolo N/S/E/W
-
             var grados = dms.Split('°')[0];
             var minutos = dms.Split('°')[1].Split('\'')[0];
             var segundosParte = dms.Split('\'')[1];
-            var segundos = new string(segundosParte.TakeWhile(char.IsDigit).ToArray());
+
+            var segundos = new string(
+                segundosParte
+                    .TakeWhile(c => char.IsDigit(c) || c == '.')
+                    .ToArray());
+
             var direccion = new string(dms.Where(char.IsLetter).ToArray());
 
             double d = double.Parse(grados, CultureInfo.InvariantCulture);
@@ -736,10 +1144,60 @@ namespace CONATRADEC.ViewModels
             return decimalValue;
         }
 
-
-        private Task GoToTerrenoPage()
+        private void ProcesarCoordenadas(string? texto)
         {
-            return GoToAsyncParameters("//TerrenoPage");
+            if (string.IsNullOrWhiteSpace(texto))
+                return;
+
+            texto = texto.Trim();
+
+            var numeros = Regex.Matches(texto.Replace(",", "."), @"-?\d+(\.\d+)?");
+
+            if (numeros.Count == 2)
+            {
+                if (double.TryParse(numeros[0].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lat) &&
+                    double.TryParse(numeros[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lon))
+                {
+                    Latitud = lat;
+                    Longitud = lon;
+                    return;
+                }
+            }
+
+            if (texto.Contains("°"))
+            {
+                var partes = texto.Split(new[] { 'N', 'S', 'E', 'W' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (partes.Length >= 2)
+                {
+                    var latDms = partes[0].Trim();
+                    var lonDms = partes[1].Trim();
+
+                    var latDecimal = ConvertirDMSToDecimal(latDms);
+                    var lonDecimal = ConvertirDMSToDecimal(lonDms);
+
+                    if (texto.Contains("S")) latDecimal *= -1;
+                    if (texto.Contains("W")) lonDecimal *= -1;
+
+                    Latitud = latDecimal;
+                    Longitud = lonDecimal;
+                }
+            }
+        }
+
+        private double ConvertirDMSToDecimal(string dms)
+        {
+            var regex = new Regex(@"(\d+)°(\d+)'(\d+(?:\.\d+)?)""?");
+            var match = regex.Match(dms);
+
+            if (!match.Success)
+                return 0;
+
+            double grados = double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            double minutos = double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+            double segundos = double.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
+
+            return grados + (minutos / 60) + (segundos / 3600);
         }
 
         // ==================== Validaciones ====================
@@ -758,13 +1216,15 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(CorreoPropietario) && !EsCorreoValido(CorreoPropietario))
+            if (!string.IsNullOrWhiteSpace(CorreoPropietario) &&
+                !EsCorreoValido(CorreoPropietario))
             {
                 Display("Correo del propietario inválido.");
                 return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(TelefonoPropietarioTexto) && !TelefonoPropietarioTexto.All(char.IsDigit))
+            if (!string.IsNullOrWhiteSpace(TelefonoPropietarioTexto) &&
+                !TelefonoPropietarioTexto.All(char.IsDigit))
             {
                 Display("El teléfono solo debe contener números.");
                 return false;
@@ -791,20 +1251,29 @@ namespace CONATRADEC.ViewModels
             return true;
         }
 
-        private void Display(string msg) =>
+        private void Display(string msg)
+        {
             _ = MostrarToastAsync("Validación: " + msg);
+        }
 
         private bool EsCorreoValido(string correo)
         {
-            if (string.IsNullOrWhiteSpace(correo)) return false;
+            if (string.IsNullOrWhiteSpace(correo))
+                return false;
+
             var patron = @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$";
+
             return Regex.IsMatch(correo, patron);
         }
 
-        private int? ParseTelefono(string telefono)
+        private int? ParseTelefono(string? telefono)
         {
-            if (string.IsNullOrWhiteSpace(telefono)) return null;
-            if (int.TryParse(telefono, out var t)) return t;
+            if (string.IsNullOrWhiteSpace(telefono))
+                return null;
+
+            if (int.TryParse(telefono, out var t))
+                return t;
+
             return null;
         }
 
@@ -816,7 +1285,7 @@ namespace CONATRADEC.ViewModels
 
                 if (IsCancel)
                 {
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
+                    bool confirm = await App.Current.MainPage.DisplayAlert(
                         "Cancelar",
                         "Desea no guardar los cambios",
                         "Aceptar",
@@ -844,7 +1313,23 @@ namespace CONATRADEC.ViewModels
 
         private bool ValidateFieldsAsync()
         {
-            if (Terreno == null) return false;
+            if (Terreno == null)
+            {
+                if (!string.IsNullOrWhiteSpace(CodigoTerreno)) return true;
+                if (!string.IsNullOrWhiteSpace(IdentificacionPropietarioTerreno)) return true;
+                if (!string.IsNullOrWhiteSpace(NombrePropietarioTerreno)) return true;
+                if (!string.IsNullOrWhiteSpace(TelefonoPropietarioTexto)) return true;
+                if (!string.IsNullOrWhiteSpace(CorreoPropietario)) return true;
+                if (!string.IsNullOrWhiteSpace(DireccionTerreno)) return true;
+                if (ExtensionManzanaTerreno != null) return true;
+                if (CantidadQuintalesOro != null) return true;
+                if (CantidadPlantasTerreno != null) return true;
+                if (Latitud != null) return true;
+                if (Longitud != null) return true;
+                if (FotosTerreno.Any(f => f.EsNueva)) return true;
+
+                return false;
+            }
 
             if (CodigoTerreno != Terreno.CodigoTerreno) return true;
             if (IdentificacionPropietarioTerreno != Terreno.IdentificacionPropietarioTerreno) return true;
@@ -854,75 +1339,14 @@ namespace CONATRADEC.ViewModels
             if (DireccionTerreno != Terreno.DireccionTerreno) return true;
             if (ExtensionManzanaTerreno != Terreno.ExtensionManzanaTerreno) return true;
             if (CantidadQuintalesOro != Terreno.CantidadQuintalesOro) return true;
+            if (CantidadPlantasTerreno != Terreno.CantidadPlantasTerreno) return true;
             if (FechaIngresoTerreno != Terreno.FechaIngresoTerreno) return true;
             if (Latitud != Terreno.Latitud) return true;
             if (Longitud != Terreno.Longitud) return true;
             if (MunicipioSeleccionado?.MunicipioId != Terreno.MunicipioId) return true;
+            if (FotosTerreno.Any(f => f.EsNueva)) return true;
 
             return false;
         }
-
-        private void ProcesarCoordenadas(string texto)
-        {
-            if (string.IsNullOrWhiteSpace(texto))
-                return;
-
-            texto = texto.Trim();
-
-            // Formato decimal: "12.1234, -86.1234" o "12,1234 -86,1234"
-            var numeros = Regex.Matches(texto.Replace(",", "."), @"-?\d+(\.\d+)?");
-
-            if (numeros.Count == 2)
-            {
-                if (double.TryParse(numeros[0].Value, NumberStyles.Any,
-                        CultureInfo.InvariantCulture, out var lat) &&
-                    double.TryParse(numeros[1].Value, NumberStyles.Any,
-                        CultureInfo.InvariantCulture, out var lon))
-                {
-                    Latitud = lat;
-                    Longitud = lon;
-                    return;
-                }
-            }
-
-            // Formato DMS "12°13'35.8"N 86°28'06.9"W"
-            if (texto.Contains("°"))
-            {
-                var partes = texto.Split(new[] { 'N', 'S', 'E', 'W' }, StringSplitOptions.RemoveEmptyEntries);
-
-                if (partes.Length >= 2)
-                {
-                    var latDms = partes[0].Trim();
-                    var lonDms = partes[1].Trim();
-
-                    var latDecimal = ConvertirDMSToDecimal(latDms);
-                    var lonDecimal = ConvertirDMSToDecimal(lonDms);
-
-                    // identificar hemisferio
-                    if (texto.Contains("S")) latDecimal *= -1;
-                    if (texto.Contains("W")) lonDecimal *= -1;
-
-                    Latitud = latDecimal;
-                    Longitud = lonDecimal;
-                }
-            }
-        }       
-
-        private double ConvertirDMSToDecimal(string dms)
-        {
-            // Extrae grados, minutos y segundos correctamente (incluyendo decimales)
-            var regex = new Regex(@"(\d+)°(\d+)'(\d+(?:\.\d+)?)""?");
-            var match = regex.Match(dms);
-
-            if (!match.Success)
-                return 0;
-
-            double grados = double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
-            double minutos = double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
-            double segundos = double.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
-
-            return grados + (minutos / 60) + (segundos / 3600);
-        }
-
     }
 }

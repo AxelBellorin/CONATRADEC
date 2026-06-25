@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.FotosTerrenoGaleriaPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="Black">
+
+    <Grid RowDefinitions="Auto,*,Auto"
+          BackgroundColor="Black">
+
+        <!-- Barra superior -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="*,Auto"
+              Padding="20,15,20,10"
+              BackgroundColor="Black">
+
+            <Label Text="{Binding Titulo}"
+                   TextColor="White"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   HorizontalOptions="Start" />
+
+            <Button Text="Cerrar"
+                    Grid.Column="1"
+                    BackgroundColor="#EF4444"
+                    TextColor="White"
+                    CornerRadius="18"
+                    Padding="18,8"
+                    Clicked="BtnCerrar_Clicked" />
+        </Grid>
+
+        <!-- Galería -->
+        <CarouselView x:Name="CarouselFotos"
+                      Grid.Row="1"
+                      ItemsSource="{Binding FotosGaleria}"
+                      Position="{Binding FotoSeleccionadaIndex, Mode=TwoWay}"
+                      PositionChanged="CarouselFotos_PositionChanged"
+                      IndicatorView="IndicadorFotos"
+                      IsSwipeEnabled="True"
+                      Loop="False">
+
+            <CarouselView.ItemTemplate>
+                <DataTemplate>
+                    <Grid BackgroundColor="Black"
+                          Padding="10">
+
+                        <Image Source="{Binding Imagen}"
+                               Aspect="AspectFit"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center">
+
+                            <Image.GestureRecognizers>
+
+                                <!-- Zoom con dos dedos -->
+                                <PinchGestureRecognizer PinchUpdated="Imagen_PinchUpdated" />
+
+                                <!-- Mover imagen cuando tiene zoom -->
+                                <PanGestureRecognizer PanUpdated="Imagen_PanUpdated" />
+
+                                <!-- Doble toque para zoom / reset -->
+                                <TapGestureRecognizer NumberOfTapsRequired="2"
+                                                      Tapped="Imagen_DoubleTapped" />
+
+                            </Image.GestureRecognizers>
+
+                        </Image>
+
+                    </Grid>
+                </DataTemplate>
+            </CarouselView.ItemTemplate>
+
+        </CarouselView>
+
+        <!-- Indicador inferior -->
+        <VerticalStackLayout Grid.Row="2"
+                             Spacing="8"
+                             Padding="0,10,0,20"
+                             BackgroundColor="Black">
+
+            <IndicatorView x:Name="IndicadorFotos"
+                           IndicatorColor="#666666"
+                           SelectedIndicatorColor="White"
+                           HorizontalOptions="Center" />
+
+            <Label Text="Deslice para ver más fotos. Doble toque para ampliar o restablecer."
+                   TextColor="#CCCCCC"
+                   FontSize="13"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   Margin="20,0" />
+
+        </VerticalStackLayout>
+
+    </Grid>
+
+</ContentPage>
