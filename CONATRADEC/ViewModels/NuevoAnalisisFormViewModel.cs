@@ -18,7 +18,6 @@ namespace CONATRADEC.ViewModels
         private readonly UnidadMedidaApiService unidadMedidaApiService = new();
         private readonly TerrenoBusquedaApiService terrenoBusquedaApiService = new();
 
-        // Servicios reales que ya existen y funcionan en tu sistema.
         private readonly PaisApiService paisApiService = new();
         private readonly DepartamentoApiService departamentoApiService = new();
         private readonly MunicipioApiService municipioApiService = new();
@@ -46,6 +45,12 @@ namespace CONATRADEC.ViewModels
         private string tamanoFinca = string.Empty;
         private string cantidadPlantas = string.Empty;
 
+        private string ph = string.Empty;
+        private string acidezTotal = string.Empty;
+        private string calcioCice = string.Empty;
+        private string magnesioCice = string.Empty;
+        private string potasioCice = string.Empty;
+
         private string estadoInicialFormulario = string.Empty;
 
         private bool debeLimpiarFormulario = true;
@@ -61,6 +66,11 @@ namespace CONATRADEC.ViewModels
         private string errorTamanoFinca = string.Empty;
         private string errorCantidadPlantas = string.Empty;
 
+        private string errorPh = string.Empty;
+        private string errorAcidezTotal = string.Empty;
+        private string errorCalcioCice = string.Empty;
+        private string errorMagnesioCice = string.Empty;
+        private string errorPotasioCice = string.Empty;
         public NuevoAnalisisFormViewModel()
         {
             ParametrosConstantesAnalisis = new ObservableCollection<ResultadoAnalisisItemViewModel>();
@@ -335,6 +345,61 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public string Ph
+        {
+            get => ph;
+            set
+            {
+                ph = value ?? string.Empty;
+                OnPropertyChanged(nameof(Ph));
+                RefrescarComandos();
+            }
+        }
+
+        public string AcidezTotal
+        {
+            get => acidezTotal;
+            set
+            {
+                acidezTotal = value ?? string.Empty;
+                OnPropertyChanged(nameof(AcidezTotal));
+                RefrescarComandos();
+            }
+        }
+
+        public string CalcioCice
+        {
+            get => calcioCice;
+            set
+            {
+                calcioCice = value ?? string.Empty;
+                OnPropertyChanged(nameof(CalcioCice));
+                RefrescarComandos();
+            }
+        }
+
+        public string MagnesioCice
+        {
+            get => magnesioCice;
+            set
+            {
+                magnesioCice = value ?? string.Empty;
+                OnPropertyChanged(nameof(MagnesioCice));
+                RefrescarComandos();
+            }
+        }
+
+        public string PotasioCice
+        {
+            get => potasioCice;
+            set
+            {
+                potasioCice = value ?? string.Empty;
+                OnPropertyChanged(nameof(PotasioCice));
+                RefrescarComandos();
+            }
+        }
+
         public string ErrorTerreno
         {
             get => errorTerreno;
@@ -452,6 +517,71 @@ namespace CONATRADEC.ViewModels
 
         public bool TieneErrorCantidadPlantas => !string.IsNullOrWhiteSpace(ErrorCantidadPlantas);
 
+        public string ErrorPh
+        {
+            get => errorPh;
+            set
+            {
+                errorPh = value;
+                OnPropertyChanged(nameof(ErrorPh));
+                OnPropertyChanged(nameof(TieneErrorPh));
+            }
+        }
+
+        public bool TieneErrorPh => !string.IsNullOrWhiteSpace(ErrorPh);
+
+        public string ErrorAcidezTotal
+        {
+            get => errorAcidezTotal;
+            set
+            {
+                errorAcidezTotal = value;
+                OnPropertyChanged(nameof(ErrorAcidezTotal));
+                OnPropertyChanged(nameof(TieneErrorAcidezTotal));
+            }
+        }
+
+        public bool TieneErrorAcidezTotal => !string.IsNullOrWhiteSpace(ErrorAcidezTotal);
+
+        public string ErrorCalcioCice
+        {
+            get => errorCalcioCice;
+            set
+            {
+                errorCalcioCice = value;
+                OnPropertyChanged(nameof(ErrorCalcioCice));
+                OnPropertyChanged(nameof(TieneErrorCalcioCice));
+            }
+        }
+
+        public bool TieneErrorCalcioCice => !string.IsNullOrWhiteSpace(ErrorCalcioCice);
+
+        public string ErrorMagnesioCice
+        {
+            get => errorMagnesioCice;
+            set
+            {
+                errorMagnesioCice = value;
+                OnPropertyChanged(nameof(ErrorMagnesioCice));
+                OnPropertyChanged(nameof(TieneErrorMagnesioCice));
+            }
+        }
+
+        public string ErrorPotasioCice
+        {
+            get => errorPotasioCice;
+            set
+            {
+                errorPotasioCice = value;
+                OnPropertyChanged(nameof(ErrorPotasioCice));
+                OnPropertyChanged(nameof(TieneErrorPotasioCice));
+            }
+        }
+
+        public bool TieneErrorPotasioCice => !string.IsNullOrWhiteSpace(ErrorPotasioCice);
+
+        public bool TieneErrorMagnesioCice => !string.IsNullOrWhiteSpace(ErrorMagnesioCice);
+
         public ObservableCollection<ResultadoAnalisisItemViewModel> ParametrosConstantesAnalisis { get; }
 
         public ObservableCollection<ResultadoAnalisisItemViewModel> ElementosQuimicosAnalisis { get; }
@@ -541,6 +671,12 @@ namespace CONATRADEC.ViewModels
             CantidadQuintalesOro = string.Empty;
             TamanoFinca = string.Empty;
             CantidadPlantas = string.Empty;
+
+            Ph = string.Empty;
+            AcidezTotal = string.Empty;
+            CalcioCice = string.Empty;
+            MagnesioCice = string.Empty;
+            PotasioCice = string.Empty;
 
             ParametrosConstantesAnalisis.Clear();
             CargarParametrosConstantesAnalisis();
@@ -1063,6 +1199,12 @@ namespace CONATRADEC.ViewModels
                 decimal tamanoFincaDecimal = ConvertirDecimal(TamanoFinca);
                 int cantidadPlantasValidada = int.Parse(CantidadPlantas);
 
+                decimal phDecimal = ConvertirDecimal(Ph);
+                decimal acidezTotalDecimal = ConvertirDecimal(AcidezTotal);
+                decimal calcioCiceDecimal = ConvertirDecimal(CalcioCice);
+                decimal magnesioCiceDecimal = ConvertirDecimal(MagnesioCice);
+                decimal potasioCiceDecimal = ConvertirDecimal(PotasioCice);
+
                 decimal materiaOrganica = ObtenerValorParametroConstante("MATERIA_ORGANICA");
 
                 var elementosQuimicosRequest = new List<ElementoQuimicoAnalisisRequest>();
@@ -1088,7 +1230,12 @@ namespace CONATRADEC.ViewModels
                     UsuarioId = UsuarioId,
                     CantidadQuintalesOro = quintalesOro,
                     TamanoFinca = tamanoFincaDecimal,
+                    Ph = phDecimal,
                     MateriaOrganica = materiaOrganica,
+                    AcidezTotal = acidezTotalDecimal,
+                    CalcioCice = calcioCiceDecimal,
+                    MagnesioCice = magnesioCiceDecimal,
+                    PotasioCice = potasioCiceDecimal,
                     ElementosQuimicos = elementosQuimicosRequest,
                     FuentesOrganicas = new List<FuenteOrganicaAnalisisRequest>()
                 };
@@ -1101,7 +1248,12 @@ namespace CONATRADEC.ViewModels
                     UsuarioId = UsuarioId,
                     CantidadQuintalesOro = quintalesOro,
                     TamanoFinca = tamanoFincaDecimal,
+                    Ph = phDecimal,
                     MateriaOrganica = materiaOrganica,
+                    AcidezTotal = acidezTotalDecimal,
+                    CalcioCice = calcioCiceDecimal,
+                    MagnesioCice = magnesioCiceDecimal,
+                    PotasioCice = potasioCiceDecimal,
                     ElementosQuimicos = elementosQuimicosRequest,
                     FuentesOrganicas = new List<FuenteOrganicaAnalisisRequest>(),
                     FechaAnalisisSuelo = FechaAnalisisLaboratorio.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -1262,6 +1414,76 @@ namespace CONATRADEC.ViewModels
             {
                 ErrorCantidadPlantas = "La cantidad de plantas debe ser mayor que cero.";
                 await MostrarMensajeAsync("Validación", ErrorCantidadPlantas);
+                return false;
+            }
+
+            if (!ValidarDecimalOpcional(Ph, out decimal phDecimal))
+            {
+                ErrorPh = "El pH debe ser numérico.";
+                await MostrarMensajeAsync("Validación", ErrorPh);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Ph) && (phDecimal <= 0 || phDecimal > 14))
+            {
+                ErrorPh = "El pH debe ser mayor que cero y menor o igual a 14.";
+                await MostrarMensajeAsync("Validación", ErrorPh);
+                return false;
+            }
+
+            if (!ValidarDecimalOpcional(AcidezTotal, out decimal acidezTotalDecimal))
+            {
+                ErrorAcidezTotal = "La acidez total debe ser numérica.";
+                await MostrarMensajeAsync("Validación", ErrorAcidezTotal);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(AcidezTotal) && acidezTotalDecimal < 0)
+            {
+                ErrorAcidezTotal = "La acidez total no puede ser negativa.";
+                await MostrarMensajeAsync("Validación", ErrorAcidezTotal);
+                return false;
+            }
+
+            if (!ValidarDecimalOpcional(CalcioCice, out decimal calcioCiceDecimal))
+            {
+                ErrorCalcioCice = "El calcio CICE debe ser numérico.";
+                await MostrarMensajeAsync("Validación", ErrorCalcioCice);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(CalcioCice) && calcioCiceDecimal < 0)
+            {
+                ErrorCalcioCice = "El calcio CICE no puede ser negativo.";
+                await MostrarMensajeAsync("Validación", ErrorCalcioCice);
+                return false;
+            }
+
+            if (!ValidarDecimalOpcional(MagnesioCice, out decimal magnesioCiceDecimal))
+            {
+                ErrorMagnesioCice = "El magnesio CICE debe ser numérico.";
+                await MostrarMensajeAsync("Validación", ErrorMagnesioCice);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(MagnesioCice) && magnesioCiceDecimal < 0)
+            {
+                ErrorMagnesioCice = "El magnesio CICE no puede ser negativo.";
+                await MostrarMensajeAsync("Validación", ErrorMagnesioCice);
+                return false;
+            }
+
+            if (!ValidarDecimalOpcional(PotasioCice, out decimal potasioCiceDecimal))
+            {
+                ErrorPotasioCice = "El potasio CICE debe ser numérico.";
+                await MostrarMensajeAsync("Validación", ErrorPotasioCice);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(PotasioCice) && potasioCiceDecimal < 0)
+            {
+                ErrorPotasioCice = "El potasio CICE no puede ser negativo.";
+                await MostrarMensajeAsync("Validación", ErrorPotasioCice);
                 return false;
             }
 
@@ -1431,7 +1653,12 @@ namespace CONATRADEC.ViewModels
                 $"Identificador:{IdentificadorAnalisisSuelo?.Trim()}",
                 $"Quintales:{CantidadQuintalesOro?.Trim()}",
                 $"TamanoFinca:{TamanoFinca?.Trim()}",
-                $"CantidadPlantas:{CantidadPlantas?.Trim()}"
+                $"CantidadPlantas:{CantidadPlantas?.Trim()}",
+                $"Ph:{Ph?.Trim()}",
+                $"AcidezTotal:{AcidezTotal?.Trim()}",
+                $"CalcioCice:{CalcioCice?.Trim()}",
+                $"MagnesioCice:{MagnesioCice?.Trim()}",
+                $"PotasioCice:{PotasioCice?.Trim()}"
             };
 
             foreach (var item in ParametrosConstantesAnalisis)
@@ -1474,6 +1701,16 @@ namespace CONATRADEC.ViewModels
             LimpiarFiltrosTerrenoCommand.ChangeCanExecute();
         }
 
+        private static bool ValidarDecimalOpcional(string valor, out decimal resultado)
+        {
+            resultado = 0;
+
+            if (string.IsNullOrWhiteSpace(valor))
+                return true;
+
+            return TryParseDecimal(valor, out resultado);
+        }
+
         private static bool TryParseDecimal(string valor, out decimal resultado)
         {
             if (decimal.TryParse(valor, NumberStyles.Any, CultureInfo.CurrentCulture, out resultado))
@@ -1482,7 +1719,7 @@ namespace CONATRADEC.ViewModels
             if (decimal.TryParse(valor, NumberStyles.Any, CultureInfo.InvariantCulture, out resultado))
                 return true;
 
-            string valorNormalizado = valor.Replace(",", ".");
+            string valorNormalizado = (valor ?? string.Empty).Replace(",", ".");
 
             return decimal.TryParse(
                 valorNormalizado,
@@ -1527,6 +1764,11 @@ namespace CONATRADEC.ViewModels
             ErrorCantidadQuintalesOro = string.Empty;
             ErrorTamanoFinca = string.Empty;
             ErrorCantidadPlantas = string.Empty;
+            ErrorPh = string.Empty;
+            ErrorAcidezTotal = string.Empty;
+            ErrorCalcioCice = string.Empty;
+            ErrorMagnesioCice = string.Empty;
+            ErrorPotasioCice = string.Empty;
         }
     }
 }

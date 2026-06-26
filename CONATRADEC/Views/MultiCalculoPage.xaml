@@ -79,9 +79,38 @@
 
                         </Grid>
 
+                        <Border
+                            BackgroundColor="#F9FAFB"
+                            Stroke="#E5E7EB"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14"
+                            Padding="12">
+
+                            <VerticalStackLayout Spacing="4">
+
+                                <Label
+                                    Text="Nombre / identificador del análisis"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                <Label
+                                    Text="{Binding NombreAnalisisSuelo}"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Cafe}" />
+
+                                <Label
+                                    Text="Este nombre se reutiliza para balance, enmienda calcárea y fertilización mixta."
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    LineBreakMode="WordWrap" />
+
+                            </VerticalStackLayout>
+                        </Border>
+
                         <Grid
                             ColumnDefinitions="*,*"
-                            RowDefinitions="Auto,Auto,Auto"
+                            RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                             ColumnSpacing="12"
                             RowSpacing="10">
 
@@ -126,7 +155,7 @@
 
                             <VerticalStackLayout Grid.Row="1" Grid.Column="1">
                                 <Label
-                                    Text="Acidez total"
+                                    Text="Acidez total / AT"
                                     FontSize="12"
                                     TextColor="{StaticResource color_GrisOscuro}" />
 
@@ -139,6 +168,45 @@
 
                             <VerticalStackLayout Grid.Row="2" Grid.Column="0">
                                 <Label
+                                    Text="Calcio CICE"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                <Label
+                                    Text="{Binding CalcioCice, StringFormat='{0:N2}'}"
+                                    FontSize="15"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Row="2" Grid.Column="1">
+                                <Label
+                                    Text="Magnesio CICE"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                <Label
+                                    Text="{Binding MagnesioCice, StringFormat='{0:N2}'}"
+                                    FontSize="15"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Row="3" Grid.Column="0">
+                                <Label
+                                    Text="Potasio CICE"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                <Label
+                                    Text="{Binding PotasioCice, StringFormat='{0:N2}'}"
+                                    FontSize="15"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Row="4" Grid.Column="0">
+                                <Label
                                     Text="Tamaño finca"
                                     FontSize="12"
                                     TextColor="{StaticResource color_GrisOscuro}" />
@@ -150,7 +218,7 @@
                                     TextColor="{StaticResource color_Negro}" />
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout Grid.Row="2" Grid.Column="1">
+                            <VerticalStackLayout Grid.Row="4" Grid.Column="1">
                                 <Label
                                     Text="Plantas"
                                     FontSize="12"
@@ -344,4 +412,4 @@
         </Grid>
 
     </Grid>
-</ContentPage>
+</ContentPage>  

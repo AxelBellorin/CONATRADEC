@@ -340,6 +340,7 @@
                         </VerticalStackLayout>
                     </Border>
 
+                    <!-- DATOS DEL ANÁLISIS -->
                     <Border Style="{StaticResource CardAnalisisStyle}">
 
                         <VerticalStackLayout Spacing="16">
@@ -488,6 +489,107 @@
                                 <Label Text="Este valor viene del terreno, pero puede modificarse si es necesario para calcular aplicaciones."
                                        FontSize="12"
                                        TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
+
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- DATOS CICE / ENMIENDA CALCÁREA -->
+                    <Border Style="{StaticResource CardAnalisisStyle}">
+
+                        <VerticalStackLayout Spacing="16">
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Datos CICE / Enmienda calcárea"
+                                       Style="{StaticResource SectionTitleStyle}" />
+
+                                <Label Text="Estos datos son opcionales. Si no se ingresan aquí, se tomarán como 0 y podrán completarse después en la pestaña de enmienda calcárea."
+                                       Style="{StaticResource SectionSubtitleStyle}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="pH"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding Ph}"
+                                           Keyboard="Numeric"
+                                           Placeholder="Ejemplo: 4.17"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
+
+                                <Label Text="{Binding ErrorPh}"
+                                       IsVisible="{Binding TieneErrorPh}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Acidez total / AT"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding AcidezTotal}"
+                                           Keyboard="Numeric"
+                                           Placeholder="Ejemplo: 5.18"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
+
+                                <Label Text="{Binding ErrorAcidezTotal}"
+                                       IsVisible="{Binding TieneErrorAcidezTotal}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Calcio CICE"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding CalcioCice}"
+                                           Keyboard="Numeric"
+                                           Placeholder="Ejemplo: 2.40"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
+
+                                <Label Text="{Binding ErrorCalcioCice}"
+                                       IsVisible="{Binding TieneErrorCalcioCice}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Magnesio CICE"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry Text="{Binding MagnesioCice}"
+                                           Keyboard="Numeric"
+                                           Placeholder="Ejemplo: 0.80"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
+                                </Border>
+
+                                <Label Text="{Binding ErrorMagnesioCice}"
+                                       IsVisible="{Binding TieneErrorMagnesioCice}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Potasio CICE"
+                                       Style="{StaticResource FieldLabelStyle}" />
+
+                                <Border Style="{StaticResource FormInputContainerStyle}">
+                                    <Entry  Text="{Binding PotasioCice}"
+                                            Keyboard="Numeric"
+                                            Placeholder="Ejemplo: 0.14"
+                                            HorizontalOptions="Fill"
+                                            Style="{StaticResource FormEntryStyle}"/>
+                                </Border>
+
+                                <Label  Text="{Binding ErrorPotasioCice}"
+                                        IsVisible="{Binding TieneErrorPotasioCice}"
+                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                         </VerticalStackLayout>
@@ -730,7 +832,7 @@
                                        WidthRequest="42"
                                        HeightRequest="42" />
 
-                    <Label Text="Procesando análisis..."
+                    <Label Text="Cargando Datos ..."
                            TextColor="White"
                            FontSize="16"
                            FontAttributes="Bold" />

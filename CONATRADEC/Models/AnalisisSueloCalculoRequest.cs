@@ -27,8 +27,27 @@ namespace CONATRADEC.Models
         [JsonPropertyName("tamanoFinca")]
         public decimal? TamanoFinca { get; set; }
 
+        [JsonPropertyName("ph")]
+        public decimal? Ph { get; set; }
+
         [JsonPropertyName("materiaOrganica")]
         public decimal? MateriaOrganica { get; set; }
+
+        [JsonPropertyName("acidezTotal")]
+        public decimal? AcidezTotal { get; set; }
+
+        // ===============================================================
+        // Datos CICE usados principalmente para Enmienda Calcárea.
+        // Son opcionales. Si el usuario no los escribe, se envían como 0.
+        // ===============================================================
+        [JsonPropertyName("calcioCice")]
+        public decimal? CalcioCice { get; set; }
+
+        [JsonPropertyName("magnesioCice")]
+        public decimal? MagnesioCice { get; set; }
+
+        [JsonPropertyName("potasioCice")]
+        public decimal? PotasioCice { get; set; }
 
         [JsonPropertyName("elementosQuimicos")]
         public List<ElementoQuimicoAnalisisRequest> ElementosQuimicos { get; set; } = new();

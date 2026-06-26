@@ -15,8 +15,15 @@ namespace CONATRADEC.ViewModels
         // ===== VIEWMODEL: EnmiendaCalcareaTabViewModel =============
         // ===========================================================
         // ViewModel usado dentro de MultiCalculoPage para calcular
-        // la enmienda calcárea con datos CICE:
-        // pH, Ca, Mg, K y AT / Acidez total.
+        // la enmienda calcárea con datos CICE.
+        //
+        // Regla actual:
+        // - El nombre del análisis NO se escribe aquí.
+        // - Se toma de RequestGuardarAnalisis.IdentificadorAnalisisSuelo.
+        // - pH, AT, Ca CICE y Mg CICE se precargan si vienen del
+        //   formulario inicial.
+        // - Si vienen vacíos o 0, el usuario puede escribirlos aquí.
+        // - Si no escribe datos CICE, se envían como 0.
         // ===========================================================
 
         private readonly EnmiendaCalcareaApiService enmiendaCalcareaApiService = new();
@@ -69,6 +76,8 @@ namespace CONATRADEC.ViewModels
             {
                 requestGuardarAnalisis = value;
                 OnPropertyChanged(nameof(RequestGuardarAnalisis));
+
+                PrecargarDatosDesdeAnalisis();
             }
         }
 
@@ -123,6 +132,12 @@ namespace CONATRADEC.ViewModels
 
         public bool TieneResultado => ResultadoEnmienda != null;
 
+        // ===========================================================
+        // Nombre del análisis usado para la enmienda.
+        // Ya NO se escribe en esta pestaña.
+        // Se toma del identificador capturado una sola vez en
+        // NuevoAnalisisFormPage.
+        // ===========================================================
         public string NombreAnalisis
         {
             get => nombreAnalisis;
@@ -130,7 +145,19 @@ namespace CONATRADEC.ViewModels
             {
                 nombreAnalisis = value ?? string.Empty;
                 OnPropertyChanged(nameof(NombreAnalisis));
+                OnPropertyChanged(nameof(NombreAnalisisTexto));
                 RefrescarComandos();
+            }
+        }
+
+        public string NombreAnalisisTexto
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(NombreAnalisis))
+                    return "Enmienda calcárea";
+
+                return NombreAnalisis.Trim();
             }
         }
 
@@ -258,9 +285,6 @@ namespace CONATRADEC.ViewModels
         // ===========================================================
         // ===================== INICIALIZACIÓN ======================
         // ===========================================================
-        // Este método se ejecuta cuando MultiCalculoPage inicializa
-        // la pestaña de enmienda calcárea.
-        // ===========================================================
 
         public void Inicializar(
             AnalisisSueloCalculoDataResponse? resultado,
@@ -279,16 +303,53 @@ namespace CONATRADEC.ViewModels
                 _ = CargarEnmiendasCalcareasAsync();
         }
 
+        private void PrecargarDatosDesdeAnalisis()
+        {
+            string identificador = RequestGuardarAnalisis?.IdentificadorAnalisisSuelo ?? string.Empty;
+
+            NombreAnalisis = string.IsNullOrWhiteSpace(identificador)
+                ? "Enmienda calcárea"
+                : identificador.Trim();
+
+            decimal phAnalisis =
+                RequestGuardarAnalisis?.Ph ??
+                ResultadoCalculo?.Ph ??
+                0;
+
+            decimal acidezAnalisis =
+                RequestGuardarAnalisis?.AcidezTotal ??
+                ResultadoCalculo?.AcidezTotal ??
+                0;
+
+            decimal calcioCice =
+                RequestGuardarAnalisis?.CalcioCice ?? 0;
+
+            decimal magnesioCice =
+                RequestGuardarAnalisis?.MagnesioCice ?? 0;
+
+            decimal potasioCice =
+                RequestGuardarAnalisis?.PotasioCice ?? 0;
+
+            if (string.IsNullOrWhiteSpace(Ph) && phAnalisis > 0)
+                Ph = phAnalisis.ToString(CultureInfo.InvariantCulture);
+
+            if (string.IsNullOrWhiteSpace(AcidezTotal) && acidezAnalisis > 0)
+                AcidezTotal = acidezAnalisis.ToString(CultureInfo.InvariantCulture);
+
+            if (string.IsNullOrWhiteSpace(Ca) && calcioCice > 0)
+                Ca = calcioCice.ToString(CultureInfo.InvariantCulture);
+
+            if (string.IsNullOrWhiteSpace(Mg) && magnesioCice > 0)
+                Mg = magnesioCice.ToString(CultureInfo.InvariantCulture);
+
+            if (string.IsNullOrWhiteSpace(K) && potasioCice > 0)
+                K = potasioCice.ToString(CultureInfo.InvariantCulture);
+
+            OnPropertyChanged(nameof(NombreAnalisisTexto));
+        }
+
         // ===========================================================
         // =============== REINICIO PARA NUEVO CÁLCULO ===============
-        // ===========================================================
-        // Este método limpia la pestaña cuando el usuario sale de
-        // MultiCalculoPage y vuelve a entrar desde ResultadoAnalisis.
-        //
-        // Importante:
-        // NO se llama al cambiar entre pestañas internas.
-        // Por eso no borra datos al moverse entre Balance, Enmienda
-        // y Fertilización Mixta.
         // ===========================================================
 
         public void ReiniciarParaNuevoCalculo()
@@ -358,7 +419,7 @@ namespace CONATRADEC.ViewModels
                     EnmiendaSeleccionada = EnmiendasCalcareas.FirstOrDefault();
 
                 Mensaje = EnmiendasCalcareas.Count > 0
-                    ? "Ingrese los datos CICE y calcule la enmienda."
+                    ? "Ingrese o revise los datos CICE y calcule la enmienda."
                     : "No se encontraron tipos de cal disponibles.";
             }
             catch (Exception ex)
@@ -403,10 +464,7 @@ namespace CONATRADEC.ViewModels
 
                 var request = new EnmiendaCalcareaCalcularRequest
                 {
-                    NombreAnalisis = string.IsNullOrWhiteSpace(NombreAnalisis)
-                        ? "Enmienda calcárea"
-                        : NombreAnalisis.Trim(),
-
+                    NombreAnalisis = NombreAnalisisTexto,
                     FuenteNutrientesId = EnmiendaSeleccionada!.FuenteNutrientesId!.Value,
                     Ph = phValidado,
                     Ca = caValidado,
@@ -477,31 +535,37 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
-            if (!TryParseDecimal(Ph, out phValidado) || phValidado <= 0 || phValidado > 14)
+            if (!TryParseDecimalOpcional(Ph, out phValidado))
             {
-                ErrorFormulario = "Ingrese un pH válido entre 0 y 14.";
+                ErrorFormulario = "Ingrese un valor numérico para pH.";
                 return false;
             }
 
-            if (!TryParseDecimal(Ca, out caValidado) || caValidado < 0)
+            if (phValidado < 0 || phValidado > 14)
+            {
+                ErrorFormulario = "El pH debe estar entre 0 y 14.";
+                return false;
+            }
+
+            if (!TryParseDecimalOpcional(Ca, out caValidado) || caValidado < 0)
             {
                 ErrorFormulario = "Ingrese un valor válido para Ca.";
                 return false;
             }
 
-            if (!TryParseDecimal(Mg, out mgValidado) || mgValidado < 0)
+            if (!TryParseDecimalOpcional(Mg, out mgValidado) || mgValidado < 0)
             {
                 ErrorFormulario = "Ingrese un valor válido para Mg.";
                 return false;
             }
 
-            if (!TryParseDecimal(K, out kValidado) || kValidado < 0)
+            if (!TryParseDecimalOpcional(K, out kValidado) || kValidado < 0)
             {
                 ErrorFormulario = "Ingrese un valor válido para K.";
                 return false;
             }
 
-            if (!TryParseDecimal(AcidezTotal, out acidezValidada) || acidezValidada <= 0)
+            if (!TryParseDecimalOpcional(AcidezTotal, out acidezValidada) || acidezValidada < 0)
             {
                 ErrorFormulario = "Ingrese un valor válido para AT / Acidez total.";
                 return false;
@@ -532,12 +596,12 @@ namespace CONATRADEC.ViewModels
         // ===================== MÉTODOS PRIVADOS ====================
         // ===========================================================
 
-        private static bool TryParseDecimal(string valor, out decimal resultado)
+        private static bool TryParseDecimalOpcional(string valor, out decimal resultado)
         {
             resultado = 0;
 
             if (string.IsNullOrWhiteSpace(valor))
-                return false;
+                return true;
 
             string normalizado = valor.Trim().Replace(",", ".");
 

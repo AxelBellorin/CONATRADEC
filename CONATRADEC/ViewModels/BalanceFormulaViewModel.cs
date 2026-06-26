@@ -89,6 +89,8 @@ namespace CONATRADEC.ViewModels
             {
                 requestGuardarAnalisis = value;
                 OnPropertyChanged(nameof(RequestGuardarAnalisis));
+
+                AsignarNombreFormulaDesdeAnalisis();
             }
         }
 
@@ -180,15 +182,30 @@ namespace CONATRADEC.ViewModels
         public string TextoDosisPlantaSeleccionada =>
             $"{DosisPlantaSeleccionada.ToString("N4", CultureInfo.InvariantCulture)} oz/planta";
 
+        // ===========================================================
+        // Nombre usado para el balance.
+        // Ya NO se escribe en esta pestaña.
+        // Se toma del identificador del análisis de suelo.
+        // ===========================================================
         public string NombreFormula
         {
             get => nombreFormula;
             set
             {
-                nombreFormula = value;
+                nombreFormula = value ?? string.Empty;
                 OnPropertyChanged(nameof(NombreFormula));
-                RefrescarComandos();
-                ProgramarRecalculoAutomatico();
+                OnPropertyChanged(nameof(NombreAnalisisSuelo));
+            }
+        }
+
+        public string NombreAnalisisSuelo
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(NombreFormula))
+                    return NombreFormula.Trim();
+
+                return "Fórmula balance nutricional";
             }
         }
 
@@ -383,7 +400,22 @@ namespace CONATRADEC.ViewModels
             if (query.ContainsKey("cantidadPlantas"))
                 TotalPlantas = query["cantidadPlantas"]?.ToString() ?? string.Empty;
 
+            AsignarNombreFormulaDesdeAnalisis();
+
             await InicializarAsync();
+        }
+
+        private void AsignarNombreFormulaDesdeAnalisis()
+        {
+            string identificador = RequestGuardarAnalisis?.IdentificadorAnalisisSuelo ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(identificador))
+                identificador = "Fórmula balance nutricional";
+
+            nombreFormula = identificador.Trim();
+
+            OnPropertyChanged(nameof(NombreFormula));
+            OnPropertyChanged(nameof(NombreAnalisisSuelo));
         }
 
         private async Task InicializarAsync()
@@ -752,9 +784,7 @@ namespace CONATRADEC.ViewModels
                 Success = true,
                 Message = "Balance calculado.",
                 BalanceNutricionalId = null,
-                NombreFormula = string.IsNullOrWhiteSpace(NombreFormula)
-                    ? "Fórmula balance nutricional"
-                    : NombreFormula.Trim(),
+                NombreFormula = NombreAnalisisSuelo,
 
                 TotalMezclaLb = Redondear(totalMezclaLb),
                 TotalMezclaOz = Redondear(totalMezclaOz),
@@ -1148,6 +1178,10 @@ namespace CONATRADEC.ViewModels
 
             ResultadoBalance = null;
             TieneResultadoBalance = false;
+
+            nombreFormula = "Fórmula balance nutricional";
+            OnPropertyChanged(nameof(NombreFormula));
+            OnPropertyChanged(nameof(NombreAnalisisSuelo));
 
             OnPropertyChanged(nameof(ResultadoBalance));
             OnPropertyChanged(nameof(TieneTablaBalance));

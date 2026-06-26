@@ -29,18 +29,35 @@
                         LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
 
-                <VerticalStackLayout Spacing="6">
-                    <Label
-                        Text="Nombre de fórmula"
-                        Style="{StaticResource FieldLabelStyle}" />
+                <!-- NOMBRE DEL ANÁLISIS, SOLO LECTURA -->
+                <Border
+                    BackgroundColor="#F9FAFB"
+                    Stroke="#E5E7EB"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14"
+                    Padding="12">
 
-                    <Border Style="{StaticResource InputContainerStyle}">
-                        <Entry
-                            Text="{Binding NombreFormula}"
-                            Placeholder="Ejemplo: Fórmula Café 2026"
-                            Style="{StaticResource InputEntryStyle}" />
-                    </Border>
-                </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="4">
+
+                        <Label
+                            Text="Nombre / identificador del análisis"
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                        <Label
+                            Text="{Binding NombreAnalisisSuelo}"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Este nombre viene del análisis de suelo y se reutiliza para el balance."
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
+
+                    </VerticalStackLayout>
+                </Border>
 
                 <Grid ColumnDefinitions="*,*"
                       ColumnSpacing="10">
@@ -696,4 +713,4 @@
         </Border>
 
     </VerticalStackLayout>
-</ContentView>
+</ContentView>  

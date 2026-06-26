@@ -8,8 +8,6 @@
 
         <!-- ===================================================== -->
         <!-- FORMULARIO DE ENMIENDA CALCÁREA -->
-        <!-- Pensado para sistema multiplataforma, pero optimizado -->
-        <!-- principalmente para móvil: campos uno debajo del otro. -->
         <!-- ===================================================== -->
         <Border
             BackgroundColor="White"
@@ -28,25 +26,41 @@
                         TextColor="{StaticResource color_Cafe}" />
 
                     <Label
-                        Text="Ingrese los datos CICE específicos para calcular la necesidad de encalado."
+                        Text="Revise o complete los datos CICE específicos para calcular la necesidad de encalado."
                         FontSize="14"
                         TextColor="{StaticResource color_GrisOscuro}"
                         LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
 
-                <!-- NOMBRE DEL ANÁLISIS -->
-                <VerticalStackLayout Spacing="6">
-                    <Label
-                        Text="Nombre del análisis"
-                        Style="{StaticResource FieldLabelStyle}" />
+                <!-- NOMBRE DEL ANÁLISIS, SOLO LECTURA -->
+                <Border
+                    BackgroundColor="#F9FAFB"
+                    Stroke="#E5E7EB"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14"
+                    Padding="12">
 
-                    <Border Style="{StaticResource InputContainerStyle}">
-                        <Entry
-                            Text="{Binding NombreAnalisis}"
-                            Placeholder="Ejemplo: Enmienda Café 2026"
-                            Style="{StaticResource InputEntryStyle}" />
-                    </Border>
-                </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="4">
+
+                        <Label
+                            Text="Nombre / identificador del análisis"
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                        <Label
+                            Text="{Binding NombreAnalisisTexto}"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Cafe}" />
+
+                        <Label
+                            Text="Este nombre viene del análisis de suelo y se reutiliza para la enmienda calcárea."
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
+
+                    </VerticalStackLayout>
+                </Border>
 
                 <!-- TIPO DE CAL -->
                 <VerticalStackLayout Spacing="6">
@@ -100,7 +114,7 @@
                             TextColor="{StaticResource color_Cafe}" />
 
                         <Label
-                            Text="Estos valores son específicos para la enmienda calcárea: pH, Ca, Mg, K y AT."
+                            Text="pH, AT, Ca CICE, Mg CICE y K CICE pueden venir precargados desde el análisis inicial. Si están vacíos, puede escribirlos aquí. Si no los escribe, se enviarán como 0."
                             FontSize="13"
                             TextColor="#7C2D12"
                             LineBreakMode="WordWrap" />
@@ -126,7 +140,7 @@
                 <!-- CA -->
                 <VerticalStackLayout Spacing="6">
                     <Label
-                        Text="Ca"
+                        Text="Ca CICE"
                         Style="{StaticResource FieldLabelStyle}" />
 
                     <Border Style="{StaticResource InputContainerStyle}">
@@ -141,7 +155,7 @@
                 <!-- MG -->
                 <VerticalStackLayout Spacing="6">
                     <Label
-                        Text="Mg"
+                        Text="Mg CICE"
                         Style="{StaticResource FieldLabelStyle}" />
 
                     <Border Style="{StaticResource InputContainerStyle}">
@@ -156,7 +170,7 @@
                 <!-- K -->
                 <VerticalStackLayout Spacing="6">
                     <Label
-                        Text="K"
+                        Text="K CICE"
                         Style="{StaticResource FieldLabelStyle}" />
 
                     <Border Style="{StaticResource InputContainerStyle}">
@@ -166,6 +180,12 @@
                             Placeholder="Ejemplo: 0.14"
                             Style="{StaticResource InputEntryStyle}" />
                     </Border>
+
+                    <Label
+                        Text="Este campo se mantiene porque el cálculo actual de enmienda calcárea lo utiliza."
+                        FontSize="12"
+                        TextColor="{StaticResource color_GrisOscuro}"
+                        LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
 
                 <!-- AT / ACIDEZ TOTAL -->
@@ -259,8 +279,6 @@
 
         <!-- ===================================================== -->
         <!-- RESULTADO DE ENMIENDA CALCÁREA -->
-        <!-- Se deja como estaba antes: resumen en 2 columnas. -->
-        <!-- Valores mostrados con 2 decimales. -->
         <!-- ===================================================== -->
         <Border
             BackgroundColor="White"

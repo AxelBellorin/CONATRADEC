@@ -74,6 +74,18 @@ namespace CONATRADEC.ViewModels
             {
                 requestGuardarAnalisis = value;
                 OnPropertyChanged(nameof(RequestGuardarAnalisis));
+
+                OnPropertyChanged(nameof(NombreAnalisisSuelo));
+                OnPropertyChanged(nameof(TieneNombreAnalisisSuelo));
+
+                OnPropertyChanged(nameof(Ph));
+                OnPropertyChanged(nameof(AcidezTotal));
+                OnPropertyChanged(nameof(CalcioCice));
+                OnPropertyChanged(nameof(MagnesioCice));
+                OnPropertyChanged(nameof(PotasioCice));
+
+                OnPropertyChanged(nameof(TamanoFinca));
+                OnPropertyChanged(nameof(CantidadQuintalesOro));
             }
         }
 
@@ -174,14 +186,16 @@ namespace CONATRADEC.ViewModels
         {
             get
             {
+                string nombreAnalisis = NombreAnalisisSuelo;
+
                 if (EsBalanceSeleccionado)
-                    return "Está trabajando en el balance de fórmula. Puede cambiar de pestaña sin perder los datos.";
+                    return $"Está trabajando en el balance de fórmula del análisis {nombreAnalisis}. Puede cambiar de pestaña sin perder los datos.";
 
                 if (EsEnmiendaSeleccionada)
-                    return "Está trabajando en la enmienda calcárea. Puede volver al balance sin perder los datos.";
+                    return $"Está trabajando en la enmienda calcárea del análisis {nombreAnalisis}. Puede volver al balance sin perder los datos.";
 
                 if (EsFertilizacionSeleccionada)
-                    return "Está trabajando en fertilización mixta. Puede cambiar de pestaña sin perder los datos.";
+                    return $"Está trabajando en fertilización mixta del análisis {nombreAnalisis}. Puede cambiar de pestaña sin perder los datos.";
 
                 return "Cambie entre los cálculos seleccionados desde las pestañas inferiores.";
             }
@@ -201,6 +215,22 @@ namespace CONATRADEC.ViewModels
         public bool TieneMensaje =>
             !string.IsNullOrWhiteSpace(Mensaje);
 
+        public string NombreAnalisisSuelo
+        {
+            get
+            {
+                string nombre = RequestGuardarAnalisis?.IdentificadorAnalisisSuelo ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(nombre))
+                    return "No disponible";
+
+                return nombre.Trim();
+            }
+        }
+
+        public bool TieneNombreAnalisisSuelo =>
+            !string.IsNullOrWhiteSpace(RequestGuardarAnalisis?.IdentificadorAnalisisSuelo);
+
         public string TipoCultivo =>
             ResultadoCalculo?.TipoCultivo ?? "No disponible";
 
@@ -208,16 +238,33 @@ namespace CONATRADEC.ViewModels
             ResultadoCalculo?.TipoAnalisisSuelo ?? "No disponible";
 
         public decimal Ph =>
-            ResultadoCalculo?.Ph ?? 0;
+            RequestGuardarAnalisis?.Ph ??
+            ResultadoCalculo?.Ph ??
+            0;
 
         public decimal AcidezTotal =>
-            ResultadoCalculo?.AcidezTotal ?? 0;
+            RequestGuardarAnalisis?.AcidezTotal ??
+            ResultadoCalculo?.AcidezTotal ??
+            0;
+
+        public decimal CalcioCice =>
+            RequestGuardarAnalisis?.CalcioCice ?? 0;
+
+        public decimal MagnesioCice =>
+            RequestGuardarAnalisis?.MagnesioCice ?? 0;
+
+        public decimal PotasioCice =>
+            RequestGuardarAnalisis?.PotasioCice ?? 0;
 
         public decimal TamanoFinca =>
-            ResultadoCalculo?.TamanoFinca ?? 0;
+            RequestGuardarAnalisis?.TamanoFinca ??
+            ResultadoCalculo?.TamanoFinca ??
+            0;
 
         public decimal CantidadQuintalesOro =>
-            ResultadoCalculo?.CantidadQuintalesOro ?? 0;
+            RequestGuardarAnalisis?.CantidadQuintalesOro ??
+            ResultadoCalculo?.CantidadQuintalesOro ??
+            0;
 
         public string CantidadPlantasTexto =>
             CantidadPlantas.HasValue && CantidadPlantas.Value > 0
