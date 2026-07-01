@@ -85,6 +85,10 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+	  <None Remove="Platforms\Android\Resources\xml\network_security_config.xml" />
+	</ItemGroup>
+	
+	<ItemGroup>
 	  <MauiImage Include="Resources\Splash\coffesplash.png" />
 	</ItemGroup>
 
