@@ -15,6 +15,7 @@ namespace CONATRADEC.ViewModels
     public class BalanceFormulaViewModel : GlobalService, IQueryAttributable
     {
         private readonly FuenteNutrienteApiService fuenteNutrienteApiService = new();
+        private readonly BalanceNutricionalApiService balanceNutricionalApiService = new();
 
         private CancellationTokenSource? recalculoCancellationTokenSource;
 
@@ -61,6 +62,7 @@ namespace CONATRADEC.ViewModels
             FilasTablaBalance = new ObservableCollection<BalanceFormulaTablaFilaViewModel>();
             FilasAplicaciones = new ObservableCollection<BalanceFormulaAplicacionViewModel>();
             FilasPrecio = new ObservableCollection<BalanceFormulaPrecioViewModel>();
+            FormulaComercialVisual = new ObservableCollection<BalanceFormulaComercialViewModel>();
 
             RecalcularCommand = new Command(
                 async () => await ReiniciarBalanceAsync(),
@@ -182,11 +184,6 @@ namespace CONATRADEC.ViewModels
         public string TextoDosisPlantaSeleccionada =>
             $"{DosisPlantaSeleccionada.ToString("N4", CultureInfo.InvariantCulture)} oz/planta";
 
-        // ===========================================================
-        // Nombre usado para el balance.
-        // Ya NO se escribe en esta pestaña.
-        // Se toma del identificador del análisis de suelo.
-        // ===========================================================
         public string NombreFormula
         {
             get => nombreFormula;
@@ -214,7 +211,7 @@ namespace CONATRADEC.ViewModels
             get => totalPlantas;
             set
             {
-                totalPlantas = value;
+                totalPlantas = value ?? string.Empty;
                 OnPropertyChanged(nameof(TotalPlantas));
                 RefrescarComandos();
                 ProgramarRecalculoAutomatico();
@@ -354,6 +351,9 @@ namespace CONATRADEC.ViewModels
             FilasPrecio.Count > 0 &&
             FilaTotalPrecio != null;
 
+        public bool TieneFormulaComercial =>
+            FormulaComercialVisual.Count > 0;
+
         public bool PuedeRecalcular =>
             !IsBusy &&
             ElementosBalance.Any(x => x.FuenteSeleccionada != null);
@@ -373,6 +373,8 @@ namespace CONATRADEC.ViewModels
         public ObservableCollection<BalanceFormulaAplicacionViewModel> FilasAplicaciones { get; }
 
         public ObservableCollection<BalanceFormulaPrecioViewModel> FilasPrecio { get; }
+
+        public ObservableCollection<BalanceFormulaComercialViewModel> FormulaComercialVisual { get; }
 
         public Command RecalcularCommand { get; }
 
@@ -619,12 +621,36 @@ namespace CONATRADEC.ViewModels
                 IsBusy = true;
                 RefrescarComandos();
 
-                CalcularBalanceLocal(elementosSeleccionados, plantas, aplicaciones);
+                BalanceNutricionalRequest request = ConstruirRequestBalance(
+                    elementosSeleccionados,
+                    plantas,
+                    aplicaciones
+                );
 
-                Mensaje = "Balance calculado correctamente.";
+                BalanceNutricionalResponse? resultadoApi =
+                    await balanceNutricionalApiService.CalcularAsync(request);
+
+                if (resultadoApi == null)
+                {
+                    LimpiarResultadoBalance();
+                    Mensaje = "La API no devolvió resultado para el balance de fórmula.";
+                    return;
+                }
+
+                if (!resultadoApi.Success)
+                {
+                    LimpiarResultadoBalance();
+                    Mensaje = resultadoApi.Message ?? "No se pudo calcular el balance de fórmula.";
+                    return;
+                }
+
+                ProcesarResultadoApi(resultadoApi, plantas, aplicaciones);
+
+                Mensaje = resultadoApi.Message ?? "Balance calculado correctamente.";
             }
             catch (Exception ex)
             {
+                LimpiarResultadoBalance();
                 await MostrarMensajeAsync("Error", $"No se pudo calcular el balance: {ex.Message}");
             }
             finally
@@ -632,6 +658,341 @@ namespace CONATRADEC.ViewModels
                 IsBusy = false;
                 RefrescarComandos();
             }
+        }
+
+        private BalanceNutricionalRequest ConstruirRequestBalance(
+            List<BalanceFormulaElementoViewModel> elementosSeleccionados,
+            int plantas,
+            int aplicaciones)
+        {
+            var request = new BalanceNutricionalRequest
+            {
+                NombreFormula = ObtenerNombreFormulaResultado(),
+                TerrenoId = TerrenoId,
+                TotalPlantas = plantas,
+                TotalAplicaciones = aplicaciones
+            };
+
+            foreach (var elemento in elementosSeleccionados)
+            {
+                if (elemento.FuenteSeleccionada == null)
+                    continue;
+
+                request.Items.Add(new BalanceNutricionalItemRequest
+                {
+                    FuenteNutrientesId = elemento.FuenteSeleccionada.FuenteNutrientesId,
+                    ElementoQuimicosId = elemento.ElementoQuimicosId,
+                    RequerimientoLibras = elemento.RequerimientoLibras
+                });
+            }
+
+            return request;
+        }
+
+        private void ProcesarResultadoApi(
+            BalanceNutricionalResponse resultadoApi,
+            int plantas,
+            int aplicaciones)
+        {
+            LimpiarResultadoBalance();
+
+            resultadoApi.NombreFormula = ObtenerNombreFormulaResultado();
+
+            ResultadoBalance = resultadoApi;
+
+            ConstruirFormulaComercialVisual(resultadoApi);
+
+            DosisPlantaSeleccionada = Redondear(resultadoApi.DosisPlantaPorAplicacionOz ?? 0, 4);
+
+            EtiquetaDosisPlantaSeleccionada = aplicaciones == 1
+                ? "Dosis por planta en 1 aplicación"
+                : $"Dosis por planta en {aplicaciones} aplicaciones";
+
+            TituloColumnaAplicaciones = aplicaciones == 1
+                ? "1 aplicación"
+                : $"{aplicaciones} aplicaciones";
+
+            ConstruirFilasResultadoDesdeApi(resultadoApi);
+            ConstruirTotalesAportesDesdeApi(resultadoApi);
+            ConstruirTablaFormulaVisualDesdeApi(resultadoApi);
+            ConstruirTablaAplicacionesDesdeApi(resultadoApi, plantas, aplicaciones);
+            ConstruirTablaPreciosDesdeApi(resultadoApi);
+
+            TieneResultadoBalance = true;
+
+            OnPropertyChanged(nameof(ResultadoBalance));
+            OnPropertyChanged(nameof(TieneResultadoBalance));
+            OnPropertyChanged(nameof(TieneTablaBalance));
+            OnPropertyChanged(nameof(TieneTablaAplicaciones));
+            OnPropertyChanged(nameof(TieneTablaPrecios));
+            OnPropertyChanged(nameof(TieneFormulaComercial));
+        }
+
+        private void ConstruirFilasResultadoDesdeApi(BalanceNutricionalResponse resultadoApi)
+        {
+            FilasResultado.Clear();
+
+            foreach (var detalle in resultadoApi.Detalle)
+            {
+                FilasResultado.Add(new BalanceFormulaFilaResultadoViewModel
+                {
+                    Fuente = detalle.Fuente ?? "Fuente",
+                    Elemento = FormatearSimboloTabla(detalle.Elemento),
+                    RequerimientoLibras = detalle.RequerimientoLibras ?? 0,
+                    RequerimientoPendienteLibras = detalle.RequerimientoLibras ?? 0,
+                    LibrasAnuales = detalle.LibrasAnuales ?? 0,
+                    OnzasAnuales = detalle.OnzasAnuales ?? 0,
+                    OnzasPorAplicacion = detalle.OnzasPorAplicacion ?? 0,
+                    LibrasPorAplicacion = detalle.LibrasPorAplicacion ?? 0,
+                    QuintalesAnuales = detalle.QuintalesAnuales ?? 0,
+                    PrecioPorQuintal = detalle.PrecioPorQuintal ?? 0,
+                    SubtotalFuente = detalle.SubtotalFuente ?? 0,
+                    Aportes = detalle.Aportes ?? new Dictionary<string, decimal>()
+                });
+            }
+
+            var ordenadas = FilasResultado
+                .OrderByDescending(x => x.RequerimientoLibras)
+                .ToList();
+
+            FilasResultado.Clear();
+
+            foreach (var fila in ordenadas)
+                FilasResultado.Add(fila);
+        }
+
+        private void ConstruirTotalesAportesDesdeApi(BalanceNutricionalResponse resultadoApi)
+        {
+            TotalesAportes.Clear();
+
+            foreach (var item in resultadoApi.FormulaComercial)
+            {
+                TotalesAportes.Add(new BalanceFormulaAporteViewModel
+                {
+                    Simbolo = FormatearSimboloTabla(item.Key),
+                    Nombre = FormatearSimboloTabla(item.Key),
+                    Libras = item.Value
+                });
+            }
+        }
+
+        private void ConstruirFormulaComercialVisual(BalanceNutricionalResponse resultadoApi)
+        {
+            FormulaComercialVisual.Clear();
+
+            List<string> elementosTabla = ObtenerElementosTablaDesdeApi(resultadoApi);
+
+            foreach (string simbolo in elementosTabla)
+            {
+                decimal valor = ObtenerValorDiccionarioAporte(resultadoApi.FormulaComercial, simbolo);
+
+                FormulaComercialVisual.Add(new BalanceFormulaComercialViewModel
+                {
+                    Simbolo = FormatearSimboloTabla(simbolo),
+                    Valor = valor
+                });
+            }
+
+            OnPropertyChanged(nameof(FormulaComercialVisual));
+            OnPropertyChanged(nameof(TieneFormulaComercial));
+        }
+
+        private void ConstruirTablaFormulaVisualDesdeApi(BalanceNutricionalResponse resultadoApi)
+        {
+            EncabezadosElementosTabla.Clear();
+            FilasTablaBalance.Clear();
+            FilaFormula = null;
+
+            List<string> elementosTabla = ObtenerElementosTablaDesdeApi(resultadoApi);
+
+            foreach (string simbolo in elementosTabla)
+                EncabezadosElementosTabla.Add(simbolo);
+
+            foreach (var detalle in resultadoApi.Detalle)
+            {
+                var fila = new BalanceFormulaTablaFilaViewModel
+                {
+                    Fuente = detalle.Fuente ?? "Fuente",
+                    Libras = detalle.LibrasAnuales ?? 0,
+                    Quintales = detalle.QuintalesAnuales ?? 0
+                };
+
+                foreach (string simbolo in elementosTabla)
+                {
+                    decimal valor = ObtenerValorDiccionarioAporte(detalle.Aportes, simbolo);
+
+                    fila.Celdas.Add(new BalanceFormulaTablaCeldaViewModel
+                    {
+                        Simbolo = simbolo,
+                        Valor = valor
+                    });
+                }
+
+                FilasTablaBalance.Add(fila);
+            }
+
+            var filaTotal = new BalanceFormulaTablaFilaViewModel
+            {
+                Fuente = "Total",
+                Libras = resultadoApi.TotalMezclaLb ?? 0,
+                Quintales = resultadoApi.TotalMezclaQq ?? 0,
+                TextoUltimaColumna = "Fórmula"
+            };
+
+            foreach (string simbolo in elementosTabla)
+            {
+                decimal valorFormula = ObtenerValorDiccionarioAporte(resultadoApi.FormulaComercial, simbolo);
+
+                filaTotal.Celdas.Add(new BalanceFormulaTablaCeldaViewModel
+                {
+                    Simbolo = simbolo,
+                    Valor = valorFormula
+                });
+            }
+
+            FilaFormula = filaTotal;
+
+            OnPropertyChanged(nameof(EncabezadosElementosTabla));
+            OnPropertyChanged(nameof(FilasTablaBalance));
+            OnPropertyChanged(nameof(TieneTablaBalance));
+        }
+
+        private void ConstruirTablaAplicacionesDesdeApi(
+            BalanceNutricionalResponse resultadoApi,
+            int plantas,
+            int aplicaciones)
+        {
+            FilasAplicaciones.Clear();
+            FilaTotalAplicaciones = null;
+            FilaOnzasPlanta = null;
+
+            foreach (var detalle in resultadoApi.Detalle)
+            {
+                FilasAplicaciones.Add(new BalanceFormulaAplicacionViewModel
+                {
+                    Formula = detalle.Fuente ?? "Fuente",
+                    LibrasAnuales = detalle.LibrasAnuales ?? 0,
+                    OnzasAnuales = detalle.OnzasAnuales ?? 0,
+                    OnzasPorAplicacion = detalle.OnzasPorAplicacion ?? 0
+                });
+            }
+
+            decimal totalOnzas = resultadoApi.TotalMezclaOz ?? 0;
+            decimal totalOnzasPorAplicacion = aplicaciones > 0
+                ? totalOnzas / aplicaciones
+                : 0;
+
+            FilaTotalAplicaciones = new BalanceFormulaAplicacionViewModel
+            {
+                Formula = "Total",
+                LibrasAnuales = resultadoApi.TotalMezclaLb ?? 0,
+                OnzasAnuales = totalOnzas,
+                OnzasPorAplicacion = totalOnzasPorAplicacion,
+                EsFilaTotal = true
+            };
+
+            FilaOnzasPlanta = new BalanceFormulaAplicacionViewModel
+            {
+                Formula = "Onz/planta",
+                LibrasAnuales = resultadoApi.TotalMezclaQq ?? 0,
+                OnzasAnuales = resultadoApi.DosisPlantaAnualOz ?? 0,
+                OnzasPorAplicacion = resultadoApi.DosisPlantaPorAplicacionOz ?? 0,
+                EsFilaOnzasPlanta = true
+            };
+
+            OnPropertyChanged(nameof(FilasAplicaciones));
+            OnPropertyChanged(nameof(TieneTablaAplicaciones));
+        }
+
+        private void ConstruirTablaPreciosDesdeApi(BalanceNutricionalResponse resultadoApi)
+        {
+            FilasPrecio.Clear();
+            FilaTotalPrecio = null;
+
+            foreach (var detalle in resultadoApi.Detalle)
+            {
+                FilasPrecio.Add(new BalanceFormulaPrecioViewModel
+                {
+                    Fuente = detalle.Fuente ?? "Fuente",
+                    LibrasAnuales = detalle.LibrasAnuales ?? 0,
+                    QuintalesAnuales = detalle.QuintalesAnuales ?? 0,
+                    PrecioPorQuintal = detalle.PrecioPorQuintal ?? 0,
+                    SubtotalFuente = detalle.SubtotalFuente ?? 0
+                });
+            }
+
+            FilaTotalPrecio = new BalanceFormulaPrecioViewModel
+            {
+                Fuente = "Total",
+                LibrasAnuales = resultadoApi.TotalMezclaLb ?? 0,
+                QuintalesAnuales = resultadoApi.TotalMezclaQq ?? 0,
+                PrecioPorQuintal = 0,
+                SubtotalFuente = resultadoApi.PrecioTotalFormula ?? 0,
+                EsTotal = true
+            };
+
+            OnPropertyChanged(nameof(FilasPrecio));
+            OnPropertyChanged(nameof(TieneTablaPrecios));
+        }
+
+        private List<string> ObtenerElementosTablaDesdeApi(BalanceNutricionalResponse resultadoApi)
+        {
+            var elementos = new List<string>();
+
+            foreach (var item in resultadoApi.FormulaComercial.Keys)
+            {
+                string simbolo = FormatearSimboloTabla(item);
+
+                if (!elementos.Contains(simbolo))
+                    elementos.Add(simbolo);
+            }
+
+            foreach (var detalle in resultadoApi.Detalle)
+            {
+                foreach (var aporte in detalle.Aportes.Keys)
+                {
+                    string simbolo = FormatearSimboloTabla(aporte);
+
+                    if (!elementos.Contains(simbolo))
+                        elementos.Add(simbolo);
+                }
+            }
+
+            return elementos;
+        }
+
+        private static decimal ObtenerValorDiccionarioAporte(Dictionary<string, decimal>? diccionario, string simbolo)
+        {
+            if (diccionario == null || diccionario.Count == 0)
+                return 0;
+
+            string simboloNormalizado = NormalizarSimbolo(simbolo);
+
+            foreach (var item in diccionario)
+            {
+                if (NormalizarSimbolo(item.Key) == simboloNormalizado)
+                    return item.Value;
+            }
+
+            return 0;
+        }
+
+        private string ObtenerNombreFormulaResultado()
+        {
+            string nombreAnalisis = RequestGuardarAnalisis?.IdentificadorAnalisisSuelo ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(nombreAnalisis))
+                nombreAnalisis = NombreAnalisisSuelo;
+
+            if (string.IsNullOrWhiteSpace(nombreAnalisis))
+                return "Fórmula balance nutricional";
+
+            nombreAnalisis = nombreAnalisis.Trim();
+
+            if (nombreAnalisis.StartsWith("Fórmula balance nutricional", StringComparison.OrdinalIgnoreCase))
+                return nombreAnalisis;
+
+            return $"Fórmula balance nutricional - {nombreAnalisis}";
         }
 
         private async Task ReiniciarBalanceAsync()
@@ -668,6 +1029,14 @@ namespace CONATRADEC.ViewModels
             plantas = 0;
             aplicaciones = 0;
 
+            if (TerrenoId == null || TerrenoId <= 0)
+            {
+                if (mostrarMensaje)
+                    _ = MostrarMensajeAsync("Validación", "No se encontró el terreno seleccionado.");
+
+                return false;
+            }
+
             if (!int.TryParse(TotalPlantas, out plantas) || plantas <= 0)
             {
                 if (mostrarMensaje)
@@ -697,414 +1066,7 @@ namespace CONATRADEC.ViewModels
             return true;
         }
 
-        private void CalcularBalanceLocal(
-            List<BalanceFormulaElementoViewModel> elementosSeleccionados,
-            int plantas,
-            int aplicaciones)
-        {
-            FilasResultado.Clear();
-            TotalesAportes.Clear();
-            EncabezadosElementosTabla.Clear();
-            FilasTablaBalance.Clear();
-            FilasAplicaciones.Clear();
-            FilasPrecio.Clear();
-
-            FilaTotalAplicaciones = null;
-            FilaOnzasPlanta = null;
-            FilaTotalPrecio = null;
-
-            TituloColumnaAplicaciones = "Aplicaciones";
-            EtiquetaDosisPlantaSeleccionada = "Dosis por planta";
-            DosisPlantaSeleccionada = 0;
-
-            FilaFormula = null;
-            ResultadoBalance = null;
-            TieneResultadoBalance = false;
-
-            foreach (var elemento in elementosSeleccionados)
-            {
-                FuenteNutrienteResponse? fuente = elemento.FuenteSeleccionada;
-
-                if (fuente == null)
-                    continue;
-
-                string simboloElementoPrincipal = NormalizarSimbolo(elemento.SimboloElementoQuimico);
-
-                decimal porcentajePrincipal = ObtenerPorcentajeAporteFuente(fuente, simboloElementoPrincipal);
-
-                if (porcentajePrincipal <= 0)
-                    continue;
-
-                decimal librasFuente = elemento.RequerimientoLibras;
-                decimal onzasAnuales = librasFuente * 16m;
-                decimal quintalesAnuales = librasFuente / 100m;
-                decimal precioPorQuintal = fuente.PrecioNutriente ?? 0;
-                decimal subtotalFuente = quintalesAnuales * precioPorQuintal;
-
-                FilasResultado.Add(new BalanceFormulaFilaResultadoViewModel
-                {
-                    FuenteNutriente = fuente,
-                    Fuente = fuente.NombreNutriente ?? "Fuente",
-                    Elemento = FormatearSimboloTabla(simboloElementoPrincipal),
-                    RequerimientoLibras = elemento.RequerimientoLibras,
-                    RequerimientoPendienteLibras = elemento.RequerimientoLibras,
-                    LibrasAnuales = librasFuente,
-                    OnzasAnuales = onzasAnuales,
-                    DosAplicaciones = onzasAnuales / 2m,
-                    TresAplicaciones = onzasAnuales / 3m,
-                    QuintalesAnuales = quintalesAnuales,
-                    PrecioPorQuintal = precioPorQuintal,
-                    SubtotalFuente = subtotalFuente
-                });
-            }
-
-            FilasResultadoOrdenadas();
-
-            decimal totalMezclaLb = FilasResultado.Sum(x => x.LibrasAnuales);
-            decimal totalMezclaOz = totalMezclaLb * 16m;
-            decimal totalMezclaQq = totalMezclaLb / 100m;
-            decimal precioTotal = FilasResultado.Sum(x => x.SubtotalFuente);
-
-            decimal onzasPorAplicacion = aplicaciones > 0
-                ? totalMezclaOz / aplicaciones
-                : 0;
-
-            decimal dosisPorPlantaSeleccionada = plantas > 0
-                ? onzasPorAplicacion / plantas
-                : 0;
-
-            EtiquetaDosisPlantaSeleccionada = aplicaciones == 1
-                ? "Dosis por planta en 1 aplicación"
-                : $"Dosis por planta en {aplicaciones} aplicaciones";
-
-            DosisPlantaSeleccionada = Redondear(dosisPorPlantaSeleccionada, 4);
-
-            ResultadoBalance = new BalanceNutricionalResponse
-            {
-                Success = true,
-                Message = "Balance calculado.",
-                BalanceNutricionalId = null,
-                NombreFormula = NombreAnalisisSuelo,
-
-                TotalMezclaLb = Redondear(totalMezclaLb),
-                TotalMezclaOz = Redondear(totalMezclaOz),
-                LibrasPorDosAplicaciones = Redondear(totalMezclaLb / 2m),
-                LibrasPorTresAplicaciones = Redondear(totalMezclaLb / 3m),
-                TotalPlantas = plantas,
-                DosisPlantaAnualOz = plantas > 0 ? Redondear(totalMezclaOz / plantas, 4) : 0,
-                TotalMezclaQq = Redondear(totalMezclaQq),
-                PrecioTotalFormula = Redondear(precioTotal),
-                PrecioPorAplicacion = aplicaciones > 0 ? Redondear(precioTotal / aplicaciones) : 0,
-
-                DosAplicaciones = new BalanceNutricionalAplicacionResponse
-                {
-                    DosisPlantaOz = plantas > 0 ? Redondear((totalMezclaOz / 2m) / plantas, 4) : 0
-                },
-
-                TresAplicaciones = new BalanceNutricionalAplicacionResponse
-                {
-                    DosisPlantaOz = plantas > 0 ? Redondear((totalMezclaOz / 3m) / plantas, 4) : 0
-                },
-
-                Detalle = new List<BalanceNutricionalDetalleResponse>()
-            };
-
-            foreach (var fila in FilasResultado)
-            {
-                ResultadoBalance.Detalle.Add(new BalanceNutricionalDetalleResponse
-                {
-                    Fuente = fila.Fuente,
-                    Elemento = fila.Elemento,
-                    RequerimientoLibras = fila.RequerimientoLibras,
-                    LibrasAnuales = fila.LibrasAnuales,
-                    OnzasAnuales = fila.OnzasAnuales,
-                    DosAplicaciones = fila.DosAplicaciones,
-                    TresAplicaciones = fila.TresAplicaciones,
-                    QuintalesAnuales = fila.QuintalesAnuales,
-                    PrecioPorQuintal = fila.PrecioPorQuintal,
-                    SubtotalFuente = fila.SubtotalFuente
-                });
-            }
-
-            CalcularTotalesAportes();
-            ConstruirTablaFormulaVisual();
-            ConstruirTablaAplicaciones(plantas, aplicaciones);
-            ConstruirTablaPrecios();
-
-            TieneResultadoBalance = FilasResultado.Count > 0;
-
-            OnPropertyChanged(nameof(ResultadoBalance));
-            OnPropertyChanged(nameof(TieneResultadoBalance));
-            OnPropertyChanged(nameof(TieneTablaBalance));
-            OnPropertyChanged(nameof(TieneTablaAplicaciones));
-            OnPropertyChanged(nameof(TieneTablaPrecios));
-        }
-
-        private void FilasResultadoOrdenadas()
-        {
-            var ordenadas = FilasResultado
-                .OrderByDescending(x => x.RequerimientoLibras)
-                .ToList();
-
-            FilasResultado.Clear();
-
-            foreach (var fila in ordenadas)
-                FilasResultado.Add(fila);
-        }
-
-        private void CalcularTotalesAportes()
-        {
-            TotalesAportes.Clear();
-
-            var elementosTabla = ObtenerElementosTablaFormula();
-
-            foreach (string simbolo in elementosTabla)
-            {
-                decimal totalAporte = FilasResultado
-                    .Sum(fila =>
-                    {
-                        decimal porcentaje = ObtenerPorcentajeAporteFuente(fila.FuenteNutriente, simbolo);
-                        return fila.LibrasAnuales * (porcentaje / 100m);
-                    });
-
-                TotalesAportes.Add(new BalanceFormulaAporteViewModel
-                {
-                    Simbolo = simbolo,
-                    Nombre = simbolo,
-                    Libras = totalAporte
-                });
-            }
-        }
-
-        private void ConstruirTablaFormulaVisual()
-        {
-            EncabezadosElementosTabla.Clear();
-            FilasTablaBalance.Clear();
-            FilaFormula = null;
-
-            var elementosTabla = ObtenerElementosTablaFormula();
-
-            foreach (string simbolo in elementosTabla)
-                EncabezadosElementosTabla.Add(simbolo);
-
-            var filasOrdenadas = FilasResultado
-                .OrderByDescending(x => x.RequerimientoLibras)
-                .ToList();
-
-            foreach (var detalle in filasOrdenadas)
-            {
-                var fila = new BalanceFormulaTablaFilaViewModel
-                {
-                    Fuente = detalle.Fuente,
-                    Libras = detalle.LibrasAnuales,
-                    Quintales = detalle.QuintalesAnuales
-                };
-
-                foreach (string simbolo in elementosTabla)
-                {
-                    decimal porcentajeAporte = ObtenerPorcentajeAporteFuente(detalle.FuenteNutriente, simbolo);
-                    decimal aporteLibras = detalle.LibrasAnuales * (porcentajeAporte / 100m);
-
-                    fila.Celdas.Add(new BalanceFormulaTablaCeldaViewModel
-                    {
-                        Simbolo = simbolo,
-                        Valor = aporteLibras
-                    });
-                }
-
-                FilasTablaBalance.Add(fila);
-            }
-
-            decimal totalLibras = FilasTablaBalance.Sum(x => x.Libras);
-            decimal totalQuintales = FilasTablaBalance.Sum(x => x.Quintales);
-
-            var filaTotal = new BalanceFormulaTablaFilaViewModel
-            {
-                Fuente = "Total",
-                Libras = totalLibras,
-                Quintales = totalQuintales,
-                TextoUltimaColumna = "→ Fórmula"
-            };
-
-            foreach (string simbolo in elementosTabla)
-            {
-                decimal totalAporteElemento = FilasTablaBalance
-                    .SelectMany(x => x.Celdas)
-                    .Where(x => NormalizarSimbolo(x.Simbolo) == NormalizarSimbolo(simbolo))
-                    .Sum(x => x.Valor);
-
-                decimal valorFormula = totalQuintales > 0
-                    ? totalAporteElemento / totalQuintales
-                    : 0m;
-
-                filaTotal.Celdas.Add(new BalanceFormulaTablaCeldaViewModel
-                {
-                    Simbolo = simbolo,
-                    Valor = valorFormula
-                });
-            }
-
-            FilaFormula = filaTotal;
-
-            OnPropertyChanged(nameof(EncabezadosElementosTabla));
-            OnPropertyChanged(nameof(FilasTablaBalance));
-            OnPropertyChanged(nameof(TieneTablaBalance));
-        }
-
-        private void ConstruirTablaAplicaciones(int plantas, int aplicaciones)
-        {
-            FilasAplicaciones.Clear();
-            FilaTotalAplicaciones = null;
-            FilaOnzasPlanta = null;
-
-            if (plantas <= 0 || aplicaciones <= 0)
-            {
-                OnPropertyChanged(nameof(TieneTablaAplicaciones));
-                return;
-            }
-
-            TituloColumnaAplicaciones = aplicaciones == 1
-                ? "1 aplicación"
-                : $"{aplicaciones} aplicaciones";
-
-            var filasOrdenadas = FilasResultado
-                .OrderByDescending(x => x.RequerimientoLibras)
-                .ToList();
-
-            foreach (var fila in filasOrdenadas)
-            {
-                decimal librasAnuales = fila.LibrasAnuales;
-                decimal onzasAnuales = librasAnuales * 16m;
-                decimal onzasPorAplicacion = onzasAnuales / aplicaciones;
-
-                FilasAplicaciones.Add(new BalanceFormulaAplicacionViewModel
-                {
-                    Formula = fila.Fuente,
-                    LibrasAnuales = librasAnuales,
-                    OnzasAnuales = onzasAnuales,
-                    OnzasPorAplicacion = onzasPorAplicacion
-                });
-            }
-
-            decimal totalLibras = FilasAplicaciones.Sum(x => x.LibrasAnuales);
-            decimal totalOnzas = FilasAplicaciones.Sum(x => x.OnzasAnuales);
-            decimal totalOnzasPorAplicacion = totalOnzas / aplicaciones;
-            decimal totalQuintales = totalLibras / 100m;
-
-            FilaTotalAplicaciones = new BalanceFormulaAplicacionViewModel
-            {
-                Formula = "Total",
-                LibrasAnuales = totalLibras,
-                OnzasAnuales = totalOnzas,
-                OnzasPorAplicacion = totalOnzasPorAplicacion,
-                EsFilaTotal = true
-            };
-
-            FilaOnzasPlanta = new BalanceFormulaAplicacionViewModel
-            {
-                Formula = "Onz/planta",
-                LibrasAnuales = totalQuintales,
-                OnzasAnuales = totalOnzas / plantas,
-                OnzasPorAplicacion = totalOnzasPorAplicacion / plantas,
-                EsFilaOnzasPlanta = true
-            };
-
-            OnPropertyChanged(nameof(FilasAplicaciones));
-            OnPropertyChanged(nameof(TieneTablaAplicaciones));
-        }
-
-        private void ConstruirTablaPrecios()
-        {
-            FilasPrecio.Clear();
-            FilaTotalPrecio = null;
-
-            var filasOrdenadas = FilasResultado
-                .OrderByDescending(x => x.RequerimientoLibras)
-                .ToList();
-
-            foreach (var fila in filasOrdenadas)
-            {
-                FilasPrecio.Add(new BalanceFormulaPrecioViewModel
-                {
-                    Fuente = fila.Fuente,
-                    LibrasAnuales = fila.LibrasAnuales,
-                    QuintalesAnuales = fila.QuintalesAnuales,
-                    PrecioPorQuintal = fila.PrecioPorQuintal,
-                    SubtotalFuente = fila.SubtotalFuente
-                });
-            }
-
-            FilaTotalPrecio = new BalanceFormulaPrecioViewModel
-            {
-                Fuente = "Total",
-                LibrasAnuales = FilasPrecio.Sum(x => x.LibrasAnuales),
-                QuintalesAnuales = FilasPrecio.Sum(x => x.QuintalesAnuales),
-                PrecioPorQuintal = 0,
-                SubtotalFuente = FilasPrecio.Sum(x => x.SubtotalFuente),
-                EsTotal = true
-            };
-
-            OnPropertyChanged(nameof(FilasPrecio));
-            OnPropertyChanged(nameof(TieneTablaPrecios));
-        }
-
-        private List<string> ObtenerElementosTablaFormula()
-        {
-            var elementosOrdenadosPorNecesidad = ElementosBalance
-                .Where(x => !string.IsNullOrWhiteSpace(x.SimboloElementoQuimico))
-                .Where(x => x.RequerimientoLibras > 0)
-                .OrderByDescending(x => x.RequerimientoLibras)
-                .Select(x => NormalizarSimbolo(x.SimboloElementoQuimico))
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct()
-                .ToList();
-
-            var elementosSecundarios = FilasResultado
-                .Where(fila => fila.FuenteNutriente?.ElementosQuimicos != null)
-                .SelectMany(fila => fila.FuenteNutriente!.ElementosQuimicos!
-                    .Where(aporte => (aporte.CantidadAporte ?? 0) > 0)
-                    .Select(aporte => new
-                    {
-                        Simbolo = NormalizarSimbolo(aporte.SimboloElementoQuimico),
-                        AporteTotal = fila.LibrasAnuales * ((aporte.CantidadAporte ?? 0) / 100m)
-                    }))
-                .Where(x => !string.IsNullOrWhiteSpace(x.Simbolo))
-                .GroupBy(x => x.Simbolo)
-                .Select(g => new
-                {
-                    Simbolo = g.Key,
-                    AporteTotal = g.Sum(x => x.AporteTotal)
-                })
-                .Where(x => !elementosOrdenadosPorNecesidad.Contains(x.Simbolo))
-                .OrderByDescending(x => x.AporteTotal)
-                .Select(x => x.Simbolo)
-                .ToList();
-
-            var elementosFinales = new List<string>();
-
-            elementosFinales.AddRange(elementosOrdenadosPorNecesidad);
-            elementosFinales.AddRange(elementosSecundarios);
-
-            return elementosFinales
-                .Select(FormatearSimboloTabla)
-                .ToList();
-        }
-
-        private static decimal ObtenerPorcentajeAporteFuente(FuenteNutrienteResponse? fuente, string? simboloElemento)
-        {
-            if (fuente?.ElementosQuimicos == null || fuente.ElementosQuimicos.Count == 0)
-                return 0;
-
-            string simboloNormalizado = NormalizarSimbolo(simboloElemento);
-
-            var aporte = fuente.ElementosQuimicos.FirstOrDefault(x =>
-                NormalizarSimbolo(x.SimboloElementoQuimico) == simboloNormalizado
-            );
-
-            return aporte?.CantidadAporte ?? 0;
-        }
-
-        private static string FormatearSimboloTabla(string simbolo)
+        private static string FormatearSimboloTabla(string? simbolo)
         {
             string s = NormalizarSimbolo(simbolo);
 
@@ -1130,6 +1092,7 @@ namespace CONATRADEC.ViewModels
             FilasTablaBalance.Clear();
             FilasAplicaciones.Clear();
             FilasPrecio.Clear();
+            FormulaComercialVisual.Clear();
 
             FilaTotalAplicaciones = null;
             FilaOnzasPlanta = null;
@@ -1148,6 +1111,7 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(TieneTablaBalance));
             OnPropertyChanged(nameof(TieneTablaAplicaciones));
             OnPropertyChanged(nameof(TieneTablaPrecios));
+            OnPropertyChanged(nameof(TieneFormulaComercial));
         }
 
         private void LimpiarPantalla()
@@ -1165,6 +1129,7 @@ namespace CONATRADEC.ViewModels
             FilasTablaBalance.Clear();
             FilasAplicaciones.Clear();
             FilasPrecio.Clear();
+            FormulaComercialVisual.Clear();
 
             FilaTotalAplicaciones = null;
             FilaOnzasPlanta = null;
@@ -1187,6 +1152,7 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(TieneTablaBalance));
             OnPropertyChanged(nameof(TieneTablaAplicaciones));
             OnPropertyChanged(nameof(TieneTablaPrecios));
+            OnPropertyChanged(nameof(TieneFormulaComercial));
         }
 
         private async Task VolverAsync()
@@ -1288,8 +1254,6 @@ namespace CONATRADEC.ViewModels
 
     public class BalanceFormulaFilaResultadoViewModel
     {
-        public FuenteNutrienteResponse? FuenteNutriente { get; set; }
-
         public string Fuente { get; set; } = string.Empty;
 
         public string Elemento { get; set; } = string.Empty;
@@ -1302,15 +1266,17 @@ namespace CONATRADEC.ViewModels
 
         public decimal OnzasAnuales { get; set; }
 
-        public decimal DosAplicaciones { get; set; }
+        public decimal OnzasPorAplicacion { get; set; }
 
-        public decimal TresAplicaciones { get; set; }
+        public decimal LibrasPorAplicacion { get; set; }
 
         public decimal QuintalesAnuales { get; set; }
 
         public decimal PrecioPorQuintal { get; set; }
 
         public decimal SubtotalFuente { get; set; }
+
+        public Dictionary<string, decimal> Aportes { get; set; } = new();
     }
 
     public class BalanceFormulaAporteViewModel
@@ -1320,6 +1286,16 @@ namespace CONATRADEC.ViewModels
         public string Nombre { get; set; } = string.Empty;
 
         public decimal Libras { get; set; }
+    }
+
+    public class BalanceFormulaComercialViewModel
+    {
+        public string Simbolo { get; set; } = string.Empty;
+
+        public decimal Valor { get; set; }
+
+        public string TextoFormula =>
+            $"{Simbolo} {Valor.ToString("N2", CultureInfo.InvariantCulture)}";
     }
 
     public class BalanceFormulaTablaFilaViewModel
@@ -1404,7 +1380,7 @@ namespace CONATRADEC.ViewModels
             LibrasAnuales.ToString("N2", CultureInfo.InvariantCulture);
 
         public string TextoQuintalesAnuales =>
-            QuintalesAnuales.ToString("N2", CultureInfo.InvariantCulture);
+            QuintalesAnuales.ToString("N3", CultureInfo.InvariantCulture);
 
         public string TextoPrecioPorQuintal =>
             EsTotal

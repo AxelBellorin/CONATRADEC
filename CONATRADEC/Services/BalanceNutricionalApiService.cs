@@ -31,7 +31,7 @@ namespace CONATRADEC.Services
             try
             {
                 HttpResponseMessage response = await httpClient.PostAsJsonAsync(
-                    "api/balance-nutricional/calcular",
+                    "api/formula-nutricional/calcular",
                     request
                 );
 
@@ -57,11 +57,13 @@ namespace CONATRADEC.Services
                     return new BalanceNutricionalResponse
                     {
                         Success = false,
-                        Message = "La API respondió, pero no se pudo interpretar el resultado del balance nutricional."
+                        Message = "La API respondió, pero no se pudo interpretar el resultado del balance de fórmula."
                     };
                 }
 
                 resultado.Success = true;
+                resultado.Message = "Balance de fórmula calculado correctamente.";
+
                 return resultado;
             }
             catch (Exception ex)
@@ -69,7 +71,7 @@ namespace CONATRADEC.Services
                 return new BalanceNutricionalResponse
                 {
                     Success = false,
-                    Message = $"No se pudo conectar con la API de balance nutricional: {ex.Message}"
+                    Message = $"No se pudo conectar con la API de fórmula nutricional: {ex.Message}"
                 };
             }
         }

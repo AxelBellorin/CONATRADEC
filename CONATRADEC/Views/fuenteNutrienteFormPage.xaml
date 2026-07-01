@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.fuenteNutrienteFormPage"
@@ -93,8 +93,98 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- APORTES -->
+                <!-- CLASIFICACIÓN -->
                 <Border Style="{StaticResource BorderStyle}">
+                    <VerticalStackLayout Spacing="8">
+
+                        <Label Text="Clasificación de la fuente"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+
+                        <Label Text="Seleccione si esta fuente se usará para balance nutricional, enmienda calcárea o fertilización mixta."
+                               FontSize="12"
+                               TextColor="{StaticResource color_Gris}" />
+
+                        <Picker Title="Seleccione clasificación"
+                                ItemsSource="{Binding CategoriasFuente}"
+                                ItemDisplayBinding="{Binding Nombre}"
+                                SelectedItem="{Binding CategoriaSeleccionada}"
+                                IsEnabled="{Binding IsFormEnabled}"
+                                TextColor="{StaticResource color_Negro}"
+                                TitleColor="{StaticResource color_Gris}" />
+
+                        <Label Text="{Binding ErrorCategoria}"
+                               IsVisible="{Binding TieneErrorCategoria}"
+                               TextColor="{StaticResource RedDelete}"
+                               FontSize="12" />
+
+                        <!-- DATOS ESPECIALES PARA ENMIENDA CALCÁREA -->
+                        <Border IsVisible="{Binding MostrarDatosEnmiendaCalcarea}"
+                                Padding="10"
+                                Margin="0,8,0,0"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="{StaticResource color_Verde}"
+                                StrokeThickness="0.8">
+
+                            <VerticalStackLayout Spacing="8">
+
+                                <Label Text="Datos para enmienda calcárea"
+                                       FontAttributes="Bold"
+                                       FontSize="15"
+                                       TextColor="{StaticResource color_Verde}" />
+
+                                <Label Text="Estos campos se visualizarán para fuentes clasificadas como enmienda calcárea. Si la API aún no devuelve PRNT y descripción, aparecerán vacíos."
+                                       FontSize="12"
+                                       TextColor="{StaticResource color_Gris}" />
+
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="PRNT"
+                                           FontAttributes="Bold"
+                                           FontSize="14"
+                                           TextColor="{StaticResource color_Negro}" />
+
+                                    <Entry Placeholder="Ejemplo: 80"
+                                           Keyboard="Numeric"
+                                           Text="{Binding PrntEnmiendaCalcareaTexto}"
+                                           IsReadOnly="{Binding IsReadOnly}"
+                                           Style="{StaticResource EntryStyle}" />
+
+                                    <Label Text="{Binding ErrorPrntEnmiendaCalcarea}"
+                                           IsVisible="{Binding TieneErrorPrntEnmiendaCalcarea}"
+                                           TextColor="{StaticResource RedDelete}"
+                                           FontSize="12" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="Descripción del parámetro"
+                                           FontAttributes="Bold"
+                                           FontSize="14"
+                                           TextColor="{StaticResource color_Negro}" />
+
+                                    <Editor Placeholder="Ejemplo: Material encalante habilitado desde la app móvil"
+                                            Text="{Binding DescripcionParametroEnmiendaCalcarea}"
+                                            IsReadOnly="{Binding IsReadOnly}"
+                                            AutoSize="TextChanges"
+                                            MinimumHeightRequest="70"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                    <Label Text="{Binding ErrorDescripcionParametroEnmiendaCalcarea}"
+                                           IsVisible="{Binding TieneErrorDescripcionParametroEnmiendaCalcarea}"
+                                           TextColor="{StaticResource RedDelete}"
+                                           FontSize="12" />
+                                </VerticalStackLayout>
+
+                            </VerticalStackLayout>
+                        </Border>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- APORTES SOLO PARA BALANCE NUTRICIONAL -->
+                <Border Style="{StaticResource BorderStyle}"
+                        IsVisible="{Binding MostrarAportesElementosQuimicos}">
+
                     <VerticalStackLayout Spacing="10">
 
                         <Grid ColumnDefinitions="*,Auto">
@@ -104,7 +194,7 @@
                                        FontSize="17"
                                        TextColor="{StaticResource color_Negro}" />
 
-                                <Label Text="Agregue los elementos que aporta esta fuente y su porcentaje."
+                                <Label Text="Agregue los elementos que aporta esta fuente y su porcentaje. Solo aplica para balance nutricional."
                                        FontSize="12"
                                        TextColor="{StaticResource color_Gris}" />
                             </VerticalStackLayout>
@@ -115,7 +205,7 @@
                                          HeightRequest="46"
                                          Padding="6"
                                          Command="{Binding AddAporteCommand}"
-                                         IsVisible="{Binding ShowSaveButton}" />
+                                         IsVisible="{Binding MostrarBotonAgregarAporte}" />
                         </Grid>
 
                         <Label Text="{Binding ErrorAportes}"
@@ -181,7 +271,7 @@
                                                          Padding="7"
                                                          Command="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.RemoveAporteCommand}"
                                                          CommandParameter="{Binding .}"
-                                                         IsVisible="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.ShowSaveButton}" />
+                                                         IsVisible="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.MostrarBotonAgregarAporte}" />
 
                                         </Grid>
                                     </Border>

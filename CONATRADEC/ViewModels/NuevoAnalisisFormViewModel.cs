@@ -71,6 +71,7 @@ namespace CONATRADEC.ViewModels
         private string errorCalcioCice = string.Empty;
         private string errorMagnesioCice = string.Empty;
         private string errorPotasioCice = string.Empty;
+
         public NuevoAnalisisFormViewModel()
         {
             ParametrosConstantesAnalisis = new ObservableCollection<ResultadoAnalisisItemViewModel>();
@@ -567,6 +568,8 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public bool TieneErrorMagnesioCice => !string.IsNullOrWhiteSpace(ErrorMagnesioCice);
+
         public string ErrorPotasioCice
         {
             get => errorPotasioCice;
@@ -579,8 +582,6 @@ namespace CONATRADEC.ViewModels
         }
 
         public bool TieneErrorPotasioCice => !string.IsNullOrWhiteSpace(ErrorPotasioCice);
-
-        public bool TieneErrorMagnesioCice => !string.IsNullOrWhiteSpace(ErrorMagnesioCice);
 
         public ObservableCollection<ResultadoAnalisisItemViewModel> ParametrosConstantesAnalisis { get; }
 
@@ -963,7 +964,7 @@ namespace CONATRADEC.ViewModels
                 EsElementoQuimico = false,
                 PuedeEliminar = false,
                 UnidadesMedida = unidadesMateriaOrganica,
-                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesMateriaOrganica, "PPM", "%", "PORCENTAJE")
+                UnidadSeleccionada = BuscarUnidadMedidaEnLista(unidadesMateriaOrganica, "%", "PPM", "PORCENTAJE")
             });
         }
 
@@ -1029,10 +1030,13 @@ namespace CONATRADEC.ViewModels
             if (simboloNormalizado == "N")
                 return BuscarUnidadMedidaEnLista(unidades, "%", "PORCENTAJE", "PPM", "MG/KG");
 
+            if (simboloNormalizado == "P")
+                return BuscarUnidadMedidaEnLista(unidades, "PPM", "CMOL/KG", "MEQ/100G", "MG/KG");
+
             if (simboloNormalizado == "K" ||
                 simboloNormalizado == "CA" ||
-                simboloNormalizado == "MG")
-                return BuscarUnidadMedidaEnLista(unidades, "CMOL/KG", "MEQ/100G", "PPM", "MG/KG");
+                simboloNormalizado == "MG" )
+                return BuscarUnidadMedidaEnLista(unidades, "MEQ/100G", "PPM", "CMOL/KG", "MG/KG");
 
             return BuscarUnidadMedidaEnLista(unidades, "MG/KG", "PPM", "G/KG", "%");
         }
@@ -1206,6 +1210,7 @@ namespace CONATRADEC.ViewModels
                 decimal potasioCiceDecimal = ConvertirDecimal(PotasioCice);
 
                 decimal materiaOrganica = ObtenerValorParametroConstante("MATERIA_ORGANICA");
+                int unidadMedidaMateriaOrganicaId = ObtenerUnidadMedidaParametroConstante("MATERIA_ORGANICA");
 
                 var elementosQuimicosRequest = new List<ElementoQuimicoAnalisisRequest>();
 
@@ -1232,6 +1237,7 @@ namespace CONATRADEC.ViewModels
                     TamanoFinca = tamanoFincaDecimal,
                     Ph = phDecimal,
                     MateriaOrganica = materiaOrganica,
+                    UnidadMedidaMateriaOrganicaId = unidadMedidaMateriaOrganicaId,
                     AcidezTotal = acidezTotalDecimal,
                     CalcioCice = calcioCiceDecimal,
                     MagnesioCice = magnesioCiceDecimal,
@@ -1250,6 +1256,7 @@ namespace CONATRADEC.ViewModels
                     TamanoFinca = tamanoFincaDecimal,
                     Ph = phDecimal,
                     MateriaOrganica = materiaOrganica,
+                    UnidadMedidaMateriaOrganicaId = unidadMedidaMateriaOrganicaId,
                     AcidezTotal = acidezTotalDecimal,
                     CalcioCice = calcioCiceDecimal,
                     MagnesioCice = magnesioCiceDecimal,
@@ -1582,6 +1589,17 @@ namespace CONATRADEC.ViewModels
                 return 0;
 
             return valor;
+        }
+
+        private int ObtenerUnidadMedidaParametroConstante(string codigoParametro)
+        {
+            var item = ParametrosConstantesAnalisis.FirstOrDefault(x =>
+                string.Equals(x.CodigoParametro, codigoParametro, StringComparison.OrdinalIgnoreCase));
+
+            if (item?.UnidadSeleccionada?.UnidadMedidaId == null)
+                return 0;
+
+            return item.UnidadSeleccionada.UnidadMedidaId.Value;
         }
 
         private decimal ConvertirDecimal(string valor)

@@ -12,10 +12,13 @@ namespace CONATRADEC.ViewModels
         private readonly FuenteNutrienteApiService fuenteNutrienteApiService;
 
         private ObservableCollection<FuenteNutrienteResponse> list = new();
+        private ObservableCollection<FuenteNutrienteResponse> listaCompleta = new();
+
         private ObservableCollection<string> elementosTabla = new();
         private ObservableCollection<FuenteNutrienteTablaDinamicaRow> tablaComposicion = new();
 
         private bool mostrarTablaComposicion = false;
+        private FuenteNutrienteCategoriaOption? filtroCategoriaSeleccionada;
 
         public ObservableCollection<FuenteNutrienteResponse> List
         {
@@ -24,6 +27,30 @@ namespace CONATRADEC.ViewModels
             {
                 list = value;
                 OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<FuenteNutrienteResponse> ListaCompleta
+        {
+            get => listaCompleta;
+            set
+            {
+                listaCompleta = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<FuenteNutrienteCategoriaOption> FiltrosCategoria { get; }
+
+        public FuenteNutrienteCategoriaOption? FiltroCategoriaSeleccionada
+        {
+            get => filtroCategoriaSeleccionada;
+            set
+            {
+                filtroCategoriaSeleccionada = value;
+                OnPropertyChanged();
+
+                AplicarFiltroCategoria();
             }
         }
 
@@ -89,6 +116,9 @@ namespace CONATRADEC.ViewModels
         {
             fuenteNutrienteApiService = new FuenteNutrienteApiService();
 
+            FiltrosCategoria = new ObservableCollection<FuenteNutrienteCategoriaOption>();
+            CargarFiltrosCategoria();
+
             AddCommand = new Command(async () => await OnAdd());
             EditCommand = new Command<FuenteNutrienteResponse>(OnEdit);
             DeleteCommand = new Command<FuenteNutrienteResponse>(OnDelete);
@@ -98,6 +128,38 @@ namespace CONATRADEC.ViewModels
             {
                 MostrarTablaComposicion = !MostrarTablaComposicion;
             });
+        }
+
+        private void CargarFiltrosCategoria()
+        {
+            FiltrosCategoria.Clear();
+
+            FiltrosCategoria.Add(new FuenteNutrienteCategoriaOption
+            {
+                Codigo = FuenteNutrienteCategoriaOption.CodigoTodas,
+                Nombre = "Todas"
+            });
+
+            FiltrosCategoria.Add(new FuenteNutrienteCategoriaOption
+            {
+                Codigo = FuenteNutrienteCategoriaOption.CodigoBalanceNutricional,
+                Nombre = "Balance nutricional"
+            });
+
+            FiltrosCategoria.Add(new FuenteNutrienteCategoriaOption
+            {
+                Codigo = FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea,
+                Nombre = "Enmienda calcárea"
+            });
+
+            FiltrosCategoria.Add(new FuenteNutrienteCategoriaOption
+            {
+                Codigo = FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta,
+                Nombre = "Fertilización mixta"
+            });
+
+            filtroCategoriaSeleccionada = FiltrosCategoria.FirstOrDefault();
+            OnPropertyChanged(nameof(FiltroCategoriaSeleccionada));
         }
 
         public async Task LoadFuenteNutriente(bool isBusy)
@@ -111,6 +173,7 @@ namespace CONATRADEC.ViewModels
             IsBusy = isBusy;
 
             List.Clear();
+            ListaCompleta.Clear();
             ElementosTabla.Clear();
             TablaComposicion.Clear();
 
@@ -129,12 +192,13 @@ namespace CONATRADEC.ViewModels
 
             if (fuentesOrdenadas.Any())
             {
-                List = fuentesOrdenadas;
-                ConstruirTablaComposicion(fuentesOrdenadas);
+                ListaCompleta = fuentesOrdenadas;
+                AplicarFiltroCategoria();
             }
             else
             {
                 await MostrarToastAsync("No se encontraron fuentes de nutrientes.");
+                ListaCompleta = new ObservableCollection<FuenteNutrienteResponse>();
                 List = new ObservableCollection<FuenteNutrienteResponse>();
                 ElementosTabla = new ObservableCollection<string>();
                 TablaComposicion = new ObservableCollection<FuenteNutrienteTablaDinamicaRow>();
@@ -143,9 +207,46 @@ namespace CONATRADEC.ViewModels
             IsBusy = false;
         }
 
+        private void AplicarFiltroCategoria()
+        {
+            if (ListaCompleta == null)
+                return;
+
+            string codigoFiltro = FiltroCategoriaSeleccionada?.Codigo
+                ?? FuenteNutrienteCategoriaOption.CodigoTodas;
+
+            IEnumerable<FuenteNutrienteResponse> fuentesFiltradas = ListaCompleta;
+
+            if (codigoFiltro == FuenteNutrienteCategoriaOption.CodigoBalanceNutricional)
+            {
+                fuentesFiltradas = fuentesFiltradas.Where(x => x.EsBalanceNutricional);
+            }
+            else if (codigoFiltro == FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea)
+            {
+                fuentesFiltradas = fuentesFiltradas.Where(x => x.EsEnmiendaCalcarea);
+            }
+            else if (codigoFiltro == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta)
+            {
+                fuentesFiltradas = fuentesFiltradas.Where(x => x.EsFertilizacionMixta);
+            }
+
+            var listaFiltrada = new ObservableCollection<FuenteNutrienteResponse>(
+                fuentesFiltradas.OrderBy(x => x.NombreNutriente ?? string.Empty)
+            );
+
+            List = listaFiltrada;
+
+            ConstruirTablaComposicion(listaFiltrada);
+        }
+
         private void ConstruirTablaComposicion(IEnumerable<FuenteNutrienteResponse> fuentes)
         {
-            var simbolos = fuentes
+            var fuentesConAporte = fuentes
+                .Where(FuenteTieneAporteElementoQuimico)
+                .OrderBy(x => x.NombreNutriente ?? string.Empty)
+                .ToList();
+
+            var simbolos = fuentesConAporte
                 .SelectMany(f => f.ElementosQuimicos ?? new List<FuenteNutrienteElementoQuimicoResponse>())
                 .Where(e =>
                     !string.IsNullOrWhiteSpace(e.SimboloElementoQuimico) &&
@@ -160,7 +261,7 @@ namespace CONATRADEC.ViewModels
 
             var filas = new ObservableCollection<FuenteNutrienteTablaDinamicaRow>();
 
-            foreach (var fuente in fuentes.OrderBy(x => x.NombreNutriente ?? string.Empty))
+            foreach (var fuente in fuentesConAporte)
             {
                 var fila = new FuenteNutrienteTablaDinamicaRow
                 {
@@ -187,6 +288,14 @@ namespace CONATRADEC.ViewModels
             }
 
             TablaComposicion = filas;
+        }
+
+        private bool FuenteTieneAporteElementoQuimico(FuenteNutrienteResponse fuente)
+        {
+            return fuente?.ElementosQuimicos != null &&
+                   fuente.ElementosQuimicos.Any(x =>
+                       !string.IsNullOrWhiteSpace(x.SimboloElementoQuimico) &&
+                       (x.CantidadAporte ?? 0) > 0);
         }
 
         private int ObtenerOrdenElemento(string simbolo)

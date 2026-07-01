@@ -33,6 +33,9 @@ namespace CONATRADEC.Models
         [JsonPropertyName("materiaOrganica")]
         public decimal? MateriaOrganica { get; set; }
 
+        [JsonPropertyName("unidadMedidaMateriaOrganicaId")]
+        public int? UnidadMedidaMateriaOrganicaId { get; set; }
+
         [JsonPropertyName("acidezTotal")]
         public decimal? AcidezTotal { get; set; }
 

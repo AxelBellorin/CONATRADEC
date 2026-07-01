@@ -21,6 +21,19 @@ namespace CONATRADEC.Models
         [JsonPropertyName("activo")]
         public bool? Activo { get; set; }
 
+        [JsonPropertyName("habilitadaEnmiendaCalcarea")]
+        public bool? HabilitadaEnmiendaCalcarea { get; set; }
+
+        [JsonPropertyName("habilitadaFertilizacionMixta")]
+        public bool? HabilitadaFertilizacionMixta { get; set; }
+
+        // Cuando la API los devuelva, estos campos se llenarán automáticamente.
+        [JsonPropertyName("prnt")]
+        public decimal? Prnt { get; set; }
+
+        [JsonPropertyName("descripcionParametro")]
+        public string? DescripcionParametro { get; set; }
+
         [JsonPropertyName("elementosQuimicos")]
         public List<FuenteNutrienteElementoQuimicoResponse> ElementosQuimicos { get; set; } = new();
 
@@ -37,7 +50,7 @@ namespace CONATRADEC.Models
                     ", ",
                     ElementosQuimicos
                         .Where(x => !string.IsNullOrWhiteSpace(x.SimboloElementoQuimico))
-                        .Select(x => $"{x.SimboloElementoQuimico?.Trim()} {x.CantidadAporte:N0}%")
+                        .Select(x => $"{x.SimboloElementoQuimico?.Trim()} {FormatearAporte(x.CantidadAporte)}%")
                 );
 
                 if (string.IsNullOrWhiteSpace(aportes))
@@ -57,6 +70,58 @@ namespace CONATRADEC.Models
 
         public bool IsActivo => Activo == true;
 
+        public bool EsEnmiendaCalcarea => HabilitadaEnmiendaCalcarea == true;
+
+        public bool EsFertilizacionMixta => HabilitadaFertilizacionMixta == true;
+
+        public bool EsBalanceNutricional =>
+            HabilitadaEnmiendaCalcarea != true &&
+            HabilitadaFertilizacionMixta != true;
+
+        public bool TieneAporteElementoQuimico =>
+            ElementosQuimicos != null &&
+            ElementosQuimicos.Any(x =>
+                !string.IsNullOrWhiteSpace(x.SimboloElementoQuimico) &&
+                (x.CantidadAporte ?? 0) > 0);
+
+        public string CategoriaFuenteCodigo
+        {
+            get
+            {
+                if (EsEnmiendaCalcarea)
+                    return FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea;
+
+                if (EsFertilizacionMixta)
+                    return FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta;
+
+                return FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
+            }
+        }
+
+        public string CategoriaFuenteMostrar
+        {
+            get
+            {
+                if (EsEnmiendaCalcarea)
+                    return "Enmienda calcárea";
+
+                if (EsFertilizacionMixta)
+                    return "Fertilización mixta";
+
+                return "Balance nutricional";
+            }
+        }
+
+        public string PrntMostrar =>
+            Prnt.HasValue
+                ? $"{Prnt.Value:N2}"
+                : "Pendiente de API";
+
+        public string DescripcionParametroMostrar =>
+            !string.IsNullOrWhiteSpace(DescripcionParametro)
+                ? DescripcionParametro
+                : "Pendiente de API";
+
         public bool TieneAportes =>
             ElementosQuimicos != null && ElementosQuimicos.Count > 0;
 
@@ -71,9 +136,22 @@ namespace CONATRADEC.Models
                     " · ",
                     ElementosQuimicos
                         .Where(x => !string.IsNullOrWhiteSpace(x.SimboloElementoQuimico))
-                        .Select(x => $"{x.SimboloElementoQuimico?.Trim()}: {x.CantidadAporte:N0}%")
+                        .Select(x => $"{x.SimboloElementoQuimico?.Trim()}: {FormatearAporte(x.CantidadAporte)}%")
                 );
             }
+        }
+
+        private static string FormatearAporte(decimal? valor)
+        {
+            if (!valor.HasValue)
+                return "0";
+
+            decimal numero = valor.Value;
+
+            if (numero == decimal.Truncate(numero))
+                return numero.ToString("N0");
+
+            return numero.ToString("N2");
         }
     }
 

@@ -29,7 +29,7 @@ namespace CONATRADEC.Models
         [JsonPropertyName("elementoQuimicosId")]
         public int? ElementoQuimicosId { get; set; }
 
-        [JsonPropertyName("requerimientoLibras")]
+        [JsonPropertyName("libras")]
         public decimal? RequerimientoLibras { get; set; }
     }
 }

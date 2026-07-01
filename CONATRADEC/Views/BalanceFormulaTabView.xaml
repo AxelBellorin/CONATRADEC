@@ -550,6 +550,326 @@
                                 </BindableLayout.ItemTemplate>
                             </HorizontalStackLayout>
 
+                            <!-- CELDA FINAL FÓRMULA -->
+                            <Border
+                                WidthRequest="110"
+                                HeightRequest="38"
+                                BackgroundColor="#FFC000"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="{Binding TextoUltimaColumna}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="Black"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                        </HorizontalStackLayout>
+
+                    </VerticalStackLayout>
+                </ScrollView>
+
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- RESUMEN DE COSTOS -->
+        <Border
+            BackgroundColor="White"
+            Stroke="#E5E7EB"
+            Padding="16"
+            StrokeShape="RoundRectangle 16"
+            IsVisible="{Binding TieneTablaPrecios}">
+
+            <VerticalStackLayout Spacing="12">
+
+                <Label
+                    Text="Resumen de costos"
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource color_Verde}" />
+
+                <ScrollView Orientation="Horizontal">
+
+                    <VerticalStackLayout Spacing="0">
+
+                        <!-- ENCABEZADO -->
+                        <HorizontalStackLayout Spacing="0">
+
+                            <Border
+                                WidthRequest="180"
+                                HeightRequest="38"
+                                BackgroundColor="#5F6663"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="Fuente"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    TextColor="Black"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="105"
+                                HeightRequest="38"
+                                BackgroundColor="#5F6663"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="Libras"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    TextColor="Black"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="90"
+                                HeightRequest="38"
+                                BackgroundColor="#5F6663"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="QQ"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    TextColor="Black"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="125"
+                                HeightRequest="38"
+                                BackgroundColor="#5F6663"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="Precio/QQ"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    TextColor="Black"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="125"
+                                HeightRequest="38"
+                                BackgroundColor="#5F6663"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="Subtotal"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    TextColor="Black"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                        </HorizontalStackLayout>
+
+                        <!-- FILAS -->
+                        <VerticalStackLayout
+                            Spacing="0"
+                            BindableLayout.ItemsSource="{Binding FilasPrecio}">
+
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+
+                                    <HorizontalStackLayout Spacing="0">
+
+                                        <Border
+                                            WidthRequest="180"
+                                            HeightRequest="36"
+                                            BackgroundColor="#EEF5F2"
+                                            Stroke="#D9D9D9"
+                                            StrokeThickness="1"
+                                            Padding="6">
+
+                                            <Label
+                                                Text="{Binding TextoFuente}"
+                                                FontSize="12"
+                                                TextColor="Black"
+                                                LineBreakMode="TailTruncation"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <Border
+                                            WidthRequest="105"
+                                            HeightRequest="36"
+                                            BackgroundColor="#EEF5F2"
+                                            Stroke="#D9D9D9"
+                                            StrokeThickness="1"
+                                            Padding="6">
+
+                                            <Label
+                                                Text="{Binding TextoLibrasAnuales}"
+                                                FontSize="12"
+                                                TextColor="Black"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <Border
+                                            WidthRequest="90"
+                                            HeightRequest="36"
+                                            BackgroundColor="#EEF5F2"
+                                            Stroke="#D9D9D9"
+                                            StrokeThickness="1"
+                                            Padding="6">
+
+                                            <Label
+                                                Text="{Binding TextoQuintalesAnuales}"
+                                                FontSize="12"
+                                                TextColor="Black"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <Border
+                                            WidthRequest="125"
+                                            HeightRequest="36"
+                                            BackgroundColor="#EEF5F2"
+                                            Stroke="#D9D9D9"
+                                            StrokeThickness="1"
+                                            Padding="6">
+
+                                            <Label
+                                                Text="{Binding TextoPrecioPorQuintal}"
+                                                FontSize="12"
+                                                TextColor="Black"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <Border
+                                            WidthRequest="125"
+                                            HeightRequest="36"
+                                            BackgroundColor="#EEF5F2"
+                                            Stroke="#D9D9D9"
+                                            StrokeThickness="1"
+                                            Padding="6">
+
+                                            <Label
+                                                Text="{Binding TextoSubtotalFuente}"
+                                                FontSize="12"
+                                                TextColor="Black"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                    </HorizontalStackLayout>
+
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <!-- FILA TOTAL -->
+                        <HorizontalStackLayout
+                            Spacing="0"
+                            BindingContext="{Binding FilaTotalPrecio}">
+
+                            <Border
+                                WidthRequest="180"
+                                HeightRequest="38"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="{Binding TextoFuente}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="105"
+                                HeightRequest="38"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="{Binding TextoLibrasAnuales}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="90"
+                                HeightRequest="38"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="{Binding TextoQuintalesAnuales}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="125"
+                                HeightRequest="38"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="{Binding TextoPrecioPorQuintal}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="125"
+                                HeightRequest="38"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="{Binding TextoSubtotalFuente}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Cafe}"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
                         </HorizontalStackLayout>
 
                     </VerticalStackLayout>
@@ -581,6 +901,52 @@
                         TextColor="{StaticResource color_GrisOscuro}"
                         LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
+
+                <!-- FÓRMULA RESULTANTE -->
+                <Border
+                    IsVisible="{Binding TieneFormulaComercial}"
+                    BackgroundColor="#F9FAFB"
+                    Stroke="{StaticResource color_Verde}"
+                    StrokeThickness="1"
+                    Padding="12"
+                    StrokeShape="RoundRectangle 14">
+
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label
+                            Text="Fórmula resultante"
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                        <HorizontalStackLayout
+                            Spacing="8"
+                            BindableLayout.ItemsSource="{Binding FormulaComercialVisual}">
+
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+
+                                    <Border
+                                        BackgroundColor="#EEF5F2"
+                                        Stroke="{StaticResource color_Verde}"
+                                        StrokeThickness="1"
+                                        Padding="10,5"
+                                        StrokeShape="RoundRectangle 12">
+
+                                        <Label
+                                            Text="{Binding TextoFormula}"
+                                            FontSize="13"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                    </Border>
+
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+
+                        </HorizontalStackLayout>
+
+                    </VerticalStackLayout>
+                </Border>
 
                 <Border
                     BackgroundColor="#EEF5F2"
@@ -713,4 +1079,4 @@
         </Border>
 
     </VerticalStackLayout>
-</ContentView>  
+</ContentView>

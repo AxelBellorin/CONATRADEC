@@ -11,32 +11,54 @@ namespace CONATRADEC.Models
         [JsonIgnore]
         public string? Message { get; set; }
 
-        [JsonPropertyName("balanceNutricionalId")]
-        public int? BalanceNutricionalId { get; set; }
+        [JsonPropertyName("formulaNutricionalId")]
+        public int? FormulaNutricionalId { get; set; }
+
+        [JsonIgnore]
+        public int? BalanceNutricionalId
+        {
+            get => FormulaNutricionalId;
+            set => FormulaNutricionalId = value;
+        }
 
         [JsonPropertyName("nombreFormula")]
         public string? NombreFormula { get; set; }
 
-        [JsonPropertyName("totalMezclaLb")]
-        public decimal? TotalMezclaLb { get; set; }
+        [JsonPropertyName("totalLibras")]
+        public decimal? TotalLibras { get; set; }
 
-        [JsonPropertyName("totalMezclaOz")]
-        public decimal? TotalMezclaOz { get; set; }
+        [JsonIgnore]
+        public decimal? TotalMezclaLb
+        {
+            get => TotalLibras;
+            set => TotalLibras = value;
+        }
 
-        [JsonPropertyName("librasPorDosAplicaciones")]
-        public decimal? LibrasPorDosAplicaciones { get; set; }
+        [JsonPropertyName("mezclaTotalQq")]
+        public decimal? MezclaTotalQq { get; set; }
 
-        [JsonPropertyName("librasPorTresAplicaciones")]
-        public decimal? LibrasPorTresAplicaciones { get; set; }
+        [JsonIgnore]
+        public decimal? TotalMezclaQq
+        {
+            get => MezclaTotalQq;
+            set => MezclaTotalQq = value;
+        }
+
+        [JsonPropertyName("totalOnzas")]
+        public decimal? TotalOnzas { get; set; }
+
+        [JsonIgnore]
+        public decimal? TotalMezclaOz
+        {
+            get => TotalOnzas;
+            set => TotalOnzas = value;
+        }
 
         [JsonPropertyName("totalPlantas")]
         public int? TotalPlantas { get; set; }
 
-        [JsonPropertyName("dosisPlantaAnualOz")]
-        public decimal? DosisPlantaAnualOz { get; set; }
-
-        [JsonPropertyName("totalMezclaQq")]
-        public decimal? TotalMezclaQq { get; set; }
+        [JsonPropertyName("totalAplicaciones")]
+        public int? TotalAplicaciones { get; set; }
 
         [JsonPropertyName("precioTotalFormula")]
         public decimal? PrecioTotalFormula { get; set; }
@@ -44,20 +66,17 @@ namespace CONATRADEC.Models
         [JsonPropertyName("precioPorAplicacion")]
         public decimal? PrecioPorAplicacion { get; set; }
 
-        [JsonPropertyName("dosAplicaciones")]
-        public BalanceNutricionalAplicacionResponse? DosAplicaciones { get; set; }
+        [JsonPropertyName("dosisPlantaAnualOz")]
+        public decimal? DosisPlantaAnualOz { get; set; }
 
-        [JsonPropertyName("tresAplicaciones")]
-        public BalanceNutricionalAplicacionResponse? TresAplicaciones { get; set; }
+        [JsonPropertyName("dosisPlantaPorAplicacionOz")]
+        public decimal? DosisPlantaPorAplicacionOz { get; set; }
+
+        [JsonPropertyName("formulaComercial")]
+        public Dictionary<string, decimal> FormulaComercial { get; set; } = new();
 
         [JsonPropertyName("detalle")]
         public List<BalanceNutricionalDetalleResponse> Detalle { get; set; } = new();
-    }
-
-    public class BalanceNutricionalAplicacionResponse
-    {
-        [JsonPropertyName("dosisPlantaOz")]
-        public decimal? DosisPlantaOz { get; set; }
     }
 
     public class BalanceNutricionalDetalleResponse
@@ -68,28 +87,45 @@ namespace CONATRADEC.Models
         [JsonPropertyName("elemento")]
         public string? Elemento { get; set; }
 
+        [JsonPropertyName("lb")]
+        public decimal? Lb { get; set; }
+
+        [JsonIgnore]
+        public decimal? LibrasAnuales
+        {
+            get => Lb;
+            set => Lb = value;
+        }
+
+        [JsonPropertyName("qq")]
+        public decimal? Qq { get; set; }
+
+        [JsonIgnore]
+        public decimal? QuintalesAnuales
+        {
+            get => Qq;
+            set => Qq = value;
+        }
+
         [JsonPropertyName("requerimientoLibras")]
         public decimal? RequerimientoLibras { get; set; }
 
-        [JsonPropertyName("librasAnuales")]
-        public decimal? LibrasAnuales { get; set; }
+        [JsonPropertyName("librasPorAplicacion")]
+        public decimal? LibrasPorAplicacion { get; set; }
 
         [JsonPropertyName("onzasAnuales")]
         public decimal? OnzasAnuales { get; set; }
 
-        [JsonPropertyName("dosAplicaciones")]
-        public decimal? DosAplicaciones { get; set; }
-
-        [JsonPropertyName("tresAplicaciones")]
-        public decimal? TresAplicaciones { get; set; }
-
-        [JsonPropertyName("quintalesAnuales")]
-        public decimal? QuintalesAnuales { get; set; }
+        [JsonPropertyName("onzasPorAplicacion")]
+        public decimal? OnzasPorAplicacion { get; set; }
 
         [JsonPropertyName("precioPorQuintal")]
         public decimal? PrecioPorQuintal { get; set; }
 
         [JsonPropertyName("subtotalFuente")]
         public decimal? SubtotalFuente { get; set; }
+
+        [JsonPropertyName("aportes")]
+        public Dictionary<string, decimal> Aportes { get; set; } = new();
     }
 }

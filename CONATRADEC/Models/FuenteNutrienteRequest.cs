@@ -21,6 +21,18 @@ namespace CONATRADEC.Models
         [JsonPropertyName("elementosQuimicos")]
         public List<FuenteNutrienteElementoQuimicoRequest> ElementosQuimicos { get; set; } = new();
 
+        [JsonIgnore]
+        public bool HabilitadaEnmiendaCalcarea { get; set; }
+
+        [JsonIgnore]
+        public bool HabilitadaFertilizacionMixta { get; set; }
+
+        [JsonIgnore]
+        public decimal? PrntEnmiendaCalcarea { get; set; }
+
+        [JsonIgnore]
+        public string? DescripcionParametroEnmiendaCalcarea { get; set; }
+
         public FuenteNutrienteRequest()
         {
         }
@@ -34,6 +46,12 @@ namespace CONATRADEC.Models
             NombreNutriente = response.NombreNutriente ?? string.Empty;
             DescripcionNutriente = response.DescripcionNutriente ?? string.Empty;
             PrecioNutriente = response.PrecioNutriente ?? 0;
+
+            HabilitadaEnmiendaCalcarea = response.HabilitadaEnmiendaCalcarea == true;
+            HabilitadaFertilizacionMixta = response.HabilitadaFertilizacionMixta == true;
+
+            PrntEnmiendaCalcarea = response.Prnt;
+            DescripcionParametroEnmiendaCalcarea = response.DescripcionParametro;
 
             ElementosQuimicos = response.ElementosQuimicos?
                 .Where(x => x.ElementoQuimicosId.HasValue)
@@ -53,5 +71,26 @@ namespace CONATRADEC.Models
 
         [JsonPropertyName("cantidadAporte")]
         public decimal CantidadAporte { get; set; }
+    }
+
+    public class HabilitarEnmiendaCalcareaRequest
+    {
+        [JsonPropertyName("prnt")]
+        public decimal Prnt { get; set; }
+
+        [JsonPropertyName("descripcionParametro")]
+        public string DescripcionParametro { get; set; } = string.Empty;
+    }
+
+    public class FuenteNutrienteCategoriaOption
+    {
+        public const string CodigoTodas = "TODAS";
+        public const string CodigoBalanceNutricional = "BALANCE_NUTRICIONAL";
+        public const string CodigoEnmiendaCalcarea = "ENMIENDA_CALCAREA";
+        public const string CodigoFertilizacionMixta = "FERTILIZACION_MIXTA";
+
+        public string Codigo { get; set; } = string.Empty;
+
+        public string Nombre { get; set; } = string.Empty;
     }
 }
