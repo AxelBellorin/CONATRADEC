@@ -60,8 +60,7 @@
 
     </ContentPage.Resources>
 
-    <ContentView x:Name="UserPage"
-                 ControlTemplate="{StaticResource FooterTemplate}">
+    <ContentView x:Name="UserPage">
 
         <Grid RowDefinitions="*,Auto">
 

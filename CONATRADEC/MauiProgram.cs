@@ -1,17 +1,16 @@
-﻿using CommunityToolkit.Maui;                     // Importa la extensión CommunityToolkit para MAUI (Snackbar, Toast, etc.)
+﻿using CommunityToolkit.Maui;                     // Importa CommunityToolkit para MAUI (Snackbar, Toast, Popup, etc.)
 using CONATRADEC.Services;                       // Espacio de nombres de los servicios de la aplicación
 using CONATRADEC.ViewModels;                     // Espacio de nombres de los ViewModels
-using CONATRADEC.Views;                          // Espacio de nombres de las vistas (Pages)
-using Microsoft.Extensions.DependencyInjection;  // Permite registrar servicios y ViewModels (Inyección de dependencias)
-using Microsoft.Extensions.Logging;              // Habilita el sistema de logging para depuración
-using Microsoft.Maui.LifecycleEvents;            // Permite configurar eventos del ciclo de vida (Android, Windows, iOS)
-using Microsoft.Maui.Controls; // Importa solo el espacio de nombres principal de Controls
-
-
+using CONATRADEC.Views;                          // Espacio de nombres de las vistas/pages
+using Microsoft.Extensions.DependencyInjection;  // Permite registrar servicios y ViewModels por inyección de dependencias
+using Microsoft.Extensions.Logging;              // Habilita logging para depuración
+using Microsoft.Maui.Controls;                   // Controles principales de MAUI
+using Microsoft.Maui.LifecycleEvents;            // Permite configurar eventos del ciclo de vida de la app
 
 #if WINDOWS
 using Microsoft.UI;                              // API de interfaz de usuario de Windows
 using Microsoft.UI.Windowing;                    // Control de ventana nativa en WinUI
+using Microsoft.UI.Xaml;                         // Permite forzar tema claro en Windows
 using Windows.Graphics;                          // Permite manejar tamaños y coordenadas de ventana
 #endif
 
@@ -35,12 +34,9 @@ namespace CONATRADEC
             // ==========================================================
             builder
                 .UseMauiApp<App>()
-                // Si necesita usar Maps, agregue el paquete NuGet "Microsoft.Maui.Controls.Maps"
-                // y la directiva using correspondiente, y habilite UseMauiMaps() aquí.
 
                 // ======================================================
                 // Habilita la librería CommunityToolkit.Maui
-                //    (para usar DisplaySnackbar, Popup, Alert, etc.)
                 // ======================================================
                 .UseMauiCommunityToolkit(options =>
                 {
@@ -60,7 +56,7 @@ namespace CONATRADEC
                 });
 
             // ==========================================================
-            // Logging (solo en modo DEBUG)
+            // Logging solo en modo DEBUG
             // ==========================================================
 #if DEBUG
             builder.Logging.AddDebug();
@@ -76,28 +72,48 @@ namespace CONATRADEC
                 {
                     wndLifeCycleBuilder.OnWindowCreated(window =>
                     {
+                        // ==================================================
+                        // Fuerza tema claro en la ventana nativa de Windows
+                        // Esto evita que el modo oscuro de Windows cambie
+                        // colores internos de controles WinUI.
+                        // ==================================================
+                        if (window.Content is FrameworkElement rootElement)
+                        {
+                            rootElement.RequestedTheme = ElementTheme.Light;
+                        }
+
+                        // ==================================================
                         // Obtiene el identificador nativo de la ventana
+                        // ==================================================
                         IntPtr nativeWindowHandle = WinRT.Interop.WindowNative.GetWindowHandle(window);
                         WindowId win32WindowsId = Win32Interop.GetWindowIdFromWindow(nativeWindowHandle);
                         AppWindow winuiAppWindow = AppWindow.GetFromWindowId(win32WindowsId);
 
-                        // Si el modo de presentación lo permite, maximiza la ventana
+                        // ==================================================
+                        // Maximiza la ventana si el modo lo permite
+                        // ==================================================
                         if (winuiAppWindow.Presenter is OverlappedPresenter p)
                             p.Maximize();
                         else
                         {
-                            // De lo contrario, define un tamaño y posición manual centrada
+                            // ==============================================
+                            // Si no puede maximizarse, se define tamaño manual
+                            // y se centra aproximadamente en pantalla.
+                            // ==============================================
                             const int width = 1200;
                             const int height = 800;
+
                             winuiAppWindow.MoveAndResize(new RectInt32(
-                                1920 / 2 - width / 2,   // Centra horizontalmente
-                                1080 / 2 - height / 2,  // Centra verticalmente
-                                width, height));        // Define dimensiones
+                                1920 / 2 - width / 2,
+                                1080 / 2 - height / 2,
+                                width,
+                                height));
                         }
                     });
                 });
             });
-#endif       
+#endif
+
             // ==========================================================
             // Retorna la instancia final configurada del aplicativo
             // ==========================================================

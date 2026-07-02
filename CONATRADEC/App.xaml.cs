@@ -7,12 +7,14 @@ namespace CONATRADEC
         public App()
         {
             InitializeComponent();
+
+            // Fuerza la app a usar tema claro aunque el sistema esté en modo oscuro
+            UserAppTheme = AppTheme.Light;
         }
+
         protected override Window CreateWindow(IActivationState? activationState)
         {
-
 #if WINDOWS
-            // Devuelves la ventana con su contenido raíz
             var page = new AppShell();
             var window = new Window(page);
             window.Title = "ConatraCafé Soil";
