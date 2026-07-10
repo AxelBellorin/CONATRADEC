@@ -1,13 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace CONATRADEC.ViewModels
 {
@@ -36,7 +38,6 @@ namespace CONATRADEC.ViewModels
         private MunicipioResponse? municipioSeleccionado;
 
         private TipoCultivoResponse? tipoCultivoSeleccionado;
-        private string tipoAnalisisSueloSeleccionado = string.Empty;
         private DateTime fechaAnalisisLaboratorio = DateTime.Today;
 
         private string laboratorio = string.Empty;
@@ -244,8 +245,8 @@ namespace CONATRADEC.ViewModels
 
                 if (terrenoSeleccionado != null)
                 {
-                    CantidadQuintalesOro = terrenoSeleccionado.CantidadQuintalesOro?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-                    TamanoFinca = terrenoSeleccionado.TamanoFinca?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+                    CantidadQuintalesOro = FormatearDecimalTexto(terrenoSeleccionado.CantidadQuintalesOro);
+                    TamanoFinca = FormatearDecimalTexto(terrenoSeleccionado.TamanoFinca);
                     CantidadPlantas = terrenoSeleccionado.CantidadPlantasTerreno?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
                 }
 
@@ -268,17 +269,6 @@ namespace CONATRADEC.ViewModels
         }
 
         public string TipoCultivoSeleccionadoTexto => TipoCultivoSeleccionado?.NombreMostrar ?? string.Empty;
-
-        public string TipoAnalisisSueloSeleccionado
-        {
-            get => tipoAnalisisSueloSeleccionado;
-            set
-            {
-                tipoAnalisisSueloSeleccionado = value;
-                OnPropertyChanged(nameof(TipoAnalisisSueloSeleccionado));
-                RefrescarComandos();
-            }
-        }
 
         public DateTime FechaAnalisisLaboratorio
         {
@@ -318,7 +308,7 @@ namespace CONATRADEC.ViewModels
             get => cantidadQuintalesOro;
             set
             {
-                cantidadQuintalesOro = value;
+                cantidadQuintalesOro = NormalizarEntradaDecimal(value);
                 OnPropertyChanged(nameof(CantidadQuintalesOro));
                 RefrescarComandos();
             }
@@ -329,7 +319,7 @@ namespace CONATRADEC.ViewModels
             get => tamanoFinca;
             set
             {
-                tamanoFinca = value;
+                tamanoFinca = NormalizarEntradaDecimal(value);
                 OnPropertyChanged(nameof(TamanoFinca));
                 RefrescarComandos();
             }
@@ -340,7 +330,7 @@ namespace CONATRADEC.ViewModels
             get => cantidadPlantas;
             set
             {
-                cantidadPlantas = value;
+                cantidadPlantas = NormalizarEntradaEntera(value);
                 OnPropertyChanged(nameof(CantidadPlantas));
                 RefrescarComandos();
             }
@@ -351,7 +341,7 @@ namespace CONATRADEC.ViewModels
             get => ph;
             set
             {
-                ph = value ?? string.Empty;
+                ph = NormalizarEntradaDecimal(value);
                 OnPropertyChanged(nameof(Ph));
                 RefrescarComandos();
             }
@@ -362,7 +352,7 @@ namespace CONATRADEC.ViewModels
             get => acidezTotal;
             set
             {
-                acidezTotal = value ?? string.Empty;
+                acidezTotal = NormalizarEntradaDecimal(value);
                 OnPropertyChanged(nameof(AcidezTotal));
                 RefrescarComandos();
             }
@@ -373,7 +363,7 @@ namespace CONATRADEC.ViewModels
             get => calcioCice;
             set
             {
-                calcioCice = value ?? string.Empty;
+                calcioCice = NormalizarEntradaDecimal(value);
                 OnPropertyChanged(nameof(CalcioCice));
                 RefrescarComandos();
             }
@@ -384,7 +374,7 @@ namespace CONATRADEC.ViewModels
             get => magnesioCice;
             set
             {
-                magnesioCice = value ?? string.Empty;
+                magnesioCice = NormalizarEntradaDecimal(value);
                 OnPropertyChanged(nameof(MagnesioCice));
                 RefrescarComandos();
             }
@@ -395,7 +385,7 @@ namespace CONATRADEC.ViewModels
             get => potasioCice;
             set
             {
-                potasioCice = value ?? string.Empty;
+                potasioCice = NormalizarEntradaDecimal(value);
                 OnPropertyChanged(nameof(PotasioCice));
                 RefrescarComandos();
             }
@@ -613,7 +603,10 @@ namespace CONATRADEC.ViewModels
 
                 CargarDatosUsuario();
 
-                if (forceReload || TiposCultivo.Count == 0 || TiposAnalisisSuelo.Count == 0)
+                //if (forceReload || TiposCultivo.Count == 0 || TiposAnalisisSuelo.Count == 0)
+                //    await CargarCatalogosFormularioAsync();
+
+                if (forceReload || TiposCultivo.Count == 0)
                     await CargarCatalogosFormularioAsync();
 
                 if (forceReload || Paises.Count == 0)
@@ -663,7 +656,6 @@ namespace CONATRADEC.ViewModels
             TerrenosFiltrados.Clear();
 
             TipoCultivoSeleccionado = TiposCultivo.FirstOrDefault();
-            TipoAnalisisSueloSeleccionado = TiposAnalisisSuelo.FirstOrDefault() ?? string.Empty;
 
             FechaAnalisisLaboratorio = DateTime.Today;
 
@@ -708,13 +700,6 @@ namespace CONATRADEC.ViewModels
         private async Task CargarCatalogosFormularioAsync()
         {
             await CargarTiposCultivoAsync();
-
-            TiposAnalisisSuelo.Clear();
-            TiposAnalisisSuelo.Add("Análisis químico de suelo");
-            TiposAnalisisSuelo.Add("Análisis físico de suelo");
-            TiposAnalisisSuelo.Add("Análisis completo de suelo");
-
-            TipoAnalisisSueloSeleccionado = TiposAnalisisSuelo.FirstOrDefault() ?? string.Empty;
             FechaAnalisisLaboratorio = DateTime.Today;
         }
 
@@ -1035,7 +1020,7 @@ namespace CONATRADEC.ViewModels
 
             if (simboloNormalizado == "K" ||
                 simboloNormalizado == "CA" ||
-                simboloNormalizado == "MG" )
+                simboloNormalizado == "MG")
                 return BuscarUnidadMedidaEnLista(unidades, "MEQ/100G", "PPM", "CMOL/KG", "MG/KG");
 
             return BuscarUnidadMedidaEnLista(unidades, "MG/KG", "PPM", "G/KG", "%");
@@ -1201,7 +1186,7 @@ namespace CONATRADEC.ViewModels
 
                 decimal quintalesOro = ConvertirDecimal(CantidadQuintalesOro);
                 decimal tamanoFincaDecimal = ConvertirDecimal(TamanoFinca);
-                int cantidadPlantasValidada = int.Parse(CantidadPlantas);
+                int cantidadPlantasValidada = ConvertirEntero(CantidadPlantas);
 
                 decimal phDecimal = ConvertirDecimal(Ph);
                 decimal acidezTotalDecimal = ConvertirDecimal(AcidezTotal);
@@ -1333,13 +1318,6 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(TipoAnalisisSueloSeleccionado))
-            {
-                ErrorTipoAnalisisSuelo = "Debe seleccionar el tipo de análisis de suelo.";
-                await MostrarMensajeAsync("Validación", ErrorTipoAnalisisSuelo);
-                return false;
-            }
-
             if (FechaAnalisisLaboratorio.Date > DateTime.Today)
             {
                 ErrorFechaAnalisisLaboratorio = "La fecha del análisis no puede ser futura.";
@@ -1389,6 +1367,13 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
+            if (!TieneMaximoDecimales(CantidadQuintalesOro, 2))
+            {
+                ErrorCantidadQuintalesOro = "La cantidad de quintales oro debe tener máximo 2 decimales.";
+                await MostrarMensajeAsync("Validación", ErrorCantidadQuintalesOro);
+                return false;
+            }
+
             if (quintalesOro <= 0)
             {
                 ErrorCantidadQuintalesOro = "La cantidad de quintales oro debe ser mayor que cero.";
@@ -1403,6 +1388,13 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
+            if (!TieneMaximoDecimales(TamanoFinca, 2))
+            {
+                ErrorTamanoFinca = "El tamaño de la finca debe tener máximo 2 decimales.";
+                await MostrarMensajeAsync("Validación", ErrorTamanoFinca);
+                return false;
+            }
+
             if (tamanoFincaDecimal <= 0)
             {
                 ErrorTamanoFinca = "El tamaño de la finca debe ser mayor que cero.";
@@ -1410,9 +1402,9 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
-            if (!int.TryParse(CantidadPlantas, out int cantidadPlantasValidada))
+            if (!TryParseEntero(CantidadPlantas, out int cantidadPlantasValidada))
             {
-                ErrorCantidadPlantas = "La cantidad de plantas debe ser numérica.";
+                ErrorCantidadPlantas = "La cantidad de plantas debe ser un número entero.";
                 await MostrarMensajeAsync("Validación", ErrorCantidadPlantas);
                 return false;
             }
@@ -1431,9 +1423,16 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(Ph) && (phDecimal <= 0 || phDecimal > 14))
+            if (!string.IsNullOrWhiteSpace(Ph) && !TieneMaximoDecimales(Ph, 2))
             {
-                ErrorPh = "El pH debe ser mayor que cero y menor o igual a 14.";
+                ErrorPh = "El pH debe tener máximo 2 decimales.";
+                await MostrarMensajeAsync("Validación", ErrorPh);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Ph) && (phDecimal < 0 || phDecimal > 14))
+            {
+                ErrorPh = "El pH debe estar entre 0 y 14.";
                 await MostrarMensajeAsync("Validación", ErrorPh);
                 return false;
             }
@@ -1441,6 +1440,13 @@ namespace CONATRADEC.ViewModels
             if (!ValidarDecimalOpcional(AcidezTotal, out decimal acidezTotalDecimal))
             {
                 ErrorAcidezTotal = "La acidez total debe ser numérica.";
+                await MostrarMensajeAsync("Validación", ErrorAcidezTotal);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(AcidezTotal) && !TieneMaximoDecimales(AcidezTotal, 2))
+            {
+                ErrorAcidezTotal = "La acidez total debe tener máximo 2 decimales.";
                 await MostrarMensajeAsync("Validación", ErrorAcidezTotal);
                 return false;
             }
@@ -1459,6 +1465,13 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
+            if (!string.IsNullOrWhiteSpace(CalcioCice) && !TieneMaximoDecimales(CalcioCice, 2))
+            {
+                ErrorCalcioCice = "El calcio CICE debe tener máximo 2 decimales.";
+                await MostrarMensajeAsync("Validación", ErrorCalcioCice);
+                return false;
+            }
+
             if (!string.IsNullOrWhiteSpace(CalcioCice) && calcioCiceDecimal < 0)
             {
                 ErrorCalcioCice = "El calcio CICE no puede ser negativo.";
@@ -1473,6 +1486,13 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
+            if (!string.IsNullOrWhiteSpace(MagnesioCice) && !TieneMaximoDecimales(MagnesioCice, 2))
+            {
+                ErrorMagnesioCice = "El magnesio CICE debe tener máximo 2 decimales.";
+                await MostrarMensajeAsync("Validación", ErrorMagnesioCice);
+                return false;
+            }
+
             if (!string.IsNullOrWhiteSpace(MagnesioCice) && magnesioCiceDecimal < 0)
             {
                 ErrorMagnesioCice = "El magnesio CICE no puede ser negativo.";
@@ -1483,6 +1503,13 @@ namespace CONATRADEC.ViewModels
             if (!ValidarDecimalOpcional(PotasioCice, out decimal potasioCiceDecimal))
             {
                 ErrorPotasioCice = "El potasio CICE debe ser numérico.";
+                await MostrarMensajeAsync("Validación", ErrorPotasioCice);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(PotasioCice) && !TieneMaximoDecimales(PotasioCice, 2))
+            {
+                ErrorPotasioCice = "El potasio CICE debe tener máximo 2 decimales.";
                 await MostrarMensajeAsync("Validación", ErrorPotasioCice);
                 return false;
             }
@@ -1505,6 +1532,12 @@ namespace CONATRADEC.ViewModels
                 if (!TryParseDecimal(item.Valor, out decimal valor) || valor < 0)
                 {
                     await MostrarMensajeAsync("Validación", $"El valor de {item.NombreParametro} no es válido.");
+                    return false;
+                }
+
+                if (!TieneMaximoDecimales(item.Valor, 2))
+                {
+                    await MostrarMensajeAsync("Validación", $"El valor de {item.NombreParametro} debe tener máximo 2 decimales.");
                     return false;
                 }
 
@@ -1544,6 +1577,12 @@ namespace CONATRADEC.ViewModels
                 if (!TryParseDecimal(item.Valor, out decimal valor) || valor < 0)
                 {
                     await MostrarMensajeAsync("Validación", $"El valor de {item.NombreParametro} no es válido.");
+                    return false;
+                }
+
+                if (!TieneMaximoDecimales(item.Valor, 2))
+                {
+                    await MostrarMensajeAsync("Validación", $"El valor de {item.NombreParametro} debe tener máximo 2 decimales.");
                     return false;
                 }
 
@@ -1604,7 +1643,14 @@ namespace CONATRADEC.ViewModels
 
         private decimal ConvertirDecimal(string valor)
         {
-            return TryParseDecimal(valor, out decimal resultado) ? resultado : 0;
+            return TryParseDecimal(valor, out decimal resultado)
+                ? RedondearDosDecimales(resultado)
+                : 0;
+        }
+
+        private int ConvertirEntero(string valor)
+        {
+            return TryParseEntero(valor, out int resultado) ? resultado : 0;
         }
 
         private int ObtenerTipoCultivoIdSeleccionado()
@@ -1665,7 +1711,6 @@ namespace CONATRADEC.ViewModels
                 $"MunicipioId:{MunicipioSeleccionado?.MunicipioId}",
                 $"TipoCultivoId:{TipoCultivoSeleccionado?.TipoCultivoId}",
                 $"TipoCultivo:{TipoCultivoSeleccionado?.NombreMostrar}",
-                $"TipoAnalisis:{TipoAnalisisSueloSeleccionado?.Trim()}",
                 $"FechaLaboratorio:{FechaAnalisisLaboratorio:yyyy-MM-dd}",
                 $"Laboratorio:{Laboratorio?.Trim()}",
                 $"Identificador:{IdentificadorAnalisisSuelo?.Trim()}",
@@ -1729,22 +1774,137 @@ namespace CONATRADEC.ViewModels
             return TryParseDecimal(valor, out resultado);
         }
 
-        private static bool TryParseDecimal(string valor, out decimal resultado)
+        private static bool TryParseDecimal(string? valor, out decimal resultado)
         {
-            if (decimal.TryParse(valor, NumberStyles.Any, CultureInfo.CurrentCulture, out resultado))
-                return true;
+            resultado = 0;
 
-            if (decimal.TryParse(valor, NumberStyles.Any, CultureInfo.InvariantCulture, out resultado))
-                return true;
+            string valorNormalizado = NormalizarNumeroDecimal(valor);
 
-            string valorNormalizado = (valor ?? string.Empty).Replace(",", ".");
+            if (string.IsNullOrWhiteSpace(valorNormalizado))
+                return false;
 
             return decimal.TryParse(
                 valorNormalizado,
-                NumberStyles.Any,
+                NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
                 CultureInfo.InvariantCulture,
                 out resultado
             );
+        }
+
+        private static bool TryParseEntero(string? valor, out int resultado)
+        {
+            resultado = 0;
+
+            string valorNormalizado = NormalizarEntradaEntera(valor);
+
+            if (string.IsNullOrWhiteSpace(valorNormalizado))
+                return false;
+
+            return int.TryParse(
+                valorNormalizado,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out resultado
+            );
+        }
+
+        private static string NormalizarEntradaDecimal(string? valor)
+        {
+            return (valor ?? string.Empty)
+                .Trim()
+                .Replace(",", ".");
+        }
+
+        private static string NormalizarEntradaEntera(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                return string.Empty;
+
+            return new string(valor.Where(char.IsDigit).ToArray());
+        }
+
+        private static string NormalizarNumeroDecimal(string? valor)
+        {
+            string texto = (valor ?? string.Empty)
+                .Trim()
+                .Replace(" ", string.Empty)
+                .Replace("\u00A0", string.Empty);
+
+            if (string.IsNullOrWhiteSpace(texto))
+                return string.Empty;
+
+            bool tienePunto = texto.Contains('.');
+            bool tieneComa = texto.Contains(',');
+
+            if (tienePunto && tieneComa)
+            {
+                int ultimoPunto = texto.LastIndexOf('.');
+                int ultimaComa = texto.LastIndexOf(',');
+
+                if (ultimoPunto > ultimaComa)
+                {
+                    texto = texto.Replace(",", string.Empty);
+                }
+                else
+                {
+                    texto = texto.Replace(".", string.Empty);
+                    texto = texto.Replace(",", ".");
+                }
+
+                return texto;
+            }
+
+            if (tieneComa)
+                texto = texto.Replace(",", ".");
+
+            return texto;
+        }
+
+        private static bool TieneMaximoDecimales(string? valor, int maximoDecimales)
+        {
+            string texto = NormalizarNumeroDecimal(valor);
+
+            int indicePunto = texto.IndexOf('.');
+
+            if (indicePunto < 0)
+                return true;
+
+            int cantidadDecimales = texto.Length - indicePunto - 1;
+
+            return cantidadDecimales <= maximoDecimales;
+        }
+
+        private static string FormatearDecimalTexto(decimal? valor)
+        {
+            if (valor == null)
+                return string.Empty;
+
+            return RedondearDosDecimales(valor.Value).ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
+        private static string FormatearDecimalTexto(double? valor)
+        {
+            if (valor == null)
+                return string.Empty;
+
+            decimal valorDecimal = Convert.ToDecimal(valor.Value, CultureInfo.InvariantCulture);
+
+            return RedondearDosDecimales(valorDecimal).ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
+        private static string FormatearDecimalTexto(float? valor)
+        {
+            if (valor == null)
+                return string.Empty;
+
+            decimal valorDecimal = Convert.ToDecimal(valor.Value, CultureInfo.InvariantCulture);
+
+            return RedondearDosDecimales(valorDecimal).ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
+        private static decimal RedondearDosDecimales(decimal valor)
+        {
+            return Math.Round(valor, 2, MidpointRounding.AwayFromZero);
         }
 
         private static string ObtenerIniciales(string? nombreCompleto)

@@ -109,9 +109,11 @@
 
                         <VerticalStackLayout Spacing="18">
 
-                            <HorizontalStackLayout Spacing="16">
+                            <Grid ColumnDefinitions="Auto,*"
+                                  ColumnSpacing="16">
 
-                                <Border WidthRequest="66"
+                                <Border Grid.Column="0"
+                                        WidthRequest="66"
                                         HeightRequest="66"
                                         StrokeShape="Ellipse"
                                         Stroke="{StaticResource color_Verde}"
@@ -134,22 +136,29 @@
                                     </Grid>
                                 </Border>
 
-                                <VerticalStackLayout Spacing="4"
+                                <VerticalStackLayout Grid.Column="1"
+                                                     Spacing="4"
                                                      VerticalOptions="Center"
-                                                     HorizontalOptions="FillAndExpand">
+                                                     HorizontalOptions="Fill">
 
                                     <Label Text="{Binding NombreCompletoUsuario}"
                                            FontAttributes="Bold"
                                            FontSize="20"
-                                           TextColor="{StaticResource color_Negro}" />
+                                           TextColor="{StaticResource color_Negro}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"
+                                           HorizontalOptions="Fill" />
 
                                     <Label Text="{Binding CorreoUsuario}"
                                            TextColor="{StaticResource color_GrisOscuro}"
-                                           FontSize="14" />
+                                           FontSize="14"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"
+                                           HorizontalOptions="Fill" />
 
                                 </VerticalStackLayout>
 
-                            </HorizontalStackLayout>
+                            </Grid>
 
                         </VerticalStackLayout>
                     </Border>
@@ -270,11 +279,11 @@
                                                        FontSize="13"
                                                        TextColor="{StaticResource color_GrisOscuro}" />
 
-                                                <Label Text="{Binding TamanoFinca, StringFormat='Finca: {0} mz'}"
+                                                <Label Text="{Binding TamanoFinca, StringFormat='Finca: {0:0.00} mz'}"
                                                        FontSize="13"
                                                        TextColor="{StaticResource color_GrisOscuro}" />
 
-                                                <Label Text="{Binding CantidadQuintalesOro, StringFormat='Quintales oro: {0}'}"
+                                                <Label Text="{Binding CantidadQuintalesOro, StringFormat='Quintales oro: {0:0.00}'}"
                                                        FontSize="13"
                                                        TextColor="{StaticResource color_GrisOscuro}" />
 
@@ -369,7 +378,7 @@
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout Spacing="6">
+                            <!--<VerticalStackLayout Spacing="6">
                                 <Label Text="Tipo de análisis de suelo"
                                        Style="{StaticResource FieldLabelStyle}" />
 
@@ -383,7 +392,7 @@
                                 <Label Text="{Binding ErrorTipoAnalisisSuelo}"
                                        IsVisible="{Binding TieneErrorTipoAnalisisSuelo}"
                                        Style="{StaticResource ValidationErrorLabelStyle}" />
-                            </VerticalStackLayout>
+                            </VerticalStackLayout>-->
 
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="Fecha del análisis del laboratorio"
@@ -579,16 +588,16 @@
                                        Style="{StaticResource FieldLabelStyle}" />
 
                                 <Border Style="{StaticResource FormInputContainerStyle}">
-                                    <Entry  Text="{Binding PotasioCice}"
-                                            Keyboard="Numeric"
-                                            Placeholder="Ejemplo: 0.14"
-                                            HorizontalOptions="Fill"
-                                            Style="{StaticResource FormEntryStyle}"/>
+                                    <Entry Text="{Binding PotasioCice}"
+                                           Keyboard="Numeric"
+                                           Placeholder="Ejemplo: 0.14"
+                                           HorizontalOptions="Fill"
+                                           Style="{StaticResource FormEntryStyle}" />
                                 </Border>
 
-                                <Label  Text="{Binding ErrorPotasioCice}"
-                                        IsVisible="{Binding TieneErrorPotasioCice}"
-                                        Style="{StaticResource ValidationErrorLabelStyle}" />
+                                <Label Text="{Binding ErrorPotasioCice}"
+                                       IsVisible="{Binding TieneErrorPotasioCice}"
+                                       Style="{StaticResource ValidationErrorLabelStyle}" />
                             </VerticalStackLayout>
 
                         </VerticalStackLayout>

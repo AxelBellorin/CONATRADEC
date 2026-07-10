@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using CONATRADEC.Models;
@@ -92,13 +94,23 @@ namespace CONATRADEC.Services
         {
             try
             {
-                HttpResponseMessage response = await httpClient.PostAsJsonAsync(
-                    endpoint,
-                    request,
-                    jsonOptions
+                string jsonRequest = JsonSerializer.Serialize(request, jsonOptions);
+
+                Debug.WriteLine($"========== REQUEST API: {endpoint} ==========");
+                Debug.WriteLine(jsonRequest);
+
+                using StringContent content = new StringContent(
+                    jsonRequest,
+                    Encoding.UTF8,
+                    "application/json"
                 );
 
+                HttpResponseMessage response = await httpClient.PostAsync(endpoint, content);
+
                 string jsonRespuesta = await response.Content.ReadAsStringAsync();
+
+                Debug.WriteLine($"========== RESPONSE API: {endpoint} ({(int)response.StatusCode}) ==========");
+                Debug.WriteLine(jsonRespuesta);
 
                 if (!response.IsSuccessStatusCode)
                 {
