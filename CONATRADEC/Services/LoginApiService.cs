@@ -1,86 +1,77 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
+using System.Net;
 using System.Net.Http.Json;
 
 namespace CONATRADEC.Services
 {
-    // ===========================================================
-    // =============== SERVICIO: LoginApiService =================
-    // ===========================================================
-    // Este servicio maneja la autenticación de usuarios contra el
-    // endpoint remoto. Envía las credenciales y obtiene el token
-    // de acceso o los datos del usuario autenticado.
-    class LoginApiService
+    /// <summary>
+    /// Maneja la autenticación de usuarios contra la API.
+    /// </summary>
+    public sealed class LoginApiService
     {
-        // ===========================================================
-        // =================== DEPENDENCIAS / ESTADO =================
-        // ===========================================================          
-
-        // Cliente HTTP utilizado para realizar solicitudes a la API.
         private readonly HttpClient httpClient;
 
-        // Servicio para obtener la BaseUrl de la API.
-        private readonly UrlApiService urlApiService = new UrlApiService(); 
-
-        // ===========================================================
-        // ======================== CONSTRUCTOR ======================
-        // ===========================================================
-
+        /// <summary>
+        /// Mantiene compatibilidad con el LoginViewModel actual.
+        /// Utiliza el HttpClient compartido de la aplicación.
+        /// </summary>
         public LoginApiService()
+            : this(ApiClientService.Client)
         {
-            // Inicializa el cliente HTTP con la dirección base de la API.
-            // En este caso, se utiliza "dummyjson.com" como entorno de prueba.
-            httpClient = new HttpClient { BaseAddress = new Uri(urlApiService.BaseUrlApi) };
-
-            httpClient.Timeout = TimeSpan.FromSeconds(20); // Espera máxima de respuesta
         }
 
-        // ===========================================================
-        // ====================== MÉTODOS PÚBLICOS ===================
-        // ===========================================================
-
-        // -----------------------------------------------------------
-        // Método: LoginAsync
-        // Descripción:
-        //     Envía las credenciales del usuario al endpoint de autenticación.
-        //     Si la respuesta es exitosa, devuelve un objeto LoginResponse
-        //     con los datos del usuario autenticado y tokens de sesión.
-        //
-        // Parámetros:
-        //     request - Objeto de tipo LoginRequest que contiene el username y password.
-        //
-        // Retorna:
-        //     LoginResponse (si la autenticación fue exitosa).
-        //
-        // Excepciones:
-        //     Lanza una Exception si la respuesta HTTP indica un error (401, 500, etc.).
-        // -----------------------------------------------------------
-        public async Task<LoginResponse> LoginAsync(LoginRequest request)
+        /// <summary>
+        /// Permite suministrar un HttpClient desde pruebas o desde
+        /// inyección de dependencias en una etapa posterior.
+        /// </summary>
+        public LoginApiService(HttpClient httpClient)
         {
-            // Realiza una solicitud POST enviando el objeto LoginRequest en formato JSON.
-            var response = await httpClient.PostAsJsonAsync("api/auth/login", request);
-
-            // Si la API responde con éxito (código 200 OK, etc.)
-            if (response.IsSuccessStatusCode)
-            {
-                // Deserializa el cuerpo de la respuesta JSON a LoginResponse.
-                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-
-                // Devuelve el objeto con los datos del usuario autenticado.
-                return loginResponse;
-            }
-            else
-            {
-                // Si ocurre un error, opcionalmente se lee el contenido de error como texto.
-                var err = await response.Content.ReadAsStringAsync();
-
-                // Lanza una excepción detallando el código HTTP y el mensaje recibido.
-                throw new Exception($"Login failed: {response.StatusCode} - {err}");
-            }
+            this.httpClient = httpClient
+                ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        // ===========================================================
-        // ===================== MÉTODOS PRIVADOS ====================
-        // ===========================================================
-        // (No se requieren métodos privados actualmente.)
+        public async Task<LoginResponse> LoginAsync(
+            LoginRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+                "api/auth/login",
+                request,
+                cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new UnauthorizedAccessException(
+                    "El usuario o la contraseña son incorrectos.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                string contenidoError = await response.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+                throw new HttpRequestException(
+                    $"La API respondió con el código " +
+                    $"{(int)response.StatusCode} ({response.StatusCode}). " +
+                    contenidoError,
+                    null,
+                    response.StatusCode);
+            }
+
+            LoginResponse? loginResponse =
+                await response.Content.ReadFromJsonAsync<LoginResponse>(
+                    cancellationToken: cancellationToken);
+
+            if (loginResponse == null)
+            {
+                throw new InvalidOperationException(
+                    "La API respondió correctamente, pero no devolvió " +
+                    "los datos del usuario.");
+            }
+
+            return loginResponse;
+        }
     }
 }
