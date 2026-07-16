@@ -2,8 +2,8 @@ namespace CONATRADEC.Models
 {
     /// <summary>
     /// Representa el resultado de una operación contra la API.
-    /// Permite diferenciar una respuesta exitosa, una lista vacía
-    /// y un error de conexión o del servidor.
+    /// Permite diferenciar una operación exitosa de un error
+    /// de conexión, validación o servidor.
     /// </summary>
     public sealed class ApiResult<T>
     {

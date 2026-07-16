@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
 
@@ -8,11 +8,20 @@ namespace CONATRADEC.ViewModels
     {
         private readonly RolApiService rolApiService;
         private ObservableCollection<RolResponse> list = new();
+        private bool cargandoRoles;
+        private bool eliminandoRol;
 
         public ObservableCollection<RolResponse> List
         {
             get => list;
-            set { list = value; OnPropertyChanged(); }
+            set
+            {
+                if (ReferenceEquals(list, value))
+                    return;
+
+                list = value;
+                OnPropertyChanged();
+            }
         }
 
         public Command AddCommand { get; }
@@ -21,51 +30,86 @@ namespace CONATRADEC.ViewModels
         public Command ViewCommand { get; }
 
         public RolViewModel()
+            : this(new RolApiService())
         {
-            rolApiService = new RolApiService();
-
-            AddCommand = new Command(async () => await OnAdd());
-            EditCommand = new Command<RolResponse>(OnEdit);
-            DeleteCommand = new Command<RolResponse>(OnDelete);
-            ViewCommand = new Command<RolResponse>(OnView);
         }
 
-        public async Task LoadRol(bool isBusy)
+        public RolViewModel(RolApiService rolApiService)
+        {
+            this.rolApiService = rolApiService
+                ?? throw new ArgumentNullException(nameof(rolApiService));
+
+            AddCommand = new Command(
+                async () => await OnAddAsync());
+
+            EditCommand = new Command<RolResponse>(
+                async rol => await OnEditAsync(rol));
+
+            DeleteCommand = new Command<RolResponse>(
+                async rol => await OnDeleteAsync(rol));
+
+            ViewCommand = new Command<RolResponse>(
+                async rol => await OnViewAsync(rol));
+        }
+
+        public async Task LoadRol(bool mostrarIndicadorCarga)
         {
             if (!CanView)
             {
-                await MostrarToastAsync("No tiene permisos para ver roles.");
+                await MostrarToastAsync(
+                    "No tiene permisos para ver roles.");
                 return;
             }
 
-            IsBusy = isBusy;
+            if (cargandoRoles)
+                return;
 
-            List.Clear();
+            cargandoRoles = true;
 
-            if (!await TieneInternetAsync())
+            if (mostrarIndicadorCarga)
+                IsBusy = true;
+
+            try
             {
-                await MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
+                var resultado = await rolApiService.GetRolResultAsync();
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                List = new ObservableCollection<RolResponse>(
+                    (resultado.Data ?? new ObservableCollection<RolResponse>())
+                    .OrderBy(x => x.NombreRol ?? string.Empty));
+
+                if (List.Count == 0)
+                    await MostrarToastAsync("No se encontraron roles.");
             }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al cargar los roles.");
+            }
+            finally
+            {
+                cargandoRoles = false;
 
-            var response = await rolApiService.GetRolAsync();
-
-            if (response.Any())
-                List = response;
-            else
-                await MostrarToastAsync("No se encontraron roles.");
-
-            IsBusy = false;
+                if (mostrarIndicadorCarga)
+                    IsBusy = false;
+            }
         }
 
-        private async Task OnAdd()
+        private async Task OnAddAsync()
         {
             if (!CanAdd)
             {
                 await MostrarToastAsync("No tiene permisos para agregar.");
                 return;
             }
+
+            if (IsBusy)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -76,7 +120,7 @@ namespace CONATRADEC.ViewModels
             await GoToAsyncParameters("//RolFormPage", parameters);
         }
 
-        private async void OnEdit(RolResponse rol)
+        private async Task OnEditAsync(RolResponse? rol)
         {
             if (!CanEdit)
             {
@@ -84,7 +128,8 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (rol == null) return;
+            if (IsBusy || rol == null)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -95,49 +140,16 @@ namespace CONATRADEC.ViewModels
             await GoToAsyncParameters("//RolFormPage", parameters);
         }
 
-        private async void OnDelete(RolResponse rol)
-        {
-            if (!CanDelete)
-            {
-                await MostrarToastAsync("No tiene permisos para eliminar.");
-                return;
-            }
-
-            if (rol == null) return;
-
-            bool confirm = await App.Current.MainPage.DisplayAlert(
-                "Eliminar",
-                $"¿Deseas eliminar el rol '{rol.NombreRol}'?",
-                "Sí", "No");
-
-            if (!confirm) return;
-
-            if (!await TieneInternetAsync())
-            {
-                await MostrarToastAsync("Sin conexión a internet.");
-                return;
-            }
-
-            var result = await rolApiService.DeleteRolAsync(new RolRequest(rol));
-
-            if (result)
-            {
-                await MostrarToastAsync("Rol eliminado.");
-                await LoadRol(true);
-            }
-            else
-            {
-                await MostrarToastAsync("No se pudo eliminar el rol.");
-            }
-        }
-
-        private async void OnView(RolResponse rol)
+        private async Task OnViewAsync(RolResponse? rol)
         {
             if (!CanView)
             {
                 await MostrarToastAsync("No tiene permisos para ver.");
                 return;
             }
+
+            if (IsBusy || rol == null)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -146,6 +158,58 @@ namespace CONATRADEC.ViewModels
             };
 
             await GoToAsyncParameters("//RolFormPage", parameters);
+        }
+
+        private async Task OnDeleteAsync(RolResponse? rol)
+        {
+            if (!CanDelete)
+            {
+                await MostrarToastAsync("No tiene permisos para eliminar.");
+                return;
+            }
+
+            if (IsBusy || eliminandoRol || rol == null)
+                return;
+
+            bool confirmar = await App.Current.MainPage.DisplayAlert(
+                "Eliminar rol",
+                $"¿Desea eliminar el rol '{rol.NombreRol}'?",
+                "Sí",
+                "No");
+
+            if (!confirmar)
+                return;
+
+            eliminandoRol = true;
+            IsBusy = true;
+
+            try
+            {
+                var resultado = await rolApiService.DeleteRolResultAsync(
+                    new RolRequest(rol));
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                List.Remove(rol);
+                await MostrarToastAsync(
+                    string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "Rol eliminado correctamente."
+                        : resultado.Message);
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al eliminar el rol.");
+            }
+            finally
+            {
+                eliminandoRol = false;
+                IsBusy = false;
+            }
         }
     }
 }

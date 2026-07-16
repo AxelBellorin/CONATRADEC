@@ -1,13 +1,9 @@
 using CONATRADEC.Models;
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Collections.ObjectModel;
-using System.Net.Http.Json;
 
 namespace CONATRADEC.Services
 {
-    class DepartamentoApiService
+    public class DepartamentoApiService
     {
         private readonly HttpClient httpClient;
 
@@ -22,66 +18,114 @@ namespace CONATRADEC.Services
                 ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public async Task<ObservableCollection<DepartamentoResponse>> GetDepartamentosAsync(int? paisId)
+        public Task<ApiResult<ObservableCollection<DepartamentoResponse>>> GetDepartamentosResultAsync(
+            int? paisId,
+            CancellationToken cancellationToken = default)
         {
-            try
+            if (!paisId.HasValue || paisId.Value <= 0)
             {
-                var response = await httpClient.GetFromJsonAsync<ObservableCollection<DepartamentoResponse>>(
-                    $"api/departamento/por-pais/{paisId}");
+                return Task.FromResult(
+                    ApiResult<ObservableCollection<DepartamentoResponse>>.Fail(
+                        "No se recibió un país válido para cargar sus departamentos."));
+            }
 
-                return response ?? new ObservableCollection<DepartamentoResponse>();
-            }
-            catch
-            {
-                return new ObservableCollection<DepartamentoResponse>();
-            }
+            return ApiServiceHelper.GetCollectionAsync<DepartamentoResponse>(
+                httpClient,
+                $"api/departamento/por-pais/{paisId.Value}",
+                "los departamentos",
+                cancellationToken);
         }
 
-        public async Task<bool> CreateDepartamentoAsync(DepartamentoRequest departamentoRequest)
+        public Task<ApiResult<bool>> CreateDepartamentoResultAsync(
+            DepartamentoRequest departamento,
+            CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var response = await httpClient.PostAsJsonAsync(
-                    "api/departamento/Crear",
-                    departamentoRequest);
+            ArgumentNullException.ThrowIfNull(departamento);
 
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            return ApiServiceHelper.SendAsync(
+                httpClient,
+                HttpMethod.Post,
+                "api/departamento/Crear",
+                departamento,
+                "crear el departamento",
+                "Departamento creado correctamente.",
+                cancellationToken);
         }
 
-        public async Task<bool> UpdateDepartamentoAsync(DepartamentoRequest departamento)
+        public Task<ApiResult<bool>> UpdateDepartamentoResultAsync(
+            DepartamentoRequest departamento,
+            CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var response = await httpClient.PutAsJsonAsync(
-                    $"api/departamento/actualizar/{departamento.DepartamentoId}",
-                    departamento);
+            ArgumentNullException.ThrowIfNull(departamento);
 
-                return response.IsSuccessStatusCode;
-            }
-            catch
+            if (!departamento.DepartamentoId.HasValue ||
+                departamento.DepartamentoId.Value <= 0)
             {
-                return false;
+                return Task.FromResult(
+                    ApiResult<bool>.Fail(
+                        "No se recibió un identificador de departamento válido."));
             }
+
+            return ApiServiceHelper.SendAsync(
+                httpClient,
+                HttpMethod.Put,
+                $"api/departamento/actualizar/{departamento.DepartamentoId.Value}",
+                departamento,
+                "actualizar el departamento",
+                "Departamento actualizado correctamente.",
+                cancellationToken);
         }
 
-        public async Task<bool> DeleteDepartamentoAsync(DepartamentoRequest dpto)
+        public Task<ApiResult<bool>> DeleteDepartamentoResultAsync(
+            DepartamentoRequest departamento,
+            CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var response = await httpClient.DeleteAsync(
-                    $"api/departamento/eliminar/{dpto.DepartamentoId}");
+            ArgumentNullException.ThrowIfNull(departamento);
 
-                return response.IsSuccessStatusCode;
-            }
-            catch
+            if (!departamento.DepartamentoId.HasValue ||
+                departamento.DepartamentoId.Value <= 0)
             {
-                return false;
+                return Task.FromResult(
+                    ApiResult<bool>.Fail(
+                        "No se recibió un identificador de departamento válido."));
             }
+
+            return ApiServiceHelper.SendAsync<DepartamentoRequest>(
+                httpClient,
+                HttpMethod.Delete,
+                $"api/departamento/eliminar/{departamento.DepartamentoId.Value}",
+                null,
+                "eliminar el departamento",
+                "Departamento eliminado correctamente.",
+                cancellationToken);
+        }
+
+        public async Task<ObservableCollection<DepartamentoResponse>> GetDepartamentosAsync(
+            int? paisId)
+        {
+            var result = await GetDepartamentosResultAsync(paisId);
+            return result.Data ?? new ObservableCollection<DepartamentoResponse>();
+        }
+
+        public async Task<bool> CreateDepartamentoAsync(
+            DepartamentoRequest departamento)
+        {
+            var result = await CreateDepartamentoResultAsync(departamento);
+            return result.Success && result.Data == true;
+        }
+
+        public async Task<bool> UpdateDepartamentoAsync(
+            DepartamentoRequest departamento)
+        {
+            var result = await UpdateDepartamentoResultAsync(departamento);
+            return result.Success && result.Data == true;
+        }
+
+        public async Task<bool> DeleteDepartamentoAsync(
+            DepartamentoRequest departamento)
+        {
+            var result = await DeleteDepartamentoResultAsync(departamento);
+            return result.Success && result.Data == true;
         }
     }
 }

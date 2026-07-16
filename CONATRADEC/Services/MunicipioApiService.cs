@@ -1,13 +1,9 @@
 using CONATRADEC.Models;
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Collections.ObjectModel;
-using System.Net.Http.Json;
 
 namespace CONATRADEC.Services
 {
-    class MunicipioApiService
+    public class MunicipioApiService
     {
         private readonly HttpClient httpClient;
 
@@ -22,63 +18,110 @@ namespace CONATRADEC.Services
                 ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public async Task<ObservableCollection<MunicipioResponse>> GetMunicipiosAsync(int? departamentoId)
+        public Task<ApiResult<ObservableCollection<MunicipioResponse>>> GetMunicipiosResultAsync(
+            int? departamentoId,
+            CancellationToken cancellationToken = default)
         {
-            try
+            if (!departamentoId.HasValue || departamentoId.Value <= 0)
             {
-                var response = await httpClient.GetFromJsonAsync<ObservableCollection<MunicipioResponse>>(
-                    $"/por-departamento/{departamentoId}");
+                return Task.FromResult(
+                    ApiResult<ObservableCollection<MunicipioResponse>>.Fail(
+                        "No se recibió un departamento válido para cargar sus municipios."));
+            }
 
-                return response ?? new ObservableCollection<MunicipioResponse>();
-            }
-            catch
+            // Se conservan las rutas actuales del backend.
+            return ApiServiceHelper.GetCollectionAsync<MunicipioResponse>(
+                httpClient,
+                $"/por-departamento/{departamentoId.Value}",
+                "los municipios",
+                cancellationToken);
+        }
+
+        public Task<ApiResult<bool>> CreateMunicipioResultAsync(
+            MunicipioRequest municipio,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(municipio);
+
+            return ApiServiceHelper.SendAsync(
+                httpClient,
+                HttpMethod.Post,
+                "/crear",
+                municipio,
+                "crear el municipio",
+                "Municipio creado correctamente.",
+                cancellationToken);
+        }
+
+        public Task<ApiResult<bool>> UpdateMunicipioResultAsync(
+            MunicipioRequest municipio,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(municipio);
+
+            if (!municipio.MunicipioId.HasValue || municipio.MunicipioId.Value <= 0)
             {
-                return new ObservableCollection<MunicipioResponse>();
+                return Task.FromResult(
+                    ApiResult<bool>.Fail(
+                        "No se recibió un identificador de municipio válido."));
             }
+
+            return ApiServiceHelper.SendAsync(
+                httpClient,
+                HttpMethod.Put,
+                $"/actualizar/{municipio.MunicipioId.Value}",
+                municipio,
+                "actualizar el municipio",
+                "Municipio actualizado correctamente.",
+                cancellationToken);
+        }
+
+        public Task<ApiResult<bool>> DeleteMunicipioResultAsync(
+            MunicipioRequest municipio,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(municipio);
+
+            if (!municipio.MunicipioId.HasValue || municipio.MunicipioId.Value <= 0)
+            {
+                return Task.FromResult(
+                    ApiResult<bool>.Fail(
+                        "No se recibió un identificador de municipio válido."));
+            }
+
+            return ApiServiceHelper.SendAsync<MunicipioRequest>(
+                httpClient,
+                HttpMethod.Delete,
+                $"/eliminar/{municipio.MunicipioId.Value}",
+                null,
+                "eliminar el municipio",
+                "Municipio eliminado correctamente.",
+                cancellationToken);
+        }
+
+        public async Task<ObservableCollection<MunicipioResponse>> GetMunicipiosAsync(
+            int? departamentoId)
+        {
+            var result = await GetMunicipiosResultAsync(departamentoId);
+            return result.Data ?? new ObservableCollection<MunicipioResponse>();
         }
 
         public async Task<bool> CreateMunicipioAsync(MunicipioRequest municipio)
         {
-            try
-            {
-                var response = await httpClient.PostAsJsonAsync("/crear", municipio);
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            var result = await CreateMunicipioResultAsync(municipio);
+            return result.Success && result.Data == true;
         }
 
         public async Task<bool> UpdateMunicipioAsync(MunicipioRequest municipio)
         {
-            try
-            {
-                var response = await httpClient.PutAsJsonAsync(
-                    $"/actualizar/{municipio.MunicipioId}",
-                    municipio);
-
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            var result = await UpdateMunicipioResultAsync(municipio);
+            return result.Success && result.Data == true;
         }
 
         public async Task<bool> DeleteMunicipioAsync(MunicipioRequest municipio)
         {
-            try
-            {
-                var response = await httpClient.DeleteAsync(
-                    $"/eliminar/{municipio.MunicipioId}");
-
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            var result = await DeleteMunicipioResultAsync(municipio);
+            return result.Success && result.Data == true;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
 
@@ -8,6 +8,8 @@ namespace CONATRADEC.ViewModels
     {
         private ObservableCollection<UserResponse> usersList = new();
         private readonly UserApiService userApiService;
+        private bool cargandoUsuarios;
+        private bool eliminandoUsuario;
 
         public Command AddUserCommand { get; }
         public Command EditUserCommand { get; }
@@ -17,52 +19,98 @@ namespace CONATRADEC.ViewModels
         public ObservableCollection<UserResponse> UsersList
         {
             get => usersList;
-            set { usersList = value; OnPropertyChanged(); }
+            set
+            {
+                if (ReferenceEquals(usersList, value))
+                    return;
+
+                usersList = value;
+                OnPropertyChanged();
+            }
         }
 
         public UserViewModel()
+            : this(new UserApiService())
         {
-            userApiService = new UserApiService();
-
-            AddUserCommand = new Command(async () => await OnAddUser());
-            EditUserCommand = new Command<UserResponse>(OnEditUser);
-            DeleteUserCommand = new Command<UserResponse>(OnDeleteUser);
-            ViewUserCommand = new Command<UserResponse>(OnViewUser);
         }
 
-        public async Task LoadUsers(bool isBusy)
+        public UserViewModel(UserApiService userApiService)
+        {
+            this.userApiService = userApiService
+                ?? throw new ArgumentNullException(nameof(userApiService));
+
+            AddUserCommand = new Command(
+                async () => await OnAddUserAsync());
+
+            EditUserCommand = new Command<UserResponse>(
+                async user => await OnEditUserAsync(user));
+
+            DeleteUserCommand = new Command<UserResponse>(
+                async user => await OnDeleteUserAsync(user));
+
+            ViewUserCommand = new Command<UserResponse>(
+                async user => await OnViewUserAsync(user));
+        }
+
+        public async Task LoadUsers(bool mostrarIndicadorCarga)
         {
             if (!CanView)
             {
-                await MostrarToastAsync("No tiene permisos para ver usuarios.");
+                await MostrarToastAsync(
+                    "No tiene permisos para ver usuarios.");
                 return;
             }
 
-            IsBusy = isBusy;
-            UsersList.Clear();
+            if (cargandoUsuarios)
+                return;
 
-            if (!await TieneInternetAsync())
+            cargandoUsuarios = true;
+
+            if (mostrarIndicadorCarga)
+                IsBusy = true;
+
+            try
             {
-                await MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
+                var resultado = await userApiService.GetUsersResultAsync();
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                UsersList = new ObservableCollection<UserResponse>(
+                    (resultado.Data ?? new ObservableCollection<UserResponse>())
+                    .OrderBy(x => x.NombreCompletoUsuario ?? string.Empty));
+
+                if (UsersList.Count == 0)
+                    await MostrarToastAsync("No se encontraron usuarios.");
             }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al cargar los usuarios.");
+            }
+            finally
+            {
+                cargandoUsuarios = false;
 
-            var response = await userApiService.GetUsersAsync();
-
-            foreach (var u in response.OrderBy(x => x.NombreCompletoUsuario))
-                UsersList.Add(u);
-
-            IsBusy = false;
+                if (mostrarIndicadorCarga)
+                    IsBusy = false;
+            }
         }
 
-        private async Task OnAddUser()
+        private async Task OnAddUserAsync()
         {
             if (!CanAdd)
             {
-                await MostrarToastAsync("No tiene permisos para agregar usuarios.");
+                await MostrarToastAsync(
+                    "No tiene permisos para agregar usuarios.");
                 return;
             }
+
+            if (IsBusy)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -73,15 +121,17 @@ namespace CONATRADEC.ViewModels
             await GoToAsyncParameters("//UserFormPage", parameters);
         }
 
-        private async void OnEditUser(UserResponse user)
+        private async Task OnEditUserAsync(UserResponse? user)
         {
             if (!CanEdit)
             {
-                await MostrarToastAsync("No tiene permisos para editar usuarios.");
+                await MostrarToastAsync(
+                    "No tiene permisos para editar usuarios.");
                 return;
             }
 
-            if (user == null) return;
+            if (IsBusy || user == null)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -92,51 +142,17 @@ namespace CONATRADEC.ViewModels
             await GoToAsyncParameters("//UserFormPage", parameters);
         }
 
-        private async void OnDeleteUser(UserResponse user)
-        {
-            if (!CanDelete)
-            {
-                await MostrarToastAsync("No tiene permisos para eliminar usuarios.");
-                return;
-            }
-
-            if (user == null) return;
-
-            bool confirm = await App.Current.MainPage.DisplayAlert(
-                "Eliminar",
-                $"¿Seguro que deseas eliminar a {user.NombreCompletoUsuario}?",
-                "Sí", "No");
-
-            if (!confirm) return;
-
-            if (!await TieneInternetAsync())
-            {
-                await MostrarToastAsync("Sin conexión a internet.");
-                return;
-            }
-
-            var ok = await userApiService.DeleteUserAsync(new UserRequest(user));
-
-            if (ok)
-            {
-                await MostrarToastAsync("Usuario eliminado.");
-                await LoadUsers(true);
-            }
-            else
-            {
-                await MostrarToastAsync("No se pudo eliminar el usuario.");
-            }
-        }
-
-        private async void OnViewUser(UserResponse user)
+        private async Task OnViewUserAsync(UserResponse? user)
         {
             if (!CanView)
             {
-                await MostrarToastAsync("No tiene permisos para ver detalles.");
+                await MostrarToastAsync(
+                    "No tiene permisos para ver detalles.");
                 return;
             }
 
-            if (user == null) return;
+            if (IsBusy || user == null)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -145,6 +161,59 @@ namespace CONATRADEC.ViewModels
             };
 
             await GoToAsyncParameters("//UserFormPage", parameters);
+        }
+
+        private async Task OnDeleteUserAsync(UserResponse? user)
+        {
+            if (!CanDelete)
+            {
+                await MostrarToastAsync(
+                    "No tiene permisos para eliminar usuarios.");
+                return;
+            }
+
+            if (IsBusy || eliminandoUsuario || user == null)
+                return;
+
+            bool confirmar = await App.Current.MainPage.DisplayAlert(
+                "Eliminar usuario",
+                $"¿Desea eliminar a '{user.NombreCompletoUsuario}'?",
+                "Sí",
+                "No");
+
+            if (!confirmar)
+                return;
+
+            eliminandoUsuario = true;
+            IsBusy = true;
+
+            try
+            {
+                var resultado = await userApiService.DeleteUserResultAsync(
+                    new UserRequest(user));
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                UsersList.Remove(user);
+                await MostrarToastAsync(
+                    string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "Usuario eliminado correctamente."
+                        : resultado.Message);
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al eliminar el usuario.");
+            }
+            finally
+            {
+                eliminandoUsuario = false;
+                IsBusy = false;
+            }
         }
     }
 }

@@ -1,200 +1,254 @@
-﻿using CONATRADEC;
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
 
-public class DepartamentoViewModel : GlobalService
+namespace CONATRADEC.ViewModels
 {
-    private PaisRequest paisRequest;
-    private string titlePage;
-
-    private ObservableCollection<DepartamentoResponse> list = new();
-    public ObservableCollection<DepartamentoResponse> List
+    public class DepartamentoViewModel : GlobalService
     {
-        get => list;
-        set { list = value; OnPropertyChanged(); }
-    }
+        private PaisRequest paisRequest = new();
+        private string titlePage = string.Empty;
+        private ObservableCollection<DepartamentoResponse> list = new();
+        private readonly DepartamentoApiService departamentoApiService;
+        private bool cargandoDepartamentos;
+        private bool eliminandoDepartamento;
 
-    private readonly DepartamentoApiService departamentoApiService;
-
-    public Command ReturnCommand { get; }
-    public Command AddCommand { get; }
-    public Command EditCommand { get; }
-    public Command DeleteCommand { get; }
-    public Command ViewCommand { get; }
-
-    public PaisRequest PaisRequest
-    {
-        get => paisRequest;
-        set { paisRequest = value; OnPropertyChanged(); }
-    }
-
-    public string TitlePage
-    {
-        get => titlePage;
-        set { titlePage = value; OnPropertyChanged(); }
-    }
-
-    public DepartamentoViewModel()
-    {
-        departamentoApiService = new DepartamentoApiService();
-
-        ReturnCommand = new Command(async () => await GoToAsyncParameters("//PaisPage"));
-        AddCommand = new Command(async () => await OnAdd());
-        EditCommand = new Command<DepartamentoResponse>(OnEdit);
-        DeleteCommand = new Command<DepartamentoResponse>(OnDelete);
-        ViewCommand = new Command<DepartamentoResponse>(OnView);
-
-        //ApplyPermissions();
-    }
-
-    public async Task LoadDepartamento(bool isBusy)
-    {
-        if (!CanView)
+        public ObservableCollection<DepartamentoResponse> List
         {
-            await MostrarToastAsync("No tiene permisos para ver departamentos.");
-            return;
+            get => list;
+            set
+            {
+                if (ReferenceEquals(list, value))
+                    return;
+
+                list = value;
+                OnPropertyChanged();
+            }
         }
 
-        IsBusy = isBusy;
-        try
+        public PaisRequest PaisRequest
         {
-            List.Clear();
-
-            bool tieneInternet = await TieneInternetAsync();
-            if (!tieneInternet)
+            get => paisRequest;
+            set
             {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
+                paisRequest = value ?? new PaisRequest();
+                OnPropertyChanged();
+            }
+        }
+
+        public string TitlePage
+        {
+            get => titlePage;
+            set
+            {
+                titlePage = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public Command ReturnCommand { get; }
+        public Command AddCommand { get; }
+        public Command EditCommand { get; }
+        public Command DeleteCommand { get; }
+        public Command ViewCommand { get; }
+
+        public DepartamentoViewModel()
+            : this(new DepartamentoApiService())
+        {
+        }
+
+        public DepartamentoViewModel(
+            DepartamentoApiService departamentoApiService)
+        {
+            this.departamentoApiService = departamentoApiService
+                ?? throw new ArgumentNullException(nameof(departamentoApiService));
+
+            ReturnCommand = new Command(
+                async () => await GoToAsyncParameters("//PaisPage"));
+
+            AddCommand = new Command(
+                async () => await OnAddAsync());
+
+            EditCommand = new Command<DepartamentoResponse>(
+                async departamento => await OnEditAsync(departamento));
+
+            DeleteCommand = new Command<DepartamentoResponse>(
+                async departamento => await OnDeleteAsync(departamento));
+
+            ViewCommand = new Command<DepartamentoResponse>(
+                async departamento => await OnViewAsync(departamento));
+        }
+
+        public async Task LoadDepartamento(bool mostrarIndicadorCarga)
+        {
+            if (!CanView)
+            {
+                await MostrarToastAsync(
+                    "No tiene permisos para ver departamentos.");
                 return;
             }
 
-            var response = await departamentoApiService.GetDepartamentosAsync(PaisRequest.PaisId);
+            if (cargandoDepartamentos)
+                return;
 
-            if (response.Any())
-                List = response;
-            else
-                _ = MostrarToastAsync("No se encontraron departamentos.");
+            cargandoDepartamentos = true;
+
+            if (mostrarIndicadorCarga)
+                IsBusy = true;
+
+            try
+            {
+                var resultado = await departamentoApiService
+                    .GetDepartamentosResultAsync(PaisRequest.PaisId);
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                List = new ObservableCollection<DepartamentoResponse>(
+                    (resultado.Data ?? new ObservableCollection<DepartamentoResponse>())
+                    .OrderBy(x => x.NombreDepartamento ?? string.Empty));
+
+                if (List.Count == 0)
+                    await MostrarToastAsync("No se encontraron departamentos.");
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al cargar los departamentos.");
+            }
+            finally
+            {
+                cargandoDepartamentos = false;
+
+                if (mostrarIndicadorCarga)
+                    IsBusy = false;
+            }
         }
-        catch (Exception ex)
-        {
-            _ = MostrarToastAsync("Error " + ex.Message);
-        }
-        finally { IsBusy = false; }
-    }
 
-    private async Task OnAdd()
-    {
-        if (!CanAdd)
+        private async Task OnAddAsync()
         {
-            await MostrarToastAsync("No tiene permisos para agregar.");
-            return;
-        }
+            if (!CanAdd)
+            {
+                await MostrarToastAsync("No tiene permisos para agregar.");
+                return;
+            }
 
-        if (IsBusy) return;
+            if (IsBusy)
+                return;
 
-        try
-        {
             var parameters = new Dictionary<string, object>
             {
                 { "Mode", FormMode.FormModeSelect.Create },
-                { "Pais", PaisRequest},
-                { "Departamento", new DepartamentoRequest(new DepartamentoResponse()) }
+                { "Pais", PaisRequest },
+                {
+                    "Departamento",
+                    new DepartamentoRequest(new DepartamentoResponse())
+                }
             };
+
             await GoToAsyncParameters("//DepartamentoFormPage", parameters);
         }
-        catch (Exception ex)
-        {
-            _ = MostrarToastAsync("Error " + ex.Message);
-        }
-    }
 
-    private async void OnEdit(DepartamentoResponse departamento)
-    {
-        if (!CanEdit)
+        private async Task OnEditAsync(DepartamentoResponse? departamento)
         {
-            await MostrarToastAsync("No tiene permisos para editar.");
-            return;
-        }
-
-        if (IsBusy || departamento == null) return;
-
-        try
-        {
-            var parameters = new Dictionary<string, object>
+            if (!CanEdit)
             {
-                { "Pais", PaisRequest},
-                { "Mode", FormMode.FormModeSelect.Edit },
-                { "Departamento", new DepartamentoRequest(departamento) }
-            };
-            await GoToAsyncParameters("//DepartamentoFormPage", parameters);
-        }
-        catch (Exception ex)
-        {
-            _ = MostrarToastAsync("Error " + ex.Message);
-        }
-    }
-
-    private async void OnDelete(DepartamentoResponse dpto)
-    {
-        if (!CanDelete)
-        {
-            await MostrarToastAsync("No tiene permisos para eliminar.");
-            return;
-        }
-
-        if (IsBusy || dpto == null) return;
-
-        IsBusy = true;
-        try
-        {
-            bool confirm = await App.Current.MainPage.DisplayAlert(
-                "Eliminar", $"¿Deseas eliminar el departamento '{dpto.NombreDepartamento}'?", "Sí", "No");
-
-            if (!confirm) return;
-
-            bool tieneInternet = await TieneInternetAsync();
-            if (!tieneInternet)
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
+                await MostrarToastAsync("No tiene permisos para editar.");
                 return;
             }
 
-            var response = await departamentoApiService.DeleteDepartamentoAsync(new DepartamentoRequest(dpto));
+            if (IsBusy || departamento == null)
+                return;
 
-            if (response)
+            var parameters = new Dictionary<string, object>
             {
-                _ = MostrarToastAsync("Departamento eliminado.");
-                await LoadDepartamento(true);
-            }
-            else
+                { "Pais", PaisRequest },
+                { "Mode", FormMode.FormModeSelect.Edit },
+                { "Departamento", new DepartamentoRequest(departamento) }
+            };
+
+            await GoToAsyncParameters("//DepartamentoFormPage", parameters);
+        }
+
+        private async Task OnViewAsync(DepartamentoResponse? departamento)
+        {
+            if (!CanView)
             {
-                _ = MostrarToastAsync("No se pudo eliminar el departamento.");
+                await MostrarToastAsync(
+                    "No tiene permisos para ver detalles.");
+                return;
+            }
+
+            if (IsBusy || departamento == null)
+                return;
+
+            var parameters = new Dictionary<string, object>
+            {
+                { "Pais", PaisRequest },
+                { "Departamento", new DepartamentoRequest(departamento) },
+                {
+                    "TitlePage",
+                    $"Municipios de {departamento.NombreDepartamento} - {PaisRequest.NombrePais}"
+                }
+            };
+
+            await GoToAsyncParameters("//MunicipioPage", parameters);
+        }
+
+        private async Task OnDeleteAsync(DepartamentoResponse? departamento)
+        {
+            if (!CanDelete)
+            {
+                await MostrarToastAsync("No tiene permisos para eliminar.");
+                return;
+            }
+
+            if (IsBusy || eliminandoDepartamento || departamento == null)
+                return;
+
+            bool confirmar = await App.Current.MainPage.DisplayAlert(
+                "Eliminar departamento",
+                $"¿Desea eliminar el departamento '{departamento.NombreDepartamento}'?",
+                "Sí",
+                "No");
+
+            if (!confirmar)
+                return;
+
+            eliminandoDepartamento = true;
+            IsBusy = true;
+
+            try
+            {
+                var resultado = await departamentoApiService
+                    .DeleteDepartamentoResultAsync(
+                        new DepartamentoRequest(departamento));
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                List.Remove(departamento);
+                await MostrarToastAsync(
+                    string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "Departamento eliminado correctamente."
+                        : resultado.Message);
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al eliminar el departamento.");
+            }
+            finally
+            {
+                eliminandoDepartamento = false;
+                IsBusy = false;
             }
         }
-        catch (Exception ex)
-        {
-            _ = MostrarToastAsync("Error " + ex.Message);
-        }
-        finally { IsBusy = false; }
-    }
-
-    private async void OnView(DepartamentoResponse departamento)
-    {
-        if (!CanView)
-        {
-            await MostrarToastAsync("No tiene permisos para ver detalles.");
-            return;
-        }
-
-        if (IsBusy || departamento == null) return;
-
-        var parameters = new Dictionary<string, object>
-        {
-            { "Pais", PaisRequest},
-            { "Departamento", new DepartamentoRequest(departamento) },
-            { "TitlePage", $"Municipios de {departamento.NombreDepartamento.ToString()} - {PaisRequest.NombrePais.ToString()}"}
-        };
-        await GoToAsyncParameters("//MunicipioPage", parameters);
     }
 }

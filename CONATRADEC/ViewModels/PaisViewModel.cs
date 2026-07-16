@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
 
@@ -8,11 +8,20 @@ namespace CONATRADEC.ViewModels
     {
         private ObservableCollection<PaisResponse> list = new();
         private readonly PaisApiService paisApiService;
+        private bool cargandoPaises;
+        private bool eliminandoPais;
 
         public ObservableCollection<PaisResponse> List
         {
             get => list;
-            set { list = value; OnPropertyChanged(); }
+            set
+            {
+                if (ReferenceEquals(list, value))
+                    return;
+
+                list = value;
+                OnPropertyChanged();
+            }
         }
 
         public Command AddCommand { get; }
@@ -21,187 +30,190 @@ namespace CONATRADEC.ViewModels
         public Command ViewCommand { get; }
 
         public PaisViewModel()
+            : this(new PaisApiService())
         {
-            paisApiService = new PaisApiService();
-
-            AddCommand = new Command(async () => await OnAdd());
-            EditCommand = new Command<PaisResponse>(OnEdit);
-            DeleteCommand = new Command<PaisResponse>(OnDelete);
-            ViewCommand = new Command<PaisResponse>(OnView);
         }
 
-        // ---------------------------------------------------------
-        //   CARGAR LISTA DE PAÍSES
-        // ---------------------------------------------------------
-        public async Task LoadPais(bool isBusy)
+        public PaisViewModel(PaisApiService paisApiService)
+        {
+            this.paisApiService = paisApiService
+                ?? throw new ArgumentNullException(nameof(paisApiService));
+
+            AddCommand = new Command(
+                async () => await OnAddAsync());
+
+            EditCommand = new Command<PaisResponse>(
+                async pais => await OnEditAsync(pais));
+
+            DeleteCommand = new Command<PaisResponse>(
+                async pais => await OnDeleteAsync(pais));
+
+            ViewCommand = new Command<PaisResponse>(
+                async pais => await OnViewAsync(pais));
+        }
+
+        public async Task LoadPais(bool mostrarIndicadorCarga)
         {
             if (!CanView)
             {
-                await MostrarToastAsync("No tiene permisos para ver países.");
+                await MostrarToastAsync(
+                    "No tiene permisos para ver países.");
                 return;
             }
 
-            IsBusy = isBusy;
+            if (cargandoPaises)
+                return;
+
+            cargandoPaises = true;
+
+            if (mostrarIndicadorCarga)
+                IsBusy = true;
 
             try
             {
-                List.Clear();
+                var resultado = await paisApiService.GetPaisResultAsync();
 
-                bool tieneInternet = await TieneInternetAsync();
-                if (!tieneInternet)
+                if (!resultado.Success)
                 {
-                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    await MostrarToastAsync(resultado.Message);
                     return;
                 }
 
-                var response = await paisApiService.GetPaisAsync();
+                List = new ObservableCollection<PaisResponse>(
+                    (resultado.Data ?? new ObservableCollection<PaisResponse>())
+                    .OrderBy(x => x.NombrePais ?? string.Empty));
 
-                if (response.Any())
-                    List = response;
-                else
-                    _ = MostrarToastAsync("No se encontraron países registrados.");
+                if (List.Count == 0)
+                    await MostrarToastAsync("No se encontraron países registrados.");
             }
-            catch (Exception ex)
+            catch
             {
-                _ = MostrarToastAsync("Error al cargar países: " + ex.Message);
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al cargar los países.");
             }
             finally
             {
-                IsBusy = false;
+                cargandoPaises = false;
+
+                if (mostrarIndicadorCarga)
+                    IsBusy = false;
             }
         }
 
-        // ---------------------------------------------------------
-        //   AGREGAR
-        // ---------------------------------------------------------
-        private async Task OnAdd()
+        private async Task OnAddAsync()
         {
             if (!CanAdd)
             {
-                await MostrarToastAsync("No tiene permisos para agregar países.");
+                await MostrarToastAsync(
+                    "No tiene permisos para agregar países.");
                 return;
             }
 
-            if (IsBusy) return;
+            if (IsBusy)
+                return;
 
-            try
+            var parameters = new Dictionary<string, object>
             {
-                var parameters = new Dictionary<string, object>
-                {
-                    { "Mode", FormMode.FormModeSelect.Create },
-                    { "Pais", new PaisRequest(new PaisResponse()) }
-                };
+                { "Mode", FormMode.FormModeSelect.Create },
+                { "Pais", new PaisRequest(new PaisResponse()) }
+            };
 
-                await GoToAsyncParameters("//PaisFormPage", parameters);
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error al abrir el formulario: " + ex.Message);
-            }
+            await GoToAsyncParameters("//PaisFormPage", parameters);
         }
 
-        // ---------------------------------------------------------
-        //   EDITAR
-        // ---------------------------------------------------------
-        private async void OnEdit(PaisResponse pais)
+        private async Task OnEditAsync(PaisResponse? pais)
         {
             if (!CanEdit)
             {
-                await MostrarToastAsync("No tiene permisos para editar países.");
+                await MostrarToastAsync(
+                    "No tiene permisos para editar países.");
                 return;
             }
 
-            if (IsBusy || pais == null) return;
-
-            try
-            {
-                var parameters = new Dictionary<string, object>
-                {
-                    { "Mode", FormMode.FormModeSelect.Edit },
-                    { "Pais", new PaisRequest(pais) }
-                };
-
-                await GoToAsyncParameters("//PaisFormPage", parameters);
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error al abrir el formulario: " + ex.Message);
-            }
-        }
-
-        // ---------------------------------------------------------
-        //   ELIMINAR
-        // ---------------------------------------------------------
-        private async void OnDelete(PaisResponse pais)
-        {
-            if (!CanDelete)
-            {
-                await MostrarToastAsync("No tiene permisos para eliminar países.");
+            if (IsBusy || pais == null)
                 return;
-            }
 
-            if (IsBusy || pais == null) return;
-
-            IsBusy = true;
-
-            try
+            var parameters = new Dictionary<string, object>
             {
-                bool confirm = await App.Current.MainPage.DisplayAlert(
-                    "Eliminar país",
-                    $"¿Deseas eliminar el país '{pais.NombrePais}'?",
-                    "Sí", "No");
+                { "Mode", FormMode.FormModeSelect.Edit },
+                { "Pais", new PaisRequest(pais) }
+            };
 
-                if (!confirm) return;
-
-                bool tieneInternet = await TieneInternetAsync();
-                if (!tieneInternet)
-                {
-                    _ = MostrarToastAsync("Sin conexión a internet.");
-                    return;
-                }
-
-                var result = await paisApiService.DeletePaisAsync(new PaisRequest(pais));
-
-                if (result)
-                {
-                    _ = MostrarToastAsync("País eliminado correctamente.");
-                    await LoadPais(true);
-                }
-                else
-                {
-                    _ = MostrarToastAsync("No se pudo eliminar el país.");
-                }
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error al eliminar: " + ex.Message);
-            }
-            finally
-            {
-                IsBusy = false;
-            }
+            await GoToAsyncParameters("//PaisFormPage", parameters);
         }
 
-        // ---------------------------------------------------------
-        //   VER DETALLES
-        // ---------------------------------------------------------
-        private async void OnView(PaisResponse pais)
+        private async Task OnViewAsync(PaisResponse? pais)
         {
             if (!CanView)
             {
-                await MostrarToastAsync("No tiene permisos para ver detalles.");
+                await MostrarToastAsync(
+                    "No tiene permisos para ver detalles.");
                 return;
             }
 
-            if (IsBusy || pais == null) return;
+            if (IsBusy || pais == null)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
                 { "Pais", new PaisRequest(pais) },
-                { "TitlePage", $"Departamento de {pais.NombrePais}" }
+                { "TitlePage", $"Departamentos de {pais.NombrePais}" }
             };
 
             await GoToAsyncParameters("//DepartamentoPage", parameters);
+        }
+
+        private async Task OnDeleteAsync(PaisResponse? pais)
+        {
+            if (!CanDelete)
+            {
+                await MostrarToastAsync(
+                    "No tiene permisos para eliminar países.");
+                return;
+            }
+
+            if (IsBusy || eliminandoPais || pais == null)
+                return;
+
+            bool confirmar = await App.Current.MainPage.DisplayAlert(
+                "Eliminar país",
+                $"¿Desea eliminar el país '{pais.NombrePais}'?",
+                "Sí",
+                "No");
+
+            if (!confirmar)
+                return;
+
+            eliminandoPais = true;
+            IsBusy = true;
+
+            try
+            {
+                var resultado = await paisApiService.DeletePaisResultAsync(
+                    new PaisRequest(pais));
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                List.Remove(pais);
+                await MostrarToastAsync(
+                    string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "País eliminado correctamente."
+                        : resultado.Message);
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al eliminar el país.");
+            }
+            finally
+            {
+                eliminandoPais = false;
+                IsBusy = false;
+            }
         }
     }
 }
