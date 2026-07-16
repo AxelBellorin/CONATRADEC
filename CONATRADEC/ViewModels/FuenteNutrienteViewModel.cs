@@ -1,9 +1,8 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace CONATRADEC.ViewModels
 {
@@ -13,11 +12,11 @@ namespace CONATRADEC.ViewModels
 
         private ObservableCollection<FuenteNutrienteResponse> list = new();
         private ObservableCollection<FuenteNutrienteResponse> listaCompleta = new();
-
         private ObservableCollection<string> elementosTabla = new();
         private ObservableCollection<FuenteNutrienteTablaDinamicaRow> tablaComposicion = new();
 
-        private bool mostrarTablaComposicion = false;
+        private bool mostrarTablaComposicion;
+        private bool cargandoFuentes;
         private FuenteNutrienteCategoriaOption? filtroCategoriaSeleccionada;
 
         public ObservableCollection<FuenteNutrienteResponse> List
@@ -25,6 +24,9 @@ namespace CONATRADEC.ViewModels
             get => list;
             set
             {
+                if (ReferenceEquals(list, value))
+                    return;
+
                 list = value;
                 OnPropertyChanged();
             }
@@ -35,21 +37,29 @@ namespace CONATRADEC.ViewModels
             get => listaCompleta;
             set
             {
+                if (ReferenceEquals(listaCompleta, value))
+                    return;
+
                 listaCompleta = value;
                 OnPropertyChanged();
             }
         }
 
-        public ObservableCollection<FuenteNutrienteCategoriaOption> FiltrosCategoria { get; }
+        public ObservableCollection<FuenteNutrienteCategoriaOption> FiltrosCategoria
+        {
+            get;
+        }
 
         public FuenteNutrienteCategoriaOption? FiltroCategoriaSeleccionada
         {
             get => filtroCategoriaSeleccionada;
             set
             {
+                if (ReferenceEquals(filtroCategoriaSeleccionada, value))
+                    return;
+
                 filtroCategoriaSeleccionada = value;
                 OnPropertyChanged();
-
                 AplicarFiltroCategoria();
             }
         }
@@ -59,6 +69,9 @@ namespace CONATRADEC.ViewModels
             get => elementosTabla;
             set
             {
+                if (ReferenceEquals(elementosTabla, value))
+                    return;
+
                 elementosTabla = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneElementosTabla));
@@ -73,6 +86,9 @@ namespace CONATRADEC.ViewModels
             get => tablaComposicion;
             set
             {
+                if (ReferenceEquals(tablaComposicion, value))
+                    return;
+
                 tablaComposicion = value;
                 OnPropertyChanged();
             }
@@ -83,6 +99,9 @@ namespace CONATRADEC.ViewModels
             get => mostrarTablaComposicion;
             set
             {
+                if (mostrarTablaComposicion == value)
+                    return;
+
                 mostrarTablaComposicion = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TextoBotonTablaComposicion));
@@ -95,7 +114,7 @@ namespace CONATRADEC.ViewModels
             MostrarTablaComposicion ? "Ocultar tabla" : "Ver tabla";
 
         public bool TieneElementosTabla =>
-            ElementosTabla != null && ElementosTabla.Any();
+            ElementosTabla.Count > 0;
 
         public bool NoTieneElementosTabla =>
             !TieneElementosTabla;
@@ -113,16 +132,30 @@ namespace CONATRADEC.ViewModels
         public Command ToggleTablaComposicionCommand { get; }
 
         public FuenteNutrienteViewModel()
+            : this(new FuenteNutrienteApiService())
         {
-            fuenteNutrienteApiService = new FuenteNutrienteApiService();
+        }
+
+        public FuenteNutrienteViewModel(
+            FuenteNutrienteApiService fuenteNutrienteApiService)
+        {
+            this.fuenteNutrienteApiService = fuenteNutrienteApiService
+                ?? throw new ArgumentNullException(nameof(fuenteNutrienteApiService));
 
             FiltrosCategoria = new ObservableCollection<FuenteNutrienteCategoriaOption>();
             CargarFiltrosCategoria();
 
-            AddCommand = new Command(async () => await OnAdd());
-            EditCommand = new Command<FuenteNutrienteResponse>(OnEdit);
-            DeleteCommand = new Command<FuenteNutrienteResponse>(OnDelete);
-            ViewCommand = new Command<FuenteNutrienteResponse>(OnView);
+            AddCommand = new Command(
+                async () => await OnAddAsync());
+
+            EditCommand = new Command<FuenteNutrienteResponse>(
+                async fuente => await OnEditAsync(fuente));
+
+            DeleteCommand = new Command<FuenteNutrienteResponse>(
+                async fuente => await OnDeleteAsync(fuente));
+
+            ViewCommand = new Command<FuenteNutrienteResponse>(
+                async fuente => await OnViewAsync(fuente));
 
             ToggleTablaComposicionCommand = new Command(() =>
             {
@@ -162,84 +195,97 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(FiltroCategoriaSeleccionada));
         }
 
-        public async Task LoadFuenteNutriente(bool isBusy)
+        public async Task LoadFuenteNutriente(bool mostrarIndicadorCarga)
         {
             if (!CanView)
             {
-                await MostrarToastAsync("No tiene permisos para ver fuentes de nutrientes.");
+                await MostrarToastAsync(
+                    "No tiene permisos para ver fuentes de nutrientes.");
                 return;
             }
 
-            IsBusy = isBusy;
-
-            List.Clear();
-            ListaCompleta.Clear();
-            ElementosTabla.Clear();
-            TablaComposicion.Clear();
-
-            if (!await TieneInternetAsync())
-            {
-                await MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
+            if (cargandoFuentes)
                 return;
-            }
 
-            var response = await fuenteNutrienteApiService.GetFuenteNutrienteAsync();
+            cargandoFuentes = true;
 
-            var fuentesOrdenadas = new ObservableCollection<FuenteNutrienteResponse>(
-                response.OrderBy(x => x.NombreNutriente ?? string.Empty)
-            );
+            if (mostrarIndicadorCarga)
+                IsBusy = true;
 
-            if (fuentesOrdenadas.Any())
+            try
             {
+                var resultado = await fuenteNutrienteApiService
+                    .GetFuenteNutrienteResultAsync();
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                var fuentesOrdenadas = new ObservableCollection<FuenteNutrienteResponse>(
+                    (resultado.Data ?? new ObservableCollection<FuenteNutrienteResponse>())
+                    .OrderBy(x => x.NombreNutriente ?? string.Empty));
+
                 ListaCompleta = fuentesOrdenadas;
                 AplicarFiltroCategoria();
-            }
-            else
-            {
-                await MostrarToastAsync("No se encontraron fuentes de nutrientes.");
-                ListaCompleta = new ObservableCollection<FuenteNutrienteResponse>();
-                List = new ObservableCollection<FuenteNutrienteResponse>();
-                ElementosTabla = new ObservableCollection<string>();
-                TablaComposicion = new ObservableCollection<FuenteNutrienteTablaDinamicaRow>();
-            }
 
-            IsBusy = false;
+                if (ListaCompleta.Count == 0)
+                {
+                    await MostrarToastAsync(
+                        "No se encontraron fuentes de nutrientes.");
+                }
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al cargar las fuentes de nutrientes.");
+            }
+            finally
+            {
+                cargandoFuentes = false;
+
+                if (mostrarIndicadorCarga)
+                    IsBusy = false;
+            }
         }
 
         private void AplicarFiltroCategoria()
         {
-            if (ListaCompleta == null)
-                return;
-
             string codigoFiltro = FiltroCategoriaSeleccionada?.Codigo
                 ?? FuenteNutrienteCategoriaOption.CodigoTodas;
 
             IEnumerable<FuenteNutrienteResponse> fuentesFiltradas = ListaCompleta;
 
-            if (codigoFiltro == FuenteNutrienteCategoriaOption.CodigoBalanceNutricional)
+            if (codigoFiltro ==
+                FuenteNutrienteCategoriaOption.CodigoBalanceNutricional)
             {
-                fuentesFiltradas = fuentesFiltradas.Where(x => x.EsBalanceNutricional);
+                fuentesFiltradas = fuentesFiltradas
+                    .Where(x => x.EsBalanceNutricional);
             }
-            else if (codigoFiltro == FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea)
+            else if (codigoFiltro ==
+                     FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea)
             {
-                fuentesFiltradas = fuentesFiltradas.Where(x => x.EsEnmiendaCalcarea);
+                fuentesFiltradas = fuentesFiltradas
+                    .Where(x => x.EsEnmiendaCalcarea);
             }
-            else if (codigoFiltro == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta)
+            else if (codigoFiltro ==
+                     FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta)
             {
-                fuentesFiltradas = fuentesFiltradas.Where(x => x.EsFertilizacionMixta);
+                fuentesFiltradas = fuentesFiltradas
+                    .Where(x => x.EsFertilizacionMixta);
             }
 
             var listaFiltrada = new ObservableCollection<FuenteNutrienteResponse>(
-                fuentesFiltradas.OrderBy(x => x.NombreNutriente ?? string.Empty)
-            );
+                fuentesFiltradas.OrderBy(
+                    x => x.NombreNutriente ?? string.Empty));
 
             List = listaFiltrada;
-
             ConstruirTablaComposicion(listaFiltrada);
         }
 
-        private void ConstruirTablaComposicion(IEnumerable<FuenteNutrienteResponse> fuentes)
+        private void ConstruirTablaComposicion(
+            IEnumerable<FuenteNutrienteResponse> fuentes)
         {
             var fuentesConAporte = fuentes
                 .Where(FuenteTieneAporteElementoQuimico)
@@ -247,19 +293,22 @@ namespace CONATRADEC.ViewModels
                 .ToList();
 
             var simbolos = fuentesConAporte
-                .SelectMany(f => f.ElementosQuimicos ?? new List<FuenteNutrienteElementoQuimicoResponse>())
+                .SelectMany(f =>
+                    f.ElementosQuimicos
+                    ?? new List<FuenteNutrienteElementoQuimicoResponse>())
                 .Where(e =>
                     !string.IsNullOrWhiteSpace(e.SimboloElementoQuimico) &&
                     (e.CantidadAporte ?? 0) > 0)
                 .Select(e => e.SimboloElementoQuimico!.Trim())
-                .Distinct()
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(ObtenerOrdenElemento)
                 .ThenBy(x => x)
                 .ToList();
 
             ElementosTabla = new ObservableCollection<string>(simbolos);
 
-            var filas = new ObservableCollection<FuenteNutrienteTablaDinamicaRow>();
+            var filas =
+                new ObservableCollection<FuenteNutrienteTablaDinamicaRow>();
 
             foreach (var fuente in fuentesConAporte)
             {
@@ -274,8 +323,10 @@ namespace CONATRADEC.ViewModels
                     var aporte = fuente.ElementosQuimicos?
                         .FirstOrDefault(e =>
                             (e.SimboloElementoQuimico ?? string.Empty)
-                                .Trim()
-                                .Equals(simbolo, System.StringComparison.OrdinalIgnoreCase));
+                            .Trim()
+                            .Equals(
+                                simbolo,
+                                StringComparison.OrdinalIgnoreCase));
 
                     fila.Celdas.Add(new FuenteNutrienteTablaDinamicaCell
                     {
@@ -290,17 +341,19 @@ namespace CONATRADEC.ViewModels
             TablaComposicion = filas;
         }
 
-        private bool FuenteTieneAporteElementoQuimico(FuenteNutrienteResponse fuente)
+        private static bool FuenteTieneAporteElementoQuimico(
+            FuenteNutrienteResponse fuente)
         {
-            return fuente?.ElementosQuimicos != null &&
+            return fuente.ElementosQuimicos != null &&
                    fuente.ElementosQuimicos.Any(x =>
-                       !string.IsNullOrWhiteSpace(x.SimboloElementoQuimico) &&
+                       !string.IsNullOrWhiteSpace(
+                           x.SimboloElementoQuimico) &&
                        (x.CantidadAporte ?? 0) > 0);
         }
 
-        private int ObtenerOrdenElemento(string simbolo)
+        private static int ObtenerOrdenElemento(string simbolo)
         {
-            return simbolo.Trim().ToUpper() switch
+            return simbolo.Trim().ToUpperInvariant() switch
             {
                 "N" => 1,
                 "P" => 2,
@@ -314,7 +367,7 @@ namespace CONATRADEC.ViewModels
             };
         }
 
-        private async Task OnAdd()
+        private async Task OnAddAsync()
         {
             if (!CanAdd)
             {
@@ -322,16 +375,21 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            if (IsBusy)
+                return;
+
             var parameters = new Dictionary<string, object>
             {
                 { "Mode", FormMode.FormModeSelect.Create },
                 { "Fuente", new FuenteNutrienteRequest() }
             };
 
-            await GoToAsyncParameters("//FuenteNutrienteFormPage", parameters);
+            await GoToAsyncParameters(
+                AppRoutes.FuenteNutrienteFormulario,
+                parameters);
         }
 
-        private async void OnEdit(FuenteNutrienteResponse fuente)
+        private async Task OnEditAsync(FuenteNutrienteResponse? fuente)
         {
             if (!CanEdit)
             {
@@ -339,7 +397,7 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (fuente == null)
+            if (IsBusy || fuente == null)
                 return;
 
             var parameters = new Dictionary<string, object>
@@ -348,10 +406,12 @@ namespace CONATRADEC.ViewModels
                 { "Fuente", new FuenteNutrienteRequest(fuente) }
             };
 
-            await GoToAsyncParameters("//FuenteNutrienteFormPage", parameters);
+            await GoToAsyncParameters(
+                AppRoutes.FuenteNutrienteFormulario,
+                parameters);
         }
 
-        private async void OnView(FuenteNutrienteResponse fuente)
+        private async Task OnViewAsync(FuenteNutrienteResponse? fuente)
         {
             if (!CanView)
             {
@@ -359,7 +419,7 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (fuente == null)
+            if (IsBusy || fuente == null)
                 return;
 
             var parameters = new Dictionary<string, object>
@@ -368,10 +428,12 @@ namespace CONATRADEC.ViewModels
                 { "Fuente", new FuenteNutrienteRequest(fuente) }
             };
 
-            await GoToAsyncParameters("//FuenteNutrienteFormPage", parameters);
+            await GoToAsyncParameters(
+                AppRoutes.FuenteNutrienteFormulario,
+                parameters);
         }
 
-        private async void OnDelete(FuenteNutrienteResponse fuente)
+        private async Task OnDeleteAsync(FuenteNutrienteResponse? fuente)
         {
             if (!CanDelete)
             {
@@ -379,35 +441,46 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (fuente == null)
+            if (IsBusy || fuente == null)
                 return;
 
-            bool confirm = await App.Current.MainPage.DisplayAlert(
+            bool confirmar = await Shell.Current.DisplayAlert(
                 "Eliminar",
-                $"¿Deseas eliminar la fuente '{fuente.NombreNutriente}'?",
+                $"¿Desea eliminar la fuente '{fuente.NombreNutriente}'?",
                 "Sí",
                 "No");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
 
-            if (!await TieneInternetAsync())
-            {
-                await MostrarToastAsync("Sin conexión a internet.");
-                return;
-            }
+            IsBusy = true;
 
-            var result = await fuenteNutrienteApiService.DeleteFuenteNutrienteAsync(
-                new FuenteNutrienteRequest(fuente));
+            try
+            {
+                var resultado = await fuenteNutrienteApiService
+                    .DeleteFuenteNutrienteResultAsync(
+                        new FuenteNutrienteRequest(fuente));
 
-            if (result)
-            {
-                await MostrarToastAsync("Fuente de nutriente eliminada.");
-                await LoadFuenteNutriente(true);
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                ListaCompleta.Remove(fuente);
+                AplicarFiltroCategoria();
+
+                await MostrarToastAsync(
+                    "Fuente de nutriente eliminada correctamente.");
             }
-            else
+            catch
             {
-                await MostrarToastAsync("No se pudo eliminar la fuente de nutriente.");
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al eliminar la fuente de nutriente.");
+            }
+            finally
+            {
+                IsBusy = false;
             }
         }
     }

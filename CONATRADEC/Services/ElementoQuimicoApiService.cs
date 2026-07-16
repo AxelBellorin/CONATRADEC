@@ -1,27 +1,31 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
 {
     class ElementoQuimicoApiService
     {
         private readonly HttpClient httpClient;
-        private readonly UrlApiService urlApiService = new UrlApiService();
 
         public ElementoQuimicoApiService()
+            : this(ApiClientService.Client)
         {
-            httpClient = new HttpClient { BaseAddress = new Uri(urlApiService.BaseUrlApi) };
         }
 
-        // LISTAR
+        public ElementoQuimicoApiService(HttpClient httpClient)
+        {
+            this.httpClient = httpClient
+                ?? throw new ArgumentNullException(nameof(httpClient));
+        }
+
         public async Task<ObservableCollection<ElementoQuimicoResponse>> GetElementoQuimicoAsync()
         {
             try
             {
-                // Ajusta la ruta según tu controlador real
                 var response = await httpClient.GetFromJsonAsync<ObservableCollection<ElementoQuimicoResponse>>(
                     "api/elemento-quimico/listar");
 
@@ -33,12 +37,14 @@ namespace CONATRADEC.Services
             }
         }
 
-        // CREAR
         public async Task<bool> CreateElementoQuimicoAsync(ElementoQuimicoRequest elemento)
         {
             try
             {
-                var response = await httpClient.PostAsJsonAsync("api/elemento-quimico/crear", elemento);
+                var response = await httpClient.PostAsJsonAsync(
+                    "api/elemento-quimico/crear",
+                    elemento);
+
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -47,7 +53,6 @@ namespace CONATRADEC.Services
             }
         }
 
-        // ELIMINAR
         public async Task<bool> DeleteElementoQuimicoAsync(ElementoQuimicoRequest elemento)
         {
             try
@@ -63,14 +68,13 @@ namespace CONATRADEC.Services
             }
         }
 
-        // ACTUALIZAR
         public async Task<bool> UpdateElementoQuimicoAsync(ElementoQuimicoRequest elemento)
         {
             try
             {
                 var response = await httpClient.PutAsJsonAsync(
                     $"api/elemento-quimico/editar/{elemento.ElementoQuimicosId}",
-                elemento);
+                    elemento);
 
                 return response.IsSuccessStatusCode;
             }

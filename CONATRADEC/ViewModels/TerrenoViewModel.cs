@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
 
@@ -7,13 +7,21 @@ namespace CONATRADEC.ViewModels
     public class TerrenoViewModel : GlobalService
     {
         private ObservableCollection<TerrenoResponse> list = new();
-        private readonly TerrenoApiService terrenoApiService = new();
+        private readonly TerrenoApiService terrenoApiService;
         private string cantidadPlantasTerreno = string.Empty;
+        private bool cargandoTerrenos;
 
         public ObservableCollection<TerrenoResponse> List
         {
             get => list;
-            set { list = value; OnPropertyChanged(); }
+            set
+            {
+                if (ReferenceEquals(list, value))
+                    return;
+
+                list = value;
+                OnPropertyChanged();
+            }
         }
 
         public string CantidadPlantasTerreno
@@ -21,8 +29,11 @@ namespace CONATRADEC.ViewModels
             get => cantidadPlantasTerreno;
             set
             {
+                if (cantidadPlantasTerreno == value)
+                    return;
+
                 cantidadPlantasTerreno = value;
-                OnPropertyChanged(nameof(CantidadPlantasTerreno));
+                OnPropertyChanged();
             }
         }
 
@@ -32,7 +43,15 @@ namespace CONATRADEC.ViewModels
         public Command ViewCommand { get; }
 
         public TerrenoViewModel()
+            : this(new TerrenoApiService())
         {
+        }
+
+        public TerrenoViewModel(TerrenoApiService terrenoApiService)
+        {
+            this.terrenoApiService = terrenoApiService
+                ?? throw new ArgumentNullException(nameof(terrenoApiService));
+
             AddCommand = new Command(async () =>
             {
                 if (!CanAdd)
@@ -40,68 +59,89 @@ namespace CONATRADEC.ViewModels
                     await MostrarToastAsync("No tiene permisos para agregar.");
                     return;
                 }
-                await OnAdd();
+
+                await OnAddAsync();
             });
 
-            EditCommand = new Command<TerrenoResponse>(async (item) =>
+            EditCommand = new Command<TerrenoResponse>(async item =>
             {
                 if (!CanEdit)
                 {
                     await MostrarToastAsync("No tiene permisos para editar.");
                     return;
                 }
-                OnEdit(item);
+
+                await OnEditAsync(item);
             });
 
-            DeleteCommand = new Command<TerrenoResponse>(async (item) =>
+            DeleteCommand = new Command<TerrenoResponse>(async item =>
             {
                 if (!CanDelete)
                 {
                     await MostrarToastAsync("No tiene permisos para eliminar.");
                     return;
                 }
-                OnDelete(item);
+
+                await OnDeleteAsync(item);
             });
 
-            ViewCommand = new Command<TerrenoResponse>(async (item) =>
+            ViewCommand = new Command<TerrenoResponse>(async item =>
             {
                 if (!CanView)
                 {
                     await MostrarToastAsync("No tiene permisos para ver detalles.");
                     return;
                 }
-                OnView(item);
+
+                await OnViewAsync(item);
             });
         }
 
-        public async Task LoadTerrenosAsync(bool isBusy)
+        public async Task LoadTerrenosAsync(bool mostrarIndicadorCarga)
         {
-            if (!CanView)
+            if (!CanView || cargandoTerrenos)
                 return;
 
-            IsBusy = isBusy;
-            List.Clear();
+            cargandoTerrenos = true;
 
-            if (!await TieneInternetAsync())
+            if (mostrarIndicadorCarga)
+                IsBusy = true;
+
+            try
             {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
+                var resultado = await terrenoApiService.GetTerrenosResultAsync();
+
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                List = resultado.Data ?? new ObservableCollection<TerrenoResponse>();
+
+                if (List.Count == 0)
+                {
+                    await MostrarToastAsync("No se encontraron terrenos.");
+                }
             }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al cargar los terrenos.");
+            }
+            finally
+            {
+                cargandoTerrenos = false;
 
-            var response = await terrenoApiService.GetTerrenosAsync();
-
-            List = response.Count != 0 ? response : new ObservableCollection<TerrenoResponse>();
-
-            if (response.Count == 0)
-                _ = MostrarToastAsync("No se encontraron terrenos.");
-
-            IsBusy = false;
+                if (mostrarIndicadorCarga)
+                    IsBusy = false;
+            }
         }
 
-        private async Task OnAdd()
+        private async Task OnAddAsync()
         {
-            if (IsBusy) return;
+            if (IsBusy)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -109,12 +149,15 @@ namespace CONATRADEC.ViewModels
                 { "Terreno", new TerrenoRequest(new TerrenoResponse()) }
             };
 
-            await GoToAsyncParameters("//TerrenoFormPage", parameters);
+            await GoToAsyncParameters(
+                AppRoutes.TerrenoFormulario,
+                parameters);
         }
 
-        private async void OnEdit(TerrenoResponse item)
+        private async Task OnEditAsync(TerrenoResponse? item)
         {
-            if (IsBusy || item == null) return;
+            if (IsBusy || item == null)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -122,51 +165,56 @@ namespace CONATRADEC.ViewModels
                 { "Terreno", new TerrenoRequest(item) }
             };
 
-            await GoToAsyncParameters("//TerrenoFormPage", parameters);
+            await GoToAsyncParameters(
+                AppRoutes.TerrenoFormulario,
+                parameters);
         }
 
-        private async void OnDelete(TerrenoResponse item)
+        private async Task OnDeleteAsync(TerrenoResponse? item)
         {
-            if (IsBusy || item == null) return;
+            if (IsBusy || item == null)
+                return;
+
+            bool confirmar = await Shell.Current.DisplayAlert(
+                "Eliminar",
+                $"¿Desea eliminar el terreno {item.CodigoTerreno}?",
+                "Sí",
+                "No");
+
+            if (!confirmar)
+                return;
 
             IsBusy = true;
 
-            bool confirm = await App.Current.MainPage.DisplayAlert(
-                "Eliminar",
-                $"¿Desea eliminar el terreno {item.CodigoTerreno}?",
-                "Sí", "No");
+            try
+            {
+                var resultado = await terrenoApiService.DeleteTerrenoResultAsync(
+                    new TerrenoRequest(item));
 
-            if (!confirm)
+                if (!resultado.Success)
+                {
+                    await MostrarToastAsync(resultado.Message);
+                    return;
+                }
+
+                List.Remove(item);
+                await MostrarToastAsync("Terreno eliminado correctamente.");
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "Ocurrió un error inesperado al eliminar el terreno.");
+            }
+            finally
             {
                 IsBusy = false;
-                return;
             }
-
-            if (!await TieneInternetAsync())
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
-            }
-
-            var result = await terrenoApiService.DeleteTerrenoAsync(new TerrenoRequest(item));
-
-            if (result)
-            {
-                _ = MostrarToastAsync("Terreno eliminado.");
-                await LoadTerrenosAsync(true);
-            }
-            else
-            {
-                _ = MostrarToastAsync("No se pudo eliminar el terreno.");
-            }
-
-            IsBusy = false;
         }
 
-        private async void OnView(TerrenoResponse item)
+        private async Task OnViewAsync(TerrenoResponse? item)
         {
-            if (IsBusy || item == null) return;
+            if (IsBusy || item == null)
+                return;
 
             var parameters = new Dictionary<string, object>
             {
@@ -174,7 +222,9 @@ namespace CONATRADEC.ViewModels
                 { "Terreno", new TerrenoRequest(item) }
             };
 
-            await GoToAsyncParameters("//TerrenoFormPage", parameters);
+            await GoToAsyncParameters(
+                AppRoutes.TerrenoFormulario,
+                parameters);
         }
     }
 }

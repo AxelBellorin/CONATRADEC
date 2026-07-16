@@ -86,6 +86,8 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(MostrarDatosEnmiendaCalcarea));
                 OnPropertyChanged(nameof(MostrarAportesElementosQuimicos));
                 OnPropertyChanged(nameof(MostrarBotonAgregarAporte));
+                OnPropertyChanged(nameof(TituloSeccionAportes));
+                OnPropertyChanged(nameof(DescripcionSeccionAportes));
 
                 SaveCommand.ChangeCanExecute();
                 AddAporteCommand.ChangeCanExecute();
@@ -134,6 +136,8 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(MostrarDatosEnmiendaCalcarea));
                 OnPropertyChanged(nameof(MostrarAportesElementosQuimicos));
                 OnPropertyChanged(nameof(MostrarBotonAgregarAporte));
+                OnPropertyChanged(nameof(TituloSeccionAportes));
+                OnPropertyChanged(nameof(DescripcionSeccionAportes));
 
                 if (!IsReadOnly &&
                     MostrarAportesElementosQuimicos &&
@@ -309,11 +313,29 @@ namespace CONATRADEC.ViewModels
         public bool MostrarDatosEnmiendaCalcarea =>
             CategoriaSeleccionada?.Codigo == FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea;
 
-        public bool MostrarAportesElementosQuimicos =>
-            CategoriaSeleccionada?.Codigo == FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
+        public bool MostrarAportesElementosQuimicos
+        {
+            get
+            {
+                string? codigo = CategoriaSeleccionada?.Codigo;
+
+                return codigo == FuenteNutrienteCategoriaOption.CodigoBalanceNutricional ||
+                       codigo == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta;
+            }
+        }
 
         public bool MostrarBotonAgregarAporte =>
             ShowSaveButton && MostrarAportesElementosQuimicos;
+
+        public string TituloSeccionAportes =>
+            CategoriaSeleccionada?.Codigo == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta
+                ? "Aportes para fertilización mixta"
+                : "Aportes de elementos químicos";
+
+        public string DescripcionSeccionAportes =>
+            CategoriaSeleccionada?.Codigo == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta
+                ? "Agregue los elementos que aporta esta fuente y su porcentaje. Estos valores se utilizarán en el cálculo de fertilización mixta."
+                : "Agregue los elementos que aporta esta fuente y su porcentaje. Estos valores se utilizarán en el balance nutricional.";
 
         public bool IsReadOnly => Mode == FormMode.FormModeSelect.View;
 
@@ -773,7 +795,7 @@ namespace CONATRADEC.ViewModels
 
                 if (aportesCompletos.Count == 0)
                 {
-                    ErrorAportes = "Debe agregar al menos un aporte de elemento químico para balance nutricional.";
+                    ErrorAportes = "Debe agregar al menos un aporte de elemento químico para la clasificación seleccionada.";
                     TieneErrorAportes = true;
                     valido = false;
                 }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CONATRADEC.Views.fuenteNutrienteFormPage"
@@ -10,12 +10,12 @@
     <Grid RowDefinitions="Auto,*"
           BackgroundColor="Transparent">
 
-        <Label Text="{Binding Title}"
+        <Label Grid.Row="0"
+               Text="{Binding Title}"
                TextColor="{StaticResource color_Verde}"
                FontSize="24"
                FontAttributes="Bold"
                HorizontalOptions="Start"
-               Grid.Row="0"
                Margin="10,20,0,0" />
 
         <ActivityIndicator Grid.Row="0"
@@ -32,7 +32,6 @@
                 <!-- NOMBRE -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-
                         <Label Text="Nombre de la fuente"
                                FontAttributes="Bold"
                                FontSize="17"
@@ -47,14 +46,12 @@
                                IsVisible="{Binding TieneErrorNombre}"
                                TextColor="{StaticResource RedDelete}"
                                FontSize="12" />
-
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- DESCRIPCIÓN -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-
                         <Label Text="Descripción"
                                FontAttributes="Bold"
                                FontSize="17"
@@ -66,14 +63,12 @@
                                 AutoSize="TextChanges"
                                 MinimumHeightRequest="90"
                                 TextColor="{StaticResource color_Negro}" />
-
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- PRECIO -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-
                         <Label Text="Precio por quintal"
                                FontAttributes="Bold"
                                FontSize="17"
@@ -89,14 +84,12 @@
                                IsVisible="{Binding TieneErrorPrecio}"
                                TextColor="{StaticResource RedDelete}"
                                FontSize="12" />
-
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- CLASIFICACIÓN -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="8">
-
                         <Label Text="Clasificación de la fuente"
                                FontAttributes="Bold"
                                FontSize="17"
@@ -126,15 +119,13 @@
                                 BackgroundColor="#EEF5F2"
                                 Stroke="{StaticResource color_Verde}"
                                 StrokeThickness="0.8">
-
                             <VerticalStackLayout Spacing="8">
-
                                 <Label Text="Datos para enmienda calcárea"
                                        FontAttributes="Bold"
                                        FontSize="15"
                                        TextColor="{StaticResource color_Verde}" />
 
-                                <Label Text="Estos campos se visualizarán para fuentes clasificadas como enmienda calcárea. Si la API aún no devuelve PRNT y descripción, aparecerán vacíos."
+                                <Label Text="Ingrese el PRNT y la descripción del parámetro correspondiente a la fuente encalante."
                                        FontSize="12"
                                        TextColor="{StaticResource color_Gris}" />
 
@@ -174,27 +165,23 @@
                                            TextColor="{StaticResource RedDelete}"
                                            FontSize="12" />
                                 </VerticalStackLayout>
-
                             </VerticalStackLayout>
                         </Border>
-
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- APORTES SOLO PARA BALANCE NUTRICIONAL -->
+                <!-- APORTES PARA BALANCE NUTRICIONAL Y FERTILIZACIÓN MIXTA -->
                 <Border Style="{StaticResource BorderStyle}"
                         IsVisible="{Binding MostrarAportesElementosQuimicos}">
-
                     <VerticalStackLayout Spacing="10">
-
                         <Grid ColumnDefinitions="*,Auto">
                             <VerticalStackLayout Spacing="2">
-                                <Label Text="Aportes de elementos químicos"
+                                <Label Text="{Binding TituloSeccionAportes}"
                                        FontAttributes="Bold"
                                        FontSize="17"
                                        TextColor="{StaticResource color_Negro}" />
 
-                                <Label Text="Agregue los elementos que aporta esta fuente y su porcentaje. Solo aplica para balance nutricional."
+                                <Label Text="{Binding DescripcionSeccionAportes}"
                                        FontSize="12"
                                        TextColor="{StaticResource color_Gris}" />
                             </VerticalStackLayout>
@@ -215,7 +202,6 @@
 
                         <CollectionView ItemsSource="{Binding Aportes}"
                                         SelectionMode="None">
-
                             <CollectionView.EmptyView>
                                 <Grid Padding="10">
                                     <Label Text="No hay aportes agregados."
@@ -226,13 +212,11 @@
 
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
-
                                     <Border Margin="0,4"
                                             Padding="10"
                                             Stroke="{StaticResource color_Gris}"
                                             StrokeThickness="0.5"
                                             BackgroundColor="White">
-
                                         <Grid ColumnDefinitions="2*,*,Auto"
                                               ColumnSpacing="10"
                                               RowDefinitions="Auto,Auto">
@@ -272,13 +256,11 @@
                                                          Command="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.RemoveAporteCommand}"
                                                          CommandParameter="{Binding .}"
                                                          IsVisible="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.MostrarBotonAgregarAporte}" />
-
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
                         </CollectionView>
-
                     </VerticalStackLayout>
                 </Border>
 
@@ -286,22 +268,19 @@
                 <Grid ColumnDefinitions="*,*"
                       RowDefinitions="Auto"
                       Margin="10,0,10,20">
-
-                    <Button Text="Guardar"
+                    <Button Grid.Column="0"
+                            Text="Guardar"
                             Style="{StaticResource UpdateButton}"
                             IsVisible="{Binding ShowSaveButton}"
                             Command="{Binding SaveCommand}"
-                            Grid.Column="0"
                             Margin="10,0,10,0" />
 
-                    <Button Text="Cancelar"
+                    <Button Grid.Column="1"
+                            Text="Cancelar"
                             Style="{StaticResource CancelButton}"
                             Command="{Binding CancelCommand}"
-                            Grid.Column="1"
                             Margin="10,0,10,0" />
-
                 </Grid>
-
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

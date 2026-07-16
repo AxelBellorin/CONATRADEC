@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -19,19 +19,20 @@ namespace CONATRADEC.Services
 
         private readonly HttpClient httpClient;
 
-        private readonly UrlApiService urlApiService = new UrlApiService();
-
         private readonly JsonSerializerOptions jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
 
         public AnalisisSueloApiService()
+            : this(ApiClientService.Client)
         {
-            httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(urlApiService.BaseUrlApi)
-            };
+        }
+
+        public AnalisisSueloApiService(HttpClient httpClient)
+        {
+            this.httpClient = httpClient
+                ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
         public async Task<AnalisisSueloCalculoResponse?> CalcularAsync(AnalisisSueloCalcularRequest request)

@@ -4,7 +4,7 @@ namespace CONATRADEC.Services
 {
     /// <summary>
     /// Proporciona una única instancia de HttpClient para los servicios de la aplicación.
-    /// La migración de los demás servicios se realizará de forma gradual.
+    /// Es reutilizado por todos los servicios que consumen la API.
     /// </summary>
     public static class ApiClientService
     {
@@ -29,7 +29,7 @@ namespace CONATRADEC.Services
             var client = new HttpClient
             {
                 BaseAddress = baseAddress,
-                Timeout = TimeSpan.FromSeconds(30)
+                Timeout = TimeSpan.FromMinutes(2)
             };
 
             client.DefaultRequestHeaders.Accept.Clear();

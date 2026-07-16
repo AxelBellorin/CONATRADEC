@@ -1,5 +1,6 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using System.Collections.ObjectModel;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -8,7 +9,6 @@ namespace CONATRADEC.Services
     public class TerrenoApiService
     {
         private readonly HttpClient httpClient;
-        private readonly UrlApiService urlApiService = new UrlApiService();
 
         private readonly JsonSerializerOptions jsonOptions = new(JsonSerializerDefaults.Web)
         {
@@ -16,116 +16,376 @@ namespace CONATRADEC.Services
         };
 
         public TerrenoApiService()
+            : this(ApiClientService.Client)
         {
-            httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(urlApiService.BaseUrlApi)
-            };
         }
 
-        public async Task<ObservableCollection<TerrenoResponse>> GetTerrenosAsync()
+        public TerrenoApiService(HttpClient httpClient)
+        {
+            this.httpClient = httpClient
+                ?? throw new ArgumentNullException(nameof(httpClient));
+        }
+
+        // =========================================================
+        // MÉTODOS CON RESULTADO DETALLADO
+        // =========================================================
+
+        public async Task<ApiResult<ObservableCollection<TerrenoResponse>>> GetTerrenosResultAsync(
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                var response = await httpClient.GetFromJsonAsync<ObservableCollection<TerrenoResponse>>(
-                    "api/terreno/listar");
-
-                if (response == null)
-                    return new ObservableCollection<TerrenoResponse>();
-
-                return new ObservableCollection<TerrenoResponse>(
-                    response.Where(t => t.Activo != false)
-                );
-            }
-            catch
-            {
-                return new ObservableCollection<TerrenoResponse>();
-            }
-        }
-
-        public async Task<bool> CreateTerrenoAsync(TerrenoRequest terreno)
-        {
-            try
-            {
-                var response = await httpClient.PostAsJsonAsync("api/terreno/crear", terreno);
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<TerrenoResponse?> CreateTerrenoRetornandoAsync(TerrenoRequest terreno)
-        {
-            try
-            {
-                var response = await httpClient.PostAsJsonAsync("api/terreno/crear", terreno);
+                using var response = await httpClient.GetAsync(
+                    "api/terreno/listar",
+                    cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
-                    return null;
+                {
+                    return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
+                        ObtenerMensajeHttp(response.StatusCode, "cargar los terrenos"),
+                        (int)response.StatusCode);
+                }
 
-                string contenido = await response.Content.ReadAsStringAsync();
+                var terrenos = await response.Content
+                    .ReadFromJsonAsync<ObservableCollection<TerrenoResponse>>(
+                        jsonOptions,
+                        cancellationToken);
 
+                var terrenosActivos = terrenos == null
+                    ? new ObservableCollection<TerrenoResponse>()
+                    : new ObservableCollection<TerrenoResponse>(
+                        terrenos.Where(t => t.Activo != false));
+
+                return ApiResult<ObservableCollection<TerrenoResponse>>.Ok(
+                    terrenosActivos);
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
+                    "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
+                    "No fue posible conectarse con el servidor. Verifique su conexión.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
+                    "El servidor respondió, pero los datos de terrenos no tienen el formato esperado.");
+            }
+            catch (Exception)
+            {
+                return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
+                    "Ocurrió un error inesperado al cargar los terrenos.");
+            }
+        }
+
+        public async Task<ApiResult<bool>> CreateTerrenoResultAsync(
+            TerrenoRequest terreno,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(terreno);
+
+            try
+            {
+                using var response = await httpClient.PostAsJsonAsync(
+                    "api/terreno/crear",
+                    terreno,
+                    cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<bool>.Fail(
+                        ObtenerMensajeHttp(response.StatusCode, "crear el terreno"),
+                        (int)response.StatusCode);
+                }
+
+                return ApiResult<bool>.Ok(
+                    true,
+                    "Terreno guardado correctamente.");
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<bool>.Fail(
+                    "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<bool>.Fail("La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<bool>.Fail(
+                    "No fue posible conectarse con el servidor. Verifique su conexión.");
+            }
+            catch (Exception)
+            {
+                return ApiResult<bool>.Fail(
+                    "Ocurrió un error inesperado al crear el terreno.");
+            }
+        }
+
+        public async Task<ApiResult<TerrenoResponse>> CreateTerrenoRetornandoResultAsync(
+            TerrenoRequest terreno,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(terreno);
+
+            try
+            {
+                using var response = await httpClient.PostAsJsonAsync(
+                    "api/terreno/crear",
+                    terreno,
+                    cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<TerrenoResponse>.Fail(
+                        ObtenerMensajeHttp(response.StatusCode, "crear el terreno"),
+                        (int)response.StatusCode);
+                }
+
+                string contenido = await response.Content.ReadAsStringAsync(cancellationToken);
                 var terrenoCreado = IntentarLeerTerrenoCreado(contenido);
 
                 if (terrenoCreado != null &&
                     terrenoCreado.TerrenoId.HasValue &&
                     terrenoCreado.TerrenoId.Value > 0)
                 {
-                    return terrenoCreado;
+                    return ApiResult<TerrenoResponse>.Ok(
+                        terrenoCreado,
+                        "Terreno guardado correctamente.");
                 }
 
                 if (!string.IsNullOrWhiteSpace(terreno.CodigoTerreno))
                 {
-                    var terrenos = await GetTerrenosAsync();
+                    var resultadoTerrenos = await GetTerrenosResultAsync(cancellationToken);
 
-                    return terrenos
-                        .Where(t => string.Equals(
-                            t.CodigoTerreno?.Trim(),
-                            terreno.CodigoTerreno.Trim(),
-                            StringComparison.OrdinalIgnoreCase))
-                        .OrderByDescending(t => t.TerrenoId ?? 0)
-                        .FirstOrDefault();
+                    if (resultadoTerrenos.Success && resultadoTerrenos.Data != null)
+                    {
+                        var terrenoEncontrado = resultadoTerrenos.Data
+                            .Where(t => string.Equals(
+                                t.CodigoTerreno?.Trim(),
+                                terreno.CodigoTerreno.Trim(),
+                                StringComparison.OrdinalIgnoreCase))
+                            .OrderByDescending(t => t.TerrenoId ?? 0)
+                            .FirstOrDefault();
+
+                        if (terrenoEncontrado != null)
+                        {
+                            return ApiResult<TerrenoResponse>.Ok(
+                                terrenoEncontrado,
+                                "Terreno guardado correctamente.");
+                        }
+                    }
                 }
 
-                return null;
+                return ApiResult<TerrenoResponse>.Fail(
+                    "El terreno fue procesado, pero no fue posible identificar el registro creado.");
             }
-            catch
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                return null;
+                return ApiResult<TerrenoResponse>.Fail(
+                    "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
             }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<TerrenoResponse>.Fail("La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<TerrenoResponse>.Fail(
+                    "No fue posible conectarse con el servidor. Verifique su conexión.");
+            }
+            catch (Exception)
+            {
+                return ApiResult<TerrenoResponse>.Fail(
+                    "Ocurrió un error inesperado al crear el terreno.");
+            }
+        }
+
+        public async Task<ApiResult<bool>> UpdateTerrenoResultAsync(
+            TerrenoRequest terreno,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(terreno);
+
+            if (!terreno.TerrenoId.HasValue || terreno.TerrenoId.Value <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "No se recibió un identificador de terreno válido.");
+            }
+
+            try
+            {
+                using var response = await httpClient.PutAsJsonAsync(
+                    $"api/terreno/editar/{terreno.TerrenoId}",
+                    terreno,
+                    cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<bool>.Fail(
+                        ObtenerMensajeHttp(response.StatusCode, "actualizar el terreno"),
+                        (int)response.StatusCode);
+                }
+
+                return ApiResult<bool>.Ok(
+                    true,
+                    "Terreno actualizado correctamente.");
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<bool>.Fail(
+                    "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<bool>.Fail("La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<bool>.Fail(
+                    "No fue posible conectarse con el servidor. Verifique su conexión.");
+            }
+            catch (Exception)
+            {
+                return ApiResult<bool>.Fail(
+                    "Ocurrió un error inesperado al actualizar el terreno.");
+            }
+        }
+
+        public async Task<ApiResult<bool>> DeleteTerrenoResultAsync(
+            TerrenoRequest terreno,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(terreno);
+
+            if (!terreno.TerrenoId.HasValue || terreno.TerrenoId.Value <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "No se recibió un identificador de terreno válido.");
+            }
+
+            try
+            {
+                using var response = await httpClient.DeleteAsync(
+                    $"api/terreno/eliminar/{terreno.TerrenoId}",
+                    cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<bool>.Fail(
+                        ObtenerMensajeHttp(response.StatusCode, "eliminar el terreno"),
+                        (int)response.StatusCode);
+                }
+
+                return ApiResult<bool>.Ok(
+                    true,
+                    "Terreno eliminado correctamente.");
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<bool>.Fail(
+                    "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<bool>.Fail("La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<bool>.Fail(
+                    "No fue posible conectarse con el servidor. Verifique su conexión.");
+            }
+            catch (Exception)
+            {
+                return ApiResult<bool>.Fail(
+                    "Ocurrió un error inesperado al eliminar el terreno.");
+            }
+        }
+
+        // =========================================================
+        // MÉTODOS ANTERIORES
+        // Se conservan para no romper TerrenoFormViewModel ni otros
+        // módulos que ya utilizan estas firmas.
+        // =========================================================
+
+        public async Task<ObservableCollection<TerrenoResponse>> GetTerrenosAsync()
+        {
+            var resultado = await GetTerrenosResultAsync();
+
+            return resultado.Success && resultado.Data != null
+                ? resultado.Data
+                : new ObservableCollection<TerrenoResponse>();
+        }
+
+        public async Task<bool> CreateTerrenoAsync(TerrenoRequest terreno)
+        {
+            var resultado = await CreateTerrenoResultAsync(terreno);
+            return resultado.Success;
+        }
+
+        public async Task<TerrenoResponse?> CreateTerrenoRetornandoAsync(TerrenoRequest terreno)
+        {
+            var resultado = await CreateTerrenoRetornandoResultAsync(terreno);
+            return resultado.Success ? resultado.Data : null;
         }
 
         public async Task<bool> UpdateTerrenoAsync(TerrenoRequest terreno)
         {
-            try
-            {
-                var response = await httpClient.PutAsJsonAsync(
-                    $"api/terreno/editar/{terreno.TerrenoId}",
-                    terreno);
-
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            var resultado = await UpdateTerrenoResultAsync(terreno);
+            return resultado.Success;
         }
 
         public async Task<bool> DeleteTerrenoAsync(TerrenoRequest terreno)
         {
-            try
-            {
-                var response = await httpClient.DeleteAsync(
-                    $"api/terreno/eliminar/{terreno.TerrenoId}");
+            var resultado = await DeleteTerrenoResultAsync(terreno);
+            return resultado.Success;
+        }
 
-                return response.IsSuccessStatusCode;
-            }
-            catch
+        // =========================================================
+        // MÉTODOS AUXILIARES
+        // =========================================================
+
+        private static string ObtenerMensajeHttp(
+            HttpStatusCode statusCode,
+            string operacion)
+        {
+            return statusCode switch
             {
-                return false;
-            }
+                HttpStatusCode.BadRequest =>
+                    $"Los datos enviados no son válidos para {operacion}.",
+
+                HttpStatusCode.Unauthorized =>
+                    "La sesión no es válida o ha expirado.",
+
+                HttpStatusCode.Forbidden =>
+                    $"No tiene permisos para {operacion}.",
+
+                HttpStatusCode.NotFound =>
+                    "No se encontró el terreno solicitado.",
+
+                HttpStatusCode.Conflict =>
+                    $"No fue posible {operacion} porque existe un conflicto con los datos.",
+
+                HttpStatusCode.InternalServerError =>
+                    "El servidor presentó un error interno. Intente nuevamente.",
+
+                HttpStatusCode.BadGateway or
+                HttpStatusCode.ServiceUnavailable or
+                HttpStatusCode.GatewayTimeout =>
+                    "El servidor no está disponible temporalmente. Intente nuevamente.",
+
+                _ =>
+                    $"No fue posible {operacion}. Código del servidor: {(int)statusCode}."
+            };
         }
 
         private TerrenoResponse? IntentarLeerTerrenoCreado(string contenido)
@@ -196,11 +456,17 @@ namespace CONATRADEC.Services
             }
         }
 
-        private bool TryGetPropertyIgnoreCase(JsonElement element, string propertyName, out JsonElement value)
+        private static bool TryGetPropertyIgnoreCase(
+            JsonElement element,
+            string propertyName,
+            out JsonElement value)
         {
             foreach (var property in element.EnumerateObject())
             {
-                if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(
+                    property.Name,
+                    propertyName,
+                    StringComparison.OrdinalIgnoreCase))
                 {
                     value = property.Value;
                     return true;
@@ -211,7 +477,10 @@ namespace CONATRADEC.Services
             return false;
         }
 
-        private bool TryGetIntIgnoreCase(JsonElement element, string propertyName, out int value)
+        private static bool TryGetIntIgnoreCase(
+            JsonElement element,
+            string propertyName,
+            out int value)
         {
             value = 0;
 
@@ -220,11 +489,15 @@ namespace CONATRADEC.Services
 
             if (property.ValueKind == JsonValueKind.Number &&
                 property.TryGetInt32(out value))
+            {
                 return true;
+            }
 
             if (property.ValueKind == JsonValueKind.String &&
                 int.TryParse(property.GetString(), out value))
+            {
                 return true;
+            }
 
             return false;
         }

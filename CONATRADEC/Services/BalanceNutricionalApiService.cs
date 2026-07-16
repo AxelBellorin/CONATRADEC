@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -11,19 +11,20 @@ namespace CONATRADEC.Services
     {
         private readonly HttpClient httpClient;
 
-        private readonly UrlApiService urlApiService = new UrlApiService();
-
         private readonly JsonSerializerOptions jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
 
         public BalanceNutricionalApiService()
+            : this(ApiClientService.Client)
         {
-            httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(urlApiService.BaseUrlApi)
-            };
+        }
+
+        public BalanceNutricionalApiService(HttpClient httpClient)
+        {
+            this.httpClient = httpClient
+                ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
         public async Task<BalanceNutricionalResponse?> CalcularAsync(BalanceNutricionalRequest request)

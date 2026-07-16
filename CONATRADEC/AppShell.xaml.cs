@@ -1,7 +1,5 @@
-﻿using CONATRADEC.ViewModels;
-using Microsoft.Maui.Graphics;
+using CONATRADEC.Services;
 using CONATRADEC.Views;
-using Microsoft.Maui.Controls;
 
 namespace CONATRADEC
 {
@@ -11,10 +9,19 @@ namespace CONATRADEC
         {
             InitializeComponent();
 
-            // Rutas ya existentes
-            Routing.RegisterRoute(nameof(terrenoFormPage), typeof(terrenoFormPage));
-            Routing.RegisterRoute(nameof(MapaSeleccionPage), typeof(MapaSeleccionPage));
-            Routing.RegisterRoute("FotosTerrenoGaleriaPage", typeof(FotosTerrenoGaleriaPage));
+            // Se conserva esta ruta para compatibilidad con cualquier
+            // navegación que todavía utilice nameof(terrenoFormPage).
+            Routing.RegisterRoute(
+                AppRoutes.TerrenoFormularioRegistrado,
+                typeof(terrenoFormPage));
+
+            Routing.RegisterRoute(
+                AppRoutes.MapaSeleccion,
+                typeof(MapaSeleccionPage));
+
+            Routing.RegisterRoute(
+                AppRoutes.FotosTerrenoGaleria,
+                typeof(FotosTerrenoGaleriaPage));
         }
     }
 }

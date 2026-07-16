@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
@@ -7,14 +7,19 @@ namespace CONATRADEC.Services
     public class FotoTerrenoApiService
     {
         private readonly HttpClient httpClient;
-        private readonly UrlApiService urlApiService = new UrlApiService();
+        private readonly UrlApiService urlApiService;
 
         public FotoTerrenoApiService()
+            : this(ApiClientService.Client)
         {
-            httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(urlApiService.BaseUrlApi)
-            };
+        }
+
+        public FotoTerrenoApiService(HttpClient httpClient)
+        {
+            this.httpClient = httpClient
+                ?? throw new ArgumentNullException(nameof(httpClient));
+
+            urlApiService = new UrlApiService();
         }
 
         public async Task<List<FotoTerrenoResponse>> GetFotosPorTerrenoAsync(int terrenoId)
