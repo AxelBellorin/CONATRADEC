@@ -1,4 +1,4 @@
-﻿using CONATRADEC.ViewModels;
+using CONATRADEC.ViewModels;
 using Microsoft.Maui.Controls;
 using System.Globalization;
 
@@ -26,8 +26,17 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             await viewModel.InicializarAsync();
-
             CargarMiniMapa();
+        }
+
+        protected override void OnDisappearing()
+        {
+            // Cancela cargas pendientes cuando se abandona la pantalla.
+            // Esto evita que una respuesta atrasada modifique el formulario
+            // después de navegar al mapa, galería o listado.
+            viewModel.CancelarOperaciones();
+
+            base.OnDisappearing();
         }
 
         private void CargarMiniMapa()
@@ -59,16 +68,19 @@ namespace CONATRADEC.Views
 
         private async void BtnAbrirEnMaps_Clicked(object sender, EventArgs e)
         {
-            if (BindingContext is TerrenoFormViewModel vm)
+            if (BindingContext is TerrenoFormViewModel vm &&
+                vm.Latitud != null &&
+                vm.Longitud != null)
             {
-                if (vm.Latitud != null && vm.Longitud != null)
-                {
-                    await vm.AbrirEnGoogleMaps(vm.Latitud.Value, vm.Longitud.Value);
-                }
+                await vm.AbrirEnGoogleMaps(
+                    vm.Latitud.Value,
+                    vm.Longitud.Value);
             }
         }
 
-        private void EntryDMS_TextChanged(object sender, TextChangedEventArgs e)
+        private void EntryDMS_TextChanged(
+            object sender,
+            TextChangedEventArgs e)
         {
             if (BindingContext is TerrenoFormViewModel vm)
                 vm.ConvertirDesdeGoogleMaps(e.NewTextValue);
@@ -98,7 +110,6 @@ var map = L.map('map').setView([{latStr}, {lonStr}], 16);
 L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
     maxZoom: 19
 }}).addTo(map);
-
 var marker = L.marker([{latStr}, {lonStr}]).addTo(map);
 </script>
 </body>

@@ -1,5 +1,6 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Storage;
@@ -8,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
@@ -50,6 +52,14 @@ namespace CONATRADEC.ViewModels
         private readonly FotoTerrenoApiService fotoTerrenoApiService = new();
 
         private bool inicializado = false;
+        private bool actualizandoSeleccionInterna;
+
+        private readonly SemaphoreSlim inicializacionLock = new(1, 1);
+        private CancellationTokenSource? inicializacionCts;
+        private CancellationTokenSource? departamentoCts;
+        private CancellationTokenSource? municipioCts;
+        private CancellationTokenSource? fotosCts;
+        private CancellationTokenSource? guardadoCts;
 
         private int? fotosCargadasTerrenoId = null;
 
@@ -169,7 +179,7 @@ namespace CONATRADEC.ViewModels
 
                 OnPropertyChanged();
 
-                if (Mode == FormMode.FormModeSelect.Edit)
+                if (Mode == FormMode.FormModeSelect.Edit && inicializado)
                 {
                     _ = ReasignarSeleccionPickersAsync();
                 }
@@ -414,19 +424,16 @@ namespace CONATRADEC.ViewModels
             get => paisSeleccionado;
             set
             {
-                if (paisSeleccionado != value)
-                {
-                    paisSeleccionado = value;
-                    OnPropertyChanged();
+                if (paisSeleccionado == value)
+                    return;
 
-                    _ = CargarDepartamentosAsync(value?.PaisId);
+                paisSeleccionado = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPickDepartamento));
+                OnPropertyChanged(nameof(CanPickMunicipio));
 
-                    DepartamentoSeleccionado = null;
-                    MunicipioSeleccionado = null;
-
-                    OnPropertyChanged(nameof(CanPickDepartamento));
-                    OnPropertyChanged(nameof(CanPickMunicipio));
-                }
+                if (!actualizandoSeleccionInterna)
+                    _ = CambiarPaisAsync(value);
             }
         }
 
@@ -435,17 +442,15 @@ namespace CONATRADEC.ViewModels
             get => departamentoSeleccionado;
             set
             {
-                if (departamentoSeleccionado != value)
-                {
-                    departamentoSeleccionado = value;
-                    OnPropertyChanged();
+                if (departamentoSeleccionado == value)
+                    return;
 
-                    _ = CargarMunicipiosAsync(value?.DepartamentoId);
+                departamentoSeleccionado = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPickMunicipio));
 
-                    MunicipioSeleccionado = null;
-
-                    OnPropertyChanged(nameof(CanPickMunicipio));
-                }
+                if (!actualizandoSeleccionInterna)
+                    _ = CambiarDepartamentoAsync(value);
             }
         }
 
@@ -454,185 +459,410 @@ namespace CONATRADEC.ViewModels
             get => municipioSeleccionado;
             set
             {
+                if (municipioSeleccionado == value)
+                    return;
+
                 municipioSeleccionado = value;
                 OnPropertyChanged();
             }
         }
 
-        public bool CanPickDepartamento => IsEnabled && PaisSeleccionado != null;
-        public bool CanPickMunicipio => IsEnabled && DepartamentoSeleccionado != null;
+        public bool CanPickDepartamento =>
+            IsEnabled && PaisSeleccionado != null && !IsBusy;
+
+        public bool CanPickMunicipio =>
+            IsEnabled && DepartamentoSeleccionado != null && !IsBusy;
 
         // ==================== Inicialización ====================
 
         public async Task InicializarAsync()
         {
+            await inicializacionLock.WaitAsync();
+
+            CancelarYRenovar(ref inicializacionCts);
+            CancellationToken cancellationToken = inicializacionCts.Token;
+
             try
             {
                 IsBusy = true;
+                NotificarDisponibilidadPickers();
 
                 if (Mode == FormMode.FormModeSelect.Create)
-                {
                     LimpiarFotosSiSonDeTerrenoAnterior();
-                }
 
-                if (inicializado)
+                if (!inicializado)
                 {
-                    if (Terreno?.TerrenoId > 0 &&
-                        fotosCargadasTerrenoId != Terreno.TerrenoId)
-                    {
-                        await CargarFotosTerrenoAsync();
-                    }
+                    bool paisesCargados =
+                        await CargarPaisesAsync(cancellationToken);
 
-                    return;
+                    if (!paisesCargados)
+                        return;
+
+                    inicializado = true;
+
+                    if (Terreno?.MunicipioId > 0)
+                    {
+                        await ResolverSeleccionPorMunicipioIdAsync(
+                            Terreno.MunicipioId,
+                            cancellationToken);
+                    }
                 }
 
-                inicializado = true;
-
-                await CargarPaisesAsync();
-
-                if (Terreno?.MunicipioId > 0)
-                    await ResolverSeleccionPorMunicipioIdAsync(Terreno.MunicipioId);
-
-                if (Terreno?.TerrenoId > 0)
-                    await CargarFotosTerrenoAsync();
+                if (Terreno?.TerrenoId > 0 &&
+                    fotosCargadasTerrenoId != Terreno.TerrenoId)
+                {
+                    await CargarFotosTerrenoAsync(cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // La pantalla cambió o comenzó una solicitud más reciente.
             }
             finally
             {
                 IsBusy = false;
+                NotificarDisponibilidadPickers();
+                inicializacionLock.Release();
             }
         }
 
         public async Task ReasignarSeleccionPickersAsync()
         {
+            if (!inicializado || Terreno?.MunicipioId is null or <= 0)
+                return;
+
+            CancelarYRenovar(ref inicializacionCts);
+            CancellationToken cancellationToken = inicializacionCts.Token;
+
             try
             {
-                if (Terreno?.MunicipioId > 0)
-                {
-                    await ResolverSeleccionPorMunicipioIdAsync(Terreno.MunicipioId);
-                }
+                await ResolverSeleccionPorMunicipioIdAsync(
+                    Terreno.MunicipioId,
+                    cancellationToken);
             }
-            catch
+            catch (OperationCanceledException)
             {
+                // Se seleccionó otro registro o se abandonó la pantalla.
             }
         }
 
-        private async Task CargarPaisesAsync()
+        public void CancelarOperaciones()
         {
-            bool tieneInternet = await TieneInternetAsync();
+            Cancelar(ref inicializacionCts);
+            Cancelar(ref departamentoCts);
+            Cancelar(ref municipioCts);
+            Cancelar(ref fotosCts);
+            Cancelar(ref guardadoCts);
+        }
 
-            if (!tieneInternet)
+        private async Task CambiarPaisAsync(PaisResponse? pais)
+        {
+            CancelarYRenovar(ref departamentoCts);
+            CancellationToken cancellationToken = departamentoCts.Token;
+
+            try
             {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
+                actualizandoSeleccionInterna = true;
+
+                departamentoSeleccionado = null;
+                municipioSeleccionado = null;
+                Departamentos.Clear();
+                Municipios.Clear();
+
+                OnPropertyChanged(nameof(DepartamentoSeleccionado));
+                OnPropertyChanged(nameof(MunicipioSeleccionado));
+                OnPropertyChanged(nameof(Departamentos));
+                OnPropertyChanged(nameof(Municipios));
+                NotificarDisponibilidadPickers();
+            }
+            finally
+            {
+                actualizandoSeleccionInterna = false;
+            }
+
+            if (pais?.PaisId > 0)
+            {
+                await CargarDepartamentosAsync(
+                    pais.PaisId,
+                    cancellationToken,
+                    mostrarError: true);
+            }
+        }
+
+        private async Task CambiarDepartamentoAsync(
+            DepartamentoResponse? departamento)
+        {
+            CancelarYRenovar(ref municipioCts);
+            CancellationToken cancellationToken = municipioCts.Token;
+
+            try
+            {
+                actualizandoSeleccionInterna = true;
+
+                municipioSeleccionado = null;
+                Municipios.Clear();
+
+                OnPropertyChanged(nameof(MunicipioSeleccionado));
+                OnPropertyChanged(nameof(Municipios));
+                NotificarDisponibilidadPickers();
+            }
+            finally
+            {
+                actualizandoSeleccionInterna = false;
+            }
+
+            if (departamento?.DepartamentoId > 0)
+            {
+                await CargarMunicipiosAsync(
+                    departamento.DepartamentoId,
+                    cancellationToken,
+                    mostrarError: true);
+            }
+        }
+
+        private async Task<bool> CargarPaisesAsync(
+            CancellationToken cancellationToken)
+        {
+            var result = await paisApiService.GetPaisResultAsync(
+                cancellationToken);
+
+            if (!result.Success || result.Data == null)
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                    await MostrarToastAsync(result.Message);
+
+                return false;
             }
 
             Paises.Clear();
 
-            var data = await paisApiService.GetPaisAsync();
-
-            foreach (var p in data)
-                Paises.Add(p);
+            foreach (var pais in result.Data)
+                Paises.Add(pais);
 
             OnPropertyChanged(nameof(Paises));
-            OnPropertyChanged(nameof(CanPickDepartamento));
-            OnPropertyChanged(nameof(CanPickMunicipio));
+            NotificarDisponibilidadPickers();
+
+            return true;
         }
 
-        private async Task CargarDepartamentosAsync(int? paisId)
+        private async Task<bool> CargarDepartamentosAsync(
+            int? paisId,
+            CancellationToken cancellationToken,
+            bool mostrarError)
         {
-            Departamentos.Clear();
-            Municipios.Clear();
+            if (!paisId.HasValue || paisId.Value <= 0)
+                return false;
 
-            if (paisId == null)
-                return;
+            var result =
+                await departamentoApiService.GetDepartamentosResultAsync(
+                    paisId,
+                    cancellationToken);
 
-            bool tieneInternet = await TieneInternetAsync();
-
-            if (!tieneInternet)
+            if (!result.Success || result.Data == null)
             {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
+                if (mostrarError && !cancellationToken.IsCancellationRequested)
+                    await MostrarToastAsync(result.Message);
+
+                return false;
             }
 
-            var data = await departamentoApiService.GetDepartamentosAsync(paisId);
+            if (PaisSeleccionado?.PaisId != paisId.Value &&
+                !actualizandoSeleccionInterna)
+            {
+                return false;
+            }
 
-            foreach (var d in data)
-                Departamentos.Add(d);
+            Departamentos.Clear();
+
+            foreach (var departamento in result.Data)
+                Departamentos.Add(departamento);
 
             OnPropertyChanged(nameof(Departamentos));
-            OnPropertyChanged(nameof(CanPickDepartamento));
+            NotificarDisponibilidadPickers();
+
+            return true;
         }
 
-        private async Task CargarMunicipiosAsync(int? departamentoId)
+        private async Task<bool> CargarMunicipiosAsync(
+            int? departamentoId,
+            CancellationToken cancellationToken,
+            bool mostrarError)
         {
-            Municipios.Clear();
+            if (!departamentoId.HasValue || departamentoId.Value <= 0)
+                return false;
 
-            if (departamentoId == null)
-                return;
+            var result =
+                await municipioApiService.GetMunicipiosResultAsync(
+                    departamentoId,
+                    cancellationToken);
 
-            bool tieneInternet = await TieneInternetAsync();
-
-            if (!tieneInternet)
+            if (!result.Success || result.Data == null)
             {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
+                if (mostrarError && !cancellationToken.IsCancellationRequested)
+                    await MostrarToastAsync(result.Message);
+
+                return false;
             }
 
-            var data = await municipioApiService.GetMunicipiosAsync(departamentoId);
+            if (DepartamentoSeleccionado?.DepartamentoId != departamentoId.Value &&
+                !actualizandoSeleccionInterna)
+            {
+                return false;
+            }
 
-            foreach (var m in data)
-                Municipios.Add(m);
+            Municipios.Clear();
+
+            foreach (var municipio in result.Data)
+                Municipios.Add(municipio);
 
             OnPropertyChanged(nameof(Municipios));
-            OnPropertyChanged(nameof(CanPickMunicipio));
+            NotificarDisponibilidadPickers();
+
+            return true;
         }
 
-        private async Task ResolverSeleccionPorMunicipioIdAsync(int? municipioId)
+        private async Task ResolverSeleccionPorMunicipioIdAsync(
+            int? municipioId,
+            CancellationToken cancellationToken)
         {
-            if (municipioId == null || municipioId <= 0)
+            if (!municipioId.HasValue || municipioId.Value <= 0)
                 return;
 
             PaisResponse? paisEncontrado = null;
-            DepartamentoResponse? depEncontrado = null;
-            MunicipioResponse? muniEncontrado = null;
+            DepartamentoResponse? departamentoEncontrado = null;
+            MunicipioResponse? municipioEncontrado = null;
+            List<DepartamentoResponse>? departamentosEncontrados = null;
+            List<MunicipioResponse>? municipiosEncontrados = null;
 
             foreach (var pais in Paises.ToList())
             {
-                await CargarDepartamentosAsync(pais.PaisId);
+                cancellationToken.ThrowIfCancellationRequested();
 
-                foreach (var dep in Departamentos.ToList())
+                var departamentosResult =
+                    await departamentoApiService.GetDepartamentosResultAsync(
+                        pais.PaisId,
+                        cancellationToken);
+
+                if (!departamentosResult.Success ||
+                    departamentosResult.Data == null)
                 {
-                    await CargarMunicipiosAsync(dep.DepartamentoId);
+                    if (!cancellationToken.IsCancellationRequested)
+                        await MostrarToastAsync(departamentosResult.Message);
 
-                    var muni = Municipios.FirstOrDefault(m => m.MunicipioId == municipioId);
-
-                    if (muni != null)
-                    {
-                        paisEncontrado = pais;
-                        depEncontrado = dep;
-                        muniEncontrado = muni;
-                        break;
-                    }
+                    return;
                 }
 
-                if (muniEncontrado != null)
+                foreach (var departamento in departamentosResult.Data)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var municipiosResult =
+                        await municipioApiService.GetMunicipiosResultAsync(
+                            departamento.DepartamentoId,
+                            cancellationToken);
+
+                    if (!municipiosResult.Success ||
+                        municipiosResult.Data == null)
+                    {
+                        if (!cancellationToken.IsCancellationRequested)
+                            await MostrarToastAsync(municipiosResult.Message);
+
+                        return;
+                    }
+
+                    var municipio = municipiosResult.Data.FirstOrDefault(
+                        item => item.MunicipioId == municipioId.Value);
+
+                    if (municipio == null)
+                        continue;
+
+                    paisEncontrado = pais;
+                    departamentoEncontrado = departamento;
+                    municipioEncontrado = municipio;
+                    departamentosEncontrados =
+                        departamentosResult.Data.ToList();
+                    municipiosEncontrados = municipiosResult.Data.ToList();
+                    break;
+                }
+
+                if (municipioEncontrado != null)
                     break;
             }
 
-            if (muniEncontrado != null)
+            if (municipioEncontrado == null ||
+                paisEncontrado == null ||
+                departamentoEncontrado == null ||
+                departamentosEncontrados == null ||
+                municipiosEncontrados == null)
             {
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    await MostrarToastAsync(
+                        "No fue posible determinar la ubicación administrativa del terreno.");
+                }
+
+                return;
+            }
+
+            try
+            {
+                actualizandoSeleccionInterna = true;
+
+                Departamentos.Clear();
+                foreach (var departamento in departamentosEncontrados)
+                    Departamentos.Add(departamento);
+
+                Municipios.Clear();
+                foreach (var municipio in municipiosEncontrados)
+                    Municipios.Add(municipio);
+
                 paisSeleccionado = paisEncontrado;
-                departamentoSeleccionado = depEncontrado;
-                municipioSeleccionado = muniEncontrado;
+                departamentoSeleccionado = departamentoEncontrado;
+                municipioSeleccionado = municipioEncontrado;
 
                 OnPropertyChanged(nameof(PaisSeleccionado));
                 OnPropertyChanged(nameof(DepartamentoSeleccionado));
                 OnPropertyChanged(nameof(MunicipioSeleccionado));
-                OnPropertyChanged(nameof(CanPickDepartamento));
-                OnPropertyChanged(nameof(CanPickMunicipio));
+                OnPropertyChanged(nameof(Departamentos));
+                OnPropertyChanged(nameof(Municipios));
+                NotificarDisponibilidadPickers();
+            }
+            finally
+            {
+                actualizandoSeleccionInterna = false;
+            }
+        }
+
+        private void NotificarDisponibilidadPickers()
+        {
+            OnPropertyChanged(nameof(CanPickDepartamento));
+            OnPropertyChanged(nameof(CanPickMunicipio));
+        }
+
+        private static void CancelarYRenovar(
+            ref CancellationTokenSource? cancellationTokenSource)
+        {
+            Cancelar(ref cancellationTokenSource);
+            cancellationTokenSource = new CancellationTokenSource();
+        }
+
+        private static void Cancelar(
+            ref CancellationTokenSource? cancellationTokenSource)
+        {
+            if (cancellationTokenSource == null)
+                return;
+
+            try
+            {
+                cancellationTokenSource.Cancel();
+            }
+            catch
+            {
+            }
+            finally
+            {
+                cancellationTokenSource.Dispose();
+                cancellationTokenSource = null;
             }
         }
 
@@ -648,67 +878,82 @@ namespace CONATRADEC.ViewModels
                 if (FotosTerreno == null || FotosTerreno.Count == 0)
                     return;
 
-                await Shell.Current.GoToAsync("FotosTerrenoGaleriaPage", true, new Dictionary<string, object>
+                await Shell.Current.GoToAsync(AppRoutes.FotosTerrenoGaleria, true, new Dictionary<string, object>
                 {
                     { "Fotos", FotosTerreno.ToList() },
                     { "FotoInicial", foto }
                 });
             }
-            catch (Exception ex)
+            catch
             {
-                _ = MostrarToastAsync("Error al abrir galería: " + ex.Message);
+                await MostrarToastAsync("No fue posible abrir la galería de fotografías.");
             }
         }
 
-        private async Task CargarFotosTerrenoAsync()
+        private async Task CargarFotosTerrenoAsync(
+            CancellationToken cancellationToken = default)
         {
-            try
+            if (Terreno?.TerrenoId is null or <= 0)
+                return;
+
+            int terrenoIdActual = Terreno.TerrenoId.Value;
+
+            CancelarYRenovar(ref fotosCts);
+
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                fotosCts.Token);
+
+            var result = await fotoTerrenoApiService.GetFotosPorTerrenoResultAsync(
+                terrenoIdActual,
+                linkedCts.Token);
+
+            if (!result.Success || result.Data == null)
             {
-                if (Terreno == null || Terreno.TerrenoId == null || Terreno.TerrenoId <= 0)
-                    return;
+                if (!linkedCts.IsCancellationRequested)
+                    await MostrarToastAsync(result.Message);
 
-                int terrenoIdActual = Terreno.TerrenoId.Value;
+                return;
+            }
 
-                bool tieneInternet = await TieneInternetAsync();
+            var fotosPreparadas = new List<FotoTerrenoItem>();
 
-                if (!tieneInternet)
+            foreach (var foto in result.Data)
+            {
+                string urlCompleta =
+                    fotoTerrenoApiService.ConstruirUrlCompleta(
+                        foto.UrlFotoTerreno);
+
+                if (string.IsNullOrWhiteSpace(urlCompleta) ||
+                    !Uri.TryCreate(urlCompleta, UriKind.Absolute, out var uri))
                 {
-                    _ = MostrarToastAsync("Sin conexión a internet.");
-                    return;
+                    continue;
                 }
 
-                LimpiarFotosTerreno();
-
-                var fotos = await fotoTerrenoApiService.GetFotosPorTerrenoAsync(terrenoIdActual);
-
-                foreach (var foto in fotos)
+                fotosPreparadas.Add(new FotoTerrenoItem
                 {
-                    string urlCompleta = fotoTerrenoApiService.ConstruirUrlCompleta(foto.UrlFotoTerreno);
-
-                    if (string.IsNullOrWhiteSpace(urlCompleta))
-                        continue;
-
-                    FotosTerreno.Add(new FotoTerrenoItem
-                    {
-                        FotoTerrenoId = foto.FotoTerrenoId,
-                        TerrenoId = foto.TerrenoId,
-                        UrlFotoTerreno = urlCompleta,
-                        LocalPath = null,
-                        NombreArchivo = Path.GetFileName(urlCompleta),
-                        EsNueva = false,
-                        Imagen = ImageSource.FromUri(new Uri(urlCompleta))
-                    });
-                }
-
-                fotosCargadasTerrenoId = terrenoIdActual;
-
-                OnPropertyChanged(nameof(TieneFotosTerreno));
-                OnPropertyChanged(nameof(NoTieneFotosTerreno));
+                    FotoTerrenoId = foto.FotoTerrenoId,
+                    TerrenoId = foto.TerrenoId,
+                    UrlFotoTerreno = urlCompleta,
+                    LocalPath = null,
+                    NombreArchivo = Path.GetFileName(uri.LocalPath),
+                    EsNueva = false,
+                    Imagen = ImageSource.FromUri(uri)
+                });
             }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error al cargar fotos: " + ex.Message);
-            }
+
+            if (Terreno?.TerrenoId != terrenoIdActual)
+                return;
+
+            LimpiarFotosTerreno();
+
+            foreach (var foto in fotosPreparadas)
+                FotosTerreno.Add(foto);
+
+            fotosCargadasTerrenoId = terrenoIdActual;
+
+            OnPropertyChanged(nameof(TieneFotosTerreno));
+            OnPropertyChanged(nameof(NoTieneFotosTerreno));
         }
 
         private async Task SeleccionarFotosAsync()
@@ -756,99 +1001,94 @@ namespace CONATRADEC.ViewModels
                     });
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                _ = MostrarToastAsync("Error al seleccionar fotos: " + ex.Message);
+                await MostrarToastAsync("No fue posible seleccionar las fotografías.");
             }
         }
 
         private async Task QuitarFotoAsync(FotoTerrenoItem foto)
         {
+            if (foto == null || !AllowEdit || IsBusy)
+                return;
+
+            if (foto.EsNueva ||
+                foto.FotoTerrenoId is null or <= 0)
+            {
+                FotosTerreno.Remove(foto);
+                return;
+            }
+
+            bool confirmar = await Application.Current!.MainPage!.DisplayAlert(
+                "Eliminar foto",
+                "¿Desea eliminar esta foto del terreno?",
+                "Aceptar",
+                "Cancelar");
+
+            if (!confirmar)
+                return;
+
             try
             {
-                if (foto == null || !AllowEdit)
-                    return;
+                IsBusy = true;
+                NotificarDisponibilidadPickers();
 
-                if (foto.EsNueva || foto.FotoTerrenoId == null || foto.FotoTerrenoId <= 0)
+                var result = await fotoTerrenoApiService.EliminarFotoResultAsync(
+                    foto.FotoTerrenoId.Value);
+
+                if (!result.Success)
                 {
-                    FotosTerreno.Remove(foto);
-                    return;
-                }
-
-                bool confirm = await App.Current.MainPage.DisplayAlert(
-                    "Eliminar foto",
-                    "¿Desea eliminar esta foto del terreno?",
-                    "Aceptar",
-                    "Cancelar");
-
-                if (!confirm)
-                    return;
-
-                bool tieneInternet = await TieneInternetAsync();
-
-                if (!tieneInternet)
-                {
-                    _ = MostrarToastAsync("Sin conexión a internet.");
+                    await MostrarToastAsync(result.Message);
                     return;
                 }
 
-                bool eliminado = await fotoTerrenoApiService.EliminarFotoAsync(foto.FotoTerrenoId.Value);
+                FotosTerreno.Remove(foto);
 
-                if (eliminado)
-                {
-                    FotosTerreno.Remove(foto);
-                    _ = MostrarToastAsync("Foto eliminada correctamente.");
-                }
-                else
-                {
-                    _ = MostrarToastAsync("No se pudo eliminar la foto.");
-                }
+                await MostrarToastAsync(
+                    string.IsNullOrWhiteSpace(result.Message)
+                        ? "Foto eliminada correctamente."
+                        : result.Message);
             }
-            catch (Exception ex)
+            finally
             {
-                _ = MostrarToastAsync("Error al eliminar foto: " + ex.Message);
+                IsBusy = false;
+                NotificarDisponibilidadPickers();
             }
         }
 
-        private async Task<bool> SubirFotosPendientesAsync(int terrenoId)
+        private async Task<ApiResult<bool>> SubirFotosPendientesAsync(
+            int terrenoId,
+            CancellationToken cancellationToken)
         {
-            try
+            var fotosNuevas = FotosTerreno
+                .Where(f => f.EsNueva &&
+                            !string.IsNullOrWhiteSpace(f.LocalPath))
+                .ToList();
+
+            if (!fotosNuevas.Any())
             {
-                var fotosNuevas = FotosTerreno
-                    .Where(f => f.EsNueva && !string.IsNullOrWhiteSpace(f.LocalPath))
-                    .ToList();
-
-                if (!fotosNuevas.Any())
-                    return true;
-
-                bool tieneInternet = await TieneInternetAsync();
-
-                if (!tieneInternet)
-                {
-                    _ = MostrarToastAsync("Sin conexión a internet.");
-                    return false;
-                }
-
-                bool subidas = await fotoTerrenoApiService.SubirFotosAsync(terrenoId, fotosNuevas);
-
-                if (!subidas)
-                    return false;
-
-                foreach (var foto in fotosNuevas)
-                {
-                    foto.EsNueva = false;
-                    foto.TerrenoId = terrenoId;
-                }
-
-                fotosCargadasTerrenoId = terrenoId;
-
-                return true;
+                return ApiResult<bool>.Ok(
+                    true,
+                    "No hay fotografías pendientes de subir.");
             }
-            catch (Exception ex)
+
+            var result = await fotoTerrenoApiService.SubirFotosResultAsync(
+                terrenoId,
+                fotosNuevas,
+                cancellationToken);
+
+            if (!result.Success)
+                return result;
+
+            foreach (var foto in fotosNuevas)
             {
-                _ = MostrarToastAsync("Error al subir fotos: " + ex.Message);
-                return false;
+                foto.EsNueva = false;
+                foto.TerrenoId = terrenoId;
             }
+
+            fotosCargadasTerrenoId = terrenoId;
+
+            return result;
         }
 
         // ==================== GPS ====================
@@ -881,9 +1121,20 @@ namespace CONATRADEC.ViewModels
                     _ = MostrarToastAsync("No se pudo obtener la ubicación actual.");
                 }
             }
-            catch (Exception ex)
+            catch (FeatureNotEnabledException)
             {
-                _ = MostrarToastAsync("Error al obtener GPS: " + ex.Message);
+                await MostrarToastAsync(
+                    "Active la ubicación del dispositivo e intente nuevamente.");
+            }
+            catch (PermissionException)
+            {
+                await MostrarToastAsync(
+                    "No fue posible acceder a la ubicación del dispositivo.");
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "No fue posible obtener la ubicación actual.");
             }
         }
 
@@ -908,7 +1159,7 @@ namespace CONATRADEC.ViewModels
             Terreno.Latitud = Latitud;
             Terreno.Longitud = Longitud;
 
-            await Shell.Current.GoToAsync("MapaSeleccionPage", true, new Dictionary<string, object>
+            await Shell.Current.GoToAsync(AppRoutes.MapaSeleccion, true, new Dictionary<string, object>
             {
                 {
                     "latitudActual",
@@ -927,162 +1178,165 @@ namespace CONATRADEC.ViewModels
 
         private async Task SaveAsync()
         {
-            if (IsBusy)
+            if (IsBusy || IsReadOnly)
                 return;
 
-            IsBusy = true;
+            CancelarYRenovar(ref guardadoCts);
+            CancellationToken cancellationToken = guardadoCts.Token;
 
             try
             {
+                IsBusy = true;
+                NotificarDisponibilidadPickers();
+
                 if (Mode == FormMode.FormModeSelect.Create)
-                    await CreateTerrenoAsync();
+                    await CreateTerrenoAsync(cancellationToken);
                 else if (Mode == FormMode.FormModeSelect.Edit)
-                    await UpdateTerrenoAsync();
+                    await UpdateTerrenoAsync(cancellationToken);
             }
             finally
             {
                 IsBusy = false;
+                NotificarDisponibilidadPickers();
             }
         }
 
-        private async Task CreateTerrenoAsync()
+        private async Task CreateTerrenoAsync(
+            CancellationToken cancellationToken)
         {
             if (!ValidateFieldsData())
                 return;
 
-            bool confirm = await App.Current.MainPage.DisplayAlert(
+            bool confirmar = await Application.Current!.MainPage!.DisplayAlert(
                 "Confirmar",
                 "¿Desea guardar los datos del terreno?",
                 "Aceptar",
                 "Cancelar");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
 
-            var request = new TerrenoRequest
-            {
-                CodigoTerreno = CodigoTerreno,
-                IdentificacionPropietarioTerreno = IdentificacionPropietarioTerreno,
-                NombrePropietarioTerreno = NombrePropietarioTerreno,
-                TelefonoPropietario = ParseTelefono(TelefonoPropietarioTexto),
-                CorreoPropietario = CorreoPropietario,
-                DireccionTerreno = DireccionTerreno,
-                ExtensionManzanaTerreno = ExtensionManzanaTerreno,
-                CantidadQuintalesOro = CantidadQuintalesOro,
-                CantidadPlantasTerreno = CantidadPlantasTerreno,
-                FechaIngresoTerreno = FechaIngresoTerreno,
-                MunicipioId = MunicipioSeleccionado?.MunicipioId ?? 0,
-                Latitud = Latitud,
-                Longitud = Longitud
-            };
+            var request = CrearRequestFormulario();
 
-            bool tieneInternet = await TieneInternetAsync();
+            var result =
+                await terrenoApiService.CreateTerrenoRetornandoResultAsync(
+                    request,
+                    cancellationToken);
 
-            if (!tieneInternet)
+            if (!result.Success ||
+                result.Data?.TerrenoId is null or <= 0)
             {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
+                if (!cancellationToken.IsCancellationRequested)
+                    await MostrarToastAsync(result.Message);
+
                 return;
             }
 
-            var terrenoCreado = await terrenoApiService.CreateTerrenoRetornandoAsync(request);
+            int terrenoId = result.Data.TerrenoId.Value;
 
-            if (terrenoCreado != null &&
-                terrenoCreado.TerrenoId.HasValue &&
-                terrenoCreado.TerrenoId.Value > 0)
+            var fotosResult = await SubirFotosPendientesAsync(
+                terrenoId,
+                cancellationToken);
+
+            await GoToTerrenoPage();
+
+            if (fotosResult.Success)
             {
-                bool fotosSubidas = await SubirFotosPendientesAsync(terrenoCreado.TerrenoId.Value);
-
-                await GoToTerrenoPage();
-
-                if (fotosSubidas)
-                {
-                    _ = MostrarToastAsync("Éxito \nTerreno guardado correctamente");
-                }
-                else
-                {
-                    _ = MostrarToastAsync("Terreno guardado, pero algunas fotos no se pudieron subir.");
-                }
+                await MostrarToastAsync(
+                    "Terreno guardado correctamente.");
             }
             else
             {
-                _ = MostrarToastAsync("Error \nEl terreno no se pudo guardar, intente nuevamente");
+                await MostrarToastAsync(
+                    "Terreno guardado correctamente, pero no se pudieron subir todas las fotografías. Puede intentarlo nuevamente al editar el terreno.");
             }
         }
 
-        private async Task UpdateTerrenoAsync()
+        private async Task UpdateTerrenoAsync(
+            CancellationToken cancellationToken)
         {
             if (!ValidateFieldsData())
                 return;
 
-            if (Terreno == null || Terreno.TerrenoId == null || Terreno.TerrenoId <= 0)
+            if (Terreno?.TerrenoId is null or <= 0)
             {
-                _ = MostrarToastAsync("Error: no se encontró el terreno a actualizar.");
+                await MostrarToastAsync(
+                    "No se encontró el terreno que se desea actualizar.");
+
                 return;
             }
 
-            bool confirm = await App.Current.MainPage.DisplayAlert(
+            bool confirmar = await Application.Current!.MainPage!.DisplayAlert(
                 "Confirmar",
                 "¿Desea actualizar el terreno?",
                 "Aceptar",
                 "Cancelar");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
 
-            var request = new TerrenoRequest
+            var request = CrearRequestFormulario();
+            request.TerrenoId = Terreno.TerrenoId;
+
+            var result = await terrenoApiService.UpdateTerrenoResultAsync(
+                request,
+                cancellationToken);
+
+            if (!result.Success || result.Data != true)
             {
-                TerrenoId = Terreno.TerrenoId,
-                CodigoTerreno = CodigoTerreno,
-                IdentificacionPropietarioTerreno = IdentificacionPropietarioTerreno,
-                NombrePropietarioTerreno = NombrePropietarioTerreno,
-                TelefonoPropietario = ParseTelefono(TelefonoPropietarioTexto),
-                CorreoPropietario = CorreoPropietario,
-                DireccionTerreno = DireccionTerreno,
+                if (!cancellationToken.IsCancellationRequested)
+                    await MostrarToastAsync(result.Message);
+
+                return;
+            }
+
+            var fotosResult = await SubirFotosPendientesAsync(
+                Terreno.TerrenoId.Value,
+                cancellationToken);
+
+            await GoToTerrenoPage();
+
+            if (fotosResult.Success)
+            {
+                await MostrarToastAsync(
+                    "Terreno actualizado correctamente.");
+            }
+            else
+            {
+                await MostrarToastAsync(
+                    "Terreno actualizado correctamente, pero no se pudieron subir todas las fotografías. Puede intentarlo nuevamente al editar el terreno.");
+            }
+        }
+
+        private TerrenoRequest CrearRequestFormulario()
+        {
+            return new TerrenoRequest
+            {
+                CodigoTerreno = CodigoTerreno?.Trim(),
+                IdentificacionPropietarioTerreno =
+                    IdentificacionPropietarioTerreno?.Trim(),
+                NombrePropietarioTerreno =
+                    NombrePropietarioTerreno?.Trim(),
+                TelefonoPropietario =
+                    ParseTelefono(TelefonoPropietarioTexto),
+                CorreoPropietario = CorreoPropietario?.Trim(),
+                DireccionTerreno = DireccionTerreno?.Trim(),
                 ExtensionManzanaTerreno = ExtensionManzanaTerreno,
                 CantidadQuintalesOro = CantidadQuintalesOro,
                 CantidadPlantasTerreno = CantidadPlantasTerreno,
                 FechaIngresoTerreno = FechaIngresoTerreno,
-                MunicipioId = MunicipioSeleccionado?.MunicipioId ?? Terreno.MunicipioId,
+                MunicipioId =
+                    MunicipioSeleccionado?.MunicipioId ??
+                    Terreno?.MunicipioId ??
+                    0,
                 Latitud = Latitud,
                 Longitud = Longitud
             };
-
-            bool tieneInternet = await TieneInternetAsync();
-
-            if (!tieneInternet)
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
-            }
-
-            var response = await terrenoApiService.UpdateTerrenoAsync(request);
-
-            if (response)
-            {
-                bool fotosSubidas = await SubirFotosPendientesAsync(Terreno.TerrenoId.Value);
-
-                await GoToTerrenoPage();
-
-                if (fotosSubidas)
-                {
-                    _ = MostrarToastAsync("Éxito \nTerreno actualizado correctamente");
-                }
-                else
-                {
-                    _ = MostrarToastAsync("Terreno actualizado, pero algunas fotos no se pudieron subir.");
-                }
-            }
-            else
-            {
-                _ = MostrarToastAsync("Error \nEl terreno no se pudo actualizar, intente nuevamente");
-            }
         }
 
         private Task GoToTerrenoPage()
         {
-            return GoToAsyncParameters("//TerrenoPage");
+            return GoToAsyncParameters(AppRoutes.Terrenos);
         }
 
         // ==================== Google Maps ====================
@@ -1095,9 +1349,10 @@ namespace CONATRADEC.ViewModels
 
                 await Launcher.OpenAsync(url);
             }
-            catch (Exception ex)
+            catch
             {
-                await App.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                await MostrarToastAsync(
+                    "No fue posible abrir la ubicación en Google Maps.");
             }
         }
 
@@ -1301,9 +1556,10 @@ namespace CONATRADEC.ViewModels
                     await GoToTerrenoPage();
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarToastAsync(
+                    "No fue posible cancelar el formulario.");
             }
             finally
             {

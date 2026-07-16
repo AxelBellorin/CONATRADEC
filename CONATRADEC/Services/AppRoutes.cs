@@ -4,25 +4,33 @@ namespace CONATRADEC.Services
 {
     /// <summary>
     /// Rutas de navegación utilizadas por la aplicación.
-    /// Centralizarlas evita errores por escribir rutas diferentes
-    /// en páginas y ViewModels.
+    /// Mantenerlas centralizadas evita diferencias de mayúsculas,
+    /// errores de escritura y rutas duplicadas en los ViewModels.
     /// </summary>
     public static class AppRoutes
     {
+        // Páginas principales declaradas en AppShell.xaml.
         public const string Login = "//LoginPage";
         public const string Principal = "//MainPage";
-
+        public const string Usuarios = "//UserPage";
+        public const string Roles = "//RolPage";
+        public const string MatrizPermisos = "//MatrizPermisosPage";
+        public const string Paises = "//PaisPage";
+        public const string ElementosQuimicos = "//ElementoQuimicoPage";
         public const string Terrenos = "//TerrenoPage";
-        public const string TerrenoFormulario = "//TerrenoFormPage";
-
         public const string FuenteNutriente = "//FuenteNutrientePage";
+
+        // Formularios declarados como ShellContent.
+        public const string TerrenoFormulario = "//TerrenoFormPage";
         public const string FuenteNutrienteFormulario = "//FuenteNutrienteFormPage";
 
-        // Rutas registradas manualmente en AppShell.xaml.cs.
-        // Se conservan porque actualmente algunas pantallas navegan
-        // mediante rutas relativas y no mediante rutas absolutas de Shell.
+        // Rutas secundarias registradas en AppShell.xaml.cs.
+        // Se mantienen separadas porque se abren sobre la pila actual
+        // y permiten regresar a la pantalla anterior con "..".
         public const string TerrenoFormularioRegistrado = nameof(terrenoFormPage);
         public const string MapaSeleccion = nameof(MapaSeleccionPage);
         public const string FotosTerrenoGaleria = nameof(FotosTerrenoGaleriaPage);
+
+        public const string Regresar = "..";
     }
 }

@@ -1,12 +1,7 @@
-﻿using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
-using CONATRADEC.ViewModels;
-using CONATRADEC.Views;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
 {
@@ -30,13 +25,13 @@ namespace CONATRADEC.Services
         public Command goToTerrenoPageButtonCommand { get; }
         public Command goToFuenteNutrientePageButtonCommand { get; }
         public Command goToBack { get; }
-
         public Command CerrarSesionCommand { get; }
 
         // ============================
         // ESTADO Y NOTIFICACIONES
         // ============================
         private bool isBusy;
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public bool IsBusy
@@ -44,19 +39,13 @@ namespace CONATRADEC.Services
             get => isBusy;
             set
             {
+                if (isBusy == value)
+                    return;
+
                 isBusy = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(NotIsBusy));
-
-                ((Command)goToMainPageCommand).ChangeCanExecute();
-                ((Command)goToUserPageButtonCommand).ChangeCanExecute();
-                ((Command)goToRolPageButtonCommand).ChangeCanExecute();
-                ((Command)goToMatrizPermisosPageButtonCommad).ChangeCanExecute();
-                ((Command)goToElementoQuimicoPageButtonCommand).ChangeCanExecute();
-                ((Command)goToPaisPageButtonCommand).ChangeCanExecute();
-                ((Command)goToBack).ChangeCanExecute();
-                ((Command)goToTerrenoPageButtonCommand).ChangeCanExecute();
-                ((Command)goToFuenteNutrientePageButtonCommand).ChangeCanExecute();
+                ActualizarComandosNavegacion();
             }
         }
 
@@ -67,27 +56,71 @@ namespace CONATRADEC.Services
         // ============================
         public GlobalService()
         {
-            goToMainPageCommand = new Command(async () => await GoToMainPage(), () => !IsBusy);
-            goToUserPageButtonCommand = new Command(async () => await GoToUserPage(), () => !IsBusy);
-            goToRolPageButtonCommand = new Command(async () => await GoToRolPage(), () => !IsBusy);
-            goToMatrizPermisosPageButtonCommad = new Command(async () => await GoToMatrizPermisosPage(), () => !IsBusy);
-            goToPaisPageButtonCommand = new Command(async () => await GoToPaisPage(), () => !IsBusy);
-            goToElementoQuimicoPageButtonCommand = new Command(async () => await GoToElementoQuimicoPage(), () => !IsBusy);
-            goToTerrenoPageButtonCommand = new Command(async () => await GoToTerrenoPage(), () => !IsBusy);
-            goToFuenteNutrientePageButtonCommand = new Command(async () => await GoToFuenteNutrientePage(), () => !IsBusy);
-            CerrarSesionCommand = new Command(async () => await CerrarSesionAsync());
+            goToMainPageCommand = new Command(
+                async () => await GoToMainPage(),
+                () => !IsBusy);
 
-            goToBack = new Command(async () => await GoToAsyncParameters("//.."));
+            goToUserPageButtonCommand = new Command(
+                async () => await GoToUserPage(),
+                () => !IsBusy);
+
+            goToRolPageButtonCommand = new Command(
+                async () => await GoToRolPage(),
+                () => !IsBusy);
+
+            goToMatrizPermisosPageButtonCommad = new Command(
+                async () => await GoToMatrizPermisosPage(),
+                () => !IsBusy);
+
+            goToPaisPageButtonCommand = new Command(
+                async () => await GoToPaisPage(),
+                () => !IsBusy);
+
+            goToElementoQuimicoPageButtonCommand = new Command(
+                async () => await GoToElementoQuimicoPage(),
+                () => !IsBusy);
+
+            goToTerrenoPageButtonCommand = new Command(
+                async () => await GoToTerrenoPage(),
+                () => !IsBusy);
+
+            goToFuenteNutrientePageButtonCommand = new Command(
+                async () => await GoToFuenteNutrientePage(),
+                () => !IsBusy);
+
+            goToBack = new Command(
+                async () => await GoToAsyncParameters(AppRoutes.Regresar),
+                () => !IsBusy);
+
+            CerrarSesionCommand = new Command(
+                async () => await CerrarSesionAsync(),
+                () => !IsBusy);
+        }
+
+        private void ActualizarComandosNavegacion()
+        {
+            goToMainPageCommand?.ChangeCanExecute();
+            goToUserPageButtonCommand?.ChangeCanExecute();
+            goToRolPageButtonCommand?.ChangeCanExecute();
+            goToMatrizPermisosPageButtonCommad?.ChangeCanExecute();
+            goToElementoQuimicoPageButtonCommand?.ChangeCanExecute();
+            goToPaisPageButtonCommand?.ChangeCanExecute();
+            goToBack?.ChangeCanExecute();
+            goToTerrenoPageButtonCommand?.ChangeCanExecute();
+            goToFuenteNutrientePageButtonCommand?.ChangeCanExecute();
+            CerrarSesionCommand?.ChangeCanExecute();
         }
 
         private async Task CerrarSesionAsync()
         {
-            bool confirmar = await Application.Current.MainPage.DisplayAlert(
+            if (IsBusy)
+                return;
+
+            bool confirmar = await Application.Current!.MainPage!.DisplayAlert(
                 "Cerrar sesión",
                 "¿Está seguro que desea cerrar sesión?",
                 "Sí, cerrar",
-                "Cancelar"
-            );
+                "Cancelar");
 
             if (!confirmar)
                 return;
@@ -99,14 +132,19 @@ namespace CONATRADEC.Services
 
             PermissionService.Instance.ClearPermissions();
 
-            await Shell.Current.GoToAsync("//LoginPage");
+            await Shell.Current.GoToAsync(AppRoutes.Login);
         }
 
         // ============================
         // HELPER DE NAVEGACIÓN
         // ============================
-        public async Task GoToAsyncParameters(string route, IDictionary<string, object>? parameters = null)
+        public async Task GoToAsyncParameters(
+            string route,
+            IDictionary<string, object>? parameters = null)
         {
+            if (string.IsNullOrWhiteSpace(route))
+                return;
+
             if (parameters == null)
                 await Shell.Current.GoToAsync(route, false);
             else
@@ -122,7 +160,9 @@ namespace CONATRADEC.Services
 
             if (permiso == null || !permiso.leer)
             {
-                _ = MostrarToastAsync("No tiene permisos para acceder a esta sección.");
+                _ = MostrarToastAsync(
+                    "No tiene permisos para acceder a esta sección.");
+
                 return false;
             }
 
@@ -132,85 +172,68 @@ namespace CONATRADEC.Services
         // ============================
         // MÉTODOS DE NAVEGACIÓN
         // ============================
-
         private async Task GoToMainPage()
         {
-            if (IsBusy) return;
-
-            if (!ValidateNavigation("MainPage"))
+            if (IsBusy || !ValidateNavigation("MainPage"))
                 return;
 
-            await GoToAsyncParameters("//MainPage");
+            await GoToAsyncParameters(AppRoutes.Principal);
         }
 
         private async Task GoToUserPage()
         {
-            if (IsBusy) return;
-
-            if (!ValidateNavigation("userPage"))
+            if (IsBusy || !ValidateNavigation("userPage"))
                 return;
 
-            await GoToAsyncParameters("//UserPage");
+            await GoToAsyncParameters(AppRoutes.Usuarios);
         }
 
         public async Task GoToRolPage()
         {
-            if (IsBusy) return;
-
-            if (!ValidateNavigation("rolPage"))
+            if (IsBusy || !ValidateNavigation("rolPage"))
                 return;
 
-            await GoToAsyncParameters("//RolPage");
+            await GoToAsyncParameters(AppRoutes.Roles);
         }
 
         public async Task GoToMatrizPermisosPage()
         {
-            if (IsBusy) return;
-
-            if (!ValidateNavigation("matrizPermisosPage"))
+            if (IsBusy || !ValidateNavigation("matrizPermisosPage"))
                 return;
 
-            await GoToAsyncParameters("//MatrizPermisosPage");
+            await GoToAsyncParameters(AppRoutes.MatrizPermisos);
         }
 
         public async Task GoToPaisPage()
         {
-            if (IsBusy) return;
-
-            if (!ValidateNavigation("paisPage"))
+            if (IsBusy || !ValidateNavigation("paisPage"))
                 return;
 
-            await GoToAsyncParameters("//PaisPage");
+            await GoToAsyncParameters(AppRoutes.Paises);
         }
 
         public async Task GoToFuenteNutrientePage()
         {
-            if (IsBusy) return;
-
-            if (!ValidateNavigation("fuenteNutrientePage"))
+            if (IsBusy || !ValidateNavigation("fuenteNutrientePage"))
                 return;
 
-            await GoToAsyncParameters("//FuenteNutrientePage");
+            await GoToAsyncParameters(AppRoutes.FuenteNutriente);
         }
 
         public async Task GoToElementoQuimicoPage()
         {
-            if (IsBusy) return;
-
-            if (!ValidateNavigation("elementoQuimicoPage"))
+            if (IsBusy || !ValidateNavigation("elementoQuimicoPage"))
                 return;
 
-            await GoToAsyncParameters("//ElementoQuimicoPage");
+            await GoToAsyncParameters(AppRoutes.ElementosQuimicos);
         }
 
         public async Task GoToTerrenoPage()
         {
-            if (IsBusy) return;
-
-            if (!ValidateNavigation("terrenoPage"))
+            if (IsBusy || !ValidateNavigation("terrenoPage"))
                 return;
 
-            await GoToAsyncParameters("//TerrenoPage");
+            await GoToAsyncParameters(AppRoutes.Terrenos);
         }
 
         // ============================
@@ -223,33 +246,31 @@ namespace CONATRADEC.Services
                 if (string.IsNullOrWhiteSpace(mensaje))
                     return;
 
-                var toast = Toast.Make(mensaje, ToastDuration.Short, 14);
+                var toast = Toast.Make(
+                    mensaje,
+                    ToastDuration.Short,
+                    14);
+
                 await toast.Show();
-            }
-            catch { }
-        }
-
-        public async Task<bool> TieneInternetAsync()
-        {
-            bool tieneInternet = Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
-            if (!tieneInternet)
-                return await ValidacionRealInternetAsync();
-
-            return await ValidacionRealInternetAsync();
-        }
-
-        private async Task<bool> ValidacionRealInternetAsync()
-        {
-            try
-            {
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
-                var response = await http.GetAsync("https://www.google.com");
-                return response.IsSuccessStatusCode;
             }
             catch
             {
-                return false;
+                // Un fallo del Toast no debe cerrar la aplicación.
             }
+        }
+
+        /// <summary>
+        /// Se conserva temporalmente para no romper formularios que todavía
+        /// llaman este método. Ya no realiza peticiones externas a Google.
+        /// Los módulos migrados deben llamar directamente a la API y manejar
+        /// el resultado real de la operación.
+        /// </summary>
+        public Task<bool> TieneInternetAsync()
+        {
+            bool disponible =
+                Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
+
+            return Task.FromResult(disponible);
         }
 
         public void LoadPagePermissions(string pageName)
@@ -267,11 +288,15 @@ namespace CONATRADEC.Services
             OnPropertyChanged(nameof(CanView));
         }
 
-
         // ============================
         // INotifyPropertyChanged
         // ============================
-        public void OnPropertyChanged([CallerMemberName] string name = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        public void OnPropertyChanged(
+            [CallerMemberName] string? name = null)
+        {
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(name));
+        }
     }
 }
