@@ -281,7 +281,7 @@ namespace CONATRADEC.ViewModels
 
         public Command FinalizarCommand { get; }
 
-        public void ApplyQueryAttributes(IDictionary<string, object> query)
+        public async void ApplyQueryAttributes(IDictionary<string, object> query)
         {
             Limpiar();
 
@@ -314,8 +314,19 @@ namespace CONATRADEC.ViewModels
             MostrarEnmiendaCalcarea = ObtenerBoolQuery(query, "calcularEnmiendaCalcarea");
             MostrarFertilizacionMixta = ObtenerBoolQuery(query, "calcularFertilizacionMixta");
 
-            InicializarTabs();
+            // =======================================================
+            // ESTADO TEMPORAL GENERAL DEL ANÁLISIS
+            // =======================================================
+            // Aquí se guarda el resultado base del análisis de suelo.
+            // Si es el mismo análisis, conserva los cálculos anteriores.
+            // Si es un nuevo análisis, reemplaza todo el temporal.
+            // =======================================================
+            await CalculoAnalisisTemporalService.Instance.IniciarNuevoCalculoAsync(
+                ResultadoCalculo,
+                RequestGuardarAnalisis
+            );
 
+            InicializarTabs();
             SeleccionarPrimeraPestanaDisponible();
 
             Mensaje = "Seleccione una pestaña inferior para continuar con los cálculos complementarios.";

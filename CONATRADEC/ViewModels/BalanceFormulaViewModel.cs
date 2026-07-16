@@ -565,6 +565,15 @@ namespace CONATRADEC.ViewModels
         {
             RefrescarComandos();
 
+            if (TieneResultadoBalance)
+            {
+                _ = CalculoAnalisisTemporalService.Instance.MarcarPendienteRecalculoAsync(
+                    TipoCalculoTemporal.BalanceFormula,
+                    "El balance de fórmula cambió. Se actualizará al recalcular automáticamente.",
+                    true
+                );
+            }
+
             if (suspenderRecalculoAutomatico)
                 return;
 
@@ -610,6 +619,11 @@ namespace CONATRADEC.ViewModels
             {
                 LimpiarResultadoBalance();
 
+                await CalculoAnalisisTemporalService.Instance.ReiniciarCalculoAsync(
+                    TipoCalculoTemporal.BalanceFormula,
+                    "Balance de fórmula reiniciado porque no hay fuentes seleccionadas."
+                );
+
                 if (mostrarValidacion)
                     await MostrarMensajeAsync("Balance de fórmula", "Debe seleccionar al menos una fuente de nutriente.");
 
@@ -645,6 +659,13 @@ namespace CONATRADEC.ViewModels
                 }
 
                 ProcesarResultadoApi(resultadoApi, plantas, aplicaciones);
+
+                await CalculoAnalisisTemporalService.Instance.GuardarCalculoAsync(
+                    TipoCalculoTemporal.BalanceFormula,
+                    request,
+                    resultadoApi,
+                    resultadoApi.Message ?? "Balance de fórmula calculado correctamente."
+                );
 
                 Mensaje = resultadoApi.Message ?? "Balance calculado correctamente.";
             }

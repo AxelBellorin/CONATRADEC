@@ -102,6 +102,7 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(EnmiendaSeleccionada));
                 OnPropertyChanged(nameof(TieneEnmiendaSeleccionada));
                 OnPropertyChanged(nameof(TextoEnmiendaSeleccionada));
+                MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
@@ -168,6 +169,7 @@ namespace CONATRADEC.ViewModels
             {
                 ph = value ?? string.Empty;
                 OnPropertyChanged(nameof(Ph));
+                MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
@@ -179,6 +181,7 @@ namespace CONATRADEC.ViewModels
             {
                 ca = value ?? string.Empty;
                 OnPropertyChanged(nameof(Ca));
+                MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
@@ -190,6 +193,7 @@ namespace CONATRADEC.ViewModels
             {
                 mg = value ?? string.Empty;
                 OnPropertyChanged(nameof(Mg));
+                MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
@@ -201,6 +205,7 @@ namespace CONATRADEC.ViewModels
             {
                 k = value ?? string.Empty;
                 OnPropertyChanged(nameof(K));
+                MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
@@ -212,6 +217,7 @@ namespace CONATRADEC.ViewModels
             {
                 acidezTotal = value ?? string.Empty;
                 OnPropertyChanged(nameof(AcidezTotal));
+                MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
@@ -223,6 +229,7 @@ namespace CONATRADEC.ViewModels
             {
                 totalPlantas = value ?? string.Empty;
                 OnPropertyChanged(nameof(TotalPlantas));
+                MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
@@ -234,6 +241,7 @@ namespace CONATRADEC.ViewModels
             {
                 totalAplicaciones = value ?? string.Empty;
                 OnPropertyChanged(nameof(TotalAplicaciones));
+                MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
@@ -481,10 +489,23 @@ namespace CONATRADEC.ViewModels
 
                 if (ResultadoEnmienda == null)
                 {
+                    await CalculoAnalisisTemporalService.Instance.MarcarPendienteRecalculoAsync(
+                        TipoCalculoTemporal.EnmiendaCalcarea,
+                        "No se pudo completar la enmienda calcárea. Debe recalcular.",
+                        true
+                    );
+
                     ErrorFormulario = "La API no devolvió resultado o no se pudo completar el cálculo.";
                     Mensaje = "No se pudo obtener el resultado de la enmienda.";
                     return;
                 }
+
+                await CalculoAnalisisTemporalService.Instance.GuardarCalculoAsync(
+                    TipoCalculoTemporal.EnmiendaCalcarea,
+                    request,
+                    ResultadoEnmienda,
+                    "Enmienda calcárea calculada correctamente."
+                );
 
                 Mensaje = "Enmienda calcárea calculada correctamente.";
             }
@@ -611,6 +632,21 @@ namespace CONATRADEC.ViewModels
                 CultureInfo.InvariantCulture,
                 out resultado
             );
+        }
+
+        private void MarcarEnmiendaPendienteSiTieneResultado()
+        {
+            if (ResultadoEnmienda == null)
+                return;
+
+            _ = CalculoAnalisisTemporalService.Instance.MarcarPendienteRecalculoAsync(
+                TipoCalculoTemporal.EnmiendaCalcarea,
+                "La enmienda calcárea cambió. Debe recalcular para actualizar el resultado.",
+                true
+            );
+
+            ResultadoEnmienda = null;
+            Mensaje = "Hay cambios pendientes. Presione Calcular para actualizar la enmienda.";
         }
 
         private void RefrescarComandos()
