@@ -24,10 +24,8 @@ namespace CONATRADEC.Services
         public const string TerrenoFormulario = "//TerrenoFormPage";
         public const string FuenteNutrienteFormulario = "//FuenteNutrienteFormPage";
 
-        // Rutas secundarias registradas en AppShell.xaml.cs.
-        // Se mantienen separadas porque se abren sobre la pila actual
-        // y permiten regresar a la pantalla anterior con "..".
-        public const string TerrenoFormularioRegistrado = nameof(terrenoFormPage);
+        // Pantallas secundarias que se abren sobre la pila actual.
+        // Estas rutas se registran manualmente en AppShell.xaml.cs.
         public const string MapaSeleccion = nameof(MapaSeleccionPage);
         public const string FotosTerrenoGaleria = nameof(FotosTerrenoGaleriaPage);
 
