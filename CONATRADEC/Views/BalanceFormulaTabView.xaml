@@ -100,6 +100,47 @@
                     TextColor="#DC2626"
                     LineBreakMode="WordWrap" />
 
+                <!-- COMPLEMENTO OPCIONAL CON FERTILIZACIÓN MIXTA -->
+                <Border
+                    BackgroundColor="#FFFBEB"
+                    Stroke="#F2C94C"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14"
+                    Padding="12">
+
+                    <Grid
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="10">
+
+                        <CheckBox
+                            Grid.Column="0"
+                            IsChecked="{Binding ComplementarConFertilizacionMixta, Mode=TwoWay}"
+                            Color="{StaticResource color_Verde}"
+                            VerticalOptions="Start" />
+
+                        <VerticalStackLayout
+                            Grid.Column="1"
+                            Spacing="4">
+
+                            <Label
+                                Text="Complementar el balance con fertilización mixta"
+                                FontSize="14"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}"
+                                LineBreakMode="WordWrap" />
+
+                            <Label
+                                Text="{Binding TextoEstadoComplemento}"
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}"
+                                LineBreakMode="WordWrap" />
+
+                        </VerticalStackLayout>
+
+                    </Grid>
+
+                </Border>
+
                 <Border
                     IsVisible="{Binding TieneMensaje}"
                     BackgroundColor="#EEF5F2"

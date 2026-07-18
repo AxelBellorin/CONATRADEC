@@ -41,6 +41,7 @@ namespace CONATRADEC.ViewModels
 
         private bool tieneResultadoBalance;
         private bool suspenderRecalculoAutomatico;
+        private bool complementarConFertilizacionMixta;
 
         private static readonly string[] SimbolosBalanceFormulaActuales =
         {
@@ -73,6 +74,9 @@ namespace CONATRADEC.ViewModels
                 async () => await VolverAsync()
             );
         }
+
+        public event EventHandler<BalanceFertilizacionMixtaChangedEventArgs>?
+            ComplementoFertilizacionMixtaCambiado;
 
         public AnalisisSueloCalculoDataResponse? ResultadoCalculo
         {
@@ -336,6 +340,41 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public bool ComplementarConFertilizacionMixta
+        {
+            get => complementarConFertilizacionMixta;
+            set
+            {
+                if (complementarConFertilizacionMixta == value)
+                    return;
+
+                complementarConFertilizacionMixta = value;
+
+                OnPropertyChanged(nameof(ComplementarConFertilizacionMixta));
+                OnPropertyChanged(nameof(TextoEstadoComplemento));
+
+                NotificarCambioComplemento(
+                    complementarConFertilizacionMixta && TieneResultadoBalance
+                        ? ConstruirContextoComplemento()
+                        : null
+                );
+            }
+        }
+
+        public string TextoEstadoComplemento
+        {
+            get
+            {
+                if (!ComplementarConFertilizacionMixta)
+                    return "El balance continuará funcionando de forma independiente.";
+
+                if (!TieneResultadoBalance)
+                    return "Complete el balance para continuar obligatoriamente en fertilización mixta.";
+
+                return "El balance está listo y sus datos se enviarán a fertilización mixta.";
+            }
+        }
+
         public bool TieneElementosBalance => ElementosBalance.Count > 0;
 
         public bool TieneTablaBalance =>
@@ -568,6 +607,9 @@ namespace CONATRADEC.ViewModels
         {
             RefrescarComandos();
 
+            if (ComplementarConFertilizacionMixta)
+                NotificarCambioComplemento(null);
+
             if (TieneResultadoBalance)
             {
                 _ = CalculoAnalisisTemporalService.Instance.MarcarPendienteRecalculoAsync(
@@ -750,6 +792,69 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(TieneTablaAplicaciones));
             OnPropertyChanged(nameof(TieneTablaPrecios));
             OnPropertyChanged(nameof(TieneFormulaComercial));
+            OnPropertyChanged(nameof(TextoEstadoComplemento));
+
+            if (ComplementarConFertilizacionMixta)
+                NotificarCambioComplemento(ConstruirContextoComplemento());
+        }
+
+        public BalanceFertilizacionMixtaContext? ConstruirContextoComplemento()
+        {
+            if (!TieneResultadoBalance || ResultadoBalance == null)
+                return null;
+
+            if (!int.TryParse(TotalPlantas, out int plantas) || plantas <= 0)
+                return null;
+
+            if (!int.TryParse(TotalAplicaciones, out int aplicaciones) || aplicaciones <= 0)
+                return null;
+
+            List<BalanceFormulaElementoViewModel> elementosSeleccionados =
+                ElementosBalance
+                    .Where(x => x.FuenteSeleccionada != null)
+                    .ToList();
+
+            if (elementosSeleccionados.Count == 0)
+                return null;
+
+            BalanceFertilizacionMixtaContext contexto = new()
+            {
+                NombreFormula = ObtenerNombreFormulaResultado(),
+                TerrenoId = TerrenoId,
+                TotalPlantas = plantas,
+                TotalAplicaciones = aplicaciones,
+                ResultadoOriginal = ResultadoBalance,
+                CostoCompraOriginal = ResultadoBalance.Detalle.Sum(x =>
+                    Math.Ceiling(x.QuintalesAnuales ?? 0) *
+                    (x.PrecioPorQuintal ?? 0)
+                )
+            };
+
+            foreach (BalanceFormulaElementoViewModel elemento in elementosSeleccionados)
+            {
+                contexto.Items.Add(new BalanceFertilizacionMixtaItem
+                {
+                    FuenteNutrientesId = elemento.FuenteSeleccionada?.FuenteNutrientesId,
+                    NombreFuente = elemento.FuenteSeleccionada?.NombreNutriente ?? string.Empty,
+                    ElementoQuimicosId = elemento.ElementoQuimicosId,
+                    SimboloElementoQuimico = elemento.SimboloElementoQuimico,
+                    RequerimientoOriginal = elemento.RequerimientoLibras
+                });
+            }
+
+            return contexto;
+        }
+
+        private void NotificarCambioComplemento(
+            BalanceFertilizacionMixtaContext? contexto)
+        {
+            ComplementoFertilizacionMixtaCambiado?.Invoke(
+                this,
+                new BalanceFertilizacionMixtaChangedEventArgs(
+                    ComplementarConFertilizacionMixta,
+                    contexto
+                )
+            );
         }
 
         private void ConstruirFilasResultadoDesdeApi(BalanceNutricionalResponse resultadoApi)
@@ -1144,6 +1249,10 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(TieneTablaAplicaciones));
             OnPropertyChanged(nameof(TieneTablaPrecios));
             OnPropertyChanged(nameof(TieneFormulaComercial));
+            OnPropertyChanged(nameof(TextoEstadoComplemento));
+
+            if (ComplementarConFertilizacionMixta)
+                NotificarCambioComplemento(null);
         }
 
         private void LimpiarPantalla()
@@ -1175,6 +1284,10 @@ namespace CONATRADEC.ViewModels
 
             ResultadoBalance = null;
             TieneResultadoBalance = false;
+
+            complementarConFertilizacionMixta = false;
+            OnPropertyChanged(nameof(ComplementarConFertilizacionMixta));
+            OnPropertyChanged(nameof(TextoEstadoComplemento));
 
             nombreFormula = "Fórmula balance nutricional";
             OnPropertyChanged(nameof(NombreFormula));

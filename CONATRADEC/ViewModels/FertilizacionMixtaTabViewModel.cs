@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace CONATRADEC.ViewModels
 {
-    public class FertilizacionMixtaTabViewModel : BindableObject
+    public partial class FertilizacionMixtaTabViewModel : BindableObject
     {
         private readonly FertilizacionMixtaApiService fertilizacionMixtaApiService = new();
 
@@ -72,6 +72,7 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(ResultadoFertilizacionMixta));
                 OnPropertyChanged(nameof(TieneResultadoFertilizacionMixta));
                 OnPropertyChanged(nameof(NoTieneResultadoFertilizacionMixta));
+                OnPropertyChanged(nameof(TieneComplementoCompleto));
             }
         }
 
@@ -171,6 +172,7 @@ namespace CONATRADEC.ViewModels
             RequestGuardarAnalisis = requestGuardar;
 
             ResultadoFertilizacionMixta = null;
+            PrepararNuevaInicializacion();
 
             LimpiarErrores();
             CargarElementosDesdeResultadoAnalisis();
@@ -211,8 +213,16 @@ namespace CONATRADEC.ViewModels
                     resultadoTemporal.Detalles.Count > 0)
                 {
                     NormalizarResultado(resultadoTemporal);
-                    ResultadoFertilizacionMixta = resultadoTemporal;
-                    Mensaje = "Se cargó el último resultado temporal de fertilización mixta.";
+
+                    if (EsComplementoBalance)
+                    {
+                        recalcularComplementoPendiente = true;
+                    }
+                    else
+                    {
+                        ResultadoFertilizacionMixta = resultadoTemporal;
+                        Mensaje = "Se cargó el último resultado temporal de fertilización mixta.";
+                    }
                 }
 
                 await CargarFuentesFertilizacionMixtaAsync();
@@ -225,7 +235,23 @@ namespace CONATRADEC.ViewModels
                 if (requestTemporal != null)
                     RestaurarFuentesDesdeRequestTemporal(requestTemporal);
 
+                if (!EsComplementoBalance && ResultadoFertilizacionMixta != null)
+                {
+                    ConstruirMatrizAportesPorFuente();
+                    ConstruirTablaCostosOrganicos();
+                    ConstruirSugerenciaIncremento();
+                }
+
                 Observacion = ObtenerNombreAnalisisSuelo();
+
+                if (EsComplementoBalance &&
+                    contextoBalance != null &&
+                    recalcularComplementoPendiente &&
+                    TieneFuentesSeleccionadasValidas())
+                {
+                    recalcularComplementoPendiente = false;
+                    await CalcularAsync();
+                }
             }
             finally
             {
@@ -336,6 +362,9 @@ namespace CONATRADEC.ViewModels
 
         private async void Fuente_CambioFormulario(object? sender, EventArgs e)
         {
+            if (!suspendiendoCambiosTemporales)
+                DescartarHistorialSugerencia();
+
             await MarcarFertilizacionPendienteSiTieneResultadoAsync();
         }
 
@@ -354,6 +383,7 @@ namespace CONATRADEC.ViewModels
             );
 
             ResultadoFertilizacionMixta = null;
+            LimpiarResultadosPresentacion();
             Mensaje = "Hay cambios pendientes. Presione Calcular para actualizar la fertilización mixta.";
         }
 
@@ -447,6 +477,13 @@ namespace CONATRADEC.ViewModels
 
                 ResultadoFertilizacionMixta = response;
 
+                ConstruirMatrizAportesPorFuente();
+                ConstruirTablaCostosOrganicos();
+                ConstruirSugerenciaIncremento();
+
+                bool complementoCalculado =
+                    await CalcularBalanceAjustadoAsync(response);
+
                 await CalculoAnalisisTemporalService.Instance.GuardarCalculoAsync(
                     TipoCalculoTemporal.FertilizacionMixta,
                     request,
@@ -454,7 +491,11 @@ namespace CONATRADEC.ViewModels
                     "Fertilización mixta calculada correctamente."
                 );
 
-                Mensaje = "Cálculo de fertilización mixta realizado correctamente.";
+                Mensaje = EsComplementoBalance
+                    ? complementoCalculado
+                        ? "Fertilización mixta y balance comercial ajustado calculados correctamente."
+                        : "La fertilización mixta se calculó, pero no fue posible completar el balance ajustado."
+                    : "Cálculo de fertilización mixta realizado correctamente.";
             }
             catch (Exception ex)
             {
@@ -597,6 +638,7 @@ namespace CONATRADEC.ViewModels
 
                 Observacion = ObtenerNombreAnalisisSuelo();
                 ResultadoFertilizacionMixta = null;
+                LimpiarResultadosPresentacion();
                 Mensaje = "Seleccione las fuentes orgánicas y calcule la fertilización mixta.";
 
                 await CalculoAnalisisTemporalService.Instance.ReiniciarCalculoAsync(
@@ -662,9 +704,13 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(PuedeCalcular));
             OnPropertyChanged(nameof(TieneElementosExportables));
             OnPropertyChanged(nameof(TieneFuentesDisponibles));
+            OnPropertyChanged(nameof(PuedeAplicarSugerencia));
+            OnPropertyChanged(nameof(PuedeDeshacerSugerencia));
 
             CalcularCommand.ChangeCanExecute();
             ReiniciarCommand.ChangeCanExecute();
+            aplicarSugerenciaCommand?.ChangeCanExecute();
+            deshacerSugerenciaCommand?.ChangeCanExecute();
         }
 
         private static decimal ConvertirDecimal(string valor)
@@ -820,13 +866,14 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public decimal? PrecioFuente
+            public decimal? PrecioFuente
         {
             get => precioFuente;
             set
             {
                 precioFuente = value;
                 OnPropertyChanged(nameof(PrecioFuente));
+                OnPropertyChanged(nameof(TextoPrecioFuente));
             }
         }
 
@@ -893,6 +940,9 @@ namespace CONATRADEC.ViewModels
         }
 
         public bool TieneErrorCantidad => !string.IsNullOrWhiteSpace(ErrorCantidad);
+
+        public string TextoPrecioFuente =>
+            $"Precio por QQ: C$ {(PrecioFuente ?? 0).ToString("N2", CultureInfo.InvariantCulture)}";
 
         private void NotificarCambioFormulario()
         {

@@ -18,7 +18,8 @@ namespace CONATRADEC.ViewModels
         private FormMode.FormModeSelect mode = new();
 
         private string estadoInicial = string.Empty;
-        private string categoriaOriginalCodigo = FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
+        private string categoriaOriginalCodigo =
+            FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
 
         private string nombreNutriente = string.Empty;
         private string descripcionNutriente = string.Empty;
@@ -40,6 +41,8 @@ namespace CONATRADEC.ViewModels
         private bool tieneErrorPrntEnmiendaCalcarea;
         private bool tieneErrorDescripcionParametroEnmiendaCalcarea;
 
+        private bool cargandoDatosIniciales;
+
         private FuenteNutrienteCategoriaOption? categoriaSeleccionada;
 
         private ObservableCollection<ElementoQuimicoResponse> elementosQuimicos = new();
@@ -52,14 +55,30 @@ namespace CONATRADEC.ViewModels
 
         public FuenteNutrienteFormViewModel()
         {
-            CategoriasFuente = new ObservableCollection<FuenteNutrienteCategoriaOption>();
+            CategoriasFuente =
+                new ObservableCollection<FuenteNutrienteCategoriaOption>();
+
             CargarCategoriasFuente();
 
-            SaveCommand = new Command(async () => await SaveAsync(), () => !IsReadOnly);
-            CancelCommand = new Command(async () => await CancelAsync());
+            SaveCommand =
+                new Command(
+                    async () => await SaveAsync(),
+                    () => !IsReadOnly);
 
-            AddAporteCommand = new Command(AddAporte, () => !IsReadOnly && MostrarAportesElementosQuimicos);
-            RemoveAporteCommand = new Command<FuenteNutrienteAporteFormItem>(RemoveAporte);
+            CancelCommand =
+                new Command(
+                    async () => await CancelAsync());
+
+            AddAporteCommand =
+                new Command(
+                    AddAporte,
+                    () =>
+                        !IsReadOnly &&
+                        MostrarAportesElementosQuimicos);
+
+            RemoveAporteCommand =
+                new Command<FuenteNutrienteAporteFormItem>(
+                    RemoveAporte);
         }
 
         public FuenteNutrienteRequest Fuente
@@ -78,6 +97,7 @@ namespace CONATRADEC.ViewModels
             set
             {
                 mode = value;
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
                 OnPropertyChanged(nameof(IsFormEnabled));
@@ -124,7 +144,11 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public ObservableCollection<FuenteNutrienteCategoriaOption> CategoriasFuente { get; }
+        public ObservableCollection<FuenteNutrienteCategoriaOption>
+            CategoriasFuente
+        {
+            get;
+        }
 
         public FuenteNutrienteCategoriaOption? CategoriaSeleccionada
         {
@@ -132,6 +156,7 @@ namespace CONATRADEC.ViewModels
             set
             {
                 categoriaSeleccionada = value;
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(MostrarDatosEnmiendaCalcarea));
                 OnPropertyChanged(nameof(MostrarAportesElementosQuimicos));
@@ -139,7 +164,8 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(TituloSeccionAportes));
                 OnPropertyChanged(nameof(DescripcionSeccionAportes));
 
-                if (!IsReadOnly &&
+                if (!cargandoDatosIniciales &&
+                    !IsReadOnly &&
                     MostrarAportesElementosQuimicos &&
                     Aportes.Count == 0)
                 {
@@ -170,22 +196,30 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public ObservableCollection<ElementoQuimicoResponse> ElementosQuimicos
+        public ObservableCollection<ElementoQuimicoResponse>
+            ElementosQuimicos
         {
             get => elementosQuimicos;
             set
             {
-                elementosQuimicos = value;
+                elementosQuimicos =
+                    value ??
+                    new ObservableCollection<ElementoQuimicoResponse>();
+
                 OnPropertyChanged();
             }
         }
 
-        public ObservableCollection<FuenteNutrienteAporteFormItem> Aportes
+        public ObservableCollection<FuenteNutrienteAporteFormItem>
+            Aportes
         {
             get => aportes;
             set
             {
-                aportes = value;
+                aportes =
+                    value ??
+                    new ObservableCollection<FuenteNutrienteAporteFormItem>();
+
                 OnPropertyChanged();
             }
         }
@@ -311,45 +345,66 @@ namespace CONATRADEC.ViewModels
         }
 
         public bool MostrarDatosEnmiendaCalcarea =>
-            CategoriaSeleccionada?.Codigo == FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea;
+            CategoriaSeleccionada?.Codigo ==
+            FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea;
 
         public bool MostrarAportesElementosQuimicos
         {
             get
             {
-                string? codigo = CategoriaSeleccionada?.Codigo;
+                string? codigo =
+                    CategoriaSeleccionada?.Codigo;
 
-                return codigo == FuenteNutrienteCategoriaOption.CodigoBalanceNutricional ||
-                       codigo == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta;
+                return
+                    codigo ==
+                        FuenteNutrienteCategoriaOption
+                            .CodigoBalanceNutricional ||
+                    codigo ==
+                        FuenteNutrienteCategoriaOption
+                            .CodigoFertilizacionMixta;
             }
         }
 
         public bool MostrarBotonAgregarAporte =>
-            ShowSaveButton && MostrarAportesElementosQuimicos;
+            ShowSaveButton &&
+            MostrarAportesElementosQuimicos;
 
         public string TituloSeccionAportes =>
-            CategoriaSeleccionada?.Codigo == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta
+            CategoriaSeleccionada?.Codigo ==
+            FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta
                 ? "Aportes para fertilización mixta"
                 : "Aportes de elementos químicos";
 
         public string DescripcionSeccionAportes =>
-            CategoriaSeleccionada?.Codigo == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta
+            CategoriaSeleccionada?.Codigo ==
+            FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta
                 ? "Agregue los elementos que aporta esta fuente y su porcentaje. Estos valores se utilizarán en el cálculo de fertilización mixta."
                 : "Agregue los elementos que aporta esta fuente y su porcentaje. Estos valores se utilizarán en el balance nutricional.";
 
-        public bool IsReadOnly => Mode == FormMode.FormModeSelect.View;
+        public bool IsReadOnly =>
+            Mode == FormMode.FormModeSelect.View;
 
-        public bool IsFormEnabled => !IsReadOnly;
+        public bool IsFormEnabled =>
+            !IsReadOnly;
 
-        public bool ShowSaveButton => Mode != FormMode.FormModeSelect.View;
+        public bool ShowSaveButton =>
+            Mode != FormMode.FormModeSelect.View;
 
-        public string Title => Mode switch
-        {
-            FormMode.FormModeSelect.Create => "Crear Fuente de Nutriente",
-            FormMode.FormModeSelect.Edit => "Editar Fuente de Nutriente",
-            FormMode.FormModeSelect.View => "Detalles de Fuente de Nutriente",
-            _ => "Fuente de Nutriente"
-        };
+        public string Title =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create =>
+                    "Crear Fuente de Nutriente",
+
+                FormMode.FormModeSelect.Edit =>
+                    "Editar Fuente de Nutriente",
+
+                FormMode.FormModeSelect.View =>
+                    "Detalles de Fuente de Nutriente",
+
+                _ =>
+                    "Fuente de Nutriente"
+            };
 
         public async Task InitializeAsync()
         {
@@ -370,7 +425,8 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await MostrarToastAsync("Error: " + ex.Message);
+                await MostrarToastAsync(
+                    "Error: " + ex.Message);
             }
             finally
             {
@@ -382,137 +438,245 @@ namespace CONATRADEC.ViewModels
         {
             CategoriasFuente.Clear();
 
-            CategoriasFuente.Add(new FuenteNutrienteCategoriaOption
-            {
-                Codigo = FuenteNutrienteCategoriaOption.CodigoBalanceNutricional,
-                Nombre = "Balance nutricional"
-            });
+            CategoriasFuente.Add(
+                new FuenteNutrienteCategoriaOption
+                {
+                    Codigo =
+                        FuenteNutrienteCategoriaOption
+                            .CodigoBalanceNutricional,
 
-            CategoriasFuente.Add(new FuenteNutrienteCategoriaOption
-            {
-                Codigo = FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea,
-                Nombre = "Enmienda calcárea"
-            });
+                    Nombre =
+                        "Balance nutricional"
+                });
 
-            CategoriasFuente.Add(new FuenteNutrienteCategoriaOption
-            {
-                Codigo = FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta,
-                Nombre = "Fertilización mixta"
-            });
+            CategoriasFuente.Add(
+                new FuenteNutrienteCategoriaOption
+                {
+                    Codigo =
+                        FuenteNutrienteCategoriaOption
+                            .CodigoEnmiendaCalcarea,
+
+                    Nombre =
+                        "Enmienda calcárea"
+                });
+
+            CategoriasFuente.Add(
+                new FuenteNutrienteCategoriaOption
+                {
+                    Codigo =
+                        FuenteNutrienteCategoriaOption
+                            .CodigoFertilizacionMixta,
+
+                    Nombre =
+                        "Fertilización mixta"
+                });
         }
 
         private async Task CargarElementosQuimicosAsync()
         {
-            if (!await TieneInternetAsync())
+            var resultado =
+                await elementoQuimicoApiService
+                    .GetElementoQuimicoResultAsync();
+
+            if (!resultado.Success)
             {
-                await MostrarToastAsync("Sin conexión a internet.");
-                ElementosQuimicos = new ObservableCollection<ElementoQuimicoResponse>();
+                ElementosQuimicos =
+                    new ObservableCollection<ElementoQuimicoResponse>();
+
+                await MostrarToastAsync(resultado.Message);
                 return;
             }
 
-            var response = await elementoQuimicoApiService.GetElementoQuimicoAsync();
-
-            ElementosQuimicos = new ObservableCollection<ElementoQuimicoResponse>(
-                response.OrderBy(x => x.NombreElementoQuimico ?? string.Empty)
-            );
+            ElementosQuimicos =
+                new ObservableCollection<ElementoQuimicoResponse>(
+                    (resultado.Data ??
+                     new ObservableCollection<ElementoQuimicoResponse>())
+                    .Where(x =>
+                        x.ElementoQuimicosId.HasValue)
+                    .OrderBy(x =>
+                        x.NombreElementoQuimico ??
+                        string.Empty));
         }
 
         private void CargarDatosIniciales()
         {
-            Aportes.Clear();
+            cargandoDatosIniciales = true;
 
-            if (Mode == FormMode.FormModeSelect.Create)
+            try
             {
-                Fuente = new FuenteNutrienteRequest();
+                Aportes.Clear();
 
-                NombreNutriente = string.Empty;
-                DescripcionNutriente = string.Empty;
-                PrecioNutrienteTexto = string.Empty;
-
-                PrntEnmiendaCalcareaTexto = string.Empty;
-                DescripcionParametroEnmiendaCalcarea = string.Empty;
-
-                categoriaOriginalCodigo = FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
-                CategoriaSeleccionada = BuscarCategoriaPorCodigo(categoriaOriginalCodigo);
-
-                if (MostrarAportesElementosQuimicos)
-                    AddAporte();
-
-                return;
-            }
-
-            NombreNutriente = Fuente.NombreNutriente ?? string.Empty;
-            DescripcionNutriente = Fuente.DescripcionNutriente ?? string.Empty;
-            PrecioNutrienteTexto = Fuente.PrecioNutriente > 0
-                ? Fuente.PrecioNutriente.ToString("0.##", CultureInfo.InvariantCulture)
-                : string.Empty;
-
-            PrntEnmiendaCalcareaTexto = Fuente.PrntEnmiendaCalcarea.HasValue
-                ? Fuente.PrntEnmiendaCalcarea.Value.ToString("0.##", CultureInfo.InvariantCulture)
-                : string.Empty;
-
-            DescripcionParametroEnmiendaCalcarea =
-                Fuente.DescripcionParametroEnmiendaCalcarea ?? string.Empty;
-
-            categoriaOriginalCodigo = ObtenerCodigoCategoriaDesdeFuente();
-            CategoriaSeleccionada = BuscarCategoriaPorCodigo(categoriaOriginalCodigo);
-
-            if (Fuente.ElementosQuimicos != null && Fuente.ElementosQuimicos.Count > 0)
-            {
-                foreach (var item in Fuente.ElementosQuimicos)
+                if (Mode ==
+                    FormMode.FormModeSelect.Create)
                 {
-                    var elemento = ElementosQuimicos
-                        .FirstOrDefault(x => x.ElementoQuimicosId == item.ElementoQuimicosId);
+                    Fuente =
+                        new FuenteNutrienteRequest();
 
-                    var aporte = new FuenteNutrienteAporteFormItem
+                    NombreNutriente =
+                        string.Empty;
+
+                    DescripcionNutriente =
+                        string.Empty;
+
+                    PrecioNutrienteTexto =
+                        string.Empty;
+
+                    PrntEnmiendaCalcareaTexto =
+                        string.Empty;
+
+                    DescripcionParametroEnmiendaCalcarea =
+                        string.Empty;
+
+                    categoriaOriginalCodigo =
+                        FuenteNutrienteCategoriaOption
+                            .CodigoBalanceNutricional;
+
+                    CategoriaSeleccionada =
+                        BuscarCategoriaPorCodigo(
+                            categoriaOriginalCodigo);
+
+                    if (MostrarAportesElementosQuimicos)
+                        AddAporte();
+
+                    return;
+                }
+
+                NombreNutriente =
+                    Fuente.NombreNutriente ??
+                    string.Empty;
+
+                DescripcionNutriente =
+                    Fuente.DescripcionNutriente ??
+                    string.Empty;
+
+                PrecioNutrienteTexto =
+                    Fuente.PrecioNutriente > 0
+                        ? Fuente.PrecioNutriente.ToString(
+                            "0.##",
+                            CultureInfo.InvariantCulture)
+                        : string.Empty;
+
+                PrntEnmiendaCalcareaTexto =
+                    Fuente.PrntEnmiendaCalcarea.HasValue
+                        ? Fuente.PrntEnmiendaCalcarea.Value.ToString(
+                            "0.##",
+                            CultureInfo.InvariantCulture)
+                        : string.Empty;
+
+                DescripcionParametroEnmiendaCalcarea =
+                    Fuente.DescripcionParametroEnmiendaCalcarea ??
+                    string.Empty;
+
+                categoriaOriginalCodigo =
+                    ObtenerCodigoCategoriaDesdeFuente();
+
+                CategoriaSeleccionada =
+                    BuscarCategoriaPorCodigo(
+                        categoriaOriginalCodigo);
+
+                if (Fuente.ElementosQuimicos != null &&
+                    Fuente.ElementosQuimicos.Count > 0)
+                {
+                    foreach (var item
+                             in Fuente.ElementosQuimicos)
                     {
-                        ElementoQuimicosId = item.ElementoQuimicosId,
-                        ElementoSeleccionado = elemento,
-                        CantidadAporteTexto = item.CantidadAporte.ToString("0.##", CultureInfo.InvariantCulture)
-                    };
+                        var elemento =
+                            ElementosQuimicos
+                                .FirstOrDefault(x =>
+                                    x.ElementoQuimicosId ==
+                                    item.ElementoQuimicosId);
 
-                    Aportes.Add(aporte);
+                        var aporte =
+                            new FuenteNutrienteAporteFormItem
+                            {
+                                ElementoQuimicosId =
+                                    item.ElementoQuimicosId,
+
+                                ElementoSeleccionado =
+                                    elemento,
+
+                                CantidadAporteTexto =
+                                    item.CantidadAporte.ToString(
+                                        "0.##",
+                                        CultureInfo.InvariantCulture)
+                            };
+
+                        Aportes.Add(aporte);
+                    }
+                }
+
+                if (!IsReadOnly &&
+                    MostrarAportesElementosQuimicos &&
+                    Aportes.Count == 0)
+                {
+                    AddAporte();
                 }
             }
-
-            if (!IsReadOnly && MostrarAportesElementosQuimicos && Aportes.Count == 0)
-                AddAporte();
+            finally
+            {
+                cargandoDatosIniciales = false;
+            }
         }
 
-        private FuenteNutrienteCategoriaOption? BuscarCategoriaPorCodigo(string codigo)
+        private FuenteNutrienteCategoriaOption?
+            BuscarCategoriaPorCodigo(string codigo)
         {
             return CategoriasFuente.FirstOrDefault(x =>
-                string.Equals(x.Codigo, codigo, StringComparison.OrdinalIgnoreCase));
+                string.Equals(
+                    x.Codigo,
+                    codigo,
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         private string ObtenerCodigoCategoriaDesdeFuente()
         {
             if (Fuente.HabilitadaEnmiendaCalcarea)
-                return FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea;
+            {
+                return
+                    FuenteNutrienteCategoriaOption
+                        .CodigoEnmiendaCalcarea;
+            }
 
             if (Fuente.HabilitadaFertilizacionMixta)
-                return FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta;
+            {
+                return
+                    FuenteNutrienteCategoriaOption
+                        .CodigoFertilizacionMixta;
+            }
 
-            return FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
+            return
+                FuenteNutrienteCategoriaOption
+                    .CodigoBalanceNutricional;
         }
 
         private string ObtenerCodigoCategoriaSeleccionada()
         {
-            return CategoriaSeleccionada?.Codigo ?? FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
+            return
+                CategoriaSeleccionada?.Codigo ??
+                FuenteNutrienteCategoriaOption
+                    .CodigoBalanceNutricional;
         }
 
         private void AddAporte()
         {
-            if (IsReadOnly || !MostrarAportesElementosQuimicos)
+            if (IsReadOnly ||
+                !MostrarAportesElementosQuimicos)
+            {
                 return;
+            }
 
-            Aportes.Add(new FuenteNutrienteAporteFormItem());
+            Aportes.Add(
+                new FuenteNutrienteAporteFormItem());
         }
 
-        private void RemoveAporte(FuenteNutrienteAporteFormItem item)
+        private void RemoveAporte(
+            FuenteNutrienteAporteFormItem item)
         {
-            if (IsReadOnly || !MostrarAportesElementosQuimicos)
+            if (IsReadOnly ||
+                !MostrarAportesElementosQuimicos)
+            {
                 return;
+            }
 
             if (item == null)
                 return;
@@ -524,25 +688,31 @@ namespace CONATRADEC.ViewModels
         {
             try
             {
-                bool hayCambios = ObtenerEstadoActual() != estadoInicial;
+                bool hayCambios =
+                    ObtenerEstadoActual() !=
+                    estadoInicial;
 
-                if (hayCambios && !IsReadOnly)
+                if (hayCambios &&
+                    !IsReadOnly)
                 {
-                    bool confirm = await App.Current.MainPage.DisplayAlert(
-                        "Cancelar",
-                        "¿Desea salir sin guardar los cambios?",
-                        "Aceptar",
-                        "Cancelar");
+                    bool confirm =
+                        await App.Current.MainPage.DisplayAlert(
+                            "Cancelar",
+                            "¿Desea salir sin guardar los cambios?",
+                            "Aceptar",
+                            "Cancelar");
 
                     if (!confirm)
                         return;
                 }
 
-                await GoToAsyncParameters("//FuenteNutrientePage");
+                await GoToAsyncParameters(
+                    "//FuenteNutrientePage");
             }
             catch (Exception ex)
             {
-                await MostrarToastAsync("Error: " + ex.Message);
+                await MostrarToastAsync(
+                    "Error: " + ex.Message);
             }
         }
 
@@ -556,90 +726,123 @@ namespace CONATRADEC.ViewModels
                 if (!ValidarFormulario())
                     return;
 
-                string mensaje = Mode == FormMode.FormModeSelect.Create
-                    ? "¿Desea guardar la fuente de nutriente?"
-                    : "¿Desea actualizar la fuente de nutriente?";
+                string mensaje =
+                    Mode ==
+                    FormMode.FormModeSelect.Create
+                        ? "¿Desea guardar la fuente de nutriente?"
+                        : "¿Desea actualizar la fuente de nutriente?";
 
-                bool confirm = await App.Current.MainPage.DisplayAlert(
-                    "Confirmar",
-                    mensaje,
-                    "Aceptar",
-                    "Cancelar");
+                bool confirm =
+                    await App.Current.MainPage.DisplayAlert(
+                        "Confirmar",
+                        mensaje,
+                        "Aceptar",
+                        "Cancelar");
 
                 if (!confirm)
                     return;
 
-                if (!await TieneInternetAsync())
-                {
-                    await MostrarToastAsync("Sin conexión a internet.");
-                    return;
-                }
-
                 IsBusy = true;
 
-                FuenteNutrienteRequest request = ConstruirRequest();
+                FuenteNutrienteRequest request =
+                    ConstruirRequest();
 
-                bool guardadoCorrectamente = false;
-                int? fuenteNutrientesId = request.FuenteNutrientesId;
+                bool guardadoCorrectamente =
+                    false;
 
-                if (Mode == FormMode.FormModeSelect.Create)
+                int? fuenteNutrientesId =
+                    request.FuenteNutrientesId;
+
+                if (Mode ==
+                    FormMode.FormModeSelect.Create)
                 {
                     FuenteNutrienteResponse? fuenteCreada =
-                        await fuenteNutrienteApiService.CreateFuenteNutrienteConRespuestaAsync(request);
+                        await fuenteNutrienteApiService
+                            .CreateFuenteNutrienteConRespuestaAsync(
+                                request);
 
-                    if (fuenteCreada?.FuenteNutrientesId == null || fuenteCreada.FuenteNutrientesId <= 0)
+                    if (fuenteCreada?.FuenteNutrientesId == null ||
+                        fuenteCreada.FuenteNutrientesId <= 0)
                     {
-                        await MostrarToastAsync("No se pudo obtener el ID de la fuente creada.");
+                        await MostrarToastAsync(
+                            "No se pudo obtener el ID de la fuente creada.");
+
                         return;
                     }
 
-                    fuenteNutrientesId = fuenteCreada.FuenteNutrientesId;
-                    Fuente.FuenteNutrientesId = fuenteNutrientesId;
-                    guardadoCorrectamente = true;
+                    fuenteNutrientesId =
+                        fuenteCreada.FuenteNutrientesId;
+
+                    Fuente.FuenteNutrientesId =
+                        fuenteNutrientesId;
+
+                    guardadoCorrectamente =
+                        true;
                 }
-                else if (Mode == FormMode.FormModeSelect.Edit)
+                else if (Mode ==
+                         FormMode.FormModeSelect.Edit)
                 {
-                    guardadoCorrectamente = await fuenteNutrienteApiService.UpdateFuenteNutrienteAsync(request);
+                    guardadoCorrectamente =
+                        await fuenteNutrienteApiService
+                            .UpdateFuenteNutrienteAsync(
+                                request);
                 }
 
                 if (!guardadoCorrectamente)
                 {
-                    await MostrarToastAsync("No se pudo guardar la fuente de nutriente.");
+                    await MostrarToastAsync(
+                        "No se pudo guardar la fuente de nutriente.");
+
                     return;
                 }
 
-                if (fuenteNutrientesId == null || fuenteNutrientesId <= 0)
+                if (fuenteNutrientesId == null ||
+                    fuenteNutrientesId <= 0)
                 {
-                    await MostrarToastAsync("No se encontró el ID de la fuente para aplicar la clasificación.");
+                    await MostrarToastAsync(
+                        "No se encontró el ID de la fuente para aplicar la clasificación.");
+
                     return;
                 }
 
                 bool categoriaAplicada =
-                    await AplicarCategoriaFuenteAsync(fuenteNutrientesId.Value);
+                    await AplicarCategoriaFuenteAsync(
+                        fuenteNutrientesId.Value);
 
                 if (!categoriaAplicada)
                 {
-                    if (Mode == FormMode.FormModeSelect.Create)
+                    if (Mode ==
+                        FormMode.FormModeSelect.Create)
                     {
-                        Mode = FormMode.FormModeSelect.Edit;
-                        categoriaOriginalCodigo = FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
+                        Mode =
+                            FormMode.FormModeSelect.Edit;
+
+                        categoriaOriginalCodigo =
+                            FuenteNutrienteCategoriaOption
+                                .CodigoBalanceNutricional;
                     }
 
-                    await MostrarToastAsync("La fuente se guardó, pero no se pudo aplicar la clasificación seleccionada.");
+                    await MostrarToastAsync(
+                        "La fuente se guardó, pero no se pudo aplicar la clasificación seleccionada.");
+
                     return;
                 }
 
-                await GoToAsyncParameters("//FuenteNutrientePage");
+                await GoToAsyncParameters(
+                    "//FuenteNutrientePage");
 
-                string success = Mode == FormMode.FormModeSelect.Create
-                    ? "Fuente de nutriente guardada correctamente."
-                    : "Fuente de nutriente actualizada correctamente.";
+                string success =
+                    Mode ==
+                    FormMode.FormModeSelect.Create
+                        ? "Fuente de nutriente guardada correctamente."
+                        : "Fuente de nutriente actualizada correctamente.";
 
                 await MostrarToastAsync(success);
             }
             catch (Exception ex)
             {
-                await MostrarToastAsync("Error: " + ex.Message);
+                await MostrarToastAsync(
+                    "Error: " + ex.Message);
             }
             finally
             {
@@ -647,77 +850,130 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task<bool> AplicarCategoriaFuenteAsync(int fuenteNutrientesId)
+        private async Task<bool>
+            AplicarCategoriaFuenteAsync(
+                int fuenteNutrientesId)
         {
-            string categoriaActual = ObtenerCodigoCategoriaSeleccionada();
-            string categoriaOriginal = categoriaOriginalCodigo;
+            string categoriaActual =
+                ObtenerCodigoCategoriaSeleccionada();
 
-            if (categoriaActual == categoriaOriginal)
+            string categoriaOriginal =
+                categoriaOriginalCodigo;
+
+            if (categoriaActual ==
+                categoriaOriginal)
+            {
                 return true;
+            }
 
-            if (categoriaOriginal == FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea &&
-                categoriaActual != FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea)
+            if (categoriaOriginal ==
+                    FuenteNutrienteCategoriaOption
+                        .CodigoEnmiendaCalcarea &&
+                categoriaActual !=
+                    FuenteNutrienteCategoriaOption
+                        .CodigoEnmiendaCalcarea)
             {
                 bool deshabilitada =
-                    await fuenteNutrienteApiService.DeshabilitarEnmiendaCalcareaAsync(fuenteNutrientesId);
+                    await fuenteNutrienteApiService
+                        .DeshabilitarEnmiendaCalcareaAsync(
+                            fuenteNutrientesId);
 
                 if (!deshabilitada)
                     return false;
             }
 
-            if (categoriaOriginal == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta &&
-                categoriaActual != FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta)
+            if (categoriaOriginal ==
+                    FuenteNutrienteCategoriaOption
+                        .CodigoFertilizacionMixta &&
+                categoriaActual !=
+                    FuenteNutrienteCategoriaOption
+                        .CodigoFertilizacionMixta)
             {
                 bool deshabilitada =
-                    await fuenteNutrienteApiService.DeshabilitarFertilizacionMixtaAsync(fuenteNutrientesId);
+                    await fuenteNutrienteApiService
+                        .DeshabilitarFertilizacionMixtaAsync(
+                            fuenteNutrientesId);
 
                 if (!deshabilitada)
                     return false;
             }
 
-            if (categoriaActual == FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea &&
-                categoriaOriginal != FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea)
+            if (categoriaActual ==
+                    FuenteNutrienteCategoriaOption
+                        .CodigoEnmiendaCalcarea &&
+                categoriaOriginal !=
+                    FuenteNutrienteCategoriaOption
+                        .CodigoEnmiendaCalcarea)
             {
                 bool habilitada =
-                    await fuenteNutrienteApiService.HabilitarEnmiendaCalcareaAsync(
-                        fuenteNutrientesId,
-                        new HabilitarEnmiendaCalcareaRequest
-                        {
-                            Prnt = ParseDecimal(PrntEnmiendaCalcareaTexto),
-                            DescripcionParametro = DescripcionParametroEnmiendaCalcarea?.Trim() ?? string.Empty
-                        });
+                    await fuenteNutrienteApiService
+                        .HabilitarEnmiendaCalcareaAsync(
+                            fuenteNutrientesId,
+                            new HabilitarEnmiendaCalcareaRequest
+                            {
+                                Prnt =
+                                    ParseDecimal(
+                                        PrntEnmiendaCalcareaTexto),
+
+                                DescripcionParametro =
+                                    DescripcionParametroEnmiendaCalcarea?
+                                        .Trim() ??
+                                    string.Empty
+                            });
 
                 if (!habilitada)
                     return false;
             }
 
-            if (categoriaActual == FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta &&
-                categoriaOriginal != FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta)
+            if (categoriaActual ==
+                    FuenteNutrienteCategoriaOption
+                        .CodigoFertilizacionMixta &&
+                categoriaOriginal !=
+                    FuenteNutrienteCategoriaOption
+                        .CodigoFertilizacionMixta)
             {
                 bool habilitada =
-                    await fuenteNutrienteApiService.HabilitarFertilizacionMixtaAsync(fuenteNutrientesId);
+                    await fuenteNutrienteApiService
+                        .HabilitarFertilizacionMixtaAsync(
+                            fuenteNutrientesId);
 
                 if (!habilitada)
                     return false;
             }
 
-            categoriaOriginalCodigo = categoriaActual;
+            categoriaOriginalCodigo =
+                categoriaActual;
 
             return true;
         }
 
         private FuenteNutrienteRequest ConstruirRequest()
         {
-            decimal precio = ParseDecimal(PrecioNutrienteTexto);
+            decimal precio =
+                ParseDecimal(
+                    PrecioNutrienteTexto);
 
-            var request = new FuenteNutrienteRequest
-            {
-                FuenteNutrientesId = Fuente.FuenteNutrientesId,
-                NombreNutriente = NombreNutriente?.Trim() ?? string.Empty,
-                DescripcionNutriente = DescripcionNutriente?.Trim() ?? string.Empty,
-                PrecioNutriente = precio,
-                ElementosQuimicos = new List<FuenteNutrienteElementoQuimicoRequest>()
-            };
+            var request =
+                new FuenteNutrienteRequest
+                {
+                    FuenteNutrientesId =
+                        Fuente.FuenteNutrientesId,
+
+                    NombreNutriente =
+                        NombreNutriente?.Trim() ??
+                        string.Empty,
+
+                    DescripcionNutriente =
+                        DescripcionNutriente?.Trim() ??
+                        string.Empty,
+
+                    PrecioNutriente =
+                        precio,
+
+                    ElementosQuimicos =
+                        new List<
+                            FuenteNutrienteElementoQuimicoRequest>()
+                };
 
             if (!MostrarAportesElementosQuimicos)
                 return request;
@@ -727,16 +983,22 @@ namespace CONATRADEC.ViewModels
                 if (!item.ElementoQuimicosId.HasValue)
                     continue;
 
-                decimal cantidad = ParseDecimal(item.CantidadAporteTexto);
+                decimal cantidad =
+                    ParseDecimal(
+                        item.CantidadAporteTexto);
 
                 if (cantidad <= 0)
                     continue;
 
-                request.ElementosQuimicos.Add(new FuenteNutrienteElementoQuimicoRequest
-                {
-                    ElementoQuimicosId = item.ElementoQuimicosId.Value,
-                    CantidadAporte = cantidad
-                });
+                request.ElementosQuimicos.Add(
+                    new FuenteNutrienteElementoQuimicoRequest
+                    {
+                        ElementoQuimicosId =
+                            item.ElementoQuimicosId.Value,
+
+                        CantidadAporte =
+                            cantidad
+                    });
             }
 
             return request;
@@ -748,106 +1010,188 @@ namespace CONATRADEC.ViewModels
 
             bool valido = true;
 
-            if (string.IsNullOrWhiteSpace(NombreNutriente))
+            if (string.IsNullOrWhiteSpace(
+                    NombreNutriente))
             {
-                ErrorNombre = "El nombre de la fuente es obligatorio.";
-                TieneErrorNombre = true;
-                valido = false;
+                ErrorNombre =
+                    "El nombre de la fuente es obligatorio.";
+
+                TieneErrorNombre =
+                    true;
+
+                valido =
+                    false;
             }
 
-            if (!TryParseDecimal(PrecioNutrienteTexto, out decimal precio) || precio < 0)
+            if (!TryParseDecimal(
+                    PrecioNutrienteTexto,
+                    out decimal precio) ||
+                precio < 0)
             {
-                ErrorPrecio = "Ingrese un precio válido. Puede ser 0 o mayor.";
-                TieneErrorPrecio = true;
-                valido = false;
+                ErrorPrecio =
+                    "Ingrese un precio válido. Puede ser 0 o mayor.";
+
+                TieneErrorPrecio =
+                    true;
+
+                valido =
+                    false;
             }
 
             if (CategoriaSeleccionada == null ||
-                string.IsNullOrWhiteSpace(CategoriaSeleccionada.Codigo))
+                string.IsNullOrWhiteSpace(
+                    CategoriaSeleccionada.Codigo))
             {
-                ErrorCategoria = "Debe seleccionar la clasificación de la fuente.";
-                TieneErrorCategoria = true;
-                valido = false;
+                ErrorCategoria =
+                    "Debe seleccionar la clasificación de la fuente.";
+
+                TieneErrorCategoria =
+                    true;
+
+                valido =
+                    false;
             }
 
             if (DebeEnviarHabilitarEnmiendaCalcarea())
             {
-                if (!TryParseDecimal(PrntEnmiendaCalcareaTexto, out decimal prnt) || prnt < 0)
+                if (!TryParseDecimal(
+                        PrntEnmiendaCalcareaTexto,
+                        out decimal prnt) ||
+                    prnt < 0)
                 {
-                    ErrorPrntEnmiendaCalcarea = "Ingrese un PRNT válido. Puede ser 0 o mayor.";
-                    TieneErrorPrntEnmiendaCalcarea = true;
-                    valido = false;
+                    ErrorPrntEnmiendaCalcarea =
+                        "Ingrese un PRNT válido. Puede ser 0 o mayor.";
+
+                    TieneErrorPrntEnmiendaCalcarea =
+                        true;
+
+                    valido =
+                        false;
                 }
 
-                if (string.IsNullOrWhiteSpace(DescripcionParametroEnmiendaCalcarea))
+                if (string.IsNullOrWhiteSpace(
+                        DescripcionParametroEnmiendaCalcarea))
                 {
-                    ErrorDescripcionParametroEnmiendaCalcarea = "Debe ingresar la descripción del parámetro.";
-                    TieneErrorDescripcionParametroEnmiendaCalcarea = true;
-                    valido = false;
+                    ErrorDescripcionParametroEnmiendaCalcarea =
+                        "Debe ingresar la descripción del parámetro.";
+
+                    TieneErrorDescripcionParametroEnmiendaCalcarea =
+                        true;
+
+                    valido =
+                        false;
                 }
             }
 
             if (MostrarAportesElementosQuimicos)
             {
-                var aportesCompletos = Aportes
-                    .Where(x => x.ElementoQuimicosId.HasValue || !string.IsNullOrWhiteSpace(x.CantidadAporteTexto))
-                    .ToList();
+                var aportesCompletos =
+                    Aportes
+                        .Where(x =>
+                            x.ElementoQuimicosId.HasValue ||
+                            !string.IsNullOrWhiteSpace(
+                                x.CantidadAporteTexto))
+                        .ToList();
 
                 if (aportesCompletos.Count == 0)
                 {
-                    ErrorAportes = "Debe agregar al menos un aporte de elemento químico para la clasificación seleccionada.";
-                    TieneErrorAportes = true;
-                    valido = false;
+                    ErrorAportes =
+                        "Debe agregar al menos un aporte de elemento químico para la clasificación seleccionada.";
+
+                    TieneErrorAportes =
+                        true;
+
+                    valido =
+                        false;
                 }
 
-                decimal totalAporte = 0;
+                decimal totalAporte =
+                    0;
 
-                foreach (var aporte in aportesCompletos)
+                foreach (var aporte
+                         in aportesCompletos)
                 {
                     if (!aporte.ElementoQuimicosId.HasValue)
                     {
-                        ErrorAportes = "Hay un aporte sin elemento químico seleccionado.";
-                        TieneErrorAportes = true;
-                        valido = false;
+                        ErrorAportes =
+                            "Hay un aporte sin elemento químico seleccionado.";
+
+                        TieneErrorAportes =
+                            true;
+
+                        valido =
+                            false;
+
                         break;
                     }
 
-                    if (!TryParseDecimal(aporte.CantidadAporteTexto, out decimal cantidad) || cantidad <= 0)
+                    if (!TryParseDecimal(
+                            aporte.CantidadAporteTexto,
+                            out decimal cantidad) ||
+                        cantidad <= 0)
                     {
-                        ErrorAportes = "Hay un aporte con porcentaje inválido.";
-                        TieneErrorAportes = true;
-                        valido = false;
+                        ErrorAportes =
+                            "Hay un aporte con porcentaje inválido.";
+
+                        TieneErrorAportes =
+                            true;
+
+                        valido =
+                            false;
+
                         break;
                     }
 
                     if (cantidad > 100)
                     {
-                        ErrorAportes = "El porcentaje de aporte no puede ser mayor a 100.";
-                        TieneErrorAportes = true;
-                        valido = false;
+                        ErrorAportes =
+                            "El porcentaje de aporte no puede ser mayor a 100.";
+
+                        TieneErrorAportes =
+                            true;
+
+                        valido =
+                            false;
+
                         break;
                     }
 
-                    totalAporte += cantidad;
+                    totalAporte +=
+                        cantidad;
                 }
 
-                if (valido && totalAporte > 100)
+                if (valido &&
+                    totalAporte > 100)
                 {
-                    ErrorAportes = $"La suma total de los aportes no puede superar el 100%. Total actual: {totalAporte:N2}%.";
-                    TieneErrorAportes = true;
-                    valido = false;
+                    ErrorAportes =
+                        $"La suma total de los aportes no puede superar el 100%. Total actual: {totalAporte:N2}%.";
+
+                    TieneErrorAportes =
+                        true;
+
+                    valido =
+                        false;
                 }
 
-                var duplicados = aportesCompletos
-                    .Where(x => x.ElementoQuimicosId.HasValue)
-                    .GroupBy(x => x.ElementoQuimicosId.Value)
-                    .Any(g => g.Count() > 1);
+                bool duplicados =
+                    aportesCompletos
+                        .Where(x =>
+                            x.ElementoQuimicosId.HasValue)
+                        .GroupBy(x =>
+                            x.ElementoQuimicosId.Value)
+                        .Any(g =>
+                            g.Count() > 1);
 
                 if (duplicados)
                 {
-                    ErrorAportes = "No puede repetir el mismo elemento químico en la fuente.";
-                    TieneErrorAportes = true;
-                    valido = false;
+                    ErrorAportes =
+                        "No puede repetir el mismo elemento químico en la fuente.";
+
+                    TieneErrorAportes =
+                        true;
+
+                    valido =
+                        false;
                 }
             }
 
@@ -856,70 +1200,128 @@ namespace CONATRADEC.ViewModels
 
         private bool DebeEnviarHabilitarEnmiendaCalcarea()
         {
-            string categoriaActual = ObtenerCodigoCategoriaSeleccionada();
+            string categoriaActual =
+                ObtenerCodigoCategoriaSeleccionada();
 
-            return categoriaActual == FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea &&
-                   categoriaOriginalCodigo != FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea;
+            return
+                categoriaActual ==
+                    FuenteNutrienteCategoriaOption
+                        .CodigoEnmiendaCalcarea &&
+                categoriaOriginalCodigo !=
+                    FuenteNutrienteCategoriaOption
+                        .CodigoEnmiendaCalcarea;
         }
 
         private void LimpiarErrores()
         {
-            ErrorNombre = string.Empty;
-            ErrorPrecio = string.Empty;
-            ErrorAportes = string.Empty;
-            ErrorCategoria = string.Empty;
-            ErrorPrntEnmiendaCalcarea = string.Empty;
-            ErrorDescripcionParametroEnmiendaCalcarea = string.Empty;
+            ErrorNombre =
+                string.Empty;
 
-            TieneErrorNombre = false;
-            TieneErrorPrecio = false;
-            TieneErrorAportes = false;
-            TieneErrorCategoria = false;
-            TieneErrorPrntEnmiendaCalcarea = false;
-            TieneErrorDescripcionParametroEnmiendaCalcarea = false;
+            ErrorPrecio =
+                string.Empty;
+
+            ErrorAportes =
+                string.Empty;
+
+            ErrorCategoria =
+                string.Empty;
+
+            ErrorPrntEnmiendaCalcarea =
+                string.Empty;
+
+            ErrorDescripcionParametroEnmiendaCalcarea =
+                string.Empty;
+
+            TieneErrorNombre =
+                false;
+
+            TieneErrorPrecio =
+                false;
+
+            TieneErrorAportes =
+                false;
+
+            TieneErrorCategoria =
+                false;
+
+            TieneErrorPrntEnmiendaCalcarea =
+                false;
+
+            TieneErrorDescripcionParametroEnmiendaCalcarea =
+                false;
         }
 
         private string ObtenerEstadoActual()
         {
-            string aportesTexto = string.Join("|",
-                Aportes.Select(x =>
-                    $"{x.ElementoQuimicosId}-{x.CantidadAporteTexto?.Trim()}"));
+            string aportesTexto =
+                string.Join(
+                    "|",
+                    Aportes.Select(x =>
+                        $"{x.ElementoQuimicosId}-" +
+                        $"{x.CantidadAporteTexto?.Trim()}"));
 
-            return $"{NombreNutriente?.Trim()}|" +
-                   $"{DescripcionNutriente?.Trim()}|" +
-                   $"{PrecioNutrienteTexto?.Trim()}|" +
-                   $"{ObtenerCodigoCategoriaSeleccionada()}|" +
-                   $"{PrntEnmiendaCalcareaTexto?.Trim()}|" +
-                   $"{DescripcionParametroEnmiendaCalcarea?.Trim()}|" +
-                   $"{aportesTexto}";
+            return
+                $"{NombreNutriente?.Trim()}|" +
+                $"{DescripcionNutriente?.Trim()}|" +
+                $"{PrecioNutrienteTexto?.Trim()}|" +
+                $"{ObtenerCodigoCategoriaSeleccionada()}|" +
+                $"{PrntEnmiendaCalcareaTexto?.Trim()}|" +
+                $"{DescripcionParametroEnmiendaCalcarea?.Trim()}|" +
+                $"{aportesTexto}";
         }
 
         private decimal ParseDecimal(string value)
         {
-            if (TryParseDecimal(value, out decimal result))
+            if (TryParseDecimal(
+                    value,
+                    out decimal result))
+            {
                 return result;
+            }
 
             return 0;
         }
 
-        private bool TryParseDecimal(string value, out decimal result)
+        private bool TryParseDecimal(
+            string value,
+            out decimal result)
         {
             result = 0;
 
             if (string.IsNullOrWhiteSpace(value))
                 return false;
 
-            value = value.Trim();
+            value =
+                value.Trim();
 
-            if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out result))
+            if (decimal.TryParse(
+                    value,
+                    NumberStyles.Number,
+                    CultureInfo.CurrentCulture,
+                    out result))
+            {
                 return true;
+            }
 
-            if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result))
+            if (decimal.TryParse(
+                    value,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out result))
+            {
                 return true;
+            }
 
-            value = value.Replace(",", ".");
+            value =
+                value.Replace(
+                    ",",
+                    ".");
 
-            return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out result);
+            return decimal.TryParse(
+                value,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out result);
         }
     }
 }

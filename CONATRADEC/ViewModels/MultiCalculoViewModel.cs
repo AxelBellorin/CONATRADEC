@@ -25,12 +25,16 @@ namespace CONATRADEC.ViewModels
 
         private int? terrenoId;
         private int? cantidadPlantas;
+        private bool fertilizacionMixtaInicializada;
 
         public MultiCalculoViewModel()
         {
             BalanceFormula = new BalanceFormulaViewModel();
             EnmiendaCalcarea = new EnmiendaCalcareaTabViewModel();
             FertilizacionMixta = new FertilizacionMixtaTabViewModel();
+
+            BalanceFormula.ComplementoFertilizacionMixtaCambiado +=
+                BalanceFormula_ComplementoFertilizacionMixtaCambiado;
 
             SeleccionarBalanceCommand = new Command(SeleccionarBalance);
             SeleccionarEnmiendaCommand = new Command(SeleccionarEnmienda);
@@ -350,7 +354,44 @@ namespace CONATRADEC.ViewModels
             }
 
             if (MostrarFertilizacionMixta)
-                FertilizacionMixta.Inicializar(ResultadoCalculo, RequestGuardarAnalisis);
+                InicializarFertilizacionMixtaSiEsNecesario();
+        }
+
+        private void InicializarFertilizacionMixtaSiEsNecesario()
+        {
+            if (fertilizacionMixtaInicializada)
+                return;
+
+            FertilizacionMixta.Inicializar(ResultadoCalculo, RequestGuardarAnalisis);
+            fertilizacionMixtaInicializada = true;
+        }
+
+        private async void BalanceFormula_ComplementoFertilizacionMixtaCambiado(
+            object? sender,
+            BalanceFertilizacionMixtaChangedEventArgs e)
+        {
+            if (e.Activado)
+            {
+                MostrarFertilizacionMixta = true;
+                InicializarFertilizacionMixtaSiEsNecesario();
+            }
+
+            if (!fertilizacionMixtaInicializada)
+                return;
+
+            await FertilizacionMixta.ConfigurarComplementoBalanceAsync(
+                e.Activado,
+                e.Contexto
+            );
+
+            if (e.Activado && e.Contexto == null)
+            {
+                Mensaje = "El complemento está activo. Complete el balance y luego continúe en la pestaña Mixta.";
+            }
+            else if (e.Activado)
+            {
+                Mensaje = "Balance vinculado con fertilización mixta. Complete el cálculo obligatorio en la pestaña Mixta.";
+            }
         }
 
         private void Limpiar()
@@ -367,6 +408,7 @@ namespace CONATRADEC.ViewModels
 
             TerrenoId = null;
             CantidadPlantas = null;
+            fertilizacionMixtaInicializada = false;
 
             // =======================================================
             // LIMPIEZA DE ENMIENDA CALCÁREA
@@ -456,6 +498,24 @@ namespace CONATRADEC.ViewModels
 
         private async Task FinalizarAsync()
         {
+            if (BalanceFormula.ComplementarConFertilizacionMixta &&
+                !FertilizacionMixta.TieneComplementoCompleto)
+            {
+                MostrarFertilizacionMixta = true;
+                TabSeleccionada = TabFertilizacionMixta;
+
+                if (Application.Current?.MainPage != null)
+                {
+                    await Application.Current.MainPage.DisplayAlert(
+                        "Fertilización mixta pendiente",
+                        "Activó el complemento del balance. Debe calcular la fertilización mixta y el balance ajustado antes de finalizar.",
+                        "Aceptar"
+                    );
+                }
+
+                return;
+            }
+
             await GoToAsyncParameters("//MainPage");
         }
 
