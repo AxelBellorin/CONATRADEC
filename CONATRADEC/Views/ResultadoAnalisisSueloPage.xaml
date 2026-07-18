@@ -251,7 +251,7 @@
                                     ColumnSpacing="12">
 
                                     <VerticalStackLayout Grid.Row="0" Grid.Column="0">
-                                        <Label Text="Cantidad convertida" FontSize="12" TextColor="#6B7280" />
+                                        <Label Text="Cantidad en el suelo" FontSize="12" TextColor="#6B7280" />
                                         <Label Text="{Binding CantidadConvertidaLbMz, StringFormat='{0:N2} lb/mz'}" FontSize="14" FontAttributes="Bold" />
                                     </VerticalStackLayout>
 
@@ -264,7 +264,7 @@
                                         <Label Text="Rango mínimo" FontSize="12" TextColor="#6B7280" />
                                         <Label Text="{Binding RangoMinimoLbMz, StringFormat='{0:N2} lb/mz'}" FontSize="14" />
                                     </VerticalStackLayout>
-
+ 
                                     <VerticalStackLayout Grid.Row="1" Grid.Column="1">
                                         <Label Text="Rango máximo" FontSize="12" TextColor="#6B7280" />
                                         <Label Text="{Binding RangoMaximoLbMz, StringFormat='{0:N2} lb/mz'}" FontSize="14" />
