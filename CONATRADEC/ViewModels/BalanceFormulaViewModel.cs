@@ -461,6 +461,9 @@ namespace CONATRADEC.ViewModels
                 if (fuente.Activo == false)
                     continue;
 
+                if (!fuente.EsBalanceNutricional)
+                    continue;
+
                 if (!FuenteTieneAportesBalanceables(fuente))
                     continue;
 
@@ -932,13 +935,19 @@ namespace CONATRADEC.ViewModels
 
             foreach (var detalle in resultadoApi.Detalle)
             {
+                decimal quintalesAnuales = detalle.QuintalesAnuales ?? 0;
+                decimal precioPorQuintal = detalle.PrecioPorQuintal ?? 0;
+                decimal quintalesComprar = Math.Ceiling(quintalesAnuales);
+
                 FilasPrecio.Add(new BalanceFormulaPrecioViewModel
                 {
                     Fuente = detalle.Fuente ?? "Fuente",
                     LibrasAnuales = detalle.LibrasAnuales ?? 0,
-                    QuintalesAnuales = detalle.QuintalesAnuales ?? 0,
-                    PrecioPorQuintal = detalle.PrecioPorQuintal ?? 0,
-                    SubtotalFuente = detalle.SubtotalFuente ?? 0
+                    QuintalesAnuales = quintalesAnuales,
+                    PrecioPorQuintal = precioPorQuintal,
+                    SubtotalFuente = detalle.SubtotalFuente ?? 0,
+                    QuintalesComprar = quintalesComprar,
+                    CostoCompra = quintalesComprar * precioPorQuintal
                 });
             }
 
@@ -949,6 +958,8 @@ namespace CONATRADEC.ViewModels
                 QuintalesAnuales = resultadoApi.TotalMezclaQq ?? 0,
                 PrecioPorQuintal = 0,
                 SubtotalFuente = resultadoApi.PrecioTotalFormula ?? 0,
+                QuintalesComprar = FilasPrecio.Sum(x => x.QuintalesComprar),
+                CostoCompra = FilasPrecio.Sum(x => x.CostoCompra),
                 EsTotal = true
             };
 
@@ -1393,6 +1404,10 @@ namespace CONATRADEC.ViewModels
 
         public decimal SubtotalFuente { get; set; }
 
+        public decimal QuintalesComprar { get; set; }
+
+        public decimal CostoCompra { get; set; }
+
         public bool EsTotal { get; set; }
 
         public string TextoFuente => Fuente;
@@ -1410,5 +1425,11 @@ namespace CONATRADEC.ViewModels
 
         public string TextoSubtotalFuente =>
             $"C$ {SubtotalFuente.ToString("N2", CultureInfo.InvariantCulture)}";
+
+        public string TextoQuintalesComprar =>
+            QuintalesComprar.ToString("N0", CultureInfo.InvariantCulture);
+
+        public string TextoCostoCompra =>
+            $"C$ {CostoCompra.ToString("N2", CultureInfo.InvariantCulture)}";
     }
 }

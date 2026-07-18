@@ -683,6 +683,40 @@
                                     VerticalOptions="Center" />
                             </Border>
 
+                            <Border
+                                WidthRequest="115"
+                                HeightRequest="38"
+                                BackgroundColor="#5F6663"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="QQ a comprar"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    TextColor="Black"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="135"
+                                HeightRequest="38"
+                                BackgroundColor="#5F6663"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="Costo compra"
+                                    FontAttributes="Bold"
+                                    FontSize="13"
+                                    TextColor="Black"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
                         </HorizontalStackLayout>
 
                         <!-- FILAS -->
@@ -769,6 +803,38 @@
 
                                             <Label
                                                 Text="{Binding TextoSubtotalFuente}"
+                                                FontSize="12"
+                                                TextColor="Black"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <Border
+                                            WidthRequest="115"
+                                            HeightRequest="36"
+                                            BackgroundColor="#EEF5F2"
+                                            Stroke="#D9D9D9"
+                                            StrokeThickness="1"
+                                            Padding="6">
+
+                                            <Label
+                                                Text="{Binding TextoQuintalesComprar}"
+                                                FontSize="12"
+                                                TextColor="Black"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <Border
+                                            WidthRequest="135"
+                                            HeightRequest="36"
+                                            BackgroundColor="#EEF5F2"
+                                            Stroke="#D9D9D9"
+                                            StrokeThickness="1"
+                                            Padding="6">
+
+                                            <Label
+                                                Text="{Binding TextoCostoCompra}"
                                                 FontSize="12"
                                                 TextColor="Black"
                                                 HorizontalOptions="End"
@@ -863,6 +929,40 @@
 
                                 <Label
                                     Text="{Binding TextoSubtotalFuente}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Cafe}"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="115"
+                                HeightRequest="38"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="{Binding TextoQuintalesComprar}"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center" />
+                            </Border>
+
+                            <Border
+                                WidthRequest="135"
+                                HeightRequest="38"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#D9D9D9"
+                                StrokeThickness="1"
+                                Padding="6">
+
+                                <Label
+                                    Text="{Binding TextoCostoCompra}"
                                     FontSize="13"
                                     FontAttributes="Bold"
                                     TextColor="{StaticResource color_Cafe}"
