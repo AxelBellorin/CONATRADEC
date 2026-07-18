@@ -36,6 +36,7 @@ namespace CONATRADEC.ViewModels
         private string errorTotalAplicaciones = string.Empty;
 
         private decimal dosisPlantaSeleccionada;
+        private decimal precioExactoFormulaReferencia;
 
         private int? terrenoId;
 
@@ -187,6 +188,16 @@ namespace CONATRADEC.ViewModels
 
         public string TextoDosisPlantaSeleccionada =>
             $"{DosisPlantaSeleccionada.ToString("N4", CultureInfo.InvariantCulture)} oz/planta";
+
+        public decimal PrecioExactoFormulaReferencia
+        {
+            get => precioExactoFormulaReferencia;
+            private set
+            {
+                precioExactoFormulaReferencia = value;
+                OnPropertyChanged(nameof(PrecioExactoFormulaReferencia));
+            }
+        }
 
         public string NombreFormula
         {
@@ -782,7 +793,7 @@ namespace CONATRADEC.ViewModels
             ConstruirTotalesAportesDesdeApi(resultadoApi);
             ConstruirTablaFormulaVisualDesdeApi(resultadoApi);
             ConstruirTablaAplicacionesDesdeApi(resultadoApi, plantas, aplicaciones);
-            ConstruirTablaPreciosDesdeApi(resultadoApi);
+            ConstruirTablaPreciosDesdeApi(resultadoApi, aplicaciones);
 
             TieneResultadoBalance = true;
 
@@ -1033,7 +1044,9 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(TieneTablaAplicaciones));
         }
 
-        private void ConstruirTablaPreciosDesdeApi(BalanceNutricionalResponse resultadoApi)
+        private void ConstruirTablaPreciosDesdeApi(
+            BalanceNutricionalResponse resultadoApi,
+            int aplicaciones)
         {
             FilasPrecio.Clear();
             FilaTotalPrecio = null;
@@ -1056,15 +1069,31 @@ namespace CONATRADEC.ViewModels
                 });
             }
 
+            decimal precioExactoReferencia =
+                resultadoApi.PrecioTotalFormula ??
+                FilasPrecio.Sum(x => x.SubtotalFuente);
+
+            decimal costoRealCompra =
+                FilasPrecio.Sum(x => x.CostoCompra);
+
+            PrecioExactoFormulaReferencia = precioExactoReferencia;
+
+            // El precio oficial del balance debe representar lo que realmente
+            // se compra: cada fuente se redondea al siguiente quintal entero.
+            resultadoApi.PrecioTotalFormula = costoRealCompra;
+            resultadoApi.PrecioPorAplicacion = aplicaciones > 0
+                ? Redondear(costoRealCompra / aplicaciones, 2)
+                : 0;
+
             FilaTotalPrecio = new BalanceFormulaPrecioViewModel
             {
                 Fuente = "Total",
                 LibrasAnuales = resultadoApi.TotalMezclaLb ?? 0,
                 QuintalesAnuales = resultadoApi.TotalMezclaQq ?? 0,
                 PrecioPorQuintal = 0,
-                SubtotalFuente = resultadoApi.PrecioTotalFormula ?? 0,
+                SubtotalFuente = precioExactoReferencia,
                 QuintalesComprar = FilasPrecio.Sum(x => x.QuintalesComprar),
-                CostoCompra = FilasPrecio.Sum(x => x.CostoCompra),
+                CostoCompra = costoRealCompra,
                 EsTotal = true
             };
 
@@ -1238,6 +1267,7 @@ namespace CONATRADEC.ViewModels
             TituloColumnaAplicaciones = "Aplicaciones";
             EtiquetaDosisPlantaSeleccionada = "Dosis por planta";
             DosisPlantaSeleccionada = 0;
+            PrecioExactoFormulaReferencia = 0;
 
             FilaFormula = null;
             ResultadoBalance = null;
@@ -1279,6 +1309,7 @@ namespace CONATRADEC.ViewModels
             TituloColumnaAplicaciones = "Aplicaciones";
             EtiquetaDosisPlantaSeleccionada = "Dosis por planta";
             DosisPlantaSeleccionada = 0;
+            PrecioExactoFormulaReferencia = 0;
 
             FilaFormula = null;
 

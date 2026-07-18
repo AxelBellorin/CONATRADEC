@@ -9,6 +9,7 @@ namespace CONATRADEC.Views
     public partial class NuevoAnalisisFormPage : ContentPage
     {
         private readonly NuevoAnalisisFormViewModel viewModel = new();
+
         public NuevoAnalisisFormPage()
         {
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
@@ -23,9 +24,10 @@ namespace CONATRADEC.Views
             // VALIDAR PERMISOS DE LECTURA
             if (!PermissionService.Instance.HasRead("NuevoAnalisisFormPage"))
             {
-                await DisplayAlert("Acceso denegado",
-                                   "No tiene permisos para ver el formulario de análisis de suelo.",
-                                   "Aceptar");
+                await DisplayAlert(
+                    "Acceso denegado",
+                    "No tiene permisos para ver el formulario de análisis de suelo.",
+                    "Aceptar");
 
                 await Shell.Current.GoToAsync("//MainPage");
                 return;
@@ -34,10 +36,8 @@ namespace CONATRADEC.Views
             // CARGAR PERMISOS EN EL VM
             viewModel.LoadPagePermissions("NuevoAnalisisFormPage");
 
-
             // CARGAR DATOS
             await viewModel.InicializarAsync(true);
-
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using System;
@@ -28,18 +28,19 @@ namespace CONATRADEC.ViewModels
         private bool calcularFertilizacionMixta;
         private int? cantidadPlantas;
 
+        private bool esModoEdicion;
+        private int? analisisSueloCalculoIdEdicion;
+
         public ResultadoAnalisisSueloViewModel()
         {
             Elementos = new ObservableCollection<ElementoResultadoCalculoResponse>();
             Observaciones = new ObservableCollection<string>();
 
             ProcesarSeleccionCommand = new Command(
-                async () => await ProcesarSeleccionAsync()
-            );
+                async () => await ProcesarSeleccionAsync());
 
             VolverCommand = new Command(
-                async () => await VolverAsync()
-            );
+                async () => await VolverAsync());
         }
 
         public AnalisisSueloCalculoDataResponse? Resultado
@@ -77,6 +78,30 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(CantidadPlantas));
             }
         }
+
+        public bool EsModoEdicion
+        {
+            get => esModoEdicion;
+            private set
+            {
+                esModoEdicion = value;
+                OnPropertyChanged(nameof(EsModoEdicion));
+                OnPropertyChanged(nameof(TextoBotonContinuar));
+            }
+        }
+
+        public int? AnalisisSueloCalculoIdEdicion
+        {
+            get => analisisSueloCalculoIdEdicion;
+            private set
+            {
+                analisisSueloCalculoIdEdicion = value;
+                OnPropertyChanged(nameof(AnalisisSueloCalculoIdEdicion));
+            }
+        }
+
+        public string TextoBotonContinuar =>
+            EsModoEdicion ? "Continuar edición" : "Continuar";
 
         public string TituloResultado
         {
@@ -119,7 +144,8 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool TieneMensajeSeleccionCalculo => !string.IsNullOrWhiteSpace(MensajeSeleccionCalculo);
+        public bool TieneMensajeSeleccionCalculo =>
+            !string.IsNullOrWhiteSpace(MensajeSeleccionCalculo);
 
         public bool TieneObservaciones
         {
@@ -158,11 +184,7 @@ namespace CONATRADEC.ViewModels
             {
                 calcularBalanceFormula = value;
                 OnPropertyChanged(nameof(CalcularBalanceFormula));
-                OnPropertyChanged(nameof(TieneSeleccionCalculo));
-                OnPropertyChanged(nameof(TextoSeleccionCalculo));
-
-                if (value)
-                    MensajeSeleccionCalculo = string.Empty;
+                NotificarSeleccion();
             }
         }
 
@@ -173,11 +195,7 @@ namespace CONATRADEC.ViewModels
             {
                 calcularEnmiendaCalcarea = value;
                 OnPropertyChanged(nameof(CalcularEnmiendaCalcarea));
-                OnPropertyChanged(nameof(TieneSeleccionCalculo));
-                OnPropertyChanged(nameof(TextoSeleccionCalculo));
-
-                if (value)
-                    MensajeSeleccionCalculo = string.Empty;
+                NotificarSeleccion();
             }
         }
 
@@ -188,11 +206,7 @@ namespace CONATRADEC.ViewModels
             {
                 calcularFertilizacionMixta = value;
                 OnPropertyChanged(nameof(CalcularFertilizacionMixta));
-                OnPropertyChanged(nameof(TieneSeleccionCalculo));
-                OnPropertyChanged(nameof(TextoSeleccionCalculo));
-
-                if (value)
-                    MensajeSeleccionCalculo = string.Empty;
+                NotificarSeleccion();
             }
         }
 
@@ -208,99 +222,129 @@ namespace CONATRADEC.ViewModels
                 List<string> seleccionados = ObtenerCalculosSeleccionadosTexto();
 
                 if (seleccionados.Count == 0)
-                    return "No se ha seleccionado ningún cálculo.";
+                {
+                    return EsModoEdicion
+                        ? "No se conservará ningún cálculo complementario."
+                        : "No se ha seleccionado ningún cálculo.";
+                }
 
                 return string.Join(", ", seleccionados);
             }
         }
 
         public string TipoCultivo => Resultado?.TipoCultivo ?? string.Empty;
-
         public string TipoAnalisisSuelo => Resultado?.TipoAnalisisSuelo ?? string.Empty;
-
         public decimal CantidadQuintalesOro => Resultado?.CantidadQuintalesOro ?? 0;
-
         public decimal TamanoFinca => Resultado?.TamanoFinca ?? 0;
-
         public decimal Ph => Resultado?.Ph ?? 0;
-
         public decimal AcidezTotal => Resultado?.AcidezTotal ?? 0;
 
         public ObservableCollection<ElementoResultadoCalculoResponse> Elementos { get; }
-
         public ObservableCollection<string> Observaciones { get; }
 
         public Command ProcesarSeleccionCommand { get; }
-
         public Command VolverCommand { get; }
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
             LimpiarPantallaTemporal();
 
-            if (query.ContainsKey("resultadoCalculo"))
+            if (query.TryGetValue("resultadoCalculo", out object? valorResultado) &&
+                valorResultado is AnalisisSueloCalculoDataResponse resultadoApi)
             {
-                AnalisisSueloCalculoDataResponse? resultadoApi =
-                    query["resultadoCalculo"] as AnalisisSueloCalculoDataResponse;
-
-                if (resultadoApi != null)
-                {
-                    CargarResultado(resultadoApi);
-                }
+                CargarResultado(resultadoApi);
             }
 
-            if (query.ContainsKey("requestGuardarAnalisis"))
+            if (query.TryGetValue("requestGuardarAnalisis", out object? valorRequest))
             {
                 RequestGuardarAnalisis =
-                    query["requestGuardarAnalisis"] as AnalisisSueloGuardarCalculoRequest;
+                    valorRequest as AnalisisSueloGuardarCalculoRequest;
             }
 
-            if (query.ContainsKey("cantidadPlantas"))
+            if (query.TryGetValue("cantidadPlantas", out object? valorPlantas) &&
+                int.TryParse(valorPlantas?.ToString(), out int plantas))
             {
-                if (int.TryParse(query["cantidadPlantas"]?.ToString(), out int plantas))
-                    CantidadPlantas = plantas;
+                CantidadPlantas = plantas;
+            }
+
+            EsModoEdicion = ObtenerBoolQuery(query, "esModoEdicion");
+
+            if (query.TryGetValue(
+                    "analisisSueloCalculoIdEdicion",
+                    out object? valorId) &&
+                int.TryParse(valorId?.ToString(), out int idEdicion))
+            {
+                AnalisisSueloCalculoIdEdicion = idEdicion;
+            }
+
+            if (EsModoEdicion)
+            {
+                CalcularBalanceFormula =
+                    ObtenerBoolQuery(query, "calcularBalanceFormula");
+
+                CalcularEnmiendaCalcarea =
+                    ObtenerBoolQuery(query, "calcularEnmiendaCalcarea");
+
+                CalcularFertilizacionMixta =
+                    ObtenerBoolQuery(query, "calcularFertilizacionMixta");
+
+                string identificador =
+                    RequestGuardarAnalisis?.IdentificadorAnalisisSuelo
+                    ?? "análisis";
+
+                TituloResultado = $"Editar - {identificador}";
+
+                MensajeSeleccionCalculo =
+                    "Los cálculos que estaban guardados aparecen seleccionados. Debe recalcular cada sección seleccionada antes de actualizar.";
+            }
+        }
+
+        private void NotificarSeleccion()
+        {
+            OnPropertyChanged(nameof(TieneSeleccionCalculo));
+            OnPropertyChanged(nameof(TextoSeleccionCalculo));
+
+            if (CalcularBalanceFormula ||
+                CalcularEnmiendaCalcarea ||
+                CalcularFertilizacionMixta)
+            {
+                if (!EsModoEdicion)
+                    MensajeSeleccionCalculo = string.Empty;
             }
         }
 
         private void LimpiarPantallaTemporal()
         {
             MensajeSeleccionCalculo = string.Empty;
-
             CalcularBalanceFormula = false;
             CalcularEnmiendaCalcarea = false;
             CalcularFertilizacionMixta = false;
+            EsModoEdicion = false;
+            AnalisisSueloCalculoIdEdicion = null;
         }
 
-        private void CargarResultado(AnalisisSueloCalculoDataResponse resultadoApi)
+        private void CargarResultado(
+            AnalisisSueloCalculoDataResponse resultadoApi)
         {
             Resultado = resultadoApi;
 
             TituloResultado = $"Resultado - {resultadoApi.TipoCultivo}";
-            RecomendacionGeneral = resultadoApi.RecomendacionGeneral ?? string.Empty;
+            RecomendacionGeneral =
+                resultadoApi.RecomendacionGeneral ?? string.Empty;
 
             Elementos.Clear();
 
-            if (resultadoApi.Elementos != null)
+            foreach (ElementoResultadoCalculoResponse elemento in
+                     resultadoApi.Elementos
+                         .OrderByDescending(x => x.RequerimientoCalculado ?? 0))
             {
-                var elementosOrdenados = resultadoApi.Elementos
-                    .OrderByDescending(x => x.RequerimientoCalculado ?? 0)
-                    .ToList();
-
-                foreach (var elemento in elementosOrdenados)
-                {
-                    Elementos.Add(elemento);
-                }
+                Elementos.Add(elemento);
             }
 
             Observaciones.Clear();
 
-            if (resultadoApi.Observaciones != null)
-            {
-                foreach (var observacion in resultadoApi.Observaciones)
-                {
-                    Observaciones.Add(observacion);
-                }
-            }
+            foreach (string observacion in resultadoApi.Observaciones)
+                Observaciones.Add(observacion);
 
             TieneElementos = Elementos.Count > 0;
             TieneObservaciones = Observaciones.Count > 0;
@@ -309,31 +353,31 @@ namespace CONATRADEC.ViewModels
             DefinirSugerenciaSiguienteCalculo(resultadoApi);
         }
 
-        private void DefinirSugerenciaSiguienteCalculo(AnalisisSueloCalculoDataResponse resultadoApi)
+        private void DefinirSugerenciaSiguienteCalculo(
+            AnalisisSueloCalculoDataResponse resultadoApi)
         {
-            decimal ph = resultadoApi.Ph ?? 0;
+            decimal phActual = resultadoApi.Ph ?? 0;
 
-            if (ph > 0 && ph < 5.5m)
+            if (phActual > 0 && phActual < 5.5m)
             {
                 SugerenciaSiguienteCalculo =
-                    "El pH está muy ácido. Se recomienda revisar la enmienda calcárea como uno de los cálculos opcionales.";
+                    "El pH está muy ácido. Se recomienda revisar la enmienda calcárea.";
                 return;
             }
 
-            bool hayDeficiencia = resultadoApi.Elementos != null &&
-                                  resultadoApi.Elementos.Any(e =>
-                                      string.Equals(e.Clasificacion, "MUY_BAJO", StringComparison.OrdinalIgnoreCase) ||
-                                      string.Equals(e.Clasificacion, "MEDIO_BAJO", StringComparison.OrdinalIgnoreCase));
+            bool hayDeficiencia = resultadoApi.Elementos.Any(e =>
+                string.Equals(
+                    e.Clasificacion,
+                    "MUY_BAJO",
+                    StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    e.Clasificacion,
+                    "MEDIO_BAJO",
+                    StringComparison.OrdinalIgnoreCase));
 
-            if (hayDeficiencia)
-            {
-                SugerenciaSiguienteCalculo =
-                    "Hay elementos con deficiencia. Puede seleccionar balance de fórmula o fertilización mixta.";
-                return;
-            }
-
-            SugerenciaSiguienteCalculo =
-                "Seleccione uno o varios cálculos opcionales según lo que desea procesar.";
+            SugerenciaSiguienteCalculo = hayDeficiencia
+                ? "Hay elementos con deficiencia. Puede seleccionar balance de fórmula o fertilización mixta."
+                : "Seleccione los cálculos complementarios que desea procesar.";
         }
 
         private async Task ProcesarSeleccionAsync()
@@ -345,44 +389,59 @@ namespace CONATRADEC.ViewModels
             {
                 await MostrarMensajeAsync(
                     "Resultado no disponible",
-                    "No se encontró el resultado del análisis de suelo."
-                );
-
+                    "No se encontró el resultado del análisis de suelo.");
                 return;
             }
 
-            if (!TieneSeleccionCalculo)
+            if (!TieneSeleccionCalculo && !EsModoEdicion)
             {
-                MensajeSeleccionCalculo = "Debe seleccionar al menos un cálculo para continuar.";
-                await MostrarMensajeAsync("Validación", MensajeSeleccionCalculo);
+                MensajeSeleccionCalculo =
+                    "Debe seleccionar al menos un cálculo para continuar.";
+
+                await MostrarMensajeAsync(
+                    "Validación",
+                    MensajeSeleccionCalculo);
                 return;
             }
 
-            var parametros = new Dictionary<string, object>
+            Dictionary<string, object> parametros = new()
             {
-                { "resultadoCalculo", Resultado },
-                { "calcularBalanceFormula", CalcularBalanceFormula },
-                { "calcularEnmiendaCalcarea", CalcularEnmiendaCalcarea },
-                { "calcularFertilizacionMixta", CalcularFertilizacionMixta }
+                ["resultadoCalculo"] = Resultado,
+                ["calcularBalanceFormula"] = CalcularBalanceFormula,
+                ["calcularEnmiendaCalcarea"] = CalcularEnmiendaCalcarea,
+                ["calcularFertilizacionMixta"] =
+                    CalcularFertilizacionMixta,
+                ["esModoEdicion"] = EsModoEdicion
             };
 
             if (RequestGuardarAnalisis != null)
             {
-                parametros.Add("requestGuardarAnalisis", RequestGuardarAnalisis);
+                parametros["requestGuardarAnalisis"] =
+                    RequestGuardarAnalisis;
 
-                if (RequestGuardarAnalisis.TerrenoId != null && RequestGuardarAnalisis.TerrenoId > 0)
-                    parametros.Add("terrenoId", RequestGuardarAnalisis.TerrenoId.Value);
+                if (RequestGuardarAnalisis.TerrenoId is > 0)
+                {
+                    parametros["terrenoId"] =
+                        RequestGuardarAnalisis.TerrenoId.Value;
+                }
             }
 
-            if (CantidadPlantas != null && CantidadPlantas > 0)
-                parametros.Add("cantidadPlantas", CantidadPlantas.Value);
+            if (CantidadPlantas is > 0)
+                parametros["cantidadPlantas"] = CantidadPlantas.Value;
+
+            if (EsModoEdicion &&
+                AnalisisSueloCalculoIdEdicion is > 0)
+            {
+                parametros["analisisSueloCalculoIdEdicion"] =
+                    AnalisisSueloCalculoIdEdicion.Value;
+            }
 
             await GoToAsyncParameters("//MultiCalculoPage", parametros);
         }
 
         private List<string> ObtenerCalculosSeleccionadosTexto()
         {
-            var seleccionados = new List<string>();
+            List<string> seleccionados = new();
 
             if (CalcularBalanceFormula)
                 seleccionados.Add("Balance de fórmula");
@@ -396,31 +455,49 @@ namespace CONATRADEC.ViewModels
             return seleccionados;
         }
 
-        private List<string> ObtenerCalculosSeleccionadosCodigo()
-        {
-            var seleccionados = new List<string>();
-
-            if (CalcularBalanceFormula)
-                seleccionados.Add("BALANCE_FORMULA");
-
-            if (CalcularEnmiendaCalcarea)
-                seleccionados.Add("ENMIENDA_CALCAREA");
-
-            if (CalcularFertilizacionMixta)
-                seleccionados.Add("FERTILIZACION_MIXTA");
-
-            return seleccionados;
-        }
-
         private async Task VolverAsync()
         {
+            if (EsModoEdicion &&
+                AnalisisSueloCalculoIdEdicion is > 0)
+            {
+                await GoToAsyncParameters(
+                    AppRoutes.EditarAnalisisGuardado,
+                    new Dictionary<string, object>
+                    {
+                        ["analisisSueloCalculoId"] =
+                            AnalisisSueloCalculoIdEdicion.Value
+                    });
+                return;
+            }
+
             await GoToAsyncParameters("//NuevoAnalisisFormPage");
         }
 
-        private static async Task MostrarMensajeAsync(string titulo, string mensaje)
+        private static bool ObtenerBoolQuery(
+            IDictionary<string, object> query,
+            string key)
+        {
+            if (!query.TryGetValue(key, out object? valor))
+                return false;
+
+            if (valor is bool booleano)
+                return booleano;
+
+            return bool.TryParse(valor?.ToString(), out bool resultado) &&
+                   resultado;
+        }
+
+        private static async Task MostrarMensajeAsync(
+            string titulo,
+            string mensaje)
         {
             if (Application.Current?.MainPage != null)
-                await Application.Current.MainPage.DisplayAlert(titulo, mensaje, "Aceptar");
+            {
+                await Application.Current.MainPage.DisplayAlert(
+                    titulo,
+                    mensaje,
+                    "Aceptar");
+            }
         }
     }
 }

@@ -22,7 +22,9 @@ namespace CONATRADEC.Views
 
             if (!viewModel.CanView)
             {
-                await GlobalService.MostrarToastAsync("No tiene permisos para ver el resultado del análisis de suelo.");
+                await GlobalService.MostrarToastAsync(
+                    "No tiene permisos para ver el resultado del análisis de suelo.");
+
                 await Shell.Current.GoToAsync("//MainPage");
                 return;
             }

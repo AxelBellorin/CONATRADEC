@@ -1,13 +1,12 @@
 using CONATRADEC.ViewModels;
-using Microsoft.Maui.Controls;
 
 namespace CONATRADEC.Views
 {
-    public partial class MainPage : ContentPage
+    public partial class EditarAnalisisGuardadoPage : ContentPage
     {
-        private readonly MainPageViewModel viewModel = new();
+        private readonly EditarAnalisisGuardadoViewModel viewModel = new();
 
-        public MainPage()
+        public EditarAnalisisGuardadoPage()
         {
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
             InitializeComponent();
@@ -20,16 +19,15 @@ namespace CONATRADEC.Views
 
             viewModel.LoadPagePermissions("MainPage");
 
-            if (!viewModel.CanView)
+            if (!viewModel.CanEdit)
             {
                 await DisplayAlert(
                     "Permiso denegado",
-                    "No tiene permisos para ver la pantalla principal.",
+                    "No tiene permisos para editar análisis.",
                     "Aceptar");
-                return;
-            }
 
-            await viewModel.CargarAnalisisAsync();
+                await Shell.Current.GoToAsync("..");
+            }
         }
     }
 }

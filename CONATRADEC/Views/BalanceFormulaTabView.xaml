@@ -1103,7 +1103,7 @@
                             FontAttributes="Bold"
                             TextColor="{StaticResource color_Verde}" />
 
-                        <Grid RowDefinitions="Auto,Auto,Auto"
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto"
                               RowSpacing="12">
 
                             <Grid
@@ -1146,7 +1146,7 @@
 
                                 <VerticalStackLayout Grid.Column="0">
                                     <Label
-                                        Text="Precio total"
+                                        Text="Precio total de compra"
                                         FontSize="12"
                                         TextColor="{StaticResource color_GrisOscuro}" />
 
@@ -1172,8 +1172,31 @@
 
                             </Grid>
 
-                            <Grid
+                            <VerticalStackLayout
                                 Grid.Row="2"
+                                Spacing="2">
+
+                                <Label
+                                    Text="Precio exacto de la fórmula (referencia)"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                <Label
+                                    Text="{Binding PrecioExactoFormulaReferencia, StringFormat='C$ {0:N2}'}"
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                <Label
+                                    Text="No se utiliza para el costo final porque no incluye el redondeo a quintales enteros."
+                                    FontSize="11"
+                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    LineBreakMode="WordWrap" />
+
+                            </VerticalStackLayout>
+
+                            <Grid
+                                Grid.Row="3"
                                 ColumnDefinitions="*,*"
                                 ColumnSpacing="12">
 

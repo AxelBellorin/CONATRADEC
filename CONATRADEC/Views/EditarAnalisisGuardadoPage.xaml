@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.EditarAnalisisGuardadoPage"
+    x:Name="EditarAnalisisPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{StaticResource color_Blanco}">
+
+    <ContentPage.Resources>
+        <Style x:Key="EditarInputBorder" TargetType="Border" BasedOn="{StaticResource InputContainerStyle}">
+            <Setter Property="Padding" Value="12,3" />
+            <Setter Property="HeightRequest" Value="58" />
+        </Style>
+
+        <Style x:Key="EditarEntry" TargetType="Entry" BasedOn="{StaticResource InputEntryStyle}">
+            <Setter Property="HeightRequest" Value="52" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+        </Style>
+
+        <Style x:Key="EditarPicker" TargetType="Picker" BasedOn="{StaticResource InputPickerStyle}">
+            <Setter Property="HeightRequest" Value="52" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="18,14" Spacing="14">
+
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Button
+                        Grid.Column="0"
+                        Text="‹"
+                        Command="{Binding CancelarCommand}"
+                        BackgroundColor="#F3F4F6"
+                        TextColor="{StaticResource color_Negro}"
+                        FontSize="24"
+                        WidthRequest="48"
+                        HeightRequest="48"
+                        CornerRadius="14" />
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                        <Label
+                            Text="{Binding TituloPantalla}"
+                            FontSize="25"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+                        <Label
+                            Text="Modifique los datos y vuelva a calcular antes de actualizar."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Border
+                    IsVisible="{Binding TieneMensaje}"
+                    BackgroundColor="#FFF7ED"
+                    Stroke="#FED7AA"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14"
+                    Padding="12">
+                    <Label
+                        Text="{Binding Mensaje}"
+                        TextColor="#9A3412"
+                        FontSize="13"
+                        LineBreakMode="WordWrap" />
+                </Border>
+
+                <Border Style="{StaticResource CardAnalisisStyle}">
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="Cliente y terreno" Style="{StaticResource SectionTitleStyle}" />
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Cliente" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource EditarInputBorder}">
+                                <Picker
+                                    ItemsSource="{Binding Terrenos}"
+                                    SelectedItem="{Binding TerrenoSeleccionado, Mode=TwoWay}"
+                                    ItemDisplayBinding="{Binding NombreCliente}"
+                                    Title="Seleccione cliente"
+                                    Style="{StaticResource EditarPicker}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <Border
+                            IsVisible="{Binding TieneTerrenoSeleccionado}"
+                            BackgroundColor="#EEF5F2"
+                            Stroke="{StaticResource color_Verde}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 13"
+                            Padding="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label
+                                    Text="{Binding TerrenoSeleccionado.CodigoTerreno}"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}" />
+                                <Label
+                                    Text="{Binding TerrenoSeleccionado.NombreTerreno}"
+                                    FontSize="13"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                                <Label
+                                    Text="{Binding TerrenoSeleccionado.TextoUbicacion}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardAnalisisStyle}">
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="Datos del análisis" Style="{StaticResource SectionTitleStyle}" />
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Tipo de cultivo" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource EditarInputBorder}">
+                                <Picker
+                                    ItemsSource="{Binding TiposCultivo}"
+                                    SelectedItem="{Binding TipoCultivoSeleccionado, Mode=TwoWay}"
+                                    ItemDisplayBinding="{Binding NombreMostrar}"
+                                    Title="Seleccione cultivo"
+                                    Style="{StaticResource EditarPicker}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Fecha del análisis del laboratorio" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource EditarInputBorder}">
+                                <DatePicker
+                                    Date="{Binding FechaAnalisisLaboratorio}"
+                                    Format="dd/MM/yyyy"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Laboratorio" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource EditarInputBorder}">
+                                <Entry
+                                    Text="{Binding Laboratorio}"
+                                    Placeholder="Nombre del laboratorio"
+                                    Style="{StaticResource EditarEntry}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Identificador del análisis" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource EditarInputBorder}">
+                                <Entry
+                                    Text="{Binding IdentificadorAnalisisSuelo}"
+                                    Placeholder="Código del laboratorio"
+                                    Style="{StaticResource EditarEntry}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="6">
+                                <Label Text="Quintales oro" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource EditarInputBorder}">
+                                    <Entry
+                                        Text="{Binding CantidadQuintalesOro}"
+                                        Keyboard="Numeric"
+                                        Style="{StaticResource EditarEntry}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Label Text="Tamaño finca" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource EditarInputBorder}">
+                                    <Entry
+                                        Text="{Binding TamanoFinca}"
+                                        Keyboard="Numeric"
+                                        Style="{StaticResource EditarEntry}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Cantidad de plantas" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource EditarInputBorder}">
+                                <Entry
+                                    Text="{Binding CantidadPlantas}"
+                                    Keyboard="Numeric"
+                                    Style="{StaticResource EditarEntry}" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardAnalisisStyle}">
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="Parámetros del suelo" Style="{StaticResource SectionTitleStyle}" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="6">
+                                <Label Text="pH" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource EditarInputBorder}">
+                                    <Entry Text="{Binding Ph}" Keyboard="Numeric" Style="{StaticResource EditarEntry}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Label Text="Acidez total" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource EditarInputBorder}">
+                                    <Entry Text="{Binding AcidezTotal}" Keyboard="Numeric" Style="{StaticResource EditarEntry}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Materia orgánica" Style="{StaticResource FieldLabelStyle}" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <Border Grid.Column="0" Style="{StaticResource EditarInputBorder}">
+                                    <Entry Text="{Binding MateriaOrganica}" Keyboard="Numeric" Style="{StaticResource EditarEntry}" />
+                                </Border>
+                                <Border Grid.Column="1" Style="{StaticResource EditarInputBorder}">
+                                    <Picker
+                                        ItemsSource="{Binding UnidadesMedida}"
+                                        SelectedItem="{Binding UnidadMateriaOrganicaSeleccionada, Mode=TwoWay}"
+                                        ItemDisplayBinding="{Binding TextoMostrar}"
+                                        Style="{StaticResource EditarPicker}" />
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <Label
+                            Text="Valores CICE"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Cafe}" />
+
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                            <VerticalStackLayout Grid.Column="0" Spacing="6">
+                                <Label Text="Ca" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource EditarInputBorder}">
+                                    <Entry Text="{Binding CalcioCice}" Keyboard="Numeric" Style="{StaticResource EditarEntry}" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Label Text="Mg" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource EditarInputBorder}">
+                                    <Entry Text="{Binding MagnesioCice}" Keyboard="Numeric" Style="{StaticResource EditarEntry}" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="6">
+                                <Label Text="K" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource EditarInputBorder}">
+                                    <Entry Text="{Binding PotasioCice}" Keyboard="Numeric" Style="{StaticResource EditarEntry}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Label
+                            Text="Cuando el análisis guardado no tenía enmienda, los valores CICE aparecen vacíos porque actualmente el backend no los conserva."
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardAnalisisStyle}">
+                    <VerticalStackLayout Spacing="14">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Elementos químicos" Style="{StaticResource SectionTitleStyle}" />
+                            <Label
+                                Text="Se cargan los valores originales guardados en el análisis."
+                                Style="{StaticResource SectionSubtitleStyle}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout
+                            BindableLayout.ItemsSource="{Binding ElementosQuimicos}"
+                            Spacing="10">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        BackgroundColor="#F9FAFB"
+                                        Stroke="#E5E7EB"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 14"
+                                        Padding="12">
+                                        <VerticalStackLayout Spacing="10">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <Label
+                                                    Text="{Binding NombreMostrar}"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Negro}"
+                                                    VerticalOptions="Center" />
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Text="Quitar"
+                                                    Command="{Binding Source={x:Reference EditarAnalisisPageRoot}, Path=BindingContext.QuitarElementoCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    Style="{StaticResource DeleteButton}"
+                                                    FontSize="12"
+                                                    Padding="10,6" />
+                                            </Grid>
+
+                                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                                <Border Grid.Column="0" Style="{StaticResource EditarInputBorder}">
+                                                    <Entry
+                                                        Text="{Binding Valor}"
+                                                        Keyboard="Numeric"
+                                                        Placeholder="Valor reportado"
+                                                        Style="{StaticResource EditarEntry}" />
+                                                </Border>
+
+                                                <Border Grid.Column="1" Style="{StaticResource EditarInputBorder}">
+                                                    <Picker
+                                                        ItemsSource="{Binding UnidadesMedida}"
+                                                        SelectedItem="{Binding UnidadSeleccionada, Mode=TwoWay}"
+                                                        ItemDisplayBinding="{Binding TextoMostrar}"
+                                                        Style="{StaticResource EditarPicker}" />
+                                                </Border>
+                                            </Grid>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardAnalisisStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Cálculos que tenía el análisis" Style="{StaticResource SectionTitleStyle}" />
+                        <FlexLayout Direction="Row" Wrap="Wrap">
+                            <Border
+                                IsVisible="{Binding TeniaBalanceFormula}"
+                                Margin="0,0,8,8"
+                                Padding="9,5"
+                                BackgroundColor="#EEF5F2"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10">
+                                <Label Text="Balance" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                            </Border>
+                            <Border
+                                IsVisible="{Binding TeniaEnmiendaCalcarea}"
+                                Margin="0,0,8,8"
+                                Padding="9,5"
+                                BackgroundColor="#FFF3E8"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10">
+                                <Label Text="Enmienda" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                            </Border>
+                            <Border
+                                IsVisible="{Binding TeniaFertilizacionMixta}"
+                                Margin="0,0,8,8"
+                                Padding="9,5"
+                                BackgroundColor="#FFF8D8"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10">
+                                <Label Text="Fertilización mixta" FontAttributes="Bold" TextColor="#7A5C00" />
+                            </Border>
+                        </FlexLayout>
+                        <Label
+                            Text="Después de recalcular podrá conservar o quitar estos cálculos antes de actualizar."
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <BoxView HeightRequest="12" Color="Transparent" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Border
+            Grid.Row="1"
+            BackgroundColor="White"
+            Stroke="#E5E7EB"
+            StrokeThickness="1"
+            Padding="18,12">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button
+                    Grid.Column="0"
+                    Text="Cancelar"
+                    Command="{Binding CancelarCommand}"
+                    Style="{StaticResource CancelButton}" />
+                <Button
+                    Grid.Column="1"
+                    Text="Recalcular y continuar"
+                    Command="{Binding RecalcularCommand}"
+                    Style="{StaticResource AddButton}" />
+            </Grid>
+        </Border>
+
+        <Grid
+            Grid.RowSpan="2"
+            BackgroundColor="#80000000"
+            IsVisible="{Binding IsBusy}">
+            <VerticalStackLayout
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Spacing="12">
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    Color="White"
+                    WidthRequest="42"
+                    HeightRequest="42" />
+                <Label
+                    Text="Cargando análisis..."
+                    TextColor="White"
+                    FontAttributes="Bold" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>
