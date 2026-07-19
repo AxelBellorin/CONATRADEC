@@ -1,10 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
     public class BalanceNutricionalResponse
     {
+        private string? nombreFormula;
+
+        private Dictionary<string, decimal> formulaComercial =
+            new(StringComparer.OrdinalIgnoreCase);
+
         [JsonIgnore]
         public bool Success { get; set; } = true;
 
@@ -22,7 +29,11 @@ namespace CONATRADEC.Models
         }
 
         [JsonPropertyName("nombreFormula")]
-        public string? NombreFormula { get; set; }
+        public string? NombreFormula
+        {
+            get => nombreFormula;
+            set => nombreFormula = TextoBalanceHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("totalLibras")]
         public decimal? TotalLibras { get; set; }
@@ -73,7 +84,12 @@ namespace CONATRADEC.Models
         public decimal? DosisPlantaPorAplicacionOz { get; set; }
 
         [JsonPropertyName("formulaComercial")]
-        public Dictionary<string, decimal> FormulaComercial { get; set; } = new();
+        public Dictionary<string, decimal> FormulaComercial
+        {
+            get => formulaComercial;
+            set => formulaComercial =
+                TextoBalanceHelper.NormalizarDiccionario(value);
+        }
 
         [JsonPropertyName("detalle")]
         public List<BalanceNutricionalDetalleResponse> Detalle { get; set; } = new();
@@ -81,11 +97,25 @@ namespace CONATRADEC.Models
 
     public class BalanceNutricionalDetalleResponse
     {
+        private string? fuente;
+        private string? elemento;
+
+        private Dictionary<string, decimal> aportes =
+            new(StringComparer.OrdinalIgnoreCase);
+
         [JsonPropertyName("fuente")]
-        public string? Fuente { get; set; }
+        public string? Fuente
+        {
+            get => fuente;
+            set => fuente = TextoBalanceHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("elemento")]
-        public string? Elemento { get; set; }
+        public string? Elemento
+        {
+            get => elemento;
+            set => elemento = TextoBalanceHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("lb")]
         public decimal? Lb { get; set; }
@@ -126,6 +156,47 @@ namespace CONATRADEC.Models
         public decimal? SubtotalFuente { get; set; }
 
         [JsonPropertyName("aportes")]
-        public Dictionary<string, decimal> Aportes { get; set; } = new();
+        public Dictionary<string, decimal> Aportes
+        {
+            get => aportes;
+            set => aportes =
+                TextoBalanceHelper.NormalizarDiccionario(value);
+        }
+    }
+
+    internal static class TextoBalanceHelper
+    {
+        public static string? Limpiar(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                return null;
+
+            return valor.Trim();
+        }
+
+        public static Dictionary<string, decimal> NormalizarDiccionario(
+            Dictionary<string, decimal>? origen)
+        {
+            Dictionary<string, decimal> resultado =
+                new(StringComparer.OrdinalIgnoreCase);
+
+            if (origen == null)
+                return resultado;
+
+            foreach (KeyValuePair<string, decimal> item in origen)
+            {
+                string clave = (item.Key ?? string.Empty).Trim();
+
+                if (string.IsNullOrWhiteSpace(clave))
+                    continue;
+
+                if (resultado.ContainsKey(clave))
+                    resultado[clave] += item.Value;
+                else
+                    resultado[clave] = item.Value;
+            }
+
+            return resultado;
+        }
     }
 }

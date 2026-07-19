@@ -46,11 +46,22 @@ namespace CONATRADEC.Models
 
     public class ElementoResultadoCalculoResponse
     {
+        private string? simboloElementoQuimico;
+        private string? nombreElementoQuimico;
+
         public int? ElementoQuimicosId { get; set; }
 
-        public string? SimboloElementoQuimico { get; set; }
+        public string? SimboloElementoQuimico
+        {
+            get => simboloElementoQuimico;
+            set => simboloElementoQuimico = LimpiarTexto(value);
+        }
 
-        public string? NombreElementoQuimico { get; set; }
+        public string? NombreElementoQuimico
+        {
+            get => nombreElementoQuimico;
+            set => nombreElementoQuimico = LimpiarTexto(value);
+        }
 
         public decimal? CantidadIngresada { get; set; }
 
@@ -79,5 +90,13 @@ namespace CONATRADEC.Models
         public string? Clasificacion { get; set; }
 
         public string? Observacion { get; set; }
+
+        private static string? LimpiarTexto(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                return null;
+
+            return valor.Trim();
+        }
     }
 }

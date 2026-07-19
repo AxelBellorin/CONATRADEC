@@ -33,8 +33,7 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            // El listado se mantiene bajo demanda.
-            // No se realiza ninguna consulta al abrir MainPage.
+            // La consulta se ejecuta únicamente al presionar el botón.
         }
 
         private async void OnListarAnalisisClicked(

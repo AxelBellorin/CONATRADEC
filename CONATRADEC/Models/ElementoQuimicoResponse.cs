@@ -5,17 +5,15 @@ namespace CONATRADEC.Models
 {
     /// <summary>
     /// Modelo de respuesta para Elemento Químico.
-    /// Representa lo que devuelve la API al listar/consultar elementos químicos.
+    /// Representa lo que devuelve la API al listar o consultar elementos químicos.
     /// </summary>
     public class ElementoQuimicoResponse
     {
-        // Campos privados
         private int? elementoQuimicosId;
         private string? simboloElementoQuimico;
         private string? nombreElementoQuimico;
         private decimal? pesoEquivalenteElementoQuimico;
 
-        // Propiedades públicas
         public int? ElementoQuimicosId
         {
             get => elementoQuimicosId;
@@ -25,19 +23,18 @@ namespace CONATRADEC.Models
         public string? SimboloElementoQuimico
         {
             get => simboloElementoQuimico;
-            set => simboloElementoQuimico = value;
+            set => simboloElementoQuimico = LimpiarTexto(value);
         }
 
         public string? NombreElementoQuimico
         {
             get => nombreElementoQuimico;
-            set => nombreElementoQuimico = value;
+            set => nombreElementoQuimico = LimpiarTexto(value);
         }
 
         /// <summary>
-        /// Peso equivalente del elemento químico (decimal(10,4) en la base de datos).
+        /// Peso equivalente del elemento químico.
         /// </summary>
-        /// 
         [JsonPropertyName("pesoEquivalenteElementoQuimico")]
         public decimal? PesoEquivalenteElementoQuimico
         {
@@ -45,6 +42,16 @@ namespace CONATRADEC.Models
             set => pesoEquivalenteElementoQuimico = value;
         }
 
-        public ElementoQuimicoResponse() { }
+        public ElementoQuimicoResponse()
+        {
+        }
+
+        private static string? LimpiarTexto(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                return null;
+
+            return valor.Trim();
+        }
     }
 }

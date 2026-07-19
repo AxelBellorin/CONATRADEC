@@ -3,12 +3,10 @@ using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
-    // ===============================================================
-    // Response de:
-    // POST api/fertilizacion-mixta/calcular
-    // ===============================================================
     public class FertilizacionMixtaCalculoResponse
     {
+        private string? observacion;
+
         [JsonIgnore]
         public bool Success { get; set; } = true;
 
@@ -16,7 +14,11 @@ namespace CONATRADEC.Models
         public string? Message { get; set; }
 
         [JsonPropertyName("observacion")]
-        public string? Observacion { get; set; }
+        public string? Observacion
+        {
+            get => observacion;
+            set => observacion = TextoMixtaHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("fuentes")]
         public List<FuenteFertilizacionMixtaResultadoResponse> Fuentes { get; set; } = new();
@@ -27,11 +29,17 @@ namespace CONATRADEC.Models
 
     public class FuenteFertilizacionMixtaResultadoResponse
     {
+        private string? nombreFuente;
+
         [JsonPropertyName("fuenteNutrientesId")]
         public int? FuenteNutrientesId { get; set; }
 
         [JsonPropertyName("nombreFuente")]
-        public string? NombreFuente { get; set; }
+        public string? NombreFuente
+        {
+            get => nombreFuente;
+            set => nombreFuente = TextoMixtaHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("cantidadQq")]
         public decimal? CantidadQq { get; set; }
@@ -39,11 +47,17 @@ namespace CONATRADEC.Models
 
     public class DetalleFertilizacionMixtaResultadoResponse
     {
+        private string? elemento;
+
         [JsonPropertyName("elementoQuimicosId")]
         public int? ElementoQuimicosId { get; set; }
 
         [JsonPropertyName("elemento")]
-        public string? Elemento { get; set; }
+        public string? Elemento
+        {
+            get => elemento;
+            set => elemento = TextoMixtaHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("exportable")]
         public decimal? Exportable { get; set; }
@@ -66,11 +80,17 @@ namespace CONATRADEC.Models
 
     public class FuenteDetalleFertilizacionMixtaResponse
     {
+        private string? nombreFuente;
+
         [JsonPropertyName("fuenteNutrientesId")]
         public int? FuenteNutrientesId { get; set; }
 
         [JsonPropertyName("nombreFuente")]
-        public string? NombreFuente { get; set; }
+        public string? NombreFuente
+        {
+            get => nombreFuente;
+            set => nombreFuente = TextoMixtaHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("cantidadQq")]
         public decimal? CantidadQq { get; set; }
@@ -82,20 +102,27 @@ namespace CONATRADEC.Models
         public decimal? AporteTotal { get; set; }
     }
 
-    // ===============================================================
-    // Response de:
-    // GET api/fuente-nutriente/listar-fertilizacion-mixta
-    // ===============================================================
     public class FuenteNutrienteFertilizacionMixtaResponse
     {
+        private string? nombreNutriente;
+        private string? descripcionNutriente;
+
         [JsonPropertyName("fuenteNutrientesId")]
         public int? FuenteNutrientesId { get; set; }
 
         [JsonPropertyName("nombreNutriente")]
-        public string? NombreNutriente { get; set; }
+        public string? NombreNutriente
+        {
+            get => nombreNutriente;
+            set => nombreNutriente = TextoMixtaHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("descripcionNutriente")]
-        public string? DescripcionNutriente { get; set; }
+        public string? DescripcionNutriente
+        {
+            get => descripcionNutriente;
+            set => descripcionNutriente = TextoMixtaHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("precioNutriente")]
         public decimal? PrecioNutriente { get; set; }
@@ -104,11 +131,15 @@ namespace CONATRADEC.Models
         public bool? Activo { get; set; }
 
         [JsonPropertyName("elementosQuimicos")]
-        public List<ElementoFuenteNutrienteFertilizacionMixtaResponse> ElementosQuimicos { get; set; } = new();
+        public List<ElementoFuenteNutrienteFertilizacionMixtaResponse>
+            ElementosQuimicos { get; set; } = new();
     }
 
     public class ElementoFuenteNutrienteFertilizacionMixtaResponse
     {
+        private string? nombreElementoQuimico;
+        private string? simboloElementoQuimico;
+
         [JsonPropertyName("fuenteNutrienteElementoQuimicoId")]
         public int? FuenteNutrienteElementoQuimicoId { get; set; }
 
@@ -116,12 +147,31 @@ namespace CONATRADEC.Models
         public int? ElementoQuimicosId { get; set; }
 
         [JsonPropertyName("nombreElementoQuimico")]
-        public string? NombreElementoQuimico { get; set; }
+        public string? NombreElementoQuimico
+        {
+            get => nombreElementoQuimico;
+            set => nombreElementoQuimico = TextoMixtaHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("simboloElementoQuimico")]
-        public string? SimboloElementoQuimico { get; set; }
+        public string? SimboloElementoQuimico
+        {
+            get => simboloElementoQuimico;
+            set => simboloElementoQuimico = TextoMixtaHelper.Limpiar(value);
+        }
 
         [JsonPropertyName("cantidadAporte")]
         public decimal? CantidadAporte { get; set; }
+    }
+
+    internal static class TextoMixtaHelper
+    {
+        public static string? Limpiar(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                return null;
+
+            return valor.Trim();
+        }
     }
 }
