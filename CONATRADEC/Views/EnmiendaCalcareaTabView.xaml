@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentView
     x:Class="CONATRADEC.Views.EnmiendaCalcareaTabView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -264,15 +264,34 @@
                         LineBreakMode="WordWrap" />
                 </Border>
 
-                <!-- BOTÓN CALCULAR -->
-                <Button
-                    Text="Calcular enmienda"
-                    Command="{Binding CalcularCommand}"
-                    IsEnabled="{Binding PuedeCalcular}"
-                    BackgroundColor="{StaticResource color_Cafe}"
-                    TextColor="White"
-                    CornerRadius="12"
-                    HeightRequest="48" />
+                <!-- BOTONES REINICIAR Y CALCULAR -->
+                <Grid
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="10">
+
+                    <Button
+                        Grid.Column="0"
+                        Text="Reiniciar"
+                        Command="{Binding ReiniciarCommand}"
+                        IsEnabled="{Binding PuedeReiniciar}"
+                        BackgroundColor="#F3F4F6"
+                        TextColor="{StaticResource color_Negro}"
+                        BorderColor="#D1D5DB"
+                        BorderWidth="1"
+                        CornerRadius="12"
+                        HeightRequest="48" />
+
+                    <Button
+                        Grid.Column="1"
+                        Text="Calcular enmienda"
+                        Command="{Binding CalcularCommand}"
+                        IsEnabled="{Binding PuedeCalcular}"
+                        BackgroundColor="{StaticResource color_Cafe}"
+                        TextColor="White"
+                        CornerRadius="12"
+                        HeightRequest="48" />
+
+                </Grid>
 
             </VerticalStackLayout>
         </Border>
@@ -317,44 +336,124 @@
                         ColumnSpacing="12"
                         RowSpacing="12">
 
-                        <VerticalStackLayout Grid.Row="0" Grid.Column="0">
-                            <Label Text="Suma de bases" FontSize="12" TextColor="#7C2D12" />
-                            <Label Text="{Binding ResultadoEnmienda.SumaBases, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" />
+                        <VerticalStackLayout
+                            Grid.Row="0"
+                            Grid.Column="0">
+
+                            <Label
+                                Text="Suma de bases"
+                                FontSize="12"
+                                TextColor="#7C2D12" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.SumaBases, StringFormat='{0:N2}'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Row="0" Grid.Column="1">
-                            <Label Text="CICE" FontSize="12" TextColor="#7C2D12" />
-                            <Label Text="{Binding ResultadoEnmienda.Cice, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" />
+                        <VerticalStackLayout
+                            Grid.Row="0"
+                            Grid.Column="1">
+
+                            <Label
+                                Text="CICE"
+                                FontSize="12"
+                                TextColor="#7C2D12" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.Cice, StringFormat='{0:N2}'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Row="1" Grid.Column="0">
-                            <Label Text="Saturación actual" FontSize="12" TextColor="#7C2D12" />
-                            <Label Text="{Binding ResultadoEnmienda.SaturacionActual, StringFormat='{0:N2}%'}" FontSize="15" FontAttributes="Bold" />
+                        <VerticalStackLayout
+                            Grid.Row="1"
+                            Grid.Column="0">
+
+                            <Label
+                                Text="Saturación actual"
+                                FontSize="12"
+                                TextColor="#7C2D12" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.SaturacionActual, StringFormat='{0:N2}%'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Row="1" Grid.Column="1">
-                            <Label Text="Saturación deseada" FontSize="12" TextColor="#7C2D12" />
-                            <Label Text="{Binding ResultadoEnmienda.SaturacionDeseada, StringFormat='{0:N2}%'}" FontSize="15" FontAttributes="Bold" />
+                        <VerticalStackLayout
+                            Grid.Row="1"
+                            Grid.Column="1">
+
+                            <Label
+                                Text="Saturación deseada"
+                                FontSize="12"
+                                TextColor="#7C2D12" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.SaturacionDeseada, StringFormat='{0:N2}%'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Row="2" Grid.Column="0">
-                            <Label Text="PRNT" FontSize="12" TextColor="#7C2D12" />
-                            <Label Text="{Binding ResultadoEnmienda.Prnt, StringFormat='{0:N2}%'}" FontSize="15" FontAttributes="Bold" />
+                        <VerticalStackLayout
+                            Grid.Row="2"
+                            Grid.Column="0">
+
+                            <Label
+                                Text="PRNT"
+                                FontSize="12"
+                                TextColor="#7C2D12" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.Prnt, StringFormat='{0:N2}%'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Row="2" Grid.Column="1">
-                            <Label Text="Ton/Ha" FontSize="12" TextColor="#7C2D12" />
-                            <Label Text="{Binding ResultadoEnmienda.NecesidadEncaladoTonHa, StringFormat='{0:N2} ton/ha'}" FontSize="15" FontAttributes="Bold" />
+                        <VerticalStackLayout
+                            Grid.Row="2"
+                            Grid.Column="1">
+
+                            <Label
+                                Text="Ton/Ha"
+                                FontSize="12"
+                                TextColor="#7C2D12" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.NecesidadEncaladoTonHa, StringFormat='{0:N2} ton/ha'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Row="3" Grid.Column="0">
-                            <Label Text="Lb/Mz" FontSize="12" TextColor="#7C2D12" />
-                            <Label Text="{Binding ResultadoEnmienda.NecesidadEncaladoLbMz, StringFormat='{0:N2} lb/mz'}" FontSize="15" FontAttributes="Bold" />
+                        <VerticalStackLayout
+                            Grid.Row="3"
+                            Grid.Column="0">
+
+                            <Label
+                                Text="Lb/Mz"
+                                FontSize="12"
+                                TextColor="#7C2D12" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.NecesidadEncaladoLbMz, StringFormat='{0:N2} lb/mz'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Row="3" Grid.Column="1">
-                            <Label Text="Oz/Mz" FontSize="12" TextColor="#7C2D12" />
-                            <Label Text="{Binding ResultadoEnmienda.NecesidadEncaladoOzMz, StringFormat='{0:N2} oz/mz'}" FontSize="15" FontAttributes="Bold" />
+                        <VerticalStackLayout
+                            Grid.Row="3"
+                            Grid.Column="1">
+
+                            <Label
+                                Text="Oz/Mz"
+                                FontSize="12"
+                                TextColor="#7C2D12" />
+
+                            <Label
+                                Text="{Binding ResultadoEnmienda.NecesidadEncaladoOzMz, StringFormat='{0:N2} oz/mz'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
                     </Grid>

@@ -51,12 +51,16 @@ namespace CONATRADEC.ViewModels
 
         public EnmiendaCalcareaTabViewModel()
         {
-            EnmiendasCalcareas = new ObservableCollection<ParametroEnmiendaCalcareaResponse>();
+            EnmiendasCalcareas =
+                new ObservableCollection<ParametroEnmiendaCalcareaResponse>();
+
+            ReiniciarCommand = new Command(
+                async () => await ReiniciarEnmiendaAsync(),
+                () => PuedeReiniciar);
 
             CalcularCommand = new Command(
                 async () => await CalcularAsync(),
-                () => PuedeCalcular
-            );
+                () => PuedeCalcular);
         }
 
         public AnalisisSueloCalculoDataResponse? ResultadoCalculo
@@ -91,7 +95,8 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public ObservableCollection<ParametroEnmiendaCalcareaResponse> EnmiendasCalcareas { get; }
+        public ObservableCollection<ParametroEnmiendaCalcareaResponse>
+            EnmiendasCalcareas { get; }
 
         public ParametroEnmiendaCalcareaResponse? EnmiendaSeleccionada
         {
@@ -99,15 +104,19 @@ namespace CONATRADEC.ViewModels
             set
             {
                 enmiendaSeleccionada = value;
+
                 OnPropertyChanged(nameof(EnmiendaSeleccionada));
                 OnPropertyChanged(nameof(TieneEnmiendaSeleccionada));
                 OnPropertyChanged(nameof(TextoEnmiendaSeleccionada));
+                OnPropertyChanged(nameof(PuedeReiniciar));
+
                 MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
         }
 
-        public bool TieneEnmiendaSeleccionada => EnmiendaSeleccionada != null;
+        public bool TieneEnmiendaSeleccionada =>
+            EnmiendaSeleccionada != null;
 
         public string TextoEnmiendaSeleccionada
         {
@@ -116,7 +125,8 @@ namespace CONATRADEC.ViewModels
                 if (EnmiendaSeleccionada == null)
                     return string.Empty;
 
-                return $"Seleccionado: {EnmiendaSeleccionada.NombreMostrar}";
+                return
+                    $"Seleccionado: {EnmiendaSeleccionada.NombreMostrar}";
             }
         }
 
@@ -126,12 +136,17 @@ namespace CONATRADEC.ViewModels
             set
             {
                 resultadoEnmienda = value;
+
                 OnPropertyChanged(nameof(ResultadoEnmienda));
                 OnPropertyChanged(nameof(TieneResultado));
+                OnPropertyChanged(nameof(PuedeReiniciar));
+
+                RefrescarComandos();
             }
         }
 
-        public bool TieneResultado => ResultadoEnmienda != null;
+        public bool TieneResultado =>
+            ResultadoEnmienda != null;
 
         // ===========================================================
         // Nombre del análisis usado para la enmienda.
@@ -145,8 +160,10 @@ namespace CONATRADEC.ViewModels
             set
             {
                 nombreAnalisis = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(NombreAnalisis));
                 OnPropertyChanged(nameof(NombreAnalisisTexto));
+
                 RefrescarComandos();
             }
         }
@@ -168,7 +185,9 @@ namespace CONATRADEC.ViewModels
             set
             {
                 ph = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(Ph));
+
                 MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
@@ -180,7 +199,9 @@ namespace CONATRADEC.ViewModels
             set
             {
                 ca = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(Ca));
+
                 MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
@@ -192,7 +213,9 @@ namespace CONATRADEC.ViewModels
             set
             {
                 mg = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(Mg));
+
                 MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
@@ -204,7 +227,9 @@ namespace CONATRADEC.ViewModels
             set
             {
                 k = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(K));
+
                 MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
@@ -216,7 +241,9 @@ namespace CONATRADEC.ViewModels
             set
             {
                 acidezTotal = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(AcidezTotal));
+
                 MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
@@ -228,7 +255,9 @@ namespace CONATRADEC.ViewModels
             set
             {
                 totalPlantas = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(TotalPlantas));
+
                 MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
@@ -240,7 +269,9 @@ namespace CONATRADEC.ViewModels
             set
             {
                 totalAplicaciones = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(TotalAplicaciones));
+
                 MarcarEnmiendaPendienteSiTieneResultado();
                 RefrescarComandos();
             }
@@ -252,12 +283,14 @@ namespace CONATRADEC.ViewModels
             set
             {
                 mensaje = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(Mensaje));
                 OnPropertyChanged(nameof(TieneMensaje));
             }
         }
 
-        public bool TieneMensaje => !string.IsNullOrWhiteSpace(Mensaje);
+        public bool TieneMensaje =>
+            !string.IsNullOrWhiteSpace(Mensaje);
 
         public string ErrorFormulario
         {
@@ -265,12 +298,14 @@ namespace CONATRADEC.ViewModels
             set
             {
                 errorFormulario = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(ErrorFormulario));
                 OnPropertyChanged(nameof(TieneErrorFormulario));
             }
         }
 
-        public bool TieneErrorFormulario => !string.IsNullOrWhiteSpace(ErrorFormulario);
+        public bool TieneErrorFormulario =>
+            !string.IsNullOrWhiteSpace(ErrorFormulario);
 
         public bool IsBusy
         {
@@ -278,8 +313,11 @@ namespace CONATRADEC.ViewModels
             set
             {
                 isBusy = value;
+
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(PuedeCalcular));
+                OnPropertyChanged(nameof(PuedeReiniciar));
+
                 RefrescarComandos();
             }
         }
@@ -287,6 +325,15 @@ namespace CONATRADEC.ViewModels
         public bool PuedeCalcular =>
             !IsBusy &&
             EnmiendaSeleccionada != null;
+
+        public bool PuedeReiniciar =>
+            !IsBusy &&
+            (
+                EnmiendaSeleccionada != null ||
+                ResultadoEnmienda != null
+            );
+
+        public Command ReiniciarCommand { get; }
 
         public Command CalcularCommand { get; }
 
@@ -304,8 +351,14 @@ namespace CONATRADEC.ViewModels
             RequestGuardarAnalisis = requestGuardar;
             TerrenoId = idTerreno;
 
-            if (string.IsNullOrWhiteSpace(TotalPlantas) && plantas.HasValue && plantas.Value > 0)
-                TotalPlantas = plantas.Value.ToString(CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(TotalPlantas) &&
+                plantas.HasValue &&
+                plantas.Value > 0)
+            {
+                TotalPlantas =
+                    plantas.Value.ToString(
+                        CultureInfo.InvariantCulture);
+            }
 
             if (!enmiendasCargadas)
                 _ = CargarEnmiendasCalcareasAsync();
@@ -313,11 +366,15 @@ namespace CONATRADEC.ViewModels
 
         private void PrecargarDatosDesdeAnalisis()
         {
-            string identificador = RequestGuardarAnalisis?.IdentificadorAnalisisSuelo ?? string.Empty;
+            string identificador =
+                RequestGuardarAnalisis?
+                    .IdentificadorAnalisisSuelo ??
+                string.Empty;
 
-            NombreAnalisis = string.IsNullOrWhiteSpace(identificador)
-                ? "Enmienda calcárea"
-                : identificador.Trim();
+            NombreAnalisis =
+                string.IsNullOrWhiteSpace(identificador)
+                    ? "Enmienda calcárea"
+                    : identificador.Trim();
 
             decimal phAnalisis =
                 RequestGuardarAnalisis?.Ph ??
@@ -330,28 +387,56 @@ namespace CONATRADEC.ViewModels
                 0;
 
             decimal calcioCice =
-                RequestGuardarAnalisis?.CalcioCice ?? 0;
+                RequestGuardarAnalisis?.CalcioCice ??
+                0;
 
             decimal magnesioCice =
-                RequestGuardarAnalisis?.MagnesioCice ?? 0;
+                RequestGuardarAnalisis?.MagnesioCice ??
+                0;
 
             decimal potasioCice =
-                RequestGuardarAnalisis?.PotasioCice ?? 0;
+                RequestGuardarAnalisis?.PotasioCice ??
+                0;
 
-            if (string.IsNullOrWhiteSpace(Ph) && phAnalisis > 0)
-                Ph = phAnalisis.ToString(CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(Ph) &&
+                phAnalisis > 0)
+            {
+                Ph =
+                    phAnalisis.ToString(
+                        CultureInfo.InvariantCulture);
+            }
 
-            if (string.IsNullOrWhiteSpace(AcidezTotal) && acidezAnalisis > 0)
-                AcidezTotal = acidezAnalisis.ToString(CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(AcidezTotal) &&
+                acidezAnalisis > 0)
+            {
+                AcidezTotal =
+                    acidezAnalisis.ToString(
+                        CultureInfo.InvariantCulture);
+            }
 
-            if (string.IsNullOrWhiteSpace(Ca) && calcioCice > 0)
-                Ca = calcioCice.ToString(CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(Ca) &&
+                calcioCice > 0)
+            {
+                Ca =
+                    calcioCice.ToString(
+                        CultureInfo.InvariantCulture);
+            }
 
-            if (string.IsNullOrWhiteSpace(Mg) && magnesioCice > 0)
-                Mg = magnesioCice.ToString(CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(Mg) &&
+                magnesioCice > 0)
+            {
+                Mg =
+                    magnesioCice.ToString(
+                        CultureInfo.InvariantCulture);
+            }
 
-            if (string.IsNullOrWhiteSpace(K) && potasioCice > 0)
-                K = potasioCice.ToString(CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(K) &&
+                potasioCice > 0)
+            {
+                K =
+                    potasioCice.ToString(
+                        CultureInfo.InvariantCulture);
+            }
 
             OnPropertyChanged(nameof(NombreAnalisisTexto));
         }
@@ -377,7 +462,9 @@ namespace CONATRADEC.ViewModels
             TotalPlantas = string.Empty;
             TotalAplicaciones = "3";
 
-            Mensaje = "Ingrese los datos CICE y seleccione el tipo de cal.";
+            Mensaje =
+                "Ingrese los datos CICE y seleccione el tipo de cal.";
+
             ErrorFormulario = string.Empty;
 
             TerrenoId = null;
@@ -388,6 +475,53 @@ namespace CONATRADEC.ViewModels
             IsBusy = false;
 
             RefrescarComandos();
+        }
+
+        // ===========================================================
+        // ============== REINICIAR CÁLCULO DESDE UI =================
+        // ===========================================================
+
+        private async Task ReiniciarEnmiendaAsync()
+        {
+            if (IsBusy)
+                return;
+
+            try
+            {
+                IsBusy = true;
+                ErrorFormulario = string.Empty;
+
+                /*
+                 * Se conservan los datos base del análisis:
+                 * pH, AT, Ca, Mg, K, plantas y aplicaciones.
+                 *
+                 * Solo se limpia la selección de cal y el resultado
+                 * procesado para que el usuario pueda calcular de nuevo.
+                 */
+                ResultadoEnmienda = null;
+                EnmiendaSeleccionada = null;
+
+                await CalculoAnalisisTemporalService
+                    .Instance
+                    .ReiniciarCalculoAsync(
+                        TipoCalculoTemporal.EnmiendaCalcarea,
+                        "Enmienda calcárea reiniciada.");
+
+                Mensaje =
+                    "La enmienda calcárea fue reiniciada. " +
+                    "Seleccione nuevamente el tipo de cal y presione Calcular.";
+            }
+            catch (Exception ex)
+            {
+                ErrorFormulario = ex.Message;
+                Mensaje =
+                    "No se pudo reiniciar la enmienda calcárea.";
+            }
+            finally
+            {
+                IsBusy = false;
+                RefrescarComandos();
+            }
         }
 
         // ===========================================================
@@ -407,33 +541,46 @@ namespace CONATRADEC.ViewModels
 
                 EnmiendasCalcareas.Clear();
 
-                ObservableCollection<ParametroEnmiendaCalcareaResponse> lista =
-                    await enmiendaCalcareaApiService.GetEnmiendasCalcareasAsync();
+                ObservableCollection<ParametroEnmiendaCalcareaResponse>
+                    lista =
+                        await enmiendaCalcareaApiService
+                            .GetEnmiendasCalcareasAsync();
 
-                foreach (ParametroEnmiendaCalcareaResponse item in lista)
+                foreach (
+                    ParametroEnmiendaCalcareaResponse item
+                    in lista)
                 {
                     if (item == null)
                         continue;
 
-                    if (item.FuenteNutrientesId == null || item.FuenteNutrientesId <= 0)
+                    if (item.FuenteNutrientesId == null ||
+                        item.FuenteNutrientesId <= 0)
+                    {
                         continue;
+                    }
 
                     EnmiendasCalcareas.Add(item);
                 }
 
                 enmiendasCargadas = true;
 
-                if (EnmiendasCalcareas.Count > 0 && EnmiendaSeleccionada == null)
-                    EnmiendaSeleccionada = EnmiendasCalcareas.FirstOrDefault();
+                if (EnmiendasCalcareas.Count > 0 &&
+                    EnmiendaSeleccionada == null)
+                {
+                    EnmiendaSeleccionada =
+                        EnmiendasCalcareas.FirstOrDefault();
+                }
 
-                Mensaje = EnmiendasCalcareas.Count > 0
-                    ? "Ingrese o revise los datos CICE y calcule la enmienda."
-                    : "No se encontraron tipos de cal disponibles.";
+                Mensaje =
+                    EnmiendasCalcareas.Count > 0
+                        ? "Ingrese o revise los datos CICE y calcule la enmienda."
+                        : "No se encontraron tipos de cal disponibles.";
             }
             catch (Exception ex)
             {
                 ErrorFormulario = ex.Message;
-                Mensaje = "No se pudieron cargar los tipos de cal.";
+                Mensaje =
+                    "No se pudieron cargar los tipos de cal.";
             }
             finally
             {
@@ -468,51 +615,84 @@ namespace CONATRADEC.ViewModels
                 IsBusy = true;
                 ErrorFormulario = string.Empty;
                 ResultadoEnmienda = null;
-                Mensaje = "Calculando enmienda calcárea...";
+                Mensaje =
+                    "Calculando enmienda calcárea...";
 
-                var request = new EnmiendaCalcareaCalcularRequest
-                {
-                    NombreAnalisis = NombreAnalisisTexto,
-                    FuenteNutrientesId = EnmiendaSeleccionada!.FuenteNutrientesId!.Value,
-                    Ph = phValidado,
-                    Ca = caValidado,
-                    Mg = mgValidado,
-                    K = kValidado,
-                    AcidezTotal = acidezValidada,
-                    TerrenoId = TerrenoId!.Value,
-                    TotalPlantas = plantasValidadas,
-                    TotalAplicaciones = aplicacionesValidadas
-                };
+                var request =
+                    new EnmiendaCalcareaCalcularRequest
+                    {
+                        NombreAnalisis =
+                            NombreAnalisisTexto,
+
+                        FuenteNutrientesId =
+                            EnmiendaSeleccionada!
+                                .FuenteNutrientesId!
+                                .Value,
+
+                        Ph = phValidado,
+                        Ca = caValidado,
+                        Mg = mgValidado,
+                        K = kValidado,
+
+                        AcidezTotal =
+                            acidezValidada,
+
+                        TerrenoId =
+                            TerrenoId!.Value,
+
+                        TotalPlantas =
+                            plantasValidadas,
+
+                        TotalAplicaciones =
+                            aplicacionesValidadas
+                    };
 
                 ResultadoEnmienda =
-                    await enmiendaCalcareaApiService.CalcularEnmiendaCalcareaAsync(request);
+                    await enmiendaCalcareaApiService
+                        .CalcularEnmiendaCalcareaAsync(
+                            request);
 
                 if (ResultadoEnmienda == null)
                 {
-                    await CalculoAnalisisTemporalService.Instance.MarcarPendienteRecalculoAsync(
-                        TipoCalculoTemporal.EnmiendaCalcarea,
-                        "No se pudo completar la enmienda calcárea. Debe recalcular.",
-                        true
-                    );
+                    await CalculoAnalisisTemporalService
+                        .Instance
+                        .MarcarPendienteRecalculoAsync(
+                            TipoCalculoTemporal
+                                .EnmiendaCalcarea,
 
-                    ErrorFormulario = "La API no devolvió resultado o no se pudo completar el cálculo.";
-                    Mensaje = "No se pudo obtener el resultado de la enmienda.";
+                            "No se pudo completar la enmienda calcárea. Debe recalcular.",
+
+                            true);
+
+                    ErrorFormulario =
+                        "La API no devolvió resultado o no se pudo completar el cálculo.";
+
+                    Mensaje =
+                        "No se pudo obtener el resultado de la enmienda.";
+
                     return;
                 }
 
-                await CalculoAnalisisTemporalService.Instance.GuardarCalculoAsync(
-                    TipoCalculoTemporal.EnmiendaCalcarea,
-                    request,
-                    ResultadoEnmienda,
-                    "Enmienda calcárea calculada correctamente."
-                );
+                await CalculoAnalisisTemporalService
+                    .Instance
+                    .GuardarCalculoAsync(
+                        TipoCalculoTemporal
+                            .EnmiendaCalcarea,
 
-                Mensaje = "Enmienda calcárea calculada correctamente.";
+                        request,
+                        ResultadoEnmienda,
+
+                        "Enmienda calcárea calculada correctamente.");
+
+                Mensaje =
+                    "Enmienda calcárea calculada correctamente.";
             }
             catch (Exception ex)
             {
                 ErrorFormulario = ex.Message;
-                Mensaje = "No se pudo calcular la enmienda calcárea.";
+
+                Mensaje =
+                    "No se pudo calcular la enmienda calcárea.";
             }
             finally
             {
@@ -544,69 +724,116 @@ namespace CONATRADEC.ViewModels
 
             ErrorFormulario = string.Empty;
 
-            if (TerrenoId == null || TerrenoId <= 0)
+            if (TerrenoId == null ||
+                TerrenoId <= 0)
             {
-                ErrorFormulario = "No se encontró el terreno seleccionado.";
+                ErrorFormulario =
+                    "No se encontró el terreno seleccionado.";
+
                 return false;
             }
 
-            if (EnmiendaSeleccionada?.FuenteNutrientesId == null || EnmiendaSeleccionada.FuenteNutrientesId <= 0)
+            if (EnmiendaSeleccionada?
+                    .FuenteNutrientesId == null ||
+                EnmiendaSeleccionada
+                    .FuenteNutrientesId <= 0)
             {
-                ErrorFormulario = "Seleccione el tipo de cal.";
+                ErrorFormulario =
+                    "Seleccione el tipo de cal.";
+
                 return false;
             }
 
-            if (!TryParseDecimalOpcional(Ph, out phValidado))
+            if (!TryParseDecimalOpcional(
+                    Ph,
+                    out phValidado))
             {
-                ErrorFormulario = "Ingrese un valor numérico para pH.";
+                ErrorFormulario =
+                    "Ingrese un valor numérico para pH.";
+
                 return false;
             }
 
-            if (phValidado < 0 || phValidado > 14)
+            if (phValidado < 0 ||
+                phValidado > 14)
             {
-                ErrorFormulario = "El pH debe estar entre 0 y 14.";
+                ErrorFormulario =
+                    "El pH debe estar entre 0 y 14.";
+
                 return false;
             }
 
-            if (!TryParseDecimalOpcional(Ca, out caValidado) || caValidado < 0)
+            if (!TryParseDecimalOpcional(
+                    Ca,
+                    out caValidado) ||
+                caValidado < 0)
             {
-                ErrorFormulario = "Ingrese un valor válido para Ca.";
+                ErrorFormulario =
+                    "Ingrese un valor válido para Ca.";
+
                 return false;
             }
 
-            if (!TryParseDecimalOpcional(Mg, out mgValidado) || mgValidado < 0)
+            if (!TryParseDecimalOpcional(
+                    Mg,
+                    out mgValidado) ||
+                mgValidado < 0)
             {
-                ErrorFormulario = "Ingrese un valor válido para Mg.";
+                ErrorFormulario =
+                    "Ingrese un valor válido para Mg.";
+
                 return false;
             }
 
-            if (!TryParseDecimalOpcional(K, out kValidado) || kValidado < 0)
+            if (!TryParseDecimalOpcional(
+                    K,
+                    out kValidado) ||
+                kValidado < 0)
             {
-                ErrorFormulario = "Ingrese un valor válido para K.";
+                ErrorFormulario =
+                    "Ingrese un valor válido para K.";
+
                 return false;
             }
 
-            if (!TryParseDecimalOpcional(AcidezTotal, out acidezValidada) || acidezValidada < 0)
+            if (!TryParseDecimalOpcional(
+                    AcidezTotal,
+                    out acidezValidada) ||
+                acidezValidada < 0)
             {
-                ErrorFormulario = "Ingrese un valor válido para AT / Acidez total.";
+                ErrorFormulario =
+                    "Ingrese un valor válido para AT / Acidez total.";
+
                 return false;
             }
 
-            if (!int.TryParse(TotalPlantas, out plantasValidadas) || plantasValidadas <= 0)
+            if (!int.TryParse(
+                    TotalPlantas,
+                    out plantasValidadas) ||
+                plantasValidadas <= 0)
             {
-                ErrorFormulario = "La cantidad de plantas debe ser mayor a cero.";
+                ErrorFormulario =
+                    "La cantidad de plantas debe ser mayor a cero.";
+
                 return false;
             }
 
-            if (!int.TryParse(TotalAplicaciones, out aplicacionesValidadas) || aplicacionesValidadas <= 0)
+            if (!int.TryParse(
+                    TotalAplicaciones,
+                    out aplicacionesValidadas) ||
+                aplicacionesValidadas <= 0)
             {
-                ErrorFormulario = "El total de aplicaciones debe ser mayor a cero.";
+                ErrorFormulario =
+                    "El total de aplicaciones debe ser mayor a cero.";
+
                 return false;
             }
 
             if (aplicacionesValidadas > 4)
             {
-                ErrorFormulario = "El total de aplicaciones no puede ser mayor a 4.";
+                ErrorFormulario =
+                    "El total de aplicaciones no puede ser mayor a 4.";
+
                 return false;
             }
 
@@ -617,21 +844,23 @@ namespace CONATRADEC.ViewModels
         // ===================== MÉTODOS PRIVADOS ====================
         // ===========================================================
 
-        private static bool TryParseDecimalOpcional(string valor, out decimal resultado)
+        private static bool TryParseDecimalOpcional(
+            string valor,
+            out decimal resultado)
         {
             resultado = 0;
 
             if (string.IsNullOrWhiteSpace(valor))
                 return true;
 
-            string normalizado = valor.Trim().Replace(",", ".");
+            string normalizado =
+                valor.Trim().Replace(",", ".");
 
             return decimal.TryParse(
                 normalizado,
                 NumberStyles.Number,
                 CultureInfo.InvariantCulture,
-                out resultado
-            );
+                out resultado);
         }
 
         private void MarcarEnmiendaPendienteSiTieneResultado()
@@ -639,20 +868,29 @@ namespace CONATRADEC.ViewModels
             if (ResultadoEnmienda == null)
                 return;
 
-            _ = CalculoAnalisisTemporalService.Instance.MarcarPendienteRecalculoAsync(
-                TipoCalculoTemporal.EnmiendaCalcarea,
-                "La enmienda calcárea cambió. Debe recalcular para actualizar el resultado.",
-                true
-            );
+            _ = CalculoAnalisisTemporalService
+                .Instance
+                .MarcarPendienteRecalculoAsync(
+                    TipoCalculoTemporal
+                        .EnmiendaCalcarea,
+
+                    "La enmienda calcárea cambió. Debe recalcular para actualizar el resultado.",
+
+                    true);
 
             ResultadoEnmienda = null;
-            Mensaje = "Hay cambios pendientes. Presione Calcular para actualizar la enmienda.";
+
+            Mensaje =
+                "Hay cambios pendientes. Presione Calcular para actualizar la enmienda.";
         }
 
         private void RefrescarComandos()
         {
             OnPropertyChanged(nameof(PuedeCalcular));
+            OnPropertyChanged(nameof(PuedeReiniciar));
+
             CalcularCommand.ChangeCanExecute();
+            ReiniciarCommand.ChangeCanExecute();
         }
     }
 }
