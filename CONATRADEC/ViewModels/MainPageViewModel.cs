@@ -26,9 +26,14 @@ namespace CONATRADEC.ViewModels
         private string textoBusqueda = string.Empty;
 
         private bool usarFiltroRangoFecha;
+
+        // Rango predeterminado: últimos 7 días, incluyendo hoy.
         private DateTime fechaDesde =
-            new(DateTime.Today.Year, DateTime.Today.Month, 1);
-        private DateTime fechaHasta = DateTime.Today;
+            DateTime.Today.AddDays(-6);
+
+        private DateTime fechaHasta =
+            DateTime.Today;
+
         private string errorRangoFecha = string.Empty;
 
         private bool esAdministrador;
@@ -83,26 +88,32 @@ namespace CONATRADEC.ViewModels
         }
 
         public ObservableCollection<AnalisisGuardadoResumen>
-            AnalisisGuardados { get; }
+            AnalisisGuardados
+        { get; }
 
         public ObservableCollection<UsuarioFiltroAnalisis>
-            UsuariosFiltro { get; }
+            UsuariosFiltro
+        { get; }
 
         public ObservableCollection<string>
-            OpcionesAlcanceListado { get; }
+            OpcionesAlcanceListado
+        { get; }
 
         public Command ListarCommand { get; }
 
         public Command ActualizarCommand { get; }
 
         public Command<AnalisisGuardadoResumen>
-            VisualizarCommand { get; }
+            VisualizarCommand
+        { get; }
 
         public Command<AnalisisGuardadoResumen>
-            EditarCommand { get; }
+            EditarCommand
+        { get; }
 
         public Command<AnalisisGuardadoResumen>
-            EliminarCommand { get; }
+            EliminarCommand
+        { get; }
 
         public Command LimpiarFiltrosCommand { get; }
 
@@ -359,7 +370,9 @@ namespace CONATRADEC.ViewModels
 
                 OnPropertyChanged(
                     nameof(AlcanceListadoSeleccionado));
+
                 OnPropertyChanged(nameof(ListarSoloPropios));
+
                 OnPropertyChanged(
                     nameof(PuedeFiltrarPorUsuario));
             }
@@ -389,6 +402,7 @@ namespace CONATRADEC.ViewModels
                     Mensaje =
                         "No se encontró el usuario autenticado. " +
                         "Cierre sesión e ingrese nuevamente.";
+
                     return;
                 }
 
@@ -430,6 +444,7 @@ namespace CONATRADEC.ViewModels
 
                     OnPropertyChanged(
                         nameof(AlcanceListadoSeleccionado));
+
                     OnPropertyChanged(nameof(ListarSoloPropios));
                 }
 
@@ -708,10 +723,13 @@ namespace CONATRADEC.ViewModels
                 listarSoloUsuarioActual)
             {
                 usuarioFiltroSeleccionado = null;
+
                 OnPropertyChanged(
                     nameof(UsuarioFiltroSeleccionado));
+
                 OnPropertyChanged(
                     nameof(PuedeFiltrarPorUsuario));
+
                 return;
             }
 
@@ -736,6 +754,7 @@ namespace CONATRADEC.ViewModels
                     new UsuarioFiltroAnalisis
                     {
                         UsuarioId = usuario.UsuarioId,
+
                         NombreCompleto =
                             usuario.NombreCompletoUsuario ??
                             usuario.NombreUsuario ??
@@ -779,6 +798,7 @@ namespace CONATRADEC.ViewModels
 
             OnPropertyChanged(
                 nameof(UsuarioFiltroSeleccionado));
+
             OnPropertyChanged(
                 nameof(PuedeFiltrarPorUsuario));
         }
@@ -854,12 +874,14 @@ namespace CONATRADEC.ViewModels
         {
             textoBusqueda = string.Empty;
             usarFiltroRangoFecha = false;
+
+            // Al limpiar, se restablecen los últimos 7 días.
             fechaDesde =
-                new DateTime(
-                    DateTime.Today.Year,
-                    DateTime.Today.Month,
-                    1);
-            fechaHasta = DateTime.Today;
+                DateTime.Today.AddDays(-6);
+
+            fechaHasta =
+                DateTime.Today;
+
             ErrorRangoFecha = string.Empty;
 
             if (PuedeFiltrarPorUsuario)
@@ -869,10 +891,13 @@ namespace CONATRADEC.ViewModels
             }
 
             OnPropertyChanged(nameof(TextoBusqueda));
+
             OnPropertyChanged(
                 nameof(UsarFiltroRangoFecha));
+
             OnPropertyChanged(nameof(FechaDesde));
             OnPropertyChanged(nameof(FechaHasta));
+
             OnPropertyChanged(
                 nameof(UsuarioFiltroSeleccionado));
 
@@ -899,6 +924,7 @@ namespace CONATRADEC.ViewModels
         private void NotificarResumenLista()
         {
             OnPropertyChanged(nameof(TieneAnalisis));
+
             OnPropertyChanged(
                 nameof(TotalMostradoTexto));
         }
@@ -969,12 +995,14 @@ namespace CONATRADEC.ViewModels
             {
                 await MostrarToastAsync(
                     "No tiene permisos para editar análisis.");
+
                 return;
             }
 
             try
             {
                 IsBusy = true;
+
                 Mensaje =
                     "Cargando el análisis para edición...";
 
@@ -1020,6 +1048,7 @@ namespace CONATRADEC.ViewModels
             {
                 await MostrarToastAsync(
                     "No tiene permisos para eliminar análisis.");
+
                 return;
             }
 

@@ -8,8 +8,12 @@ namespace CONATRADEC.Services
 {
     public sealed class RestaurarCalculosEdicionUiService
     {
-        private static readonly Lazy<RestaurarCalculosEdicionUiService> instancia =
-            new(() => new RestaurarCalculosEdicionUiService());
+        private static readonly Lazy<
+            RestaurarCalculosEdicionUiService> instancia =
+                new(() =>
+                    new RestaurarCalculosEdicionUiService());
+
+        private bool restaurando;
 
         public static RestaurarCalculosEdicionUiService Instance =>
             instancia.Value;
@@ -18,36 +22,107 @@ namespace CONATRADEC.Services
         {
         }
 
-        public async Task RestaurarAsync(MultiCalculoViewModel viewModel)
+        public async Task RestaurarAsync(
+            MultiCalculoViewModel viewModel)
         {
-            if (!AnalisisEdicionService.Instance.EsModoEdicion ||
+            if (restaurando ||
+                !AnalisisEdicionService.Instance.EsModoEdicion ||
                 AnalisisEdicionService.Instance.RestauracionUiRealizada)
             {
                 return;
             }
 
-            bool inicializacionCompleta =
-                await EsperarInicializacionAsync(viewModel);
+            restaurando = true;
 
-            if (!inicializacionCompleta)
-                return;
-
-            await MainThread.InvokeOnMainThreadAsync(() =>
+            try
             {
-                if (viewModel.MostrarBalanceFormula)
-                    RestaurarBalance(viewModel.BalanceFormula);
+                bool parametrosListos =
+                    await EsperarParametrosAsync(viewModel);
 
-                if (viewModel.MostrarEnmiendaCalcarea)
-                    RestaurarEnmienda(viewModel.EnmiendaCalcarea);
-            });
+                if (!parametrosListos)
+                    return;
 
-            AnalisisEdicionService.Instance.RestauracionUiRealizada = true;
+                AnalisisEdicionContexto? contexto =
+                    AnalisisEdicionService.Instance.ContextoActual;
+
+                if (contexto == null)
+                    return;
+
+                /*
+                 * Si el temporal se perdió, quedó incompleto o fue
+                 * reemplazado durante la navegación, se reconstruye
+                 * desde el detalle persistido en la base de datos.
+                 *
+                 * Solo se reconstruyen cálculos que realmente existen
+                 * en el análisis guardado.
+                 */
+                await AsegurarTemporalesGuardadosAsync(contexto);
+
+                /*
+                 * Una pestaña puede mostrarse porque el usuario decidió
+                 * crear un cálculo nuevo durante la edición.
+                 *
+                 * En ese caso, si el cálculo no existía previamente,
+                 * no se restaura ningún resultado. El resultado solo
+                 * aparecerá después de presionar Calcular.
+                 */
+                bool debeRestaurarBalance =
+                    viewModel.MostrarBalanceFormula &&
+                    contexto.TieneBalance;
+
+                bool debeRestaurarEnmienda =
+                    viewModel.MostrarEnmiendaCalcarea &&
+                    contexto.TieneEnmienda;
+
+                Task<bool> tareaBalance =
+                    debeRestaurarBalance
+                        ? EsperarYRestaurarBalanceAsync(
+                            viewModel.BalanceFormula,
+                            contexto)
+                        : Task.FromResult(true);
+
+                Task<bool> tareaEnmienda =
+                    debeRestaurarEnmienda
+                        ? EsperarYRestaurarEnmiendaAsync(
+                            viewModel.EnmiendaCalcarea,
+                            contexto)
+                        : Task.FromResult(true);
+
+                bool[] resultados =
+                    await Task.WhenAll(
+                        tareaBalance,
+                        tareaEnmienda);
+
+                if (resultados.All(x => x))
+                {
+                    AnalisisEdicionService
+                        .Instance
+                        .RestauracionUiRealizada = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                /*
+                 * No se interrumpe la pantalla completa.
+                 * Se deja un mensaje visible para poder recalcular
+                 * manualmente en caso de que una fuente ya no exista.
+                 */
+                viewModel.Mensaje =
+                    "No fue posible restaurar completamente los " +
+                    $"cálculos guardados: {ex.Message}";
+            }
+            finally
+            {
+                restaurando = false;
+            }
         }
 
-        private static async Task<bool> EsperarInicializacionAsync(
+        private static async Task<bool> EsperarParametrosAsync(
             MultiCalculoViewModel viewModel)
         {
-            for (int intento = 0; intento < 100; intento++)
+            for (int intento = 0;
+                 intento < 120;
+                 intento++)
             {
                 if (!AnalisisEdicionService.Instance.EsModoEdicion)
                     return false;
@@ -61,37 +136,114 @@ namespace CONATRADEC.Services
                     );
 
                 if (recibioParametros)
-                    break;
+                    return true;
 
                 await Task.Delay(100);
             }
 
-            if (!viewModel.EsModoEdicion)
-                return false;
+            return false;
+        }
 
-            for (int intento = 0; intento < 150; intento++)
+        private static async Task
+            AsegurarTemporalesGuardadosAsync(
+                AnalisisEdicionContexto contexto)
+        {
+            bool balanceFaltante =
+                contexto.TieneBalance &&
+                !TieneBalanceTemporal();
+
+            bool enmiendaFaltante =
+                contexto.TieneEnmienda &&
+                !TieneEnmiendaTemporal();
+
+            bool mixtaFaltante =
+                contexto.TieneMixta &&
+                !TieneMixtaTemporal();
+
+            if (!balanceFaltante &&
+                !enmiendaFaltante &&
+                !mixtaFaltante)
             {
-                bool balanceListo =
-                    !viewModel.MostrarBalanceFormula ||
-                    (
-                        viewModel.BalanceFormula.FuentesNutrientes.Count > 0 &&
-                        viewModel.BalanceFormula.ElementosBalance.Count > 0 &&
-                        TieneBalanceTemporal()
-                    );
+                return;
+            }
 
-                bool enmiendaLista =
-                    !viewModel.MostrarEnmiendaCalcarea ||
-                    (
-                        viewModel.EnmiendaCalcarea.EnmiendasCalcareas.Count > 0 &&
-                        TieneEnmiendaTemporal()
-                    );
+            await AnalisisEdicionService
+                .Instance
+                .RestaurarTemporalAsync(
+                    contexto.ResultadoOriginal,
+                    contexto.RequestActual,
+                    contexto.CantidadPlantas,
+                    false);
+        }
 
-                bool mixtaLista =
-                    !viewModel.MostrarFertilizacionMixta ||
-                    viewModel.FertilizacionMixta.FuentesDisponibles.Count > 0;
+        private static async Task<bool>
+            EsperarYRestaurarBalanceAsync(
+                BalanceFormulaViewModel viewModel,
+                AnalisisEdicionContexto contexto)
+        {
+            for (int intento = 0;
+                 intento < 240;
+                 intento++)
+            {
+                if (!AnalisisEdicionService.Instance.EsModoEdicion)
+                    return false;
 
-                if (balanceListo && enmiendaLista && mixtaLista)
-                    return true;
+                bool interfazLista =
+                    viewModel.ElementosBalance.Count > 0;
+
+                if (interfazLista &&
+                    TieneBalanceTemporal())
+                {
+                    bool restaurado = false;
+
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        restaurado =
+                            RestaurarBalance(
+                                viewModel,
+                                contexto);
+                    });
+
+                    return restaurado;
+                }
+
+                await Task.Delay(100);
+            }
+
+            return false;
+        }
+
+        private static async Task<bool>
+            EsperarYRestaurarEnmiendaAsync(
+                EnmiendaCalcareaTabViewModel viewModel,
+                AnalisisEdicionContexto contexto)
+        {
+            for (int intento = 0;
+                 intento < 240;
+                 intento++)
+            {
+                if (!AnalisisEdicionService.Instance.EsModoEdicion)
+                    return false;
+
+                /*
+                 * No se exige que el catálogo de enmiendas tenga datos.
+                 * El resultado guardado debe mostrarse aunque la fuente
+                 * haya sido desactivada después.
+                 */
+                if (TieneEnmiendaTemporal())
+                {
+                    bool restaurado = false;
+
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        restaurado =
+                            RestaurarEnmienda(
+                                viewModel,
+                                contexto);
+                    });
+
+                    return restaurado;
+                }
 
                 await Task.Delay(100);
             }
@@ -111,29 +263,54 @@ namespace CONATRADEC.Services
                     .ObtenerResultado<BalanceNutricionalResponse>(
                         TipoCalculoTemporal.BalanceFormula);
 
-            return request != null &&
-                   request.Items != null &&
-                   request.Items.Count > 0 &&
-                   resultado != null;
+            return
+                request != null &&
+                request.Items != null &&
+                request.Items.Count > 0 &&
+                resultado != null;
         }
 
         private static bool TieneEnmiendaTemporal()
         {
             EnmiendaCalcareaCalcularRequest? request =
                 CalculoAnalisisTemporalService.Instance
-                    .ObtenerRequest<EnmiendaCalcareaCalcularRequest>(
-                        TipoCalculoTemporal.EnmiendaCalcarea);
+                    .ObtenerRequest<
+                        EnmiendaCalcareaCalcularRequest>(
+                            TipoCalculoTemporal.EnmiendaCalcarea);
 
             EnmiendaCalcareaCalcularResponse? resultado =
                 CalculoAnalisisTemporalService.Instance
-                    .ObtenerResultado<EnmiendaCalcareaCalcularResponse>(
-                        TipoCalculoTemporal.EnmiendaCalcarea);
+                    .ObtenerResultado<
+                        EnmiendaCalcareaCalcularResponse>(
+                            TipoCalculoTemporal.EnmiendaCalcarea);
 
-            return request != null && resultado != null;
+            return
+                request != null &&
+                resultado != null;
         }
 
-        private static void RestaurarBalance(
-            BalanceFormulaViewModel viewModel)
+        private static bool TieneMixtaTemporal()
+        {
+            FertilizacionMixtaCalcularRequest? request =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerRequest<
+                        FertilizacionMixtaCalcularRequest>(
+                            TipoCalculoTemporal.FertilizacionMixta);
+
+            FertilizacionMixtaCalculoResponse? resultado =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerResultado<
+                        FertilizacionMixtaCalculoResponse>(
+                            TipoCalculoTemporal.FertilizacionMixta);
+
+            return
+                request != null &&
+                resultado != null;
+        }
+
+        private static bool RestaurarBalance(
+            BalanceFormulaViewModel viewModel,
+            AnalisisEdicionContexto contexto)
         {
             BalanceNutricionalRequest? request =
                 CalculoAnalisisTemporalService.Instance
@@ -150,7 +327,7 @@ namespace CONATRADEC.Services
                 request.Items.Count == 0 ||
                 resultado == null)
             {
-                return;
+                return false;
             }
 
             FieldInfo? suspender =
@@ -160,7 +337,22 @@ namespace CONATRADEC.Services
                         BindingFlags.Instance |
                         BindingFlags.NonPublic);
 
-            suspender?.SetValue(viewModel, true);
+            MethodInfo? procesar =
+                typeof(BalanceFormulaViewModel)
+                    .GetMethod(
+                        "ProcesarResultadoApi",
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic);
+
+            if (suspender == null ||
+                procesar == null)
+            {
+                return false;
+            }
+
+            suspender.SetValue(
+                viewModel,
+                true);
 
             try
             {
@@ -172,7 +364,7 @@ namespace CONATRADEC.Services
                 int plantas =
                     request.TotalPlantas ??
                     resultado.TotalPlantas ??
-                    0;
+                    contexto.CantidadPlantas;
 
                 int aplicaciones =
                     request.TotalAplicaciones ??
@@ -180,39 +372,106 @@ namespace CONATRADEC.Services
                     3;
 
                 viewModel.TotalPlantas =
-                    plantas.ToString(CultureInfo.InvariantCulture);
+                    plantas.ToString(
+                        CultureInfo.InvariantCulture);
 
                 viewModel.TotalAplicaciones =
-                    aplicaciones.ToString(CultureInfo.InvariantCulture);
+                    aplicaciones.ToString(
+                        CultureInfo.InvariantCulture);
 
-                foreach (BalanceFormulaElementoViewModel elemento
-                         in viewModel.ElementosBalance)
+                int fuentesRestauradas = 0;
+
+                foreach (
+                    BalanceFormulaElementoViewModel elemento
+                    in viewModel.ElementosBalance)
                 {
                     BalanceNutricionalItemRequest? item =
                         request.Items.FirstOrDefault(x =>
                             x.ElementoQuimicosId ==
-                            elemento.ElementoQuimicosId);
+                                elemento.ElementoQuimicosId);
 
-                    if (item?.FuenteNutrientesId == null)
+                    if (item?.FuenteNutrientesId is null or <= 0)
                         continue;
 
-                    FuenteNutrienteResponse? fuente =
-                        elemento.FuentesDisponibles.FirstOrDefault(x =>
-                            x.FuenteNutrientesId ==
-                            item.FuenteNutrientesId);
+                    int fuenteId =
+                        item.FuenteNutrientesId.Value;
 
-                    if (fuente != null)
-                        elemento.FuenteSeleccionada = fuente;
+                    FuenteNutrienteResponse? fuente =
+                        elemento.FuentesDisponibles
+                            .FirstOrDefault(x =>
+                                x.FuenteNutrientesId ==
+                                    fuenteId);
+
+                    fuente ??=
+                        viewModel.FuentesNutrientes
+                            .FirstOrDefault(x =>
+                                x.FuenteNutrientesId ==
+                                    fuenteId);
+
+                    fuente ??=
+                        contexto.FuentesCatalogo
+                            .FirstOrDefault(x =>
+                                x.FuenteNutrientesId ==
+                                    fuenteId);
+
+                    if (fuente == null)
+                    {
+                        AnalisisGuardadoFormulaDetalle?
+                            detalleGuardado =
+                                contexto
+                                    .Detalle
+                                    .BalanceNutricional?
+                                    .Detalles
+                                    .FirstOrDefault(x =>
+                                        x.ElementoQuimicosId ==
+                                            elemento
+                                                .ElementoQuimicosId &&
+                                        x.FuenteNutrientesId ==
+                                            fuenteId);
+
+                        fuente =
+                            new FuenteNutrienteResponse
+                            {
+                                FuenteNutrientesId =
+                                    fuenteId,
+
+                                NombreNutriente =
+                                    detalleGuardado?
+                                        .NombreFuente
+                                    ??
+                                    $"Fuente #{fuenteId}",
+
+                                PrecioNutriente =
+                                    detalleGuardado?
+                                        .PrecioPorQuintal,
+
+                                Activo = true
+                            };
+                    }
+
+                    if (!viewModel.FuentesNutrientes.Any(x =>
+                            x.FuenteNutrientesId ==
+                                fuenteId))
+                    {
+                        viewModel.FuentesNutrientes.Add(
+                            fuente);
+                    }
+
+                    if (!elemento.FuentesDisponibles.Any(x =>
+                            x.FuenteNutrientesId ==
+                                fuenteId))
+                    {
+                        elemento.FuentesDisponibles.Add(
+                            fuente);
+                    }
+
+                    elemento.FuenteSeleccionada =
+                        fuente;
+
+                    fuentesRestauradas++;
                 }
 
-                MethodInfo? procesar =
-                    typeof(BalanceFormulaViewModel)
-                        .GetMethod(
-                            "ProcesarResultadoApi",
-                            BindingFlags.Instance |
-                            BindingFlags.NonPublic);
-
-                procesar?.Invoke(
+                procesar.Invoke(
                     viewModel,
                     new object[]
                     {
@@ -221,54 +480,187 @@ namespace CONATRADEC.Services
                         aplicaciones
                     });
 
+                bool completo =
+                    fuentesRestauradas ==
+                    request.Items.Count;
+
                 viewModel.Mensaje =
-                    "Se cargó el balance guardado. Puede cambiar una fuente " +
-                    "o presionar Reiniciar cuando necesite modificarlo.";
+                    completo
+                        ? "Se cargó el balance guardado con las " +
+                          "fuentes seleccionadas y su resultado."
+                        : "Se cargó el resultado del balance, pero " +
+                          "una fuente guardada ya no está disponible.";
+
+                return completo;
             }
             finally
             {
-                suspender?.SetValue(viewModel, false);
+                suspender.SetValue(
+                    viewModel,
+                    false);
             }
         }
 
-        private static void RestaurarEnmienda(
-            EnmiendaCalcareaTabViewModel viewModel)
+        private static bool RestaurarEnmienda(
+            EnmiendaCalcareaTabViewModel viewModel,
+            AnalisisEdicionContexto contexto)
         {
             EnmiendaCalcareaCalcularRequest? request =
                 CalculoAnalisisTemporalService.Instance
-                    .ObtenerRequest<EnmiendaCalcareaCalcularRequest>(
-                        TipoCalculoTemporal.EnmiendaCalcarea);
+                    .ObtenerRequest<
+                        EnmiendaCalcareaCalcularRequest>(
+                            TipoCalculoTemporal.EnmiendaCalcarea);
 
             EnmiendaCalcareaCalcularResponse? resultado =
                 CalculoAnalisisTemporalService.Instance
-                    .ObtenerResultado<EnmiendaCalcareaCalcularResponse>(
-                        TipoCalculoTemporal.EnmiendaCalcarea);
+                    .ObtenerResultado<
+                        EnmiendaCalcareaCalcularResponse>(
+                            TipoCalculoTemporal.EnmiendaCalcarea);
 
-            if (request == null || resultado == null)
-                return;
+            if (request == null ||
+                resultado == null)
+            {
+                return false;
+            }
+
+            ParametroEnmiendaCalcareaResponse?
+                fuenteSeleccionada =
+                    viewModel.EnmiendasCalcareas
+                        .FirstOrDefault(x =>
+                            x.FuenteNutrientesId ==
+                                request.FuenteNutrientesId);
+
+            if (fuenteSeleccionada == null)
+            {
+                FuenteNutrienteResponse? fuenteCatalogo =
+                    contexto.FuentesCatalogo
+                        .FirstOrDefault(x =>
+                            x.FuenteNutrientesId ==
+                                request.FuenteNutrientesId);
+
+                fuenteSeleccionada =
+                    new ParametroEnmiendaCalcareaResponse
+                    {
+                        FuenteNutrientesId =
+                            request.FuenteNutrientesId,
+
+                        NombreNutriente =
+                            fuenteCatalogo?.NombreNutriente
+                            ??
+                            resultado.FuenteNutriente
+                            ??
+                            $"Fuente #{request.FuenteNutrientesId}",
+
+                        PrecioNutriente =
+                            fuenteCatalogo?.PrecioNutriente,
+
+                        Prnt =
+                            fuenteCatalogo?.Prnt
+                            ??
+                            resultado.Prnt,
+
+                        DescripcionParametro =
+                            fuenteCatalogo?
+                                .DescripcionParametro
+                    };
+
+                viewModel.EnmiendasCalcareas.Add(
+                    fuenteSeleccionada);
+            }
+
+            decimal ph =
+                request.Ph != 0
+                    ? request.Ph
+                    : resultado.Ph ?? 0;
+
+            decimal acidezTotal =
+                request.AcidezTotal != 0
+                    ? request.AcidezTotal
+                    : resultado.AcidezTotal ?? 0;
+
+            decimal ca =
+                request.Ca != 0
+                    ? request.Ca
+                    : resultado.Ca ?? 0;
+
+            decimal mg =
+                request.Mg != 0
+                    ? request.Mg
+                    : resultado.Mg ?? 0;
+
+            decimal k =
+                request.K != 0
+                    ? request.K
+                    : resultado.K ?? 0;
 
             viewModel.EnmiendaSeleccionada =
-                viewModel.EnmiendasCalcareas.FirstOrDefault(x =>
-                    x.FuenteNutrientesId ==
-                    request.FuenteNutrientesId);
+                fuenteSeleccionada;
 
-            viewModel.NombreAnalisis = request.NombreAnalisis;
-            viewModel.Ph = request.Ph.ToString(CultureInfo.InvariantCulture);
-            viewModel.Ca = request.Ca.ToString(CultureInfo.InvariantCulture);
-            viewModel.Mg = request.Mg.ToString(CultureInfo.InvariantCulture);
-            viewModel.K = request.K.ToString(CultureInfo.InvariantCulture);
-            viewModel.AcidezTotal =
-                request.AcidezTotal.ToString(CultureInfo.InvariantCulture);
-            viewModel.TotalPlantas =
-                request.TotalPlantas.ToString(CultureInfo.InvariantCulture);
-            viewModel.TotalAplicaciones =
-                request.TotalAplicaciones.ToString(
+            viewModel.NombreAnalisis =
+                string.IsNullOrWhiteSpace(
+                    request.NombreAnalisis)
+                    ? resultado.NombreAnalisis ??
+                      contexto
+                          .RequestActual
+                          .IdentificadorAnalisisSuelo ??
+                      "Enmienda calcárea"
+                    : request.NombreAnalisis;
+
+            viewModel.Ph =
+                ph.ToString(
                     CultureInfo.InvariantCulture);
 
-            viewModel.ResultadoEnmienda = resultado;
+            viewModel.Ca =
+                ca.ToString(
+                    CultureInfo.InvariantCulture);
+
+            viewModel.Mg =
+                mg.ToString(
+                    CultureInfo.InvariantCulture);
+
+            viewModel.K =
+                k.ToString(
+                    CultureInfo.InvariantCulture);
+
+            viewModel.AcidezTotal =
+                acidezTotal.ToString(
+                    CultureInfo.InvariantCulture);
+
+            int plantas =
+                request.TotalPlantas > 0
+                    ? request.TotalPlantas
+                    : resultado.TotalPlantas ??
+                      contexto.CantidadPlantas;
+
+            int aplicaciones =
+                request.TotalAplicaciones > 0
+                    ? request.TotalAplicaciones
+                    : resultado.TotalAplicaciones ?? 3;
+
+            viewModel.TotalPlantas =
+                plantas.ToString(
+                    CultureInfo.InvariantCulture);
+
+            viewModel.TotalAplicaciones =
+                aplicaciones.ToString(
+                    CultureInfo.InvariantCulture);
+
+            /*
+             * Debe asignarse al final. Los cambios en los campos
+             * anteriores notifican que la enmienda quedó pendiente.
+             * Al poner el resultado al final se conserva como procesada.
+             */
+            viewModel.ResultadoEnmienda =
+                resultado;
+
+            viewModel.ErrorFormulario =
+                string.Empty;
+
             viewModel.Mensaje =
-                "Se cargó la enmienda guardada. Solo deberá calcular " +
-                "nuevamente si modifica sus datos.";
+                "Se cargó la enmienda calcárea guardada con " +
+                "su fuente y resultado procesado.";
+
+            return true;
         }
     }
 }
