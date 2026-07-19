@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace CONATRADEC.ViewModels
@@ -20,6 +19,9 @@ namespace CONATRADEC.ViewModels
         private readonly UserApiService userApiService = new();
 
         private readonly List<AnalisisGuardadoResumen> todosAnalisis = new();
+
+        private ObservableCollection<AnalisisGuardadoResumen>
+            analisisGuardados = new();
 
         private bool isRefreshing;
         private string mensaje = string.Empty;
@@ -44,9 +46,6 @@ namespace CONATRADEC.ViewModels
 
         public MainPageViewModel()
         {
-            AnalisisGuardados =
-                new ObservableCollection<AnalisisGuardadoResumen>();
-
             UsuariosFiltro =
                 new ObservableCollection<UsuarioFiltroAnalisis>();
 
@@ -89,7 +88,22 @@ namespace CONATRADEC.ViewModels
 
         public ObservableCollection<AnalisisGuardadoResumen>
             AnalisisGuardados
-        { get; }
+        {
+            get => analisisGuardados;
+            private set
+            {
+                if (ReferenceEquals(analisisGuardados, value))
+                    return;
+
+                analisisGuardados =
+                    value ??
+                    new ObservableCollection<
+                        AnalisisGuardadoResumen>();
+
+                OnPropertyChanged(nameof(AnalisisGuardados));
+                NotificarResumenLista();
+            }
+        }
 
         public ObservableCollection<UsuarioFiltroAnalisis>
             UsuariosFiltro
@@ -474,10 +488,29 @@ namespace CONATRADEC.ViewModels
                         ? usuarioActualId
                         : null;
 
+                /*
+                 * Ambas consultas son independientes y se ejecutan juntas.
+                 *
+                 * El listado por usuario conserva exactamente el alcance
+                 * actual. El listado resumido aporta los tres indicadores
+                 * de cálculos complementarios en una sola petición.
+                 */
+                Task<AnalisisGuardadoUsuarioListaResponse>
+                    tareaListado =
+                        analisisUsuarioApiService
+                            .ListarAsync(filtroServidor);
+
+                Task<AnalisisGuardadoListaResponse>
+                    tareaComplementos =
+                        guardarTodoApiService.ListarAsync();
+
+                await Task.WhenAll(
+                    tareaListado,
+                    tareaComplementos);
+
                 AnalisisGuardadoUsuarioListaResponse
                     respuestaListado =
-                        await analisisUsuarioApiService
-                            .ListarAsync(filtroServidor);
+                        await tareaListado;
 
                 if (!respuestaListado.Success)
                 {
@@ -491,16 +524,11 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
+                AnalisisGuardadoListaResponse
+                    respuestaComplementos =
+                        await tareaComplementos;
+
                 Dictionary<int, AnalisisGuardadoResumen>
-                    complementos = new();
-
-                if (administrador)
-                {
-                    AnalisisGuardadoListaResponse
-                        respuestaComplementos =
-                            await guardarTodoApiService
-                                .ListarAsync();
-
                     complementos =
                         (respuestaComplementos.Data ??
                          new List<AnalisisGuardadoResumen>())
@@ -511,7 +539,6 @@ namespace CONATRADEC.ViewModels
                             .ToDictionary(
                                 x => x.Key,
                                 x => x.First());
-                }
 
                 Dictionary<int, string> nombresUsuario =
                     usuarios
@@ -633,15 +660,12 @@ namespace CONATRADEC.ViewModels
                         });
                 }
 
-                if (!administrador)
-                    await CompletarIndicadoresPropiosAsync();
-
                 ConfigurarFiltroUsuarios(
                     usuarios,
                     listarSoloUsuarioActual);
 
-                SeHaListado = true;
                 AplicarFiltros();
+                SeHaListado = true;
             }
             catch (Exception ex)
             {
@@ -655,59 +679,6 @@ namespace CONATRADEC.ViewModels
                 if (mostrarIndicador)
                     IsBusy = false;
             }
-        }
-
-        private async Task
-            CompletarIndicadoresPropiosAsync()
-        {
-            using SemaphoreSlim limite = new(4);
-
-            IEnumerable<Task> tareas =
-                todosAnalisis.Select(
-                    async analisis =>
-                    {
-                        await limite.WaitAsync();
-
-                        try
-                        {
-                            AnalisisGuardadoDetalleResponse
-                                detalle =
-                                    await guardarTodoApiService
-                                        .ObtenerDetalleAsync(
-                                            analisis
-                                                .AnalisisSueloCalculoId);
-
-                            if (detalle.Success &&
-                                detalle.Data != null)
-                            {
-                                analisis
-                                    .TieneFormulaNutricional =
-                                        detalle.Data
-                                            .BalanceNutricional != null;
-
-                                analisis
-                                    .TieneEnmiendaCalcarea =
-                                        detalle.Data
-                                            .EnmiendaCalcarea != null;
-
-                                analisis
-                                    .TieneFertilizacionMixta =
-                                        detalle.Data
-                                            .FertilizacionMixta != null;
-                            }
-                        }
-                        catch
-                        {
-                            // El listado continúa aunque un detalle
-                            // no se pueda consultar.
-                        }
-                        finally
-                        {
-                            limite.Release();
-                        }
-                    });
-
-            await Task.WhenAll(tareas);
         }
 
         private void ConfigurarFiltroUsuarios(
@@ -831,8 +802,10 @@ namespace CONATRADEC.ViewModels
                         "La fecha Desde no puede ser mayor " +
                         "que la fecha Hasta.";
 
-                    AnalisisGuardados.Clear();
-                    NotificarResumenLista();
+                    AnalisisGuardados =
+                        new ObservableCollection<
+                            AnalisisGuardadoResumen>();
+
                     return;
                 }
 
@@ -854,20 +827,40 @@ namespace CONATRADEC.ViewModels
 
             List<AnalisisGuardadoResumen> filtrados =
                 consulta
-                    .OrderByDescending(x =>
-                        x.FechaCalculoValor)
+                    .OrderByDescending(
+                        ObtenerFechaPrincipal)
+                    .ThenBy(
+                        x => x.ClienteMostrar,
+                        StringComparer
+                            .CurrentCultureIgnoreCase)
+                    .ThenByDescending(
+                        x => x.FechaCalculoValor ??
+                             DateTime.MinValue)
+                    .ThenBy(
+                        x => x.IdentificadorMostrar,
+                        StringComparer
+                            .CurrentCultureIgnoreCase)
                     .ToList();
 
-            AnalisisGuardados.Clear();
+            /*
+             * Android usa RecyclerView para CollectionView. Reemplazar la
+             * colección completa genera una sola actualización y evita
+             * ejecutar Clear/Add mientras RecyclerView calcula su layout.
+             */
+            AnalisisGuardados =
+                new ObservableCollection<
+                    AnalisisGuardadoResumen>(filtrados);
+        }
 
-            foreach (
-                AnalisisGuardadoResumen analisis
-                in filtrados)
-            {
-                AnalisisGuardados.Add(analisis);
-            }
+        private static DateTime ObtenerFechaPrincipal(
+            AnalisisGuardadoResumen analisis)
+        {
+            DateTime fecha =
+                analisis.FechaAnalisisValor
+                ?? analisis.FechaCalculoValor
+                ?? DateTime.MinValue;
 
-            NotificarResumenLista();
+            return fecha.Date;
         }
 
         private void LimpiarFiltros()
@@ -907,7 +900,10 @@ namespace CONATRADEC.ViewModels
         private void ReiniciarListadoPorCambioAlcance()
         {
             todosAnalisis.Clear();
-            AnalisisGuardados.Clear();
+            AnalisisGuardados =
+                new ObservableCollection<
+                    AnalisisGuardadoResumen>();
+
             UsuariosFiltro.Clear();
 
             usuarioFiltroSeleccionado = null;
@@ -918,7 +914,6 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(
                 nameof(UsuarioFiltroSeleccionado));
 
-            NotificarResumenLista();
         }
 
         private void NotificarResumenLista()

@@ -82,7 +82,8 @@ namespace CONATRADEC.Services
                     cancellationToken);
 
                 AnalisisGuardadoListaResponse? resultado =
-                    DeserializarSeguro<AnalisisGuardadoListaResponse>(jsonResponse);
+                    await DeserializarSeguroAsync<
+                        AnalisisGuardadoListaResponse>(jsonResponse);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -156,7 +157,8 @@ namespace CONATRADEC.Services
                     cancellationToken);
 
                 AnalisisGuardadoDetalleResponse? resultado =
-                    DeserializarSeguro<AnalisisGuardadoDetalleResponse>(jsonResponse);
+                    await DeserializarSeguroAsync<
+                        AnalisisGuardadoDetalleResponse>(jsonResponse);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -229,7 +231,8 @@ namespace CONATRADEC.Services
                     cancellationToken);
 
                 EliminarAnalisisResponse? resultado =
-                    DeserializarSeguro<EliminarAnalisisResponse>(jsonResponse);
+                    await DeserializarSeguroAsync<
+                        EliminarAnalisisResponse>(jsonResponse);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -304,7 +307,10 @@ namespace CONATRADEC.Services
 
             try
             {
-                string jsonRequest = JsonSerializer.Serialize(request, jsonOptions);
+                string jsonRequest = await Task.Run(() =>
+                    JsonSerializer.Serialize(
+                        request,
+                        jsonOptions));
 
                 using HttpRequestMessage mensaje = new(method, endpoint)
                 {
@@ -322,7 +328,8 @@ namespace CONATRADEC.Services
                     cancellationToken);
 
                 GuardarTodoResponse? resultado =
-                    DeserializarSeguro<GuardarTodoResponse>(jsonResponse);
+                    await DeserializarSeguroAsync<
+                        GuardarTodoResponse>(jsonResponse);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -379,19 +386,25 @@ namespace CONATRADEC.Services
             }
         }
 
-        private T? DeserializarSeguro<T>(string json)
+        private Task<T?> DeserializarSeguroAsync<T>(string json)
+            where T : class
         {
             if (string.IsNullOrWhiteSpace(json))
-                return default;
+                return Task.FromResult<T?>(null);
 
-            try
+            return Task.Run<T?>(() =>
             {
-                return JsonSerializer.Deserialize<T>(json, jsonOptions);
-            }
-            catch
-            {
-                return default;
-            }
+                try
+                {
+                    return JsonSerializer.Deserialize<T>(
+                        json,
+                        jsonOptions);
+                }
+                catch
+                {
+                    return null;
+                }
+            });
         }
 
         private static string ExtraerMensajeError(

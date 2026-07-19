@@ -122,44 +122,74 @@ namespace CONATRADEC.Services
                 }
 
                 AnalisisGuardadoDetalleData detalle = respuestaDetalle.Data;
-                List<TerrenoResponse> terrenos = (await tareaTerrenos).ToList();
-                List<TipoCultivoResponse> cultivos = (await tareaCultivos).ToList();
-                List<UnidadMedidaResponse> unidades = (await tareaUnidades).ToList();
-                List<ElementoQuimicoResponse> elementos = (await tareaElementos).ToList();
-                List<FuenteNutrienteResponse> fuentes = (await tareaFuentes).ToList();
+                ObservableCollection<TerrenoResponse> terrenosApi =
+                    await tareaTerrenos;
 
-                AnalisisSueloGuardarCalculoRequest request =
-                    ConstruirRequestGuardado(detalle);
+                ObservableCollection<TipoCultivoResponse> cultivosApi =
+                    await tareaCultivos;
 
-                AnalisisSueloCalculoDataResponse resultado =
-                    ConstruirResultadoGuardado(detalle, cultivos, elementos);
+                ObservableCollection<UnidadMedidaResponse> unidadesApi =
+                    await tareaUnidades;
 
-                int plantas = ObtenerCantidadPlantas(detalle, terrenos);
+                ObservableCollection<ElementoQuimicoResponse> elementosApi =
+                    await tareaElementos;
 
-                ContextoActual = new AnalisisEdicionContexto
+                ObservableCollection<FuenteNutrienteResponse> fuentesApi =
+                    await tareaFuentes;
+
+                AnalisisEdicionContexto contexto = await Task.Run(() =>
                 {
-                    AnalisisSueloCalculoId = analisisSueloCalculoId,
-                    Resumen = resumen,
-                    Detalle = detalle,
-                    RequestOriginal = request,
-                    RequestActual = ClonarRequest(request),
-                    ResultadoOriginal = resultado,
-                    Terrenos = terrenos,
-                    TiposCultivo = cultivos,
-                    UnidadesMedida = unidades,
-                    ElementosCatalogo = elementos,
-                    FuentesCatalogo = fuentes,
-                    CantidadPlantas = plantas,
-                    ClaveRequerimientoOriginal = ConstruirClaveRequerimiento(request),
-                    ClaveBalanceOriginal = ConstruirClaveBalance(
-                        request,
-                        plantas,
-                        detalle.BalanceNutricional?.Formula.TotalAplicaciones ?? 0),
-                    ClaveEnmiendaOriginal = ConstruirClaveEnmienda(
-                        request,
-                        plantas,
-                        detalle.EnmiendaCalcarea?.TotalAplicaciones ?? 0)
-                };
+                    List<TerrenoResponse> terrenos = terrenosApi.ToList();
+                    List<TipoCultivoResponse> cultivos = cultivosApi.ToList();
+                    List<UnidadMedidaResponse> unidades = unidadesApi.ToList();
+                    List<ElementoQuimicoResponse> elementos = elementosApi.ToList();
+                    List<FuenteNutrienteResponse> fuentes = fuentesApi.ToList();
+
+                    AnalisisSueloGuardarCalculoRequest request =
+                        ConstruirRequestGuardado(detalle);
+
+                    AnalisisSueloCalculoDataResponse resultado =
+                        ConstruirResultadoGuardado(
+                            detalle,
+                            cultivos,
+                            elementos);
+
+                    int plantas =
+                        ObtenerCantidadPlantas(
+                            detalle,
+                            terrenos);
+
+                    return new AnalisisEdicionContexto
+                    {
+                        AnalisisSueloCalculoId =
+                            analisisSueloCalculoId,
+                        Resumen = resumen,
+                        Detalle = detalle,
+                        RequestOriginal = request,
+                        RequestActual = ClonarRequest(request),
+                        ResultadoOriginal = resultado,
+                        Terrenos = terrenos,
+                        TiposCultivo = cultivos,
+                        UnidadesMedida = unidades,
+                        ElementosCatalogo = elementos,
+                        FuentesCatalogo = fuentes,
+                        CantidadPlantas = plantas,
+                        ClaveRequerimientoOriginal =
+                            ConstruirClaveRequerimiento(request),
+                        ClaveBalanceOriginal =
+                            ConstruirClaveBalance(
+                                request,
+                                plantas,
+                                detalle.BalanceNutricional?.Formula.TotalAplicaciones ?? 0),
+                        ClaveEnmiendaOriginal =
+                            ConstruirClaveEnmienda(
+                                request,
+                                plantas,
+                                detalle.EnmiendaCalcarea?.TotalAplicaciones ?? 0)
+                    };
+                });
+
+                ContextoActual = contexto;
 
                 RestauracionUiRealizada = false;
                 return (true, string.Empty);

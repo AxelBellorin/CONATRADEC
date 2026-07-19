@@ -76,8 +76,8 @@ namespace CONATRADEC.ViewModels
                 {
                     TerrenoSeleccionado = terreno;
 
-                    TerrenosFiltrados.Clear();
-                    TerrenosFiltrados.Add(terreno);
+                    ReemplazarTerrenosFiltrados(
+                        new[] { terreno });
 
                     TextoBusquedaTerreno =
                         $"{terreno.CodigoTerreno} - " +

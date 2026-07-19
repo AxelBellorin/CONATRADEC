@@ -17,9 +17,6 @@ namespace CONATRADEC.Views
             NuevoAnalisisFormEdicionViewModel
                 viewModel = new();
 
-        private readonly ElementoQuimicoApiService
-            elementoQuimicoApiService = new();
-
         private readonly List<ElementoQuimicoResponse>
             catalogoElementos = new();
 
@@ -93,9 +90,9 @@ namespace CONATRADEC.Views
             }
 
             await viewModel
-                .InicializarPaginaAsync(true);
+                .InicializarPaginaAsync(false);
 
-            await CargarCatalogoElementosAsync();
+            CargarCatalogoElementos();
 
             Button? botonEnviar =
                 BuscarBotonEnviar(this);
@@ -267,34 +264,24 @@ namespace CONATRADEC.Views
             ActualizarEstadoSelector();
         }
 
-        private async Task
-            CargarCatalogoElementosAsync()
+        private void CargarCatalogoElementos()
         {
-            ApiResult<ObservableCollection<
-                ElementoQuimicoResponse>> resultado =
-                    await elementoQuimicoApiService
-                        .GetElementoQuimicoResultAsync();
-
             catalogoElementos.Clear();
 
-            if (resultado.Success &&
-                resultado.Data != null)
+            foreach (
+                ElementoQuimicoResponse elemento
+                in viewModel.CatalogoElementosQuimicos.Where(x =>
+                    x.ElementoQuimicosId.HasValue &&
+                    x.ElementoQuimicosId.Value > 0))
             {
-                foreach (
-                    ElementoQuimicoResponse elemento
-                    in resultado.Data.Where(x =>
-                        x.ElementoQuimicosId.HasValue &&
-                        x.ElementoQuimicosId.Value > 0))
+                if (catalogoElementos.Any(x =>
+                        x.ElementoQuimicosId ==
+                        elemento.ElementoQuimicosId))
                 {
-                    if (catalogoElementos.Any(x =>
-                            x.ElementoQuimicosId ==
-                            elemento.ElementoQuimicosId))
-                    {
-                        continue;
-                    }
-
-                    catalogoElementos.Add(elemento);
+                    continue;
                 }
+
+                catalogoElementos.Add(elemento);
             }
 
             ActualizarElementosDisponibles();

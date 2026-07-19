@@ -64,19 +64,22 @@ namespace CONATRADEC.Services
                 if (jsonTrim.StartsWith("["))
                 {
                     ObservableCollection<TipoCultivoResponse>? listaDirecta =
-                        JsonSerializer.Deserialize<ObservableCollection<TipoCultivoResponse>>(
-                            jsonRespuesta,
-                            jsonOptions
-                        );
+                        await Task.Run(() =>
+                            JsonSerializer.Deserialize<
+                                ObservableCollection<
+                                    TipoCultivoResponse>>(
+                                        jsonRespuesta,
+                                        jsonOptions));
 
                     return listaDirecta ?? new ObservableCollection<TipoCultivoResponse>();
                 }
 
                 ApiListaResponse<TipoCultivoResponse>? respuesta =
-                    JsonSerializer.Deserialize<ApiListaResponse<TipoCultivoResponse>>(
-                        jsonRespuesta,
-                        jsonOptions
-                    );
+                    await Task.Run(() =>
+                        JsonSerializer.Deserialize<
+                            ApiListaResponse<TipoCultivoResponse>>(
+                                jsonRespuesta,
+                                jsonOptions));
 
                 if (respuesta?.Data == null)
                     return new ObservableCollection<TipoCultivoResponse>();
@@ -95,10 +98,12 @@ namespace CONATRADEC.Services
         {
             try
             {
-                string jsonRequest = JsonSerializer.Serialize(request, jsonOptions);
+                string jsonRequest = await Task.Run(() =>
+                    JsonSerializer.Serialize(
+                        request,
+                        jsonOptions));
 
                 Debug.WriteLine($"========== REQUEST API: {endpoint} ==========");
-                Debug.WriteLine(jsonRequest);
 
                 using StringContent content = new StringContent(
                     jsonRequest,
@@ -111,7 +116,6 @@ namespace CONATRADEC.Services
                 string jsonRespuesta = await response.Content.ReadAsStringAsync();
 
                 Debug.WriteLine($"========== RESPONSE API: {endpoint} ({(int)response.StatusCode}) ==========");
-                Debug.WriteLine(jsonRespuesta);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -123,10 +127,11 @@ namespace CONATRADEC.Services
                 }
 
                 AnalisisSueloCalculoResponse? data =
-                    JsonSerializer.Deserialize<AnalisisSueloCalculoResponse>(
-                        jsonRespuesta,
-                        jsonOptions
-                    );
+                    await Task.Run(() =>
+                        JsonSerializer.Deserialize<
+                            AnalisisSueloCalculoResponse>(
+                                jsonRespuesta,
+                                jsonOptions));
 
                 if (data == null)
                 {

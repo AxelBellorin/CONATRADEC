@@ -181,17 +181,29 @@ namespace CONATRADEC.Services
                 BalanceFormulaViewModel viewModel,
                 AnalisisEdicionContexto contexto)
         {
+            BalanceNutricionalRequest? request =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerRequest<BalanceNutricionalRequest>(
+                        TipoCalculoTemporal.BalanceFormula);
+
+            BalanceNutricionalResponse? resultadoTemporal =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerResultado<BalanceNutricionalResponse>(
+                        TipoCalculoTemporal.BalanceFormula);
+
+            if (request?.Items == null ||
+                request.Items.Count == 0 ||
+                resultadoTemporal == null)
+            {
+                return false;
+            }
+
             for (int intento = 0;
                  intento < 240;
                  intento++)
             {
                 if (!AnalisisEdicionService.Instance.EsModoEdicion)
                     return false;
-
-                BalanceNutricionalRequest? request =
-                    CalculoAnalisisTemporalService.Instance
-                        .ObtenerRequest<BalanceNutricionalRequest>(
-                            TipoCalculoTemporal.BalanceFormula);
 
                 /*
                  * El balance solo debe restaurarse después de que su
@@ -213,8 +225,7 @@ namespace CONATRADEC.Services
                             elemento.ElementoQuimicosId ==
                                 item.ElementoQuimicosId));
 
-                if (interfazLista &&
-                    TieneBalanceTemporal())
+                if (interfazLista)
                 {
                     bool restaurado = false;
 
@@ -241,6 +252,9 @@ namespace CONATRADEC.Services
                 EnmiendaCalcareaTabViewModel viewModel,
                 AnalisisEdicionContexto contexto)
         {
+            if (!TieneEnmiendaTemporal())
+                return false;
+
             for (int intento = 0;
                  intento < 240;
                  intento++)
@@ -260,8 +274,7 @@ namespace CONATRADEC.Services
                 bool interfazLista =
                     viewModel.CargaEnmiendasFinalizada;
 
-                if (interfazLista &&
-                    TieneEnmiendaTemporal())
+                if (interfazLista)
                 {
                     bool restaurado = false;
 

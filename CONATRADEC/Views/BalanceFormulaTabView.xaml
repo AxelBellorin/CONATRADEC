@@ -181,11 +181,11 @@
                         LineBreakMode="WordWrap" />
                 </VerticalStackLayout>
 
-                <CollectionView
-                    ItemsSource="{Binding ElementosBalance}"
-                    SelectionMode="None">
+                <VerticalStackLayout
+                    Spacing="0"
+                    BindableLayout.ItemsSource="{Binding ElementosBalance}">
 
-                    <CollectionView.ItemTemplate>
+                    <BindableLayout.ItemTemplate>
                         <DataTemplate>
 
                             <Border
@@ -311,8 +311,8 @@
                             </Border>
 
                         </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
 
             </VerticalStackLayout>
         </Border>

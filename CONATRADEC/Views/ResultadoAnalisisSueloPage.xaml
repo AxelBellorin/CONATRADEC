@@ -74,8 +74,10 @@
                             FontAttributes="Bold"
                             TextColor="#9B552C" />
 
-                        <CollectionView ItemsSource="{Binding Observaciones}">
-                            <CollectionView.ItemTemplate>
+                        <VerticalStackLayout
+                            Spacing="0"
+                            BindableLayout.ItemsSource="{Binding Observaciones}">
+                            <BindableLayout.ItemTemplate>
                                 <DataTemplate>
                                     <Border
                                         BackgroundColor="#FFF7ED"
@@ -91,8 +93,8 @@
                                             LineBreakMode="WordWrap" />
                                     </Border>
                                 </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
 
                     </VerticalStackLayout>
 
@@ -164,11 +166,12 @@
                 Margin="0,4,0,0"
                 IsVisible="{Binding TieneElementos}" />
 
-            <CollectionView
-                ItemsSource="{Binding Elementos}"
+            <VerticalStackLayout
+                Spacing="0"
+                BindableLayout.ItemsSource="{Binding Elementos}"
                 IsVisible="{Binding TieneElementos}">
 
-                <CollectionView.ItemTemplate>
+                <BindableLayout.ItemTemplate>
                     <DataTemplate>
 
                         <Border
@@ -293,8 +296,8 @@
                         </Border>
 
                     </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
 
             <!-- Selección de cálculos opcionales -->
             <Border

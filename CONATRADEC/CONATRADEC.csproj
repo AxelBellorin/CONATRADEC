@@ -48,7 +48,8 @@
 		<AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
 		<AndroidEnableLLVM>false</AndroidEnableLLVM>
 		<RunAOTCompilation>false</RunAOTCompilation>
-		<UseInterpreter>true</UseInterpreter>
+		<!-- Evita ejecutar la aplicación Release con el intérprete lento. -->
+		<UseInterpreter>false</UseInterpreter>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net9.0-android|AnyCPU'">

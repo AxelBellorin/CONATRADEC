@@ -4,7 +4,6 @@
     x:Name="MultiCalculoRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:views="clr-namespace:CONATRADEC.Views"
     Title="Cálculos complementarios"
     BackgroundColor="{StaticResource color_Blanco}"
     Shell.NavBarIsVisible="False">
@@ -194,20 +193,12 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Grid IsVisible="{Binding EsBalanceSeleccionado}">
-                    <views:BalanceFormulaTabView
-                        BindingContext="{Binding BalanceFormula}" />
-                </Grid>
-
-                <Grid IsVisible="{Binding EsEnmiendaSeleccionada}">
-                    <views:EnmiendaCalcareaTabView
-                        BindingContext="{Binding EnmiendaCalcarea}" />
-                </Grid>
-
-                <Grid IsVisible="{Binding EsFertilizacionSeleccionada}">
-                    <views:FertilizacionMixtaTabView
-                        BindingContext="{Binding FertilizacionMixta}" />
-                </Grid>
+                <!--
+                    Solo se inserta la vista de la pestaña activa.
+                    En Android evita construir y medir simultáneamente las
+                    tres interfaces completas de cálculos.
+                -->
+                <Grid x:Name="ContenidoTabActual" />
 
                 <Border
                     IsVisible="{Binding TieneMensaje}"

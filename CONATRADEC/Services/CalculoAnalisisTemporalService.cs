@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
@@ -48,8 +49,10 @@ namespace CONATRADEC.Services
         private readonly JsonSerializerOptions jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true,
-            WriteIndented = true
+            WriteIndented = false
         };
+
+        private readonly SemaphoreSlim archivoLock = new(1, 1);
 
         private string RutaArchivoTemporal =>
             Path.Combine(FileSystem.AppDataDirectory, NombreArchivoTemporal);
@@ -115,17 +118,22 @@ namespace CONATRADEC.Services
             TResultado? resultado,
             string? mensajeEstado = null)
         {
+            Task<string?> tareaRequest =
+                SerializarAsync(request);
+
+            Task<string?> tareaResultado =
+                SerializarAsync(resultado);
+
+            await Task.WhenAll(
+                tareaRequest,
+                tareaResultado);
+
             CalculoSeccionTemporalState seccion = ObtenerSeccion(tipoCalculo);
 
             seccion.TipoCalculo = tipoCalculo;
             seccion.Estado = EstadoCalculoTemporal.Calculado;
-            seccion.RequestJson = request == null
-                ? null
-                : JsonSerializer.Serialize(request, jsonOptions);
-
-            seccion.ResultadoJson = resultado == null
-                ? null
-                : JsonSerializer.Serialize(resultado, jsonOptions);
+            seccion.RequestJson = await tareaRequest;
+            seccion.ResultadoJson = await tareaResultado;
 
             seccion.FechaCalculo = DateTime.Now;
             seccion.FechaUltimaModificacion = DateTime.Now;
@@ -222,9 +230,14 @@ namespace CONATRADEC.Services
 
         public async Task GuardarEnArchivoAsync()
         {
+            await archivoLock.WaitAsync();
+
             try
             {
-                string json = JsonSerializer.Serialize(estadoActual, jsonOptions);
+                string json = await Task.Run(() =>
+                    JsonSerializer.Serialize(
+                        estadoActual,
+                        jsonOptions));
 
                 await File.WriteAllTextAsync(RutaArchivoTemporal, json);
             }
@@ -233,10 +246,16 @@ namespace CONATRADEC.Services
                 // Si falla el respaldo local, no rompemos la UI.
                 // El estado en memoria sigue disponible durante la sesión.
             }
+            finally
+            {
+                archivoLock.Release();
+            }
         }
 
         public async Task<bool> CargarDesdeArchivoAsync()
         {
+            await archivoLock.WaitAsync();
+
             try
             {
                 if (!File.Exists(RutaArchivoTemporal))
@@ -248,10 +267,11 @@ namespace CONATRADEC.Services
                     return false;
 
                 CalculoAnalisisTemporalState? estado =
-                    JsonSerializer.Deserialize<CalculoAnalisisTemporalState>(
-                        json,
-                        jsonOptions
-                    );
+                    await Task.Run(() =>
+                        JsonSerializer.Deserialize<
+                            CalculoAnalisisTemporalState>(
+                                json,
+                                jsonOptions));
 
                 if (estado == null)
                     return false;
@@ -266,6 +286,10 @@ namespace CONATRADEC.Services
             {
                 estadoActual = new CalculoAnalisisTemporalState();
                 return false;
+            }
+            finally
+            {
+                archivoLock.Release();
             }
         }
 
@@ -300,6 +324,17 @@ namespace CONATRADEC.Services
                 TipoCalculoTemporal.EnmiendaCalcarea => estadoActual.EnmiendaCalcarea,
                 _ => estadoActual.RequerimientoAnual
             };
+        }
+
+        private Task<string?> SerializarAsync<T>(T? valor)
+        {
+            if (valor is null)
+                return Task.FromResult<string?>(null);
+
+            return Task.Run<string?>(() =>
+                JsonSerializer.Serialize(
+                    valor,
+                    jsonOptions));
         }
 
         private void AsegurarSecciones()

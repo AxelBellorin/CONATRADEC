@@ -613,7 +613,9 @@ namespace CONATRADEC.ViewModels
                 if (!valido)
                     return;
 
-                GuardarTodoRequest request = ConstruirSolicitudGuardar();
+                GuardarTodoRequest request =
+                    await Task.Run(
+                        ConstruirSolicitudGuardar);
 
                 GuardarTodoResponse response;
 

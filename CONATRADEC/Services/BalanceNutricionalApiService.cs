@@ -48,10 +48,11 @@ namespace CONATRADEC.Services
                 }
 
                 BalanceNutricionalResponse? resultado =
-                    JsonSerializer.Deserialize<BalanceNutricionalResponse>(
-                        jsonRespuesta,
-                        jsonOptions
-                    );
+                    await Task.Run(() =>
+                        JsonSerializer.Deserialize<
+                            BalanceNutricionalResponse>(
+                                jsonRespuesta,
+                                jsonOptions));
 
                 if (resultado == null)
                 {

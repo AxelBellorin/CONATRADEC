@@ -77,6 +77,7 @@ namespace CONATRADEC.ViewModels
         {
             ParametrosConstantesAnalisis = new ObservableCollection<ResultadoAnalisisItemViewModel>();
             ElementosQuimicosAnalisis = new ObservableCollection<ResultadoAnalisisItemViewModel>();
+            CatalogoElementosQuimicos = new ObservableCollection<ElementoQuimicoResponse>();
 
             TerrenosFiltrados = new ObservableCollection<TerrenoResponse>();
 
@@ -174,7 +175,11 @@ namespace CONATRADEC.ViewModels
 
         public bool NoTieneImagenUsuario => string.IsNullOrWhiteSpace(UrlImagenUsuario);
 
-        public ObservableCollection<TerrenoResponse> TerrenosFiltrados { get; }
+        public ObservableCollection<TerrenoResponse> TerrenosFiltrados
+        {
+            get;
+            private set;
+        }
 
         public ObservableCollection<PaisResponse> Paises { get; }
 
@@ -577,6 +582,8 @@ namespace CONATRADEC.ViewModels
 
         public ObservableCollection<ResultadoAnalisisItemViewModel> ElementosQuimicosAnalisis { get; }
 
+        public ObservableCollection<ElementoQuimicoResponse> CatalogoElementosQuimicos { get; }
+
         public Command BuscarTerrenoCommand { get; }
 
         public Command LimpiarFiltrosTerrenoCommand { get; }
@@ -603,17 +610,23 @@ namespace CONATRADEC.ViewModels
 
                 CargarDatosUsuario();
 
-                //if (forceReload || TiposCultivo.Count == 0 || TiposAnalisisSuelo.Count == 0)
-                //    await CargarCatalogosFormularioAsync();
+                /*
+                 * Estos catálogos son independientes. Cargarlos en paralelo
+                 * evita sumar el tiempo de respuesta de cada endpoint.
+                 */
+                List<Task> tareasCatalogos = new();
 
                 if (forceReload || TiposCultivo.Count == 0)
-                    await CargarCatalogosFormularioAsync();
+                    tareasCatalogos.Add(CargarCatalogosFormularioAsync());
 
                 if (forceReload || Paises.Count == 0)
-                    await CargarUbicacionAsync();
+                    tareasCatalogos.Add(CargarUbicacionAsync());
 
                 if (forceReload || UnidadesMedidaCatalogo.Count == 0)
-                    await CargarUnidadesMedidaAsync();
+                    tareasCatalogos.Add(CargarUnidadesMedidaAsync());
+
+                if (tareasCatalogos.Count > 0)
+                    await Task.WhenAll(tareasCatalogos);
 
                 if (forceReload || debeLimpiarFormulario)
                 {
@@ -876,19 +889,15 @@ namespace CONATRADEC.ViewModels
                         pageSize: 50
                     );
 
-                foreach (var terreno in terrenos)
-                {
-                    if (terreno == null)
-                        continue;
+                IEnumerable<TerrenoResponse> terrenosValidos =
+                    terrenos.Where(terreno =>
+                        terreno != null &&
+                        terreno.TerrenoId.HasValue &&
+                        terreno.TerrenoId.Value > 0 &&
+                        terreno.Activo != false);
 
-                    if (terreno.TerrenoId == null || terreno.TerrenoId <= 0)
-                        continue;
-
-                    if (terreno.Activo == false)
-                        continue;
-
-                    TerrenosFiltrados.Add(terreno);
-                }
+                ReemplazarTerrenosFiltrados(
+                    terrenosValidos);
 
                 if (TerrenosFiltrados.Count == 0)
                     ErrorTerreno = "No se encontraron terrenos con los filtros ingresados.";
@@ -957,8 +966,20 @@ namespace CONATRADEC.ViewModels
         {
             ElementosQuimicosAnalisis.Clear();
 
+            if (CatalogoElementosQuimicos.Count == 0)
+            {
+                ObservableCollection<ElementoQuimicoResponse> elementosApi =
+                    await elementoQuimicoApiService.GetElementoQuimicoAsync();
+
+                foreach (ElementoQuimicoResponse elemento in elementosApi)
+                {
+                    if (elemento?.ElementoQuimicosId is > 0)
+                        CatalogoElementosQuimicos.Add(elemento);
+                }
+            }
+
             ObservableCollection<ElementoQuimicoResponse> elementos =
-                await elementoQuimicoApiService.GetElementoQuimicoAsync();
+                CatalogoElementosQuimicos;
 
             if (elementos == null || elementos.Count == 0)
             {
@@ -1065,8 +1086,18 @@ namespace CONATRADEC.ViewModels
             textoBusquedaTerreno = $"{terreno.CodigoTerreno} - {terreno.NombreTerreno}";
             OnPropertyChanged(nameof(TextoBusquedaTerreno));
 
-            TerrenosFiltrados.Clear();
-            TerrenosFiltrados.Add(terreno);
+            ReemplazarTerrenosFiltrados(
+                new[] { terreno });
+        }
+
+        protected void ReemplazarTerrenosFiltrados(
+            IEnumerable<TerrenoResponse> terrenos)
+        {
+            TerrenosFiltrados =
+                new ObservableCollection<TerrenoResponse>(
+                    terrenos);
+
+            OnPropertyChanged(nameof(TerrenosFiltrados));
         }
 
         private async Task LimpiarFiltrosTerrenoAsync()
