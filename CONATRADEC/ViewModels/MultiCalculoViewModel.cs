@@ -154,7 +154,17 @@ namespace CONATRADEC.ViewModels
             get => tabSeleccionada;
             set
             {
-                tabSeleccionada = value ?? string.Empty;
+                string nuevaPestana = value ?? string.Empty;
+
+                if (string.Equals(
+                        tabSeleccionada,
+                        nuevaPestana,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                tabSeleccionada = nuevaPestana;
 
                 OnPropertyChanged(nameof(TabSeleccionada));
                 OnPropertyChanged(nameof(EsBalanceSeleccionado));

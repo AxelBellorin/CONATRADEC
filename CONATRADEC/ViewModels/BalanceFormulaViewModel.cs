@@ -408,9 +408,11 @@ namespace CONATRADEC.ViewModels
             !IsBusy &&
             ElementosBalance.Any(x => x.FuenteSeleccionada != null);
 
-        public ObservableCollection<BalanceFormulaElementoViewModel> ElementosBalance { get; }
+        public ObservableCollection<BalanceFormulaElementoViewModel>
+            ElementosBalance { get; private set; }
 
-        public ObservableCollection<FuenteNutrienteResponse> FuentesNutrientes { get; }
+        public ObservableCollection<FuenteNutrienteResponse>
+            FuentesNutrientes { get; private set; }
 
         public ObservableCollection<BalanceFormulaFilaResultadoViewModel> FilasResultado { get; }
 
@@ -495,30 +497,24 @@ namespace CONATRADEC.ViewModels
 
         private async Task CargarFuentesNutrientesAsync()
         {
-            FuentesNutrientes.Clear();
-
             ObservableCollection<FuenteNutrienteResponse> fuentes =
                 await fuenteNutrienteApiService.GetFuenteNutrienteAsync();
 
-            foreach (var fuente in fuentes)
-            {
-                if (fuente == null)
-                    continue;
+            List<FuenteNutrienteResponse> fuentesValidas =
+                fuentes
+                    .Where(fuente =>
+                        fuente != null &&
+                        fuente.FuenteNutrientesId is > 0 &&
+                        fuente.Activo != false &&
+                        fuente.EsBalanceNutricional &&
+                        FuenteTieneAportesBalanceables(fuente))
+                    .ToList();
 
-                if (fuente.FuenteNutrientesId == null || fuente.FuenteNutrientesId <= 0)
-                    continue;
+            FuentesNutrientes =
+                new ObservableCollection<FuenteNutrienteResponse>(
+                    fuentesValidas);
 
-                if (fuente.Activo == false)
-                    continue;
-
-                if (!fuente.EsBalanceNutricional)
-                    continue;
-
-                if (!FuenteTieneAportesBalanceables(fuente))
-                    continue;
-
-                FuentesNutrientes.Add(fuente);
-            }
+            OnPropertyChanged(nameof(FuentesNutrientes));
 
             if (FuentesNutrientes.Count == 0)
             {
@@ -541,10 +537,13 @@ namespace CONATRADEC.ViewModels
 
         private void CargarElementosDesdeResultado()
         {
-            ElementosBalance.Clear();
-
             if (ResultadoCalculo?.Elementos == null || ResultadoCalculo.Elementos.Count == 0)
             {
+                ElementosBalance =
+                    new ObservableCollection<
+                        BalanceFormulaElementoViewModel>();
+
+                OnPropertyChanged(nameof(ElementosBalance));
                 Mensaje = "No se encontraron elementos en el resultado del análisis de suelo.";
                 OnPropertyChanged(nameof(TieneElementosBalance));
                 return;
@@ -556,12 +555,15 @@ namespace CONATRADEC.ViewModels
                 .OrderByDescending(x => x.RequerimientoCalculado ?? 0)
                 .ToList();
 
+            List<BalanceFormulaElementoViewModel> elementosBalance =
+                new();
+
             foreach (var elemento in elementos)
             {
                 ObservableCollection<FuenteNutrienteResponse> fuentesElemento =
                     ObtenerFuentesParaElemento(elemento.SimboloElementoQuimico);
 
-                ElementosBalance.Add(new BalanceFormulaElementoViewModel
+                elementosBalance.Add(new BalanceFormulaElementoViewModel
                 {
                     ElementoQuimicosId = elemento.ElementoQuimicosId,
                     SimboloElementoQuimico = elemento.SimboloElementoQuimico ?? string.Empty,
@@ -572,6 +574,12 @@ namespace CONATRADEC.ViewModels
                 });
             }
 
+            ElementosBalance =
+                new ObservableCollection<
+                    BalanceFormulaElementoViewModel>(
+                        elementosBalance);
+
+            OnPropertyChanged(nameof(ElementosBalance));
             OnPropertyChanged(nameof(TieneElementosBalance));
             RefrescarComandos();
 

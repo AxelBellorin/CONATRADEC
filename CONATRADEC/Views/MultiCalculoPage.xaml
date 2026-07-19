@@ -4,6 +4,8 @@
     x:Name="MultiCalculoRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewModels="clr-namespace:CONATRADEC.ViewModels"
+    x:DataType="viewModels:MultiCalculoViewModel"
     Title="Cálculos complementarios"
     BackgroundColor="{StaticResource color_Blanco}"
     Shell.NavBarIsVisible="False">

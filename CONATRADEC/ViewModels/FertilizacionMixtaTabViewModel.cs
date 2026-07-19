@@ -147,9 +147,11 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public ObservableCollection<ElementoFertilizacionMixtaItemViewModel> ElementosExportables { get; }
+        public ObservableCollection<ElementoFertilizacionMixtaItemViewModel>
+            ElementosExportables { get; private set; }
 
-        public ObservableCollection<FuenteFertilizacionMixtaItemViewModel> FuentesDisponibles { get; }
+        public ObservableCollection<FuenteFertilizacionMixtaItemViewModel>
+            FuentesDisponibles { get; private set; }
 
         public bool TieneElementosExportables => ElementosExportables.Count > 0;
 
@@ -262,15 +264,21 @@ namespace CONATRADEC.ViewModels
 
         private void CargarElementosDesdeResultadoAnalisis()
         {
-            ElementosExportables.Clear();
-
             if (ResultadoCalculo?.Elementos == null || ResultadoCalculo.Elementos.Count == 0)
             {
+                ElementosExportables =
+                    new ObservableCollection<
+                        ElementoFertilizacionMixtaItemViewModel>();
+
+                OnPropertyChanged(nameof(ElementosExportables));
                 ErrorElementos = "No se encontraron elementos químicos en el resultado del análisis de suelo.";
                 OnPropertyChanged(nameof(TieneElementosExportables));
                 RefrescarComandos();
                 return;
             }
+
+            List<ElementoFertilizacionMixtaItemViewModel>
+                elementosExportables = new();
 
             foreach (var elemento in ResultadoCalculo.Elementos)
             {
@@ -285,7 +293,7 @@ namespace CONATRADEC.ViewModels
                 string simbolo = (elemento.SimboloElementoQuimico ?? string.Empty).Trim();
                 string nombre = (elemento.NombreElementoQuimico ?? string.Empty).Trim();
 
-                ElementosExportables.Add(new ElementoFertilizacionMixtaItemViewModel
+                elementosExportables.Add(new ElementoFertilizacionMixtaItemViewModel
                 {
                     ElementoQuimicosId = elemento.ElementoQuimicosId,
                     SimboloElementoQuimico = simbolo,
@@ -294,6 +302,12 @@ namespace CONATRADEC.ViewModels
                 });
             }
 
+            ElementosExportables =
+                new ObservableCollection<
+                    ElementoFertilizacionMixtaItemViewModel>(
+                        elementosExportables);
+
+            OnPropertyChanged(nameof(ElementosExportables));
             if (ElementosExportables.Count == 0)
                 ErrorElementos = "No hay elementos químicos válidos para enviar al cálculo de fertilización mixta.";
 
@@ -314,10 +328,17 @@ namespace CONATRADEC.ViewModels
                 foreach (var fuenteActual in FuentesDisponibles)
                     fuenteActual.CambioFormulario -= Fuente_CambioFormulario;
 
-                FuentesDisponibles.Clear();
+                FuentesDisponibles =
+                    new ObservableCollection<
+                        FuenteFertilizacionMixtaItemViewModel>();
+
+                OnPropertyChanged(nameof(FuentesDisponibles));
 
                 ObservableCollection<FuenteNutrienteFertilizacionMixtaResponse> fuentes =
                     await fertilizacionMixtaApiService.ListarFuentesFertilizacionMixtaAsync();
+
+                List<FuenteFertilizacionMixtaItemViewModel>
+                    fuentesDisponibles = new();
 
                 foreach (var fuente in fuentes)
                 {
@@ -341,8 +362,15 @@ namespace CONATRADEC.ViewModels
 
                     item.CambioFormulario += Fuente_CambioFormulario;
 
-                    FuentesDisponibles.Add(item);
+                    fuentesDisponibles.Add(item);
                 }
+
+                FuentesDisponibles =
+                    new ObservableCollection<
+                        FuenteFertilizacionMixtaItemViewModel>(
+                            fuentesDisponibles);
+
+                OnPropertyChanged(nameof(FuentesDisponibles));
 
                 if (FuentesDisponibles.Count == 0)
                     ErrorFuentes = "No se encontraron fuentes configuradas para fertilización mixta.";

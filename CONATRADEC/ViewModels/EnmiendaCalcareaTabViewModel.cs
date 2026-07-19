@@ -2,6 +2,7 @@
 using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -98,7 +99,7 @@ namespace CONATRADEC.ViewModels
         }
 
         public ObservableCollection<ParametroEnmiendaCalcareaResponse>
-            EnmiendasCalcareas { get; }
+            EnmiendasCalcareas { get; private set; }
 
         public ParametroEnmiendaCalcareaResponse? EnmiendaSeleccionada
         {
@@ -673,28 +674,26 @@ namespace CONATRADEC.ViewModels
                 ErrorFormulario = string.Empty;
                 Mensaje = "Cargando tipos de cal...";
 
-                EnmiendasCalcareas.Clear();
-
                 ObservableCollection<ParametroEnmiendaCalcareaResponse>
                     lista =
                         await enmiendaCalcareaApiService
                             .GetEnmiendasCalcareasAsync();
 
-                foreach (
-                    ParametroEnmiendaCalcareaResponse item
-                    in lista)
-                {
-                    if (item == null)
-                        continue;
+                List<ParametroEnmiendaCalcareaResponse>
+                    enmiendasValidas =
+                        lista
+                            .Where(item =>
+                                item != null &&
+                                item.FuenteNutrientesId is > 0)
+                            .ToList();
 
-                    if (item.FuenteNutrientesId == null ||
-                        item.FuenteNutrientesId <= 0)
-                    {
-                        continue;
-                    }
+                EnmiendasCalcareas =
+                    new ObservableCollection<
+                        ParametroEnmiendaCalcareaResponse>(
+                            enmiendasValidas);
 
-                    EnmiendasCalcareas.Add(item);
-                }
+                OnPropertyChanged(
+                    nameof(EnmiendasCalcareas));
 
                 enmiendasCargadas = true;
 

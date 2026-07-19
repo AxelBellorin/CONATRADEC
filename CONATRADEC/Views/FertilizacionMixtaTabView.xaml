@@ -2,7 +2,9 @@
 <ContentView
     x:Class="CONATRADEC.Views.FertilizacionMixtaTabView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    xmlns:viewModels="clr-namespace:CONATRADEC.ViewModels">
 
     <Grid>
 
@@ -102,7 +104,8 @@
                         BindableLayout.ItemsSource="{Binding ElementosExportables}">
 
                         <BindableLayout.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate
+                                x:DataType="viewModels:ElementoFertilizacionMixtaItemViewModel">
 
                                 <Border
                                     BackgroundColor="#F9FAFB"
@@ -178,7 +181,8 @@
                         BindableLayout.ItemsSource="{Binding FuentesDisponibles}">
 
                         <BindableLayout.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate
+                                x:DataType="viewModels:FuenteFertilizacionMixtaItemViewModel">
 
                                 <Border
                                     BackgroundColor="#F9FAFB"
@@ -370,7 +374,8 @@
                                 BindableLayout.ItemsSource="{Binding ResultadoFertilizacionMixta.Detalles}">
 
                                 <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate
+                                        x:DataType="models:DetalleFertilizacionMixtaResultadoResponse">
 
                                         <Grid
                                             MinimumWidthRequest="{OnIdiom Phone=940, Tablet=1030, Desktop=1640}"
@@ -464,7 +469,8 @@
                                     BindableLayout.ItemsSource="{Binding EncabezadosAporteMatriz}">
 
                                     <BindableLayout.ItemTemplate>
-                                        <DataTemplate>
+                                        <DataTemplate
+                                            x:DataType="viewModels:EncabezadoAporteMatrizViewModel">
                                             <Border
                                                 WidthRequest="{OnIdiom Phone=110, Tablet=145, Desktop=210}"
                                                 BackgroundColor="{StaticResource color_Verde}"
@@ -486,7 +492,8 @@
                                 BindableLayout.ItemsSource="{Binding FilasAporteMatriz}">
 
                                 <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate
+                                        x:DataType="viewModels:FuenteAporteMatrizViewModel">
 
                                         <HorizontalStackLayout Spacing="0">
 
@@ -513,7 +520,8 @@
                                                 BindableLayout.ItemsSource="{Binding Aportes}">
 
                                                 <BindableLayout.ItemTemplate>
-                                                    <DataTemplate>
+                                                    <DataTemplate
+                                                        x:DataType="viewModels:CeldaAporteMatrizViewModel">
                                                         <Border
                                                             WidthRequest="{OnIdiom Phone=110, Tablet=145, Desktop=210}"
                                                             BackgroundColor="#F9FAFB"
@@ -591,7 +599,8 @@
 
                             <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding FilasSugerenciaIncremento}">
                                 <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate
+                                        x:DataType="viewModels:SugerenciaIncrementoFuenteViewModel">
                                         <Grid ColumnDefinitions="210,130,130,145,160" BackgroundColor="#F9FAFB">
                                             <Label Grid.Column="0" Text="{Binding Fuente}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" Padding="10" />
                                             <Label Grid.Column="1" Text="{Binding TextoCantidadActualQq}" TextColor="{StaticResource color_GrisOscuro}" Padding="10" HorizontalTextAlignment="End" />
@@ -693,7 +702,8 @@
 
                             <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding FilasCostoOrganico}">
                                 <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate
+                                        x:DataType="viewModels:CostoFuenteOrganicaViewModel">
                                         <Grid ColumnDefinitions="200,110,130,140" BackgroundColor="#F9FAFB">
                                             <Label Grid.Column="0" Text="{Binding Fuente}" TextColor="{StaticResource color_Negro}" Padding="8" />
                                             <Label Grid.Column="1" Text="{Binding TextoCantidadQq}" TextColor="{StaticResource color_GrisOscuro}" Padding="8" HorizontalTextAlignment="End" />
@@ -764,7 +774,8 @@
 
                             <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding FilasCompraAjustada}">
                                 <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
+                                    <DataTemplate
+                                        x:DataType="viewModels:CompraComercialAjustadaViewModel">
                                         <Grid
                                             BackgroundColor="#F9FAFB"
                                             HorizontalOptions="Fill"

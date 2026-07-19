@@ -46,14 +46,13 @@ namespace CONATRADEC.Views
             object? sender,
             PropertyChangedEventArgs e)
         {
+            /*
+             * TabSeleccionada también notifica las tres propiedades
+             * Es...Seleccionado. Escuchar las cuatro provocaba cuatro
+             * despachos y hasta cuatro intentos de redibujar la pestaña.
+             */
             if (e.PropertyName != nameof(
-                    MultiCalculoViewModel.TabSeleccionada) &&
-                e.PropertyName != nameof(
-                    MultiCalculoViewModel.EsBalanceSeleccionado) &&
-                e.PropertyName != nameof(
-                    MultiCalculoViewModel.EsEnmiendaSeleccionada) &&
-                e.PropertyName != nameof(
-                    MultiCalculoViewModel.EsFertilizacionSeleccionada))
+                    MultiCalculoViewModel.TabSeleccionada))
             {
                 return;
             }
@@ -63,46 +62,78 @@ namespace CONATRADEC.Views
 
         private void ActualizarVistaTab()
         {
-            View? vista = null;
-
             if (viewModel.EsBalanceSeleccionado)
             {
-                balanceView ??= new BalanceFormulaTabView
-                {
-                    BindingContext = viewModel.BalanceFormula
-                };
-
-                vista = balanceView;
+                AsegurarVistaBalance();
             }
             else if (viewModel.EsEnmiendaSeleccionada)
             {
-                enmiendaView ??= new EnmiendaCalcareaTabView
-                {
-                    BindingContext = viewModel.EnmiendaCalcarea
-                };
-
-                vista = enmiendaView;
+                AsegurarVistaEnmienda();
             }
             else if (viewModel.EsFertilizacionSeleccionada)
             {
-                fertilizacionView ??=
-                    new FertilizacionMixtaTabView
-                    {
-                        BindingContext =
-                            viewModel.FertilizacionMixta
-                    };
-
-                vista = fertilizacionView;
+                AsegurarVistaFertilizacion();
             }
 
-            if (vista == null ||
-                ContenidoTabActual.Children.Contains(vista))
+            if (balanceView != null)
             {
-                return;
+                balanceView.IsVisible =
+                    viewModel.EsBalanceSeleccionado;
             }
 
-            ContenidoTabActual.Children.Clear();
-            ContenidoTabActual.Children.Add(vista);
+            if (enmiendaView != null)
+            {
+                enmiendaView.IsVisible =
+                    viewModel.EsEnmiendaSeleccionada;
+            }
+
+            if (fertilizacionView != null)
+            {
+                fertilizacionView.IsVisible =
+                    viewModel.EsFertilizacionSeleccionada;
+            }
+        }
+
+        private void AsegurarVistaBalance()
+        {
+            if (balanceView != null)
+                return;
+
+            balanceView = new BalanceFormulaTabView
+            {
+                BindingContext = viewModel.BalanceFormula,
+                IsVisible = false
+            };
+
+            ContenidoTabActual.Children.Add(balanceView);
+        }
+
+        private void AsegurarVistaEnmienda()
+        {
+            if (enmiendaView != null)
+                return;
+
+            enmiendaView = new EnmiendaCalcareaTabView
+            {
+                BindingContext = viewModel.EnmiendaCalcarea,
+                IsVisible = false
+            };
+
+            ContenidoTabActual.Children.Add(enmiendaView);
+        }
+
+        private void AsegurarVistaFertilizacion()
+        {
+            if (fertilizacionView != null)
+                return;
+
+            fertilizacionView = new FertilizacionMixtaTabView
+            {
+                BindingContext = viewModel.FertilizacionMixta,
+                IsVisible = false
+            };
+
+            ContenidoTabActual.Children.Add(fertilizacionView);
         }
     }
 }
