@@ -48,6 +48,8 @@ namespace CONATRADEC.ViewModels
         private int? terrenoId;
         private bool isBusy;
         private bool enmiendasCargadas;
+        private bool cargaEnmiendasFinalizada;
+        private bool restaurandoCalculoGuardado;
 
         public EnmiendaCalcareaTabViewModel()
         {
@@ -317,6 +319,7 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(PuedeCalcular));
                 OnPropertyChanged(nameof(PuedeReiniciar));
+                OnPropertyChanged(nameof(CargaEnmiendasFinalizada));
 
                 RefrescarComandos();
             }
@@ -332,6 +335,10 @@ namespace CONATRADEC.ViewModels
                 EnmiendaSeleccionada != null ||
                 ResultadoEnmienda != null
             );
+
+        public bool CargaEnmiendasFinalizada =>
+            cargaEnmiendasFinalizada &&
+            !IsBusy;
 
         public Command ReiniciarCommand { get; }
 
@@ -442,6 +449,123 @@ namespace CONATRADEC.ViewModels
         }
 
         // ===========================================================
+        // ========== RESTAURAR RESULTADO GUARDADO EN EDICIÓN ========
+        // ===========================================================
+
+        public void RestaurarCalculoGuardado(
+            ParametroEnmiendaCalcareaResponse fuenteSeleccionada,
+            EnmiendaCalcareaCalcularRequest request,
+            EnmiendaCalcareaCalcularResponse resultado,
+            string? nombreAnalisisRespaldo,
+            int plantasRespaldo)
+        {
+            restaurandoCalculoGuardado = true;
+
+            try
+            {
+                if (!EnmiendasCalcareas.Any(x =>
+                        x.FuenteNutrientesId ==
+                            fuenteSeleccionada.FuenteNutrientesId))
+                {
+                    EnmiendasCalcareas.Add(
+                        fuenteSeleccionada);
+                }
+
+                EnmiendaSeleccionada =
+                    fuenteSeleccionada;
+
+                NombreAnalisis =
+                    string.IsNullOrWhiteSpace(
+                        request.NombreAnalisis)
+                        ? string.IsNullOrWhiteSpace(
+                            resultado.NombreAnalisis)
+                            ? nombreAnalisisRespaldo ??
+                              "Enmienda calcárea"
+                            : resultado.NombreAnalisis
+                        : request.NombreAnalisis;
+
+                Ph =
+                    ObtenerValorRestaurado(
+                        request.Ph,
+                        resultado.Ph)
+                    .ToString(
+                        CultureInfo.InvariantCulture);
+
+                Ca =
+                    ObtenerValorRestaurado(
+                        request.Ca,
+                        resultado.Ca)
+                    .ToString(
+                        CultureInfo.InvariantCulture);
+
+                Mg =
+                    ObtenerValorRestaurado(
+                        request.Mg,
+                        resultado.Mg)
+                    .ToString(
+                        CultureInfo.InvariantCulture);
+
+                K =
+                    ObtenerValorRestaurado(
+                        request.K,
+                        resultado.K)
+                    .ToString(
+                        CultureInfo.InvariantCulture);
+
+                AcidezTotal =
+                    ObtenerValorRestaurado(
+                        request.AcidezTotal,
+                        resultado.AcidezTotal)
+                    .ToString(
+                        CultureInfo.InvariantCulture);
+
+                int plantas =
+                    request.TotalPlantas > 0
+                        ? request.TotalPlantas
+                        : resultado.TotalPlantas ??
+                          plantasRespaldo;
+
+                int aplicaciones =
+                    request.TotalAplicaciones > 0
+                        ? request.TotalAplicaciones
+                        : resultado.TotalAplicaciones ??
+                          3;
+
+                TotalPlantas =
+                    plantas.ToString(
+                        CultureInfo.InvariantCulture);
+
+                TotalAplicaciones =
+                    aplicaciones.ToString(
+                        CultureInfo.InvariantCulture);
+
+                ResultadoEnmienda =
+                    resultado;
+
+                ErrorFormulario =
+                    string.Empty;
+
+                Mensaje =
+                    "Se cargó automáticamente la enmienda calcárea " +
+                    "que fue calculada previamente.";
+            }
+            finally
+            {
+                restaurandoCalculoGuardado = false;
+                RefrescarComandos();
+            }
+        }
+
+        private static decimal ObtenerValorRestaurado(
+            decimal valorRequest,
+            decimal? valorResultado)
+        {
+            return valorRequest != 0
+                ? valorRequest
+                : valorResultado ?? 0;
+        }
+
+        // ===========================================================
         // =============== REINICIO PARA NUEVO CÁLCULO ===============
         // ===========================================================
 
@@ -471,6 +595,11 @@ namespace CONATRADEC.ViewModels
 
             EnmiendasCalcareas.Clear();
             enmiendasCargadas = false;
+            cargaEnmiendasFinalizada = false;
+            restaurandoCalculoGuardado = false;
+
+            OnPropertyChanged(
+                nameof(CargaEnmiendasFinalizada));
 
             IsBusy = false;
 
@@ -533,6 +662,11 @@ namespace CONATRADEC.ViewModels
             if (IsBusy)
                 return;
 
+            cargaEnmiendasFinalizada = false;
+
+            OnPropertyChanged(
+                nameof(CargaEnmiendasFinalizada));
+
             try
             {
                 IsBusy = true;
@@ -585,9 +719,15 @@ namespace CONATRADEC.ViewModels
             finally
             {
                 IsBusy = false;
+                cargaEnmiendasFinalizada = true;
+
+                OnPropertyChanged(
+                    nameof(CargaEnmiendasFinalizada));
+
                 RefrescarComandos();
             }
         }
+
 
         // ===========================================================
         // ===================== CALCULAR ENMIENDA ===================
@@ -865,8 +1005,11 @@ namespace CONATRADEC.ViewModels
 
         private void MarcarEnmiendaPendienteSiTieneResultado()
         {
-            if (ResultadoEnmienda == null)
+            if (restaurandoCalculoGuardado ||
+                ResultadoEnmienda == null)
+            {
                 return;
+            }
 
             _ = CalculoAnalisisTemporalService
                 .Instance

@@ -188,8 +188,30 @@ namespace CONATRADEC.Services
                 if (!AnalisisEdicionService.Instance.EsModoEdicion)
                     return false;
 
+                BalanceNutricionalRequest? request =
+                    CalculoAnalisisTemporalService.Instance
+                        .ObtenerRequest<BalanceNutricionalRequest>(
+                            TipoCalculoTemporal.BalanceFormula);
+
+                /*
+                 * El balance solo debe restaurarse después de que su
+                 * inicialización haya terminado completamente.
+                 *
+                 * Antes bastaba con que ElementosBalance tuviera un solo
+                 * elemento. Eso permitía que la restauración se ejecutara
+                 * mientras CargarElementosDesdeResultado todavía agregaba
+                 * N, K, Mg, Ca y P. La restauración terminaba incompleta y
+                 * las fuentes quedaban vacías al editar.
+                 */
                 bool interfazLista =
-                    viewModel.ElementosBalance.Count > 0;
+                    !viewModel.IsBusy &&
+                    request != null &&
+                    request.Items != null &&
+                    request.Items.Count > 0 &&
+                    request.Items.All(item =>
+                        viewModel.ElementosBalance.Any(elemento =>
+                            elemento.ElementoQuimicosId ==
+                                item.ElementoQuimicosId));
 
                 if (interfazLista &&
                     TieneBalanceTemporal())
@@ -204,7 +226,8 @@ namespace CONATRADEC.Services
                                 contexto);
                     });
 
-                    return restaurado;
+                    if (restaurado)
+                        return true;
                 }
 
                 await Task.Delay(100);
@@ -226,11 +249,19 @@ namespace CONATRADEC.Services
                     return false;
 
                 /*
-                 * No se exige que el catálogo de enmiendas tenga datos.
-                 * El resultado guardado debe mostrarse aunque la fuente
-                 * haya sido desactivada después.
+                 * Primero debe finalizar la carga del catálogo.
+                 *
+                 * Antes, la restauración podía ejecutarse mientras
+                 * CargarEnmiendasCalcareasAsync todavía estaba trabajando.
+                 * Luego ese método limpiaba nuevamente la colección y el
+                 * Picker quitaba la fuente restaurada, provocando que el
+                 * resultado quedara pendiente y desapareciera.
                  */
-                if (TieneEnmiendaTemporal())
+                bool interfazLista =
+                    viewModel.CargaEnmiendasFinalizada;
+
+                if (interfazLista &&
+                    TieneEnmiendaTemporal())
                 {
                     bool restaurado = false;
 
@@ -250,6 +281,7 @@ namespace CONATRADEC.Services
 
             return false;
         }
+
 
         private static bool TieneBalanceTemporal()
         {
@@ -563,102 +595,21 @@ namespace CONATRADEC.Services
                             fuenteCatalogo?
                                 .DescripcionParametro
                     };
-
-                viewModel.EnmiendasCalcareas.Add(
-                    fuenteSeleccionada);
             }
 
-            decimal ph =
-                request.Ph != 0
-                    ? request.Ph
-                    : resultado.Ph ?? 0;
+            string nombreRespaldo =
+                contexto
+                    .RequestActual
+                    .IdentificadorAnalisisSuelo
+                ??
+                "Enmienda calcárea";
 
-            decimal acidezTotal =
-                request.AcidezTotal != 0
-                    ? request.AcidezTotal
-                    : resultado.AcidezTotal ?? 0;
-
-            decimal ca =
-                request.Ca != 0
-                    ? request.Ca
-                    : resultado.Ca ?? 0;
-
-            decimal mg =
-                request.Mg != 0
-                    ? request.Mg
-                    : resultado.Mg ?? 0;
-
-            decimal k =
-                request.K != 0
-                    ? request.K
-                    : resultado.K ?? 0;
-
-            viewModel.EnmiendaSeleccionada =
-                fuenteSeleccionada;
-
-            viewModel.NombreAnalisis =
-                string.IsNullOrWhiteSpace(
-                    request.NombreAnalisis)
-                    ? resultado.NombreAnalisis ??
-                      contexto
-                          .RequestActual
-                          .IdentificadorAnalisisSuelo ??
-                      "Enmienda calcárea"
-                    : request.NombreAnalisis;
-
-            viewModel.Ph =
-                ph.ToString(
-                    CultureInfo.InvariantCulture);
-
-            viewModel.Ca =
-                ca.ToString(
-                    CultureInfo.InvariantCulture);
-
-            viewModel.Mg =
-                mg.ToString(
-                    CultureInfo.InvariantCulture);
-
-            viewModel.K =
-                k.ToString(
-                    CultureInfo.InvariantCulture);
-
-            viewModel.AcidezTotal =
-                acidezTotal.ToString(
-                    CultureInfo.InvariantCulture);
-
-            int plantas =
-                request.TotalPlantas > 0
-                    ? request.TotalPlantas
-                    : resultado.TotalPlantas ??
-                      contexto.CantidadPlantas;
-
-            int aplicaciones =
-                request.TotalAplicaciones > 0
-                    ? request.TotalAplicaciones
-                    : resultado.TotalAplicaciones ?? 3;
-
-            viewModel.TotalPlantas =
-                plantas.ToString(
-                    CultureInfo.InvariantCulture);
-
-            viewModel.TotalAplicaciones =
-                aplicaciones.ToString(
-                    CultureInfo.InvariantCulture);
-
-            /*
-             * Debe asignarse al final. Los cambios en los campos
-             * anteriores notifican que la enmienda quedó pendiente.
-             * Al poner el resultado al final se conserva como procesada.
-             */
-            viewModel.ResultadoEnmienda =
-                resultado;
-
-            viewModel.ErrorFormulario =
-                string.Empty;
-
-            viewModel.Mensaje =
-                "Se cargó la enmienda calcárea guardada con " +
-                "su fuente y resultado procesado.";
+            viewModel.RestaurarCalculoGuardado(
+                fuenteSeleccionada,
+                request,
+                resultado,
+                nombreRespaldo,
+                contexto.CantidadPlantas);
 
             return true;
         }
