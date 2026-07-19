@@ -23,6 +23,12 @@ namespace CONATRADEC.ViewModels
         private readonly FertilizacionMixtaApiService
             fertilizacionMixtaApiService = new();
 
+        private readonly UnidadMedidaApiService
+            unidadMedidaApiService = new();
+
+        private readonly AnalisisReporteService
+            analisisReporteService = new();
+
         private static readonly
             Dictionary<int, (string Nombre, string Simbolo)>
                 ElementosBase = new()
@@ -54,6 +60,18 @@ namespace CONATRADEC.ViewModels
                 () => !IsBusy &&
                       Detalle != null &&
                       Resumen != null);
+
+            GuardarPdfCommand = new Command(
+                async () => await GuardarPdfAsync(),
+                PuedeGenerarReporte);
+
+            GuardarExcelCommand = new Command(
+                async () => await GuardarExcelAsync(),
+                PuedeGenerarReporte);
+
+            ImprimirPdfCommand = new Command(
+                async () => await ImprimirPdfAsync(),
+                PuedeGenerarReporte);
         }
 
         public AnalisisGuardadoResumen? Resumen
@@ -86,6 +104,7 @@ namespace CONATRADEC.ViewModels
                     nameof(TieneFertilizacionMixta));
 
                 EditarCommand.ChangeCanExecute();
+                ActualizarComandosReporte();
             }
         }
 
@@ -149,6 +168,12 @@ namespace CONATRADEC.ViewModels
 
         public Command EditarCommand { get; }
 
+        public Command GuardarPdfCommand { get; }
+
+        public Command GuardarExcelCommand { get; }
+
+        public Command ImprimirPdfCommand { get; }
+
         public new bool IsBusy
         {
             get => base.IsBusy;
@@ -159,6 +184,7 @@ namespace CONATRADEC.ViewModels
 
                 base.IsBusy = value;
                 EditarCommand.ChangeCanExecute();
+                ActualizarComandosReporte();
             }
         }
 
@@ -274,10 +300,15 @@ namespace CONATRADEC.ViewModels
                         fertilizacionMixtaApiService
                             .ListarFuentesFertilizacionMixtaAsync();
 
+            Task<ObservableCollection<UnidadMedidaResponse>>
+                tareaUnidades =
+                    unidadMedidaApiService.GetUnidadMedidaAsync();
+
             await Task.WhenAll(
                 tareaElementos,
                 tareaFuentes,
-                tareaFuentesMixtas);
+                tareaFuentesMixtas,
+                tareaUnidades);
 
             ApiResult<ObservableCollection<
                 ElementoQuimicoResponse>>
@@ -293,6 +324,9 @@ namespace CONATRADEC.ViewModels
                 FuenteNutrienteFertilizacionMixtaResponse>
                     fuentesMixtas =
                         await tareaFuentesMixtas;
+
+            ObservableCollection<UnidadMedidaResponse>
+                unidades = await tareaUnidades;
 
             Dictionary<
                 int,
@@ -355,6 +389,15 @@ namespace CONATRADEC.ViewModels
                     string.Empty;
             }
 
+            Dictionary<int, string> unidadesPorId = unidades
+                .Where(x =>
+                    x.UnidadMedidaId.HasValue &&
+                    x.UnidadMedidaId.Value > 0)
+                .GroupBy(x => x.UnidadMedidaId!.Value)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.First().TextoMostrar);
+
             foreach (
                 AnalisisGuardadoElementoOriginal item
                 in data.DatosAnalisis.ElementosQuimicos)
@@ -367,6 +410,13 @@ namespace CONATRADEC.ViewModels
 
                 item.NombreElemento = nombre;
                 item.SimboloElemento = simbolo;
+
+                if (unidadesPorId.TryGetValue(
+                        item.UnidadMedidaId,
+                        out string? unidad))
+                {
+                    item.NombreUnidad = unidad;
+                }
             }
 
             foreach (
@@ -381,6 +431,14 @@ namespace CONATRADEC.ViewModels
 
                 item.NombreElemento = nombre;
                 item.SimboloElemento = simbolo;
+
+                if (item.UnidadMedidaId.HasValue &&
+                    unidadesPorId.TryGetValue(
+                        item.UnidadMedidaId.Value,
+                        out string? unidad))
+                {
+                    item.NombreUnidad = unidad;
+                }
             }
 
             if (data.BalanceNutricional != null)
@@ -581,6 +639,124 @@ namespace CONATRADEC.ViewModels
                 !string.IsNullOrWhiteSpace(nombre)
                     ? nombre
                     : simbolo;
+        }
+
+        private bool PuedeGenerarReporte() =>
+            !IsBusy && Detalle != null;
+
+        private void ActualizarComandosReporte()
+        {
+            GuardarPdfCommand?.ChangeCanExecute();
+            GuardarExcelCommand?.ChangeCanExecute();
+            ImprimirPdfCommand?.ChangeCanExecute();
+        }
+
+        private AnalisisReporte CrearReporte()
+        {
+            if (Detalle == null)
+            {
+                throw new InvalidOperationException(
+                    "No se ha cargado el detalle del análisis.");
+            }
+
+            return AnalisisReporteMapper.DesdeDetalle(
+                Detalle,
+                Resumen);
+        }
+
+        private async Task GuardarPdfAsync()
+        {
+            if (!PuedeGenerarReporte())
+                return;
+
+            await EjecutarReporteAsync(
+                "Descargando el reporte PDF...",
+                () => analisisReporteService.GuardarPdfAsync(
+                    ObtenerAnalisisSueloCalculoId()));
+        }
+
+        private async Task GuardarExcelAsync()
+        {
+            if (!PuedeGenerarReporte())
+                return;
+
+            await EjecutarReporteAsync(
+                "Generando el archivo Excel...",
+                () => analisisReporteService.GuardarExcelAsync(
+                    CrearReporte()));
+        }
+
+        private async Task ImprimirPdfAsync()
+        {
+            if (!PuedeGenerarReporte())
+                return;
+
+            await EjecutarReporteAsync(
+                "Preparando el PDF para imprimir...",
+                () => analisisReporteService
+                    .AbrirPdfParaImprimirAsync(
+                        ObtenerAnalisisSueloCalculoId()));
+        }
+
+        private async Task EjecutarReporteAsync(
+            string mensajeProceso,
+            Func<Task<AnalisisReporteArchivoResult>> accion)
+        {
+            string mensajeAnterior = Mensaje;
+
+            try
+            {
+                IsBusy = true;
+                Mensaje = mensajeProceso;
+
+                AnalisisReporteArchivoResult resultado = await accion();
+
+                if (resultado.FueCancelado)
+                    return;
+
+                if (!resultado.Success)
+                {
+                    await Application.Current!
+                        .MainPage!
+                        .DisplayAlert(
+                            "No se pudo generar el reporte",
+                            resultado.Message,
+                            "Aceptar");
+                    return;
+                }
+
+                await MostrarToastAsync(resultado.Message);
+            }
+            catch (Exception ex)
+            {
+                await Application.Current!
+                    .MainPage!
+                    .DisplayAlert(
+                        "Error de reporte",
+                        ex.Message,
+                        "Aceptar");
+            }
+            finally
+            {
+                Mensaje = mensajeAnterior;
+                IsBusy = false;
+            }
+        }
+
+        private int ObtenerAnalisisSueloCalculoId()
+        {
+            int id = Detalle?.RequerimientoAnual
+                .AnalisisSueloCalculoId ??
+                Resumen?.AnalisisSueloCalculoId ??
+                0;
+
+            if (id <= 0)
+            {
+                throw new InvalidOperationException(
+                    "No se encontró el identificador del cálculo guardado.");
+            }
+
+            return id;
         }
 
         private async Task EditarAsync()

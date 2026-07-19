@@ -257,10 +257,48 @@
         </ScrollView>
 
         <Border Grid.Row="1" BackgroundColor="White" Stroke="#E5E7EB" Padding="14,10">
-            <Button
-                Text="Volver al inicio"
-                Command="{Binding VolverCommand}"
-                Style="{StaticResource CancelButton}" />
+            <VerticalStackLayout Spacing="8">
+                <Grid
+                    ColumnDefinitions="*,*"
+                    RowDefinitions="Auto,Auto"
+                    ColumnSpacing="8"
+                    RowSpacing="8">
+                    <Button
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Text="Guardar PDF"
+                        Command="{Binding GuardarPdfCommand}"
+                        BackgroundColor="{StaticResource color_Verde}"
+                        TextColor="White"
+                        CornerRadius="12"
+                        Padding="10,9" />
+
+                    <Button
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Text="Guardar Excel"
+                        Command="{Binding GuardarExcelCommand}"
+                        BackgroundColor="{StaticResource color_Cafe}"
+                        TextColor="White"
+                        CornerRadius="12"
+                        Padding="10,9" />
+
+                    <Button
+                        Grid.Row="1"
+                        Grid.ColumnSpan="2"
+                        Text="Abrir / imprimir PDF"
+                        Command="{Binding ImprimirPdfCommand}"
+                        BackgroundColor="{StaticResource BlueUpdate}"
+                        TextColor="White"
+                        CornerRadius="12"
+                        Padding="10,9" />
+                </Grid>
+
+                <Button
+                    Text="Volver al inicio"
+                    Command="{Binding VolverCommand}"
+                    Style="{StaticResource CancelButton}" />
+            </VerticalStackLayout>
         </Border>
 
         <Grid
@@ -269,7 +307,7 @@
             IsVisible="{Binding IsBusy}">
             <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
                 <ActivityIndicator IsRunning="{Binding IsBusy}" Color="White" WidthRequest="42" HeightRequest="42" />
-                <Label Text="Cargando análisis..." TextColor="White" FontAttributes="Bold" />
+                <Label Text="Procesando..." TextColor="White" FontAttributes="Bold" />
             </VerticalStackLayout>
         </Grid>
     </Grid>

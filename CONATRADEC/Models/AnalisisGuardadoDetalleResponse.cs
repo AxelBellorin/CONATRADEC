@@ -88,12 +88,21 @@ namespace CONATRADEC.Models
         public string SimboloElemento { get; set; } = string.Empty;
 
         [JsonIgnore]
+        public string NombreUnidad { get; set; } = string.Empty;
+
+        [JsonIgnore]
         public string ElementoMostrar =>
             !string.IsNullOrWhiteSpace(SimboloElemento)
                 ? $"{NombreElemento} ({SimboloElemento})"
                 : !string.IsNullOrWhiteSpace(NombreElemento)
                     ? NombreElemento
                     : $"Elemento #{ElementoQuimicosId}";
+
+        [JsonIgnore]
+        public string UnidadMostrar =>
+            string.IsNullOrWhiteSpace(NombreUnidad)
+                ? $"Unidad #{UnidadMedidaId}"
+                : NombreUnidad;
     }
 
     public sealed class AnalisisGuardadoRequerimientoAnual
@@ -171,12 +180,23 @@ namespace CONATRADEC.Models
         public string SimboloElemento { get; set; } = string.Empty;
 
         [JsonIgnore]
+        public string NombreUnidad { get; set; } = string.Empty;
+
+        [JsonIgnore]
         public string ElementoMostrar =>
             !string.IsNullOrWhiteSpace(SimboloElemento)
                 ? $"{NombreElemento} ({SimboloElemento})"
                 : !string.IsNullOrWhiteSpace(NombreElemento)
                     ? NombreElemento
                     : $"Elemento #{ElementoQuimicosId}";
+
+        [JsonIgnore]
+        public string UnidadMostrar =>
+            string.IsNullOrWhiteSpace(NombreUnidad)
+                ? UnidadMedidaId.HasValue
+                    ? $"Unidad #{UnidadMedidaId.Value}"
+                    : "lb/mz"
+                : NombreUnidad;
     }
 
     public sealed class AnalisisGuardadoBalanceNutricional

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CONATRADEC.ViewModels
@@ -16,6 +17,8 @@ namespace CONATRADEC.ViewModels
         private const string TabFertilizacionMixta = "FERTILIZACION_MIXTA";
 
         private readonly GuardarTodoApiService guardarTodoApiService = new();
+
+        private readonly AnalisisReporteService analisisReporteService = new();
 
         private AnalisisSueloCalculoDataResponse? resultadoCalculo;
         private AnalisisSueloGuardarCalculoRequest? requestGuardarAnalisis;
@@ -680,6 +683,15 @@ namespace CONATRADEC.ViewModels
                     fueEdicion ? "Análisis actualizado" : "Análisis guardado",
                     mensajeExito);
 
+                // La operación principal ya terminó. Se libera la interfaz
+                // antes de abrir el selector nativo para guardar el reporte.
+                IsBusy = false;
+
+                await OfrecerReporteAsync(
+                    request,
+                    response,
+                    fueEdicion);
+
                 await GoToAsyncParameters("//MainPage");
             }
             catch (InvalidOperationException ex)
@@ -703,6 +715,173 @@ namespace CONATRADEC.ViewModels
             {
                 IsBusy = false;
             }
+        }
+
+        private async Task OfrecerReporteAsync(
+            GuardarTodoRequest request,
+            GuardarTodoResponse response,
+            bool fueEdicion)
+        {
+            Page? pagina = Application.Current?.MainPage;
+
+            if (pagina == null)
+                return;
+
+            string? opcion = await pagina.DisplayActionSheet(
+                fueEdicion
+                    ? "¿Desea generar el reporte actualizado?"
+                    : "¿Desea generar el reporte del análisis?",
+                "Ahora no",
+                null,
+                "Guardar PDF",
+                "Guardar Excel",
+                "Guardar PDF y Excel",
+                "Abrir / imprimir PDF");
+
+            if (string.IsNullOrWhiteSpace(opcion) ||
+                string.Equals(
+                    opcion,
+                    "Ahora no",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            try
+            {
+                IsBusy = true;
+                Mensaje = "Preparando el reporte del análisis...";
+
+                int analisisSueloCalculoId =
+                    response.Data?.AnalisisSueloCalculoId ??
+                    AnalisisSueloCalculoIdEdicion ??
+                    0;
+
+                if (analisisSueloCalculoId <= 0)
+                {
+                    await MostrarAlertaAsync(
+                        "No se pudo generar el reporte",
+                        "La API no devolvió el identificador del cálculo guardado.");
+                    return;
+                }
+
+                switch (opcion)
+                {
+                    case "Guardar PDF":
+                        await EjecutarAccionReporteAsync(
+                            analisisReporteService.GuardarPdfAsync(
+                                analisisSueloCalculoId));
+                        break;
+
+                    case "Guardar Excel":
+                        await EjecutarAccionReporteAsync(
+                            analisisReporteService.GuardarExcelAsync(
+                                await CrearReporteExcelAsync(
+                                    request,
+                                    analisisSueloCalculoId)));
+                        break;
+
+                    case "Guardar PDF y Excel":
+                        AnalisisReporteArchivoResult resultadoPdf =
+                            await EjecutarAccionReporteAsync(
+                                analisisReporteService.GuardarPdfAsync(
+                                    analisisSueloCalculoId));
+
+                        if (!resultadoPdf.FueCancelado)
+                        {
+                            await EjecutarAccionReporteAsync(
+                                analisisReporteService.GuardarExcelAsync(
+                                    await CrearReporteExcelAsync(
+                                        request,
+                                        analisisSueloCalculoId)));
+                        }
+                        break;
+
+                    case "Abrir / imprimir PDF":
+                        await EjecutarAccionReporteAsync(
+                            analisisReporteService
+                                .AbrirPdfParaImprimirAsync(
+                                    analisisSueloCalculoId));
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                await MostrarAlertaAsync(
+                    "Error de reporte",
+                    $"No fue posible preparar el reporte: {ex.Message}");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task<AnalisisReporte> CrearReporteExcelAsync(
+            GuardarTodoRequest request,
+            int analisisSueloCalculoId)
+        {
+            AnalisisGuardadoResumen? resumen =
+                await ObtenerResumenReporteAsync(
+                    analisisSueloCalculoId);
+
+            return AnalisisReporteMapper.DesdeSolicitudGuardada(
+                request,
+                resumen);
+        }
+
+        private async Task<AnalisisGuardadoResumen?>
+            ObtenerResumenReporteAsync(
+                int analisisSueloCalculoId)
+        {
+            if (analisisSueloCalculoId <= 0)
+                return null;
+
+            try
+            {
+                // El nombre del cliente y del terreno mejora el encabezado,
+                // pero nunca debe bloquear la exportación si la red está lenta.
+                using CancellationTokenSource cancellationTokenSource =
+                    new(TimeSpan.FromSeconds(5));
+
+                AnalisisGuardadoListaResponse listado =
+                    await guardarTodoApiService.ListarAsync(
+                        cancellationTokenSource.Token);
+
+                if (!listado.Success || listado.Data == null)
+                    return null;
+
+                return listado.Data.FirstOrDefault(x =>
+                    x.AnalisisSueloCalculoId ==
+                    analisisSueloCalculoId);
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
+        }
+
+        private static async Task<AnalisisReporteArchivoResult>
+            EjecutarAccionReporteAsync(
+                Task<AnalisisReporteArchivoResult> tarea)
+        {
+            AnalisisReporteArchivoResult resultado = await tarea;
+
+            if (resultado.FueCancelado)
+                return resultado;
+
+            if (!resultado.Success)
+            {
+                await MostrarAlertaAsync(
+                    "No se pudo generar el reporte",
+                    resultado.Message);
+            }
+            else
+            {
+                await MostrarToastAsync(resultado.Message);
+            }
+
+            return resultado;
         }
 
         private async Task<bool> ValidarAntesDeGuardarAsync()
