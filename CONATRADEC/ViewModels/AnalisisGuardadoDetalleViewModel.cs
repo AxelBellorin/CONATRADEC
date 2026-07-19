@@ -11,34 +11,49 @@ namespace CONATRADEC.ViewModels
         GlobalService,
         IQueryAttributable
     {
-        private readonly GuardarTodoApiService guardarTodoApiService = new();
-        private readonly ElementoQuimicoApiService elementoQuimicoApiService = new();
-        private readonly FuenteNutrienteApiService fuenteNutrienteApiService = new();
-        private readonly FertilizacionMixtaApiService fertilizacionMixtaApiService = new();
+        private readonly GuardarTodoApiService
+            guardarTodoApiService = new();
 
-        private static readonly Dictionary<int, (string Nombre, string Simbolo)>
-            ElementosBase = new()
-            {
-                [1] = ("Potasio", "K"),
-                [2] = ("Calcio", "Ca"),
-                [3] = ("Magnesio", "Mg"),
-                [4] = ("Fósforo", "P"),
-                [5] = ("Nitrógeno", "N")
-            };
+        private readonly ElementoQuimicoApiService
+            elementoQuimicoApiService = new();
+
+        private readonly FuenteNutrienteApiService
+            fuenteNutrienteApiService = new();
+
+        private readonly FertilizacionMixtaApiService
+            fertilizacionMixtaApiService = new();
+
+        private static readonly
+            Dictionary<int, (string Nombre, string Simbolo)>
+                ElementosBase = new()
+                {
+                    [1] = ("Potasio", "K"),
+                    [2] = ("Calcio", "Ca"),
+                    [3] = ("Magnesio", "Mg"),
+                    [4] = ("Fósforo", "P"),
+                    [5] = ("Nitrógeno", "N")
+                };
 
         private AnalisisGuardadoResumen? resumen;
         private AnalisisGuardadoDetalleData? detalle;
-        private FertilizacionMixtaCalculoResponse? fertilizacionMixtaRecalculada;
+
+        private FertilizacionMixtaCalculoResponse?
+            fertilizacionMixtaRecalculada;
+
         private string mensaje = string.Empty;
 
         public AnalisisGuardadoDetalleViewModel()
         {
             VolverCommand = new Command(
-                async () => await GoToAsyncParameters(AppRoutes.Regresar));
+                async () =>
+                    await GoToAsyncParameters(
+                        AppRoutes.Regresar));
 
             EditarCommand = new Command(
                 async () => await EditarAsync(),
-                () => !IsBusy && Detalle != null);
+                () => !IsBusy &&
+                      Detalle != null &&
+                      Resumen != null);
         }
 
         public AnalisisGuardadoResumen? Resumen
@@ -47,9 +62,12 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 resumen = value;
+
                 OnPropertyChanged(nameof(Resumen));
                 OnPropertyChanged(nameof(ClienteMostrar));
                 OnPropertyChanged(nameof(TerrenoMostrar));
+
+                EditarCommand.ChangeCanExecute();
             }
         }
 
@@ -59,11 +77,14 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 detalle = value;
+
                 OnPropertyChanged(nameof(Detalle));
                 OnPropertyChanged(nameof(TieneDetalle));
                 OnPropertyChanged(nameof(TieneBalance));
                 OnPropertyChanged(nameof(TieneEnmienda));
-                OnPropertyChanged(nameof(TieneFertilizacionMixta));
+                OnPropertyChanged(
+                    nameof(TieneFertilizacionMixta));
+
                 EditarCommand.ChangeCanExecute();
             }
         }
@@ -75,8 +96,12 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 fertilizacionMixtaRecalculada = value;
-                OnPropertyChanged(nameof(FertilizacionMixtaRecalculada));
-                OnPropertyChanged(nameof(TieneMixtaRecalculada));
+
+                OnPropertyChanged(
+                    nameof(FertilizacionMixtaRecalculada));
+
+                OnPropertyChanged(
+                    nameof(TieneMixtaRecalculada));
             }
         }
 
@@ -86,26 +111,42 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 mensaje = value ?? string.Empty;
+
                 OnPropertyChanged(nameof(Mensaje));
                 OnPropertyChanged(nameof(TieneMensaje));
             }
         }
 
-        public bool TieneMensaje => !string.IsNullOrWhiteSpace(Mensaje);
-        public bool TieneDetalle => Detalle != null;
-        public bool TieneBalance => Detalle?.BalanceNutricional != null;
-        public bool TieneEnmienda => Detalle?.EnmiendaCalcarea != null;
-        public bool TieneFertilizacionMixta => Detalle?.FertilizacionMixta != null;
+        public bool TieneMensaje =>
+            !string.IsNullOrWhiteSpace(Mensaje);
+
+        public bool TieneDetalle =>
+            Detalle != null;
+
+        public bool TieneBalance =>
+            Detalle?.BalanceNutricional != null;
+
+        public bool TieneEnmienda =>
+            Detalle?.EnmiendaCalcarea != null;
+
+        public bool TieneFertilizacionMixta =>
+            Detalle?.FertilizacionMixta != null;
+
         public bool TieneMixtaRecalculada =>
-            FertilizacionMixtaRecalculada?.Detalles?.Count > 0;
+            FertilizacionMixtaRecalculada?
+                .Detalles?
+                .Count > 0;
 
         public string ClienteMostrar =>
-            Resumen?.ClienteMostrar ?? "Cliente no disponible";
+            Resumen?.ClienteMostrar ??
+            "Cliente no disponible";
 
         public string TerrenoMostrar =>
-            Resumen?.TerrenoMostrar ?? "Terreno no disponible";
+            Resumen?.TerrenoMostrar ??
+            "Terreno no disponible";
 
         public Command VolverCommand { get; }
+
         public Command EditarCommand { get; }
 
         public new bool IsBusy
@@ -130,25 +171,33 @@ namespace CONATRADEC.ViewModels
                     "analisisSueloCalculoId",
                     out object? valorId))
             {
-                int.TryParse(valorId?.ToString(), out id);
+                int.TryParse(
+                    valorId?.ToString(),
+                    out id);
             }
 
             if (query.TryGetValue(
                     "resumenAnalisis",
                     out object? valorResumen))
             {
-                Resumen = valorResumen as AnalisisGuardadoResumen;
+                Resumen =
+                    valorResumen
+                    as AnalisisGuardadoResumen;
             }
 
             await CargarAsync(id);
         }
 
-        private async Task CargarAsync(int analisisSueloCalculoId)
+        private async Task CargarAsync(
+            int analisisSueloCalculoId)
         {
-            if (analisisSueloCalculoId <= 0 || IsBusy)
+            if (analisisSueloCalculoId <= 0 ||
+                IsBusy)
             {
                 Mensaje =
-                    "No se recibió un identificador válido para cargar el análisis.";
+                    "No se recibió un identificador válido " +
+                    "para cargar el análisis.";
+
                 return;
             }
 
@@ -160,27 +209,43 @@ namespace CONATRADEC.ViewModels
                 FertilizacionMixtaRecalculada = null;
 
                 AnalisisGuardadoDetalleResponse response =
-                    await guardarTodoApiService.ObtenerDetalleAsync(
-                        analisisSueloCalculoId);
+                    await guardarTodoApiService
+                        .ObtenerDetalleAsync(
+                            analisisSueloCalculoId);
 
-                if (!response.Success || response.Data == null)
+                if (!response.Success ||
+                    response.Data == null)
                 {
-                    Mensaje = string.IsNullOrWhiteSpace(response.Message)
-                        ? "No fue posible cargar el análisis."
-                        : response.Message;
+                    Mensaje =
+                        string.IsNullOrWhiteSpace(
+                            response.Message)
+                            ? "No fue posible cargar el análisis."
+                            : response.Message;
+
                     return;
                 }
 
-                Detalle = response.Data;
+                /*
+                 * El detalle se mantiene en una variable local
+                 * hasta completar nombres y fuentes.
+                 *
+                 * Antes se asignaba Detalle primero. BindableLayout
+                 * renderizaba "Elemento #X" y los modelos internos no
+                 * notificaban el cambio posterior.
+                 */
+                AnalisisGuardadoDetalleData data =
+                    response.Data;
 
-                await CompletarNombresAsync(response.Data);
-                await RecalcularFertilizacionMixtaAsync(response.Data);
+                await CompletarNombresAsync(data);
+                await RecalcularFertilizacionMixtaAsync(data);
 
-                OnPropertyChanged(nameof(Detalle));
+                // Se entrega a la vista cuando ya contiene los nombres.
+                Detalle = data;
             }
             catch (Exception ex)
             {
-                Mensaje = $"No fue posible cargar el detalle: {ex.Message}";
+                Mensaje =
+                    $"No fue posible cargar el detalle: {ex.Message}";
             }
             finally
             {
@@ -191,78 +256,108 @@ namespace CONATRADEC.ViewModels
         private async Task CompletarNombresAsync(
             AnalisisGuardadoDetalleData data)
         {
-            Task<ApiResult<ObservableCollection<ElementoQuimicoResponse>>>
-                tareaElementos =
-                    elementoQuimicoApiService.GetElementoQuimicoResultAsync();
+            Task<ApiResult<
+                ObservableCollection<ElementoQuimicoResponse>>>
+                    tareaElementos =
+                        elementoQuimicoApiService
+                            .GetElementoQuimicoResultAsync();
 
-            Task<ApiResult<ObservableCollection<FuenteNutrienteResponse>>>
-                tareaFuentes =
-                    fuenteNutrienteApiService.GetFuenteNutrienteResultAsync();
+            Task<ApiResult<
+                ObservableCollection<FuenteNutrienteResponse>>>
+                    tareaFuentes =
+                        fuenteNutrienteApiService
+                            .GetFuenteNutrienteResultAsync();
 
-            Task<ObservableCollection<FuenteNutrienteFertilizacionMixtaResponse>>
-                tareaFuentesMixtas =
-                    fertilizacionMixtaApiService
-                        .ListarFuentesFertilizacionMixtaAsync();
+            Task<ObservableCollection<
+                FuenteNutrienteFertilizacionMixtaResponse>>
+                    tareaFuentesMixtas =
+                        fertilizacionMixtaApiService
+                            .ListarFuentesFertilizacionMixtaAsync();
 
             await Task.WhenAll(
                 tareaElementos,
                 tareaFuentes,
                 tareaFuentesMixtas);
 
-            ApiResult<ObservableCollection<ElementoQuimicoResponse>>
-                respuestaElementos = await tareaElementos;
+            ApiResult<ObservableCollection<
+                ElementoQuimicoResponse>>
+                    respuestaElementos =
+                        await tareaElementos;
 
-            ApiResult<ObservableCollection<FuenteNutrienteResponse>>
-                respuestaFuentes = await tareaFuentes;
+            ApiResult<ObservableCollection<
+                FuenteNutrienteResponse>>
+                    respuestaFuentes =
+                        await tareaFuentes;
 
-            ObservableCollection<FuenteNutrienteFertilizacionMixtaResponse>
-                fuentesMixtas = await tareaFuentesMixtas;
+            ObservableCollection<
+                FuenteNutrienteFertilizacionMixtaResponse>
+                    fuentesMixtas =
+                        await tareaFuentesMixtas;
 
-            Dictionary<int, (string Nombre, string Simbolo)> elementosPorId =
-                new(ElementosBase);
+            Dictionary<
+                int,
+                (string Nombre, string Simbolo)>
+                    elementosPorId =
+                        new(ElementosBase);
 
             if (respuestaElementos.Success &&
                 respuestaElementos.Data != null)
             {
-                foreach (ElementoQuimicoResponse elemento in
-                         respuestaElementos.Data.Where(x =>
-                             x.ElementoQuimicosId.HasValue &&
-                             x.ElementoQuimicosId.Value > 0))
+                foreach (
+                    ElementoQuimicoResponse elemento
+                    in respuestaElementos.Data.Where(x =>
+                        x.ElementoQuimicosId.HasValue &&
+                        x.ElementoQuimicosId.Value > 0))
                 {
-                    elementosPorId[elemento.ElementoQuimicosId!.Value] =
-                    (
-                        elemento.NombreElementoQuimico ?? string.Empty,
-                        elemento.SimboloElementoQuimico ?? string.Empty
-                    );
+                    elementosPorId[
+                        elemento.ElementoQuimicosId!.Value] =
+                        (
+                            elemento
+                                .NombreElementoQuimico ??
+                            string.Empty,
+
+                            elemento
+                                .SimboloElementoQuimico ??
+                            string.Empty
+                        );
                 }
             }
 
-            Dictionary<int, string> fuentesPorId = new();
+            Dictionary<int, string>
+                fuentesPorId = new();
 
             if (respuestaFuentes.Success &&
                 respuestaFuentes.Data != null)
             {
-                foreach (FuenteNutrienteResponse fuente in
-                         respuestaFuentes.Data.Where(x =>
-                             x.FuenteNutrientesId.HasValue &&
-                             x.FuenteNutrientesId.Value > 0))
+                foreach (
+                    FuenteNutrienteResponse fuente
+                    in respuestaFuentes.Data.Where(x =>
+                        x.FuenteNutrientesId.HasValue &&
+                        x.FuenteNutrientesId.Value > 0))
                 {
-                    fuentesPorId[fuente.FuenteNutrientesId!.Value] =
-                        fuente.NombreNutriente ?? string.Empty;
+                    fuentesPorId[
+                        fuente.FuenteNutrientesId!.Value] =
+                        fuente.NombreNutriente ??
+                        string.Empty;
                 }
             }
 
-            foreach (FuenteNutrienteFertilizacionMixtaResponse fuente in
-                     fuentesMixtas.Where(x =>
-                         x.FuenteNutrientesId.HasValue &&
-                         x.FuenteNutrientesId.Value > 0))
+            foreach (
+                FuenteNutrienteFertilizacionMixtaResponse
+                    fuente
+                in fuentesMixtas.Where(x =>
+                    x.FuenteNutrientesId.HasValue &&
+                    x.FuenteNutrientesId.Value > 0))
             {
-                fuentesPorId[fuente.FuenteNutrientesId!.Value] =
-                    fuente.NombreNutriente ?? string.Empty;
+                fuentesPorId[
+                    fuente.FuenteNutrientesId!.Value] =
+                    fuente.NombreNutriente ??
+                    string.Empty;
             }
 
-            foreach (AnalisisGuardadoElementoOriginal item in
-                     data.DatosAnalisis.ElementosQuimicos)
+            foreach (
+                AnalisisGuardadoElementoOriginal item
+                in data.DatosAnalisis.ElementosQuimicos)
             {
                 AsignarElemento(
                     item.ElementoQuimicosId,
@@ -274,8 +369,9 @@ namespace CONATRADEC.ViewModels
                 item.SimboloElemento = simbolo;
             }
 
-            foreach (AnalisisGuardadoRequerimientoElemento item in
-                     data.RequerimientoAnual.Elementos)
+            foreach (
+                AnalisisGuardadoRequerimientoElemento item
+                in data.RequerimientoAnual.Elementos)
             {
                 AsignarElemento(
                     item.ElementoQuimicosId,
@@ -289,8 +385,9 @@ namespace CONATRADEC.ViewModels
 
             if (data.BalanceNutricional != null)
             {
-                foreach (AnalisisGuardadoFormulaDetalle item in
-                         data.BalanceNutricional.Detalles)
+                foreach (
+                    AnalisisGuardadoFormulaDetalle item
+                    in data.BalanceNutricional.Detalles)
                 {
                     if (fuentesPorId.TryGetValue(
                             item.FuenteNutrientesId,
@@ -307,35 +404,43 @@ namespace CONATRADEC.ViewModels
                         out string simbolo);
 
                     item.NombreElemento =
-                        FormatearElemento(nombre, simbolo);
+                        FormatearElemento(
+                            nombre,
+                            simbolo);
                 }
             }
 
             if (data.EnmiendaCalcarea != null &&
                 fuentesPorId.TryGetValue(
-                    data.EnmiendaCalcarea.FuenteNutrientesId,
+                    data.EnmiendaCalcarea
+                        .FuenteNutrientesId,
                     out string? nombreEnmienda) &&
-                !string.IsNullOrWhiteSpace(nombreEnmienda))
+                !string.IsNullOrWhiteSpace(
+                    nombreEnmienda))
             {
-                data.EnmiendaCalcarea.NombreFuente = nombreEnmienda;
+                data.EnmiendaCalcarea.NombreFuente =
+                    nombreEnmienda;
             }
 
             if (data.FertilizacionMixta != null)
             {
-                foreach (AnalisisGuardadoMixtaFuente item in
-                         data.FertilizacionMixta.Fuentes)
+                foreach (
+                    AnalisisGuardadoMixtaFuente item
+                    in data.FertilizacionMixta.Fuentes)
                 {
                     if (fuentesPorId.TryGetValue(
                             item.FuenteNutrientesId,
                             out string? fuente) &&
-                        !string.IsNullOrWhiteSpace(fuente))
+                        !string.IsNullOrWhiteSpace(
+                            fuente))
                     {
                         item.NombreFuente = fuente;
                     }
                 }
 
-                foreach (AnalisisGuardadoMixtaDetalle item in
-                         data.FertilizacionMixta.Detalles)
+                foreach (
+                    AnalisisGuardadoMixtaDetalle item
+                    in data.FertilizacionMixta.Detalles)
                 {
                     AsignarElemento(
                         item.ElementoQuimicosId,
@@ -344,16 +449,19 @@ namespace CONATRADEC.ViewModels
                         out string simbolo);
 
                     item.NombreElemento =
-                        FormatearElemento(nombre, simbolo);
+                        FormatearElemento(
+                            nombre,
+                            simbolo);
                 }
             }
         }
 
-        private async Task RecalcularFertilizacionMixtaAsync(
-            AnalisisGuardadoDetalleData data)
+        private async Task
+            RecalcularFertilizacionMixtaAsync(
+                AnalisisGuardadoDetalleData data)
         {
-            AnalisisGuardadoFertilizacionMixta? mixta =
-                data.FertilizacionMixta;
+            AnalisisGuardadoFertilizacionMixta?
+                mixta = data.FertilizacionMixta;
 
             if (mixta == null ||
                 mixta.Fuentes.Count == 0 ||
@@ -362,48 +470,73 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            FertilizacionMixtaCalcularRequest request = new()
-            {
-                Observacion = mixta.Mixta.Observacion,
-                Elementos = mixta.Detalles
-                    .Select(x => new ElementoFertilizacionMixtaRequest
-                    {
-                        ElementoQuimicosId = x.ElementoQuimicosId,
-                        Exportable = x.RequerimientoOriginal
-                    })
-                    .ToList(),
-                Fuentes = mixta.Fuentes
-                    .Select(x => new FuenteFertilizacionMixtaRequest
-                    {
-                        FuenteNutrientesId = x.FuenteNutrientesId,
-                        CantidadQq = x.CantidadQq
-                    })
-                    .ToList()
-            };
+            FertilizacionMixtaCalcularRequest request =
+                new()
+                {
+                    Observacion =
+                        mixta.Mixta.Observacion,
+
+                    Elementos =
+                        mixta.Detalles
+                            .Select(x =>
+                                new ElementoFertilizacionMixtaRequest
+                                {
+                                    ElementoQuimicosId =
+                                        x.ElementoQuimicosId,
+
+                                    Exportable =
+                                        x.RequerimientoOriginal
+                                })
+                            .ToList(),
+
+                    Fuentes =
+                        mixta.Fuentes
+                            .Select(x =>
+                                new FuenteFertilizacionMixtaRequest
+                                {
+                                    FuenteNutrientesId =
+                                        x.FuenteNutrientesId,
+
+                                    CantidadQq =
+                                        x.CantidadQq
+                                })
+                            .ToList()
+                };
 
             FertilizacionMixtaCalculoResponse? resultado =
-                await fertilizacionMixtaApiService.CalcularAsync(request);
+                await fertilizacionMixtaApiService
+                    .CalcularAsync(request);
 
             if (resultado?.Success == true)
             {
-                FertilizacionMixtaRecalculada = resultado;
+                FertilizacionMixtaRecalculada =
+                    resultado;
 
-                foreach (AnalisisGuardadoMixtaFuente fuenteGuardada in
-                         mixta.Fuentes)
+                foreach (
+                    AnalisisGuardadoMixtaFuente
+                        fuenteGuardada
+                    in mixta.Fuentes)
                 {
-                    FuenteFertilizacionMixtaResultadoResponse? fuenteApi =
-                        resultado.Fuentes.FirstOrDefault(x =>
-                            x.FuenteNutrientesId ==
-                            fuenteGuardada.FuenteNutrientesId);
+                    FuenteFertilizacionMixtaResultadoResponse?
+                        fuenteApi =
+                            resultado.Fuentes
+                                .FirstOrDefault(x =>
+                                    x.FuenteNutrientesId ==
+                                    fuenteGuardada
+                                        .FuenteNutrientesId);
 
-                    if (!string.IsNullOrWhiteSpace(fuenteApi?.NombreFuente))
-                        fuenteGuardada.NombreFuente = fuenteApi.NombreFuente!;
+                    if (!string.IsNullOrWhiteSpace(
+                            fuenteApi?.NombreFuente))
+                    {
+                        fuenteGuardada.NombreFuente =
+                            fuenteApi.NombreFuente!;
+                    }
                 }
-
-                OnPropertyChanged(nameof(Detalle));
             }
-            else if (resultado != null &&
-                     !string.IsNullOrWhiteSpace(resultado.Message))
+            else if (
+                resultado != null &&
+                !string.IsNullOrWhiteSpace(
+                    resultado.Message))
             {
                 Mensaje = resultado.Message;
             }
@@ -411,14 +544,19 @@ namespace CONATRADEC.ViewModels
 
         private static void AsignarElemento(
             int elementoId,
-            IReadOnlyDictionary<int, (string Nombre, string Simbolo)>
-                elementos,
+            IReadOnlyDictionary<
+                int,
+                (string Nombre, string Simbolo)>
+                    elementos,
             out string nombre,
             out string simbolo)
         {
             if (elementos.TryGetValue(
                     elementoId,
-                    out (string Nombre, string Simbolo) elemento))
+                    out (
+                        string Nombre,
+                        string Simbolo
+                    ) elemento))
             {
                 nombre = elemento.Nombre;
                 simbolo = elemento.Simbolo;
@@ -439,31 +577,65 @@ namespace CONATRADEC.ViewModels
                 return $"{nombre} ({simbolo})";
             }
 
-            return !string.IsNullOrWhiteSpace(nombre)
-                ? nombre
-                : simbolo;
+            return
+                !string.IsNullOrWhiteSpace(nombre)
+                    ? nombre
+                    : simbolo;
         }
 
         private async Task EditarAsync()
         {
-            if (Detalle == null || Resumen == null || IsBusy)
+            if (Detalle == null ||
+                Resumen == null ||
+                IsBusy)
+            {
                 return;
+            }
 
             if (!CanEdit)
             {
                 await MostrarToastAsync(
                     "No tiene permisos para editar análisis.");
+
                 return;
             }
 
-            await GoToAsyncParameters(
-                AppRoutes.EditarAnalisisGuardado,
-                new Dictionary<string, object>
+            try
+            {
+                IsBusy = true;
+                Mensaje =
+                    "Cargando el análisis para edición...";
+
+                (bool success, string message) =
+                    await AnalisisEdicionService.Instance
+                        .PrepararAsync(
+                            Resumen
+                                .AnalisisSueloCalculoId,
+                            Resumen);
+
+                if (!success)
                 {
-                    ["analisisSueloCalculoId"] =
-                        Resumen.AnalisisSueloCalculoId,
-                    ["resumenAnalisis"] = Resumen
-                });
+                    Mensaje = message;
+
+                    await Application.Current!
+                        .MainPage!
+                        .DisplayAlert(
+                            "No se pudo abrir",
+                            message,
+                            "Aceptar");
+
+                    return;
+                }
+
+                Mensaje = string.Empty;
+
+                await GoToAsyncParameters(
+                    "//NuevoAnalisisFormPage");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
     }
 }

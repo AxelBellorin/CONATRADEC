@@ -12,9 +12,11 @@ namespace CONATRADEC.ViewModels
 {
     public class MainPageViewModel : GlobalService
     {
+        private const string AlcanceTodos = "Todos los análisis";
+        private const string AlcancePropios = "Solo mis análisis";
+
         private readonly GuardarTodoApiService guardarTodoApiService = new();
-        private readonly AnalisisUsuarioApiService analisisUsuarioApiService =
-            new();
+        private readonly AnalisisUsuarioApiService analisisUsuarioApiService = new();
         private readonly UserApiService userApiService = new();
 
         private readonly List<AnalisisGuardadoResumen> todosAnalisis = new();
@@ -22,10 +24,17 @@ namespace CONATRADEC.ViewModels
         private bool isRefreshing;
         private string mensaje = string.Empty;
         private string textoBusqueda = string.Empty;
-        private bool usarFiltroFecha;
-        private DateTime fechaFiltro = DateTime.Today;
+
+        private bool usarFiltroRangoFecha;
+        private DateTime fechaDesde =
+            new(DateTime.Today.Year, DateTime.Today.Month, 1);
+        private DateTime fechaHasta = DateTime.Today;
+        private string errorRangoFecha = string.Empty;
+
         private bool esAdministrador;
         private bool seHaListado;
+
+        private string alcanceListadoSeleccionado = AlcanceTodos;
         private UsuarioFiltroAnalisis? usuarioFiltroSeleccionado;
 
         public MainPageViewModel()
@@ -35,6 +44,13 @@ namespace CONATRADEC.ViewModels
 
             UsuariosFiltro =
                 new ObservableCollection<UsuarioFiltroAnalisis>();
+
+            OpcionesAlcanceListado =
+                new ObservableCollection<string>
+                {
+                    AlcanceTodos,
+                    AlcancePropios
+                };
 
             ListarCommand = new Command(
                 async () => await ListarManualmenteAsync(),
@@ -72,15 +88,21 @@ namespace CONATRADEC.ViewModels
         public ObservableCollection<UsuarioFiltroAnalisis>
             UsuariosFiltro { get; }
 
+        public ObservableCollection<string>
+            OpcionesAlcanceListado { get; }
+
         public Command ListarCommand { get; }
 
         public Command ActualizarCommand { get; }
 
-        public Command<AnalisisGuardadoResumen> VisualizarCommand { get; }
+        public Command<AnalisisGuardadoResumen>
+            VisualizarCommand { get; }
 
-        public Command<AnalisisGuardadoResumen> EditarCommand { get; }
+        public Command<AnalisisGuardadoResumen>
+            EditarCommand { get; }
 
-        public Command<AnalisisGuardadoResumen> EliminarCommand { get; }
+        public Command<AnalisisGuardadoResumen>
+            EliminarCommand { get; }
 
         public Command LimpiarFiltrosCommand { get; }
 
@@ -129,7 +151,8 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool TieneMensaje => !string.IsNullOrWhiteSpace(Mensaje);
+        public bool TieneMensaje =>
+            !string.IsNullOrWhiteSpace(Mensaje);
 
         public string TextoBusqueda
         {
@@ -142,40 +165,112 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool UsarFiltroFecha
+        public bool UsarFiltroRangoFecha
         {
-            get => usarFiltroFecha;
+            get => usarFiltroRangoFecha;
             set
             {
-                if (usarFiltroFecha == value)
+                if (usarFiltroRangoFecha == value)
                     return;
 
-                usarFiltroFecha = value;
-                OnPropertyChanged(nameof(UsarFiltroFecha));
+                usarFiltroRangoFecha = value;
+                OnPropertyChanged(nameof(UsarFiltroRangoFecha));
                 AplicarFiltros();
             }
         }
 
-        public DateTime FechaFiltro
+        public DateTime FechaDesde
         {
-            get => fechaFiltro;
+            get => fechaDesde;
             set
             {
-                fechaFiltro = value.Date;
-                OnPropertyChanged(nameof(FechaFiltro));
+                fechaDesde = value.Date;
+                OnPropertyChanged(nameof(FechaDesde));
                 AplicarFiltros();
             }
         }
+
+        public DateTime FechaHasta
+        {
+            get => fechaHasta;
+            set
+            {
+                fechaHasta = value.Date;
+                OnPropertyChanged(nameof(FechaHasta));
+                AplicarFiltros();
+            }
+        }
+
+        public string ErrorRangoFecha
+        {
+            get => errorRangoFecha;
+            private set
+            {
+                errorRangoFecha = value ?? string.Empty;
+                OnPropertyChanged(nameof(ErrorRangoFecha));
+                OnPropertyChanged(nameof(TieneErrorRangoFecha));
+            }
+        }
+
+        public bool TieneErrorRangoFecha =>
+            !string.IsNullOrWhiteSpace(ErrorRangoFecha);
 
         public bool EsAdministrador
         {
             get => esAdministrador;
             private set
             {
+                if (esAdministrador == value)
+                    return;
+
                 esAdministrador = value;
                 OnPropertyChanged(nameof(EsAdministrador));
+                OnPropertyChanged(nameof(MostrarSelectorAlcance));
+                OnPropertyChanged(nameof(PuedeFiltrarPorUsuario));
             }
         }
+
+        public bool MostrarSelectorAlcance => EsAdministrador;
+
+        public string AlcanceListadoSeleccionado
+        {
+            get => alcanceListadoSeleccionado;
+            set
+            {
+                string nuevoValor =
+                    string.IsNullOrWhiteSpace(value)
+                        ? AlcanceTodos
+                        : value;
+
+                if (string.Equals(
+                        alcanceListadoSeleccionado,
+                        nuevoValor,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                alcanceListadoSeleccionado = nuevoValor;
+
+                OnPropertyChanged(nameof(AlcanceListadoSeleccionado));
+                OnPropertyChanged(nameof(ListarSoloPropios));
+                OnPropertyChanged(nameof(PuedeFiltrarPorUsuario));
+
+                ReiniciarListadoPorCambioAlcance();
+            }
+        }
+
+        public bool ListarSoloPropios =>
+            !EsAdministrador ||
+            string.Equals(
+                AlcanceListadoSeleccionado,
+                AlcancePropios,
+                StringComparison.OrdinalIgnoreCase);
+
+        public bool PuedeFiltrarPorUsuario =>
+            EsAdministrador &&
+            !ListarSoloPropios &&
+            SeHaListado;
 
         public bool SeHaListado
         {
@@ -186,12 +281,15 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 seHaListado = value;
+
                 OnPropertyChanged(nameof(SeHaListado));
                 OnPropertyChanged(nameof(NoSeHaListado));
                 OnPropertyChanged(nameof(TextoBotonListar));
                 OnPropertyChanged(nameof(MensajeListaVacia));
                 OnPropertyChanged(nameof(SubtituloListaVacia));
                 OnPropertyChanged(nameof(TotalMostradoTexto));
+                OnPropertyChanged(nameof(PuedeFiltrarPorUsuario));
+
                 ActualizarCommand.ChangeCanExecute();
             }
         }
@@ -209,20 +307,25 @@ namespace CONATRADEC.ViewModels
         public string SubtituloListaVacia =>
             SeHaListado
                 ? "Cambie los filtros o cree un nuevo análisis."
-                : "Presione Listar análisis cuando necesite consultar los registros.";
+                : "Seleccione el alcance y presione Listar análisis.";
 
-        public UsuarioFiltroAnalisis? UsuarioFiltroSeleccionado
+        public UsuarioFiltroAnalisis?
+            UsuarioFiltroSeleccionado
         {
             get => usuarioFiltroSeleccionado;
             set
             {
+                if (ReferenceEquals(usuarioFiltroSeleccionado, value))
+                    return;
+
                 usuarioFiltroSeleccionado = value;
                 OnPropertyChanged(nameof(UsuarioFiltroSeleccionado));
                 AplicarFiltros();
             }
         }
 
-        public bool TieneAnalisis => AnalisisGuardados.Count > 0;
+        public bool TieneAnalisis =>
+            AnalisisGuardados.Count > 0;
 
         public string TotalMostradoTexto =>
             !SeHaListado
@@ -230,6 +333,37 @@ namespace CONATRADEC.ViewModels
                 : AnalisisGuardados.Count == 1
                     ? "1 análisis encontrado"
                     : $"{AnalisisGuardados.Count} análisis encontrados";
+
+        public void PrepararPantalla()
+        {
+            string rolNombre =
+                Preferences.Get(
+                    SessionKeys.KeyRolNombre,
+                    string.Empty);
+
+            if (string.IsNullOrWhiteSpace(rolNombre))
+                return;
+
+            bool administrador =
+                EsRolAdministrador(rolNombre);
+
+            EsAdministrador = administrador;
+
+            if (!administrador &&
+                !string.Equals(
+                    alcanceListadoSeleccionado,
+                    AlcancePropios,
+                    StringComparison.Ordinal))
+            {
+                alcanceListadoSeleccionado = AlcancePropios;
+
+                OnPropertyChanged(
+                    nameof(AlcanceListadoSeleccionado));
+                OnPropertyChanged(nameof(ListarSoloPropios));
+                OnPropertyChanged(
+                    nameof(PuedeFiltrarPorUsuario));
+            }
+        }
 
         public async Task CargarAnalisisAsync(
             bool mostrarIndicador = true)
@@ -245,43 +379,75 @@ namespace CONATRADEC.ViewModels
                     IsBusy = true;
 
                 Mensaje = string.Empty;
+                ErrorRangoFecha = string.Empty;
 
-                int usuarioActualId = ObtenerUsuarioActualId();
+                int usuarioActualId =
+                    ObtenerUsuarioActualId();
 
                 if (usuarioActualId <= 0)
                 {
                     Mensaje =
-                        "No se encontró el usuario autenticado. Cierre sesión e ingrese nuevamente.";
+                        "No se encontró el usuario autenticado. " +
+                        "Cierre sesión e ingrese nuevamente.";
                     return;
                 }
 
-                string rolNombre = Preferences.Get(
-                    SessionKeys.KeyRolNombre,
-                    string.Empty);
+                string rolNombre =
+                    Preferences.Get(
+                        SessionKeys.KeyRolNombre,
+                        string.Empty);
 
                 List<UserResponse> usuarios = new();
 
                 if (string.IsNullOrWhiteSpace(rolNombre))
                 {
-                    ApiResult<ObservableCollection<UserResponse>> resultadoUsuarios =
-                        await userApiService.GetUsersResultAsync();
+                    ApiResult<ObservableCollection<UserResponse>>
+                        resultadoUsuarios =
+                            await userApiService
+                                .GetUsersResultAsync();
 
                     usuarios =
                         resultadoUsuarios.Data?.ToList() ??
                         new List<UserResponse>();
 
-                    UserResponse? actual = usuarios.FirstOrDefault(x =>
-                        x.UsuarioId == usuarioActualId);
+                    UserResponse? actual =
+                        usuarios.FirstOrDefault(x =>
+                            x.UsuarioId == usuarioActualId);
 
-                    rolNombre = actual?.RolNombre ?? string.Empty;
+                    rolNombre =
+                        actual?.RolNombre ?? string.Empty;
                 }
 
-                EsAdministrador = EsRolAdministrador(rolNombre);
+                bool administrador =
+                    EsRolAdministrador(rolNombre);
 
-                if (EsAdministrador && usuarios.Count == 0)
+                EsAdministrador = administrador;
+
+                if (!administrador)
                 {
-                    ApiResult<ObservableCollection<UserResponse>> resultadoUsuarios =
-                        await userApiService.GetUsersResultAsync();
+                    alcanceListadoSeleccionado =
+                        AlcancePropios;
+
+                    OnPropertyChanged(
+                        nameof(AlcanceListadoSeleccionado));
+                    OnPropertyChanged(nameof(ListarSoloPropios));
+                }
+
+                bool listarSoloUsuarioActual =
+                    !administrador ||
+                    string.Equals(
+                        AlcanceListadoSeleccionado,
+                        AlcancePropios,
+                        StringComparison.OrdinalIgnoreCase);
+
+                if (administrador &&
+                    !listarSoloUsuarioActual &&
+                    usuarios.Count == 0)
+                {
+                    ApiResult<ObservableCollection<UserResponse>>
+                        resultadoUsuarios =
+                            await userApiService
+                                .GetUsersResultAsync();
 
                     usuarios =
                         resultadoUsuarios.Data?.ToList() ??
@@ -289,16 +455,20 @@ namespace CONATRADEC.ViewModels
                 }
 
                 int? filtroServidor =
-                    EsAdministrador ? null : usuarioActualId;
+                    listarSoloUsuarioActual
+                        ? usuarioActualId
+                        : null;
 
-                AnalisisGuardadoUsuarioListaResponse respuestaListado =
-                    await analisisUsuarioApiService.ListarAsync(
-                        filtroServidor);
+                AnalisisGuardadoUsuarioListaResponse
+                    respuestaListado =
+                        await analisisUsuarioApiService
+                            .ListarAsync(filtroServidor);
 
                 if (!respuestaListado.Success)
                 {
                     Mensaje =
-                        string.IsNullOrWhiteSpace(respuestaListado.Message)
+                        string.IsNullOrWhiteSpace(
+                            respuestaListado.Message)
                             ? "No fue posible cargar los análisis."
                             : respuestaListado.Message;
 
@@ -306,20 +476,26 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                Dictionary<int, AnalisisGuardadoResumen> complementos =
-                    new();
+                Dictionary<int, AnalisisGuardadoResumen>
+                    complementos = new();
 
-                if (EsAdministrador)
+                if (administrador)
                 {
-                    AnalisisGuardadoListaResponse respuestaComplementos =
-                        await guardarTodoApiService.ListarAsync();
+                    AnalisisGuardadoListaResponse
+                        respuestaComplementos =
+                            await guardarTodoApiService
+                                .ListarAsync();
 
                     complementos =
                         (respuestaComplementos.Data ??
                          new List<AnalisisGuardadoResumen>())
-                            .Where(x => x.AnalisisSueloCalculoId > 0)
-                            .GroupBy(x => x.AnalisisSueloCalculoId)
-                            .ToDictionary(x => x.Key, x => x.First());
+                            .Where(x =>
+                                x.AnalisisSueloCalculoId > 0)
+                            .GroupBy(x =>
+                                x.AnalisisSueloCalculoId)
+                            .ToDictionary(
+                                x => x.Key,
+                                x => x.First());
                 }
 
                 Dictionary<int, string> nombresUsuario =
@@ -329,87 +505,126 @@ namespace CONATRADEC.ViewModels
                         .ToDictionary(
                             x => x.Key,
                             x =>
-                                x.First().NombreCompletoUsuario ??
-                                x.First().NombreUsuario ??
+                                x.First()
+                                    .NombreCompletoUsuario ??
+                                x.First()
+                                    .NombreUsuario ??
                                 $"Usuario #{x.Key}");
 
                 todosAnalisis.Clear();
 
-                foreach (AnalisisGuardadoUsuarioItem item
-                         in respuestaListado.Data)
+                foreach (
+                    AnalisisGuardadoUsuarioItem item
+                    in respuestaListado.Data)
                 {
                     if (item.Calculo == null ||
-                        item.Calculo.AnalisisSueloCalculoId <= 0)
+                        item.Calculo
+                            .AnalisisSueloCalculoId <= 0)
                     {
                         continue;
                     }
 
                     complementos.TryGetValue(
-                        item.Calculo.AnalisisSueloCalculoId,
-                        out AnalisisGuardadoResumen? complemento);
+                        item.Calculo
+                            .AnalisisSueloCalculoId,
+                        out AnalisisGuardadoResumen?
+                            complemento);
 
-                    int? usuarioId = item.Calculo.UsuarioId;
+                    int? usuarioId =
+                        item.Calculo.UsuarioId;
 
                     string nombreUsuario =
-                        usuarioId.HasValue &&
-                        nombresUsuario.TryGetValue(
-                            usuarioId.Value,
-                            out string? nombre)
-                            ? nombre
-                            : usuarioId == usuarioActualId
-                                ? Preferences.Get(
-                                    SessionKeys.KeyNombreCompletoUsuario,
-                                    $"Usuario #{usuarioId}")
-                                : $"Usuario #{usuarioId}";
+                        ObtenerNombreUsuario(
+                            usuarioId,
+                            usuarioActualId,
+                            nombresUsuario);
 
                     todosAnalisis.Add(
                         new AnalisisGuardadoResumen
                         {
-                            AnalisisSueloId = item.AnalisisSueloId,
+                            AnalisisSueloId =
+                                item.AnalisisSueloId,
+
                             AnalisisSueloCalculoId =
-                                item.Calculo.AnalisisSueloCalculoId,
+                                item.Calculo
+                                    .AnalisisSueloCalculoId,
+
                             IdentificadorAnalisisSuelo =
                                 item.IdentificadorAnalisisSuelo,
+
                             LaboratorioAnalasisSuelo =
                                 item.LaboratorioAnalasisSuelo,
-                            FechaAnalisisSuelo = item.FechaAnalisisSuelo,
-                            FechaCalculo = item.Calculo.FechaCalculo,
-                            TerrenoId = item.Terreno?.TerrenoId ?? 0,
+
+                            FechaAnalisisSuelo =
+                                item.FechaAnalisisSuelo,
+
+                            FechaCalculo =
+                                item.Calculo.FechaCalculo,
+
+                            TerrenoId =
+                                item.Terreno?.TerrenoId ?? 0,
+
                             CodigoTerreno =
-                                item.Terreno?.CodigoTerreno ?? string.Empty,
-                            NombreCliente =
-                                item.Terreno?.NombrePropietarioTerreno ??
+                                item.Terreno?
+                                    .CodigoTerreno ??
                                 string.Empty,
+
+                            NombreCliente =
+                                item.Terreno?
+                                    .NombrePropietarioTerreno ??
+                                string.Empty,
+
                             NombreTerreno =
-                                item.Terreno?.CodigoTerreno ?? string.Empty,
+                                item.Terreno?
+                                    .CodigoTerreno ??
+                                string.Empty,
+
                             TipoCultivoId =
-                                item.TipoCultivo?.TipoCultivoId ?? 0,
+                                item.TipoCultivo?
+                                    .TipoCultivoId ?? 0,
+
                             TipoAnalisisSueloId =
                                 item.TipoAnalisisSuelo?
                                     .TipoAnalisisSueloId ?? 0,
+
                             CantidadQuintalesOro =
-                                item.Calculo.CantidadQuintalesOro,
-                            TamanoFinca = item.Calculo.TamanoFinca,
+                                item.Calculo
+                                    .CantidadQuintalesOro,
+
+                            TamanoFinca =
+                                item.Calculo.TamanoFinca,
+
                             PhAnalisisSuelo =
-                                item.Calculo.PhAnalisisSuelo,
+                                item.Calculo
+                                    .PhAnalisisSuelo,
+
                             UsuarioId = usuarioId,
                             NombreUsuario = nombreUsuario,
+
                             TieneFormulaNutricional =
-                                complemento?.TieneFormulaNutricional ??
+                                complemento?
+                                    .TieneFormulaNutricional ??
                                 false,
+
                             TieneEnmiendaCalcarea =
-                                complemento?.TieneEnmiendaCalcarea ??
+                                complemento?
+                                    .TieneEnmiendaCalcarea ??
                                 false,
+
                             TieneFertilizacionMixta =
-                                complemento?.TieneFertilizacionMixta ??
+                                complemento?
+                                    .TieneFertilizacionMixta ??
                                 false
                         });
                 }
 
-                if (!EsAdministrador)
+                if (!administrador)
                     await CompletarIndicadoresPropiosAsync();
 
-                ConfigurarFiltroUsuarios(usuarios);
+                ConfigurarFiltroUsuarios(
+                    usuarios,
+                    listarSoloUsuarioActual);
+
                 SeHaListado = true;
                 AplicarFiltros();
             }
@@ -427,54 +642,76 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CompletarIndicadoresPropiosAsync()
+        private async Task
+            CompletarIndicadoresPropiosAsync()
         {
             using SemaphoreSlim limite = new(4);
 
-            IEnumerable<Task> tareas = todosAnalisis.Select(
-                async analisis =>
-                {
-                    await limite.WaitAsync();
-
-                    try
+            IEnumerable<Task> tareas =
+                todosAnalisis.Select(
+                    async analisis =>
                     {
-                        AnalisisGuardadoDetalleResponse detalle =
-                            await guardarTodoApiService.ObtenerDetalleAsync(
-                                analisis.AnalisisSueloCalculoId);
+                        await limite.WaitAsync();
 
-                        if (detalle.Success && detalle.Data != null)
+                        try
                         {
-                            analisis.TieneFormulaNutricional =
-                                detalle.Data.BalanceNutricional != null;
+                            AnalisisGuardadoDetalleResponse
+                                detalle =
+                                    await guardarTodoApiService
+                                        .ObtenerDetalleAsync(
+                                            analisis
+                                                .AnalisisSueloCalculoId);
 
-                            analisis.TieneEnmiendaCalcarea =
-                                detalle.Data.EnmiendaCalcarea != null;
+                            if (detalle.Success &&
+                                detalle.Data != null)
+                            {
+                                analisis
+                                    .TieneFormulaNutricional =
+                                        detalle.Data
+                                            .BalanceNutricional != null;
 
-                            analisis.TieneFertilizacionMixta =
-                                detalle.Data.FertilizacionMixta != null;
+                                analisis
+                                    .TieneEnmiendaCalcarea =
+                                        detalle.Data
+                                            .EnmiendaCalcarea != null;
+
+                                analisis
+                                    .TieneFertilizacionMixta =
+                                        detalle.Data
+                                            .FertilizacionMixta != null;
+                            }
                         }
-                    }
-                    finally
-                    {
-                        limite.Release();
-                    }
-                });
+                        catch
+                        {
+                            // El listado continúa aunque un detalle
+                            // no se pueda consultar.
+                        }
+                        finally
+                        {
+                            limite.Release();
+                        }
+                    });
 
             await Task.WhenAll(tareas);
         }
 
         private void ConfigurarFiltroUsuarios(
-            IEnumerable<UserResponse> usuarios)
+            IEnumerable<UserResponse> usuarios,
+            bool listarSoloUsuarioActual)
         {
             int? seleccionAnterior =
                 UsuarioFiltroSeleccionado?.UsuarioId;
 
             UsuariosFiltro.Clear();
 
-            if (!EsAdministrador)
+            if (!EsAdministrador ||
+                listarSoloUsuarioActual)
             {
                 usuarioFiltroSeleccionado = null;
-                OnPropertyChanged(nameof(UsuarioFiltroSeleccionado));
+                OnPropertyChanged(
+                    nameof(UsuarioFiltroSeleccionado));
+                OnPropertyChanged(
+                    nameof(PuedeFiltrarPorUsuario));
                 return;
             }
 
@@ -482,22 +719,18 @@ namespace CONATRADEC.ViewModels
                 new UsuarioFiltroAnalisis
                 {
                     UsuarioId = null,
-                    NombreCompleto = "Todos los usuarios"
+                    NombreCompleto =
+                        "Todos los usuarios"
                 });
 
-            HashSet<int> usuariosConAnalisis =
-                todosAnalisis
-                    .Where(x => x.UsuarioId.HasValue)
-                    .Select(x => x.UsuarioId!.Value)
-                    .ToHashSet();
-
-            IEnumerable<UserResponse> lista = usuarios;
-
-            foreach (UserResponse usuario in lista
-                         .Where(x => x.UsuarioId.HasValue)
-                         .OrderBy(x =>
-                             x.NombreCompletoUsuario ??
-                             x.NombreUsuario))
+            foreach (
+                UserResponse usuario
+                in usuarios
+                    .Where(x =>
+                        x.UsuarioId.HasValue)
+                    .OrderBy(x =>
+                        x.NombreCompletoUsuario ??
+                        x.NombreUsuario))
             {
                 UsuariosFiltro.Add(
                     new UsuarioFiltroAnalisis
@@ -510,18 +743,26 @@ namespace CONATRADEC.ViewModels
                     });
             }
 
-            foreach (int usuarioId in todosAnalisis
-                         .Where(x => x.UsuarioId.HasValue)
-                         .Select(x => x.UsuarioId!.Value)
-                         .Distinct()
-                         .OrderBy(x => x))
+            foreach (
+                int usuarioId
+                in todosAnalisis
+                    .Where(x =>
+                        x.UsuarioId.HasValue)
+                    .Select(x =>
+                        x.UsuarioId!.Value)
+                    .Distinct()
+                    .OrderBy(x => x))
             {
-                if (UsuariosFiltro.Any(x => x.UsuarioId == usuarioId))
+                if (UsuariosFiltro.Any(x =>
+                        x.UsuarioId == usuarioId))
+                {
                     continue;
+                }
 
                 string nombre =
                     todosAnalisis.First(x =>
-                        x.UsuarioId == usuarioId).UsuarioMostrar;
+                        x.UsuarioId ==
+                        usuarioId).UsuarioMostrar;
 
                 UsuariosFiltro.Add(
                     new UsuarioFiltroAnalisis
@@ -536,12 +777,18 @@ namespace CONATRADEC.ViewModels
                     x.UsuarioId == seleccionAnterior)
                 ?? UsuariosFiltro.FirstOrDefault();
 
-            OnPropertyChanged(nameof(UsuarioFiltroSeleccionado));
+            OnPropertyChanged(
+                nameof(UsuarioFiltroSeleccionado));
+            OnPropertyChanged(
+                nameof(PuedeFiltrarPorUsuario));
         }
 
         private void AplicarFiltros()
         {
-            IEnumerable<AnalisisGuardadoResumen> consulta = todosAnalisis;
+            ErrorRangoFecha = string.Empty;
+
+            IEnumerable<AnalisisGuardadoResumen>
+                consulta = todosAnalisis;
 
             string texto =
                 (TextoBusqueda ?? string.Empty)
@@ -556,14 +803,30 @@ namespace CONATRADEC.ViewModels
                         StringComparison.OrdinalIgnoreCase));
             }
 
-            if (UsarFiltroFecha)
+            if (UsarFiltroRangoFecha)
             {
+                if (FechaDesde.Date > FechaHasta.Date)
+                {
+                    ErrorRangoFecha =
+                        "La fecha Desde no puede ser mayor " +
+                        "que la fecha Hasta.";
+
+                    AnalisisGuardados.Clear();
+                    NotificarResumenLista();
+                    return;
+                }
+
                 consulta = consulta.Where(x =>
-                    x.FechaAnalisisValor?.Date == FechaFiltro.Date);
+                    x.FechaAnalisisValor.HasValue &&
+                    x.FechaAnalisisValor.Value.Date >=
+                        FechaDesde.Date &&
+                    x.FechaAnalisisValor.Value.Date <=
+                        FechaHasta.Date);
             }
 
-            if (EsAdministrador &&
-                UsuarioFiltroSeleccionado?.UsuarioId is int usuarioId)
+            if (PuedeFiltrarPorUsuario &&
+                UsuarioFiltroSeleccionado?
+                    .UsuarioId is int usuarioId)
             {
                 consulta = consulta.Where(x =>
                     x.UsuarioId == usuarioId);
@@ -571,33 +834,73 @@ namespace CONATRADEC.ViewModels
 
             List<AnalisisGuardadoResumen> filtrados =
                 consulta
-                    .OrderByDescending(x => x.FechaCalculoValor)
+                    .OrderByDescending(x =>
+                        x.FechaCalculoValor)
                     .ToList();
 
             AnalisisGuardados.Clear();
 
-            foreach (AnalisisGuardadoResumen analisis in filtrados)
+            foreach (
+                AnalisisGuardadoResumen analisis
+                in filtrados)
+            {
                 AnalisisGuardados.Add(analisis);
+            }
 
-            OnPropertyChanged(nameof(TieneAnalisis));
-            OnPropertyChanged(nameof(TotalMostradoTexto));
+            NotificarResumenLista();
         }
 
         private void LimpiarFiltros()
         {
             textoBusqueda = string.Empty;
-            usarFiltroFecha = false;
-            fechaFiltro = DateTime.Today;
+            usarFiltroRangoFecha = false;
+            fechaDesde =
+                new DateTime(
+                    DateTime.Today.Year,
+                    DateTime.Today.Month,
+                    1);
+            fechaHasta = DateTime.Today;
+            ErrorRangoFecha = string.Empty;
 
-            if (EsAdministrador)
-                usuarioFiltroSeleccionado = UsuariosFiltro.FirstOrDefault();
+            if (PuedeFiltrarPorUsuario)
+            {
+                usuarioFiltroSeleccionado =
+                    UsuariosFiltro.FirstOrDefault();
+            }
 
             OnPropertyChanged(nameof(TextoBusqueda));
-            OnPropertyChanged(nameof(UsarFiltroFecha));
-            OnPropertyChanged(nameof(FechaFiltro));
-            OnPropertyChanged(nameof(UsuarioFiltroSeleccionado));
+            OnPropertyChanged(
+                nameof(UsarFiltroRangoFecha));
+            OnPropertyChanged(nameof(FechaDesde));
+            OnPropertyChanged(nameof(FechaHasta));
+            OnPropertyChanged(
+                nameof(UsuarioFiltroSeleccionado));
 
             AplicarFiltros();
+        }
+
+        private void ReiniciarListadoPorCambioAlcance()
+        {
+            todosAnalisis.Clear();
+            AnalisisGuardados.Clear();
+            UsuariosFiltro.Clear();
+
+            usuarioFiltroSeleccionado = null;
+            Mensaje = string.Empty;
+            ErrorRangoFecha = string.Empty;
+            SeHaListado = false;
+
+            OnPropertyChanged(
+                nameof(UsuarioFiltroSeleccionado));
+
+            NotificarResumenLista();
+        }
+
+        private void NotificarResumenLista()
+        {
+            OnPropertyChanged(nameof(TieneAnalisis));
+            OnPropertyChanged(
+                nameof(TotalMostradoTexto));
         }
 
         private async Task ListarManualmenteAsync()
@@ -630,14 +933,20 @@ namespace CONATRADEC.ViewModels
                 return;
 
             AnalisisEdicionService.Instance.Limpiar();
-            await GoToAsyncParameters("//NuevoAnalisisFormPage");
+
+            await GoToAsyncParameters(
+                "//NuevoAnalisisFormPage");
         }
 
         private async Task VisualizarAsync(
             AnalisisGuardadoResumen? analisis)
         {
-            if (analisis == null || IsBusy || !CanView)
+            if (analisis == null ||
+                IsBusy ||
+                !CanView)
+            {
                 return;
+            }
 
             await GoToAsyncParameters(
                 AppRoutes.AnalisisGuardadoDetalle,
@@ -645,6 +954,7 @@ namespace CONATRADEC.ViewModels
                 {
                     ["analisisSueloCalculoId"] =
                         analisis.AnalisisSueloCalculoId,
+
                     ["resumenAnalisis"] = analisis
                 });
         }
@@ -665,27 +975,34 @@ namespace CONATRADEC.ViewModels
             try
             {
                 IsBusy = true;
-                Mensaje = "Cargando el análisis para edición...";
+                Mensaje =
+                    "Cargando el análisis para edición...";
 
                 (bool success, string message) =
-                    await AnalisisEdicionService.Instance.PrepararAsync(
-                        analisis.AnalisisSueloCalculoId,
-                        analisis);
+                    await AnalisisEdicionService.Instance
+                        .PrepararAsync(
+                            analisis
+                                .AnalisisSueloCalculoId,
+                            analisis);
 
                 if (!success)
                 {
                     Mensaje = message;
 
-                    await Application.Current!.MainPage!.DisplayAlert(
-                        "No se pudo abrir",
-                        message,
-                        "Aceptar");
+                    await Application.Current!
+                        .MainPage!
+                        .DisplayAlert(
+                            "No se pudo abrir",
+                            message,
+                            "Aceptar");
 
                     return;
                 }
 
                 Mensaje = string.Empty;
-                await GoToAsyncParameters("//NuevoAnalisisFormPage");
+
+                await GoToAsyncParameters(
+                    "//NuevoAnalisisFormPage");
             }
             finally
             {
@@ -707,11 +1024,16 @@ namespace CONATRADEC.ViewModels
             }
 
             bool confirmar =
-                await Application.Current!.MainPage!.DisplayAlert(
-                    "Eliminar análisis",
-                    $"¿Desea eliminar el análisis {analisis.IdentificadorMostrar}? Esta acción también desactivará sus cálculos relacionados.",
-                    "Sí, eliminar",
-                    "Cancelar");
+                await Application.Current!
+                    .MainPage!
+                    .DisplayAlert(
+                        "Eliminar análisis",
+                        $"¿Desea eliminar el análisis " +
+                        $"{analisis.IdentificadorMostrar}? " +
+                        "Esta acción también desactivará " +
+                        "sus cálculos relacionados.",
+                        "Sí, eliminar",
+                        "Cancelar");
 
             if (!confirmar)
                 return;
@@ -722,31 +1044,37 @@ namespace CONATRADEC.ViewModels
                 Mensaje = string.Empty;
 
                 EliminarAnalisisResponse respuesta =
-                    await guardarTodoApiService.EliminarAsync(
-                        analisis.AnalisisSueloId);
+                    await guardarTodoApiService
+                        .EliminarAsync(
+                            analisis.AnalisisSueloId);
 
                 if (!respuesta.Success)
                 {
                     Mensaje =
-                        string.IsNullOrWhiteSpace(respuesta.Message)
+                        string.IsNullOrWhiteSpace(
+                            respuesta.Message)
                             ? "La API no pudo eliminar el análisis."
                             : respuesta.Message;
 
-                    await Application.Current.MainPage.DisplayAlert(
-                        "No se pudo eliminar",
-                        Mensaje,
-                        "Aceptar");
+                    await Application.Current!
+                        .MainPage!
+                        .DisplayAlert(
+                            "No se pudo eliminar",
+                            Mensaje,
+                            "Aceptar");
 
                     return;
                 }
 
                 todosAnalisis.RemoveAll(x =>
-                    x.AnalisisSueloId == analisis.AnalisisSueloId);
+                    x.AnalisisSueloId ==
+                    analisis.AnalisisSueloId);
 
                 AplicarFiltros();
 
                 await MostrarToastAsync(
-                    string.IsNullOrWhiteSpace(respuesta.Message)
+                    string.IsNullOrWhiteSpace(
+                        respuesta.Message)
                         ? "Análisis eliminado correctamente."
                         : respuesta.Message);
             }
@@ -756,20 +1084,52 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private static bool EsRolAdministrador(string? rolNombre)
+        private static string ObtenerNombreUsuario(
+            int? usuarioId,
+            int usuarioActualId,
+            IReadOnlyDictionary<int, string>
+                nombresUsuario)
         {
-            return !string.IsNullOrWhiteSpace(rolNombre) &&
-                   rolNombre.Contains(
-                       "ADMIN",
-                       StringComparison.OrdinalIgnoreCase);
+            if (usuarioId.HasValue &&
+                nombresUsuario.TryGetValue(
+                    usuarioId.Value,
+                    out string? nombre))
+            {
+                return nombre;
+            }
+
+            if (usuarioId == usuarioActualId)
+            {
+                return Preferences.Get(
+                    SessionKeys.KeyNombreCompletoUsuario,
+                    $"Usuario #{usuarioId}");
+            }
+
+            return $"Usuario #{usuarioId}";
+        }
+
+        private static bool EsRolAdministrador(
+            string? rolNombre)
+        {
+            return
+                !string.IsNullOrWhiteSpace(rolNombre) &&
+                rolNombre.Contains(
+                    "ADMIN",
+                    StringComparison.OrdinalIgnoreCase);
         }
 
         private static int ObtenerUsuarioActualId()
         {
             string valor =
-                Preferences.Get(SessionKeys.KeyUserId, "0");
+                Preferences.Get(
+                    SessionKeys.KeyUserId,
+                    "0");
 
-            return int.TryParse(valor, out int id) ? id : 0;
+            return int.TryParse(
+                valor,
+                out int id)
+                    ? id
+                    : 0;
         }
     }
 }

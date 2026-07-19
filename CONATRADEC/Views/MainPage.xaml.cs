@@ -9,7 +9,9 @@ namespace CONATRADEC.Views
 
         public MainPage()
         {
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
             InitializeComponent();
             BindingContext = viewModel;
         }
@@ -19,6 +21,7 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             viewModel.LoadPagePermissions("MainPage");
+            viewModel.PrepararPantalla();
 
             if (!viewModel.CanView)
             {
@@ -26,12 +29,22 @@ namespace CONATRADEC.Views
                     "Permiso denegado",
                     "No tiene permisos para ver la pantalla principal.",
                     "Aceptar");
+
                 return;
             }
 
-            // El listado ya no se carga automáticamente.
-            // El usuario decide cuándo consultar mediante
-            // el botón Listar análisis.
+            // El listado se mantiene bajo demanda.
+            // No se realiza ninguna consulta al abrir MainPage.
+        }
+
+        private async void OnListarAnalisisClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (viewModel.IsBusy)
+                return;
+
+            await viewModel.CargarAnalisisAsync(true);
         }
     }
 }
