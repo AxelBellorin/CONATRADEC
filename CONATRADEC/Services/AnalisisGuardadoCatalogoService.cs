@@ -1,20 +1,17 @@
-using CONATRADEC.Models;
-using System.Net.Http.Json;
+﻿using CONATRADEC.Models;
+using System.Collections.ObjectModel;
 
 namespace CONATRADEC.Services
 {
     public sealed class AnalisisGuardadoCatalogoService
     {
-        private readonly HttpClient httpClient;
+        private readonly ElementoQuimicoApiService elementoQuimicoApiService;
+        private readonly FuenteNutrienteApiService fuenteNutrienteApiService;
 
         public AnalisisGuardadoCatalogoService()
-            : this(ApiClientService.Client)
         {
-        }
-
-        public AnalisisGuardadoCatalogoService(HttpClient httpClient)
-        {
-            this.httpClient = httpClient;
+            elementoQuimicoApiService = new ElementoQuimicoApiService();
+            fuenteNutrienteApiService = new FuenteNutrienteApiService();
         }
 
         public async Task<List<CatalogoElementoAnalisis>> ListarElementosAsync(
@@ -22,10 +19,29 @@ namespace CONATRADEC.Services
         {
             try
             {
-                return await httpClient.GetFromJsonAsync<List<CatalogoElementoAnalisis>>(
-                           "api/elemento-quimico/listar",
-                           cancellationToken)
-                       ?? new List<CatalogoElementoAnalisis>();
+                ObservableCollection<ElementoQuimicoResponse> elementos =
+                    await elementoQuimicoApiService.GetElementoQuimicoAsync();
+
+                return elementos
+                    .Where(x =>
+                        x != null &&
+                        x.ElementoQuimicosId.HasValue &&
+                        x.ElementoQuimicosId.Value > 0)
+                    .GroupBy(x => x.ElementoQuimicosId!.Value)
+                    .Select(grupo =>
+                    {
+                        ElementoQuimicoResponse elemento = grupo.First();
+
+                        return new CatalogoElementoAnalisis
+                        {
+                            ElementoQuimicosId = elemento.ElementoQuimicosId,
+                            SimboloElementoQuimico =
+                                elemento.SimboloElementoQuimico ?? string.Empty,
+                            NombreElementoQuimico =
+                                elemento.NombreElementoQuimico ?? string.Empty
+                        };
+                    })
+                    .ToList();
             }
             catch
             {
@@ -38,10 +54,27 @@ namespace CONATRADEC.Services
         {
             try
             {
-                return await httpClient.GetFromJsonAsync<List<CatalogoFuenteAnalisis>>(
-                           "api/fuente-nutriente/listar",
-                           cancellationToken)
-                       ?? new List<CatalogoFuenteAnalisis>();
+                ObservableCollection<FuenteNutrienteResponse> fuentes =
+                    await fuenteNutrienteApiService.GetFuenteNutrienteAsync();
+
+                return fuentes
+                    .Where(x =>
+                        x != null &&
+                        x.FuenteNutrientesId.HasValue &&
+                        x.FuenteNutrientesId.Value > 0)
+                    .GroupBy(x => x.FuenteNutrientesId!.Value)
+                    .Select(grupo =>
+                    {
+                        FuenteNutrienteResponse fuente = grupo.First();
+
+                        return new CatalogoFuenteAnalisis
+                        {
+                            FuenteNutrientesId = fuente.FuenteNutrientesId,
+                            NombreNutriente =
+                                fuente.NombreNutriente ?? string.Empty
+                        };
+                    })
+                    .ToList();
             }
             catch
             {

@@ -1,4 +1,4 @@
-using CONATRADEC.ViewModels;
+﻿using CONATRADEC.ViewModels;
 using Microsoft.Maui.Controls;
 
 namespace CONATRADEC.Views
@@ -29,7 +29,9 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            await viewModel.CargarAnalisisAsync();
+            // El listado ya no se carga automáticamente.
+            // El usuario decide cuándo consultar mediante
+            // el botón Listar análisis.
         }
     }
 }

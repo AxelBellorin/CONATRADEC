@@ -1,11 +1,12 @@
-using CONATRADEC.Services;
+﻿using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
     public partial class MultiCalculoPage : ContentPage
     {
-        private readonly MultiCalculoViewModel viewModel = new MultiCalculoViewModel();
+        private readonly MultiCalculoViewModel viewModel =
+            new MultiCalculoViewModel();
 
         public MultiCalculoPage()
         {
@@ -22,10 +23,15 @@ namespace CONATRADEC.Views
 
             if (!viewModel.CanView)
             {
-                await GlobalService.MostrarToastAsync("No tiene permisos para ver los cálculos complementarios.");
+                await GlobalService.MostrarToastAsync(
+                    "No tiene permisos para ver los cálculos complementarios.");
+
                 await Shell.Current.GoToAsync("//MainPage");
                 return;
             }
+
+            await RestaurarCalculosEdicionUiService.Instance
+                .RestaurarAsync(viewModel);
         }
     }
 }

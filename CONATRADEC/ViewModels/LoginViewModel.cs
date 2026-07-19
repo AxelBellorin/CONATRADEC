@@ -1,17 +1,19 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.Views;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using Plugin.Fingerprint;
 using Plugin.Fingerprint.Abstractions;
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace CONATRADEC.ViewModels
 {
     public class LoginViewModel : GlobalService
     {
-        // ==================== Estado ====================
         private string username = string.Empty;
         private string password = string.Empty;
         private string message = string.Empty;
@@ -21,28 +23,23 @@ namespace CONATRADEC.ViewModels
         private LoginResponse? user;
         private bool rememberMe;
 
-        // ==================== Biometría ====================
         private bool canUseBiometrics;
         private bool useBiometrics;
         private bool requirePasswordRelogin;
         private bool loginViaBiometric;
 
-        // ==================== Dependencias ====================
         private readonly LoginApiService apiServiceLogin;
 
-        // ==================== Comandos ====================
         public Command TogglePasswordCommand { get; }
         public Command LoginCommand { get; }
         public Command BiometricLoginCommand { get; }
 
-        // ==================== Storage Keys ====================
         private const string KeyRemember = "login.remember";
         private const string KeyUser = "login.username";
         private const string KeyPass = "login.password";
         private const string KeyUseBiometrics = "login.use_biometrics";
         private const string KeyRequireRelogin = "login.require_pwd_relogin";
 
-        // ==================== Constructor ====================
         public LoginViewModel()
         {
             apiServiceLogin = new LoginApiService();
@@ -56,12 +53,8 @@ namespace CONATRADEC.ViewModels
             BiometricLoginCommand = new Command(
                 async () => await TryBiometricLoginAsync(),
                 () => BiometricEnabled);
-
-            // LoadSavedAsync se continúa ejecutando desde la página para
-            // evitar el retraso que se presentaba al llamarlo aquí.
         }
 
-        // ==================== Propiedades ====================
         public string Username
         {
             get => username;
@@ -221,7 +214,6 @@ namespace CONATRADEC.ViewModels
 
         public bool TitleBiometric => !RememberMe;
 
-        // ==================== Login normal ====================
         public async Task LoginAsync()
         {
             if (IsBusy)
@@ -259,25 +251,23 @@ namespace CONATRADEC.ViewModels
                     ClaveUsuario = Password
                 };
 
-                // No se consulta Google antes del login. La propia llamada
-                // a la API determinará si existe conexión o si el servidor
-                // no está disponible.
                 LoginResponse response =
                     await apiServiceLogin.LoginAsync(request);
 
                 User = response;
 
                 PermissionService.Instance.Load(
-                    response.permisos ?? new List<UserPermissionDTO>());
+                    response.permisos ??
+                    new List<UserPermissionDTO>());
 
                 await GuardarSesionAsync(userTrim, response);
 
                 if (!loginViaBiometric)
-                {
                     RequirePasswordRelogin = false;
-                }
 
-                Message = $"Bienvenido {response.NombreCompletoUsuario}";
+                Message =
+                    $"Bienvenido {response.NombreCompletoUsuario}";
+
                 _ = MostrarToastAsync(Message);
 
                 if (!RememberMe)
@@ -339,63 +329,65 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        // ==================== Guardar sesión ====================
         private async Task GuardarSesionAsync(
             string usuario,
             LoginResponse response)
         {
             try
             {
+                // Estos datos pertenecen a la sesión activa y se guardan
+                // siempre, aunque el usuario no marque "Recordarme".
+                Preferences.Set(
+                    SessionKeys.KeyUserId,
+                    response.UsuarioId?.ToString() ?? string.Empty);
+
+                Preferences.Set(
+                    SessionKeys.KeyNombreCompletoUsuario,
+                    response.NombreCompletoUsuario ?? string.Empty);
+
+                Preferences.Set(
+                    SessionKeys.KeyCorreoUsuario,
+                    response.CorreoUsuario ?? string.Empty);
+
+                Preferences.Set(
+                    SessionKeys.KeyUrlImagenUsuario,
+                    response.UrlImagenUsuario ?? string.Empty);
+
+                Preferences.Set(
+                    SessionKeys.KeyRolId,
+                    response.RolId?.ToString() ?? string.Empty);
+
+                Preferences.Set(
+                    SessionKeys.KeyRolNombre,
+                    response.RolNombre ?? string.Empty);
+
                 if (RememberMe)
                 {
                     Preferences.Set(KeyRemember, true);
                     Preferences.Set(KeyUser, usuario);
 
-                    Preferences.Set(
-                        SessionKeys.KeyUserId,
-                        response.UsuarioId?.ToString() ?? string.Empty);
-
-                    Preferences.Set(
-                        SessionKeys.KeyNombreCompletoUsuario,
-                        response.NombreCompletoUsuario ?? string.Empty);
-
-                    Preferences.Set(
-                        SessionKeys.KeyCorreoUsuario,
-                        response.CorreoUsuario ?? string.Empty);
-
-                    Preferences.Set(
-                        SessionKeys.KeyUrlImagenUsuario,
-                        response.UrlImagenUsuario ?? string.Empty);
-
-                    // Se conserva temporalmente la contraseña en
-                    // SecureStorage para el flujo biométrico existente.
-                    // En una etapa posterior se reemplazará por un token
-                    // validado y renovable.
-                    await SecureStorage.SetAsync(KeyPass, Password);
+                    await SecureStorage.SetAsync(
+                        KeyPass,
+                        Password);
                 }
                 else
                 {
-                    LimpiarSesionGuardada();
+                    LimpiarCredencialesRecordadas();
                 }
             }
             catch
             {
-                // Un problema de almacenamiento local no debe impedir que
-                // el usuario inicie sesión correctamente en esta ejecución.
+                // Un problema de almacenamiento local no debe impedir
+                // que el usuario inicie sesión.
             }
         }
 
-        private void LimpiarSesionGuardada()
+        private void LimpiarCredencialesRecordadas()
         {
             Preferences.Remove(KeyRemember);
             Preferences.Remove(KeyUser);
             Preferences.Remove(KeyUseBiometrics);
             Preferences.Remove(KeyRequireRelogin);
-
-            Preferences.Remove(SessionKeys.KeyUserId);
-            Preferences.Remove(SessionKeys.KeyUrlImagenUsuario);
-            Preferences.Remove(SessionKeys.KeyCorreoUsuario);
-            Preferences.Remove(SessionKeys.KeyNombreCompletoUsuario);
 
             SecureStorage.Remove(KeyPass);
 
@@ -407,33 +399,33 @@ namespace CONATRADEC.ViewModels
             ActualizarEstadoBiometrico();
         }
 
-        // ==================== Mostrar/ocultar contraseña ====================
         public void OnTogglePassword()
         {
             IsPasswordHidden = !IsPasswordHidden;
+
             PasswordToggleIcon =
                 IsPasswordHidden ? "eye.png" : "eyeoff.png";
         }
 
-        // ==================== Cargar configuración guardada ====================
         public async Task LoadSavedAsync()
         {
             try
             {
-                rememberMe = Preferences.Get(KeyRemember, false);
+                rememberMe =
+                    Preferences.Get(KeyRemember, false);
+
                 OnPropertyChanged(nameof(RememberMe));
 
                 if (RememberMe)
                 {
-                    Username = Preferences.Get(KeyUser, string.Empty);
+                    Username =
+                        Preferences.Get(KeyUser, string.Empty);
 
                     string? savedPassword =
                         await SecureStorage.GetAsync(KeyPass);
 
                     if (!string.IsNullOrWhiteSpace(savedPassword))
-                    {
                         Password = savedPassword;
-                    }
                 }
 
                 useBiometrics =
@@ -446,7 +438,8 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(RequirePasswordRelogin));
 
                 CanUseBiometrics =
-                    await CrossFingerprint.Current.IsAvailableAsync(true);
+                    await CrossFingerprint.Current
+                        .IsAvailableAsync(true);
             }
             catch
             {
@@ -459,7 +452,6 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        // ==================== Login biométrico ====================
         private async Task TryBiometricLoginAsync()
         {
             if (RequirePasswordRelogin || IsBusy)
@@ -468,24 +460,27 @@ namespace CONATRADEC.ViewModels
             try
             {
                 bool available =
-                    await CrossFingerprint.Current.IsAvailableAsync(true);
+                    await CrossFingerprint.Current
+                        .IsAvailableAsync(true);
 
                 if (!available)
                 {
                     _ = MostrarToastAsync(
                         "El dispositivo no tiene biometría " +
-                        "o no está configurada.");
+                        "o no está configurado.");
 
                     CanUseBiometrics = false;
                     return;
                 }
 
-                var reason = new AuthenticationRequestConfiguration(
-                    "Confirma tu identidad en tu dispositivo",
-                    "Autentícate con huella/Face ID para continuar");
+                var reason =
+                    new AuthenticationRequestConfiguration(
+                        "Confirma tu identidad en tu dispositivo",
+                        "Autentícate con huella/Face ID para continuar");
 
                 FingerprintAuthenticationResult result =
-                    await CrossFingerprint.Current.AuthenticateAsync(reason);
+                    await CrossFingerprint.Current
+                        .AuthenticateAsync(reason);
 
                 if (!result.Authenticated)
                     return;
@@ -515,6 +510,7 @@ namespace CONATRADEC.ViewModels
             catch (Exception)
             {
                 loginViaBiometric = false;
+
                 _ = MostrarToastAsync(
                     "No fue posible completar la autenticación biométrica.");
             }
@@ -525,6 +521,7 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(BiometricEnabled));
             OnPropertyChanged(nameof(LoginButtonVisible));
             OnPropertyChanged(nameof(CanToggleBiometrics));
+
             BiometricLoginCommand.ChangeCanExecute();
         }
     }

@@ -6,5 +6,7 @@
         public const string KeyNombreCompletoUsuario = "NombreCompletoUsuario";
         public const string KeyCorreoUsuario = "CorreoUsuario";
         public const string KeyUrlImagenUsuario = "UrlImagenUsuario";
+        public const string KeyRolId = "RolId";
+        public const string KeyRolNombre = "RolNombre";
     }
 }

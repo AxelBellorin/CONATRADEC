@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -79,6 +79,9 @@ namespace CONATRADEC.Models
         public bool TieneFertilizacionMixta { get; set; }
 
         [JsonIgnore]
+        public string NombreUsuario { get; set; } = string.Empty;
+
+        [JsonIgnore]
         public string IdentificadorMostrar =>
             string.IsNullOrWhiteSpace(IdentificadorAnalisisSuelo)
                 ? $"Análisis #{AnalisisSueloId}"
@@ -97,6 +100,12 @@ namespace CONATRADEC.Models
                 : NombreCliente.Trim();
 
         [JsonIgnore]
+        public string UsuarioMostrar =>
+            string.IsNullOrWhiteSpace(NombreUsuario)
+                ? $"Usuario #{UsuarioId}"
+                : NombreUsuario.Trim();
+
+        [JsonIgnore]
         public string TerrenoMostrar
         {
             get
@@ -110,7 +119,8 @@ namespace CONATRADEC.Models
                     : NombreTerreno.Trim();
 
                 if (!string.IsNullOrWhiteSpace(codigo) &&
-                    !string.IsNullOrWhiteSpace(nombre))
+                    !string.IsNullOrWhiteSpace(nombre) &&
+                    !string.Equals(codigo, nombre, StringComparison.OrdinalIgnoreCase))
                 {
                     return $"{codigo} · {nombre}";
                 }
@@ -155,7 +165,8 @@ namespace CONATRADEC.Models
             LaboratorioAnalasisSuelo,
             NombreCliente,
             CodigoTerreno,
-            NombreTerreno
+            NombreTerreno,
+            NombreUsuario
         }).ToUpperInvariant();
 
         private static DateTime? ConvertirFecha(string? valor)

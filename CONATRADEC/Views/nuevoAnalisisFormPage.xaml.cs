@@ -1,43 +1,91 @@
-using CONATRADEC.Services;
+﻿using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
-using Microsoft.Maui.Controls;
-using System;
-using System.Windows.Input;
+using Microsoft.Maui;
 
 namespace CONATRADEC.Views
 {
     public partial class NuevoAnalisisFormPage : ContentPage
     {
-        private readonly NuevoAnalisisFormViewModel viewModel = new();
+        private readonly NuevoAnalisisFormEdicionViewModel viewModel = new();
 
         public NuevoAnalisisFormPage()
         {
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
             InitializeComponent();
+            BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            // VALIDAR PERMISOS DE LECTURA
-            if (!PermissionService.Instance.HasRead("NuevoAnalisisFormPage"))
+            if (viewModel.EsModoEdicion)
             {
-                await DisplayAlert(
-                    "Acceso denegado",
-                    "No tiene permisos para ver el formulario de análisis de suelo.",
-                    "Aceptar");
+                viewModel.LoadPagePermissions("MainPage");
 
-                await Shell.Current.GoToAsync("//MainPage");
-                return;
+                if (!viewModel.CanView || !viewModel.CanEdit)
+                {
+                    await DisplayAlert(
+                        "Acceso denegado",
+                        "No tiene permisos para editar análisis de suelo.",
+                        "Aceptar");
+
+                    AnalisisEdicionService.Instance.Limpiar();
+                    await Shell.Current.GoToAsync("//MainPage");
+                    return;
+                }
+            }
+            else
+            {
+                if (!PermissionService.Instance
+                        .HasRead("NuevoAnalisisFormPage"))
+                {
+                    await DisplayAlert(
+                        "Acceso denegado",
+                        "No tiene permisos para ver el formulario de análisis de suelo.",
+                        "Aceptar");
+
+                    await Shell.Current.GoToAsync("//MainPage");
+                    return;
+                }
+
+                viewModel.LoadPagePermissions("NuevoAnalisisFormPage");
             }
 
-            // CARGAR PERMISOS EN EL VM
-            viewModel.LoadPagePermissions("NuevoAnalisisFormPage");
+            await viewModel.InicializarPaginaAsync(true);
 
-            // CARGAR DATOS
-            await viewModel.InicializarAsync(true);
+            Button? botonEnviar = BuscarBotonEnviar(this);
+
+            if (botonEnviar != null)
+                botonEnviar.Text = viewModel.TextoAccionFormulario;
+        }
+
+        private static Button? BuscarBotonEnviar(
+            IVisualTreeElement elemento)
+        {
+            if (elemento is Button boton &&
+                (string.Equals(
+                     boton.Text,
+                     "Enviar Análisis",
+                     StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(
+                     boton.Text,
+                     "Continuar actualización",
+                     StringComparison.OrdinalIgnoreCase)))
+            {
+                return boton;
+            }
+
+            foreach (IVisualTreeElement hijo
+                     in elemento.GetVisualChildren())
+            {
+                Button? encontrado = BuscarBotonEnviar(hijo);
+
+                if (encontrado != null)
+                    return encontrado;
+            }
+
+            return null;
         }
     }
 }

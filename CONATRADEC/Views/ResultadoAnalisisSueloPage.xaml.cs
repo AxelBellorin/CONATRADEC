@@ -1,11 +1,12 @@
-using CONATRADEC.Services;
+﻿using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
     public partial class ResultadoAnalisisSueloPage : ContentPage
     {
-        private readonly ResultadoAnalisisSueloViewModel viewModel = new ResultadoAnalisisSueloViewModel();
+        private readonly ResultadoAnalisisSueloEdicionViewModel viewModel =
+            new();
 
         public ResultadoAnalisisSueloPage()
         {
@@ -26,7 +27,6 @@ namespace CONATRADEC.Views
                     "No tiene permisos para ver el resultado del análisis de suelo.");
 
                 await Shell.Current.GoToAsync("//MainPage");
-                return;
             }
         }
     }
