@@ -668,6 +668,9 @@ namespace CONATRADEC.ViewModels
 
                 bool fueEdicion = EsModoEdicion;
 
+                AnalisisListadoEstadoService
+                    .MarcarActualizacionPendiente();
+
                 await CalculoAnalisisTemporalService.Instance
                     .LimpiarTodoAsync();
 

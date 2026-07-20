@@ -1,4 +1,5 @@
-﻿using CONATRADEC.ViewModels;
+﻿using CONATRADEC.Services;
+using CONATRADEC.ViewModels;
 using Microsoft.Maui.Controls;
 using System;
 
@@ -34,7 +35,27 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            // La consulta se ejecuta únicamente al presionar el botón.
+            /*
+             * La primera consulta sigue siendo manual. Si el usuario ya
+             * listó los análisis y vuelve después de guardar una edición,
+             * se actualizan las tarjetas automáticamente.
+             */
+            bool debeActualizar =
+                viewModel.SeHaListado ||
+                AnalisisListadoEstadoService
+                    .HayActualizacionPendiente;
+
+            if (debeActualizar &&
+                !viewModel.IsBusy)
+            {
+                await viewModel.CargarAnalisisAsync(false);
+
+                if (viewModel.SeHaListado)
+                {
+                    AnalisisListadoEstadoService
+                        .ConfirmarActualizacion();
+                }
+            }
         }
 
         private async void OnListarAnalisisClicked(

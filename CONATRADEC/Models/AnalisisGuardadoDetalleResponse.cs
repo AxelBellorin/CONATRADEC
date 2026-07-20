@@ -61,7 +61,16 @@ namespace CONATRADEC.Models
         public DateTime? FechaAnalisisValor => ConvertirFecha(FechaAnalisisSuelo);
 
         [JsonIgnore]
+        public DateTime? FechaRegistroValor =>
+            ConvertirFecha(FechaCreacionAnalisisSuelo);
+
+        [JsonIgnore]
         public string FechaAnalisisTexto => FechaAnalisisValor?.ToString("dd/MM/yyyy") ?? "No disponible";
+
+        [JsonIgnore]
+        public string FechaRegistroTexto =>
+            FechaRegistroValor?.ToString("dd/MM/yyyy HH:mm") ??
+            "No disponible";
 
         private static DateTime? ConvertirFecha(string? valor) =>
             DateTime.TryParse(valor, out DateTime fecha) ? fecha : null;

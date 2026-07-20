@@ -36,6 +36,9 @@ namespace CONATRADEC.Models
         [JsonPropertyName("fechaAnalisisSuelo")]
         public string? FechaAnalisisSuelo { get; set; }
 
+        [JsonPropertyName("fechaCreacionAnalisisSuelo")]
+        public string? FechaCreacionAnalisisSuelo { get; set; }
+
         [JsonPropertyName("fechaCalculo")]
         public string? FechaCalculo { get; set; }
 
@@ -139,11 +142,21 @@ namespace CONATRADEC.Models
         public DateTime? FechaAnalisisValor => ConvertirFecha(FechaAnalisisSuelo);
 
         [JsonIgnore]
+        public DateTime? FechaRegistroValor =>
+            ConvertirFecha(FechaCreacionAnalisisSuelo);
+
+        [JsonIgnore]
         public DateTime? FechaCalculoValor => ConvertirFecha(FechaCalculo);
 
         [JsonIgnore]
         public string FechaAnalisisTexto =>
             FechaAnalisisValor?.ToString("dd/MM/yyyy") ?? "No disponible";
+
+        [JsonIgnore]
+        public string FechaRegistroTexto =>
+            FechaRegistroValor?.ToString("dd/MM/yyyy HH:mm") ??
+            FechaCalculoValor?.ToString("dd/MM/yyyy HH:mm") ??
+            "No disponible";
 
         [JsonIgnore]
         public string FechaCalculoTexto =>

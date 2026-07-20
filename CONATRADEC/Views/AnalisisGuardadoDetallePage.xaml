@@ -68,7 +68,7 @@
                             <Label Text="{Binding ClienteMostrar}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
                             <Label Text="{Binding TerrenoMostrar}" FontSize="13" TextColor="{StaticResource color_GrisOscuro}" />
 
-                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
                                 <VerticalStackLayout Grid.Row="0" Grid.Column="0">
                                     <Label Text="Identificador" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
                                     <Label Text="{Binding Detalle.DatosAnalisis.IdentificadorAnalisisSuelo}" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
@@ -81,11 +81,15 @@
                                     <Label Text="Laboratorio" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
                                     <Label Text="{Binding Detalle.DatosAnalisis.LaboratorioAnalasisSuelo}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="2" Grid.Column="0">
+                                <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="2">
+                                    <Label Text="Fecha y hora de registro" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                    <Label Text="{Binding Detalle.DatosAnalisis.FechaRegistroTexto}" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Row="3" Grid.Column="0">
                                     <Label Text="pH" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
                                     <Label Text="{Binding Detalle.RequerimientoAnual.Ph, StringFormat='{0:N2}'}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="2" Grid.Column="1">
+                                <VerticalStackLayout Grid.Row="3" Grid.Column="1">
                                     <Label Text="Acidez total" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
                                     <Label Text="{Binding Detalle.RequerimientoAnual.AcidezTotal, StringFormat='{0:N2}'}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
                                 </VerticalStackLayout>

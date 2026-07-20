@@ -99,13 +99,48 @@ namespace CONATRADEC.ViewModels
         }
 
         public ObservableCollection<ParametroEnmiendaCalcareaResponse>
-            EnmiendasCalcareas { get; private set; }
+            EnmiendasCalcareas
+        { get; private set; }
 
         public ParametroEnmiendaCalcareaResponse? EnmiendaSeleccionada
         {
             get => enmiendaSeleccionada;
             set
             {
+                /*
+                 * Al crear el Picker, MAUI puede enviar temporalmente null
+                 * antes de terminar de enlazar ItemsSource. Si ya existe un
+                 * resultado restaurado, ese valor transitorio no representa
+                 * una modificación del usuario y no debe borrar el cálculo.
+                 */
+                if (value == null &&
+                    enmiendaSeleccionada != null &&
+                    ResultadoEnmienda != null)
+                {
+                    OnPropertyChanged(nameof(EnmiendaSeleccionada));
+                    return;
+                }
+
+                if (EsMismaFuente(
+                        enmiendaSeleccionada,
+                        value))
+                {
+                    /*
+                     * Usa la instancia que entrega el Picker sin considerar
+                     * que una fuente con el mismo Id sea una fuente distinta.
+                     */
+                    if (!ReferenceEquals(
+                            enmiendaSeleccionada,
+                            value))
+                    {
+                        enmiendaSeleccionada = value;
+                        OnPropertyChanged(
+                            nameof(EnmiendaSeleccionada));
+                    }
+
+                    return;
+                }
+
                 enmiendaSeleccionada = value;
 
                 OnPropertyChanged(nameof(EnmiendaSeleccionada));
@@ -226,7 +261,17 @@ namespace CONATRADEC.ViewModels
             get => ph;
             set
             {
-                ph = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (string.Equals(
+                        ph,
+                        nuevoValor,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                ph = nuevoValor;
 
                 OnPropertyChanged(nameof(Ph));
 
@@ -240,7 +285,17 @@ namespace CONATRADEC.ViewModels
             get => ca;
             set
             {
-                ca = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (string.Equals(
+                        ca,
+                        nuevoValor,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                ca = nuevoValor;
 
                 OnPropertyChanged(nameof(Ca));
 
@@ -254,7 +309,17 @@ namespace CONATRADEC.ViewModels
             get => mg;
             set
             {
-                mg = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (string.Equals(
+                        mg,
+                        nuevoValor,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                mg = nuevoValor;
 
                 OnPropertyChanged(nameof(Mg));
 
@@ -268,7 +333,17 @@ namespace CONATRADEC.ViewModels
             get => k;
             set
             {
-                k = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (string.Equals(
+                        k,
+                        nuevoValor,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                k = nuevoValor;
 
                 OnPropertyChanged(nameof(K));
 
@@ -282,7 +357,17 @@ namespace CONATRADEC.ViewModels
             get => acidezTotal;
             set
             {
-                acidezTotal = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (string.Equals(
+                        acidezTotal,
+                        nuevoValor,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                acidezTotal = nuevoValor;
 
                 OnPropertyChanged(nameof(AcidezTotal));
 
@@ -296,7 +381,17 @@ namespace CONATRADEC.ViewModels
             get => totalPlantas;
             set
             {
-                totalPlantas = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (string.Equals(
+                        totalPlantas,
+                        nuevoValor,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                totalPlantas = nuevoValor;
 
                 OnPropertyChanged(nameof(TotalPlantas));
 
@@ -310,7 +405,17 @@ namespace CONATRADEC.ViewModels
             get => totalAplicaciones;
             set
             {
-                totalAplicaciones = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (string.Equals(
+                        totalAplicaciones,
+                        nuevoValor,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                totalAplicaciones = nuevoValor;
 
                 OnPropertyChanged(nameof(TotalAplicaciones));
 
@@ -1039,6 +1144,24 @@ namespace CONATRADEC.ViewModels
                 NumberStyles.Number,
                 CultureInfo.InvariantCulture,
                 out resultado);
+        }
+
+        private static bool EsMismaFuente(
+            ParametroEnmiendaCalcareaResponse? actual,
+            ParametroEnmiendaCalcareaResponse? nueva)
+        {
+            if (ReferenceEquals(actual, nueva))
+                return true;
+
+            if (actual?.FuenteNutrientesId is not > 0 ||
+                nueva?.FuenteNutrientesId is not > 0)
+            {
+                return false;
+            }
+
+            return
+                actual.FuenteNutrientesId ==
+                nueva.FuenteNutrientesId;
         }
 
         private void MarcarEnmiendaPendienteSiTieneResultado()

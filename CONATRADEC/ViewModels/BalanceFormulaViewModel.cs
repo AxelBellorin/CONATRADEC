@@ -482,7 +482,17 @@ namespace CONATRADEC.ViewModels
                 await CargarFuentesNutrientesAsync();
                 CargarElementosDesdeResultado();
 
-                Mensaje = "Seleccione una fuente de nutriente para cada elemento.";
+                if (FuentesNutrientes.Count > 0 &&
+                    ElementosBalance.Count > 0)
+                {
+                    Mensaje =
+                        "Seleccione una fuente de nutriente para cada elemento.";
+                }
+                else if (FuentesNutrientes.Count == 0)
+                {
+                    Mensaje =
+                        "No hay fuentes activas con aportes químicos disponibles para el balance.";
+                }
             }
             catch (Exception ex)
             {
@@ -497,8 +507,37 @@ namespace CONATRADEC.ViewModels
 
         private async Task CargarFuentesNutrientesAsync()
         {
+            ApiResult<ObservableCollection<FuenteNutrienteResponse>>
+                resultado =
+                    await fuenteNutrienteApiService
+                        .GetFuenteNutrienteResultAsync();
+
+            if (!resultado.Success)
+            {
+                FuentesNutrientes =
+                    new ObservableCollection<
+                        FuenteNutrienteResponse>();
+
+                OnPropertyChanged(nameof(FuentesNutrientes));
+
+                string mensaje =
+                    string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "No fue posible cargar las fuentes de nutrientes."
+                        : resultado.Message;
+
+                Mensaje = mensaje;
+
+                await MostrarMensajeAsync(
+                    "Fuentes de nutrientes",
+                    mensaje);
+
+                return;
+            }
+
             ObservableCollection<FuenteNutrienteResponse> fuentes =
-                await fuenteNutrienteApiService.GetFuenteNutrienteAsync();
+                resultado.Data ??
+                new ObservableCollection<
+                    FuenteNutrienteResponse>();
 
             List<FuenteNutrienteResponse> fuentesValidas =
                 fuentes
@@ -506,7 +545,6 @@ namespace CONATRADEC.ViewModels
                         fuente != null &&
                         fuente.FuenteNutrientesId is > 0 &&
                         fuente.Activo != false &&
-                        fuente.EsBalanceNutricional &&
                         FuenteTieneAportesBalanceables(fuente))
                     .ToList();
 
@@ -531,7 +569,9 @@ namespace CONATRADEC.ViewModels
                 return false;
 
             return fuente.ElementosQuimicos.Any(x =>
-                EsElementoBalanceableActual(x.SimboloElementoQuimico)
+                EsElementoBalanceableActual(
+                    x.SimboloElementoQuimico) &&
+                (x.CantidadAporte ?? 0) > 0
             );
         }
 
@@ -593,7 +633,8 @@ namespace CONATRADEC.ViewModels
         {
             string simboloNormalizado = NormalizarSimbolo(simboloElemento);
 
-            var fuentesFiltradas = FuentesNutrientes
+            List<FuenteNutrienteResponse> fuentesConAporte =
+                FuentesNutrientes
                 .Where(fuente =>
                     fuente.ElementosQuimicos != null &&
                     fuente.ElementosQuimicos.Any(elemento =>
@@ -604,7 +645,23 @@ namespace CONATRADEC.ViewModels
                 .OrderBy(fuente => fuente.NombreNutriente)
                 .ToList();
 
-            return new ObservableCollection<FuenteNutrienteResponse>(fuentesFiltradas);
+            /*
+             * Se priorizan las fuentes clasificadas específicamente para
+             * balance. Si la clasificación dejó el elemento sin opciones,
+             * se muestran las demás fuentes activas que realmente aportan
+             * ese elemento. Así un cambio de categoría no vacía el Picker.
+             */
+            List<FuenteNutrienteResponse> fuentesBalance =
+                fuentesConAporte
+                    .Where(fuente =>
+                        fuente.EsBalanceNutricional)
+                    .ToList();
+
+            return new ObservableCollection<
+                FuenteNutrienteResponse>(
+                    fuentesBalance.Count > 0
+                        ? fuentesBalance
+                        : fuentesConAporte);
         }
 
         private static bool EsElementoBalanceableActual(string? simbolo)

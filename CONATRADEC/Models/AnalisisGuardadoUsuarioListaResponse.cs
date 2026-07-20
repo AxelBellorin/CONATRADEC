@@ -23,6 +23,9 @@ namespace CONATRADEC.Models
         [JsonPropertyName("fechaAnalisisSuelo")]
         public string? FechaAnalisisSuelo { get; set; }
 
+        [JsonPropertyName("fechaCreacionAnalisisSuelo")]
+        public string? FechaCreacionAnalisisSuelo { get; set; }
+
         [JsonPropertyName("laboratorioAnalasisSuelo")]
         public string LaboratorioAnalasisSuelo { get; set; } = string.Empty;
 

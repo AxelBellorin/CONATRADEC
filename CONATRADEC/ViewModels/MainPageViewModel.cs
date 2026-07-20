@@ -40,6 +40,7 @@ namespace CONATRADEC.ViewModels
 
         private bool esAdministrador;
         private bool seHaListado;
+        private bool cargandoAnalisis;
 
         private string alcanceListadoSeleccionado = AlcanceTodos;
         private UsuarioFiltroAnalisis? usuarioFiltroSeleccionado;
@@ -395,8 +396,10 @@ namespace CONATRADEC.ViewModels
         public async Task CargarAnalisisAsync(
             bool mostrarIndicador = true)
         {
-            if (IsBusy)
+            if (IsBusy || cargandoAnalisis)
                 return;
+
+            cargandoAnalisis = true;
 
             try
             {
@@ -600,6 +603,11 @@ namespace CONATRADEC.ViewModels
                             FechaAnalisisSuelo =
                                 item.FechaAnalisisSuelo,
 
+                            FechaCreacionAnalisisSuelo =
+                                item.FechaCreacionAnalisisSuelo ??
+                                complemento?
+                                    .FechaCreacionAnalisisSuelo,
+
                             FechaCalculo =
                                 item.Calculo.FechaCalculo,
 
@@ -676,6 +684,8 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
+                cargandoAnalisis = false;
+
                 if (mostrarIndicador)
                     IsBusy = false;
             }
@@ -810,11 +820,18 @@ namespace CONATRADEC.ViewModels
                 }
 
                 consulta = consulta.Where(x =>
-                    x.FechaAnalisisValor.HasValue &&
-                    x.FechaAnalisisValor.Value.Date >=
-                        FechaDesde.Date &&
-                    x.FechaAnalisisValor.Value.Date <=
-                        FechaHasta.Date);
+                {
+                    DateTime? fechaGuardado =
+                        x.FechaRegistroValor ??
+                        x.FechaCalculoValor;
+
+                    return
+                        fechaGuardado.HasValue &&
+                        fechaGuardado.Value.Date >=
+                            FechaDesde.Date &&
+                        fechaGuardado.Value.Date <=
+                            FechaHasta.Date;
+                });
             }
 
             if (PuedeFiltrarPorUsuario &&
@@ -827,8 +844,10 @@ namespace CONATRADEC.ViewModels
 
             List<AnalisisGuardadoResumen> filtrados =
                 consulta
-                    .OrderByDescending(
-                        ObtenerFechaPrincipal)
+                    .OrderByDescending(x =>
+                        x.FechaRegistroValor ??
+                        x.FechaCalculoValor ??
+                        DateTime.MinValue)
                     .ThenBy(
                         x => x.ClienteMostrar,
                         StringComparer
@@ -850,17 +869,6 @@ namespace CONATRADEC.ViewModels
             AnalisisGuardados =
                 new ObservableCollection<
                     AnalisisGuardadoResumen>(filtrados);
-        }
-
-        private static DateTime ObtenerFechaPrincipal(
-            AnalisisGuardadoResumen analisis)
-        {
-            DateTime fecha =
-                analisis.FechaAnalisisValor
-                ?? analisis.FechaCalculoValor
-                ?? DateTime.MinValue;
-
-            return fecha.Date;
         }
 
         private void LimpiarFiltros()

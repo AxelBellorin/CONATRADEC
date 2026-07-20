@@ -143,7 +143,7 @@
 
                                 <Label
                                     Grid.Column="1"
-                                    Text="Filtrar por rango de fechas"
+                                    Text="Filtrar por fecha de guardado"
                                     FontSize="13"
                                     FontAttributes="Bold"
                                     TextColor="{StaticResource color_GrisOscuro}"
@@ -348,11 +348,22 @@
                                                     Padding="9,5"
                                                     VerticalOptions="Start">
 
-                                                    <Label
-                                                        Text="{Binding FechaAnalisisTexto}"
-                                                        FontSize="12"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{StaticResource color_Verde}" />
+                                                    <VerticalStackLayout
+                                                        Spacing="1">
+
+                                                        <Label
+                                                            Text="Laboratorio"
+                                                            FontSize="10"
+                                                            TextColor="{StaticResource color_GrisOscuro}"
+                                                            HorizontalTextAlignment="Center" />
+
+                                                        <Label
+                                                            Text="{Binding FechaAnalisisTexto}"
+                                                            FontSize="12"
+                                                            FontAttributes="Bold"
+                                                            TextColor="{StaticResource color_Verde}"
+                                                            HorizontalTextAlignment="Center" />
+                                                    </VerticalStackLayout>
                                                 </Border>
                                             </Grid>
 
@@ -361,6 +372,12 @@
                                                 FontSize="13"
                                                 TextColor="{StaticResource color_GrisOscuro}"
                                                 LineBreakMode="TailTruncation" />
+
+                                            <Label
+                                                Text="{Binding FechaRegistroTexto, StringFormat='Guardado: {0}'}"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Verde}" />
 
                                             <BoxView
                                                 HeightRequest="1"
