@@ -6,6 +6,9 @@ namespace CONATRADEC.Services
     {
         public const string Login = "//LoginPage";
         public const string Principal = "//MainPage";
+        public const string Configuracion = "//ConfiguracionPage";
+        public const string AlbumFotos = "//AlbumFotosPage";
+
         public const string Usuarios = "//UserPage";
         public const string Roles = "//RolPage";
         public const string MatrizPermisos = "//MatrizPermisosPage";

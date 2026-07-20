@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.albumFotosPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+
+        <Grid Padding="24">
+
+            <Border
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                MaximumWidthRequest="620"
+                Padding="28"
+                BackgroundColor="White"
+                Stroke="#DDE7E3"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 22">
+
+                <Border.Shadow>
+                    <Shadow
+                        Brush="Black"
+                        Offset="0,5"
+                        Radius="16"
+                        Opacity="0.10" />
+                </Border.Shadow>
+
+                <VerticalStackLayout
+                    Spacing="15"
+                    HorizontalOptions="Center">
+
+                    <Border
+                        WidthRequest="104"
+                        HeightRequest="104"
+                        Padding="23"
+                        BackgroundColor="#EEF5F2"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 28"
+                        HorizontalOptions="Center">
+
+                        <Image Source="iconalbum.png" />
+                    </Border>
+
+                    <Label
+                        Text="Álbum de fotos"
+                        FontSize="28"
+                        FontFamily="MontserratBold"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource color_Verde}"
+                        HorizontalTextAlignment="Center" />
+
+                    <Label
+                        Text="Este módulo estará disponible próximamente."
+                        FontSize="17"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource color_Negro}"
+                        HorizontalTextAlignment="Center" />
+
+                    <Label
+                        Text="Aquí podrá organizar y consultar las fotografías asociadas a los terrenos y futuros diagnósticos."
+                        FontSize="14"
+                        TextColor="{StaticResource color_GrisOscuro}"
+                        HorizontalTextAlignment="Center"
+                        LineBreakMode="WordWrap" />
+
+                    <Border
+                        Margin="0,8,0,0"
+                        Padding="14,8"
+                        BackgroundColor="#FFF7E6"
+                        Stroke="#F2C94C"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 12"
+                        HorizontalOptions="Center">
+
+                        <Label
+                            Text="Módulo en preparación"
+                            FontSize="13"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Cafe}" />
+                    </Border>
+
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </ContentView>
+</ContentPage>

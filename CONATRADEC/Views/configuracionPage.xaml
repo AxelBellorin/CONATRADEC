@@ -1,0 +1,869 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.configuracionPage"
+    x:Name="ConfiguracionPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+
+        <ScrollView>
+            <Grid Padding="{OnPlatform WinUI='26,24,26,34', Default='18,18,18,26'}">
+                <VerticalStackLayout
+                    MaximumWidthRequest="1240"
+                    HorizontalOptions="Center"
+                    Spacing="22">
+
+                <!-- Encabezado -->
+                <VerticalStackLayout Spacing="5">
+                    <Label
+                        Text="Configuración"
+                        FontSize="30"
+                        FontFamily="MontserratBold"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource color_Negro}" />
+
+                    <Label
+                        Text="Administre las opciones de la aplicación según los permisos de su usuario."
+                        FontSize="14"
+                        TextColor="{StaticResource color_GrisOscuro}"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+
+                <!-- Seguridad y usuarios -->
+                <VerticalStackLayout
+                    IsVisible="{Binding MostrarSeguridadUsuarios}"
+                    Spacing="11">
+
+                    <VerticalStackLayout Spacing="2">
+                        <Label
+                            Text="Seguridad y usuarios"
+                            FontSize="20"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Usuarios, roles y control de accesos."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <FlexLayout
+                        Direction="Row"
+                        Wrap="Wrap"
+                        AlignItems="Start"
+                        AlignContent="Start"
+                        JustifyContent="Start">
+
+                        <controls:PermissionMenuItem
+                            Interfaz="userPage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToUserPageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#EEF5F2"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconuser.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Usuarios"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Crear y administrar usuarios."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+
+                        <controls:PermissionMenuItem
+                            Interfaz="rolPage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToRolPageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#EEF5F2"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconrol.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Roles"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Definir perfiles de acceso."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+
+                        <controls:PermissionMenuItem
+                            Interfaz="matrizPermisosPage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToMatrizPermisosPageButtonCommad}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#EEF5F2"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconpermission.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Matriz de permisos"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Asignar acciones por rol."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+                <!-- Ubicación y fincas -->
+                <VerticalStackLayout
+                    IsVisible="{Binding MostrarUbicacionFincas}"
+                    Spacing="11">
+
+                    <VerticalStackLayout Spacing="2">
+                        <Label
+                            Text="Ubicación y fincas"
+                            FontSize="20"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Catálogos geográficos y terrenos."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <FlexLayout
+                        Direction="Row"
+                        Wrap="Wrap"
+                        AlignItems="Start"
+                        AlignContent="Start"
+                        JustifyContent="Start">
+
+                        <controls:PermissionMenuItem
+                            Interfaz="paisPage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToPaisPageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#F7F1EC"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconcountry.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Países y ubicaciones"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Países, departamentos y municipios."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+
+                        <controls:PermissionMenuItem
+                            Interfaz="terrenoPage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToTerrenoPageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#F7F1EC"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconland.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Terrenos"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Registrar y administrar fincas."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+                <!-- Catálogos agronómicos -->
+                <VerticalStackLayout
+                    IsVisible="{Binding MostrarCatalogosAgronomicos}"
+                    Spacing="11">
+
+                    <VerticalStackLayout Spacing="2">
+                        <Label
+                            Text="Catálogos agronómicos"
+                            FontSize="20"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Información base utilizada en los análisis de suelo."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <FlexLayout
+                        Direction="Row"
+                        Wrap="Wrap"
+                        AlignItems="Start"
+                        AlignContent="Start"
+                        JustifyContent="Start">
+
+                        <controls:PermissionMenuItem
+                            Interfaz="tipoCultivoPage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToTipoCultivoPageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#EEF5F2"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconcultivo.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Tipos de cultivo"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Cultivos disponibles para análisis."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+
+                        <controls:PermissionMenuItem
+                            Interfaz="tipoAnalisisSueloPage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToTipoAnalisisSueloPageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#EEF5F2"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="icontipoanalisis.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Tipos de análisis"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Clasificaciones de análisis de suelo."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+
+                        <controls:PermissionMenuItem
+                            Interfaz="elementoQuimicoPage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToElementoQuimicoPageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#EEF5F2"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconchemicalelement.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Elementos químicos"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Nutrientes y pesos equivalentes."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+
+                        <controls:PermissionMenuItem
+                            Interfaz="fuenteNutrientePage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToFuenteNutrientePageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#EEF5F2"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconfuentenutriente.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Fuentes de nutrientes"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Fertilizantes y fuentes orgánicas."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+                <!-- Parámetros nutricionales -->
+                <VerticalStackLayout
+                    IsVisible="{Binding MostrarParametrosNutricionales}"
+                    Spacing="11">
+
+                    <VerticalStackLayout Spacing="2">
+                        <Label
+                            Text="Parámetros nutricionales"
+                            FontSize="20"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Valores técnicos para recomendaciones y cálculos."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <FlexLayout
+                        Direction="Row"
+                        Wrap="Wrap"
+                        AlignItems="Start"
+                        AlignContent="Start"
+                        JustifyContent="Start">
+
+                        <controls:PermissionMenuItem
+                            Interfaz="extraccionNutrientePage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToExtraccionNutrientePageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#FFF7E6"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconextraccion.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Extracción de nutrientes"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Valores por quintal oro."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+
+                        <controls:PermissionMenuItem
+                            Interfaz="rangoNutrientePage"
+                            FlexLayout.Basis="300"
+                            MinimumWidthRequest="270"
+                            MaximumWidthRequest="430"
+                            Padding="0,0,10,10">
+
+                            <controls:PermissionMenuItem.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToRangoNutrientePageButtonCommand}" />
+                            </controls:PermissionMenuItem.GestureRecognizers>
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+
+                                    <Border
+                                        WidthRequest="48"
+                                        HeightRequest="48"
+                                        Padding="10"
+                                        BackgroundColor="#FFF7E6"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
+
+                                        <Image Source="iconrangonutriente.png" />
+                                    </Border>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+
+                                        <Label
+                                            Text="Rangos nutricionales"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="Niveles mínimos y máximos por cultivo."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Label
+                                        Grid.Column="2"
+                                        Text="›"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </controls:PermissionMenuItem>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+                <!-- Sin permisos -->
+                <Border
+                    IsVisible="{Binding MostrarSinOpciones}"
+                    Padding="22"
+                    BackgroundColor="#F9FAFB"
+                    Stroke="#E5E7EB"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16">
+
+                    <VerticalStackLayout
+                        HorizontalOptions="Center"
+                        Spacing="8">
+
+                        <Image
+                            Source="iconsettings.png"
+                            HeightRequest="58"
+                            WidthRequest="58"
+                            Opacity="0.55" />
+
+                        <Label
+                            Text="No hay opciones disponibles"
+                            FontSize="18"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}"
+                            HorizontalTextAlignment="Center" />
+
+                        <Label
+                            Text="Su usuario no tiene permisos de lectura sobre los módulos de configuración."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                </VerticalStackLayout>
+            </Grid>
+        </ScrollView>
+    </ContentView>
+</ContentPage>

@@ -1,85 +1,362 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-                    xmlns:controls="clr-namespace:CONATRADEC.Controls">
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls">
+
+    <!--
+        Un único template de navegación:
+        - Windows: barra lateral para mouse y teclado.
+        - Android/iOS: barra inferior para móvil.
+        La lógica, comandos y permisos siguen siendo los mismos.
+    -->
     <ControlTemplate x:Key="FooterTemplate">
-        <Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource color_Blanco}">
-            <ContentPresenter Grid.Row="0" BackgroundColor="{StaticResource color_Blanco}" />
-            <Border Grid.Row="1" BackgroundColor="{StaticResource color_Blanco}" Stroke="#E5E7EB"
-                    StrokeThickness="1" Padding="8,8,8,10">
+
+        <Grid
+            RowDefinitions="*,Auto"
+            ColumnDefinitions="{OnPlatform WinUI='230,*', Default='*'}"
+            BackgroundColor="{StaticResource color_Blanco}">
+
+            <!-- ===================================================== -->
+            <!-- NAVEGACIÓN DE WINDOWS                                 -->
+            <!-- ===================================================== -->
+            <Border
+                Grid.Row="0"
+                Grid.RowSpan="2"
+                Grid.Column="0"
+                IsVisible="{OnPlatform WinUI=True, Default=False}"
+                Padding="14,18"
+                BackgroundColor="White"
+                Stroke="#E5E7EB"
+                StrokeThickness="1">
+
                 <Border.Shadow>
-                    <Shadow Brush="Black" Offset="0,-3" Radius="12" Opacity="0.10" />
+                    <Shadow
+                        Brush="Black"
+                        Offset="3,0"
+                        Radius="12"
+                        Opacity="0.08" />
                 </Border.Shadow>
-                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                    <HorizontalStackLayout Spacing="8" Padding="6,0">
-                        <controls:PermissionMenuItem Interfaz="MainPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToMainPageCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconhome.png" />
-                            <Label Text="Inicio" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="userPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToUserPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconuser.png" />
-                            <Label Text="Usuario" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="rolPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToRolPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconrol.png" />
-                            <Label Text="Rol" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="matrizPermisosPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToMatrizPermisosPageButtonCommad}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconpermission.png" />
-                            <Label Text="Permisos" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="paisPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToPaisPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconcountry.png" />
-                            <Label Text="País" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="elementoQuimicoPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToElementoQuimicoPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconchemicalelement.png" />
-                            <Label Text="Elementos" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="tipoCultivoPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToTipoCultivoPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconcultivo.png" />
-                            <Label Text="Cultivos" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="tipoAnalisisSueloPage" Spacing="4" Padding="12,6" WidthRequest="94" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToTipoAnalisisSueloPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="icontipoanalisis.png" />
-                            <Label Text="T. análisis" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="extraccionNutrientePage" Spacing="4" Padding="12,6" WidthRequest="94" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToExtraccionNutrientePageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconextraccion.png" />
-                            <Label Text="Extracción" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="rangoNutrientePage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToRangoNutrientePageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconrangonutriente.png" />
-                            <Label Text="Rangos" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="fuenteNutrientePage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToFuenteNutrientePageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconfuentenutriente.png" />
-                            <Label Text="Fuentes" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <controls:PermissionMenuItem Interfaz="terrenoPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToTerrenoPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconland.png" />
-                            <Label Text="Terreno" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
-                        </controls:PermissionMenuItem>
-                        <VerticalStackLayout Spacing="4" Padding="12,6" WidthRequest="100" BackgroundColor="Transparent">
-                            <VerticalStackLayout.GestureRecognizers><TapGestureRecognizer Command="{Binding CerrarSesionCommand}" /></VerticalStackLayout.GestureRecognizers>
-                            <Image HeightRequest="26" WidthRequest="26" Source="iconloginout.png" />
-                            <Label Text="Salir" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource RedDelete}" FontFamily="MontserratMedium" />
-                        </VerticalStackLayout>
-                    </HorizontalStackLayout>
-                </ScrollView>
+
+                <Grid RowDefinitions="Auto,*,Auto">
+
+                    <!-- Identidad de la aplicación -->
+                    <VerticalStackLayout
+                        Grid.Row="0"
+                        Padding="10,8,10,20"
+                        Spacing="3">
+
+                        <Label
+                            Text="ConatraCafé"
+                            FontSize="22"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Soil"
+                            FontSize="13"
+                            FontFamily="MontserratMedium"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                    </VerticalStackLayout>
+
+                    <!-- Opciones principales -->
+                    <VerticalStackLayout
+                        Grid.Row="1"
+                        Spacing="8">
+
+                        <Border
+                            Padding="14,11"
+                            BackgroundColor="#EEF5F2"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToMainPageCommand}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid
+                                ColumnDefinitions="26,*"
+                                ColumnSpacing="12">
+
+                                <Image
+                                    Source="iconhome.png"
+                                    HeightRequest="24"
+                                    WidthRequest="24"
+                                    VerticalOptions="Center" />
+
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Inicio"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="15"
+                                    TextColor="{StaticResource color_Verde}"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Padding="14,11"
+                            BackgroundColor="Transparent"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToAlbumFotosPageCommand}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid
+                                ColumnDefinitions="26,*"
+                                ColumnSpacing="12">
+
+                                <Image
+                                    Source="iconalbum.png"
+                                    HeightRequest="24"
+                                    WidthRequest="24"
+                                    VerticalOptions="Center" />
+
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Álbum de fotos"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="15"
+                                    TextColor="{StaticResource color_Negro}"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Padding="14,11"
+                            BackgroundColor="Transparent"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding goToConfiguracionPageCommand}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid
+                                ColumnDefinitions="26,*"
+                                ColumnSpacing="12">
+
+                                <Image
+                                    Source="iconsettings.png"
+                                    HeightRequest="24"
+                                    WidthRequest="24"
+                                    VerticalOptions="Center" />
+
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Configuración"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="15"
+                                    TextColor="{StaticResource color_Negro}"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                    </VerticalStackLayout>
+
+                    <!-- Cerrar sesión -->
+                    <VerticalStackLayout
+                        Grid.Row="2"
+                        Spacing="10">
+
+                        <BoxView
+                            HeightRequest="1"
+                            Color="#E5E7EB"
+                            Margin="0,0,0,4" />
+
+                        <Border
+                            Padding="14,11"
+                            BackgroundColor="#FEF2F2"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding CerrarSesionCommand}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid
+                                ColumnDefinitions="26,*"
+                                ColumnSpacing="12">
+
+                                <Image
+                                    Source="iconloginout.png"
+                                    HeightRequest="24"
+                                    WidthRequest="24"
+                                    VerticalOptions="Center" />
+
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Cerrar sesión"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="15"
+                                    TextColor="{StaticResource RedDelete}"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                    </VerticalStackLayout>
+
+                </Grid>
             </Border>
+
+            <!-- Contenido compartido por ambas plataformas -->
+            <ContentPresenter
+                Grid.Row="0"
+                Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                BackgroundColor="{StaticResource color_Blanco}" />
+
+            <!-- ===================================================== -->
+            <!-- NAVEGACIÓN DE MÓVIL                                  -->
+            <!-- ===================================================== -->
+            <Border
+                Grid.Row="1"
+                Grid.Column="0"
+                IsVisible="{OnPlatform WinUI=False, Default=True}"
+                Padding="8,8,8,10"
+                BackgroundColor="{StaticResource color_Blanco}"
+                Stroke="#E5E7EB"
+                StrokeThickness="1">
+
+                <Border.Shadow>
+                    <Shadow
+                        Brush="Black"
+                        Offset="0,-3"
+                        Radius="12"
+                        Opacity="0.10" />
+                </Border.Shadow>
+
+                <Grid
+                    ColumnDefinitions="*,*,*,*"
+                    ColumnSpacing="2">
+
+                    <!-- Inicio -->
+                    <controls:PermissionMenuItem
+                        Grid.Column="0"
+                        Interfaz="MainPage"
+                        Padding="4,5"
+                        Spacing="4"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="Fill">
+
+                        <controls:PermissionMenuItem.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding goToMainPageCommand}" />
+                        </controls:PermissionMenuItem.GestureRecognizers>
+
+                        <Image
+                            Source="iconhome.png"
+                            HeightRequest="26"
+                            WidthRequest="26"
+                            HorizontalOptions="Center" />
+
+                        <Label
+                            Text="Inicio"
+                            FontSize="11"
+                            FontFamily="MontserratMedium"
+                            TextColor="{StaticResource color_Negro}"
+                            HorizontalTextAlignment="Center"
+                            HorizontalOptions="Fill" />
+
+                    </controls:PermissionMenuItem>
+
+                    <!-- Álbum -->
+                    <VerticalStackLayout
+                        Grid.Column="1"
+                        Padding="4,5"
+                        Spacing="4"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="Fill">
+
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding goToAlbumFotosPageCommand}" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Image
+                            Source="iconalbum.png"
+                            HeightRequest="26"
+                            WidthRequest="26"
+                            HorizontalOptions="Center" />
+
+                        <Label
+                            Text="Álbum"
+                            FontSize="11"
+                            FontFamily="MontserratMedium"
+                            TextColor="{StaticResource color_Negro}"
+                            HorizontalTextAlignment="Center"
+                            HorizontalOptions="Fill" />
+
+                    </VerticalStackLayout>
+
+                    <!-- Configuración -->
+                    <VerticalStackLayout
+                        Grid.Column="2"
+                        Padding="4,5"
+                        Spacing="4"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="Fill">
+
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding goToConfiguracionPageCommand}" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Image
+                            Source="iconsettings.png"
+                            HeightRequest="26"
+                            WidthRequest="26"
+                            HorizontalOptions="Center" />
+
+                        <Label
+                            Text="Config."
+                            FontSize="11"
+                            FontFamily="MontserratMedium"
+                            TextColor="{StaticResource color_Negro}"
+                            HorizontalTextAlignment="Center"
+                            HorizontalOptions="Fill" />
+
+                    </VerticalStackLayout>
+
+                    <!-- Salir -->
+                    <VerticalStackLayout
+                        Grid.Column="3"
+                        Padding="4,5"
+                        Spacing="4"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="Fill">
+
+                        <VerticalStackLayout.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding CerrarSesionCommand}" />
+                        </VerticalStackLayout.GestureRecognizers>
+
+                        <Image
+                            Source="iconloginout.png"
+                            HeightRequest="26"
+                            WidthRequest="26"
+                            HorizontalOptions="Center" />
+
+                        <Label
+                            Text="Salir"
+                            FontSize="11"
+                            FontFamily="MontserratMedium"
+                            TextColor="{StaticResource RedDelete}"
+                            HorizontalTextAlignment="Center"
+                            HorizontalOptions="Fill" />
+
+                    </VerticalStackLayout>
+
+                </Grid>
+            </Border>
+
         </Grid>
     </ControlTemplate>
 </ResourceDictionary>
