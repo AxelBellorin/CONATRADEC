@@ -93,6 +93,22 @@ namespace CONATRADEC.Services
                         tareaBalance,
                         tareaEnmienda);
 
+                bool restaurarComplemento =
+                    contexto.Detalle.FertilizacionMixta?
+                        .Mixta.EsComplementoBalance == true &&
+                    debeRestaurarBalance &&
+                    resultados[0] &&
+                    viewModel.MostrarFertilizacionMixta;
+
+                if (restaurarComplemento)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        viewModel.BalanceFormula
+                            .ComplementarConFertilizacionMixta = true;
+                    });
+                }
+
                 if (resultados.All(x => x))
                 {
                     AnalisisEdicionService

@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui.Storage;
 using CONATRADEC.Models;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Storage;
 using System;
 using System.IO;
@@ -80,6 +81,36 @@ namespace CONATRADEC.Services
             }
         }
 
+        public async Task<AnalisisReporteArchivoResult> GuardarExcelAsync(
+            int analisisSueloCalculoId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                AnalisisReporte reporte = await DescargarDatosAsync(
+                    analisisSueloCalculoId,
+                    cancellationToken);
+
+                byte[] contenido = await Task.Run(
+                    () => AnalisisReporteExcel.Generar(reporte),
+                    cancellationToken);
+
+                return await GuardarAsync(
+                    $"{reporte.NombreArchivoBase}.xlsx",
+                    contenido,
+                    cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return AnalisisReporteArchivoResult.Cancelado();
+            }
+            catch (Exception ex)
+            {
+                return AnalisisReporteArchivoResult.Error(
+                    $"No fue posible generar el Excel: {ex.Message}");
+            }
+        }
+
         public async Task<AnalisisReporteArchivoResult> AbrirPdfParaImprimirAsync(
             int analisisSueloCalculoId,
             CancellationToken cancellationToken = default)
@@ -90,12 +121,8 @@ namespace CONATRADEC.Services
                     analisisSueloCalculoId,
                     cancellationToken);
 
-                string ruta = Path.Combine(
-                    FileSystem.CacheDirectory,
-                    descarga.NombreArchivo);
-
-                await File.WriteAllBytesAsync(
-                    ruta,
+                string ruta = await PrepararArchivoTemporalAsync(
+                    descarga.NombreArchivo,
                     descarga.Contenido,
                     cancellationToken);
 
@@ -119,6 +146,80 @@ namespace CONATRADEC.Services
             {
                 return AnalisisReporteArchivoResult.Error(
                     $"No fue posible abrir el PDF: {ex.Message}");
+            }
+        }
+
+        public async Task<AnalisisReporteArchivoResult> CompartirPdfAsync(
+            int analisisSueloCalculoId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                ReportePdfDescarga descarga = await DescargarPdfAsync(
+                    analisisSueloCalculoId,
+                    cancellationToken);
+
+                string ruta = await PrepararArchivoTemporalAsync(
+                    descarga.NombreArchivo,
+                    descarga.Contenido,
+                    cancellationToken);
+
+                await CompartirArchivoAsync(
+                    "Compartir reporte PDF",
+                    ruta,
+                    "application/pdf");
+
+                return AnalisisReporteArchivoResult.Exito(
+                    ruta,
+                    "Se abrió el menú para compartir el PDF.");
+            }
+            catch (OperationCanceledException)
+            {
+                return AnalisisReporteArchivoResult.Cancelado();
+            }
+            catch (Exception ex)
+            {
+                return AnalisisReporteArchivoResult.Error(
+                    $"No fue posible compartir el PDF: {ex.Message}");
+            }
+        }
+
+        public async Task<AnalisisReporteArchivoResult> CompartirExcelAsync(
+            int analisisSueloCalculoId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                AnalisisReporte reporte = await DescargarDatosAsync(
+                    analisisSueloCalculoId,
+                    cancellationToken);
+
+                byte[] contenido = await Task.Run(
+                    () => AnalisisReporteExcel.Generar(reporte),
+                    cancellationToken);
+
+                string ruta = await PrepararArchivoTemporalAsync(
+                    $"{reporte.NombreArchivoBase}.xlsx",
+                    contenido,
+                    cancellationToken);
+
+                await CompartirArchivoAsync(
+                    "Compartir reporte Excel",
+                    ruta,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+                return AnalisisReporteArchivoResult.Exito(
+                    ruta,
+                    "Se abrió el menú para compartir el Excel.");
+            }
+            catch (OperationCanceledException)
+            {
+                return AnalisisReporteArchivoResult.Cancelado();
+            }
+            catch (Exception ex)
+            {
+                return AnalisisReporteArchivoResult.Error(
+                    $"No fue posible compartir el Excel: {ex.Message}");
             }
         }
 
@@ -163,6 +264,42 @@ namespace CONATRADEC.Services
                 analisisSueloCalculoId);
 
             return new ReportePdfDescarga(nombreArchivo, contenido);
+        }
+
+        private async Task<AnalisisReporte> DescargarDatosAsync(
+            int analisisSueloCalculoId,
+            CancellationToken cancellationToken)
+        {
+            if (analisisSueloCalculoId <= 0)
+            {
+                throw new InvalidOperationException(
+                    "El identificador del cálculo no es válido.");
+            }
+
+            using HttpResponseMessage response = await httpClient.GetAsync(
+                $"{EndpointReporte}/{analisisSueloCalculoId}/datos",
+                cancellationToken);
+
+            string contenido = await response.Content.ReadAsStringAsync(
+                cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    ExtraerMensajeError(
+                        contenido,
+                        $"El servidor respondió con el código HTTP {(int)response.StatusCode}."));
+            }
+
+            AnalisisReporte? reporte = JsonSerializer.Deserialize<AnalisisReporte>(
+                contenido,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+            return reporte ?? throw new InvalidOperationException(
+                "El servidor no devolvió datos válidos para el Excel.");
         }
 
         private static string ExtraerMensajeError(
@@ -237,6 +374,48 @@ namespace CONATRADEC.Services
                 resultado.Exception?.Message ??
                 "No fue posible guardar el archivo seleccionado.");
         }
+
+        private static async Task<string> PrepararArchivoTemporalAsync(
+            string nombreArchivo,
+            byte[] contenido,
+            CancellationToken cancellationToken)
+        {
+            string nombreSeguro = Path.GetFileName(nombreArchivo);
+
+            if (string.IsNullOrWhiteSpace(nombreSeguro))
+                nombreSeguro = $"Reporte_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+            string directorioCompartido = Path.Combine(
+                FileSystem.CacheDirectory,
+                "sharing-root");
+
+            Directory.CreateDirectory(directorioCompartido);
+
+            string ruta = Path.Combine(
+                directorioCompartido,
+                nombreSeguro);
+
+            await File.WriteAllBytesAsync(
+                ruta,
+                contenido,
+                cancellationToken);
+
+            return ruta;
+        }
+
+        private static Task CompartirArchivoAsync(
+            string titulo,
+            string ruta,
+            string tipoContenido) =>
+            MainThread.InvokeOnMainThreadAsync(() =>
+                Share.Default.RequestAsync(
+                    new ShareFileRequest
+                    {
+                        Title = titulo,
+                        File = new ShareFile(
+                            ruta,
+                            tipoContenido)
+                    }));
 
         private static bool EsCancelacionSelector(Exception? exception)
         {

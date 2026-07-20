@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Limita los archivos compartidos a la carpeta temporal creada
+         por AnalisisReporteService. -->
+    <cache-path
+        name="internal_cache"
+        path="sharing-root" />
+</paths>

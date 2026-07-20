@@ -362,6 +362,9 @@ namespace CONATRADEC.Models
         [JsonPropertyName("observacion")]
         public string Observacion { get; set; } = string.Empty;
 
+        [JsonPropertyName("esComplementoBalance")]
+        public bool EsComplementoBalance { get; set; }
+
         [JsonPropertyName("fuentes")]
         public List<GuardarTodoFertilizacionMixtaFuenteRequest> Fuentes { get; set; } = new();
 

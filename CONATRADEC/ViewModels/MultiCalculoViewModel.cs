@@ -688,7 +688,6 @@ namespace CONATRADEC.ViewModels
                 IsBusy = false;
 
                 await OfrecerReporteAsync(
-                    request,
                     response,
                     fueEdicion);
 
@@ -718,7 +717,6 @@ namespace CONATRADEC.ViewModels
         }
 
         private async Task OfrecerReporteAsync(
-            GuardarTodoRequest request,
             GuardarTodoResponse response,
             bool fueEdicion)
         {
@@ -736,6 +734,8 @@ namespace CONATRADEC.ViewModels
                 "Guardar PDF",
                 "Guardar Excel",
                 "Guardar PDF y Excel",
+                "Compartir PDF",
+                "Compartir Excel",
                 "Abrir / imprimir PDF");
 
             if (string.IsNullOrWhiteSpace(opcion) ||
@@ -776,9 +776,7 @@ namespace CONATRADEC.ViewModels
                     case "Guardar Excel":
                         await EjecutarAccionReporteAsync(
                             analisisReporteService.GuardarExcelAsync(
-                                await CrearReporteExcelAsync(
-                                    request,
-                                    analisisSueloCalculoId)));
+                                analisisSueloCalculoId));
                         break;
 
                     case "Guardar PDF y Excel":
@@ -791,9 +789,7 @@ namespace CONATRADEC.ViewModels
                         {
                             await EjecutarAccionReporteAsync(
                                 analisisReporteService.GuardarExcelAsync(
-                                    await CrearReporteExcelAsync(
-                                        request,
-                                        analisisSueloCalculoId)));
+                                    analisisSueloCalculoId));
                         }
                         break;
 
@@ -802,6 +798,18 @@ namespace CONATRADEC.ViewModels
                             analisisReporteService
                                 .AbrirPdfParaImprimirAsync(
                                     analisisSueloCalculoId));
+                        break;
+
+                    case "Compartir PDF":
+                        await EjecutarAccionReporteAsync(
+                            analisisReporteService.CompartirPdfAsync(
+                                analisisSueloCalculoId));
+                        break;
+
+                    case "Compartir Excel":
+                        await EjecutarAccionReporteAsync(
+                            analisisReporteService.CompartirExcelAsync(
+                                analisisSueloCalculoId));
                         break;
                 }
             }
@@ -814,50 +822,6 @@ namespace CONATRADEC.ViewModels
             finally
             {
                 IsBusy = false;
-            }
-        }
-
-        private async Task<AnalisisReporte> CrearReporteExcelAsync(
-            GuardarTodoRequest request,
-            int analisisSueloCalculoId)
-        {
-            AnalisisGuardadoResumen? resumen =
-                await ObtenerResumenReporteAsync(
-                    analisisSueloCalculoId);
-
-            return AnalisisReporteMapper.DesdeSolicitudGuardada(
-                request,
-                resumen);
-        }
-
-        private async Task<AnalisisGuardadoResumen?>
-            ObtenerResumenReporteAsync(
-                int analisisSueloCalculoId)
-        {
-            if (analisisSueloCalculoId <= 0)
-                return null;
-
-            try
-            {
-                // El nombre del cliente y del terreno mejora el encabezado,
-                // pero nunca debe bloquear la exportación si la red está lenta.
-                using CancellationTokenSource cancellationTokenSource =
-                    new(TimeSpan.FromSeconds(5));
-
-                AnalisisGuardadoListaResponse listado =
-                    await guardarTodoApiService.ListarAsync(
-                        cancellationTokenSource.Token);
-
-                if (!listado.Success || listado.Data == null)
-                    return null;
-
-                return listado.Data.FirstOrDefault(x =>
-                    x.AnalisisSueloCalculoId ==
-                    analisisSueloCalculoId);
-            }
-            catch (OperationCanceledException)
-            {
-                return null;
             }
         }
 
@@ -1448,7 +1412,9 @@ namespace CONATRADEC.ViewModels
             {
                 Observacion =
                     resultado.Observacion?.Trim() ??
-                    string.Empty
+                    string.Empty,
+                EsComplementoBalance =
+                    FertilizacionMixta.EsComplementoBalance
             };
 
             foreach (FuenteFertilizacionMixtaResultadoResponse fuente in

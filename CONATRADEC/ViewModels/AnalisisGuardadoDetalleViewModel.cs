@@ -72,6 +72,14 @@ namespace CONATRADEC.ViewModels
             ImprimirPdfCommand = new Command(
                 async () => await ImprimirPdfAsync(),
                 PuedeGenerarReporte);
+
+            CompartirPdfCommand = new Command(
+                async () => await CompartirPdfAsync(),
+                PuedeGenerarReporte);
+
+            CompartirExcelCommand = new Command(
+                async () => await CompartirExcelAsync(),
+                PuedeGenerarReporte);
         }
 
         public AnalisisGuardadoResumen? Resumen
@@ -173,6 +181,10 @@ namespace CONATRADEC.ViewModels
         public Command GuardarExcelCommand { get; }
 
         public Command ImprimirPdfCommand { get; }
+
+        public Command CompartirPdfCommand { get; }
+
+        public Command CompartirExcelCommand { get; }
 
         public new bool IsBusy
         {
@@ -649,19 +661,8 @@ namespace CONATRADEC.ViewModels
             GuardarPdfCommand?.ChangeCanExecute();
             GuardarExcelCommand?.ChangeCanExecute();
             ImprimirPdfCommand?.ChangeCanExecute();
-        }
-
-        private AnalisisReporte CrearReporte()
-        {
-            if (Detalle == null)
-            {
-                throw new InvalidOperationException(
-                    "No se ha cargado el detalle del análisis.");
-            }
-
-            return AnalisisReporteMapper.DesdeDetalle(
-                Detalle,
-                Resumen);
+            CompartirPdfCommand?.ChangeCanExecute();
+            CompartirExcelCommand?.ChangeCanExecute();
         }
 
         private async Task GuardarPdfAsync()
@@ -683,7 +684,7 @@ namespace CONATRADEC.ViewModels
             await EjecutarReporteAsync(
                 "Generando el archivo Excel...",
                 () => analisisReporteService.GuardarExcelAsync(
-                    CrearReporte()));
+                    ObtenerAnalisisSueloCalculoId()));
         }
 
         private async Task ImprimirPdfAsync()
@@ -696,6 +697,28 @@ namespace CONATRADEC.ViewModels
                 () => analisisReporteService
                     .AbrirPdfParaImprimirAsync(
                         ObtenerAnalisisSueloCalculoId()));
+        }
+
+        private async Task CompartirPdfAsync()
+        {
+            if (!PuedeGenerarReporte())
+                return;
+
+            await EjecutarReporteAsync(
+                "Preparando el PDF para compartir...",
+                () => analisisReporteService.CompartirPdfAsync(
+                    ObtenerAnalisisSueloCalculoId()));
+        }
+
+        private async Task CompartirExcelAsync()
+        {
+            if (!PuedeGenerarReporte())
+                return;
+
+            await EjecutarReporteAsync(
+                "Preparando el Excel para compartir...",
+                () => analisisReporteService.CompartirExcelAsync(
+                    ObtenerAnalisisSueloCalculoId()));
         }
 
         private async Task EjecutarReporteAsync(

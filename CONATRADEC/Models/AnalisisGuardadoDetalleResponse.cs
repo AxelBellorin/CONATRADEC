@@ -425,6 +425,9 @@ namespace CONATRADEC.Models
 
         [JsonPropertyName("observacion")]
         public string Observacion { get; set; } = string.Empty;
+
+        [JsonPropertyName("esComplementoBalance")]
+        public bool EsComplementoBalance { get; set; }
     }
 
     public sealed class AnalisisGuardadoMixtaFuente

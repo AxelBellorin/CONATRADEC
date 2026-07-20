@@ -260,7 +260,7 @@
             <VerticalStackLayout Spacing="8">
                 <Grid
                     ColumnDefinitions="*,*"
-                    RowDefinitions="Auto,Auto"
+                    RowDefinitions="Auto,Auto,Auto"
                     ColumnSpacing="8"
                     RowSpacing="8">
                     <Button
@@ -285,6 +285,26 @@
 
                     <Button
                         Grid.Row="1"
+                        Grid.Column="0"
+                        Text="Compartir PDF"
+                        Command="{Binding CompartirPdfCommand}"
+                        BackgroundColor="#2563EB"
+                        TextColor="White"
+                        CornerRadius="12"
+                        Padding="10,9" />
+
+                    <Button
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Text="Compartir Excel"
+                        Command="{Binding CompartirExcelCommand}"
+                        BackgroundColor="#0F766E"
+                        TextColor="White"
+                        CornerRadius="12"
+                        Padding="10,9" />
+
+                    <Button
+                        Grid.Row="2"
                         Grid.ColumnSpan="2"
                         Text="Abrir / imprimir PDF"
                         Command="{Binding ImprimirPdfCommand}"

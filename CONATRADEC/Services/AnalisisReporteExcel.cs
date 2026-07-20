@@ -68,10 +68,19 @@ namespace CONATRADEC.Services
             AgregarDato(hoja, ref fila, "Terreno", reporte.Terreno);
             AgregarDato(hoja, ref fila, "Cultivo", reporte.TipoCultivo);
             AgregarDato(hoja, ref fila, "Tipo de análisis", reporte.TipoAnalisis);
+            AgregarDato(hoja, ref fila, "Responsable", reporte.Responsable);
             AgregarDato(hoja, ref fila, "Producción (qq oro)", reporte.ProduccionQqOro);
             AgregarDato(hoja, ref fila, "Tamaño de finca (mz)", reporte.TamanoFincaMz);
             AgregarDato(hoja, ref fila, "pH", reporte.Ph);
-            AgregarDato(hoja, ref fila, "Materia orgánica", reporte.MateriaOrganica);
+            string unidadMateriaOrganica = string.IsNullOrWhiteSpace(
+                reporte.UnidadMateriaOrganica)
+                ? string.Empty
+                : $" {reporte.UnidadMateriaOrganica}";
+            AgregarDato(
+                hoja,
+                ref fila,
+                $"Materia orgánica{unidadMateriaOrganica}",
+                reporte.MateriaOrganica);
             AgregarDato(hoja, ref fila, "Acidez total", reporte.AcidezTotal);
 
             fila++;
@@ -166,13 +175,14 @@ namespace CONATRADEC.Services
             IXLWorksheet hoja = libro.Worksheets.Add("Balance fórmula");
 
             hoja.Cell("A1").Value = "BALANCE DE FÓRMULA";
-            hoja.Range("A1:H1").Merge();
-            EstiloTitulo(hoja.Range("A1:H1"));
+            hoja.Range("A1:L1").Merge();
+            EstiloTitulo(hoja.Range("A1:L1"));
 
             int fila = 3;
             AgregarDato(hoja, ref fila, "Nombre de fórmula", balance.NombreFormula);
             AgregarDato(hoja, ref fila, "Mezcla exacta (qq)", balance.MezclaTotalQq);
             AgregarDato(hoja, ref fila, "Total libras", balance.TotalLibras);
+            AgregarDato(hoja, ref fila, "Total onzas", balance.TotalOnzas);
             AgregarDato(hoja, ref fila, "Total de plantas", balance.TotalPlantas);
             AgregarDato(hoja, ref fila, "Aplicaciones", balance.TotalAplicaciones);
             AgregarDato(hoja, ref fila, "Dosis anual (oz/planta)", balance.DosisPlantaAnualOz);
@@ -198,7 +208,11 @@ namespace CONATRADEC.Services
             {
                 "Fuente",
                 "Elemento",
-                "Libras",
+                "Requerimiento (lb)",
+                "Libras anuales",
+                "Lb por aplicación",
+                "Onzas anuales",
+                "Oz por aplicación",
                 "QQ exactos",
                 "QQ a comprar",
                 "Precio por QQ",
@@ -212,19 +226,104 @@ namespace CONATRADEC.Services
             {
                 hoja.Cell(fila, 1).Value = item.Fuente;
                 hoja.Cell(fila, 2).Value = item.Elemento;
-                hoja.Cell(fila, 3).Value = item.Libras;
-                hoja.Cell(fila, 4).Value = item.QuintalesExactos;
-                hoja.Cell(fila, 5).Value = item.QuintalesComprar;
-                hoja.Cell(fila, 6).Value = item.PrecioPorQuintal;
-                hoja.Cell(fila, 7).Value = item.SubtotalExacto;
-                hoja.Cell(fila, 8).Value = item.CostoCompra;
-                hoja.Range(fila, 3, fila, 5).Style.NumberFormat.Format = "0.000";
-                hoja.Range(fila, 6, fila, 8).Style.NumberFormat.Format = "C$ #,##0.00";
+                hoja.Cell(fila, 3).Value = item.RequerimientoLibras;
+                hoja.Cell(fila, 4).Value = item.Libras;
+                hoja.Cell(fila, 5).Value = item.LibrasPorAplicacion;
+                hoja.Cell(fila, 6).Value = item.OnzasAnuales;
+                hoja.Cell(fila, 7).Value = item.OnzasPorAplicacion;
+                hoja.Cell(fila, 8).Value = item.QuintalesExactos;
+                hoja.Cell(fila, 9).Value = item.QuintalesComprar;
+                hoja.Cell(fila, 10).Value = item.PrecioPorQuintal;
+                hoja.Cell(fila, 11).Value = item.SubtotalExacto;
+                hoja.Cell(fila, 12).Value = item.CostoCompra;
+                hoja.Range(fila, 3, fila, 9).Style.NumberFormat.Format = "0.0000";
+                hoja.Range(fila, 10, fila, 12).Style.NumberFormat.Format = "C$ #,##0.00";
                 fila++;
             }
 
             FinalizarTabla(hoja, filaEncabezado, fila - 1, encabezados.Length);
+
+            AgregarAportesBalance(
+                hoja,
+                balance,
+                ref fila);
+
             hoja.SheetView.FreezeRows(filaEncabezado);
+        }
+
+        private static void AgregarAportesBalance(
+            IXLWorksheet hoja,
+            AnalisisReporteBalance balance,
+            ref int fila)
+        {
+            List<string> elementos = balance.Detalles
+                .SelectMany(x => x.Aportes.Keys)
+                .Concat(balance.FormulaComercial.Keys)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(OrdenElemento)
+                .ToList();
+
+            if (elementos.Count == 0)
+                return;
+
+            string[] encabezados = new[] { "Fuente", "Libras", "QQ" }
+                .Concat(elementos.Select(x => $"{x} aportado"))
+                .ToArray();
+
+            AgregarTituloBloque(
+                hoja,
+                ref fila,
+                "APORTES NUTRICIONALES POR FUENTE",
+                Math.Max(12, encabezados.Length));
+
+            int filaEncabezado = fila;
+            CrearEncabezado(hoja, filaEncabezado, encabezados);
+            fila++;
+
+            foreach (AnalisisReporteBalanceDetalle item in balance.Detalles)
+            {
+                hoja.Cell(fila, 1).Value = item.Fuente;
+                hoja.Cell(fila, 2).Value = item.Libras;
+                hoja.Cell(fila, 3).Value = item.QuintalesExactos;
+
+                for (int indice = 0; indice < elementos.Count; indice++)
+                {
+                    hoja.Cell(fila, indice + 4).Value =
+                        ObtenerAporte(item.Aportes, elementos[indice]);
+                }
+
+                hoja.Range(fila, 2, fila, encabezados.Length)
+                    .Style.NumberFormat.Format = "0.0000";
+                fila++;
+            }
+
+            hoja.Cell(fila, 1).Value = "Fórmula comercial";
+            hoja.Cell(fila, 1).Style.Font.Bold = true;
+            hoja.Cell(fila, 2).Value = balance.TotalLibras;
+            hoja.Cell(fila, 3).Value = balance.MezclaTotalQq;
+
+            for (int indice = 0; indice < elementos.Count; indice++)
+            {
+                hoja.Cell(fila, indice + 4).Value =
+                    ObtenerAporte(
+                        balance.FormulaComercial,
+                        elementos[indice]);
+            }
+
+            hoja.Range(fila, 1, fila, encabezados.Length)
+                .Style.Fill.BackgroundColor = XLColor.FromHtml(VerdeSuave);
+            hoja.Range(fila, 2, fila, encabezados.Length)
+                .Style.NumberFormat.Format = "0.0000";
+
+            FinalizarTabla(
+                hoja,
+                filaEncabezado,
+                fila,
+                encabezados.Length,
+                aplicarFiltro: false);
+
+            fila++;
         }
 
         private static void CrearEnmienda(
@@ -267,11 +366,11 @@ namespace CONATRADEC.Services
             XLWorkbook libro,
             AnalisisReporteFertilizacionMixta mixta)
         {
-            IXLWorksheet hoja = libro.Worksheets.Add("Mixta fuentes");
+            IXLWorksheet hoja = libro.Worksheets.Add("Fertilización mixta");
 
-            hoja.Cell("A1").Value = "FERTILIZACIÓN MIXTA - FUENTES";
-            hoja.Range("A1:B1").Merge();
-            EstiloTitulo(hoja.Range("A1:B1"));
+            hoja.Cell("A1").Value = "FERTILIZACIÓN MIXTA";
+            hoja.Range("A1:L1").Merge();
+            EstiloTitulo(hoja.Range("A1:L1"));
 
             hoja.Cell("A3").Value = "Observación";
             hoja.Cell("A3").Style.Font.Bold = true;
@@ -279,21 +378,42 @@ namespace CONATRADEC.Services
             hoja.Cell("B3").Style.Alignment.WrapText = true;
 
             int filaFuentes = 5;
-            CrearEncabezado(hoja, filaFuentes, new[] { "Fuente", "Cantidad (qq)" });
+            CrearEncabezado(
+                hoja,
+                filaFuentes,
+                new[] { "Fuente", "Cantidad (qq)", "Precio por QQ", "Costo" });
             int fila = filaFuentes + 1;
 
             foreach (AnalisisReporteMixtaFuente item in mixta.Fuentes)
             {
                 hoja.Cell(fila, 1).Value = item.Fuente;
                 hoja.Cell(fila, 2).Value = item.CantidadQq;
-                hoja.Range(fila, 1, fila, 2).Style.Fill.BackgroundColor = XLColor.FromHtml(AmarilloSuave);
+                hoja.Cell(fila, 3).Value = item.PrecioPorQq;
+                hoja.Cell(fila, 4).Value = item.Costo;
+                hoja.Cell(fila, 2).Style.NumberFormat.Format = "0.0000";
+                hoja.Range(fila, 3, fila, 4)
+                    .Style.NumberFormat.Format = "C$ #,##0.00";
+                hoja.Range(fila, 1, fila, 4).Style.Fill.BackgroundColor = XLColor.FromHtml(AmarilloSuave);
                 fila++;
             }
 
-            FinalizarTabla(hoja, filaFuentes, fila - 1, 2);
+            hoja.Cell(fila, 1).Value = "Total";
+            hoja.Cell(fila, 1).Style.Font.Bold = true;
+            hoja.Cell(fila, 2).Value = mixta.Fuentes.Sum(x => x.CantidadQq);
+            hoja.Cell(fila, 4).Value = mixta.Fuentes.Sum(x => x.Costo);
+            hoja.Cell(fila, 4).Style.NumberFormat.Format = "C$ #,##0.00";
+            hoja.Range(fila, 1, fila, 4)
+                .Style.Fill.BackgroundColor = XLColor.FromHtml(VerdeSuave);
 
-            IXLWorksheet hojaResultado = libro.Worksheets.Add("Mixta resultado");
-            int filaDetalle = 1;
+            FinalizarTabla(hoja, filaFuentes, fila, 4);
+
+            AgregarTituloBloque(
+                hoja,
+                ref fila,
+                "RESULTADO DE FERTILIZACIÓN MIXTA",
+                12);
+
+            int filaDetalle = fila;
             string[] encabezados =
             {
                 "Elemento",
@@ -303,26 +423,239 @@ namespace CONATRADEC.Services
                 "Déficit",
                 "Sobrante"
             };
-            CrearEncabezado(hojaResultado, filaDetalle, encabezados);
+            CrearEncabezado(hoja, filaDetalle, encabezados);
             fila = filaDetalle + 1;
 
             foreach (AnalisisReporteMixtaDetalle item in mixta.Detalles)
             {
-                hojaResultado.Cell(fila, 1).Value = item.Elemento;
-                hojaResultado.Cell(fila, 2).Value = item.RequerimientoOriginal;
-                hojaResultado.Cell(fila, 3).Value = item.AporteOrganico;
-                hojaResultado.Cell(fila, 4).Value = item.Diferencia;
-                hojaResultado.Cell(fila, 5).Value = item.Deficit;
-                hojaResultado.Cell(fila, 6).Value = item.Sobrante;
-                hojaResultado.Range(fila, 2, fila, 6).Style.NumberFormat.Format = "0.0000";
+                hoja.Cell(fila, 1).Value = item.Elemento;
+                hoja.Cell(fila, 2).Value = item.RequerimientoOriginal;
+                hoja.Cell(fila, 3).Value = item.AporteOrganico;
+                hoja.Cell(fila, 4).Value = item.Diferencia;
+                hoja.Cell(fila, 5).Value = item.Deficit;
+                hoja.Cell(fila, 6).Value = item.Sobrante;
+                hoja.Range(fila, 2, fila, 6).Style.NumberFormat.Format = "0.0000";
                 fila++;
             }
 
             FinalizarTabla(
-                hojaResultado,
+                hoja,
                 filaDetalle,
                 fila - 1,
-                encabezados.Length);
+                encabezados.Length,
+                aplicarFiltro: false);
+
+            AgregarAportesMixta(hoja, mixta, ref fila);
+
+            if (mixta.BalanceAjustado != null)
+                AgregarBalanceAjustado(
+                    hoja,
+                    mixta.BalanceAjustado,
+                    ref fila);
+
+            if (mixta.ResumenEconomico != null)
+                AgregarResumenEconomico(
+                    hoja,
+                    mixta.ResumenEconomico,
+                    ref fila);
+
+            hoja.SheetView.FreezeRows(filaFuentes);
+        }
+
+        private static void AgregarAportesMixta(
+            IXLWorksheet hoja,
+            AnalisisReporteFertilizacionMixta mixta,
+            ref int fila)
+        {
+            if (mixta.AportesPorFuente.Count == 0)
+                return;
+
+            string[] encabezados =
+            {
+                "Fuente",
+                "Elemento",
+                "Cantidad (qq)",
+                "Aporte por QQ",
+                "Aporte total (lb)"
+            };
+
+            AgregarTituloBloque(
+                hoja,
+                ref fila,
+                "APORTES POR FUENTE",
+                12);
+
+            int filaEncabezado = fila;
+            CrearEncabezado(hoja, filaEncabezado, encabezados);
+            fila++;
+
+            foreach (AnalisisReporteMixtaAporteFuente item in
+                     mixta.AportesPorFuente)
+            {
+                hoja.Cell(fila, 1).Value = item.Fuente;
+                hoja.Cell(fila, 2).Value = item.Elemento;
+                hoja.Cell(fila, 3).Value = item.CantidadQq;
+                hoja.Cell(fila, 4).Value = item.AportePorQq;
+                hoja.Cell(fila, 5).Value = item.AporteTotal;
+                hoja.Range(fila, 3, fila, 5)
+                    .Style.NumberFormat.Format = "0.0000";
+                fila++;
+            }
+
+            FinalizarTabla(
+                hoja,
+                filaEncabezado,
+                fila - 1,
+                encabezados.Length,
+                aplicarFiltro: false);
+        }
+
+        private static void AgregarBalanceAjustado(
+            IXLWorksheet hoja,
+            AnalisisReporteBalanceAjustado balance,
+            ref int fila)
+        {
+            AgregarTituloBloque(
+                hoja,
+                ref fila,
+                "BALANCE COMERCIAL AJUSTADO",
+                12);
+
+            AgregarDato(hoja, ref fila, "Nombre de fórmula", balance.NombreFormula);
+            AgregarDato(hoja, ref fila, "Total libras", balance.TotalLibras);
+            AgregarDato(hoja, ref fila, "Mezcla exacta (qq)", balance.MezclaTotalQq);
+            AgregarDato(hoja, ref fila, "Total onzas", balance.TotalOnzas);
+            AgregarDato(hoja, ref fila, "Dosis anual (oz/planta)", balance.DosisPlantaAnualOz);
+            AgregarDato(hoja, ref fila, "Dosis por aplicación (oz/planta)", balance.DosisPlantaPorAplicacionOz);
+            AgregarDato(hoja, ref fila, "Precio exacto de referencia", balance.PrecioExactoReferencia, moneda: true);
+            AgregarDato(hoja, ref fila, "Costo comercial ajustado", balance.CostoRealCompra, moneda: true);
+            AgregarDato(hoja, ref fila, "Costo por aplicación", balance.PrecioPorAplicacion, moneda: true);
+
+            if (balance.FormulaComercial.Count > 0)
+            {
+                fila++;
+                hoja.Cell(fila, 1).Value = "Fórmula comercial ajustada";
+                hoja.Cell(fila, 1).Style.Font.Bold = true;
+                hoja.Cell(fila, 2).Value = string.Join(
+                    " - ",
+                    balance.FormulaComercial
+                        .OrderBy(x => OrdenElemento(x.Key))
+                        .Select(x => $"{x.Key} {x.Value:N2}"));
+                fila++;
+            }
+
+            fila++;
+            int filaEncabezado = fila;
+            string[] encabezados =
+            {
+                "Fuente",
+                "Elemento",
+                "Requerimiento original (lb)",
+                "Aporte orgánico (lb)",
+                "Requerimiento ajustado (lb)",
+                "QQ originales",
+                "QQ ajustados",
+                "Reducción QQ",
+                "Precio por QQ",
+                "QQ a comprar",
+                "Subtotal exacto",
+                "Costo compra"
+            };
+
+            CrearEncabezado(hoja, filaEncabezado, encabezados);
+            fila++;
+
+            foreach (AnalisisReporteCompraAjustada item in balance.Detalles)
+            {
+                hoja.Cell(fila, 1).Value = item.Fuente;
+                hoja.Cell(fila, 2).Value = item.Elemento;
+                hoja.Cell(fila, 3).Value = item.RequerimientoOriginalLb;
+                hoja.Cell(fila, 4).Value = item.AporteOrganicoLb;
+                hoja.Cell(fila, 5).Value = item.RequerimientoAjustadoLb;
+                hoja.Cell(fila, 6).Value = item.QuintalesOriginales;
+                hoja.Cell(fila, 7).Value = item.QuintalesAjustados;
+                hoja.Cell(fila, 8).Value = item.ReduccionQuintales;
+                hoja.Cell(fila, 9).Value = item.PrecioPorQq;
+                hoja.Cell(fila, 10).Value = item.QuintalesComprar;
+                hoja.Cell(fila, 11).Value = item.SubtotalExacto;
+                hoja.Cell(fila, 12).Value = item.CostoCompra;
+                hoja.Range(fila, 3, fila, 8)
+                    .Style.NumberFormat.Format = "0.0000";
+                hoja.Cell(fila, 10).Style.NumberFormat.Format = "0";
+                hoja.Range(fila, 9, fila, 9)
+                    .Style.NumberFormat.Format = "C$ #,##0.00";
+                hoja.Range(fila, 11, fila, 12)
+                    .Style.NumberFormat.Format = "C$ #,##0.00";
+                fila++;
+            }
+
+            FinalizarTabla(
+                hoja,
+                filaEncabezado,
+                fila - 1,
+                encabezados.Length,
+                aplicarFiltro: false);
+        }
+
+        private static void AgregarResumenEconomico(
+            IXLWorksheet hoja,
+            AnalisisReporteResumenEconomico resumen,
+            ref int fila)
+        {
+            AgregarTituloBloque(
+                hoja,
+                ref fila,
+                "RESUMEN ECONÓMICO",
+                12);
+
+            int filaInicio = fila;
+            AgregarDato(hoja, ref fila, "Costo comercial original", resumen.CostoComercialOriginal, moneda: true);
+            AgregarDato(hoja, ref fila, "Costo fertilización mixta", resumen.CostoFertilizacionMixta, moneda: true);
+            AgregarDato(hoja, ref fila, "Costo comercial ajustado", resumen.CostoComercialAjustado, moneda: true);
+            AgregarDato(hoja, ref fila, "Costo total final", resumen.CostoTotalFinal, moneda: true);
+            AgregarDato(
+                hoja,
+                ref fila,
+                resumen.EsAhorro
+                    ? "Ahorro frente al balance original"
+                    : "Incremento frente al balance original",
+                Math.Abs(resumen.DiferenciaEconomica),
+                moneda: true);
+
+            hoja.Range(filaInicio, 1, fila - 1, 2)
+                .Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            hoja.Range(filaInicio, 1, fila - 1, 2)
+                .Style.Border.InsideBorder = XLBorderStyleValues.Hair;
+            hoja.Range(fila - 1, 1, fila - 1, 2)
+                .Style.Fill.BackgroundColor = resumen.EsAhorro
+                    ? XLColor.FromHtml(VerdeSuave)
+                    : XLColor.FromHtml("#FDECEC");
+        }
+
+        private static void AgregarTituloBloque(
+            IXLWorksheet hoja,
+            ref int fila,
+            string titulo,
+            int ultimaColumna)
+        {
+            fila++;
+
+            hoja.Cell(fila, 1).Value = titulo;
+            IXLRange rango = hoja.Range(
+                fila,
+                1,
+                fila,
+                Math.Max(ultimaColumna, 2));
+
+            rango.Merge();
+            rango.Style.Fill.BackgroundColor = XLColor.FromHtml(VerdeSuave);
+            rango.Style.Font.FontColor = XLColor.FromHtml(Verde);
+            rango.Style.Font.Bold = true;
+            rango.Style.Font.FontSize = 13;
+            rango.Style.Border.BottomBorder = XLBorderStyleValues.Medium;
+            rango.Style.Border.BottomBorderColor = XLColor.FromHtml(Verde);
+
+            fila++;
         }
 
         private static void CrearEncabezado(
@@ -346,7 +679,8 @@ namespace CONATRADEC.Services
             IXLWorksheet hoja,
             int primeraFila,
             int ultimaFila,
-            int ultimaColumna)
+            int ultimaColumna,
+            bool aplicarFiltro = true)
         {
             if (ultimaFila >= primeraFila)
             {
@@ -361,7 +695,7 @@ namespace CONATRADEC.Services
                 rango.Style.Border.OutsideBorderColor = XLColor.LightGray;
                 rango.Style.Border.InsideBorderColor = XLColor.LightGray;
 
-                if (ultimaFila > primeraFila)
+                if (aplicarFiltro && ultimaFila > primeraFila)
                     rango.SetAutoFilter();
             }
 
@@ -390,7 +724,7 @@ namespace CONATRADEC.Services
             int ultimaColumna = hoja.LastColumnUsed()?.ColumnNumber() ?? 1;
 
             hoja.ShowGridLines = false;
-            hoja.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            hoja.PageSetup.PaperSize = XLPaperSize.LetterPaper;
             hoja.PageSetup.PageOrientation = ultimaColumna > 4
                 ? XLPageOrientation.Landscape
                 : XLPageOrientation.Portrait;
@@ -471,6 +805,43 @@ namespace CONATRADEC.Services
             {
                 celda.Value = string.Empty;
             }
+        }
+
+        private static decimal ObtenerAporte(
+            IReadOnlyDictionary<string, decimal> aportes,
+            string simbolo)
+        {
+            foreach (KeyValuePair<string, decimal> aporte in aportes)
+            {
+                if (string.Equals(
+                        aporte.Key.Trim(),
+                        simbolo.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return aporte.Value;
+                }
+            }
+
+            return 0;
+        }
+
+        private static int OrdenElemento(string simbolo)
+        {
+            return simbolo.Trim().ToUpperInvariant() switch
+            {
+                "N" => 1,
+                "P" => 2,
+                "K" => 3,
+                "CA" => 4,
+                "MG" => 5,
+                "S" => 6,
+                "FE" => 7,
+                "MN" => 8,
+                "ZN" => 9,
+                "CU" => 10,
+                "B" => 11,
+                _ => 99
+            };
         }
     }
 }
