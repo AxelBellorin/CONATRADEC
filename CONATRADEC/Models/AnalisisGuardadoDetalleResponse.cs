@@ -234,6 +234,9 @@ namespace CONATRADEC.Models
         [JsonPropertyName("totalAplicaciones")]
         public int TotalAplicaciones { get; set; }
 
+        [JsonPropertyName("esComplementoFertilizacionMixta")]
+        public bool EsComplementoFertilizacionMixta { get; set; }
+
         [JsonPropertyName("totalOnzas")]
         public decimal TotalOnzas { get; set; }
 

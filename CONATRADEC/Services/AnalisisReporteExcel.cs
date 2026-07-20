@@ -195,10 +195,13 @@ namespace CONATRADEC.Services
             {
                 fila++;
                 hoja.Cell(fila, 1).Value = "Fórmula comercial";
-                hoja.Cell(fila, 1).Style.Font.Bold = true;
+                hoja.Range(fila, 2, fila, 12).Merge();
                 hoja.Cell(fila, 2).Value = string.Join(
                     " - ",
-                    balance.FormulaComercial.Select(x => $"{x.Key} {x.Value:N2}"));
+                    balance.FormulaComercial
+                        .OrderBy(x => OrdenElemento(x.Key))
+                        .Select(x => $"{x.Key} {x.Value:N2}"));
+                ResaltarFormulaComercial(hoja, fila, 12);
                 fila++;
             }
 
@@ -312,7 +315,9 @@ namespace CONATRADEC.Services
             }
 
             hoja.Range(fila, 1, fila, encabezados.Length)
-                .Style.Fill.BackgroundColor = XLColor.FromHtml(VerdeSuave);
+                .Style.Fill.BackgroundColor = XLColor.FromHtml(AmarilloSuave);
+            hoja.Range(fila, 1, fila, encabezados.Length)
+                .Style.Font.Bold = true;
             hoja.Range(fila, 2, fila, encabezados.Length)
                 .Style.NumberFormat.Format = "0.0000";
 
@@ -357,8 +362,16 @@ namespace CONATRADEC.Services
             AgregarDato(hoja, ref fila, "Dosis anual (oz/planta)", enmienda.DosisPlantaAnualOz);
             AgregarDato(hoja, ref fila, "Dosis por aplicación (oz/planta)", enmienda.DosisPlantaPorAplicacionOz);
 
+            hoja.Cell(fila, 1).Value = "Interpretación del resultado";
+            hoja.Cell(fila, 1).Style.Font.Bold = true;
+            hoja.Range(fila, 1, fila, 2)
+                .Style.Fill.BackgroundColor = XLColor.FromHtml(VerdeSuave);
+            hoja.Cell(fila, 2).Value = InterpretarEnmienda(enmienda);
+            hoja.Cell(fila, 2).Style.Alignment.WrapText = true;
+            fila++;
+
             hoja.Column(1).Width = 38;
-            hoja.Column(2).Width = 24;
+            hoja.Column(2).Width = 70;
             hoja.SheetView.FreezeRows(1);
         }
 
@@ -535,12 +548,13 @@ namespace CONATRADEC.Services
             {
                 fila++;
                 hoja.Cell(fila, 1).Value = "Fórmula comercial ajustada";
-                hoja.Cell(fila, 1).Style.Font.Bold = true;
+                hoja.Range(fila, 2, fila, 12).Merge();
                 hoja.Cell(fila, 2).Value = string.Join(
                     " - ",
                     balance.FormulaComercial
                         .OrderBy(x => OrdenElemento(x.Key))
                         .Select(x => $"{x.Key} {x.Value:N2}"));
+                ResaltarFormulaComercial(hoja, fila, 12);
                 fila++;
             }
 
@@ -717,6 +731,52 @@ namespace CONATRADEC.Services
             rango.Style.Font.Bold = true;
             rango.Style.Font.FontSize = 16;
             rango.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        }
+
+        private static void ResaltarFormulaComercial(
+            IXLWorksheet hoja,
+            int fila,
+            int ultimaColumna)
+        {
+            IXLRange rango = hoja.Range(fila, 1, fila, ultimaColumna);
+            rango.Style.Fill.BackgroundColor =
+                XLColor.FromHtml(AmarilloSuave);
+            rango.Style.Font.Bold = true;
+            rango.Style.Font.FontColor = XLColor.FromHtml(Cafe);
+            rango.Style.Font.FontSize = 12;
+            rango.Style.Alignment.Vertical =
+                XLAlignmentVerticalValues.Center;
+            rango.Style.Alignment.WrapText = true;
+            rango.Style.Border.OutsideBorder =
+                XLBorderStyleValues.Medium;
+            rango.Style.Border.OutsideBorderColor =
+                XLColor.FromHtml(Cafe);
+            hoja.Row(fila).Height = 28;
+        }
+
+        private static string InterpretarEnmienda(
+            AnalisisReporteEnmienda enmienda)
+        {
+            if (enmienda.NecesidadEncaladoTonHa > 0)
+            {
+                return
+                    $"El cálculo determinó una necesidad de " +
+                    $"{enmienda.NecesidadEncaladoTonHa:N2} ton/ha de enmienda.";
+            }
+
+            if (enmienda.SaturacionActual >=
+                enmienda.SaturacionDeseada)
+            {
+                return
+                    $"El cálculo sí fue realizado. La saturación actual " +
+                    $"({enmienda.SaturacionActual:N2}%) alcanza o supera la " +
+                    $"deseada ({enmienda.SaturacionDeseada:N2}%); por eso la " +
+                    "necesidad y la dosis resultan en cero.";
+            }
+
+            return
+                "El cálculo fue realizado y no determinó una dosis positiva " +
+                "con los parámetros configurados para la fuente seleccionada.";
         }
 
         private static void ConfigurarHoja(IXLWorksheet hoja)

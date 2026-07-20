@@ -182,6 +182,9 @@ namespace CONATRADEC.Models
         [JsonPropertyName("terrenoId")]
         public int TerrenoId { get; set; }
 
+        [JsonPropertyName("esComplementoFertilizacionMixta")]
+        public bool EsComplementoFertilizacionMixta { get; set; }
+
         [JsonPropertyName("resultado")]
         public GuardarTodoBalanceResultadoRequest Resultado { get; set; } = new();
 

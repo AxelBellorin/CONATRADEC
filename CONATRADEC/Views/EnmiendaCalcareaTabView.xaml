@@ -459,6 +459,28 @@
                     </Grid>
                 </Border>
 
+                <!-- INTERPRETACIÓN DEL RESULTADO -->
+                <Border
+                    BackgroundColor="#EEF5F2"
+                    Stroke="{StaticResource color_Verde}"
+                    Padding="12"
+                    StrokeShape="RoundRectangle 12">
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label
+                            Text="Interpretación del cálculo"
+                            FontSize="14"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="{Binding InterpretacionResultado}"
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- DOSIS POR PLANTA -->
                 <Border
                     BackgroundColor="#EEF5F2"

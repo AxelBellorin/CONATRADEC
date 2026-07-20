@@ -88,17 +88,26 @@ namespace CONATRADEC.Services
                             contexto)
                         : Task.FromResult(true);
 
-                bool[] resultados =
-                    await Task.WhenAll(
-                        tareaBalance,
-                        tareaEnmienda);
+                /*
+                 * El checkbox pertenece al balance y no debe esperar a que
+                 * termine la restauración de la enmienda. La carga del
+                 * catálogo de cal puede tardar varios segundos y antes
+                 * mantenía el checkbox visualmente desactivado durante toda
+                 * esa espera.
+                 */
+                bool balanceRestaurado = await tareaBalance;
+
+                bool complementoGuardado =
+                    contexto.Detalle.BalanceNutricional?
+                        .Formula
+                        .EsComplementoFertilizacionMixta == true ||
+                    contexto.Detalle.FertilizacionMixta?
+                        .Mixta.EsComplementoBalance == true;
 
                 bool restaurarComplemento =
-                    contexto.Detalle.FertilizacionMixta?
-                        .Mixta.EsComplementoBalance == true &&
+                    complementoGuardado &&
                     debeRestaurarBalance &&
-                    resultados[0] &&
-                    viewModel.MostrarFertilizacionMixta;
+                    balanceRestaurado;
 
                 if (restaurarComplemento)
                 {
@@ -109,7 +118,10 @@ namespace CONATRADEC.Services
                     });
                 }
 
-                if (resultados.All(x => x))
+                bool enmiendaRestaurada = await tareaEnmienda;
+
+                if (balanceRestaurado &&
+                    enmiendaRestaurada)
                 {
                     AnalisisEdicionService
                         .Instance

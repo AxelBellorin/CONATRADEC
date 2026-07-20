@@ -1216,6 +1216,9 @@ namespace CONATRADEC.ViewModels
                     requestOriginal.TerrenoId ??
                     TerrenoId ??
                     0,
+                EsComplementoFertilizacionMixta =
+                    BalanceFormula
+                        .ComplementarConFertilizacionMixta,
                 Resultado = MapearResultadoBalance(resultadoOriginal),
                 Items = requestOriginal.Items
                     .Select(MapearItemBalance)
@@ -1414,7 +1417,8 @@ namespace CONATRADEC.ViewModels
                     resultado.Observacion?.Trim() ??
                     string.Empty,
                 EsComplementoBalance =
-                    FertilizacionMixta.EsComplementoBalance
+                    BalanceFormula
+                        .ComplementarConFertilizacionMixta
             };
 
             foreach (FuenteFertilizacionMixtaResultadoResponse fuente in

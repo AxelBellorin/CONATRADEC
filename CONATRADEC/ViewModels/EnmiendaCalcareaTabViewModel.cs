@@ -142,6 +142,7 @@ namespace CONATRADEC.ViewModels
 
                 OnPropertyChanged(nameof(ResultadoEnmienda));
                 OnPropertyChanged(nameof(TieneResultado));
+                OnPropertyChanged(nameof(InterpretacionResultado));
                 OnPropertyChanged(nameof(PuedeReiniciar));
 
                 RefrescarComandos();
@@ -150,6 +151,44 @@ namespace CONATRADEC.ViewModels
 
         public bool TieneResultado =>
             ResultadoEnmienda != null;
+
+        public string InterpretacionResultado
+        {
+            get
+            {
+                if (ResultadoEnmienda == null)
+                    return string.Empty;
+
+                decimal necesidad =
+                    ResultadoEnmienda.NecesidadEncaladoTonHa ?? 0;
+
+                decimal actual =
+                    ResultadoEnmienda.SaturacionActual ?? 0;
+
+                decimal deseada =
+                    ResultadoEnmienda.SaturacionDeseada ?? 0;
+
+                if (necesidad > 0)
+                {
+                    return
+                        $"Cálculo realizado: se requieren " +
+                        $"{necesidad:N2} ton/ha de enmienda calcárea.";
+                }
+
+                if (actual >= deseada)
+                {
+                    return
+                        $"Cálculo realizado: la saturación actual " +
+                        $"({actual:N2}%) alcanza o supera la deseada " +
+                        $"({deseada:N2}%). Por eso la necesidad y la " +
+                        "dosis calculadas son 0.";
+                }
+
+                return
+                    "El cálculo fue realizado y no determinó una dosis " +
+                    "positiva con los parámetros configurados.";
+            }
+        }
 
         // ===========================================================
         // Nombre del análisis usado para la enmienda.
