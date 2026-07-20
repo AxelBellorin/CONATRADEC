@@ -1,6 +1,9 @@
-﻿using CONATRADEC.Services;
+using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
+using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 
 namespace CONATRADEC.Views
 {
@@ -38,8 +41,88 @@ namespace CONATRADEC.Views
                 return;
             }
 
+            /*
+             * MultiCalculoPage es un ShellContent y MAUI conserva la misma
+             * instancia. Al editar otro análisis, durante unos milisegundos
+             * todavía pueden existir los elementos del balance anterior.
+             *
+             * Se espera a que MultiCalculoViewModel y BalanceFormulaViewModel
+             * hayan recibido el resultado temporal del análisis actual y que
+             * la carga asíncrona del balance haya terminado. Solo entonces se
+             * restauran las fuentes, el resultado y el checkbox guardados.
+             */
+            await EsperarInicializacionActualAsync();
+
             await RestaurarCalculosEdicionUiService.Instance
                 .RestaurarAsync(viewModel);
+        }
+
+        private async Task EsperarInicializacionActualAsync()
+        {
+            if (!AnalisisEdicionService.Instance.EsModoEdicion)
+                return;
+
+            AnalisisEdicionContexto? contexto =
+                AnalisisEdicionService.Instance.ContextoActual;
+
+            if (contexto == null)
+                return;
+
+            for (int intento = 0;
+                 intento < 300;
+                 intento++)
+            {
+                if (!ReferenceEquals(
+                        contexto,
+                        AnalisisEdicionService.Instance.ContextoActual))
+                {
+                    return;
+                }
+
+                CalculoAnalisisTemporalState estadoTemporal =
+                    CalculoAnalisisTemporalService.Instance
+                        .ObtenerEstadoActual();
+
+                AnalisisSueloCalculoDataResponse? resultadoActual =
+                    estadoTemporal.ResultadoAnalisisSuelo;
+
+                bool multiCalculoActual =
+                    resultadoActual != null &&
+                    viewModel.EsModoEdicion &&
+                    ReferenceEquals(
+                        viewModel.ResultadoCalculo,
+                        resultadoActual);
+
+                if (!multiCalculoActual)
+                {
+                    await Task.Delay(100);
+                    continue;
+                }
+
+                /*
+                 * Si el análisis guardado no tiene balance, no es necesario
+                 * esperar esa pestaña. La enmienda conserva su propia espera
+                 * mediante CargaEnmiendasFinalizada dentro del restaurador.
+                 */
+                if (!contexto.TieneBalance ||
+                    !viewModel.MostrarBalanceFormula)
+                {
+                    return;
+                }
+
+                bool balanceActual =
+                    ReferenceEquals(
+                        viewModel.BalanceFormula.ResultadoCalculo,
+                        resultadoActual) &&
+                    !viewModel.BalanceFormula.IsBusy &&
+                    viewModel.BalanceFormula
+                        .ElementosBalance.Count > 0;
+
+                if (balanceActual)
+                    return;
+
+                await Task.Delay(100);
+            }
         }
 
         private void ViewModel_PropertyChanged(
