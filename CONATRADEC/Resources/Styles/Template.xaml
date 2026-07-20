@@ -2,233 +2,81 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                     xmlns:controls="clr-namespace:CONATRADEC.Controls">
-
     <ControlTemplate x:Key="FooterTemplate">
-
-        <Grid RowDefinitions="*,Auto"
-              BackgroundColor="{StaticResource color_Blanco}">
-
-            <!-- CONTENIDO DE LA PÁGINA -->
-            <ContentPresenter Grid.Row="0"
-                              BackgroundColor="{StaticResource color_Blanco}" />
-
-            <!-- FOOTER MODERNO -->
-            <Border Grid.Row="1"
-                    BackgroundColor="{StaticResource color_Blanco}"
-                    Stroke="#E5E7EB"
-                    StrokeThickness="1"
-                    Padding="8,8,8,10">
-
+        <Grid RowDefinitions="*,Auto" BackgroundColor="{StaticResource color_Blanco}">
+            <ContentPresenter Grid.Row="0" BackgroundColor="{StaticResource color_Blanco}" />
+            <Border Grid.Row="1" BackgroundColor="{StaticResource color_Blanco}" Stroke="#E5E7EB"
+                    StrokeThickness="1" Padding="8,8,8,10">
                 <Border.Shadow>
-                    <Shadow Brush="Black"
-                            Offset="0,-3"
-                            Radius="12"
-                            Opacity="0.10" />
+                    <Shadow Brush="Black" Offset="0,-3" Radius="12" Opacity="0.10" />
                 </Border.Shadow>
-
-                <ScrollView Orientation="Horizontal"
-                            HorizontalScrollBarVisibility="Never">
-
-                    <HorizontalStackLayout Spacing="8"
-                                           Padding="6,0">
-
-                        <!-- MAIN PAGE -->
-                        <controls:PermissionMenuItem Interfaz="MainPage"
-                                                     Spacing="4"
-                                                     Padding="12,6"
-                                                     WidthRequest="86"
-                                                     BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding goToMainPageCommand}" />
-                            </controls:PermissionMenuItem.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconhome.png" />
-
-                            <Label Text="Inicio"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource color_Negro}"
-                                   FontFamily="MontserratMedium" />
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout Spacing="8" Padding="6,0">
+                        <controls:PermissionMenuItem Interfaz="MainPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToMainPageCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconhome.png" />
+                            <Label Text="Inicio" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
                         </controls:PermissionMenuItem>
-
-                        <!-- USER PAGE -->
-                        <controls:PermissionMenuItem Interfaz="userPage"
-                                                     Spacing="4"
-                                                     Padding="12,6"
-                                                     WidthRequest="86"
-                                                     BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding goToUserPageButtonCommand}" />
-                            </controls:PermissionMenuItem.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconuser.png" />
-
-                            <Label Text="Usuario"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource color_Negro}"
-                                   FontFamily="MontserratMedium" />
+                        <controls:PermissionMenuItem Interfaz="userPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToUserPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconuser.png" />
+                            <Label Text="Usuario" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
                         </controls:PermissionMenuItem>
-
-                        <!-- ROL PAGE -->
-                        <controls:PermissionMenuItem Interfaz="rolPage"
-                                                     Spacing="4"
-                                                     Padding="12,6"
-                                                     WidthRequest="86"
-                                                     BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding goToRolPageButtonCommand}" />
-                            </controls:PermissionMenuItem.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconrol.png" />
-
-                            <Label Text="Rol"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource color_Negro}"
-                                   FontFamily="MontserratMedium" />
+                        <controls:PermissionMenuItem Interfaz="rolPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToRolPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconrol.png" />
+                            <Label Text="Rol" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
                         </controls:PermissionMenuItem>
-
-                        <!-- MATRIZ PERMISOS -->
-                        <controls:PermissionMenuItem Interfaz="matrizPermisosPage"
-                                                     Spacing="4"
-                                                     Padding="12,6"
-                                                     WidthRequest="86"
-                                                     BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding goToMatrizPermisosPageButtonCommad}" />
-                            </controls:PermissionMenuItem.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconpermission.png" />
-
-                            <Label Text="Permisos"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource color_Negro}"
-                                   FontFamily="MontserratMedium" />
+                        <controls:PermissionMenuItem Interfaz="matrizPermisosPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToMatrizPermisosPageButtonCommad}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconpermission.png" />
+                            <Label Text="Permisos" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
                         </controls:PermissionMenuItem>
-
-                        <!-- PAIS PAGE -->
-                        <controls:PermissionMenuItem Interfaz="paisPage"
-                                                     Spacing="4"
-                                                     Padding="12,6"
-                                                     WidthRequest="86"
-                                                     BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding goToPaisPageButtonCommand}" />
-                            </controls:PermissionMenuItem.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconcountry.png" />
-
-                            <Label Text="País"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource color_Negro}"
-                                   FontFamily="MontserratMedium" />
+                        <controls:PermissionMenuItem Interfaz="paisPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToPaisPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconcountry.png" />
+                            <Label Text="País" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
                         </controls:PermissionMenuItem>
-
-                        <!-- ELEMENTOS QUIMICOS -->
-                        <controls:PermissionMenuItem Interfaz="elementoQuimicoPage"
-                                                     Spacing="4"
-                                                     Padding="12,6"
-                                                     WidthRequest="86"
-                                                     BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding goToElementoQuimicoPageButtonCommand}" />
-                            </controls:PermissionMenuItem.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconchemicalelement.png" />
-
-                            <Label Text="Elementos"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource color_Negro}"
-                                   FontFamily="MontserratMedium" />
+                        <controls:PermissionMenuItem Interfaz="elementoQuimicoPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToElementoQuimicoPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconchemicalelement.png" />
+                            <Label Text="Elementos" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
                         </controls:PermissionMenuItem>
-
-                        <!-- FUENTE NUTRIENTE -->
-                        <controls:PermissionMenuItem Interfaz="fuenteNutrientePage"
-                                                     Spacing="4"
-                                                     Padding="12,6"
-                                                     WidthRequest="86"
-                                                     BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding goToFuenteNutrientePageButtonCommand}" />
-                            </controls:PermissionMenuItem.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconfuentenutriente.png" />
-
-                            <Label Text="Fuentes"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource color_Negro}"
-                                   FontFamily="MontserratMedium" />
+                        <controls:PermissionMenuItem Interfaz="tipoCultivoPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToTipoCultivoPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconcultivo.png" />
+                            <Label Text="Cultivos" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
                         </controls:PermissionMenuItem>
-
-                        <!-- TERRENO PAGE -->
-                        <controls:PermissionMenuItem Interfaz="terrenoPage"
-                                                     Spacing="4"
-                                                     Padding="12,6"
-                                                     WidthRequest="86"
-                                                     BackgroundColor="Transparent">
-                            <controls:PermissionMenuItem.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding goToTerrenoPageButtonCommand}" />
-                            </controls:PermissionMenuItem.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconland.png" />
-
-                            <Label Text="Terreno"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource color_Negro}"
-                                   FontFamily="MontserratMedium" />
+                        <controls:PermissionMenuItem Interfaz="tipoAnalisisSueloPage" Spacing="4" Padding="12,6" WidthRequest="94" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToTipoAnalisisSueloPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="icontipoanalisis.png" />
+                            <Label Text="T. análisis" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
                         </controls:PermissionMenuItem>
-
-                        <!-- CERRAR SESIÓN -->
-                        <VerticalStackLayout Spacing="4"
-                                             Padding="12,6"
-                                             WidthRequest="100"
-                                             BackgroundColor="Transparent">
-                            <VerticalStackLayout.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding CerrarSesionCommand}" />
-                            </VerticalStackLayout.GestureRecognizers>
-
-                            <Image HeightRequest="26"
-                                   WidthRequest="26"
-                                   Source="iconloginout.png" />
-
-                            <Label Text="Salir"
-                                   HorizontalOptions="Center"
-                                   HorizontalTextAlignment="Center"
-                                   FontSize="12"
-                                   TextColor="{StaticResource RedDelete}"
-                                   FontFamily="MontserratMedium" />
+                        <controls:PermissionMenuItem Interfaz="extraccionNutrientePage" Spacing="4" Padding="12,6" WidthRequest="94" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToExtraccionNutrientePageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconextraccion.png" />
+                            <Label Text="Extracción" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
+                        </controls:PermissionMenuItem>
+                        <controls:PermissionMenuItem Interfaz="rangoNutrientePage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToRangoNutrientePageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconrangonutriente.png" />
+                            <Label Text="Rangos" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
+                        </controls:PermissionMenuItem>
+                        <controls:PermissionMenuItem Interfaz="fuenteNutrientePage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToFuenteNutrientePageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconfuentenutriente.png" />
+                            <Label Text="Fuentes" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
+                        </controls:PermissionMenuItem>
+                        <controls:PermissionMenuItem Interfaz="terrenoPage" Spacing="4" Padding="12,6" WidthRequest="86" BackgroundColor="Transparent">
+                            <controls:PermissionMenuItem.GestureRecognizers><TapGestureRecognizer Command="{Binding goToTerrenoPageButtonCommand}" /></controls:PermissionMenuItem.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconland.png" />
+                            <Label Text="Terreno" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource color_Negro}" FontFamily="MontserratMedium" />
+                        </controls:PermissionMenuItem>
+                        <VerticalStackLayout Spacing="4" Padding="12,6" WidthRequest="100" BackgroundColor="Transparent">
+                            <VerticalStackLayout.GestureRecognizers><TapGestureRecognizer Command="{Binding CerrarSesionCommand}" /></VerticalStackLayout.GestureRecognizers>
+                            <Image HeightRequest="26" WidthRequest="26" Source="iconloginout.png" />
+                            <Label Text="Salir" HorizontalOptions="Center" FontSize="12" TextColor="{StaticResource RedDelete}" FontFamily="MontserratMedium" />
                         </VerticalStackLayout>
-
                     </HorizontalStackLayout>
                 </ScrollView>
             </Border>

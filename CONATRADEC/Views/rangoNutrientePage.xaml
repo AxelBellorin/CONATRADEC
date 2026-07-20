@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CONATRADEC.Views.rangoNutrientePage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    <ContentView x:Name="RootPage" ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid RowDefinitions="Auto,Auto,*">
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="20,12,8,4">
+                <Label Text="Rangos nutricionales" FontSize="26" FontFamily="MontserratBold"
+                       TextColor="{StaticResource color_Negro}" VerticalOptions="Center" />
+                <ImageButton Grid.Column="1" Source="iconadd.png" WidthRequest="54" HeightRequest="54"
+                             Command="{Binding AddCommand}" IsVisible="{Binding CanAdd}" BackgroundColor="Transparent" />
+            </Grid>
+            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource color_Naranja}" />
+            <CollectionView Grid.Row="2" ItemsSource="{Binding List}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Grid Padding="24"><Label Text="No hay rangos nutricionales para mostrar." HorizontalOptions="Center" VerticalOptions="Center" /></Grid>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <SwipeView IsEnabled="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanView}">
+                            <SwipeView.RightItems>
+                                <SwipeItems Mode="Reveal">
+                                    <SwipeItem Text="Editar" IconImageSource="iconupdate.png" BackgroundColor="{StaticResource BlueUpdate}"
+                                               Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.EditCommand}"
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanEdit}" />
+                                    <SwipeItem Text="Eliminar" IconImageSource="icondelete.png" BackgroundColor="{StaticResource RedDelete}"
+                                               Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.DeleteCommand}"
+                                               CommandParameter="{Binding .}"
+                                               IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanDelete}" />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Margin="12,4" Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius}, Default={StaticResource BorderStyle}}">
+                                <Grid Padding="12">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.ViewCommand}"
+                                                              CommandParameter="{Binding .}" />
+                                    </Grid.GestureRecognizers>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding NombreTipoCultivo}" FontSize="18" FontFamily="MontserratBold"
+                                               TextColor="{StaticResource color_Verde}" />
+                                        <Label Text="{Binding ElementoTexto}" FontSize="14" TextColor="{StaticResource color_Negro}" />
+                                        <Label Text="{Binding RangoTexto}" FontSize="13" TextColor="{StaticResource color_Gris}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </ContentView>
+</ContentPage>

@@ -14,14 +14,22 @@ namespace CONATRADEC.Services
         public const string Terrenos = "//TerrenoPage";
         public const string FuenteNutriente = "//FuenteNutrientePage";
 
+        public const string TiposCultivo = "//TipoCultivoPage";
+        public const string TiposAnalisisSuelo = "//TipoAnalisisSueloPage";
+        public const string ExtraccionNutrientes = "//ExtraccionNutrientePage";
+        public const string RangosNutrientes = "//RangoNutrientePage";
+
         public const string TerrenoFormulario = "//TerrenoFormPage";
         public const string FuenteNutrienteFormulario = "//FuenteNutrienteFormPage";
+        public const string TipoCultivoFormulario = "//TipoCultivoFormPage";
+        public const string TipoAnalisisSueloFormulario = "//TipoAnalisisSueloFormPage";
+        public const string ExtraccionNutrienteFormulario = "//ExtraccionNutrienteFormPage";
+        public const string RangoNutrienteFormulario = "//RangoNutrienteFormPage";
 
         public const string MapaSeleccion = nameof(MapaSeleccionPage);
         public const string FotosTerrenoGaleria = nameof(FotosTerrenoGaleriaPage);
         public const string AnalisisGuardadoDetalle = nameof(AnalisisGuardadoDetallePage);
         public const string EditarAnalisisGuardado = nameof(EditarAnalisisGuardadoPage);
-
         public const string Regresar = "..";
     }
 }
