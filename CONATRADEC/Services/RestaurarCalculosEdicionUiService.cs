@@ -1,8 +1,12 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.ApplicationModel;
+using System;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
 {
@@ -13,7 +17,8 @@ namespace CONATRADEC.Services
                 new(() =>
                     new RestaurarCalculosEdicionUiService());
 
-        private bool restaurando;
+        private readonly SemaphoreSlim restauracionLock =
+            new(1, 1);
 
         public static RestaurarCalculosEdicionUiService Instance =>
             instancia.Value;
@@ -25,17 +30,22 @@ namespace CONATRADEC.Services
         public async Task RestaurarAsync(
             MultiCalculoViewModel viewModel)
         {
-            if (restaurando ||
-                !AnalisisEdicionService.Instance.EsModoEdicion ||
+            if (!AnalisisEdicionService.Instance.EsModoEdicion ||
                 AnalisisEdicionService.Instance.RestauracionUiRealizada)
             {
                 return;
             }
 
-            restaurando = true;
+            await restauracionLock.WaitAsync();
 
             try
             {
+                if (!AnalisisEdicionService.Instance.EsModoEdicion ||
+                    AnalisisEdicionService.Instance.RestauracionUiRealizada)
+                {
+                    return;
+                }
+
                 bool parametrosListos =
                     await EsperarParametrosAsync(viewModel);
 
@@ -51,21 +61,10 @@ namespace CONATRADEC.Services
                 /*
                  * Si el temporal se perdió, quedó incompleto o fue
                  * reemplazado durante la navegación, se reconstruye
-                 * desde el detalle persistido en la base de datos.
-                 *
-                 * Solo se reconstruyen cálculos que realmente existen
-                 * en el análisis guardado.
+                 * desde el detalle persistido.
                  */
                 await AsegurarTemporalesGuardadosAsync(contexto);
 
-                /*
-                 * Una pestaña puede mostrarse porque el usuario decidió
-                 * crear un cálculo nuevo durante la edición.
-                 *
-                 * En ese caso, si el cálculo no existía previamente,
-                 * no se restaura ningún resultado. El resultado solo
-                 * aparecerá después de presionar Calcular.
-                 */
                 bool debeRestaurarBalance =
                     viewModel.MostrarBalanceFormula &&
                     contexto.TieneBalance;
@@ -73,6 +72,30 @@ namespace CONATRADEC.Services
                 bool debeRestaurarEnmienda =
                     viewModel.MostrarEnmiendaCalcarea &&
                     contexto.TieneEnmienda;
+
+                bool debeRestaurarMixta =
+                    viewModel.MostrarFertilizacionMixta &&
+                    contexto.TieneMixta;
+
+                /*
+                 * Los tres checkbox de la pantalla de resultado representan
+                 * la selección final que se conservará al actualizar.
+                 *
+                 * Si Balance o Mixta fue desmarcado, el complemento no puede
+                 * permanecer activo por un valor visual de una navegación
+                 * anterior. Se apaga antes de restaurar cualquier pestaña.
+                 */
+                if ((!viewModel.MostrarBalanceFormula ||
+                     !viewModel.MostrarFertilizacionMixta) &&
+                    viewModel.BalanceFormula
+                        .ComplementarConFertilizacionMixta)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        viewModel.BalanceFormula
+                            .ComplementarConFertilizacionMixta = false;
+                    });
+                }
 
                 Task<bool> tareaBalance =
                     debeRestaurarBalance
@@ -89,13 +112,22 @@ namespace CONATRADEC.Services
                         : Task.FromResult(true);
 
                 /*
-                 * El checkbox pertenece al balance y no debe esperar a que
-                 * termine la restauración de la enmienda. La carga del
-                 * catálogo de cal puede tardar varios segundos y antes
-                 * mantenía el checkbox visualmente desactivado durante toda
-                 * esa espera.
+                 * La fertilización mixta inicia su propia carga asíncrona.
+                 * Se espera que termine antes de activar nuevamente el
+                 * checkbox del complemento; así la primera vinculación no
+                 * se confunde con un cambio realizado por el usuario.
                  */
-                bool balanceRestaurado = await tareaBalance;
+                Task<bool> tareaMixtaLista =
+                    debeRestaurarMixta
+                        ? EsperarMixtaListaAsync(
+                            viewModel.FertilizacionMixta)
+                        : Task.FromResult(true);
+
+                bool balanceRestaurado =
+                    await tareaBalance;
+
+                bool mixtaLista =
+                    await tareaMixtaLista;
 
                 bool complementoGuardado =
                     contexto.Detalle.BalanceNutricional?
@@ -107,7 +139,27 @@ namespace CONATRADEC.Services
                 bool restaurarComplemento =
                     complementoGuardado &&
                     debeRestaurarBalance &&
+                    debeRestaurarMixta &&
                     balanceRestaurado;
+
+                bool recalcularMixtaComoIndependiente =
+                    complementoGuardado &&
+                    debeRestaurarMixta &&
+                    !viewModel.MostrarBalanceFormula;
+
+                /*
+                 * El resultado temporal se conserva aparte. Se retira
+                 * momentáneamente de la pantalla antes de marcar el checkbox
+                 * para impedir que ConfigurarComplementoBalanceAsync lo trate
+                 * como un resultado modificado y solicite recalcular.
+                 */
+                if (restaurarComplemento &&
+                    debeRestaurarMixta &&
+                    mixtaLista)
+                {
+                    await PrepararMixtaAntesDeVincularAsync(
+                        viewModel.FertilizacionMixta);
+                }
 
                 if (restaurarComplemento)
                 {
@@ -118,10 +170,39 @@ namespace CONATRADEC.Services
                     });
                 }
 
-                bool enmiendaRestaurada = await tareaEnmienda;
+                bool mixtaRestaurada;
+
+                if (!debeRestaurarMixta)
+                {
+                    mixtaRestaurada = true;
+                }
+                else if (recalcularMixtaComoIndependiente)
+                {
+                    /*
+                     * La Mixta guardada dependía del Balance, pero el usuario
+                     * decidió conservar solo Mixta. Se recuperan sus fuentes
+                     * y cantidades, se quita el resultado anterior y queda
+                     * obligatoriamente pendiente de recalcular como cálculo
+                     * independiente.
+                     */
+                    mixtaRestaurada =
+                        await EsperarYPrepararMixtaIndependienteAsync(
+                            viewModel.FertilizacionMixta);
+                }
+                else
+                {
+                    mixtaRestaurada =
+                        await EsperarYRestaurarMixtaAsync(
+                            viewModel.FertilizacionMixta,
+                            restaurarComplemento);
+                }
+
+                bool enmiendaRestaurada =
+                    await tareaEnmienda;
 
                 if (balanceRestaurado &&
-                    enmiendaRestaurada)
+                    enmiendaRestaurada &&
+                    mixtaRestaurada)
                 {
                     AnalisisEdicionService
                         .Instance
@@ -130,18 +211,13 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
-                /*
-                 * No se interrumpe la pantalla completa.
-                 * Se deja un mensaje visible para poder recalcular
-                 * manualmente en caso de que una fuente ya no exista.
-                 */
                 viewModel.Mensaje =
                     "No fue posible restaurar completamente los " +
                     $"cálculos guardados: {ex.Message}";
             }
             finally
             {
-                restaurando = false;
+                restauracionLock.Release();
             }
         }
 
@@ -149,19 +225,21 @@ namespace CONATRADEC.Services
             MultiCalculoViewModel viewModel)
         {
             for (int intento = 0;
-                 intento < 120;
+                 intento < 300;
                  intento++)
             {
                 if (!AnalisisEdicionService.Instance.EsModoEdicion)
                     return false;
 
+                /*
+                 * En edición es válido desmarcar los tres cálculos. Por eso
+                 * no se exige que exista una pestaña visible para considerar
+                 * que MultiCálculo ya recibió sus parámetros.
+                 */
                 bool recibioParametros =
                     viewModel.EsModoEdicion &&
-                    (
-                        viewModel.MostrarBalanceFormula ||
-                        viewModel.MostrarEnmiendaCalcarea ||
-                        viewModel.MostrarFertilizacionMixta
-                    );
+                    viewModel.ResultadoCalculo != null &&
+                    viewModel.RequestGuardarAnalisis != null;
 
                 if (recibioParametros)
                     return true;
@@ -227,27 +305,14 @@ namespace CONATRADEC.Services
             }
 
             for (int intento = 0;
-                 intento < 240;
+                 intento < 300;
                  intento++)
             {
                 if (!AnalisisEdicionService.Instance.EsModoEdicion)
                     return false;
 
-                /*
-                 * El balance solo debe restaurarse después de que su
-                 * inicialización haya terminado completamente.
-                 *
-                 * Antes bastaba con que ElementosBalance tuviera un solo
-                 * elemento. Eso permitía que la restauración se ejecutara
-                 * mientras CargarElementosDesdeResultado todavía agregaba
-                 * N, K, Mg, Ca y P. La restauración terminaba incompleta y
-                 * las fuentes quedaban vacías al editar.
-                 */
                 bool interfazLista =
                     !viewModel.IsBusy &&
-                    request != null &&
-                    request.Items != null &&
-                    request.Items.Count > 0 &&
                     request.Items.All(item =>
                         viewModel.ElementosBalance.Any(elemento =>
                             elemento.ElementoQuimicosId ==
@@ -284,25 +349,13 @@ namespace CONATRADEC.Services
                 return false;
 
             for (int intento = 0;
-                 intento < 240;
+                 intento < 300;
                  intento++)
             {
                 if (!AnalisisEdicionService.Instance.EsModoEdicion)
                     return false;
 
-                /*
-                 * Primero debe finalizar la carga del catálogo.
-                 *
-                 * Antes, la restauración podía ejecutarse mientras
-                 * CargarEnmiendasCalcareasAsync todavía estaba trabajando.
-                 * Luego ese método limpiaba nuevamente la colección y el
-                 * Picker quitaba la fuente restaurada, provocando que el
-                 * resultado quedara pendiente y desapareciera.
-                 */
-                bool interfazLista =
-                    viewModel.CargaEnmiendasFinalizada;
-
-                if (interfazLista)
+                if (viewModel.CargaEnmiendasFinalizada)
                 {
                     bool restaurado = false;
 
@@ -323,6 +376,518 @@ namespace CONATRADEC.Services
             return false;
         }
 
+        private static async Task<bool>
+            EsperarMixtaListaAsync(
+                FertilizacionMixtaTabViewModel viewModel)
+        {
+            FieldInfo? suspendiendo =
+                ObtenerCampoMixta(
+                    "suspendiendoCambiosTemporales");
+
+            if (suspendiendo == null)
+                return false;
+
+            FertilizacionMixtaCalcularRequest? request =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerRequest<
+                        FertilizacionMixtaCalcularRequest>(
+                            TipoCalculoTemporal.FertilizacionMixta);
+
+            FertilizacionMixtaCalculoResponse? resultado =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerResultado<
+                        FertilizacionMixtaCalculoResponse>(
+                            TipoCalculoTemporal.FertilizacionMixta);
+
+            if (request == null ||
+                resultado == null)
+            {
+                return false;
+            }
+
+            for (int intento = 0;
+                 intento < 300;
+                 intento++)
+            {
+                if (!AnalisisEdicionService.Instance.EsModoEdicion)
+                    return false;
+
+                bool estaSuspendiendo =
+                    suspendiendo.GetValue(viewModel) is true;
+
+                bool fuentesDisponibles =
+                    request.Fuentes == null ||
+                    request.Fuentes.Count == 0 ||
+                    request.Fuentes.All(item =>
+                        viewModel.FuentesDisponibles.Any(fuente =>
+                            fuente.FuenteNutrientesId ==
+                                item.FuenteNutrientesId));
+
+                if (!viewModel.IsBusy &&
+                    !estaSuspendiendo &&
+                    fuentesDisponibles)
+                {
+                    return true;
+                }
+
+                await Task.Delay(100);
+            }
+
+            return false;
+        }
+
+        private static async Task
+            PrepararMixtaAntesDeVincularAsync(
+                FertilizacionMixtaTabViewModel viewModel)
+        {
+            FieldInfo? suspendiendo =
+                ObtenerCampoMixta(
+                    "suspendiendoCambiosTemporales");
+
+            FieldInfo? recalculoPendiente =
+                ObtenerCampoMixta(
+                    "recalcularComplementoPendiente");
+
+            MethodInfo? limpiarPresentacion =
+                ObtenerMetodoMixta(
+                    "LimpiarResultadosPresentacion");
+
+            if (suspendiendo == null ||
+                recalculoPendiente == null ||
+                limpiarPresentacion == null)
+            {
+                return;
+            }
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                suspendiendo.SetValue(
+                    viewModel,
+                    true);
+
+                try
+                {
+                    recalculoPendiente.SetValue(
+                        viewModel,
+                        false);
+
+                    viewModel.ResultadoFertilizacionMixta =
+                        null;
+
+                    limpiarPresentacion.Invoke(
+                        viewModel,
+                        null);
+                }
+                finally
+                {
+                    suspendiendo.SetValue(
+                        viewModel,
+                        false);
+                }
+            });
+        }
+
+        private static async Task<bool>
+            EsperarYPrepararMixtaIndependienteAsync(
+                FertilizacionMixtaTabViewModel viewModel)
+        {
+            FertilizacionMixtaCalcularRequest? request =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerRequest<
+                        FertilizacionMixtaCalcularRequest>(
+                            TipoCalculoTemporal.FertilizacionMixta);
+
+            if (request == null)
+                return false;
+
+            FieldInfo? suspendiendo =
+                ObtenerCampoMixta(
+                    "suspendiendoCambiosTemporales");
+
+            FieldInfo? recalculoPendiente =
+                ObtenerCampoMixta(
+                    "recalcularComplementoPendiente");
+
+            MethodInfo? limpiarPresentacion =
+                ObtenerMetodoMixta(
+                    "LimpiarResultadosPresentacion");
+
+            MethodInfo? restaurarRequerimientos =
+                ObtenerMetodoMixta(
+                    "RestaurarRequerimientosDesdeAnalisis");
+
+            if (suspendiendo == null ||
+                recalculoPendiente == null ||
+                limpiarPresentacion == null ||
+                restaurarRequerimientos == null)
+            {
+                return false;
+            }
+
+            for (int intento = 0;
+                 intento < 300;
+                 intento++)
+            {
+                if (!AnalisisEdicionService.Instance.EsModoEdicion)
+                    return false;
+
+                bool estaSuspendiendo =
+                    suspendiendo.GetValue(viewModel) is true;
+
+                bool fuentesListas =
+                    request.Fuentes == null ||
+                    request.Fuentes.Count == 0 ||
+                    request.Fuentes.All(item =>
+                        viewModel.FuentesDisponibles.Any(fuente =>
+                            fuente.FuenteNutrientesId ==
+                                item.FuenteNutrientesId));
+
+                if (!viewModel.IsBusy &&
+                    !estaSuspendiendo &&
+                    fuentesListas)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(() =>
+                    {
+                        suspendiendo.SetValue(
+                            viewModel,
+                            true);
+
+                        try
+                        {
+                            foreach (
+                                FuenteFertilizacionMixtaItemViewModel fuente
+                                in viewModel.FuentesDisponibles)
+                            {
+                                fuente.EstaSeleccionada = false;
+                                fuente.CantidadQq = string.Empty;
+                                fuente.ErrorCantidad = string.Empty;
+                            }
+
+                            foreach (
+                                FuenteFertilizacionMixtaRequest fuenteRequest
+                                in request.Fuentes)
+                            {
+                                if (fuenteRequest.FuenteNutrientesId
+                                    is null or <= 0)
+                                {
+                                    continue;
+                                }
+
+                                FuenteFertilizacionMixtaItemViewModel? fuente =
+                                    viewModel.FuentesDisponibles
+                                        .FirstOrDefault(x =>
+                                            x.FuenteNutrientesId ==
+                                                fuenteRequest
+                                                    .FuenteNutrientesId);
+
+                                if (fuente == null)
+                                    continue;
+
+                                fuente.EstaSeleccionada = true;
+                                fuente.CantidadQq =
+                                    (fuenteRequest.CantidadQq ?? 0)
+                                        .ToString(
+                                            "0.00",
+                                            CultureInfo.InvariantCulture);
+                            }
+
+                            recalculoPendiente.SetValue(
+                                viewModel,
+                                false);
+
+                            viewModel.ResultadoFertilizacionMixta =
+                                null;
+
+                            limpiarPresentacion.Invoke(
+                                viewModel,
+                                null);
+
+                            restaurarRequerimientos.Invoke(
+                                viewModel,
+                                null);
+
+                            viewModel.Mensaje =
+                                "El balance fue desmarcado. Se conservaron " +
+                                "las fuentes de fertilización mixta, pero " +
+                                "debe calcularla nuevamente como " +
+                                "fertilización independiente.";
+                        }
+                        finally
+                        {
+                            suspendiendo.SetValue(
+                                viewModel,
+                                false);
+                        }
+                    });
+
+                    await CalculoAnalisisTemporalService.Instance
+                        .MarcarPendienteRecalculoAsync(
+                            TipoCalculoTemporal.FertilizacionMixta,
+                            "La fertilización mixta estaba vinculada al " +
+                            "balance que fue desmarcado. Debe recalcularse " +
+                            "como cálculo independiente.",
+                            true);
+
+                    return true;
+                }
+
+                await Task.Delay(100);
+            }
+
+            return false;
+        }
+
+        private static async Task<bool>
+            EsperarYRestaurarMixtaAsync(
+                FertilizacionMixtaTabViewModel viewModel,
+                bool esComplemento)
+        {
+            FertilizacionMixtaCalcularRequest? request =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerRequest<
+                        FertilizacionMixtaCalcularRequest>(
+                            TipoCalculoTemporal.FertilizacionMixta);
+
+            FertilizacionMixtaCalculoResponse? resultado =
+                CalculoAnalisisTemporalService.Instance
+                    .ObtenerResultado<
+                        FertilizacionMixtaCalculoResponse>(
+                            TipoCalculoTemporal.FertilizacionMixta);
+
+            if (request == null ||
+                resultado == null)
+            {
+                return false;
+            }
+
+            FieldInfo? suspendiendo =
+                ObtenerCampoMixta(
+                    "suspendiendoCambiosTemporales");
+
+            if (suspendiendo == null)
+                return false;
+
+            for (int intento = 0;
+                 intento < 300;
+                 intento++)
+            {
+                if (!AnalisisEdicionService.Instance.EsModoEdicion)
+                    return false;
+
+                bool estaSuspendiendo =
+                    suspendiendo.GetValue(viewModel) is true;
+
+                bool contextoListo =
+                    !esComplemento ||
+                    (
+                        viewModel.EsComplementoBalance &&
+                        viewModel.TieneContextoBalance
+                    );
+
+                bool fuentesListas =
+                    request.Fuentes == null ||
+                    request.Fuentes.Count == 0 ||
+                    request.Fuentes.All(item =>
+                        viewModel.FuentesDisponibles.Any(fuente =>
+                            fuente.FuenteNutrientesId ==
+                                item.FuenteNutrientesId));
+
+                if (!viewModel.IsBusy &&
+                    !estaSuspendiendo &&
+                    contextoListo &&
+                    fuentesListas)
+                {
+                    return await RestaurarMixtaAsync(
+                        viewModel,
+                        request,
+                        resultado,
+                        esComplemento);
+                }
+
+                await Task.Delay(100);
+            }
+
+            return false;
+        }
+
+        private static async Task<bool>
+            RestaurarMixtaAsync(
+                FertilizacionMixtaTabViewModel viewModel,
+                FertilizacionMixtaCalcularRequest request,
+                FertilizacionMixtaCalculoResponse resultado,
+                bool esComplemento)
+        {
+            FieldInfo? suspendiendo =
+                ObtenerCampoMixta(
+                    "suspendiendoCambiosTemporales");
+
+            FieldInfo? recalculoPendiente =
+                ObtenerCampoMixta(
+                    "recalcularComplementoPendiente");
+
+            MethodInfo? construirMatriz =
+                ObtenerMetodoMixta(
+                    "ConstruirMatrizAportesPorFuente");
+
+            MethodInfo? construirCostos =
+                ObtenerMetodoMixta(
+                    "ConstruirTablaCostosOrganicos");
+
+            MethodInfo? construirSugerencia =
+                ObtenerMetodoMixta(
+                    "ConstruirSugerenciaIncremento");
+
+            MethodInfo? calcularBalanceAjustado =
+                ObtenerMetodoMixta(
+                    "CalcularBalanceAjustadoAsync");
+
+            if (suspendiendo == null ||
+                recalculoPendiente == null ||
+                construirMatriz == null ||
+                construirCostos == null ||
+                construirSugerencia == null)
+            {
+                return false;
+            }
+
+            Task<bool>? tareaBalanceAjustado =
+                null;
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                suspendiendo.SetValue(
+                    viewModel,
+                    true);
+
+                foreach (
+                    FuenteFertilizacionMixtaItemViewModel fuente
+                    in viewModel.FuentesDisponibles)
+                {
+                    fuente.EstaSeleccionada = false;
+                    fuente.CantidadQq = string.Empty;
+                    fuente.ErrorCantidad = string.Empty;
+                }
+
+                foreach (
+                    FuenteFertilizacionMixtaRequest fuenteRequest
+                    in request.Fuentes)
+                {
+                    if (fuenteRequest.FuenteNutrientesId is null or <= 0)
+                        continue;
+
+                    FuenteFertilizacionMixtaItemViewModel? fuente =
+                        viewModel.FuentesDisponibles
+                            .FirstOrDefault(x =>
+                                x.FuenteNutrientesId ==
+                                    fuenteRequest.FuenteNutrientesId);
+
+                    if (fuente == null)
+                        continue;
+
+                    fuente.EstaSeleccionada = true;
+                    fuente.CantidadQq =
+                        (fuenteRequest.CantidadQq ?? 0)
+                            .ToString(
+                                "0.00",
+                                CultureInfo.InvariantCulture);
+                }
+
+                viewModel.ResultadoFertilizacionMixta =
+                    resultado;
+
+                construirMatriz.Invoke(
+                    viewModel,
+                    null);
+
+                construirCostos.Invoke(
+                    viewModel,
+                    null);
+
+                construirSugerencia.Invoke(
+                    viewModel,
+                    null);
+
+                recalculoPendiente.SetValue(
+                    viewModel,
+                    false);
+
+                if (esComplemento &&
+                    calcularBalanceAjustado != null)
+                {
+                    tareaBalanceAjustado =
+                        calcularBalanceAjustado.Invoke(
+                            viewModel,
+                            new object[]
+                            {
+                                resultado
+                            })
+                        as Task<bool>;
+                }
+            });
+
+            bool balanceAjustadoCorrecto =
+                !esComplemento;
+
+            try
+            {
+                if (esComplemento)
+                {
+                    balanceAjustadoCorrecto =
+                        tareaBalanceAjustado != null &&
+                        await tareaBalanceAjustado;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    viewModel.Mensaje =
+                        esComplemento
+                            ? balanceAjustadoCorrecto
+                                ? "Se cargó la fertilización mixta guardada y su balance comercial ajustado."
+                                : "Se cargó la fertilización mixta guardada, pero no fue posible reconstruir el balance comercial ajustado."
+                            : "Se cargó la fertilización mixta guardada con sus fuentes y su resultado.";
+                });
+
+                return
+                    viewModel.TieneResultadoFertilizacionMixta &&
+                    (
+                        !esComplemento ||
+                        balanceAjustadoCorrecto
+                    );
+            }
+            finally
+            {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    suspendiendo.SetValue(
+                        viewModel,
+                        false);
+
+                    recalculoPendiente.SetValue(
+                        viewModel,
+                        false);
+                });
+            }
+        }
+
+        private static FieldInfo? ObtenerCampoMixta(
+            string nombre)
+        {
+            return typeof(FertilizacionMixtaTabViewModel)
+                .GetField(
+                    nombre,
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+        }
+
+        private static MethodInfo? ObtenerMetodoMixta(
+            string nombre)
+        {
+            return typeof(FertilizacionMixtaTabViewModel)
+                .GetMethod(
+                    nombre,
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+        }
 
         private static bool TieneBalanceTemporal()
         {
@@ -337,8 +902,7 @@ namespace CONATRADEC.Services
                         TipoCalculoTemporal.BalanceFormula);
 
             return
-                request != null &&
-                request.Items != null &&
+                request?.Items != null &&
                 request.Items.Count > 0 &&
                 resultado != null;
         }
@@ -395,8 +959,7 @@ namespace CONATRADEC.Services
                     .ObtenerResultado<BalanceNutricionalResponse>(
                         TipoCalculoTemporal.BalanceFormula);
 
-            if (request == null ||
-                request.Items == null ||
+            if (request?.Items == null ||
                 request.Items.Count == 0 ||
                 resultado == null)
             {

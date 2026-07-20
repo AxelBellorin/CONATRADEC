@@ -36,9 +36,11 @@ namespace CONATRADEC.ViewModels
             if (esEdicionActual)
             {
                 MensajeSeleccionCalculo =
-                    "Los cálculos guardados ya están cargados. " +
-                    "Puede revisar o modificar cualquier sección; " +
-                    "solo deberá actualizar el cálculo que cambie.";
+                    "Los cálculos guardados aparecen seleccionados. " +
+                    "Desmarque los que ya no desea conservar y marque " +
+                    "únicamente los que deben guardarse al actualizar. " +
+                    "Si vuelve a marcar un cálculo sin haberlo reiniciado " +
+                    "ni modificado, se recuperará su resultado guardado.";
             }
         }
 
@@ -46,6 +48,11 @@ namespace CONATRADEC.ViewModels
         {
             if (esEdicionActual)
             {
+                /*
+                 * Cada vez que el usuario cambia la selección y vuelve a
+                 * MultiCálculo, la interfaz debe restaurar únicamente los
+                 * módulos que continúan seleccionados.
+                 */
                 AnalisisEdicionService.Instance.RestauracionUiRealizada =
                     false;
             }
