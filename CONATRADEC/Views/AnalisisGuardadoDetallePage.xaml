@@ -4,14 +4,44 @@
     x:Name="DetallePageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:CONATRADEC.Converters"
+    xmlns:viewModels="clr-namespace:CONATRADEC.ViewModels"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{StaticResource color_Blanco}">
 
-    <Grid RowDefinitions="*,Auto">
-        <ScrollView Grid.Row="0">
-            <VerticalStackLayout Padding="18,14" Spacing="14">
+    <ContentPage.Resources>
+        <converters:QuintalesCompraConverter
+            x:Key="QuintalesCompraConverter" />
 
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+        <converters:CostoCompraFuenteConverter
+            x:Key="CostoCompraFuenteConverter" />
+
+        <converters:BalanceResumenTotalConverter
+            x:Key="BalanceResumenTotalConverter" />
+
+        <converters:ModoBalanceConverter
+            x:Key="ModoBalanceConverter" />
+
+        <converters:ModoMixtaConverter
+            x:Key="ModoMixtaConverter" />
+
+        <converters:EnmiendaInterpretacionConverter
+            x:Key="EnmiendaInterpretacionConverter" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+
+            <VerticalStackLayout
+                Padding="18,14"
+                Spacing="14">
+
+                <!-- ENCABEZADO -->
+                <Grid
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="10">
+
                     <Button
                         Grid.Column="0"
                         Text="‹"
@@ -23,29 +53,38 @@
                         HeightRequest="48"
                         CornerRadius="14" />
 
-                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <VerticalStackLayout
+                        Grid.Column="1"
+                        Spacing="2"
+                        VerticalOptions="Center">
+
                         <Label
                             Text="Detalle del análisis"
                             FontSize="25"
                             FontAttributes="Bold"
                             TextColor="{StaticResource color_Verde}" />
+
                         <Label
-                            Text="Información guardada y resultados calculados"
+                            Text="Visualización completa de los datos y cálculos guardados"
                             FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}" />
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
+
                     </VerticalStackLayout>
 
                     <Button
+                        x:Name="EditarButton"
                         Grid.Column="2"
                         Text="Editar"
-                        Command="{Binding EditarCommand}"
                         IsVisible="{Binding CanEdit}"
                         BackgroundColor="{StaticResource BlueUpdate}"
                         TextColor="White"
                         CornerRadius="12"
                         Padding="14,8" />
+
                 </Grid>
 
+                <!-- MENSAJES -->
                 <Border
                     IsVisible="{Binding TieneMensaje}"
                     BackgroundColor="#FFF7ED"
@@ -53,220 +92,1783 @@
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 14"
                     Padding="12">
+
                     <Label
                         Text="{Binding Mensaje}"
                         FontSize="13"
                         TextColor="#9A3412"
                         LineBreakMode="WordWrap" />
+
                 </Border>
 
-                <VerticalStackLayout IsVisible="{Binding TieneDetalle}" Spacing="14">
+                <VerticalStackLayout
+                    IsVisible="{Binding TieneDetalle}"
+                    Spacing="14">
 
-                    <Border Style="{StaticResource CardAnalisisStyle}">
-                        <VerticalStackLayout Spacing="10">
-                            <Label Text="Datos generales" Style="{StaticResource SectionTitleStyle}" />
-                            <Label Text="{Binding ClienteMostrar}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                            <Label Text="{Binding TerrenoMostrar}" FontSize="13" TextColor="{StaticResource color_GrisOscuro}" />
+                    <!-- DATOS GENERALES -->
+                    <Border
+                        Style="{StaticResource CardAnalisisStyle}">
 
-                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
-                                <VerticalStackLayout Grid.Row="0" Grid.Column="0">
-                                    <Label Text="Identificador" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.DatosAnalisis.IdentificadorAnalisisSuelo}" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                        <VerticalStackLayout Spacing="12">
+
+                            <Label
+                                Text="Datos generales"
+                                Style="{StaticResource SectionTitleStyle}" />
+
+                            <Label
+                                Text="{Binding ClienteMostrar}"
+                                FontSize="18"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Label
+                                Text="{Binding TerrenoMostrar}"
+                                FontSize="13"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Grid
+                                ColumnDefinitions="*,*"
+                                RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                ColumnSpacing="12"
+                                RowSpacing="10">
+
+                                <VerticalStackLayout
+                                    Grid.Row="0"
+                                    Grid.Column="0">
+
+                                    <Label
+                                        Text="Identificador"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.DatosAnalisis.IdentificadorAnalisisSuelo}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="0" Grid.Column="1">
-                                    <Label Text="Fecha del análisis" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.DatosAnalisis.FechaAnalisisTexto}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+
+                                <VerticalStackLayout
+                                    Grid.Row="0"
+                                    Grid.Column="1">
+
+                                    <Label
+                                        Text="Fecha del análisis"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.DatosAnalisis.FechaAnalisisTexto}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2">
-                                    <Label Text="Laboratorio" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.DatosAnalisis.LaboratorioAnalasisSuelo}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+
+                                <VerticalStackLayout
+                                    Grid.Row="1"
+                                    Grid.ColumnSpan="2">
+
+                                    <Label
+                                        Text="Laboratorio"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.DatosAnalisis.LaboratorioAnalasisSuelo}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="2" Grid.ColumnSpan="2">
-                                    <Label Text="Fecha y hora de registro" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.DatosAnalisis.FechaRegistroTexto}" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+
+                                <VerticalStackLayout
+                                    Grid.Row="2"
+                                    Grid.ColumnSpan="2">
+
+                                    <Label
+                                        Text="Fecha y hora de registro"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.DatosAnalisis.FechaRegistroTexto}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="3" Grid.Column="0">
-                                    <Label Text="pH" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.RequerimientoAnual.Ph, StringFormat='{0:N2}'}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+
+                                <VerticalStackLayout
+                                    Grid.Row="3"
+                                    Grid.Column="0">
+
+                                    <Label
+                                        Text="pH"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.RequerimientoAnual.Ph, StringFormat='{0:N2}'}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="3" Grid.Column="1">
-                                    <Label Text="Acidez total" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.RequerimientoAnual.AcidezTotal, StringFormat='{0:N2}'}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+
+                                <VerticalStackLayout
+                                    Grid.Row="3"
+                                    Grid.Column="1">
+
+                                    <Label
+                                        Text="Acidez total"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.RequerimientoAnual.AcidezTotal, StringFormat='{0:N2}'}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
                                 </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Row="4"
+                                    Grid.Column="0">
+
+                                    <Label
+                                        Text="Materia orgánica"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.RequerimientoAnual.MateriaOrganica, StringFormat='{0:N2}'}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Row="4"
+                                    Grid.Column="1">
+
+                                    <Label
+                                        Text="Producción"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.RequerimientoAnual.CantidadQuintalesOro, StringFormat='{0:N2} qq oro'}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Cafe}" />
+
+                                </VerticalStackLayout>
+
                             </Grid>
+
                         </VerticalStackLayout>
+
                     </Border>
 
-                    <Border Style="{StaticResource CardAnalisisStyle}">
+                    <!-- VALORES ORIGINALES -->
+                    <Border
+                        Style="{StaticResource CardAnalisisStyle}">
+
                         <VerticalStackLayout Spacing="12">
-                            <Label Text="Valores originales del laboratorio" Style="{StaticResource SectionTitleStyle}" />
+
+                            <Label
+                                Text="Valores originales del laboratorio"
+                                Style="{StaticResource SectionTitleStyle}" />
+
                             <VerticalStackLayout
                                 BindableLayout.ItemsSource="{Binding Detalle.DatosAnalisis.ElementosQuimicos}"
                                 Spacing="8">
+
                                 <BindableLayout.ItemTemplate>
+
                                     <DataTemplate>
-                                        <Border BackgroundColor="#F9FAFB" Stroke="#E5E7EB" StrokeShape="RoundRectangle 12" Padding="11">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                                <Label Text="{Binding ElementoMostrar}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                                                <Label Grid.Column="1" Text="{Binding CantidadElemento, StringFormat='{0:N4}'}" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+
+                                        <Border
+                                            BackgroundColor="#F9FAFB"
+                                            Stroke="#E5E7EB"
+                                            StrokeShape="RoundRectangle 12"
+                                            Padding="11">
+
+                                            <Grid
+                                                ColumnDefinitions="*,Auto"
+                                                ColumnSpacing="10">
+
+                                                <VerticalStackLayout Spacing="2">
+
+                                                    <Label
+                                                        Text="{Binding ElementoMostrar}"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{StaticResource color_Negro}" />
+
+                                                    <Label
+                                                        Text="{Binding UnidadMostrar}"
+                                                        FontSize="11"
+                                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                </VerticalStackLayout>
+
+                                                <Label
+                                                    Grid.Column="1"
+                                                    Text="{Binding CantidadElemento, StringFormat='{0:N4}'}"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Cafe}"
+                                                    VerticalOptions="Center" />
+
                                             </Grid>
+
                                         </Border>
+
                                     </DataTemplate>
+
                                 </BindableLayout.ItemTemplate>
+
                             </VerticalStackLayout>
+
                         </VerticalStackLayout>
+
                     </Border>
 
-                    <Border Style="{StaticResource CardAnalisisStyle}">
-                        <VerticalStackLayout Spacing="12">
-                            <Label Text="Requerimiento anual" Style="{StaticResource SectionTitleStyle}" />
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <!-- REQUERIMIENTO ANUAL -->
+                    <Border
+                        Style="{StaticResource CardAnalisisStyle}">
+
+                        <VerticalStackLayout Spacing="14">
+
+                            <Label
+                                Text="Requerimiento anual"
+                                Style="{StaticResource SectionTitleStyle}" />
+
+                            <Grid
+                                ColumnDefinitions="*,*"
+                                ColumnSpacing="12">
+
                                 <VerticalStackLayout Grid.Column="0">
-                                    <Label Text="Producción" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.RequerimientoAnual.CantidadQuintalesOro, StringFormat='{0:N2} qq oro'}" FontAttributes="Bold" />
+
+                                    <Label
+                                        Text="Producción"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.RequerimientoAnual.CantidadQuintalesOro, StringFormat='{0:N2} qq oro'}"
+                                        FontAttributes="Bold" />
+
                                 </VerticalStackLayout>
+
                                 <VerticalStackLayout Grid.Column="1">
-                                    <Label Text="Tamaño de finca" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.RequerimientoAnual.TamanoFinca, StringFormat='{0:N2} mz'}" FontAttributes="Bold" />
+
+                                    <Label
+                                        Text="Tamaño de finca"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.RequerimientoAnual.TamanoFinca, StringFormat='{0:N2} mz'}"
+                                        FontAttributes="Bold" />
+
                                 </VerticalStackLayout>
+
                             </Grid>
 
                             <VerticalStackLayout
                                 BindableLayout.ItemsSource="{Binding Detalle.RequerimientoAnual.Elementos}"
                                 Spacing="8">
+
                                 <BindableLayout.ItemTemplate>
+
                                     <DataTemplate>
-                                        <Border BackgroundColor="#F9FAFB" Stroke="#E5E7EB" StrokeShape="RoundRectangle 12" Padding="11">
-                                            <VerticalStackLayout Spacing="5">
-                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                                    <Label Text="{Binding ElementoMostrar}" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
-                                                    <Label Grid.Column="1" Text="{Binding RequerimientoCalculado, StringFormat='{0:N2} lb/mz'}" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+
+                                        <Border
+                                            BackgroundColor="#F9FAFB"
+                                            Stroke="#E5E7EB"
+                                            StrokeShape="RoundRectangle 12"
+                                            Padding="11">
+
+                                            <VerticalStackLayout Spacing="7">
+
+                                                <Grid
+                                                    ColumnDefinitions="*,Auto"
+                                                    ColumnSpacing="10">
+
+                                                    <VerticalStackLayout Spacing="2">
+
+                                                        <Label
+                                                            Text="{Binding ElementoMostrar}"
+                                                            FontAttributes="Bold"
+                                                            TextColor="{StaticResource color_Verde}" />
+
+                                                        <Label
+                                                            Text="{Binding Clasificacion}"
+                                                            FontSize="11"
+                                                            FontAttributes="Bold"
+                                                            TextColor="{StaticResource color_Cafe}" />
+
+                                                    </VerticalStackLayout>
+
+                                                    <Label
+                                                        Grid.Column="1"
+                                                        Text="{Binding RequerimientoCalculado, StringFormat='{0:N2} lb/mz'}"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{StaticResource color_Cafe}"
+                                                        VerticalOptions="Center" />
+
                                                 </Grid>
-                                                <Label Text="{Binding Observacion}" FontSize="12" TextColor="{StaticResource color_GrisOscuro}" LineBreakMode="WordWrap" />
+
+                                                <Grid
+                                                    ColumnDefinitions="*,*"
+                                                    ColumnSpacing="10">
+
+                                                    <VerticalStackLayout Grid.Column="0">
+
+                                                        <Label
+                                                            Text="Cantidad ingresada"
+                                                            FontSize="11"
+                                                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                        <Label
+                                                            Text="{Binding CantidadIngresada, StringFormat='{0:N4}'}"
+                                                            FontSize="13"
+                                                            FontAttributes="Bold" />
+
+                                                    </VerticalStackLayout>
+
+                                                    <VerticalStackLayout Grid.Column="1">
+
+                                                        <Label
+                                                            Text="Cantidad convertida"
+                                                            FontSize="11"
+                                                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                        <Label
+                                                            Text="{Binding CantidadConvertidaLbMz, StringFormat='{0:N2} lb/mz'}"
+                                                            FontSize="13"
+                                                            FontAttributes="Bold" />
+
+                                                    </VerticalStackLayout>
+
+                                                </Grid>
+
+                                                <Label
+                                                    Text="{Binding Observacion}"
+                                                    FontSize="12"
+                                                    TextColor="{StaticResource color_GrisOscuro}"
+                                                    LineBreakMode="WordWrap" />
+
                                             </VerticalStackLayout>
+
                                         </Border>
+
                                     </DataTemplate>
+
                                 </BindableLayout.ItemTemplate>
+
                             </VerticalStackLayout>
 
-                            <Border BackgroundColor="#EEF5F2" StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="12">
-                                <VerticalStackLayout Spacing="4">
-                                    <Label Text="Recomendación general" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
-                                    <Label Text="{Binding Detalle.RequerimientoAnual.RecomendacionGeneral}" FontSize="13" TextColor="{StaticResource color_Negro}" LineBreakMode="WordWrap" />
+                            <Border
+                                BackgroundColor="#EEF5F2"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="12">
+
+                                <VerticalStackLayout Spacing="5">
+
+                                    <Label
+                                        Text="Recomendación general"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.RequerimientoAnual.RecomendacionGeneral}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource color_Negro}"
+                                        LineBreakMode="WordWrap" />
+
                                 </VerticalStackLayout>
+
                             </Border>
-                        </VerticalStackLayout>
-                    </Border>
 
-                    <Border Style="{StaticResource CardAnalisisStyle}" IsVisible="{Binding TieneBalance}">
-                        <VerticalStackLayout Spacing="12">
-                            <Label Text="Balance de fórmula" Style="{StaticResource SectionTitleStyle}" />
-                            <Label Text="{Binding Detalle.BalanceNutricional.Formula.NombreFormula}" FontSize="17" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                            <VerticalStackLayout
+                                BindableLayout.ItemsSource="{Binding Detalle.RequerimientoAnual.Observaciones}"
+                                Spacing="6">
 
-                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="10">
-                                <VerticalStackLayout Grid.Row="0" Grid.Column="0">
-                                    <Label Text="Mezcla total" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.BalanceNutricional.Formula.MezclaTotalQq, StringFormat='{0:N2} qq'}" FontAttributes="Bold" />
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="0" Grid.Column="1">
-                                    <Label Text="Costo total" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.BalanceNutricional.Formula.PrecioTotalFormula, StringFormat='C$ {0:N2}'}" FontAttributes="Bold" />
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="1" Grid.Column="0">
-                                    <Label Text="Aplicaciones" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.BalanceNutricional.Formula.TotalAplicaciones}" FontAttributes="Bold" />
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Row="1" Grid.Column="1">
-                                    <Label Text="Dosis por planta/aplicación" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
-                                    <Label Text="{Binding Detalle.BalanceNutricional.Formula.DosisPlantaPorAplicacionOz, StringFormat='{0:N2} oz'}" FontAttributes="Bold" />
-                                </VerticalStackLayout>
-                            </Grid>
-
-                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Detalle.BalanceNutricional.Detalles}" Spacing="8">
                                 <BindableLayout.ItemTemplate>
+
                                     <DataTemplate>
-                                        <Border BackgroundColor="#F9FAFB" Stroke="#E5E7EB" StrokeShape="RoundRectangle 12" Padding="11">
-                                            <VerticalStackLayout Spacing="4">
-                                                <Label Text="{Binding FuenteMostrar}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                                                <Label Text="{Binding ElementoMostrar}" FontSize="12" TextColor="{StaticResource color_GrisOscuro}" />
-                                                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                                                    <Label Text="{Binding Qq, StringFormat='{0:N2} qq'}" FontSize="12" />
-                                                    <Label Grid.Column="1" Text="{Binding PrecioPorQuintal, StringFormat='C$ {0:N2}/qq'}" FontSize="12" />
-                                                    <Label Grid.Column="2" Text="{Binding SubtotalFuente, StringFormat='C$ {0:N2}'}" FontSize="12" FontAttributes="Bold" HorizontalTextAlignment="End" />
-                                                </Grid>
-                                            </VerticalStackLayout>
+
+                                        <Border
+                                            BackgroundColor="#FFF7ED"
+                                            Stroke="#FED7AA"
+                                            StrokeShape="RoundRectangle 10"
+                                            Padding="9">
+
+                                            <Label
+                                                Text="{Binding .}"
+                                                FontSize="12"
+                                                TextColor="#7C2D12"
+                                                LineBreakMode="WordWrap" />
+
                                         </Border>
+
                                     </DataTemplate>
+
                                 </BindableLayout.ItemTemplate>
+
                             </VerticalStackLayout>
+
                         </VerticalStackLayout>
+
                     </Border>
 
-                    <Border Style="{StaticResource CardAnalisisStyle}" IsVisible="{Binding TieneEnmienda}">
-                        <VerticalStackLayout Spacing="12">
-                            <Label Text="Enmienda calcárea" Style="{StaticResource SectionTitleStyle}" />
-                            <Label Text="{Binding Detalle.EnmiendaCalcarea.FuenteMostrar}" FontSize="17" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                    <!-- CÁLCULOS COMPLEMENTARIOS -->
+                    <VerticalStackLayout
+                        x:Name="ContenedorCalculos"
+                        IsVisible="False"
+                        Spacing="14">
 
-                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
-                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Detalle.EnmiendaCalcarea.Cice, StringFormat='CICE: {0:N2}'}" />
-                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Detalle.EnmiendaCalcarea.SaturacionActual, StringFormat='Saturación actual: {0:N2}%'}" />
-                                <Label Grid.Row="1" Grid.Column="0" Text="{Binding Detalle.EnmiendaCalcarea.NecesidadEncaladoTonHa, StringFormat='Necesidad: {0:N2} ton/ha'}" />
-                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding Detalle.EnmiendaCalcarea.NecesidadEncaladoLbMz, StringFormat='{0:N2} lb/mz'}" />
-                                <Label Grid.Row="2" Grid.Column="0" Text="{Binding Detalle.EnmiendaCalcarea.DosisPlantaAnualOz, StringFormat='Dosis anual: {0:N2} oz'}" />
-                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding Detalle.EnmiendaCalcarea.DosisPlantaPorAplicacionOz, StringFormat='Por aplicación: {0:N2} oz'}" />
-                            </Grid>
-                        </VerticalStackLayout>
-                    </Border>
+                        <Border
+                            BackgroundColor="{StaticResource color_Verde}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 18"
+                            Padding="16">
 
-                    <Border Style="{StaticResource CardAnalisisStyle}" IsVisible="{Binding TieneFertilizacionMixta}">
-                        <VerticalStackLayout Spacing="12">
-                            <Label Text="Fertilización mixta" Style="{StaticResource SectionTitleStyle}" />
-                            <Label Text="{Binding Detalle.FertilizacionMixta.Mixta.Observacion}" FontSize="13" TextColor="{StaticResource color_GrisOscuro}" />
+                            <VerticalStackLayout Spacing="5">
 
-                            <Label Text="Fuentes utilizadas" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
-                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Detalle.FertilizacionMixta.Fuentes}" Spacing="7">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border BackgroundColor="#FFF8D8" StrokeThickness="0" StrokeShape="RoundRectangle 11" Padding="10">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <Label Text="{Binding FuenteMostrar}" FontAttributes="Bold" />
-                                                <Label Grid.Column="1" Text="{Binding CantidadQq, StringFormat='{0:N2} qq'}" FontAttributes="Bold" TextColor="#7A5C00" />
+                                <Label
+                                    Text="Cálculos complementarios"
+                                    FontSize="21"
+                                    FontAttributes="Bold"
+                                    TextColor="White" />
+
+                                <Label
+                                    Text="Las pestañas muestran los mismos resultados utilizados durante la creación y edición, en modo solo lectura."
+                                    FontSize="13"
+                                    TextColor="White"
+                                    Opacity="0.9"
+                                    LineBreakMode="WordWrap" />
+
+                            </VerticalStackLayout>
+
+                        </Border>
+
+                        <Grid
+                            ColumnDefinitions="*,*,*"
+                            ColumnSpacing="8">
+
+                            <Button
+                                x:Name="BalanceTabButton"
+                                Grid.Column="0"
+                                Text="Balance"
+                                Clicked="BalanceTabButton_Clicked"
+                                HeightRequest="48"
+                                CornerRadius="14"
+                                FontAttributes="Bold"
+                                BackgroundColor="#E5E7EB"
+                                TextColor="Black" />
+
+                            <Button
+                                x:Name="EnmiendaTabButton"
+                                Grid.Column="1"
+                                Text="Enmienda"
+                                Clicked="EnmiendaTabButton_Clicked"
+                                HeightRequest="48"
+                                CornerRadius="14"
+                                FontAttributes="Bold"
+                                BackgroundColor="#E5E7EB"
+                                TextColor="Black" />
+
+                            <Button
+                                x:Name="MixtaTabButton"
+                                Grid.Column="2"
+                                Text="Mixta"
+                                Clicked="MixtaTabButton_Clicked"
+                                HeightRequest="48"
+                                CornerRadius="14"
+                                FontAttributes="Bold"
+                                BackgroundColor="#E5E7EB"
+                                TextColor="Black" />
+
+                        </Grid>
+
+                        <!-- BALANCE -->
+                        <VerticalStackLayout
+                            x:Name="BalancePanel"
+                            IsVisible="False"
+                            Spacing="14">
+
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Balance de fórmula"
+                                        FontSize="21"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.BalanceNutricional.Formula.NombreFormula}"
+                                        FontSize="16"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
+                                    <Border
+                                        BackgroundColor="#EEF5F2"
+                                        Stroke="{StaticResource color_Verde}"
+                                        StrokeShape="RoundRectangle 12"
+                                        Padding="11">
+
+                                        <Label
+                                            Text="{Binding Detalle.BalanceNutricional.Formula.EsComplementoFertilizacionMixta, Converter={StaticResource ModoBalanceConverter}}"
+                                            FontSize="13"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Verde}"
+                                            LineBreakMode="WordWrap" />
+
+                                    </Border>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        RowDefinitions="Auto,Auto,Auto"
+                                        ColumnSpacing="12"
+                                        RowSpacing="10">
+
+                                        <VerticalStackLayout
+                                            Grid.Row="0"
+                                            Grid.Column="0">
+
+                                            <Label
+                                                Text="Total de plantas"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                            <Label
+                                                Text="{Binding Detalle.BalanceNutricional.Formula.TotalPlantas, StringFormat='{0:N0}'}"
+                                                FontAttributes="Bold" />
+
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Row="0"
+                                            Grid.Column="1">
+
+                                            <Label
+                                                Text="Aplicaciones"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                            <Label
+                                                Text="{Binding Detalle.BalanceNutricional.Formula.TotalAplicaciones}"
+                                                FontAttributes="Bold" />
+
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Row="1"
+                                            Grid.Column="0">
+
+                                            <Label
+                                                Text="Total mezcla"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                            <Label
+                                                Text="{Binding Detalle.BalanceNutricional.Formula.MezclaTotalQq, StringFormat='{0:N2} qq'}"
+                                                FontAttributes="Bold" />
+
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Row="1"
+                                            Grid.Column="1">
+
+                                            <Label
+                                                Text="Total libras"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                            <Label
+                                                Text="{Binding Detalle.BalanceNutricional.Formula.TotalLibras, StringFormat='{0:N2} lb'}"
+                                                FontAttributes="Bold" />
+
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Row="2"
+                                            Grid.Column="0">
+
+                                            <Label
+                                                Text="Dosis anual por planta"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                            <Label
+                                                Text="{Binding Detalle.BalanceNutricional.Formula.DosisPlantaAnualOz, StringFormat='{0:N4} oz'}"
+                                                FontAttributes="Bold" />
+
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Row="2"
+                                            Grid.Column="1">
+
+                                            <Label
+                                                Text="Dosis por aplicación"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                            <Label
+                                                Text="{Binding Detalle.BalanceNutricional.Formula.DosisPlantaPorAplicacionOz, StringFormat='{0:N4} oz'}"
+                                                FontAttributes="Bold" />
+
+                                        </VerticalStackLayout>
+
+                                    </Grid>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- CUADRO DE FÓRMULA -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Cuadro de fórmula"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Label
+                                        Text="Deslice horizontalmente para consultar todas las cantidades guardadas."
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <ScrollView Orientation="Horizontal">
+
+                                        <VerticalStackLayout Spacing="0">
+
+                                            <Grid
+                                                ColumnDefinitions="180,110,95,145,120,120,120,120"
+                                                BackgroundColor="{StaticResource color_Verde}"
+                                                MinimumWidthRequest="1010">
+
+                                                <Label Grid.Column="0" Text="Fuente / elemento" TextColor="White" FontAttributes="Bold" Padding="8" />
+                                                <Label Grid.Column="1" Text="Libras" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="2" Text="QQ" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="3" Text="Requerimiento" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="4" Text="Precio/QQ" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="5" Text="Subtotal" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="6" Text="Oz anuales" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="7" Text="Oz/aplicación" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+
                                             </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
 
-                            <Label Text="Resultado recalculado para visualización" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" IsVisible="{Binding TieneMixtaRecalculada}" />
-                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding FertilizacionMixtaRecalculada.Detalles}" Spacing="8" IsVisible="{Binding TieneMixtaRecalculada}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border BackgroundColor="#F9FAFB" Stroke="#E5E7EB" StrokeShape="RoundRectangle 12" Padding="11">
-                                            <VerticalStackLayout Spacing="4">
-                                                <Label Text="{Binding Elemento}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                                                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                                                    <Label Text="{Binding AporteOrganico, StringFormat='Aporte: {0:N2}'}" FontSize="12" />
-                                                    <Label Grid.Column="1" Text="{Binding Deficit, StringFormat='Déficit: {0:N2}'}" FontSize="12" />
-                                                    <Label Grid.Column="2" Text="{Binding Sobrante, StringFormat='Sobrante: {0:N2}'}" FontSize="12" />
-                                                </Grid>
+                                            <VerticalStackLayout
+                                                Spacing="0"
+                                                BindableLayout.ItemsSource="{Binding Detalle.BalanceNutricional.Detalles}">
+
+                                                <BindableLayout.ItemTemplate>
+
+                                                    <DataTemplate>
+
+                                                        <Grid
+                                                            ColumnDefinitions="180,110,95,145,120,120,120,120"
+                                                            MinimumWidthRequest="1010"
+                                                            BackgroundColor="#F9FAFB">
+
+                                                            <VerticalStackLayout Grid.Column="0" Padding="8,6" Spacing="1">
+                                                                <Label Text="{Binding FuenteMostrar}" FontSize="12" FontAttributes="Bold" />
+                                                                <Label Text="{Binding ElementoMostrar}" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                                            </VerticalStackLayout>
+
+                                                            <Label Grid.Column="1" Text="{Binding Libras, StringFormat='{0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="2" Text="{Binding Qq, StringFormat='{0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="3" Text="{Binding RequerimientoLibras, StringFormat='{0:N2} lb'}" Padding="8,6" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="4" Text="{Binding PrecioPorQuintal, StringFormat='C$ {0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="5" Text="{Binding SubtotalFuente, StringFormat='C$ {0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                                                            <Label Grid.Column="6" Text="{Binding OnzasAnuales, StringFormat='{0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="7" Text="{Binding OnzasPorAplicacion, StringFormat='{0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+
+                                                        </Grid>
+
+                                                    </DataTemplate>
+
+                                                </BindableLayout.ItemTemplate>
+
                                             </VerticalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
+
+                                        </VerticalStackLayout>
+
+                                    </ScrollView>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- COSTOS -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Resumen de costos"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Label
+                                        Text="El costo de compra utiliza quintales enteros; el subtotal exacto se conserva como referencia."
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        LineBreakMode="WordWrap" />
+
+                                    <ScrollView Orientation="Horizontal">
+
+                                        <VerticalStackLayout Spacing="0">
+
+                                            <Grid
+                                                ColumnDefinitions="180,100,100,115,120,130,135"
+                                                MinimumWidthRequest="880"
+                                                BackgroundColor="#5F6663">
+
+                                                <Label Grid.Column="0" Text="Fuente" TextColor="White" FontAttributes="Bold" Padding="8" />
+                                                <Label Grid.Column="1" Text="Libras" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="2" Text="QQ exactos" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="3" Text="QQ comprar" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="4" Text="Precio/QQ" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="5" Text="Subtotal exacto" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="6" Text="Costo compra" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+
+                                            </Grid>
+
+                                            <VerticalStackLayout
+                                                Spacing="0"
+                                                BindableLayout.ItemsSource="{Binding Detalle.BalanceNutricional.Detalles}">
+
+                                                <BindableLayout.ItemTemplate>
+
+                                                    <DataTemplate>
+
+                                                        <Grid
+                                                            ColumnDefinitions="180,100,100,115,120,130,135"
+                                                            MinimumWidthRequest="880"
+                                                            BackgroundColor="#EEF5F2">
+
+                                                            <Label Grid.Column="0" Text="{Binding FuenteMostrar}" Padding="8,6" FontSize="12" FontAttributes="Bold" />
+                                                            <Label Grid.Column="1" Text="{Binding Libras, StringFormat='{0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="2" Text="{Binding Qq, StringFormat='{0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="3" Text="{Binding Qq, Converter={StaticResource QuintalesCompraConverter}, StringFormat='{0:N0}'}" Padding="8,6" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                                                            <Label Grid.Column="4" Text="{Binding PrecioPorQuintal, StringFormat='C$ {0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="5" Text="{Binding SubtotalFuente, StringFormat='C$ {0:N2}'}" Padding="8,6" HorizontalTextAlignment="End" />
+
+                                                            <Label
+                                                                Grid.Column="6"
+                                                                Padding="8,6"
+                                                                HorizontalTextAlignment="End"
+                                                                FontAttributes="Bold"
+                                                                TextColor="{StaticResource color_Cafe}">
+
+                                                                <Label.Text>
+
+                                                                    <MultiBinding
+                                                                        Converter="{StaticResource CostoCompraFuenteConverter}"
+                                                                        StringFormat="C$ {0:N2}">
+
+                                                                        <Binding Path="Qq" />
+                                                                        <Binding Path="PrecioPorQuintal" />
+
+                                                                    </MultiBinding>
+
+                                                                </Label.Text>
+
+                                                            </Label>
+
+                                                        </Grid>
+
+                                                    </DataTemplate>
+
+                                                </BindableLayout.ItemTemplate>
+
+                                            </VerticalStackLayout>
+
+                                            <Grid
+                                                ColumnDefinitions="180,100,100,115,120,130,135"
+                                                MinimumWidthRequest="880"
+                                                BackgroundColor="#DDEBE5">
+
+                                                <Label Grid.Column="0" Text="Total" Padding="8" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                                <Label Grid.Column="1" Text="{Binding Detalle.BalanceNutricional.Detalles, Converter={StaticResource BalanceResumenTotalConverter}, ConverterParameter=Libras, StringFormat='{0:N2}'}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                                                <Label Grid.Column="2" Text="{Binding Detalle.BalanceNutricional.Detalles, Converter={StaticResource BalanceResumenTotalConverter}, ConverterParameter=QqExactos, StringFormat='{0:N2}'}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                                                <Label Grid.Column="3" Text="{Binding Detalle.BalanceNutricional.Detalles, Converter={StaticResource BalanceResumenTotalConverter}, ConverterParameter=QqCompra, StringFormat='{0:N0}'}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                                                <Label Grid.Column="4" Text="—" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="5" Text="{Binding Detalle.BalanceNutricional.Detalles, Converter={StaticResource BalanceResumenTotalConverter}, ConverterParameter=SubtotalExacto, StringFormat='C$ {0:N2}'}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" />
+                                                <Label Grid.Column="6" Text="{Binding Detalle.BalanceNutricional.Detalles, Converter={StaticResource BalanceResumenTotalConverter}, ConverterParameter=CostoCompra, StringFormat='C$ {0:N2}'}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+
+                                            </Grid>
+
+                                        </VerticalStackLayout>
+
+                                    </ScrollView>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- RESULTADO FINAL BALANCE -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16">
+
+                                <VerticalStackLayout Spacing="13">
+
+                                    <Label
+                                        Text="Resultado del balance"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        RowDefinitions="Auto,Auto"
+                                        ColumnSpacing="12"
+                                        RowSpacing="12">
+
+                                        <VerticalStackLayout Grid.Row="0" Grid.Column="0">
+                                            <Label Text="Precio exacto de referencia" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.BalanceNutricional.Detalles, Converter={StaticResource BalanceResumenTotalConverter}, ConverterParameter=SubtotalExacto, StringFormat='C$ {0:N2}'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="0" Grid.Column="1">
+                                            <Label Text="Costo real de compra" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.BalanceNutricional.Detalles, Converter={StaticResource BalanceResumenTotalConverter}, ConverterParameter=CostoCompra, StringFormat='C$ {0:N2}'}" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="1" Grid.Column="0">
+                                            <Label Text="Precio por aplicación" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.BalanceNutricional.Formula.PrecioPorAplicacion, StringFormat='C$ {0:N2}'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="1" Grid.Column="1">
+                                            <Label Text="Total onzas" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.BalanceNutricional.Formula.TotalOnzas, StringFormat='{0:N2} oz'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                    </Grid>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
                         </VerticalStackLayout>
+
+                        <!-- ENMIENDA -->
+                        <VerticalStackLayout
+                            x:Name="EnmiendaPanel"
+                            IsVisible="False"
+                            Spacing="14">
+
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Enmienda calcárea"
+                                        FontSize="21"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Cafe}" />
+
+                                    <Label
+                                        Text="{Binding Detalle.EnmiendaCalcarea.FuenteMostrar}"
+                                        FontSize="16"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        RowDefinitions="Auto,Auto,Auto,Auto"
+                                        ColumnSpacing="12"
+                                        RowSpacing="10">
+
+                                        <VerticalStackLayout Grid.Row="0" Grid.Column="0">
+                                            <Label Text="pH" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.EnmiendaCalcarea.Ph, StringFormat='{0:N2}'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="0" Grid.Column="1">
+                                            <Label Text="Acidez total" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.EnmiendaCalcarea.AcidezTotal, StringFormat='{0:N2}'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="1" Grid.Column="0">
+                                            <Label Text="Ca CICE" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.EnmiendaCalcarea.Ca, StringFormat='{0:N2}'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="1" Grid.Column="1">
+                                            <Label Text="Mg CICE" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.EnmiendaCalcarea.Mg, StringFormat='{0:N2}'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="2" Grid.Column="0">
+                                            <Label Text="K CICE" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.EnmiendaCalcarea.K, StringFormat='{0:N2}'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="2" Grid.Column="1">
+                                            <Label Text="PRNT" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.EnmiendaCalcarea.Prnt, StringFormat='{0:N2}%'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="3" Grid.Column="0">
+                                            <Label Text="Total de plantas" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.EnmiendaCalcarea.TotalPlantas, StringFormat='{0:N0}'}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Grid.Row="3" Grid.Column="1">
+                                            <Label Text="Aplicaciones" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding Detalle.EnmiendaCalcarea.TotalAplicaciones}" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+
+                                    </Grid>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16">
+
+                                <VerticalStackLayout Spacing="14">
+
+                                    <Label
+                                        Text="Resultado de enmienda"
+                                        FontSize="19"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Cafe}" />
+
+                                    <Border
+                                        BackgroundColor="#FFF7ED"
+                                        Stroke="#FED7AA"
+                                        StrokeShape="RoundRectangle 14"
+                                        Padding="14">
+
+                                        <Grid
+                                            ColumnDefinitions="*,*"
+                                            RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                            ColumnSpacing="12"
+                                            RowSpacing="12">
+
+                                            <VerticalStackLayout Grid.Row="0" Grid.Column="0">
+                                                <Label Text="Suma de bases" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.SumaBases, StringFormat='{0:N2}'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="0" Grid.Column="1">
+                                                <Label Text="CICE" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.Cice, StringFormat='{0:N2}'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="1" Grid.Column="0">
+                                                <Label Text="Saturación actual" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.SaturacionActual, StringFormat='{0:N2}%'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="1" Grid.Column="1">
+                                                <Label Text="Saturación deseada" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.SaturacionDeseada, StringFormat='{0:N2}%'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="2" Grid.Column="0">
+                                                <Label Text="Necesidad ton/ha" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.NecesidadEncaladoTonHa, StringFormat='{0:N2} ton/ha'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="2" Grid.Column="1">
+                                                <Label Text="Necesidad kg/ha" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.NecesidadEncaladoKgHa, StringFormat='{0:N2} kg/ha'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="3" Grid.Column="0">
+                                                <Label Text="Necesidad lb/ha" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.NecesidadEncaladoLbHa, StringFormat='{0:N2} lb/ha'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="3" Grid.Column="1">
+                                                <Label Text="Necesidad lb/mz" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.NecesidadEncaladoLbMz, StringFormat='{0:N2} lb/mz'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="4" Grid.Column="0">
+                                                <Label Text="Necesidad oz/mz" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.NecesidadEncaladoOzMz, StringFormat='{0:N2} oz/mz'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Row="4" Grid.Column="1">
+                                                <Label Text="PRNT aplicado" FontSize="11" TextColor="#7C2D12" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.Prnt, StringFormat='{0:N2}%'}" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+
+                                        </Grid>
+
+                                    </Border>
+
+                                    <Border
+                                        BackgroundColor="#EEF5F2"
+                                        Stroke="{StaticResource color_Verde}"
+                                        StrokeShape="RoundRectangle 12"
+                                        Padding="12">
+
+                                        <VerticalStackLayout Spacing="5">
+
+                                            <Label
+                                                Text="Interpretación del cálculo"
+                                                FontSize="14"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Verde}" />
+
+                                            <Label
+                                                Text="{Binding Detalle.EnmiendaCalcarea.NecesidadEncaladoTonHa, Converter={StaticResource EnmiendaInterpretacionConverter}}"
+                                                FontSize="13"
+                                                TextColor="{StaticResource color_GrisOscuro}"
+                                                LineBreakMode="WordWrap" />
+
+                                        </VerticalStackLayout>
+
+                                    </Border>
+
+                                    <Border
+                                        BackgroundColor="#EEF5F2"
+                                        Stroke="{StaticResource color_Verde}"
+                                        StrokeShape="RoundRectangle 14"
+                                        Padding="14">
+
+                                        <Grid
+                                            ColumnDefinitions="*,*"
+                                            ColumnSpacing="12">
+
+                                            <VerticalStackLayout Grid.Column="0">
+                                                <Label Text="Dosis anual por planta" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.DosisPlantaAnualOz, StringFormat='{0:N2} oz/planta'}" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout Grid.Column="1">
+                                                <Label Text="Dosis por aplicación" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                                <Label Text="{Binding Detalle.EnmiendaCalcarea.DosisPlantaPorAplicacionOz, StringFormat='{0:N2} oz/planta'}" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                            </VerticalStackLayout>
+
+                                        </Grid>
+
+                                    </Border>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                        </VerticalStackLayout>
+
+                        <!-- FERTILIZACIÓN MIXTA -->
+                        <VerticalStackLayout
+                            x:Name="MixtaPanel"
+                            IsVisible="False"
+                            Spacing="14">
+
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Fertilización mixta"
+                                        FontSize="21"
+                                        FontAttributes="Bold"
+                                        TextColor="#B08900" />
+
+                                    <Border
+                                        BackgroundColor="#FFFBEB"
+                                        Stroke="#F2C94C"
+                                        StrokeShape="RoundRectangle 12"
+                                        Padding="12">
+
+                                        <VerticalStackLayout Spacing="5">
+
+                                            <Label
+                                                Text="{Binding Detalle.FertilizacionMixta.Mixta.EsComplementoBalance, Converter={StaticResource ModoMixtaConverter}}"
+                                                FontSize="14"
+                                                FontAttributes="Bold"
+                                                TextColor="#92400E" />
+
+                                            <Label
+                                                Text="{Binding Detalle.FertilizacionMixta.Mixta.Observacion}"
+                                                FontSize="13"
+                                                TextColor="#92400E"
+                                                LineBreakMode="WordWrap" />
+
+                                        </VerticalStackLayout>
+
+                                    </Border>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- FUENTES -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Fuentes orgánicas utilizadas"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <VerticalStackLayout
+                                        BindableLayout.ItemsSource="{Binding Detalle.FertilizacionMixta.Fuentes}"
+                                        Spacing="8">
+
+                                        <BindableLayout.ItemTemplate>
+
+                                            <DataTemplate>
+
+                                                <Border
+                                                    BackgroundColor="#FFF8D8"
+                                                    Stroke="#F2C94C"
+                                                    StrokeShape="RoundRectangle 12"
+                                                    Padding="11">
+
+                                                    <Grid
+                                                        ColumnDefinitions="*,Auto"
+                                                        ColumnSpacing="10">
+
+                                                        <Label
+                                                            Text="{Binding FuenteMostrar}"
+                                                            FontAttributes="Bold"
+                                                            TextColor="{StaticResource color_Negro}" />
+
+                                                        <Label
+                                                            Grid.Column="1"
+                                                            Text="{Binding CantidadQq, StringFormat='{0:N2} qq'}"
+                                                            FontAttributes="Bold"
+                                                            TextColor="#7A5C00" />
+
+                                                    </Grid>
+
+                                                </Border>
+
+                                            </DataTemplate>
+
+                                        </BindableLayout.ItemTemplate>
+
+                                    </VerticalStackLayout>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- RESUMEN NUTRICIONAL -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16"
+                                IsVisible="{Binding TieneMixtaRecalculada}">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Resumen de aportes orgánicos"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Label
+                                        Text="Deslice horizontalmente para consultar requerimientos, aportes, diferencias, déficit y sobrantes."
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        LineBreakMode="WordWrap" />
+
+                                    <ScrollView Orientation="Horizontal">
+
+                                        <VerticalStackLayout Spacing="0">
+
+                                            <Grid
+                                                ColumnDefinitions="150,170,170,150,150,150"
+                                                MinimumWidthRequest="940"
+                                                BackgroundColor="{StaticResource color_Verde}">
+
+                                                <Label Grid.Column="0" Text="Elemento" TextColor="White" FontAttributes="Bold" Padding="9" />
+                                                <Label Grid.Column="1" Text="Requerimiento (lb)" TextColor="White" FontAttributes="Bold" Padding="9" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="2" Text="Aporte orgánico (lb)" TextColor="White" FontAttributes="Bold" Padding="9" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="3" Text="Diferencia (lb)" TextColor="White" FontAttributes="Bold" Padding="9" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="4" Text="Restante (lb)" TextColor="White" FontAttributes="Bold" Padding="9" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="5" Text="Sobrante (lb)" TextColor="White" FontAttributes="Bold" Padding="9" HorizontalTextAlignment="End" />
+
+                                            </Grid>
+
+                                            <VerticalStackLayout
+                                                Spacing="0"
+                                                BindableLayout.ItemsSource="{Binding FertilizacionMixtaRecalculada.Detalles}">
+
+                                                <BindableLayout.ItemTemplate>
+
+                                                    <DataTemplate>
+
+                                                        <Grid
+                                                            ColumnDefinitions="150,170,170,150,150,150"
+                                                            MinimumWidthRequest="940"
+                                                            BackgroundColor="#F9FAFB">
+
+                                                            <Label Grid.Column="0" Text="{Binding Elemento}" Padding="9,7" FontAttributes="Bold" />
+                                                            <Label Grid.Column="1" Text="{Binding Exportable, StringFormat='{0:N2}'}" Padding="9,7" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="2" Text="{Binding AporteOrganico, StringFormat='{0:N2}'}" Padding="9,7" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="3" Text="{Binding Diferencia, StringFormat='{0:N2}'}" Padding="9,7" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="4" Text="{Binding Deficit, StringFormat='{0:N2}'}" Padding="9,7" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="5" Text="{Binding Sobrante, StringFormat='{0:N2}'}" Padding="9,7" HorizontalTextAlignment="End" />
+
+                                                        </Grid>
+
+                                                    </DataTemplate>
+
+                                                </BindableLayout.ItemTemplate>
+
+                                            </VerticalStackLayout>
+
+                                        </VerticalStackLayout>
+
+                                    </ScrollView>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- APORTE POR FUENTE -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16"
+                                IsVisible="{Binding TieneMixtaRecalculada}">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Detalle del aporte por fuente"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <VerticalStackLayout
+                                        BindableLayout.ItemsSource="{Binding FertilizacionMixtaRecalculada.Detalles}"
+                                        Spacing="10">
+
+                                        <BindableLayout.ItemTemplate>
+
+                                            <DataTemplate>
+
+                                                <Border
+                                                    BackgroundColor="#F9FAFB"
+                                                    Stroke="#E5E7EB"
+                                                    StrokeShape="RoundRectangle 14"
+                                                    Padding="12">
+
+                                                    <VerticalStackLayout Spacing="8">
+
+                                                        <Label
+                                                            Text="{Binding Elemento}"
+                                                            FontSize="15"
+                                                            FontAttributes="Bold"
+                                                            TextColor="{StaticResource color_Cafe}" />
+
+                                                        <VerticalStackLayout
+                                                            BindableLayout.ItemsSource="{Binding Fuentes}"
+                                                            Spacing="6">
+
+                                                            <BindableLayout.ItemTemplate>
+
+                                                                <DataTemplate>
+
+                                                                    <Grid
+                                                                        ColumnDefinitions="*,Auto"
+                                                                        ColumnSpacing="10">
+
+                                                                        <VerticalStackLayout Spacing="1">
+
+                                                                            <Label
+                                                                                Text="{Binding NombreFuente}"
+                                                                                FontSize="13"
+                                                                                FontAttributes="Bold" />
+
+                                                                            <Label
+                                                                                Text="{Binding CantidadQq, StringFormat='{0:N2} qq aplicados'}"
+                                                                                FontSize="11"
+                                                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                                        </VerticalStackLayout>
+
+                                                                        <Label
+                                                                            Grid.Column="1"
+                                                                            Text="{Binding AporteTotal, StringFormat='{0:N2} lb'}"
+                                                                            FontAttributes="Bold"
+                                                                            TextColor="{StaticResource color_Verde}"
+                                                                            VerticalOptions="Center" />
+
+                                                                    </Grid>
+
+                                                                </DataTemplate>
+
+                                                            </BindableLayout.ItemTemplate>
+
+                                                        </VerticalStackLayout>
+
+                                                    </VerticalStackLayout>
+
+                                                </Border>
+
+                                            </DataTemplate>
+
+                                        </BindableLayout.ItemTemplate>
+
+                                    </VerticalStackLayout>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- COMPLEMENTO DEL BALANCE -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16"
+                                IsVisible="{Binding Source={x:Reference DetallePageRoot}, Path=TieneComplementoMixtaVisual}">
+
+                                <VerticalStackLayout Spacing="14">
+
+                                    <VerticalStackLayout Spacing="4">
+
+                                        <Label
+                                            Text="Complemento del balance de fórmula"
+                                            FontSize="18"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Verde}" />
+
+                                        <Label
+                                            Text="El aporte orgánico se descuenta del requerimiento del balance original para determinar la compra comercial restante."
+                                            FontSize="13"
+                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            LineBreakMode="WordWrap" />
+
+                                    </VerticalStackLayout>
+
+                                    <ScrollView Orientation="Horizontal">
+
+                                        <VerticalStackLayout Spacing="0">
+
+                                            <Grid
+                                                ColumnDefinitions="210,135,155,145,145,125,125,125,130,105,145"
+                                                MinimumWidthRequest="1500"
+                                                BackgroundColor="{StaticResource color_Verde}">
+
+                                                <Label Grid.Column="0" Text="Fuente" TextColor="White" FontAttributes="Bold" Padding="8" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="1" Text="Elemento" TextColor="White" FontAttributes="Bold" Padding="8" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="2" Text="Req. original (lb)" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="3" Text="Aporte orgánico" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="4" Text="Restante (lb)" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="5" Text="QQ original" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="6" Text="QQ ajustado" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="7" Text="Reducción" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="8" Text="Precio/QQ" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="9" Text="Comprar" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Grid.Column="10" Text="Costo compra" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+
+                                            </Grid>
+
+                                            <VerticalStackLayout
+                                                Spacing="0"
+                                                BindableLayout.ItemsSource="{Binding Source={x:Reference DetallePageRoot}, Path=FilasCompraAjustadaVisual}">
+
+                                                <BindableLayout.ItemTemplate>
+
+                                                    <DataTemplate
+                                                        x:DataType="viewModels:CompraComercialComplementoVisualViewModel">
+
+                                                        <Grid
+                                                            ColumnDefinitions="210,135,155,145,145,125,125,125,130,105,145"
+                                                            MinimumWidthRequest="1500"
+                                                            BackgroundColor="#F9FAFB">
+
+                                                            <Label Grid.Column="0" Text="{Binding Fuente}" Padding="8" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                                                            <Label Grid.Column="1" Text="{Binding Elemento}" Padding="8" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" LineBreakMode="NoWrap" />
+                                                            <Label Grid.Column="2" Text="{Binding TextoRequerimientoOriginal}" Padding="8" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="3" Text="{Binding TextoAporteOrganico}" Padding="8" HorizontalTextAlignment="End" TextColor="{StaticResource color_Verde}" />
+                                                            <Label Grid.Column="4" Text="{Binding TextoRequerimientoRestante}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" TextColor="{StaticResource RedDelete}" />
+                                                            <Label Grid.Column="5" Text="{Binding TextoQuintalesOriginales}" Padding="8" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="6" Text="{Binding TextoQuintalesAjustados}" Padding="8" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="7" Text="{Binding TextoReduccionQuintales}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                                            <Label Grid.Column="8" Text="{Binding TextoPrecioPorQq}" Padding="8" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="9" Text="{Binding TextoQuintalesComprar}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                                                            <Label Grid.Column="10" Text="{Binding TextoCostoCompra}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+
+                                                        </Grid>
+
+                                                    </DataTemplate>
+
+                                                </BindableLayout.ItemTemplate>
+
+                                            </VerticalStackLayout>
+
+                                        </VerticalStackLayout>
+
+                                    </ScrollView>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- COSTO ORGÁNICO -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16"
+                                IsVisible="{Binding Source={x:Reference DetallePageRoot}, Path=TieneTablaCostosOrganicosVisual}">
+
+                                <VerticalStackLayout Spacing="14">
+
+                                    <Label
+                                        Text="Costo de fertilización mixta"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <ScrollView Orientation="Horizontal">
+
+                                        <VerticalStackLayout Spacing="0">
+
+                                            <Grid
+                                                ColumnDefinitions="220,120,140,150"
+                                                MinimumWidthRequest="630"
+                                                BackgroundColor="{StaticResource color_Verde}">
+
+                                                <Label Grid.Column="0" Text="Fuente orgánica" TextColor="White" FontAttributes="Bold" Padding="8" />
+                                                <Label Grid.Column="1" Text="Cantidad QQ" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="2" Text="Precio/QQ" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="3" Text="Costo" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+
+                                            </Grid>
+
+                                            <VerticalStackLayout
+                                                Spacing="0"
+                                                BindableLayout.ItemsSource="{Binding Source={x:Reference DetallePageRoot}, Path=FilasCostoOrganicoVisual}">
+
+                                                <BindableLayout.ItemTemplate>
+
+                                                    <DataTemplate
+                                                        x:DataType="viewModels:CostoFuenteOrganicaViewModel">
+
+                                                        <Grid
+                                                            ColumnDefinitions="220,120,140,150"
+                                                            MinimumWidthRequest="630"
+                                                            BackgroundColor="#F9FAFB">
+
+                                                            <Label Grid.Column="0" Text="{Binding Fuente}" Padding="8" FontAttributes="Bold" />
+                                                            <Label Grid.Column="1" Text="{Binding TextoCantidadQq}" Padding="8" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="2" Text="{Binding TextoPrecioPorQq}" Padding="8" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="3" Text="{Binding TextoCosto}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+
+                                                        </Grid>
+
+                                                    </DataTemplate>
+
+                                                </BindableLayout.ItemTemplate>
+
+                                            </VerticalStackLayout>
+
+                                            <Grid
+                                                ColumnDefinitions="220,120,140,150"
+                                                MinimumWidthRequest="630"
+                                                BackgroundColor="#EEF5F2">
+
+                                                <Label
+                                                    Grid.Column="0"
+                                                    Grid.ColumnSpan="3"
+                                                    Text="Total fertilización mixta"
+                                                    Padding="8"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Verde}" />
+
+                                                <Label
+                                                    Grid.Column="3"
+                                                    Text="{Binding Source={x:Reference DetallePageRoot}, Path=TextoCostoFertilizacionMixtaVisual}"
+                                                    Padding="8"
+                                                    HorizontalTextAlignment="End"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Verde}" />
+
+                                            </Grid>
+
+                                        </VerticalStackLayout>
+
+                                    </ScrollView>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- COMPRA COMERCIAL AJUSTADA -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16"
+                                IsVisible="{Binding Source={x:Reference DetallePageRoot}, Path=TieneCompraAjustadaVisual}">
+
+                                <VerticalStackLayout Spacing="14">
+
+                                    <VerticalStackLayout Spacing="4">
+
+                                        <Label
+                                            Text="Compra comercial ajustada"
+                                            FontSize="18"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Verde}" />
+
+                                        <Label
+                                            Text="Se mantienen las fuentes del balance original. Las cantidades a comprar se redondean al siguiente quintal entero."
+                                            FontSize="13"
+                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            LineBreakMode="WordWrap" />
+
+                                    </VerticalStackLayout>
+
+                                    <ScrollView Orientation="Horizontal">
+
+                                        <VerticalStackLayout Spacing="0">
+
+                                            <Grid
+                                                ColumnDefinitions="220,135,135,135,130,145"
+                                                MinimumWidthRequest="900"
+                                                BackgroundColor="{StaticResource color_Verde}">
+
+                                                <Label Grid.Column="0" Text="Fuente" TextColor="White" FontAttributes="Bold" Padding="8" />
+                                                <Label Grid.Column="1" Text="Elemento" TextColor="White" FontAttributes="Bold" Padding="8" />
+                                                <Label Grid.Column="2" Text="QQ ajustado" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="3" Text="QQ comprar" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="4" Text="Precio/QQ" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+                                                <Label Grid.Column="5" Text="Costo compra" TextColor="White" FontAttributes="Bold" Padding="8" HorizontalTextAlignment="End" />
+
+                                            </Grid>
+
+                                            <VerticalStackLayout
+                                                Spacing="0"
+                                                BindableLayout.ItemsSource="{Binding Source={x:Reference DetallePageRoot}, Path=FilasCompraAjustadaVisual}">
+
+                                                <BindableLayout.ItemTemplate>
+
+                                                    <DataTemplate
+                                                        x:DataType="viewModels:CompraComercialComplementoVisualViewModel">
+
+                                                        <Grid
+                                                            ColumnDefinitions="220,135,135,135,130,145"
+                                                            MinimumWidthRequest="900"
+                                                            BackgroundColor="#F9FAFB">
+
+                                                            <Label Grid.Column="0" Text="{Binding Fuente}" Padding="8" FontAttributes="Bold" />
+                                                            <Label Grid.Column="1" Text="{Binding Elemento}" Padding="8" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                                                            <Label Grid.Column="2" Text="{Binding TextoQuintalesAjustados}" Padding="8" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="3" Text="{Binding TextoQuintalesComprar}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                                                            <Label Grid.Column="4" Text="{Binding TextoPrecioPorQq}" Padding="8" HorizontalTextAlignment="End" />
+                                                            <Label Grid.Column="5" Text="{Binding TextoCostoCompra}" Padding="8" HorizontalTextAlignment="End" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+
+                                                        </Grid>
+
+                                                    </DataTemplate>
+
+                                                </BindableLayout.ItemTemplate>
+
+                                            </VerticalStackLayout>
+
+                                        </VerticalStackLayout>
+
+                                    </ScrollView>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- NO REQUIERE COMPRA -->
+                            <Border
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#D1FAE5"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16"
+                                IsVisible="{Binding Source={x:Reference DetallePageRoot}, Path=NoRequiereCompraComercialVisual}">
+
+                                <Label
+                                    Text="El aporte orgánico cubre todos los requerimientos seleccionados del balance. No se requiere compra comercial ajustada."
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}"
+                                    LineBreakMode="WordWrap" />
+
+                            </Border>
+
+                            <!-- RESUMEN ECONÓMICO -->
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="16"
+                                IsVisible="{Binding Source={x:Reference DetallePageRoot}, Path=TieneResumenEconomicoComplementoVisual}">
+
+                                <VerticalStackLayout Spacing="12">
+
+                                    <Label
+                                        Text="Resumen económico del complemento"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Grid
+                                        ColumnDefinitions="*,Auto"
+                                        RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                        RowSpacing="10"
+                                        ColumnSpacing="12">
+
+                                        <Label Grid.Row="0" Grid.Column="0" Text="Costo comercial original" TextColor="{StaticResource color_GrisOscuro}" />
+                                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding Source={x:Reference DetallePageRoot}, Path=TextoCostoComercialOriginalVisual}" FontAttributes="Bold" />
+
+                                        <Label Grid.Row="1" Grid.Column="0" Text="Costo fertilización mixta" TextColor="{StaticResource color_GrisOscuro}" />
+                                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding Source={x:Reference DetallePageRoot}, Path=TextoCostoFertilizacionMixtaVisual}" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+
+                                        <Label Grid.Row="2" Grid.Column="0" Text="Costo comercial ajustado" TextColor="{StaticResource color_GrisOscuro}" />
+                                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding Source={x:Reference DetallePageRoot}, Path=TextoCostoComercialAjustadoVisual}" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+
+                                        <Label Grid.Row="3" Grid.Column="0" Text="Costo total final" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding Source={x:Reference DetallePageRoot}, Path=TextoCostoTotalFinalVisual}" FontAttributes="Bold" />
+
+                                        <Label
+                                            Grid.Row="4"
+                                            Grid.Column="0"
+                                            Text="{Binding Source={x:Reference DetallePageRoot}, Path=EtiquetaDiferenciaEconomicaVisual}"
+                                            FontAttributes="Bold"
+                                            TextColor="{Binding Source={x:Reference DetallePageRoot}, Path=ColorDiferenciaEconomicaVisual}" />
+
+                                        <Label
+                                            Grid.Row="4"
+                                            Grid.Column="1"
+                                            Text="{Binding Source={x:Reference DetallePageRoot}, Path=TextoDiferenciaEconomicaVisual}"
+                                            FontAttributes="Bold"
+                                            TextColor="{Binding Source={x:Reference DetallePageRoot}, Path=ColorDiferenciaEconomicaVisual}" />
+
+                                    </Grid>
+
+                                </VerticalStackLayout>
+
+                            </Border>
+
+                            <!-- MENSAJE DEL COMPLEMENTO -->
+                            <Border
+                                BackgroundColor="#FFF7ED"
+                                Stroke="#FED7AA"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="12"
+                                IsVisible="{Binding Source={x:Reference DetallePageRoot}, Path=TieneMensajeComplementoMixtaVisual}">
+
+                                <Label
+                                    Text="{Binding Source={x:Reference DetallePageRoot}, Path=MensajeComplementoMixtaVisual}"
+                                    FontSize="13"
+                                    TextColor="#9A3412"
+                                    LineBreakMode="WordWrap" />
+
+                            </Border>
+
+
+                        </VerticalStackLayout>
+
+                    </VerticalStackLayout>
+
+                    <!-- SIN CÁLCULOS -->
+                    <Border
+                        x:Name="SinCalculosCard"
+                        IsVisible="False"
+                        BackgroundColor="#F9FAFB"
+                        Stroke="#E5E7EB"
+                        StrokeShape="RoundRectangle 16"
+                        Padding="16">
+
+                        <VerticalStackLayout Spacing="5">
+
+                            <Label
+                                Text="Sin cálculos complementarios"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="Este análisis conserva únicamente el requerimiento anual."
+                                FontSize="13"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                        </VerticalStackLayout>
+
                     </Border>
+
                 </VerticalStackLayout>
+
+                <BoxView
+                    HeightRequest="12"
+                    Color="Transparent" />
+
             </VerticalStackLayout>
+
         </ScrollView>
 
-        <Border Grid.Row="1" BackgroundColor="White" Stroke="#E5E7EB" Padding="14,10">
+        <!-- ACCIONES DE REPORTE -->
+        <Border
+            Grid.Row="1"
+            BackgroundColor="White"
+            Stroke="#E5E7EB"
+            Padding="14,10">
+
             <VerticalStackLayout Spacing="8">
+
                 <Grid
                     ColumnDefinitions="*,*"
                     RowDefinitions="Auto,Auto,Auto"
                     ColumnSpacing="8"
                     RowSpacing="8">
+
                     <Button
                         Grid.Row="0"
                         Grid.Column="0"
@@ -316,23 +1918,44 @@
                         TextColor="White"
                         CornerRadius="12"
                         Padding="10,9" />
+
                 </Grid>
 
                 <Button
                     Text="Volver al inicio"
                     Command="{Binding VolverCommand}"
                     Style="{StaticResource CancelButton}" />
+
             </VerticalStackLayout>
+
         </Border>
 
+        <!-- CARGA -->
         <Grid
             Grid.RowSpan="2"
             BackgroundColor="#80000000"
             IsVisible="{Binding IsBusy}">
-            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
-                <ActivityIndicator IsRunning="{Binding IsBusy}" Color="White" WidthRequest="42" HeightRequest="42" />
-                <Label Text="Procesando..." TextColor="White" FontAttributes="Bold" />
+
+            <VerticalStackLayout
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Spacing="12">
+
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    Color="White"
+                    WidthRequest="42"
+                    HeightRequest="42" />
+
+                <Label
+                    Text="Procesando..."
+                    TextColor="White"
+                    FontAttributes="Bold" />
+
             </VerticalStackLayout>
+
         </Grid>
+
     </Grid>
+
 </ContentPage>
