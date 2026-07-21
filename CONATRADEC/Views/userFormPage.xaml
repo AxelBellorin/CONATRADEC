@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!--
-  Página: userFormPage.xaml
-  Descripción: Formulario para crear, editar o ver información de usuarios.
-  ViewModel: UserFormViewModel
--->
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:sys="clr-namespace:System;assembly=netstandard"
@@ -12,81 +7,98 @@
              Shell.NavBarIsVisible="False"
              Background="Transparent">
 
-    <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
+    <Grid RowDefinitions="Auto,*">
 
-        <!-- Título dinámico -->
-        <Label Text="{Binding Title}"
+        <Label Grid.Row="0"
+               Text="{Binding Title}"
                TextColor="{StaticResource color_Verde}"
                FontSize="24"
                FontAttributes="Bold"
-               HorizontalOptions="Start"
-               Grid.Row="0"
-               Margin="10,20,0,0" />
+               Margin="10,20,10,5" />
 
-        <!-- Contenido -->
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="10" Spacing="15">
+            <VerticalStackLayout Padding="10"
+                                 Spacing="15">
 
-                <!-- Usuario -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Usuario" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Entry Placeholder="Usuario"
+                        <Label Text="Usuario"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Nombre de usuario"
                                Style="{StaticResource EntryStyle}"
                                Text="{Binding NombreUsuario}"
-                               IsReadOnly="{Binding IsReadOnly}" />
+                               IsReadOnly="{Binding IsUserNameReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Contraseña -->
-                <Border Style="{StaticResource BorderStyle}" IsVisible="{Binding ShowPasswordField}">
-                    <Grid ColumnDefinitions="*, Auto">
-                        <Entry Grid.Column="0"
-                               x:Name="PasswordEntry"
-                               Style="{StaticResource EntryStyle}"
-                               Placeholder="Contraseña"
-                               Text="{Binding ClaveUsuario}"
-                               Keyboard="Password"
-                               IsPassword="{Binding IsPasswordHidden}"
-                               Background="Transparent" />
+                <Border Style="{StaticResource BorderStyle}"
+                        IsVisible="{Binding ShowPasswordField}">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Contraseña"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
 
-                        <ImageButton Grid.Column="1"
-                                     Margin="10,0,0,0"
-                                     Source="{Binding PasswordToggleIcon}"
-                                     Command="{Binding TogglePasswordCommand}"
-                                     BackgroundColor="Transparent"
-                                     WidthRequest="30"
-                                     HeightRequest="30" />
-                    </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry Grid.Column="0"
+                                   Style="{StaticResource EntryStyle}"
+                                   Placeholder="{Binding PasswordPlaceholder}"
+                                   Text="{Binding ClaveUsuario}"
+                                   Keyboard="Password"
+                                   IsPassword="{Binding IsPasswordHidden}"
+                                   Background="Transparent" />
+
+                            <ImageButton Grid.Column="1"
+                                         Margin="10,0,0,0"
+                                         Source="{Binding PasswordToggleIcon}"
+                                         Command="{Binding TogglePasswordCommand}"
+                                         BackgroundColor="Transparent"
+                                         WidthRequest="30"
+                                         HeightRequest="30" />
+                        </Grid>
+
+                        <Label Text="{Binding PasswordHelpText}"
+                               FontSize="12"
+                               TextColor="{StaticResource color_Gris}" />
+                    </VerticalStackLayout>
                 </Border>
 
-                <!-- Nombre Completo -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Nombre Completo" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Entry Placeholder="Nombre Completo"
+                        <Label Text="Nombre completo"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Nombre completo"
                                Style="{StaticResource EntryStyle}"
                                Text="{Binding NombreCompletoUsuario}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Identificación -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Identificación del usuario" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Entry Placeholder="Identificación del usuario"
+                        <Label Text="Identificación"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="Ejemplo: 001-080701-1050R"
                                Style="{StaticResource EntryStyle}"
                                Text="{Binding IdentificacionUsuario}"
+                               MaxLength="18"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Correo -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Correo Electrónico" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Entry Placeholder="Correo electrónico"
+                        <Label Text="Correo electrónico"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="usuario@dominio.com"
                                Style="{StaticResource EntryStyle}"
                                Text="{Binding CorreoUsuario}"
                                Keyboard="Email"
@@ -94,37 +106,42 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Teléfono -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Teléfono del usuario" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Entry Placeholder="Teléfono del usuario"
+                        <Label Text="Teléfono"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Entry Placeholder="8 dígitos"
                                Style="{StaticResource EntryStyle}"
                                Text="{Binding TelefonoUsuario}"
                                Keyboard="Telephone"
+                               MaxLength="8"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Fecha de nacimiento -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Fecha de nacimiento" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <DatePicker
-                                    Date="{Binding FechaNacimientoDate}"
+                        <Label Text="Fecha de nacimiento"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <DatePicker Date="{Binding FechaNacimientoDate}"
                                     MinimumDate="1900-01-01"
                                     MaximumDate="{x:Static sys:DateTime.Now}"
                                     Format="dd/MM/yyyy"
                                     IsEnabled="{Binding IsEnabled}" />
-
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- ROL -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Rol" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Picker Title="Selecciona un rol"
+                        <Label Text="Rol"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Picker Title="Seleccione un rol"
                                 ItemsSource="{Binding Roles}"
                                 ItemDisplayBinding="{Binding NombreRol}"
                                 SelectedItem="{Binding RolSeleccionado}"
@@ -132,11 +149,13 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- PAÍS -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="País" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Picker Title="Selecciona un país"
+                        <Label Text="País"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Picker Title="Seleccione un país"
                                 ItemsSource="{Binding Paises}"
                                 ItemDisplayBinding="{Binding NombrePais}"
                                 SelectedItem="{Binding PaisSeleccionado}"
@@ -144,11 +163,13 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- DEPARTAMENTO -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Departamento" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Picker Title="Selecciona un departamento"
+                        <Label Text="Departamento"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Picker Title="Seleccione un departamento"
                                 ItemsSource="{Binding Departamentos}"
                                 ItemDisplayBinding="{Binding NombreDepartamento}"
                                 SelectedItem="{Binding DepartamentoSeleccionado}"
@@ -156,11 +177,13 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- MUNICIPIO -->
                 <Border Style="{StaticResource BorderStyle}">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Municipio" FontAttributes="Bold" FontSize="17" TextColor="{StaticResource color_Negro}" />
-                        <Picker Title="Selecciona un municipio"
+                        <Label Text="Municipio"
+                               FontAttributes="Bold"
+                               FontSize="17"
+                               TextColor="{StaticResource color_Negro}" />
+                        <Picker Title="Seleccione un municipio"
                                 ItemsSource="{Binding Municipios}"
                                 ItemDisplayBinding="{Binding NombreMunicipio}"
                                 SelectedItem="{Binding MunicipioSeleccionado}"
@@ -168,40 +191,43 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- SELECCIONAR IMAGEN -->
-                <Button 
-                        Text="Seleccionar Imagen"
+                <Button Text="Seleccionar imagen"
                         IsEnabled="{Binding EnabledImagenField}"
                         Style="{StaticResource AddButton}"
                         Command="{Binding SeleccionarImagenCommand}"
                         BackgroundColor="{StaticResource color_Verde}"
                         TextColor="White"
-                        Margin="0,10"/>
+                        Margin="0,10" />
 
-                <!--     IMAGEN -->
-                <ImageButton
-                            HeightRequest="120"
-                            WidthRequest="120"
-                            CornerRadius="60"
-                            Aspect="AspectFill"
-                            Source="{Binding ImagenPreview}"
-                            Margin="0,5" />
+                <Image HeightRequest="120"
+                       WidthRequest="120"
+                       Aspect="AspectFill"
+                       Source="{Binding ImagenPreview}"
+                       Margin="0,5"
+                       HorizontalOptions="Center" />
 
-
-                <!-- Botones -->
-                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">
-                    <Button Text="Guardar"
+                <Grid ColumnDefinitions="*,*"
+                      Margin="10,0">
+                    <Button Grid.Column="0"
+                            Text="Guardar"
                             Style="{StaticResource UpdateButton}"
                             IsVisible="{Binding ShowSaveButton}"
+                            IsEnabled="{Binding NotIsBusy}"
                             Command="{Binding SaveCommand}"
-                            Grid.Column="0"
-                            Margin="10,0,10,0" />
-                    <Button Text="Cancelar"
+                            Margin="10,0" />
+
+                    <Button Grid.Column="1"
+                            Text="Cancelar"
                             Style="{StaticResource CancelButton}"
+                            IsEnabled="{Binding NotIsBusy}"
                             Command="{Binding CancelCommand}"
-                            Grid.Column="1"
-                            Margin="10,0,10,0" />
+                            Margin="10,0" />
                 </Grid>
+
+                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
+                                   HorizontalOptions="Center"
+                                   Margin="0,10" />
 
             </VerticalStackLayout>
         </ScrollView>

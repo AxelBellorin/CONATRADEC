@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 
 namespace CONATRADEC.Services
@@ -26,13 +26,22 @@ namespace CONATRADEC.Services
             {
                 return Task.FromResult(
                     ApiResult<ObservableCollection<MunicipioResponse>>.Fail(
-                        "No se recibió un departamento válido para cargar sus municipios."));
+                        "Seleccione un departamento válido."));
             }
 
-            // Se conservan las rutas actuales del backend.
             return ApiServiceHelper.GetCollectionAsync<MunicipioResponse>(
                 httpClient,
                 $"/por-departamento/{departamentoId.Value}",
+                "los municipios",
+                cancellationToken);
+        }
+
+        public Task<ApiResult<ObservableCollection<MunicipioResponse>>> GetMunicipiosConUbicacionResultAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return ApiServiceHelper.GetCollectionAsync<MunicipioResponse>(
+                httpClient,
+                "/listarTodos-por-departamento-por-pais",
                 "los municipios",
                 cancellationToken);
         }

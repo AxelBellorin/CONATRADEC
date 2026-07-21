@@ -1,36 +1,41 @@
-﻿using CONATRADEC.Services;
-using CONATRADEC.Models;
-using System.ComponentModel;
-using System.Text.RegularExpressions;
+﻿using CONATRADEC.Models;
+using CONATRADEC.Services;
 using System.Collections.ObjectModel;
-using Microsoft.Maui.Storage;
-using System.Net.Http.Json;
-using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace CONATRADEC.ViewModels
 {
     public class UserFormViewModel : GlobalService
     {
-        // ==================== Estado interno ====================
-        private UserRequest user;
-        private bool isCancel;
+        private static readonly Regex CorreoRegex = new(
+            @"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$",
+            RegexOptions.Compiled);
 
-        private string nombreUsuario = "";
-        private string claveUsuario = "";
-        private string nombreCompletoUsuario = "";
-        private string identificacionUsuario = "";
-        private string correoUsuario = "";
-        private string telefonoUsuario = "";
+        private static readonly Regex IdentificacionRegex = new(
+            @"^\d{3}-\d{6}-\d{4}[A-Za-z]$",
+            RegexOptions.Compiled);
+
+        private static readonly Regex ContrasenaRegex = new(
+            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.#_\-]).{8,}$",
+            RegexOptions.Compiled);
+
+        private UserRequest user = new();
+        private FormMode.FormModeSelect mode;
+        private bool initialized;
+        private bool suppressLocationEvents;
+
+        private string nombreUsuario = string.Empty;
+        private string claveUsuario = string.Empty;
+        private string nombreCompletoUsuario = string.Empty;
+        private string identificacionUsuario = string.Empty;
+        private string correoUsuario = string.Empty;
+        private string telefonoUsuario = string.Empty;
         private DateOnly? fechaNacimientoUsuario;
-        private string urlImagenUsuario = "";
+        private DateTime fechaNacimientoDate = DateTime.Today.AddYears(-18);
+        private string urlImagenUsuario = string.Empty;
         private string passwordToggleIcon = "eye.png";
         private bool isPasswordHidden = true;
-
-        private DateTime fechaNacimientoDate = DateTime.Now;
-
         private FileResult? imagenSeleccionada;
-
-        private FormMode.FormModeSelect mode = new();
 
         private readonly UserApiService userApiService = new();
         private readonly RolApiService rolApiService = new();
@@ -38,45 +43,97 @@ namespace CONATRADEC.ViewModels
         private readonly DepartamentoApiService departamentoApiService = new();
         private readonly MunicipioApiService municipioApiService = new();
 
-        // ==================== Comandos ====================
-        public Command SaveCommand { get; }
-        public Command CancelCommand { get; }
-        public Command SeleccionarImagenCommand => new(async () => await SeleccionarImagenAsync());
-        public Command TogglePasswordCommand { get; }
-
         public UserFormViewModel()
         {
-            SaveCommand = new Command(async () => await SaveAsync(), () => !IsReadOnly);
-            CancelCommand = new Command(async () => await CancelAsync());
-            TogglePasswordCommand = new(() => OnTogglePassword());
+            SaveCommand = new Command(
+                async () => await SaveAsync(),
+                () => !IsBusy && !IsReadOnly);
+
+            CancelCommand = new Command(
+                async () => await CancelAsync(),
+                () => !IsBusy);
+
+            SeleccionarImagenCommand = new Command(
+                async () => await SeleccionarImagenAsync(),
+                () => !IsBusy && EnabledImagenField);
+
+            TogglePasswordCommand = new Command(OnTogglePassword);
         }
 
-        // ==================== Propiedades bindables ====================
-        public string NombreUsuario { get => nombreUsuario; set { nombreUsuario = value; OnPropertyChanged(); } }
-        public string ClaveUsuario { get => claveUsuario; set { claveUsuario = value; OnPropertyChanged(); } }
+        public Command SaveCommand { get; }
+        public Command CancelCommand { get; }
+        public Command SeleccionarImagenCommand { get; }
+        public Command TogglePasswordCommand { get; }
+
+        public ObservableCollection<RolResponse> Roles { get; } = new();
+        public ObservableCollection<PaisResponse> Paises { get; } = new();
+        public ObservableCollection<DepartamentoResponse> Departamentos { get; } = new();
+        public ObservableCollection<MunicipioResponse> Municipios { get; } = new();
+
+        private RolResponse? rolSeleccionado;
+        private PaisResponse? paisSeleccionado;
+        private DepartamentoResponse? departamentoSeleccionado;
+        private MunicipioResponse? municipioSeleccionado;
+
+        public string NombreUsuario
+        {
+            get => nombreUsuario;
+            set
+            {
+                nombreUsuario = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ClaveUsuario
+        {
+            get => claveUsuario;
+            set
+            {
+                claveUsuario = value ?? string.Empty;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(PasswordHelpText));
+            }
+        }
 
         public string NombreCompletoUsuario
         {
             get => nombreCompletoUsuario;
-            set { nombreCompletoUsuario = value; OnPropertyChanged(); }
-        }
-
-        public string CorreoUsuario
-        {
-            get => correoUsuario;
-            set { correoUsuario = value; OnPropertyChanged(); }
+            set
+            {
+                nombreCompletoUsuario = value ?? string.Empty;
+                OnPropertyChanged();
+            }
         }
 
         public string IdentificacionUsuario
         {
             get => identificacionUsuario;
-            set { identificacionUsuario = value; OnPropertyChanged(); }
+            set
+            {
+                identificacionUsuario = (value ?? string.Empty).Trim().ToUpperInvariant();
+                OnPropertyChanged();
+            }
+        }
+
+        public string CorreoUsuario
+        {
+            get => correoUsuario;
+            set
+            {
+                correoUsuario = (value ?? string.Empty).Trim();
+                OnPropertyChanged();
+            }
         }
 
         public string TelefonoUsuario
         {
             get => telefonoUsuario;
-            set { telefonoUsuario = value; OnPropertyChanged(); }
+            set
+            {
+                telefonoUsuario = value ?? string.Empty;
+                OnPropertyChanged();
+            }
         }
 
         public DateOnly? FechaNacimientoUsuario
@@ -87,12 +144,10 @@ namespace CONATRADEC.ViewModels
                 fechaNacimientoUsuario = value;
 
                 if (value.HasValue)
-                {
                     fechaNacimientoDate = value.Value.ToDateTime(TimeOnly.MinValue);
-                    OnPropertyChanged(nameof(FechaNacimientoDate));
-                }
 
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(FechaNacimientoDate));
             }
         }
 
@@ -101,13 +156,13 @@ namespace CONATRADEC.ViewModels
             get => fechaNacimientoDate;
             set
             {
-                if (fechaNacimientoDate != value)
-                {
-                    fechaNacimientoDate = value;
-                    fechaNacimientoUsuario = DateOnly.FromDateTime(value);
-                    OnPropertyChanged(nameof(FechaNacimientoUsuario));
-                    OnPropertyChanged();
-                }
+                if (fechaNacimientoDate == value)
+                    return;
+
+                fechaNacimientoDate = value;
+                fechaNacimientoUsuario = DateOnly.FromDateTime(value);
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(FechaNacimientoUsuario));
             }
         }
 
@@ -116,7 +171,7 @@ namespace CONATRADEC.ViewModels
             get => urlImagenUsuario;
             set
             {
-                urlImagenUsuario = value;
+                urlImagenUsuario = value ?? string.Empty;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ImagenPreview));
             }
@@ -129,344 +184,333 @@ namespace CONATRADEC.ViewModels
             {
                 imagenSeleccionada = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(TieneImagenSeleccionada));
                 OnPropertyChanged(nameof(ImagenPreview));
             }
         }
 
-        public bool ShowPasswordField => Mode == FormMode.FormModeSelect.Create;
-        public bool EnabledImagenField => Mode == FormMode.FormModeSelect.Create || Mode == FormMode.FormModeSelect.Edit;
-
         public string ImagenPreview =>
-            ImagenSeleccionada != null ? ImagenSeleccionada.FullPath : UrlImagenUsuario;
-
-        public bool TieneImagenSeleccionada => ImagenSeleccionada != null;
+            ImagenSeleccionada?.FullPath ?? UrlImagenUsuario;
 
         public string PasswordToggleIcon
         {
             get => passwordToggleIcon;
-            set { passwordToggleIcon = value; OnPropertyChanged(); }
+            set
+            {
+                passwordToggleIcon = value;
+                OnPropertyChanged();
+            }
         }
 
         public bool IsPasswordHidden
         {
             get => isPasswordHidden;
-            set { isPasswordHidden = value; OnPropertyChanged(); }
+            set
+            {
+                isPasswordHidden = value;
+                OnPropertyChanged();
+            }
         }
 
-        // ==================== Entidad principal ====================
+        public RolResponse? RolSeleccionado
+        {
+            get => rolSeleccionado;
+            set
+            {
+                rolSeleccionado = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public PaisResponse? PaisSeleccionado
+        {
+            get => paisSeleccionado;
+            set
+            {
+                if (ReferenceEquals(paisSeleccionado, value))
+                    return;
+
+                paisSeleccionado = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPickDepartamento));
+
+                if (!suppressLocationEvents)
+                    _ = OnPaisChangedAsync(value);
+            }
+        }
+
+        public DepartamentoResponse? DepartamentoSeleccionado
+        {
+            get => departamentoSeleccionado;
+            set
+            {
+                if (ReferenceEquals(departamentoSeleccionado, value))
+                    return;
+
+                departamentoSeleccionado = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CanPickMunicipio));
+
+                if (!suppressLocationEvents)
+                    _ = OnDepartamentoChangedAsync(value);
+            }
+        }
+
+        public MunicipioResponse? MunicipioSeleccionado
+        {
+            get => municipioSeleccionado;
+            set
+            {
+                municipioSeleccionado = value;
+                OnPropertyChanged();
+            }
+        }
+
         public UserRequest User
         {
             get => user;
             set
             {
-                user = value;
-                ImagenSeleccionada = null;
-
-                OnPropertyChanged(nameof(ImagenPreview));
-                if (value != null)
-                {
-                    NombreUsuario = value.NombreUsuario ?? "";
-                    NombreCompletoUsuario = value.NombreCompletoUsuario ?? "";
-                    CorreoUsuario = value.CorreoUsuario ?? "";
-                    TelefonoUsuario = value.TelefonoUsuario ?? "";
-                    FechaNacimientoUsuario = value.FechaNacimientoUsuario;
-                    UrlImagenUsuario = value.UrlImagenUsuario ?? "";
-                    IdentificacionUsuario = value.IdentificacionUsuario ?? "";
-                    ClaveUsuario = value.ClaveUsuario ?? "";
-                }
+                user = value ?? new UserRequest();
+                ApplyUserToForm(user);
                 OnPropertyChanged();
             }
         }
 
-        // ==================== Modo ====================
         public FormMode.FormModeSelect Mode
         {
             get => mode;
             set
             {
                 mode = value;
+
+                if (mode == FormMode.FormModeSelect.Create)
+                    ResetForm();
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
                 OnPropertyChanged(nameof(IsEnabled));
                 OnPropertyChanged(nameof(ShowSaveButton));
                 OnPropertyChanged(nameof(ShowPasswordField));
+                OnPropertyChanged(nameof(IsUserNameReadOnly));
+                OnPropertyChanged(nameof(PasswordPlaceholder));
+                OnPropertyChanged(nameof(PasswordHelpText));
                 OnPropertyChanged(nameof(Title));
                 OnPropertyChanged(nameof(EnabledImagenField));
-                ImagenSeleccionada = null;
-                OnPropertyChanged(nameof(ImagenPreview));
-                SaveCommand.ChangeCanExecute();
+                OnPropertyChanged(nameof(CanPickDepartamento));
+                OnPropertyChanged(nameof(CanPickMunicipio));
+                RefreshCommands();
             }
         }
 
         public bool IsReadOnly => Mode == FormMode.FormModeSelect.View;
         public bool IsEnabled => !IsReadOnly;
-        public bool ShowSaveButton => Mode != FormMode.FormModeSelect.View;
-
-        public string Title => Mode switch
-        {
-            FormMode.FormModeSelect.Create => "Crear Usuario",
-            FormMode.FormModeSelect.Edit => "Editar Usuario",
-            FormMode.FormModeSelect.View => "Detalles del Usuario",
-            _ => ""
-        };
-
-        // ==================== Pickers ====================
-
-        public ObservableCollection<RolResponse> Roles { get; } = new();
-        public ObservableCollection<PaisResponse> Paises { get; } = new();
-        public ObservableCollection<DepartamentoResponse> Departamentos { get; } = new();
-        public ObservableCollection<MunicipioResponse> Municipios { get; } = new();
-
-        private RolResponse rolSeleccionado;
-        private PaisResponse paisSeleccionado;
-        private DepartamentoResponse departamentoSeleccionado;
-        private MunicipioResponse municipioSeleccionado;
-
-        public RolResponse RolSeleccionado
-        {
-            get => rolSeleccionado;
-            set { rolSeleccionado = value; OnPropertyChanged(); }
-        }
-
-        public PaisResponse PaisSeleccionado
-        {
-            get => paisSeleccionado;
-            set
-            {
-                if (paisSeleccionado != value)
-                {
-                    paisSeleccionado = value;
-                    OnPropertyChanged();
-                    _ = CargarDepartamentosAsync(value?.PaisId);
-                    DepartamentoSeleccionado = null;
-                    MunicipioSeleccionado = null;
-                    OnPropertyChanged(nameof(CanPickDepartamento));
-                    OnPropertyChanged(nameof(CanPickMunicipio));
-                }
-            }
-        }
-
-        public DepartamentoResponse DepartamentoSeleccionado
-        {
-            get => departamentoSeleccionado;
-            set
-            {
-                if (departamentoSeleccionado != value)
-                {
-                    departamentoSeleccionado = value;
-                    OnPropertyChanged();
-                    _ = CargarMunicipiosAsync(value?.DepartamentoId);
-                    MunicipioSeleccionado = null;
-                    OnPropertyChanged(nameof(CanPickMunicipio));
-                }
-            }
-        }
-
-        public MunicipioResponse MunicipioSeleccionado
-        {
-            get => municipioSeleccionado;
-            set { municipioSeleccionado = value; OnPropertyChanged(); }
-        }
-
+        public bool IsUserNameReadOnly => IsReadOnly || Mode == FormMode.FormModeSelect.Edit;
+        public bool ShowSaveButton => !IsReadOnly;
+        public bool ShowPasswordField => !IsReadOnly;
+        public bool EnabledImagenField => !IsReadOnly;
         public bool CanPickDepartamento => IsEnabled && PaisSeleccionado != null;
         public bool CanPickMunicipio => IsEnabled && DepartamentoSeleccionado != null;
 
-        public bool IsCancel { get => isCancel; set => isCancel = value; }
+        public string PasswordPlaceholder =>
+            Mode == FormMode.FormModeSelect.Create
+                ? "Contraseña"
+                : "Nueva contraseña (opcional)";
 
-        // ==================== Inicialización ====================
+        public string PasswordHelpText =>
+            Mode == FormMode.FormModeSelect.Edit
+                ? "Déjelo vacío para conservar la contraseña actual."
+                : "Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo.";
+
+        public string Title => Mode switch
+        {
+            FormMode.FormModeSelect.Create => "Crear usuario",
+            FormMode.FormModeSelect.Edit => "Editar usuario",
+            FormMode.FormModeSelect.View => "Detalles del usuario",
+            _ => "Usuario"
+        };
+
         public async Task InicializarAsync()
         {
-            if (IsBusy) return;
+            if (IsBusy)
+                return;
+
+            IsBusy = true;
+            RefreshCommands();
 
             try
             {
-                IsBusy = true;
-
-                await CargarRolesAsync();
-                await CargarPaisesAsync();
-
-                // Seleccionar rol del usuario al editar
-                if (User?.RolId > 0)
+                if (!initialized)
                 {
-                    RolSeleccionado = Roles.FirstOrDefault(r => r.RolId == User.RolId);
-                    OnPropertyChanged(nameof(RolSeleccionado));
-                }
+                    var rolesTask = rolApiService.GetRolResultAsync();
+                    var paisesTask = paisApiService.GetPaisResultAsync();
 
-                // Reconstruir País / Depto / Municipio a partir del MunicipioId
-                if (User?.MunicipioId > 0)
-                    await ResolverSeleccionPorMunicipioIdAsync(User.MunicipioId);
-            }
-            finally { IsBusy = false; }
-        }
+                    await Task.WhenAll(rolesTask, paisesTask);
 
-        private async Task CargarRolesAsync()
-        {
-            // Valida que el usaurio tenga conexion a internet
-            bool tieneInternet = await TieneInternetAsync();
+                    var rolesResult = await rolesTask;
+                    var paisesResult = await paisesTask;
 
-            if (!tieneInternet)
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
-            }
-
-            Roles.Clear();
-            var data = await rolApiService.GetRolAsync();
-            foreach (var r in data) Roles.Add(r);
-        }
-
-        private async Task CargarPaisesAsync()
-        {
-            // Valida que el usaurio tenga conexion a internet
-            bool tieneInternet = await TieneInternetAsync();
-
-            if (!tieneInternet)
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
-            }
-
-            Paises.Clear();
-            var data = await paisApiService.GetPaisAsync();
-            foreach (var p in data) Paises.Add(p);
-            OnPropertyChanged(nameof(Paises));
-            OnPropertyChanged(nameof(CanPickDepartamento));
-            OnPropertyChanged(nameof(CanPickMunicipio));
-        }
-
-        private async Task CargarDepartamentosAsync(int? paisId)
-        {
-            Departamentos.Clear();
-            Municipios.Clear();
-            if (paisId == null) return;
-
-            // Valida que el usaurio tenga conexion a internet
-            bool tieneInternet = await TieneInternetAsync();
-
-            if (!tieneInternet)
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
-            }
-
-            var data = await departamentoApiService.GetDepartamentosAsync(paisId);
-            foreach (var d in data) Departamentos.Add(d);
-
-            OnPropertyChanged(nameof(Departamentos));
-            OnPropertyChanged(nameof(CanPickDepartamento));
-        }
-
-        private async Task CargarMunicipiosAsync(int? departamentoId)
-        {
-            Municipios.Clear();
-            if (departamentoId == null) return;
-
-            // Valida que el usaurio tenga conexion a internet
-            bool tieneInternet = await TieneInternetAsync();
-
-            if (!tieneInternet)
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
-                return;
-            }
-
-            var data = await municipioApiService.GetMunicipiosAsync(departamentoId);
-            foreach (var m in data) Municipios.Add(m);
-
-            OnPropertyChanged(nameof(Municipios));
-            OnPropertyChanged(nameof(CanPickMunicipio));
-        }
-
-
-        private async Task ResolverSeleccionPorMunicipioIdAsync(int? municipioId)
-        {
-            if (municipioId == null || municipioId <= 0)
-                return;
-
-            PaisResponse paisEncontrado = null;
-            DepartamentoResponse depEncontrado = null;
-            MunicipioResponse muniEncontrado = null;
-
-
-            foreach (var pais in Paises.ToList())
-            {
-                // Cargar departamentos de este país (rellena Departamentos)
-                await CargarDepartamentosAsync(pais.PaisId);
-
-                foreach (var dep in Departamentos.ToList())
-                {
-                    // Cargar municipios de este departamento (rellena Municipios)
-                    await CargarMunicipiosAsync(dep.DepartamentoId);
-
-                    var muni = Municipios.FirstOrDefault(m => m.MunicipioId == municipioId);
-                    if (muni != null)
+                    if (!rolesResult.Success)
                     {
-                        paisEncontrado = pais;
-                        depEncontrado = dep;
-                        muniEncontrado = muni;
-                        break;
+                        await MostrarToastAsync(rolesResult.Message);
+                        return;
                     }
+
+                    if (!paisesResult.Success)
+                    {
+                        await MostrarToastAsync(paisesResult.Message);
+                        return;
+                    }
+
+                    ReplaceCollection(Roles, rolesResult.Data);
+                    ReplaceCollection(Paises, paisesResult.Data);
+                    initialized = true;
                 }
 
-                if (muniEncontrado != null)
-                    break;
+                if (User.RolId > 0)
+                    RolSeleccionado = Roles.FirstOrDefault(x => x.RolId == User.RolId);
+
+                if (User.MunicipioId > 0)
+                    await ResolverUbicacionAsync(User.MunicipioId);
+            }
+            catch
+            {
+                await MostrarToastAsync(
+                    "No fue posible cargar el formulario de usuario. Intente nuevamente.");
+            }
+            finally
+            {
+                IsBusy = false;
+                RefreshCommands();
+            }
+        }
+
+        private async Task ResolverUbicacionAsync(int? municipioId)
+        {
+            var result = await municipioApiService.GetMunicipiosConUbicacionResultAsync();
+
+            if (!result.Success)
+            {
+                await MostrarToastAsync(result.Message);
+                return;
             }
 
-            if (muniEncontrado != null)
-            {
-                // Asignamos directamente a los CAMPOS para no disparar de nuevo cargas
-                paisSeleccionado = paisEncontrado;
-                departamentoSeleccionado = depEncontrado;
-                municipioSeleccionado = muniEncontrado;
+            MunicipioResponse? target = result.Data?
+                .FirstOrDefault(x => x.MunicipioId == municipioId);
 
-                // Y notificamos a la UI
-                OnPropertyChanged(nameof(PaisSeleccionado));
-                OnPropertyChanged(nameof(DepartamentoSeleccionado));
-                OnPropertyChanged(nameof(MunicipioSeleccionado));
+            if (target == null || !target.PaisId.HasValue || !target.DepartamentoId.HasValue)
+                return;
+
+            suppressLocationEvents = true;
+
+            try
+            {
+                PaisSeleccionado = Paises.FirstOrDefault(x => x.PaisId == target.PaisId);
+
+                var departamentosResult =
+                    await departamentoApiService.GetDepartamentosResultAsync(target.PaisId);
+
+                if (!departamentosResult.Success)
+                {
+                    await MostrarToastAsync(departamentosResult.Message);
+                    return;
+                }
+
+                ReplaceCollection(Departamentos, departamentosResult.Data);
+                DepartamentoSeleccionado = Departamentos.FirstOrDefault(
+                    x => x.DepartamentoId == target.DepartamentoId);
+
+                var municipiosResult =
+                    await municipioApiService.GetMunicipiosResultAsync(target.DepartamentoId);
+
+                if (!municipiosResult.Success)
+                {
+                    await MostrarToastAsync(municipiosResult.Message);
+                    return;
+                }
+
+                ReplaceCollection(Municipios, municipiosResult.Data);
+                MunicipioSeleccionado = Municipios.FirstOrDefault(
+                    x => x.MunicipioId == municipioId);
+            }
+            finally
+            {
+                suppressLocationEvents = false;
                 OnPropertyChanged(nameof(CanPickDepartamento));
                 OnPropertyChanged(nameof(CanPickMunicipio));
             }
         }
 
-        // ==================== Imagen ====================
-        private async Task SeleccionarImagenAsync()
+        private async Task OnPaisChangedAsync(PaisResponse? pais)
         {
-            try
-            {
-                var resultado = await FilePicker.Default.PickAsync(new PickOptions
-                {
-                    PickerTitle = "Selecciona una imagen",
-                    FileTypes = FilePickerFileType.Images
-                });
+            DepartamentoSeleccionado = null;
+            MunicipioSeleccionado = null;
+            Departamentos.Clear();
+            Municipios.Clear();
 
-                if (resultado != null)
-                {
-                    var ext = Path.GetExtension(resultado.FileName)?.ToLower();
-                    if (ext is not ".jpg" and not ".png")
-                    {
-                        _ = GlobalService.MostrarToastAsync("Formato inválido" + "Solo JPG o PNG.");
-                        return;
-                    }
+            if (pais?.PaisId is not > 0)
+                return;
 
-                    ImagenSeleccionada = resultado;
-                }
-            }
-            catch (Exception ex)
+            var result = await departamentoApiService.GetDepartamentosResultAsync(pais.PaisId);
+
+            if (!result.Success)
             {
-                _ = GlobalService.MostrarToastAsync("Error" + ex.Message);
+                await MostrarToastAsync(result.Message);
+                return;
             }
+
+            ReplaceCollection(Departamentos, result.Data);
         }
 
-        // ==================== Guardar / Actualizar ====================
+        private async Task OnDepartamentoChangedAsync(DepartamentoResponse? departamento)
+        {
+            MunicipioSeleccionado = null;
+            Municipios.Clear();
+
+            if (departamento?.DepartamentoId is not > 0)
+                return;
+
+            var result = await municipioApiService.GetMunicipiosResultAsync(
+                departamento.DepartamentoId);
+
+            if (!result.Success)
+            {
+                await MostrarToastAsync(result.Message);
+                return;
+            }
+
+            ReplaceCollection(Municipios, result.Data);
+        }
+
         private async Task SaveAsync()
         {
-            if (IsBusy) return;
+            if (IsBusy || IsReadOnly)
+                return;
+
+            string? validationMessage = ValidateFields();
+
+            if (validationMessage != null)
+            {
+                await MostrarToastAsync(validationMessage);
+                return;
+            }
+
+            string action = Mode == FormMode.FormModeSelect.Create
+                ? "guardar"
+                : "actualizar";
+
+            bool confirm = await Application.Current!.MainPage!.DisplayAlert(
+                Mode == FormMode.FormModeSelect.Create
+                    ? "Guardar usuario"
+                    : "Actualizar usuario",
+                $"¿Desea {action} la información del usuario?",
+                "Sí",
+                "No");
+
+            if (!confirm)
+                return;
+
             IsBusy = true;
+            RefreshCommands();
 
             try
             {
@@ -475,254 +519,336 @@ namespace CONATRADEC.ViewModels
                 else
                     await UpdateUserAsync();
             }
-            finally { IsBusy = false; }
+            finally
+            {
+                IsBusy = false;
+                RefreshCommands();
+            }
         }
 
         private async Task CreateUserAsync()
         {
-            if (!ValidateFieldsData()) return;
+            var request = BuildRequestForCreate();
+            var result = await userApiService.CreateUserResultAsync(request);
 
-            bool confirm = await Application.Current.MainPage.DisplayAlert("Confirmar", "¿Guardar usuario?", "Sí", "No");
-            if (!confirm) return;
-
-            var request = new UserRequest
+            if (!result.Success || result.Data?.UsuarioId is not > 0)
             {
-                NombreUsuario = NombreUsuario,
-                NombreCompletoUsuario = NombreCompletoUsuario,
-                CorreoUsuario = CorreoUsuario,
-                TelefonoUsuario = TelefonoUsuario,
-                FechaNacimientoUsuario = FechaNacimientoUsuario,
-                IdentificacionUsuario = IdentificacionUsuario,
-                ClaveUsuario = ClaveUsuario,
-                RolId = RolSeleccionado?.RolId ?? 0,
-                MunicipioId = MunicipioSeleccionado?.MunicipioId ?? 0,
-                EsInterno = true
-            };
-
-            // Valida que el usaurio tenga conexion a internet
-            bool tieneInternet = await TieneInternetAsync();
-
-            if (!tieneInternet)
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
+                await MostrarToastAsync(result.Message);
                 return;
             }
 
-            var (ok, usuarioCreado) = await userApiService.CreateUserAsync(request);
-
-            if (ok && usuarioCreado?.UsuarioId > 0)
+            if (ImagenSeleccionada != null)
             {
-                // Valida que el usaurio tenga conexion a internet
-                tieneInternet = await TieneInternetAsync();
+                var imageResult = await userApiService.SubirImagenResultAsync(
+                    result.Data.UsuarioId,
+                    ImagenSeleccionada);
 
-                if (!tieneInternet)
+                if (!imageResult.Success)
                 {
-                    _ = MostrarToastAsync("Sin conexión a internet.");
-                    IsBusy = false;
-                    return;
+                    await MostrarToastAsync(
+                        $"El usuario fue creado, pero la imagen no se pudo guardar: {imageResult.Message}");
                 }
-
-                if (ImagenSeleccionada != null)
-                    await userApiService.SubirImagenAsync(usuarioCreado.UsuarioId, ImagenSeleccionada);
-
-                await GoToAsyncParameters("//UserPage");
-                _ = GlobalService.MostrarToastAsync("Éxito" + "Usuario creado.");
             }
+
+            ResetForm();
+            await GoToAsyncParameters("//UserPage");
+            await MostrarToastAsync("Usuario creado correctamente.");
         }
 
         private async Task UpdateUserAsync()
         {
-            if (!ValidateFieldsData()) return;
-
-            bool confirm = await Application.Current.MainPage.DisplayAlert("Confirmar", "¿Actualizar usuario?", "Sí", "No");
-            if (!confirm) return;
-
-            var request = new UserRequest
+            if (User.UsuarioId is not > 0)
             {
-                UsuarioId = User.UsuarioId,
-                NombreCompletoUsuario = NombreCompletoUsuario,
-                CorreoUsuario = CorreoUsuario,
-                IdentificacionUsuario = IdentificacionUsuario,
-                TelefonoUsuario = TelefonoUsuario,
-                FechaNacimientoUsuario = FechaNacimientoUsuario,
-                MunicipioId = MunicipioSeleccionado?.MunicipioId ?? User.MunicipioId,
-                RolId = RolSeleccionado?.RolId ?? User.RolId,
-                EsInterno = User.EsInterno,
-                UrlImagenUsuario = ImagenPreview ?? ""
-            };
-
-            // Valida que el usaurio tenga conexion a internet
-            bool tieneInternet = await TieneInternetAsync();
-
-            if (!tieneInternet)
-            {
-                _ = MostrarToastAsync("Sin conexión a internet.");
-                IsBusy = false;
+                await MostrarToastAsync(
+                    "No se encontró el identificador del usuario que desea actualizar.");
                 return;
             }
 
-            var (ok, usuarioActualizado) = await userApiService.UpdateUserAsync(request);
+            var request = BuildRequestForUpdate();
+            var result = await userApiService.UpdateUserResultAsync(request);
 
-            if (ok && usuarioActualizado?.UsuarioId > 0)
+            if (!result.Success || result.Data?.UsuarioId is not > 0)
             {
-                // Valida que el usaurio tenga conexion a internet
-                tieneInternet = await TieneInternetAsync();
-
-                if (!tieneInternet)
-                {
-                    _ = MostrarToastAsync("Sin conexión a internet.");
-                    IsBusy = false;
-                    return;
-                }
-
-                if (ImagenSeleccionada != null)
-                    await userApiService.SubirImagenAsync(usuarioActualizado.UsuarioId, ImagenSeleccionada);
-
-                UrlImagenUsuario = usuarioActualizado.UrlImagenUsuario ?? UrlImagenUsuario;
-
-                await GoToAsyncParameters("//UserPage");
-                _ = GlobalService.MostrarToastAsync("Éxito" + "Usuario actualizado.");
+                await MostrarToastAsync(result.Message);
+                return;
             }
+
+            if (ImagenSeleccionada != null)
+            {
+                var imageResult = await userApiService.SubirImagenResultAsync(
+                    result.Data.UsuarioId,
+                    ImagenSeleccionada);
+
+                if (!imageResult.Success)
+                {
+                    await MostrarToastAsync(
+                        $"Los datos fueron actualizados, pero la imagen no se pudo guardar: {imageResult.Message}");
+                }
+            }
+
+            ClaveUsuario = string.Empty;
+            await GoToAsyncParameters("//UserPage");
+            await MostrarToastAsync("Usuario actualizado correctamente.");
         }
 
-        // ==================== Validaciones ====================
-        private bool ValidateFieldsData()
+        private UserRequest BuildRequestForCreate() => new()
         {
-            if (string.IsNullOrWhiteSpace(NombreCompletoUsuario))
-            {
-                Display("El nombre completo es obligatorio.");
-                return false;
-            }
+            NombreUsuario = NombreUsuario.Trim(),
+            NombreCompletoUsuario = NombreCompletoUsuario.Trim(),
+            CorreoUsuario = CorreoUsuario.Trim(),
+            TelefonoUsuario = TelefonoUsuario.Trim(),
+            FechaNacimientoUsuario = FechaNacimientoUsuario,
+            IdentificacionUsuario = IdentificacionUsuario.Trim().ToUpperInvariant(),
+            ClaveUsuario = ClaveUsuario,
+            NuevaClaveUsuario = null,
+            RolId = RolSeleccionado?.RolId,
+            MunicipioId = MunicipioSeleccionado?.MunicipioId,
+            EsInterno = true,
+            UrlImagenUsuario = string.Empty
+        };
 
-            if (!EsCorreoValido(CorreoUsuario))
-            {
-                Display("Correo inválido.");
-                return false;
-            }
+        private UserRequest BuildRequestForUpdate() => new()
+        {
+            UsuarioId = User.UsuarioId,
+            NombreUsuario = User.NombreUsuario,
+            NombreCompletoUsuario = NombreCompletoUsuario.Trim(),
+            CorreoUsuario = CorreoUsuario.Trim(),
+            TelefonoUsuario = TelefonoUsuario.Trim(),
+            FechaNacimientoUsuario = FechaNacimientoUsuario,
+            IdentificacionUsuario = IdentificacionUsuario.Trim().ToUpperInvariant(),
+            ClaveUsuario = null,
+            NuevaClaveUsuario = string.IsNullOrWhiteSpace(ClaveUsuario)
+                ? null
+                : ClaveUsuario,
+            RolId = RolSeleccionado?.RolId ?? User.RolId,
+            MunicipioId = MunicipioSeleccionado?.MunicipioId ?? User.MunicipioId,
+            EsInterno = User.EsInterno ?? true,
+            UrlImagenUsuario = UrlImagenUsuario ?? string.Empty
+        };
+
+        private string? ValidateFields()
+        {
+            if (string.IsNullOrWhiteSpace(NombreUsuario))
+                return "Ingrese el nombre de usuario.";
+
+            if (string.IsNullOrWhiteSpace(NombreCompletoUsuario))
+                return "Ingrese el nombre completo del usuario.";
 
             if (string.IsNullOrWhiteSpace(IdentificacionUsuario))
+                return "Ingrese la identificación del usuario.";
+
+            if (!IdentificacionRegex.IsMatch(IdentificacionUsuario.Trim()))
             {
-                Display("Identificación obligatoria.");
-                return false;
+                return "La identificación debe tener el formato 001-080701-1050R.";
             }
 
-            if (!EsTelefonoValido(TelefonoUsuario))
-            {
-                Display("Teléfono debe ser numérico.");
-                return false;
-            }
+            if (string.IsNullOrWhiteSpace(CorreoUsuario))
+                return "Ingrese el correo electrónico del usuario.";
 
-            if (!EsTelefonoValidoCaracteres(TelefonoUsuario))
-            {
-                Display("Teléfono de contener 8 caracteres");
-                return false;
-            }
+            if (!CorreoRegex.IsMatch(CorreoUsuario.Trim()))
+                return "Ingrese un correo electrónico válido, por ejemplo: usuario@dominio.com.";
 
-            if (!EsContrasenaSegura(ClaveUsuario) && Mode == FormMode.FormModeSelect.Create)
-            {
-                Display("Contraseña insegura.");
-                return false;
-            }
+            if (string.IsNullOrWhiteSpace(TelefonoUsuario))
+                return "Ingrese el número de teléfono.";
+
+            if (!Regex.IsMatch(TelefonoUsuario.Trim(), @"^\d{8}$"))
+                return "El teléfono debe contener exactamente 8 dígitos.";
+
+            if (FechaNacimientoUsuario == null)
+                return "Seleccione la fecha de nacimiento.";
 
             if (!EsMayorDeEdad(FechaNacimientoUsuario))
-            {
-                Display("Debe ser mayor de 18 años.");
-                return false;
-            }
+                return "El usuario debe tener al menos 18 años.";
+
+            if (RolSeleccionado == null)
+                return "Seleccione un rol.";
+
+            if (PaisSeleccionado == null)
+                return "Seleccione un país.";
+
+            if (DepartamentoSeleccionado == null)
+                return "Seleccione un departamento.";
 
             if (MunicipioSeleccionado == null)
+                return "Seleccione un municipio.";
+
+            bool passwordRequired = Mode == FormMode.FormModeSelect.Create;
+            bool passwordProvided = !string.IsNullOrWhiteSpace(ClaveUsuario);
+
+            if (passwordRequired && !passwordProvided)
+                return "Ingrese una contraseña.";
+
+            if (passwordProvided && !ContrasenaRegex.IsMatch(ClaveUsuario))
             {
-                Display("Seleccione un municipio.");
-                return false;
+                return "La contraseña debe tener al menos 8 caracteres e incluir mayúscula, minúscula, número y símbolo.";
             }
 
-            return true;
+            return null;
         }
 
-        private void Display(string msg) =>
-            _ = MostrarToastAsync("Validación" + msg);
-
-        public bool EsTelefonoValidoCaracteres(string telefono) =>
-            Regex.IsMatch(telefono ?? "", @"^\d{8}$");
-
-        public bool EsTelefonoValido(string telefono) => 
-            !string.IsNullOrWhiteSpace(telefono) && telefono.All(char.IsDigit);
-
-
-        public bool EsCorreoValido(string correo)
+        private static bool EsMayorDeEdad(DateOnly? fecha)
         {
-            if (string.IsNullOrWhiteSpace(correo)) return false;
-            var patron = @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$";
-            return Regex.IsMatch(correo, patron);
-        }
+            if (!fecha.HasValue)
+                return false;
 
-        public bool EsContrasenaSegura(string clave)
-        {
-            if (string.IsNullOrWhiteSpace(clave)) return false;
-            var regex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.#_-]).{8,}$");
-            return regex.IsMatch(clave);
-        }
-
-        public bool EsMayorDeEdad(DateOnly? fecha)
-        {
-            if (fecha == null) return false;
             var hoy = DateOnly.FromDateTime(DateTime.Today);
             int edad = hoy.Year - fecha.Value.Year;
-            if (hoy < fecha.Value.AddYears(edad)) edad--;
+
+            if (hoy < fecha.Value.AddYears(edad))
+                edad--;
+
             return edad >= 18;
         }
 
-        // Acción de cancelar: si detecta cambios, pregunta confirmación; si no, simplemente navega.
-        private async Task CancelAsync()
+        private async Task SeleccionarImagenAsync()
         {
+            if (IsBusy || !EnabledImagenField)
+                return;
+
             try
             {
-                IsCancel = ValidateFieldsAsync(); // True si hay diferencias entre campos y Rol original.
-
-                if (IsCancel)
+                var result = await FilePicker.Default.PickAsync(new PickOptions
                 {
-                    // Si hay cambios, confirma con el usuario.
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Cancelar",
-                        "Desea no guardar los cambios",
-                        "Aceptar",
-                        "Cancelar");
+                    PickerTitle = "Seleccione una imagen",
+                    FileTypes = FilePickerFileType.Images
+                });
 
-                    if (confirm)
-                    {
-                        await GoToAsyncParameters("//UserPage"); // Vuelve al listado de roles.
-                    }
-                }
-                else
+                if (result == null)
+                    return;
+
+                string extension = Path.GetExtension(result.FileName).ToLowerInvariant();
+
+                if (extension is not ".jpg" and not ".jpeg" and not ".png")
                 {
-                    // Si no hay cambios, regresa inmediatamente.
-                    await GoToAsyncParameters("//UserPage");
+                    await MostrarToastAsync(
+                        "La imagen debe tener formato JPG, JPEG o PNG.");
+                    return;
                 }
+
+                ImagenSeleccionada = result;
             }
-            catch (Exception ex)
+            catch
             {
-                _ = GlobalService.MostrarToastAsync("Error" + ex.Message);
-            }
-            finally
-            {
-                IsCancel = false; // Limpia bandera para siguientes intentos.
+                await MostrarToastAsync(
+                    "No fue posible seleccionar la imagen.");
             }
         }
 
-        private bool ValidateFieldsAsync()
+        private async Task CancelAsync()
         {
-            if (NombreCompletoUsuario != User.NombreCompletoUsuario) return true;
-            if (NombreUsuario != User.NombreUsuario) return true;
-            if (CorreoUsuario != User.CorreoUsuario) return true;
-            if (IdentificacionUsuario != User.IdentificacionUsuario) return true;
-            if (TelefonoUsuario != User.TelefonoUsuario) return true;
-            if (FechaNacimientoUsuario != User.FechaNacimientoUsuario) return true;
-            if (RolSeleccionado?.RolId != User.RolId) return true;
-            if (MunicipioSeleccionado?.MunicipioId != User.MunicipioId) return true;
-            if (ImagenPreview != User.UrlImagenUsuario) return true;
+            if (IsBusy)
+                return;
 
-            return false;
+            bool hasChanges = HasChanges();
+
+            if (hasChanges)
+            {
+                bool confirm = await Application.Current!.MainPage!.DisplayAlert(
+                    "Cancelar cambios",
+                    "Hay información sin guardar. ¿Desea salir y descartarla?",
+                    "Sí, salir",
+                    "Continuar editando");
+
+                if (!confirm)
+                    return;
+            }
+
+            ResetForm();
+            await GoToAsyncParameters("//UserPage");
+        }
+
+        private bool HasChanges()
+        {
+            if (Mode == FormMode.FormModeSelect.Create)
+            {
+                return !string.IsNullOrWhiteSpace(NombreUsuario) ||
+                       !string.IsNullOrWhiteSpace(ClaveUsuario) ||
+                       !string.IsNullOrWhiteSpace(NombreCompletoUsuario) ||
+                       !string.IsNullOrWhiteSpace(IdentificacionUsuario) ||
+                       !string.IsNullOrWhiteSpace(CorreoUsuario) ||
+                       !string.IsNullOrWhiteSpace(TelefonoUsuario) ||
+                       RolSeleccionado != null ||
+                       PaisSeleccionado != null ||
+                       DepartamentoSeleccionado != null ||
+                       MunicipioSeleccionado != null ||
+                       ImagenSeleccionada != null;
+            }
+
+            return NombreCompletoUsuario != (User.NombreCompletoUsuario ?? string.Empty) ||
+                   CorreoUsuario != (User.CorreoUsuario ?? string.Empty) ||
+                   IdentificacionUsuario != (User.IdentificacionUsuario ?? string.Empty) ||
+                   TelefonoUsuario != (User.TelefonoUsuario ?? string.Empty) ||
+                   FechaNacimientoUsuario != User.FechaNacimientoUsuario ||
+                   RolSeleccionado?.RolId != User.RolId ||
+                   MunicipioSeleccionado?.MunicipioId != User.MunicipioId ||
+                   !string.IsNullOrWhiteSpace(ClaveUsuario) ||
+                   ImagenSeleccionada != null;
+        }
+
+        private void ApplyUserToForm(UserRequest source)
+        {
+            NombreUsuario = source.NombreUsuario ?? string.Empty;
+            NombreCompletoUsuario = source.NombreCompletoUsuario ?? string.Empty;
+            IdentificacionUsuario = source.IdentificacionUsuario ?? string.Empty;
+            CorreoUsuario = source.CorreoUsuario ?? string.Empty;
+            TelefonoUsuario = source.TelefonoUsuario ?? string.Empty;
+            FechaNacimientoUsuario = source.FechaNacimientoUsuario;
+            UrlImagenUsuario = source.UrlImagenUsuario ?? string.Empty;
+            ClaveUsuario = string.Empty;
+            ImagenSeleccionada = null;
+        }
+
+        private void ResetForm()
+        {
+            user = new UserRequest();
+            NombreUsuario = string.Empty;
+            ClaveUsuario = string.Empty;
+            NombreCompletoUsuario = string.Empty;
+            IdentificacionUsuario = string.Empty;
+            CorreoUsuario = string.Empty;
+            TelefonoUsuario = string.Empty;
+            FechaNacimientoDate = DateTime.Today.AddYears(-18);
+            FechaNacimientoUsuario = DateOnly.FromDateTime(FechaNacimientoDate);
+            UrlImagenUsuario = string.Empty;
+            ImagenSeleccionada = null;
+            RolSeleccionado = null;
+
+            suppressLocationEvents = true;
+            try
+            {
+                PaisSeleccionado = null;
+                DepartamentoSeleccionado = null;
+                MunicipioSeleccionado = null;
+                Departamentos.Clear();
+                Municipios.Clear();
+            }
+            finally
+            {
+                suppressLocationEvents = false;
+            }
+
+            IsPasswordHidden = true;
+            PasswordToggleIcon = "eye.png";
+        }
+
+        private static void ReplaceCollection<T>(
+            ObservableCollection<T> target,
+            IEnumerable<T>? source)
+        {
+            target.Clear();
+
+            if (source == null)
+                return;
+
+            foreach (T item in source)
+                target.Add(item);
+        }
+
+        private void RefreshCommands()
+        {
+            SaveCommand.ChangeCanExecute();
+            CancelCommand.ChangeCanExecute();
+            SeleccionarImagenCommand.ChangeCanExecute();
         }
 
         public void OnTogglePassword()
