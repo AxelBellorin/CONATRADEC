@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <Shell
     x:Class="CONATRADEC.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -34,11 +34,10 @@
         FlyoutItemIsVisible="False"
         ContentTemplate="{DataTemplate views:configuracionPage}" />
 
-    <ShellContent
-        Title="AlbumFotosPage"
-        Route="AlbumFotosPage"
-        FlyoutItemIsVisible="False"
-        ContentTemplate="{DataTemplate views:albumFotosPage}" />
+    <!--
+        AlbumFotosPage se eliminó de ShellContent.
+        Se registra en AppShell.xaml.cs para crear una instancia nueva.
+    -->
 
     <ShellContent
         Title="UserPage"

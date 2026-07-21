@@ -15,6 +15,14 @@ namespace CONATRADEC
         {
             InitializeComponent();
 
+            /*
+             * AlbumFotosPage ya no es ShellContent.
+             * Cada navegación crea una instancia nueva de la página.
+             */
+            Routing.RegisterRoute(
+                AppRoutes.AlbumFotos,
+                typeof(albumFotosPage));
+
             // Pantallas secundarias.
             Routing.RegisterRoute(
                 AppRoutes.MapaSeleccion,
@@ -80,11 +88,6 @@ namespace CONATRADEC
 
             try
             {
-                /*
-                 * El botón Nuevo ya limpia el contexto de edición, pero se
-                 * vuelve a garantizar aquí porque este es el punto exacto
-                 * previo a mostrar el formulario reutilizado por Shell.
-                 */
                 AnalisisEdicionService.Instance.Limpiar();
 
                 await CalculoAnalisisTemporalService.Instance
@@ -96,11 +99,6 @@ namespace CONATRADEC
                 if (pagina?.BindingContext
                     is NuevoAnalisisFormEdicionViewModel viewModel)
                 {
-                    /*
-                     * Normalmente el ViewModel ya está libre porque estamos
-                     * en MainPage. La espera evita competir con una operación
-                     * que todavía esté finalizando en un dispositivo lento.
-                     */
                     for (int intento = 0;
                          intento < 200 && viewModel.IsBusy;
                          intento++)
@@ -114,10 +112,6 @@ namespace CONATRADEC
             }
             catch (Exception ex)
             {
-                /*
-                 * No se cancela la navegación completa. En la primera visita
-                 * la propia página también ejecuta su inicialización normal.
-                 */
                 Debug.WriteLine(
                     "No fue posible preparar el formulario de un nuevo " +
                     $"análisis: {ex}");
@@ -150,10 +144,6 @@ namespace CONATRADEC
                     "NuevoAnalisisFormPage",
                     StringComparison.OrdinalIgnoreCase);
 
-            /*
-             * Editar también navega desde MainPage hacia el mismo formulario.
-             * En ese caso el contexto preparado debe conservarse.
-             */
             return
                 vieneDePrincipal &&
                 vaAlFormulario &&
@@ -188,16 +178,9 @@ namespace CONATRADEC
             return null;
         }
 
-        /// <summary>
-        /// Evita que el botón físico o gesto de retroceso de Android
-        /// cierre la aplicación o cambie de página accidentalmente.
-        /// Los botones internos de la aplicación continúan funcionando.
-        /// </summary>
         protected override bool OnBackButtonPressed()
         {
 #if ANDROID
-            // true significa que el evento fue controlado
-            // y que Android no debe realizar la navegación atrás.
             return true;
 #else
             return base.OnBackButtonPressed();

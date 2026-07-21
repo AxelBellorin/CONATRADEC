@@ -1,13 +1,11 @@
-using CONATRADEC.Services;
+﻿using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
-using Microsoft.Maui.ApplicationModel;
 
 namespace CONATRADEC.Views
 {
     public partial class albumFotosPage : ContentPage
     {
         private readonly AlbumFotosViewModel viewModel = new();
-        private CancellationTokenSource? scrollCancellationTokenSource;
 
         public albumFotosPage()
         {
@@ -41,18 +39,14 @@ namespace CONATRADEC.Views
             await viewModel.LoadAsync(true);
 
             /*
-             * AlbumFotosPage está declarada como ShellContent, por lo que
-             * la misma instancia puede conservar el foco y el ScrollY de
-             * una visita anterior. El contenido se espera y luego se lleva
-             * de forma comprobada al inicio.
+             * La página ahora es una instancia nueva.
+             * Solo se asegura la posición inicial una vez.
              */
-            await RestablecerVistaAlInicioAsync();
-        }
-
-        protected override void OnDisappearing()
-        {
-            scrollCancellationTokenSource?.Cancel();
-            base.OnDisappearing();
+            await Task.Yield();
+            await AlbumScrollView.ScrollToAsync(
+                0,
+                0,
+                false);
         }
 
         private async void OnBuscarPresionado(
@@ -63,7 +57,6 @@ namespace CONATRADEC.Views
                 return;
 
             await viewModel.BuscarAsync();
-            await RestablecerVistaAlInicioAsync();
         }
 
         private async void OnLimpiarBusquedaClicked(
@@ -74,7 +67,6 @@ namespace CONATRADEC.Views
                 return;
 
             await viewModel.LimpiarBusquedaAsync();
-            await RestablecerVistaAlInicioAsync();
         }
 
         private async void OnIncluirInactivosToggled(
@@ -88,89 +80,6 @@ namespace CONATRADEC.Views
             }
 
             await viewModel.AplicarInactivosAsync();
-            await RestablecerVistaAlInicioAsync();
-        }
-
-        private async Task RestablecerVistaAlInicioAsync()
-        {
-            scrollCancellationTokenSource?.Cancel();
-            scrollCancellationTokenSource =
-                new CancellationTokenSource();
-
-            CancellationToken token =
-                scrollCancellationTokenSource.Token;
-
-            try
-            {
-                await EsperarContenidoEstableAsync(token);
-
-                /*
-                 * El ScrollView recibe el foco para quitarlo de cualquier
-                 * botón de una tarjeta anterior. WinUI puede desplazar
-                 * automáticamente hasta el control que conserva el foco.
-                 */
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    AlbumScrollView.Focus();
-                });
-
-                for (int intento = 0;
-                     intento < 8;
-                     intento++)
-                {
-                    token.ThrowIfCancellationRequested();
-
-                    await MainThread.InvokeOnMainThreadAsync(
-                        () => AlbumScrollView.ScrollToAsync(
-                            0,
-                            0,
-                            false));
-
-                    await Task.Delay(75, token);
-
-                    if (AlbumScrollView.ScrollY <= 1)
-                        break;
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Una operación nueva reemplazó el ajuste anterior.
-            }
-        }
-
-        private async Task EsperarContenidoEstableAsync(
-            CancellationToken token)
-        {
-            double alturaAnterior = -1;
-            int medicionesEstables = 0;
-
-            for (int intento = 0;
-                 intento < 24;
-                 intento++)
-            {
-                token.ThrowIfCancellationRequested();
-                await Task.Delay(50, token);
-
-                double alturaActual =
-                    AlbumScrollView.Content?.Height ?? 0;
-
-                if (alturaActual > 0 &&
-                    Math.Abs(
-                        alturaActual -
-                        alturaAnterior) < 0.5)
-                {
-                    medicionesEstables++;
-                }
-                else
-                {
-                    medicionesEstables = 0;
-                }
-
-                alturaAnterior = alturaActual;
-
-                if (medicionesEstables >= 3)
-                    return;
-            }
         }
     }
 }

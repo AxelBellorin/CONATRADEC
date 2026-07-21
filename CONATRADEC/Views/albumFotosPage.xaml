@@ -676,33 +676,19 @@
                                                 MaxLines="3"
                                                 LineBreakMode="TailTruncation" />
 
-                                            <!--
-                                                En WinUI el texto del Button podía dejar de
-                                                renderizarse al reutilizar la página. Se usa
-                                                Border + Label para una presentación estable.
-                                            -->
-                                            <Border
+                                            <Button
+                                                Text="Ver detalle"
+                                                Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.AbrirDetalleCommand}"
+                                                CommandParameter="{Binding .}"
+                                                Style="{x:Null}"
                                                 HeightRequest="46"
-                                                BackgroundColor="{StaticResource color_Verde}"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 10">
-
-                                                <Border.GestureRecognizers>
-                                                    <TapGestureRecognizer
-                                                        Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.AbrirDetalleCommand}"
-                                                        CommandParameter="{Binding .}" />
-                                                </Border.GestureRecognizers>
-
-                                                <Label
-                                                    Text="Ver detalle"
-                                                    HorizontalOptions="Center"
-                                                    VerticalOptions="Center"
-                                                    FontFamily="MontserratBold"
-                                                    FontSize="14"
-                                                    FontAttributes="Bold"
-                                                    TextColor="White"
-                                                    InputTransparent="True" />
-                                            </Border>
+                                                HorizontalOptions="Fill"
+                                                BackgroundColor="#3B655B"
+                                                TextColor="#FFFFFF"
+                                                FontSize="14"
+                                                FontAttributes="Bold"
+                                                CornerRadius="10"
+                                                Padding="12,8" />
 
                                             <Grid
                                                 ColumnDefinitions="*,*"

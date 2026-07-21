@@ -49,9 +49,13 @@ namespace CONATRADEC.ViewModels
 
         public AlbumDetalleViewModel()
         {
+            /*
+             * Regresa a la instancia del álbum que está debajo
+             * en la pila de navegación.
+             */
             RegresarCommand = new Command(
                 async () => await GoToAsyncParameters(
-                    AppRoutes.AlbumFotos));
+                    AppRoutes.Regresar));
 
             EditarCommand = new Command(
                 async () => await EditarAsync());

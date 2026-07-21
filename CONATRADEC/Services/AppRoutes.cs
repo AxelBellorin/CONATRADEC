@@ -7,7 +7,13 @@ namespace CONATRADEC.Services
         public const string Login = "//LoginPage";
         public const string Principal = "//MainPage";
         public const string Configuracion = "//ConfiguracionPage";
-        public const string AlbumFotos = "//AlbumFotosPage";
+
+        /*
+         * El álbum ya no es ShellContent.
+         * Se registra como ruta normal para crear una instancia nueva.
+         */
+        public const string AlbumFotos =
+            nameof(albumFotosPage);
 
         public const string Usuarios = "//UserPage";
         public const string Roles = "//RolPage";
@@ -45,10 +51,18 @@ namespace CONATRADEC.Services
         public const string AlbumFotoVisor =
             nameof(albumFotoVisorPage);
 
-        public const string MapaSeleccion = nameof(MapaSeleccionPage);
-        public const string FotosTerrenoGaleria = nameof(FotosTerrenoGaleriaPage);
-        public const string AnalisisGuardadoDetalle = nameof(AnalisisGuardadoDetallePage);
-        public const string EditarAnalisisGuardado = nameof(EditarAnalisisGuardadoPage);
+        public const string MapaSeleccion =
+            nameof(MapaSeleccionPage);
+
+        public const string FotosTerrenoGaleria =
+            nameof(FotosTerrenoGaleriaPage);
+
+        public const string AnalisisGuardadoDetalle =
+            nameof(AnalisisGuardadoDetallePage);
+
+        public const string EditarAnalisisGuardado =
+            nameof(EditarAnalisisGuardadoPage);
+
         public const string Regresar = "..";
     }
 }
