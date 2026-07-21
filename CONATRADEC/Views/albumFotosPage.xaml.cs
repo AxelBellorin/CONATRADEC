@@ -1,11 +1,13 @@
-﻿using CONATRADEC.Services;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
+using Microsoft.Maui.ApplicationModel;
 
 namespace CONATRADEC.Views
 {
     public partial class albumFotosPage : ContentPage
     {
         private readonly AlbumFotosViewModel viewModel = new();
+        private CancellationTokenSource? scrollCancellationTokenSource;
 
         public albumFotosPage()
         {
@@ -37,6 +39,20 @@ namespace CONATRADEC.Views
             }
 
             await viewModel.LoadAsync(true);
+
+            /*
+             * AlbumFotosPage está declarada como ShellContent, por lo que
+             * la misma instancia puede conservar el foco y el ScrollY de
+             * una visita anterior. El contenido se espera y luego se lleva
+             * de forma comprobada al inicio.
+             */
+            await RestablecerVistaAlInicioAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            scrollCancellationTokenSource?.Cancel();
+            base.OnDisappearing();
         }
 
         private async void OnBuscarPresionado(
@@ -47,7 +63,7 @@ namespace CONATRADEC.Views
                 return;
 
             await viewModel.BuscarAsync();
-            await DesplazarAAsync(GaleriaSection);
+            await RestablecerVistaAlInicioAsync();
         }
 
         private async void OnLimpiarBusquedaClicked(
@@ -58,7 +74,7 @@ namespace CONATRADEC.Views
                 return;
 
             await viewModel.LimpiarBusquedaAsync();
-            await DesplazarAAsync(CapitulosSection);
+            await RestablecerVistaAlInicioAsync();
         }
 
         private async void OnIncluirInactivosToggled(
@@ -72,32 +88,89 @@ namespace CONATRADEC.Views
             }
 
             await viewModel.AplicarInactivosAsync();
-            await DesplazarAAsync(CapitulosSection);
+            await RestablecerVistaAlInicioAsync();
         }
 
-        private async Task DesplazarAAsync(
-            Element destino)
+        private async Task RestablecerVistaAlInicioAsync()
         {
-            /*
-             * Toda la interfaz está en el mismo ScrollView.
-             * Después de actualizar los datos esperamos dos ciclos
-             * de medición y desplazamos al elemento real, no a una
-             * coordenada que pueda quedar obsoleta.
-             */
-            await Task.Yield();
-            await Task.Delay(80);
+            scrollCancellationTokenSource?.Cancel();
+            scrollCancellationTokenSource =
+                new CancellationTokenSource();
 
-            await AlbumScrollView.ScrollToAsync(
-                destino,
-                ScrollToPosition.Start,
-                false);
+            CancellationToken token =
+                scrollCancellationTokenSource.Token;
 
-            await Task.Delay(80);
+            try
+            {
+                await EsperarContenidoEstableAsync(token);
 
-            await AlbumScrollView.ScrollToAsync(
-                destino,
-                ScrollToPosition.Start,
-                false);
+                /*
+                 * El ScrollView recibe el foco para quitarlo de cualquier
+                 * botón de una tarjeta anterior. WinUI puede desplazar
+                 * automáticamente hasta el control que conserva el foco.
+                 */
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    AlbumScrollView.Focus();
+                });
+
+                for (int intento = 0;
+                     intento < 8;
+                     intento++)
+                {
+                    token.ThrowIfCancellationRequested();
+
+                    await MainThread.InvokeOnMainThreadAsync(
+                        () => AlbumScrollView.ScrollToAsync(
+                            0,
+                            0,
+                            false));
+
+                    await Task.Delay(75, token);
+
+                    if (AlbumScrollView.ScrollY <= 1)
+                        break;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Una operación nueva reemplazó el ajuste anterior.
+            }
+        }
+
+        private async Task EsperarContenidoEstableAsync(
+            CancellationToken token)
+        {
+            double alturaAnterior = -1;
+            int medicionesEstables = 0;
+
+            for (int intento = 0;
+                 intento < 24;
+                 intento++)
+            {
+                token.ThrowIfCancellationRequested();
+                await Task.Delay(50, token);
+
+                double alturaActual =
+                    AlbumScrollView.Content?.Height ?? 0;
+
+                if (alturaActual > 0 &&
+                    Math.Abs(
+                        alturaActual -
+                        alturaAnterior) < 0.5)
+                {
+                    medicionesEstables++;
+                }
+                else
+                {
+                    medicionesEstables = 0;
+                }
+
+                alturaAnterior = alturaActual;
+
+                if (medicionesEstables >= 3)
+                    return;
+            }
         }
     }
 }
