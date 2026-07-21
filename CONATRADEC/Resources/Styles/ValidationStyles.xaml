@@ -75,4 +75,17 @@
                 Value="12" />
     </Style>
 
+    <!--
+        Alias para las pantallas de análisis que ya utilizaban esta clave.
+        Permite aplicar la misma apariencia sin modificar su lógica.
+    -->
+    <Style x:Key="ValidationErrorLabelStyle"
+           TargetType="Label"
+           BasedOn="{StaticResource ValidationMessageStyle}" />
+
+    <!-- Alias semántico para nuevos formularios. -->
+    <Style x:Key="InlineValidationMessageStyle"
+           TargetType="Label"
+           BasedOn="{StaticResource ValidationMessageStyle}" />
+
 </ResourceDictionary>

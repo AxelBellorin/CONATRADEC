@@ -1,65 +1,243 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.rangoNutrienteFormPage"
-             Shell.NavBarIsVisible="False" BackgroundColor="Transparent">
-    <Grid RowDefinitions="Auto,Auto,*" Padding="10">
-        <Label Grid.Row="0" Text="{Binding Title}" FontSize="24" FontFamily="MontserratBold"
-               TextColor="{StaticResource color_Verde}" Margin="4,12,4,8" />
-        <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
-                           Color="{StaticResource color_Naranja}" />
-        <ScrollView Grid.Row="2">
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="CONATRADEC.Views.rangoNutrienteFormPage"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="Transparent">
+
+    <Grid
+        RowDefinitions="Auto,*"
+        Padding="10">
+
+        <Grid
+            Grid.Row="0"
+            ColumnDefinitions="*,Auto"
+            Margin="4,12,4,8">
+
+            <Label
+                Text="{Binding Title}"
+                FontSize="24"
+                FontFamily="MontserratBold"
+                TextColor="{StaticResource color_Verde}"
+                VerticalOptions="Center" />
+
+            <ActivityIndicator
+                Grid.Column="1"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource color_Naranja}"
+                VerticalOptions="Center" />
+
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+
             <VerticalStackLayout Spacing="15">
-                <Border Style="{StaticResource BorderStyle}">
+
+                <Border Style="{StaticResource ValidationFieldContainerStyle}">
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorCultivo}"
+                            Value="True">
+                            <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                            <Setter Property="StrokeThickness" Value="2" />
+                        </DataTrigger>
+                    </Border.Triggers>
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Tipo de cultivo" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                        <Picker ItemsSource="{Binding Cultivos}" SelectedItem="{Binding CultivoSeleccionado}"
-                                ItemDisplayBinding="{Binding NombreTipoCultivo}" Title="Seleccione un cultivo"
-                                IsEnabled="{Binding IsEditable}" />
+                        <Label
+                            Text="Tipo de cultivo"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}" />
+                        <Picker
+                            ItemsSource="{Binding Cultivos}"
+                            SelectedItem="{Binding CultivoSeleccionado}"
+                            ItemDisplayBinding="{Binding NombreTipoCultivo}"
+                            Title="Seleccione un cultivo"
+                            IsEnabled="{Binding IsEditable}" />
+                        <Label
+                            Text="{Binding ErrorCultivo}"
+                            IsVisible="{Binding TieneErrorCultivo}"
+                            Style="{StaticResource ValidationMessageStyle}" />
                     </VerticalStackLayout>
                 </Border>
-                <Border Style="{StaticResource BorderStyle}">
+
+                <Border Style="{StaticResource ValidationFieldContainerStyle}">
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorElemento}"
+                            Value="True">
+                            <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                            <Setter Property="StrokeThickness" Value="2" />
+                        </DataTrigger>
+                    </Border.Triggers>
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Elemento químico" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                        <Picker ItemsSource="{Binding Elementos}" SelectedItem="{Binding ElementoSeleccionado}"
-                                ItemDisplayBinding="{Binding Texto}" Title="Seleccione un elemento"
-                                IsEnabled="{Binding IsEditable}" />
+                        <Label
+                            Text="Elemento químico"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}" />
+                        <Picker
+                            ItemsSource="{Binding Elementos}"
+                            SelectedItem="{Binding ElementoSeleccionado}"
+                            ItemDisplayBinding="{Binding Texto}"
+                            Title="Seleccione un elemento"
+                            IsEnabled="{Binding IsEditable}" />
+                        <Label
+                            Text="{Binding ErrorElemento}"
+                            IsVisible="{Binding TieneErrorElemento}"
+                            Style="{StaticResource ValidationMessageStyle}" />
                     </VerticalStackLayout>
                 </Border>
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                    <Border Grid.Column="0" Style="{StaticResource BorderStyle}">
+
+                <Grid
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="10">
+
+                    <Border
+                        Grid.Column="0"
+                        Style="{StaticResource ValidationFieldContainerStyle}">
+                        <Border.Triggers>
+                            <DataTrigger
+                                TargetType="Border"
+                                Binding="{Binding TieneErrorMinimo}"
+                                Value="True">
+                                <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                <Setter Property="StrokeThickness" Value="2" />
+                            </DataTrigger>
+                        </Border.Triggers>
                         <VerticalStackLayout Spacing="5">
-                            <Label Text="Valor mínimo" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                            <Entry Text="{Binding MinimoTexto}" Keyboard="Numeric" Style="{StaticResource EntryStyle}" IsReadOnly="{Binding IsReadOnly}" />
+                            <Label
+                                Text="Valor mínimo"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+                            <Entry
+                                Text="{Binding MinimoTexto}"
+                                Keyboard="Numeric"
+                                Style="{StaticResource EntryStyle}"
+                                IsReadOnly="{Binding IsReadOnly}" />
+                            <Label
+                                Text="{Binding ErrorMinimo}"
+                                IsVisible="{Binding TieneErrorMinimo}"
+                                Style="{StaticResource ValidationMessageStyle}" />
                         </VerticalStackLayout>
                     </Border>
-                    <Border Grid.Column="1" Style="{StaticResource BorderStyle}">
+
+                    <Border
+                        Grid.Column="1"
+                        Style="{StaticResource ValidationFieldContainerStyle}">
+                        <Border.Triggers>
+                            <DataTrigger
+                                TargetType="Border"
+                                Binding="{Binding TieneErrorMaximo}"
+                                Value="True">
+                                <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                <Setter Property="StrokeThickness" Value="2" />
+                            </DataTrigger>
+                        </Border.Triggers>
                         <VerticalStackLayout Spacing="5">
-                            <Label Text="Valor máximo" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                            <Entry Text="{Binding MaximoTexto}" Keyboard="Numeric" Style="{StaticResource EntryStyle}" IsReadOnly="{Binding IsReadOnly}" />
+                            <Label
+                                Text="Valor máximo"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+                            <Entry
+                                Text="{Binding MaximoTexto}"
+                                Keyboard="Numeric"
+                                Style="{StaticResource EntryStyle}"
+                                IsReadOnly="{Binding IsReadOnly}" />
+                            <Label
+                                Text="{Binding ErrorMaximo}"
+                                IsVisible="{Binding TieneErrorMaximo}"
+                                Style="{StaticResource ValidationMessageStyle}" />
                         </VerticalStackLayout>
                     </Border>
+
                 </Grid>
-                <Border Style="{StaticResource BorderStyle}">
+
+                <Border Style="{StaticResource ValidationFieldContainerStyle}">
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorUnidad}"
+                            Value="True">
+                            <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                            <Setter Property="StrokeThickness" Value="2" />
+                        </DataTrigger>
+                    </Border.Triggers>
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Unidad base" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                        <Entry Text="{Binding UnidadBase}" Placeholder="Ej: lb/mz" Style="{StaticResource EntryStyle}" IsReadOnly="{Binding IsReadOnly}" />
+                        <Label
+                            Text="Unidad base"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}" />
+                        <Entry
+                            Text="{Binding UnidadBase}"
+                            Placeholder="Ejemplo: lb/mz"
+                            Style="{StaticResource EntryStyle}"
+                            IsReadOnly="{Binding IsReadOnly}" />
+                        <Label
+                            Text="{Binding ErrorUnidad}"
+                            IsVisible="{Binding TieneErrorUnidad}"
+                            Style="{StaticResource ValidationMessageStyle}" />
                     </VerticalStackLayout>
                 </Border>
-                <Border Style="{StaticResource BorderStyle}">
+
+                <Border Style="{StaticResource ValidationFieldContainerStyle}">
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorDescripcion}"
+                            Value="True">
+                            <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                            <Setter Property="StrokeThickness" Value="2" />
+                        </DataTrigger>
+                    </Border.Triggers>
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Descripción" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                        <Editor Text="{Binding Descripcion}" Placeholder="Descripción del rango" AutoSize="TextChanges"
-                                MinimumHeightRequest="100" IsReadOnly="{Binding IsReadOnly}" />
+                        <Label
+                            Text="Descripción"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}" />
+                        <Editor
+                            Text="{Binding Descripcion}"
+                            Placeholder="Descripción del rango"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="100"
+                            IsReadOnly="{Binding IsReadOnly}" />
+                        <Label
+                            Text="{Binding ErrorDescripcion}"
+                            IsVisible="{Binding TieneErrorDescripcion}"
+                            Style="{StaticResource ValidationMessageStyle}" />
                     </VerticalStackLayout>
                 </Border>
-                <Grid ColumnDefinitions="*,*" Margin="6,4">
-                    <Button Grid.Column="0" Text="Guardar" Style="{StaticResource UpdateButton}"
-                            Command="{Binding SaveCommand}" IsVisible="{Binding ShowSaveButton}" IsEnabled="{Binding NotIsBusy}" Margin="4" />
-                    <Button Grid.Column="1" Text="Cancelar" Style="{StaticResource CancelButton}"
-                            Command="{Binding CancelCommand}" IsEnabled="{Binding NotIsBusy}" Margin="4" />
+
+                <Grid
+                    ColumnDefinitions="*,*"
+                    Margin="6,4">
+
+                    <Button
+                        Grid.Column="0"
+                        Text="Guardar"
+                        Style="{StaticResource UpdateButton}"
+                        Command="{Binding SaveCommand}"
+                        IsVisible="{Binding ShowSaveButton}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Margin="4" />
+
+                    <Button
+                        Grid.Column="1"
+                        Text="Cancelar"
+                        Style="{StaticResource CancelButton}"
+                        Command="{Binding CancelCommand}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Margin="4" />
+
                 </Grid>
+
             </VerticalStackLayout>
+
         </ScrollView>
+
     </Grid>
+
 </ContentPage>

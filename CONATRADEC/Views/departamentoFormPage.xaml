@@ -1,65 +1,111 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage 
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     x:Class="CONATRADEC.Views.departamentoFormPage"
     Shell.NavBarIsVisible="False"
     Background="Transparent">
 
-    <Grid RowDefinitions="auto, *">
+    <Grid RowDefinitions="Auto,*">
 
-        <!-- TÍTULO -->
-        <Label
-            Text="{Binding Title}"
-            TextColor="{StaticResource color_Verde}"
-            FontSize="24"
-            FontAttributes="Bold"
-            HorizontalOptions="Start"
+        <Grid
             Grid.Row="0"
-            Margin="10,20,0,0" />
+            ColumnDefinitions="*,Auto"
+            Margin="10,20,20,0">
 
-        <!-- CONTENIDO -->
+            <Label
+                Text="{Binding Title}"
+                TextColor="{StaticResource color_Verde}"
+                FontSize="24"
+                FontFamily="MontserratBold"
+                FontAttributes="Bold"
+                HorizontalOptions="Start"
+                VerticalOptions="Center" />
+
+            <ActivityIndicator
+                Grid.Column="1"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource color_Naranja}"
+                VerticalOptions="Center" />
+
+        </Grid>
+
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="10" Spacing="15">
 
-                <!-- CAMPO NOMBRE -->
-                <Border Style="{StaticResource BorderStyle}">
+            <VerticalStackLayout
+                Padding="10"
+                Spacing="15">
+
+                <Border
+                    Style="{StaticResource ValidationFieldContainerStyle}">
+
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorNombreDepartamento}"
+                            Value="True">
+                            <Setter
+                                Property="Stroke"
+                                Value="{StaticResource RedDelete}" />
+                            <Setter
+                                Property="StrokeThickness"
+                                Value="2" />
+                        </DataTrigger>
+                    </Border.Triggers>
+
                     <VerticalStackLayout Spacing="5">
 
-                        <Label Text="Nombre del departamento"
-                               FontAttributes="Bold"
-                               FontSize="14"
-                               TextColor="{StaticResource color_Negro}" />
+                        <Label
+                            Text="Nombre del departamento"
+                            FontAttributes="Bold"
+                            FontFamily="MontserratBold"
+                            FontSize="14"
+                            TextColor="{StaticResource color_Negro}" />
 
                         <Entry
-                            Placeholder="Nombre del departamento"
+                            Placeholder="Ingrese el nombre del departamento"
                             Style="{StaticResource EntryStyle}"
                             Text="{Binding NombreDepartamento}"
                             IsReadOnly="{Binding IsEntryReadOnly}" />
 
+                        <Label
+                            Text="{Binding ErrorNombreDepartamento}"
+                            IsVisible="{Binding TieneErrorNombreDepartamento}"
+                            Style="{StaticResource ValidationMessageStyle}" />
+
                     </VerticalStackLayout>
+
                 </Border>
 
-                <!-- BOTONES -->
-                <Grid ColumnDefinitions="*, *" Margin="10,0,10,0">
+                <Grid
+                    ColumnDefinitions="*,*"
+                    Margin="10,0,10,20">
 
-                    <!-- GUARDAR -->
-                    <Button Text="Guardar"
-                            Style="{StaticResource UpdateButton}"
-                            Command="{Binding SaveCommand}"
-                            IsVisible="{Binding CanSave}"
-                            Grid.Column="0" />
+                    <Button
+                        Grid.Column="0"
+                        Text="Guardar"
+                        Style="{StaticResource UpdateButton}"
+                        Command="{Binding SaveCommand}"
+                        IsVisible="{Binding CanSave}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Margin="10,0" />
 
-                    <!-- CANCELAR -->
-                    <Button Text="Cancelar"
-                            Style="{StaticResource CancelButton}"
-                            Command="{Binding CancelCommand}"
-                            Grid.Column="1" />
+                    <Button
+                        Grid.Column="1"
+                        Text="Cancelar"
+                        Style="{StaticResource CancelButton}"
+                        Command="{Binding CancelCommand}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Margin="10,0" />
 
                 </Grid>
 
             </VerticalStackLayout>
+
         </ScrollView>
 
     </Grid>
+
 </ContentPage>

@@ -170,8 +170,9 @@ namespace CONATRADEC.Services
             // Terminología acordada para la aplicación.
             value = Regex.Replace(
                 value,
-                @"\bpH\b",
+                @"\bph\b",
                 "PH",
+                RegexOptions.IgnoreCase |
                 RegexOptions.CultureInvariant);
 
             value = Regex.Replace(
@@ -226,11 +227,27 @@ namespace CONATRADEC.Services
         {
             string value = message?.Trim().ToLowerInvariant() ?? string.Empty;
 
+            if (value.Contains("pero") &&
+                (value.Contains("guardad") ||
+                 value.Contains("cread") ||
+                 value.Contains("actualizad") ||
+                 value.Contains("eliminad")))
+            {
+                return AppMessageType.Warning;
+            }
+
             if (value.StartsWith("éxito") ||
                 value.StartsWith("exito") ||
                 value.Contains("correctamente") ||
                 value.Contains("completada con éxito") ||
-                value.Contains("completado con éxito"))
+                value.Contains("completado con éxito") ||
+                Regex.IsMatch(
+                    value,
+                    @"\b(creado|creada|guardado|guardada|actualizado|actualizada|eliminado|eliminada|registrado|registrada)\b",
+                    RegexOptions.IgnoreCase) ||
+                value.Contains("se guardó") ||
+                value.Contains("se actualizó") ||
+                value.Contains("se eliminó"))
             {
                 return AppMessageType.Success;
             }

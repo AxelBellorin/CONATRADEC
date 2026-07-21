@@ -8,10 +8,13 @@ namespace CONATRADEC.ViewModels
         GlobalService
     {
         private readonly AlbumBotanicoApiService apiService = new();
+
         private ObservableCollection<CategoriaAlbumBotanicoResponse>
             categorias = new();
+
         private CategoriaAlbumBotanicoResponse?
             categoriaSeleccionada;
+
         private FormMode.FormModeSelect mode;
         private int registroId;
         private int categoriaInicialId;
@@ -24,6 +27,11 @@ namespace CONATRADEC.ViewModels
         private string causas = string.Empty;
         private string recomendaciones = string.Empty;
         private string observaciones = string.Empty;
+
+        private string errorCategoria = string.Empty;
+        private string errorTitulo = string.Empty;
+        private string errorNombreCientifico = string.Empty;
+        private string errorDescripcion = string.Empty;
 
         public ObservableCollection<CategoriaAlbumBotanicoResponse>
             Categorias
@@ -44,6 +52,9 @@ namespace CONATRADEC.ViewModels
             {
                 categoriaSeleccionada = value;
                 OnPropertyChanged();
+
+                if (categoriaSeleccionada != null)
+                    ErrorCategoria = string.Empty;
             }
         }
 
@@ -85,6 +96,12 @@ namespace CONATRADEC.ViewModels
             {
                 titulo = value ?? string.Empty;
                 OnPropertyChanged();
+
+                if (!string.IsNullOrWhiteSpace(titulo) &&
+                    titulo.Trim().Length <= 200)
+                {
+                    ErrorTitulo = string.Empty;
+                }
             }
         }
 
@@ -93,8 +110,12 @@ namespace CONATRADEC.ViewModels
             get => nombreCientifico;
             set
             {
-                nombreCientifico = value ?? string.Empty;
+                nombreCientifico =
+                    value ?? string.Empty;
                 OnPropertyChanged();
+
+                if (nombreCientifico.Trim().Length <= 200)
+                    ErrorNombreCientifico = string.Empty;
             }
         }
 
@@ -105,6 +126,9 @@ namespace CONATRADEC.ViewModels
             {
                 descripcion = value ?? string.Empty;
                 OnPropertyChanged();
+
+                if (!string.IsNullOrWhiteSpace(descripcion))
+                    ErrorDescripcion = string.Empty;
             }
         }
 
@@ -158,6 +182,76 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public string ErrorCategoria
+        {
+            get => errorCategoria;
+            private set
+            {
+                if (errorCategoria == value)
+                    return;
+
+                errorCategoria = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneErrorCategoria));
+            }
+        }
+
+        public bool TieneErrorCategoria =>
+            !string.IsNullOrWhiteSpace(ErrorCategoria);
+
+        public string ErrorTitulo
+        {
+            get => errorTitulo;
+            private set
+            {
+                if (errorTitulo == value)
+                    return;
+
+                errorTitulo = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneErrorTitulo));
+            }
+        }
+
+        public bool TieneErrorTitulo =>
+            !string.IsNullOrWhiteSpace(ErrorTitulo);
+
+        public string ErrorNombreCientifico
+        {
+            get => errorNombreCientifico;
+            private set
+            {
+                if (errorNombreCientifico == value)
+                    return;
+
+                errorNombreCientifico = value;
+                OnPropertyChanged();
+                OnPropertyChanged(
+                    nameof(TieneErrorNombreCientifico));
+            }
+        }
+
+        public bool TieneErrorNombreCientifico =>
+            !string.IsNullOrWhiteSpace(
+                ErrorNombreCientifico);
+
+        public string ErrorDescripcion
+        {
+            get => errorDescripcion;
+            private set
+            {
+                if (errorDescripcion == value)
+                    return;
+
+                errorDescripcion = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneErrorDescripcion));
+            }
+        }
+
+        public bool TieneErrorDescripcion =>
+            !string.IsNullOrWhiteSpace(ErrorDescripcion);
+
         public string TituloPagina =>
             Mode == FormMode.FormModeSelect.Create
                 ? "Nuevo registro botánico"
@@ -169,9 +263,14 @@ namespace CONATRADEC.ViewModels
         public AlbumRegistroFormViewModel()
         {
             GuardarCommand =
-                new Command(async () => await GuardarAsync());
+                new Command(
+                    async () => await GuardarAsync(),
+                    () => !IsBusy);
+
             CancelarCommand =
-                new Command(async () => await CancelarAsync());
+                new Command(
+                    async () => await CancelarAsync(),
+                    () => !IsBusy);
         }
 
         public void ActualizarPermisos()
@@ -186,15 +285,17 @@ namespace CONATRADEC.ViewModels
 
             inicializado = true;
             IsBusy = true;
+            RefrescarComandos();
 
             try
             {
                 var categoryResult =
-                    await apiService.GetCategoriasAsync(false);
+                    await apiService
+                        .GetCategoriasAsync(false);
 
                 if (!categoryResult.Success)
                 {
-                    await MostrarToastAsync(
+                    await MostrarErrorAsync(
                         categoryResult.Message);
                     inicializado = false;
                     return;
@@ -207,7 +308,8 @@ namespace CONATRADEC.ViewModels
                         new List<
                             CategoriaAlbumBotanicoResponse>());
 
-                if (Mode == FormMode.FormModeSelect.Edit &&
+                if (Mode ==
+                        FormMode.FormModeSelect.Edit &&
                     RegistroId > 0)
                 {
                     var detailResult =
@@ -218,7 +320,7 @@ namespace CONATRADEC.ViewModels
                     if (!detailResult.Success ||
                         detailResult.Data == null)
                     {
-                        await MostrarToastAsync(
+                        await MostrarErrorAsync(
                             detailResult.Message);
                         inicializado = false;
                         return;
@@ -233,23 +335,30 @@ namespace CONATRADEC.ViewModels
                             detail.CategoriaAlbumBotanicoId);
 
                     Titulo = detail.Titulo;
+
                     NombreCientifico =
-                        detail.NombreCientifico ??
-                        string.Empty;
+                        detail.NombreCientifico
+                        ?? string.Empty;
+
                     Descripcion = detail.Descripcion;
+
                     Caracteristicas =
-                        detail.Caracteristicas ??
-                        string.Empty;
+                        detail.Caracteristicas
+                        ?? string.Empty;
+
                     Sintomas =
                         detail.Sintomas ?? string.Empty;
+
                     Causas =
                         detail.Causas ?? string.Empty;
+
                     Recomendaciones =
-                        detail.Recomendaciones ??
-                        string.Empty;
+                        detail.Recomendaciones
+                        ?? string.Empty;
+
                     Observaciones =
-                        detail.Observaciones ??
-                        string.Empty;
+                        detail.Observaciones
+                        ?? string.Empty;
                 }
                 else
                 {
@@ -259,10 +368,21 @@ namespace CONATRADEC.ViewModels
                             CategoriaInicialId) ??
                         Categorias.FirstOrDefault();
                 }
+
+                LimpiarErrores();
+            }
+            catch (Exception ex)
+            {
+                inicializado = false;
+
+                await MostrarErrorInesperadoAsync(
+                    "cargar el registro botánico",
+                    ex);
             }
             finally
             {
                 IsBusy = false;
+                RefrescarComandos();
             }
         }
 
@@ -271,51 +391,19 @@ namespace CONATRADEC.ViewModels
             if (IsBusy)
                 return;
 
-            if (CategoriaSeleccionada == null)
+            if (!ValidarCampos())
             {
-                await MostrarToastAsync(
-                    "Seleccione una categoría.");
+                await MostrarAdvertenciaAsync(
+                    "Revise los campos marcados antes de continuar.");
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(Titulo))
-            {
-                await MostrarToastAsync(
-                    "Ingrese el título del registro.");
-                return;
-            }
-
-            if (Titulo.Trim().Length > 200)
-            {
-                await MostrarToastAsync(
-                    "El título no puede superar los 200 caracteres.");
-                return;
-            }
-
-            if (NombreCientifico.Trim().Length > 200)
-            {
-                await MostrarToastAsync(
-                    "El nombre científico no puede superar los 200 caracteres.");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(Descripcion))
-            {
-                await MostrarToastAsync(
-                    "Ingrese la descripción general.");
-                return;
-            }
-
-            Page? page = Application.Current?.MainPage;
-
-            if (page == null)
-                return;
-
-            bool confirm = await page.DisplayAlert(
-                "Guardar registro",
-                "¿Desea guardar el registro botánico?",
-                "Guardar",
-                "Cancelar");
+            bool confirm =
+                Mode == FormMode.FormModeSelect.Create
+                    ? await ConfirmarGuardadoAsync(
+                        "el registro botánico")
+                    : await ConfirmarActualizacionAsync(
+                        "el registro botánico");
 
             if (!confirm)
                 return;
@@ -323,28 +411,41 @@ namespace CONATRADEC.ViewModels
             var request = new AlbumRegistroRequest
             {
                 AlbumBotanicoCafeId = RegistroId,
+
                 CategoriaAlbumBotanicoId =
-                    CategoriaSeleccionada
+                    CategoriaSeleccionada!
                         .CategoriaAlbumBotanicoId,
+
                 Titulo = Titulo.Trim(),
+
                 NombreCientifico =
                     LimpiarOpcional(NombreCientifico),
+
                 Descripcion = Descripcion.Trim(),
+
                 Caracteristicas =
                     LimpiarOpcional(Caracteristicas),
-                Sintomas = LimpiarOpcional(Sintomas),
-                Causas = LimpiarOpcional(Causas),
+
+                Sintomas =
+                    LimpiarOpcional(Sintomas),
+
+                Causas =
+                    LimpiarOpcional(Causas),
+
                 Recomendaciones =
                     LimpiarOpcional(Recomendaciones),
+
                 Observaciones =
                     LimpiarOpcional(Observaciones)
             };
 
             IsBusy = true;
+            RefrescarComandos();
 
             try
             {
-                if (Mode == FormMode.FormModeSelect.Create)
+                if (Mode ==
+                    FormMode.FormModeSelect.Create)
                 {
                     var result =
                         await apiService
@@ -353,17 +454,13 @@ namespace CONATRADEC.ViewModels
                     if (!result.Success ||
                         result.Data == null)
                     {
-                        await page.DisplayAlert(
-                            "No fue posible",
-                            result.Message,
-                            "Aceptar");
+                        await MostrarErrorAsync(
+                            result.Message);
                         return;
                     }
 
                     RegistroId =
                         result.Data.AlbumBotanicoCafeId;
-
-                    await MostrarToastAsync(result.Message);
 
                     await GoToAsyncParameters(
                         AppRoutes.AlbumFotosAdministrar,
@@ -371,6 +468,12 @@ namespace CONATRADEC.ViewModels
                         {
                             ["RegistroId"] = RegistroId
                         });
+
+                    await MostrarExitoAsync(
+                        string.IsNullOrWhiteSpace(
+                            result.Message)
+                            ? "Registro botánico guardado correctamente."
+                            : result.Message);
                 }
                 else
                 {
@@ -380,14 +483,10 @@ namespace CONATRADEC.ViewModels
 
                     if (!result.Success)
                     {
-                        await page.DisplayAlert(
-                            "No fue posible",
-                            result.Message,
-                            "Aceptar");
+                        await MostrarErrorAsync(
+                            result.Message);
                         return;
                     }
-
-                    await MostrarToastAsync(result.Message);
 
                     await GoToAsyncParameters(
                         AppRoutes.AlbumDetalle,
@@ -395,16 +494,34 @@ namespace CONATRADEC.ViewModels
                         {
                             ["RegistroId"] = RegistroId
                         });
+
+                    await MostrarExitoAsync(
+                        string.IsNullOrWhiteSpace(
+                            result.Message)
+                            ? "Registro botánico actualizado correctamente."
+                            : result.Message);
                 }
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(
+                    Mode == FormMode.FormModeSelect.Create
+                        ? "guardar el registro botánico"
+                        : "actualizar el registro botánico",
+                    ex);
             }
             finally
             {
                 IsBusy = false;
+                RefrescarComandos();
             }
         }
 
         private async Task CancelarAsync()
         {
+            if (IsBusy)
+                return;
+
             if (RegistroId > 0)
             {
                 await GoToAsyncParameters(
@@ -421,10 +538,69 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private bool ValidarCampos()
+        {
+            LimpiarErrores();
+
+            Titulo = Titulo.Trim();
+            NombreCientifico =
+                NombreCientifico.Trim();
+            Descripcion = Descripcion.Trim();
+
+            if (CategoriaSeleccionada == null)
+            {
+                ErrorCategoria =
+                    "Seleccione una categoría.";
+            }
+
+            if (string.IsNullOrWhiteSpace(Titulo))
+            {
+                ErrorTitulo =
+                    "Ingrese el título del registro.";
+            }
+            else if (Titulo.Length > 200)
+            {
+                ErrorTitulo =
+                    "El título no puede superar los 200 caracteres.";
+            }
+
+            if (NombreCientifico.Length > 200)
+            {
+                ErrorNombreCientifico =
+                    "El nombre científico no puede superar los 200 caracteres.";
+            }
+
+            if (string.IsNullOrWhiteSpace(Descripcion))
+            {
+                ErrorDescripcion =
+                    "Ingrese la descripción general.";
+            }
+
+            return
+                !TieneErrorCategoria &&
+                !TieneErrorTitulo &&
+                !TieneErrorNombreCientifico &&
+                !TieneErrorDescripcion;
+        }
+
+        private void LimpiarErrores()
+        {
+            ErrorCategoria = string.Empty;
+            ErrorTitulo = string.Empty;
+            ErrorNombreCientifico = string.Empty;
+            ErrorDescripcion = string.Empty;
+        }
+
         private static string? LimpiarOpcional(
             string value) =>
             string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+
+        private void RefrescarComandos()
+        {
+            GuardarCommand.ChangeCanExecute();
+            CancelarCommand.ChangeCanExecute();
+        }
     }
 }

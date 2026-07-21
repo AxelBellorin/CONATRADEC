@@ -1,4 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
+
 <ContentPage
     x:Class="CONATRADEC.Views.albumRegistroFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -7,6 +8,7 @@
     BackgroundColor="{OnPlatform WinUI='#F4F7F5', Default={StaticResource color_Blanco}}">
 
     <Grid RowDefinitions="Auto,*">
+
         <Grid
             Grid.Row="0"
             Padding="{OnPlatform WinUI='26,18', Default='16,12'}"
@@ -18,6 +20,7 @@
                 Grid.Column="0"
                 Text="← Regresar"
                 Command="{Binding CancelarCommand}"
+                IsEnabled="{Binding NotIsBusy}"
                 BackgroundColor="Transparent"
                 TextColor="{StaticResource color_Verde}"
                 FontAttributes="Bold" />
@@ -30,9 +33,11 @@
                 FontSize="21"
                 FontAttributes="Bold"
                 TextColor="{StaticResource color_Negro}" />
+
         </Grid>
 
         <ScrollView Grid.Row="1">
+
             <VerticalStackLayout
                 Padding="{OnPlatform WinUI='30,26,30,38', Default='16,18,16,28'}"
                 MaximumWidthRequest="920"
@@ -47,30 +52,47 @@
                     StrokeShape="RoundRectangle 20">
 
                     <VerticalStackLayout Spacing="17">
+
                         <VerticalStackLayout Spacing="5">
+
                             <Label
                                 Text="Identificación"
                                 FontFamily="MontserratBold"
                                 FontSize="21"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource color_Verde}" />
+
                             <Label
                                 Text="Defina el capítulo y los nombres principales del registro."
                                 FontSize="12"
                                 TextColor="{StaticResource color_GrisOscuro}" />
+
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="6">
+
                             <Label
                                 Text="Categoría *"
                                 FontSize="13"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource color_Negro}" />
+
                             <Border
                                 Padding="12,2"
                                 BackgroundColor="#F8FAF9"
                                 Stroke="#D6E1DC"
                                 StrokeShape="RoundRectangle 12">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorCategoria}"
+                                        Value="True">
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
                                 <Picker
                                     ItemsSource="{Binding Categorias}"
                                     SelectedItem="{Binding CategoriaSeleccionada}"
@@ -78,7 +100,14 @@
                                     Title="Seleccione una categoría"
                                     BackgroundColor="Transparent"
                                     TextColor="{StaticResource color_Negro}" />
+
                             </Border>
+
+                            <Label
+                                Text="{Binding ErrorCategoria}"
+                                IsVisible="{Binding TieneErrorCategoria}"
+                                Style="{StaticResource ValidationMessageStyle}" />
+
                         </VerticalStackLayout>
 
                         <Grid
@@ -91,60 +120,114 @@
                                 Grid.Column="0"
                                 Grid.Row="0"
                                 Spacing="6">
+
                                 <Label
                                     Text="Título o nombre común *"
                                     FontSize="13"
                                     FontAttributes="Bold"
                                     TextColor="{StaticResource color_Negro}" />
+
                                 <Border
                                     Padding="13,3"
                                     BackgroundColor="#F8FAF9"
                                     Stroke="#D6E1DC"
                                     StrokeShape="RoundRectangle 12">
+
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding TieneErrorTitulo}"
+                                            Value="True">
+                                            <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                            <Setter Property="StrokeThickness" Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+
                                     <Entry
                                         Text="{Binding Titulo}"
                                         MaxLength="200"
                                         Placeholder="Ejemplo: Roya del café"
                                         BackgroundColor="Transparent"
                                         TextColor="{StaticResource color_Negro}" />
+
                                 </Border>
+
+                                <Label
+                                    Text="{Binding ErrorTitulo}"
+                                    IsVisible="{Binding TieneErrorTitulo}"
+                                    Style="{StaticResource ValidationMessageStyle}" />
+
                             </VerticalStackLayout>
 
                             <VerticalStackLayout
                                 Grid.Column="{OnPlatform WinUI=1, Default=0}"
                                 Grid.Row="{OnPlatform WinUI=0, Default=1}"
                                 Spacing="6">
+
                                 <Label
                                     Text="Nombre científico"
                                     FontSize="13"
                                     FontAttributes="Bold"
                                     TextColor="{StaticResource color_Negro}" />
+
                                 <Border
                                     Padding="13,3"
                                     BackgroundColor="#F8FAF9"
                                     Stroke="#D6E1DC"
                                     StrokeShape="RoundRectangle 12">
+
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding TieneErrorNombreCientifico}"
+                                            Value="True">
+                                            <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                            <Setter Property="StrokeThickness" Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+
                                     <Entry
                                         Text="{Binding NombreCientifico}"
                                         MaxLength="200"
                                         Placeholder="Ejemplo: Hemileia vastatrix"
                                         BackgroundColor="Transparent"
                                         TextColor="{StaticResource color_Negro}" />
+
                                 </Border>
+
+                                <Label
+                                    Text="{Binding ErrorNombreCientifico}"
+                                    IsVisible="{Binding TieneErrorNombreCientifico}"
+                                    Style="{StaticResource ValidationMessageStyle}" />
+
                             </VerticalStackLayout>
+
                         </Grid>
 
                         <VerticalStackLayout Spacing="6">
+
                             <Label
                                 Text="Descripción general *"
                                 FontSize="13"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource color_Negro}" />
+
                             <Border
                                 Padding="10"
                                 BackgroundColor="#F8FAF9"
                                 Stroke="#D6E1DC"
                                 StrokeShape="RoundRectangle 12">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorDescripcion}"
+                                        Value="True">
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
                                 <Editor
                                     Text="{Binding Descripcion}"
                                     Placeholder="Explique de forma general este tema."
@@ -152,9 +235,18 @@
                                     AutoSize="TextChanges"
                                     BackgroundColor="Transparent"
                                     TextColor="{StaticResource color_Negro}" />
+
                             </Border>
+
+                            <Label
+                                Text="{Binding ErrorDescripcion}"
+                                IsVisible="{Binding TieneErrorDescripcion}"
+                                Style="{StaticResource ValidationMessageStyle}" />
+
                         </VerticalStackLayout>
+
                     </VerticalStackLayout>
+
                 </Border>
 
                 <Border
@@ -165,6 +257,7 @@
                     StrokeShape="RoundRectangle 20">
 
                     <VerticalStackLayout Spacing="17">
+
                         <VerticalStackLayout Spacing="5">
                             <Label
                                 Text="Información técnica"
@@ -212,7 +305,9 @@
                                 <Editor Text="{Binding Observaciones}" MinimumHeightRequest="90" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
                             </Border>
                         </VerticalStackLayout>
+
                     </VerticalStackLayout>
+
                 </Border>
 
                 <ActivityIndicator
@@ -220,11 +315,15 @@
                     IsVisible="{Binding IsBusy}"
                     Color="{StaticResource color_Naranja}" />
 
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Grid
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="10">
+
                     <Button
                         Grid.Column="0"
                         Text="Cancelar"
                         Command="{Binding CancelarCommand}"
+                        IsEnabled="{Binding NotIsBusy}"
                         BackgroundColor="#F3F4F6"
                         TextColor="{StaticResource color_GrisOscuro}"
                         CornerRadius="12"
@@ -240,8 +339,13 @@
                         CornerRadius="12"
                         HeightRequest="52"
                         FontAttributes="Bold" />
+
                 </Grid>
+
             </VerticalStackLayout>
+
         </ScrollView>
+
     </Grid>
+
 </ContentPage>

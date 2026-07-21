@@ -1,35 +1,147 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.tipoAnalisisSueloFormPage"
-             Shell.NavBarIsVisible="False" BackgroundColor="Transparent">
-    <Grid RowDefinitions="Auto,Auto,*" Padding="10">
-        <Label Grid.Row="0" Text="{Binding Title}" FontSize="24" FontFamily="MontserratBold"
-               TextColor="{StaticResource color_Verde}" Margin="4,12,4,8" />
-        <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
-                           Color="{StaticResource color_Naranja}" />
-        <ScrollView Grid.Row="2">
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="CONATRADEC.Views.tipoAnalisisSueloFormPage"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="Transparent">
+
+    <Grid
+        RowDefinitions="Auto,*"
+        Padding="10">
+
+        <Grid
+            Grid.Row="0"
+            ColumnDefinitions="*,Auto"
+            Margin="4,12,4,8">
+
+            <Label
+                Text="{Binding Title}"
+                FontSize="24"
+                FontFamily="MontserratBold"
+                TextColor="{StaticResource color_Verde}"
+                VerticalOptions="Center" />
+
+            <ActivityIndicator
+                Grid.Column="1"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource color_Naranja}"
+                VerticalOptions="Center" />
+
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+
             <VerticalStackLayout Spacing="15">
-                <Border Style="{StaticResource BorderStyle}">
+
+                <Border
+                    Style="{StaticResource ValidationFieldContainerStyle}">
+
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorNombre}"
+                            Value="True">
+                            <Setter
+                                Property="Stroke"
+                                Value="{StaticResource RedDelete}" />
+                            <Setter
+                                Property="StrokeThickness"
+                                Value="2" />
+                        </DataTrigger>
+                    </Border.Triggers>
+
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Nombre del tipo de análisis" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                        <Entry Text="{Binding Nombre}" Placeholder="Ej: ANÁLISIS QUÍMICO" Style="{StaticResource EntryStyle}" IsReadOnly="{Binding IsReadOnly}" />
+
+                        <Label
+                            Text="Nombre del tipo de análisis"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}" />
+
+                        <Entry
+                            Text="{Binding Nombre}"
+                            Placeholder="Ejemplo: ANÁLISIS QUÍMICO"
+                            Style="{StaticResource EntryStyle}"
+                            IsReadOnly="{Binding IsReadOnly}" />
+
+                        <Label
+                            Text="{Binding ErrorNombre}"
+                            IsVisible="{Binding TieneErrorNombre}"
+                            Style="{StaticResource ValidationMessageStyle}" />
+
                     </VerticalStackLayout>
+
                 </Border>
-                <Border Style="{StaticResource BorderStyle}">
+
+                <Border
+                    Style="{StaticResource ValidationFieldContainerStyle}">
+
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorDescripcion}"
+                            Value="True">
+                            <Setter
+                                Property="Stroke"
+                                Value="{StaticResource RedDelete}" />
+                            <Setter
+                                Property="StrokeThickness"
+                                Value="2" />
+                        </DataTrigger>
+                    </Border.Triggers>
+
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Descripción" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                        <Editor Text="{Binding Descripcion}" Placeholder="Descripción del análisis" AutoSize="TextChanges"
-                                MinimumHeightRequest="100" IsReadOnly="{Binding IsReadOnly}" />
+
+                        <Label
+                            Text="Descripción"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}" />
+
+                        <Editor
+                            Text="{Binding Descripcion}"
+                            Placeholder="Descripción del análisis"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="100"
+                            IsReadOnly="{Binding IsReadOnly}" />
+
+                        <Label
+                            Text="{Binding ErrorDescripcion}"
+                            IsVisible="{Binding TieneErrorDescripcion}"
+                            Style="{StaticResource ValidationMessageStyle}" />
+
                     </VerticalStackLayout>
+
                 </Border>
-                <Grid ColumnDefinitions="*,*" Margin="6,4">
-                    <Button Grid.Column="0" Text="Guardar" Style="{StaticResource UpdateButton}"
-                            Command="{Binding SaveCommand}" IsVisible="{Binding ShowSaveButton}" IsEnabled="{Binding NotIsBusy}" Margin="4" />
-                    <Button Grid.Column="1" Text="Cancelar" Style="{StaticResource CancelButton}"
-                            Command="{Binding CancelCommand}" IsEnabled="{Binding NotIsBusy}" Margin="4" />
+
+                <Grid
+                    ColumnDefinitions="*,*"
+                    Margin="6,4">
+
+                    <Button
+                        Grid.Column="0"
+                        Text="Guardar"
+                        Style="{StaticResource UpdateButton}"
+                        Command="{Binding SaveCommand}"
+                        IsVisible="{Binding ShowSaveButton}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Margin="4" />
+
+                    <Button
+                        Grid.Column="1"
+                        Text="Cancelar"
+                        Style="{StaticResource CancelButton}"
+                        Command="{Binding CancelCommand}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Margin="4" />
+
                 </Grid>
+
             </VerticalStackLayout>
+
         </ScrollView>
+
     </Grid>
+
 </ContentPage>

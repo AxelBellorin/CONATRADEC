@@ -5,13 +5,11 @@ namespace CONATRADEC.ViewModels
 {
     public class DepartamentoFormViewModel : GlobalService
     {
-        private DepartamentoRequest departamento;
-        private PaisRequest paisRequest;
-
+        private DepartamentoRequest departamento = new();
+        private PaisRequest paisRequest = new();
         private string nombreDepartamento = string.Empty;
-
+        private string errorNombreDepartamento = string.Empty;
         private FormMode.FormModeSelect mode;
-
         private readonly DepartamentoApiService departamentoApiService = new();
 
         public Command SaveCommand { get; }
@@ -19,18 +17,24 @@ namespace CONATRADEC.ViewModels
 
         public DepartamentoFormViewModel()
         {
-            SaveCommand = new Command(async () => await SaveAsync());
-            CancelCommand = new Command(async () => await CancelAsync());
+            SaveCommand = new Command(
+                async () => await SaveAsync(),
+                () => CanSave && !IsBusy);
+
+            CancelCommand = new Command(
+                async () => await CancelAsync(),
+                () => !IsBusy);
         }
 
-        // OBJETO EDITADO
         public DepartamentoRequest Departamento
         {
             get => departamento;
             set
             {
-                departamento = value;
-                NombreDepartamento = value?.NombreDepartamento ?? string.Empty;
+                departamento = value ?? new DepartamentoRequest();
+                NombreDepartamento =
+                    departamento.NombreDepartamento ?? string.Empty;
+                LimpiarErrores();
                 OnPropertyChanged();
             }
         }
@@ -38,17 +42,43 @@ namespace CONATRADEC.ViewModels
         public PaisRequest PaisRequest
         {
             get => paisRequest;
-            set { paisRequest = value; OnPropertyChanged(); }
+            set
+            {
+                paisRequest = value ?? new PaisRequest();
+                OnPropertyChanged();
+            }
         }
 
-        // CAMPOS
         public string NombreDepartamento
         {
             get => nombreDepartamento;
-            set { nombreDepartamento = value; OnPropertyChanged(); }
+            set
+            {
+                nombreDepartamento = value ?? string.Empty;
+                OnPropertyChanged();
+
+                if (!string.IsNullOrWhiteSpace(nombreDepartamento))
+                    ErrorNombreDepartamento = string.Empty;
+            }
         }
 
-        // MODO DEL FORMULARIO
+        public string ErrorNombreDepartamento
+        {
+            get => errorNombreDepartamento;
+            private set
+            {
+                if (errorNombreDepartamento == value)
+                    return;
+
+                errorNombreDepartamento = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneErrorNombreDepartamento));
+            }
+        }
+
+        public bool TieneErrorNombreDepartamento =>
+            !string.IsNullOrWhiteSpace(ErrorNombreDepartamento);
+
         public FormMode.FormModeSelect Mode
         {
             get => mode;
@@ -59,75 +89,114 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(IsEntryReadOnly));
                 OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(Title));
+                RefrescarComandos();
             }
         }
 
-        // UI BINDINGS
-        public bool IsEntryReadOnly => Mode == FormMode.FormModeSelect.View;
+        public bool IsEntryReadOnly =>
+            Mode == FormMode.FormModeSelect.View;
 
-        public bool CanSave => Mode != FormMode.FormModeSelect.View;
+        public bool CanSave =>
+            Mode != FormMode.FormModeSelect.View;
 
         public string Title =>
-            Mode == FormMode.FormModeSelect.Create ? "Crear Departamento" :
-            Mode == FormMode.FormModeSelect.Edit ? "Editar Departamento" :
-            "Detalles del Departamento";
+            Mode == FormMode.FormModeSelect.Create
+                ? "Crear departamento"
+                : Mode == FormMode.FormModeSelect.Edit
+                    ? "Editar departamento"
+                    : "Detalles del departamento";
 
-        // LÓGICA PRINCIPAL
         private async Task SaveAsync()
         {
-            if (!CanSave)
+            if (!CanSave || IsBusy)
+                return;
+
+            if (!ValidarCampos())
             {
-                await MostrarToastAsync("No se puede guardar en modo vista.");
+                await MostrarAdvertenciaAsync(
+                    "Revise los campos marcados antes de continuar.");
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(NombreDepartamento))
-            {
-                await App.Current.MainPage.DisplayAlert("Validación", "Ingrese un nombre.", "Aceptar");
+            bool confirm = Mode == FormMode.FormModeSelect.Create
+                ? await ConfirmarGuardadoAsync("el departamento")
+                : await ConfirmarActualizacionAsync("el departamento");
+
+            if (!confirm)
                 return;
-            }
 
-            if (Mode == FormMode.FormModeSelect.Create)
-                await CreateAsync();
-            else if (Mode == FormMode.FormModeSelect.Edit)
-                await UpdateAsync();
-        }
-
-        private async Task CreateAsync()
-        {
-            Departamento.NombreDepartamento = NombreDepartamento;
-            Departamento.PaisId = PaisRequest.PaisId;
-
-            var ok = await departamentoApiService.CreateDepartamentoAsync(Departamento);
-
-            if (ok)
+            try
             {
-                await MostrarToastAsync("Departamento creado.");
+                IsBusy = true;
+                RefrescarComandos();
+
+                Departamento.NombreDepartamento =
+                    NombreDepartamento.Trim();
+
+                Departamento.PaisId = PaisRequest.PaisId;
+
+                bool ok = Mode == FormMode.FormModeSelect.Create
+                    ? await departamentoApiService
+                        .CreateDepartamentoAsync(Departamento)
+                    : await departamentoApiService
+                        .UpdateDepartamentoAsync(Departamento);
+
+                if (!ok)
+                {
+                    await MostrarErrorAsync(
+                        Mode == FormMode.FormModeSelect.Create
+                            ? "No fue posible guardar el departamento. Intente nuevamente."
+                            : "No fue posible actualizar el departamento. Intente nuevamente.");
+                    return;
+                }
+
                 await ReturnToList();
+
+                await MostrarExitoAsync(
+                    Mode == FormMode.FormModeSelect.Create
+                        ? "Departamento guardado correctamente."
+                        : "Departamento actualizado correctamente.");
             }
-            else
-                await MostrarToastAsync("No se pudo guardar.");
-        }
-
-        private async Task UpdateAsync()
-        {
-            Departamento.NombreDepartamento = NombreDepartamento;
-            Departamento.PaisId = PaisRequest.PaisId;
-
-            var ok = await departamentoApiService.UpdateDepartamentoAsync(Departamento);
-
-            if (ok)
+            catch (Exception ex)
             {
-                await MostrarToastAsync("Departamento actualizado.");
-                await ReturnToList();
+                await MostrarErrorInesperadoAsync(
+                    Mode == FormMode.FormModeSelect.Create
+                        ? "guardar el departamento"
+                        : "actualizar el departamento",
+                    ex);
             }
-            else
-                await MostrarToastAsync("No se pudo actualizar.");
+            finally
+            {
+                IsBusy = false;
+                RefrescarComandos();
+            }
         }
 
         private async Task CancelAsync()
         {
+            if (IsBusy)
+                return;
+
             await ReturnToList();
+        }
+
+        private bool ValidarCampos()
+        {
+            LimpiarErrores();
+            NombreDepartamento = NombreDepartamento.Trim();
+
+            if (string.IsNullOrWhiteSpace(NombreDepartamento))
+            {
+                ErrorNombreDepartamento =
+                    "Ingrese el nombre del departamento.";
+            }
+
+            return !TieneErrorNombreDepartamento;
+        }
+
+        private void LimpiarErrores()
+        {
+            ErrorNombreDepartamento = string.Empty;
         }
 
         private Task ReturnToList()
@@ -135,10 +204,21 @@ namespace CONATRADEC.ViewModels
             var parameters = new Dictionary<string, object>
             {
                 { "Pais", PaisRequest },
-                { "TitlePage", $"Departamento de {PaisRequest.NombrePais}" }
+                {
+                    "TitlePage",
+                    $"Departamento de {PaisRequest.NombrePais}"
+                }
             };
 
-            return GoToAsyncParameters("//DepartamentoPage", parameters);
+            return GoToAsyncParameters(
+                "//DepartamentoPage",
+                parameters);
+        }
+
+        private void RefrescarComandos()
+        {
+            SaveCommand.ChangeCanExecute();
+            CancelCommand.ChangeCanExecute();
         }
     }
 }

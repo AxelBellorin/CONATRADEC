@@ -1,4 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
+
 <ContentPage
     x:Class="CONATRADEC.Views.categoriaAlbumFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -7,6 +8,7 @@
     BackgroundColor="{OnPlatform WinUI='#F4F7F5', Default={StaticResource color_Blanco}}">
 
     <Grid RowDefinitions="Auto,*">
+
         <Grid
             Grid.Row="0"
             Padding="{OnPlatform WinUI='26,18', Default='16,12'}"
@@ -30,9 +32,11 @@
                 FontSize="21"
                 FontAttributes="Bold"
                 TextColor="{StaticResource color_Negro}" />
+
         </Grid>
 
         <ScrollView Grid.Row="1">
+
             <VerticalStackLayout
                 Padding="{OnPlatform WinUI='30,26,30,38', Default='16,18,16,28'}"
                 MaximumWidthRequest="780"
@@ -47,50 +51,95 @@
                     StrokeShape="RoundRectangle 20">
 
                     <VerticalStackLayout Spacing="18">
+
                         <VerticalStackLayout Spacing="5">
+
                             <Label
                                 Text="Información del capítulo"
                                 FontFamily="MontserratBold"
                                 FontSize="21"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource color_Verde}" />
+
                             <Label
                                 Text="La categoría funciona como un capítulo principal del álbum."
                                 FontSize="12"
                                 TextColor="{StaticResource color_GrisOscuro}" />
+
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="6">
+
                             <Label
                                 Text="Nombre de la categoría *"
                                 FontSize="13"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource color_Negro}" />
+
                             <Border
                                 Padding="13,3"
                                 BackgroundColor="#F8FAF9"
                                 Stroke="#D6E1DC"
                                 StrokeShape="RoundRectangle 12">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorNombre}"
+                                        Value="True">
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
                                 <Entry
                                     Text="{Binding Nombre}"
                                     Placeholder="Ejemplo: Enfermedades"
                                     MaxLength="100"
                                     BackgroundColor="Transparent"
                                     TextColor="{StaticResource color_Negro}" />
+
                             </Border>
+
+                            <Label
+                                Text="{Binding ErrorNombre}"
+                                IsVisible="{Binding TieneErrorNombre}"
+                                Style="{StaticResource ValidationMessageStyle}" />
+
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="6">
+
                             <Label
                                 Text="Introducción del capítulo"
                                 FontSize="13"
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource color_Negro}" />
+
                             <Border
                                 Padding="10"
                                 BackgroundColor="#F8FAF9"
                                 Stroke="#D6E1DC"
                                 StrokeShape="RoundRectangle 12">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorDescripcion}"
+                                        Value="True">
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
                                 <Editor
                                     Text="{Binding Descripcion}"
                                     Placeholder="Explique qué encontrará el usuario dentro de esta categoría."
@@ -99,13 +148,23 @@
                                     MinimumHeightRequest="130"
                                     BackgroundColor="Transparent"
                                     TextColor="{StaticResource color_Negro}" />
+
                             </Border>
+
+                            <Label
+                                Text="{Binding ErrorDescripcion}"
+                                IsVisible="{Binding TieneErrorDescripcion}"
+                                Style="{StaticResource ValidationMessageStyle}" />
+
                             <Label
                                 Text="Máximo 500 caracteres."
                                 FontSize="10"
                                 TextColor="{StaticResource color_GrisOscuro}" />
+
                         </VerticalStackLayout>
+
                     </VerticalStackLayout>
+
                 </Border>
 
                 <Border
@@ -116,6 +175,7 @@
                     StrokeShape="RoundRectangle 20">
 
                     <VerticalStackLayout Spacing="14">
+
                         <Label
                             Text="Imagen de portada"
                             FontFamily="MontserratBold"
@@ -135,15 +195,18 @@
                             BackgroundColor="#F2F8F5"
                             Stroke="#C8DED6"
                             StrokeShape="RoundRectangle 10">
+
                             <Label
                                 Text="La nueva imagen reemplazará la portada actual."
                                 FontSize="11"
                                 TextColor="{StaticResource color_Verde}" />
+
                         </Border>
 
                         <Button
                             Text="Seleccionar imagen"
                             Command="{Binding SeleccionarPortadaCommand}"
+                            IsEnabled="{Binding NotIsBusy}"
                             BackgroundColor="#EEF5F2"
                             TextColor="{StaticResource color_Verde}"
                             BorderColor="#C8DED6"
@@ -163,7 +226,9 @@
                             FontSize="10"
                             TextColor="{StaticResource color_GrisOscuro}"
                             HorizontalTextAlignment="Center" />
+
                     </VerticalStackLayout>
+
                 </Border>
 
                 <ActivityIndicator
@@ -171,11 +236,15 @@
                     IsVisible="{Binding IsBusy}"
                     Color="{StaticResource color_Naranja}" />
 
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Grid
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="10">
+
                     <Button
                         Grid.Column="0"
                         Text="Cancelar"
                         Command="{Binding CancelarCommand}"
+                        IsEnabled="{Binding NotIsBusy}"
                         BackgroundColor="#F3F4F6"
                         TextColor="{StaticResource color_GrisOscuro}"
                         CornerRadius="12"
@@ -191,8 +260,13 @@
                         CornerRadius="12"
                         HeightRequest="52"
                         FontAttributes="Bold" />
+
                 </Grid>
+
             </VerticalStackLayout>
+
         </ScrollView>
+
     </Grid>
+
 </ContentPage>
