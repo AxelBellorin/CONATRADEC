@@ -11,7 +11,7 @@ namespace CONATRADEC.Services
          * Se mantiene HTTP porque el alojamiento de desarrollo todavía no
          * dispone de certificado SSL. Android debe permitir tráfico HTTP
          * mientras se utilice este servidor.
-         */
+         */ 
         private const string DevelopmentBaseUrl =
             "http://conatradecnic.runasp.net/";
 
