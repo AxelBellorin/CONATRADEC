@@ -23,6 +23,15 @@ namespace CONATRADEC.ViewModels
         private FormMode.FormModeSelect mode;
         private bool initialized;
         private bool suppressLocationEvents;
+        private bool initialStateCaptured;
+
+        private string originalNombreCompleto = string.Empty;
+        private string originalIdentificacion = string.Empty;
+        private string originalCorreo = string.Empty;
+        private string originalTelefono = string.Empty;
+        private DateOnly? originalFechaNacimiento;
+        private int? originalRolId;
+        private int? originalMunicipioId;
 
         private string nombreUsuario = string.Empty;
         private string claveUsuario = string.Empty;
@@ -371,6 +380,8 @@ namespace CONATRADEC.ViewModels
 
                 if (User.MunicipioId > 0)
                     await ResolverUbicacionAsync(User.MunicipioId);
+
+                CaptureInitialState();
             }
             catch
             {
@@ -386,7 +397,11 @@ namespace CONATRADEC.ViewModels
 
         private async Task ResolverUbicacionAsync(int? municipioId)
         {
-            var result = await municipioApiService.GetMunicipiosConUbicacionResultAsync();
+            if (municipioId is not > 0)
+                return;
+
+            var result =
+                await municipioApiService.GetMunicipiosConUbicacionResultAsync();
 
             if (!result.Success)
             {
@@ -397,38 +412,92 @@ namespace CONATRADEC.ViewModels
             MunicipioResponse? target = result.Data?
                 .FirstOrDefault(x => x.MunicipioId == municipioId);
 
-            if (target == null || !target.PaisId.HasValue || !target.DepartamentoId.HasValue)
+            if (target == null)
+                return;
+
+            // El servidor publicado puede devolver solamente NombrePais y
+            // NombreDepartamento. Por eso primero se intenta por ID y, si
+            // no viene, se resuelve por nombre.
+            PaisResponse? pais = null;
+
+            if (target.PaisId is > 0)
+            {
+                pais = Paises.FirstOrDefault(
+                    x => x.PaisId == target.PaisId);
+            }
+
+            if (pais == null &&
+                !string.IsNullOrWhiteSpace(target.NombrePais))
+            {
+                pais = Paises.FirstOrDefault(
+                    x => SonIguales(
+                        x.NombrePais,
+                        target.NombrePais));
+            }
+
+            if (pais?.PaisId is not > 0)
                 return;
 
             suppressLocationEvents = true;
 
             try
             {
-                PaisSeleccionado = Paises.FirstOrDefault(x => x.PaisId == target.PaisId);
+                PaisSeleccionado = pais;
 
                 var departamentosResult =
-                    await departamentoApiService.GetDepartamentosResultAsync(target.PaisId);
+                    await departamentoApiService
+                        .GetDepartamentosResultAsync(pais.PaisId);
 
                 if (!departamentosResult.Success)
                 {
-                    await MostrarToastAsync(departamentosResult.Message);
+                    await MostrarToastAsync(
+                        departamentosResult.Message);
                     return;
                 }
 
-                ReplaceCollection(Departamentos, departamentosResult.Data);
-                DepartamentoSeleccionado = Departamentos.FirstOrDefault(
-                    x => x.DepartamentoId == target.DepartamentoId);
+                ReplaceCollection(
+                    Departamentos,
+                    departamentosResult.Data);
+
+                DepartamentoResponse? departamento = null;
+
+                if (target.DepartamentoId is > 0)
+                {
+                    departamento = Departamentos.FirstOrDefault(
+                        x => x.DepartamentoId ==
+                             target.DepartamentoId);
+                }
+
+                if (departamento == null &&
+                    !string.IsNullOrWhiteSpace(
+                        target.NombreDepartamento))
+                {
+                    departamento = Departamentos.FirstOrDefault(
+                        x => SonIguales(
+                            x.NombreDepartamento,
+                            target.NombreDepartamento));
+                }
+
+                if (departamento?.DepartamentoId is not > 0)
+                    return;
+
+                DepartamentoSeleccionado = departamento;
 
                 var municipiosResult =
-                    await municipioApiService.GetMunicipiosResultAsync(target.DepartamentoId);
+                    await municipioApiService.GetMunicipiosResultAsync(
+                        departamento.DepartamentoId);
 
                 if (!municipiosResult.Success)
                 {
-                    await MostrarToastAsync(municipiosResult.Message);
+                    await MostrarToastAsync(
+                        municipiosResult.Message);
                     return;
                 }
 
-                ReplaceCollection(Municipios, municipiosResult.Data);
+                ReplaceCollection(
+                    Municipios,
+                    municipiosResult.Data);
+
                 MunicipioSeleccionado = Municipios.FirstOrDefault(
                     x => x.MunicipioId == municipioId);
             }
@@ -759,12 +828,18 @@ namespace CONATRADEC.ViewModels
 
         private bool HasChanges()
         {
+            // En modo consulta no existe información editable.
+            if (Mode == FormMode.FormModeSelect.View)
+                return false;
+
             if (Mode == FormMode.FormModeSelect.Create)
             {
                 return !string.IsNullOrWhiteSpace(NombreUsuario) ||
                        !string.IsNullOrWhiteSpace(ClaveUsuario) ||
-                       !string.IsNullOrWhiteSpace(NombreCompletoUsuario) ||
-                       !string.IsNullOrWhiteSpace(IdentificacionUsuario) ||
+                       !string.IsNullOrWhiteSpace(
+                           NombreCompletoUsuario) ||
+                       !string.IsNullOrWhiteSpace(
+                           IdentificacionUsuario) ||
                        !string.IsNullOrWhiteSpace(CorreoUsuario) ||
                        !string.IsNullOrWhiteSpace(TelefonoUsuario) ||
                        RolSeleccionado != null ||
@@ -774,15 +849,62 @@ namespace CONATRADEC.ViewModels
                        ImagenSeleccionada != null;
             }
 
-            return NombreCompletoUsuario != (User.NombreCompletoUsuario ?? string.Empty) ||
-                   CorreoUsuario != (User.CorreoUsuario ?? string.Empty) ||
-                   IdentificacionUsuario != (User.IdentificacionUsuario ?? string.Empty) ||
-                   TelefonoUsuario != (User.TelefonoUsuario ?? string.Empty) ||
-                   FechaNacimientoUsuario != User.FechaNacimientoUsuario ||
-                   RolSeleccionado?.RolId != User.RolId ||
-                   MunicipioSeleccionado?.MunicipioId != User.MunicipioId ||
+            // Si todavía no terminó la carga inicial, no se debe informar
+            // falsamente que el usuario modificó el formulario.
+            if (!initialStateCaptured)
+                return false;
+
+            return !SonIguales(
+                       NombreCompletoUsuario,
+                       originalNombreCompleto) ||
+                   !SonIguales(
+                       IdentificacionUsuario,
+                       originalIdentificacion) ||
+                   !SonIguales(CorreoUsuario, originalCorreo) ||
+                   !SonIguales(TelefonoUsuario, originalTelefono) ||
+                   FechaNacimientoUsuario !=
+                       originalFechaNacimiento ||
+                   RolSeleccionado?.RolId != originalRolId ||
+                   MunicipioSeleccionado?.MunicipioId !=
+                       originalMunicipioId ||
                    !string.IsNullOrWhiteSpace(ClaveUsuario) ||
                    ImagenSeleccionada != null;
+        }
+
+        private void CaptureInitialState()
+        {
+            originalNombreCompleto =
+                NormalizarTexto(NombreCompletoUsuario);
+
+            originalIdentificacion =
+                NormalizarTexto(IdentificacionUsuario);
+
+            originalCorreo = NormalizarTexto(CorreoUsuario);
+            originalTelefono = NormalizarTexto(TelefonoUsuario);
+            originalFechaNacimiento = FechaNacimientoUsuario;
+            // Se guarda exactamente lo que quedó cargado en la interfaz.
+            // Si un catálogo no pudo resolverse, un valor nulo no se
+            // considera una modificación realizada por el usuario.
+            originalRolId = RolSeleccionado?.RolId;
+            originalMunicipioId =
+                MunicipioSeleccionado?.MunicipioId;
+
+            initialStateCaptured = true;
+        }
+
+        private static bool SonIguales(
+            string? value1,
+            string? value2)
+        {
+            return string.Equals(
+                NormalizarTexto(value1),
+                NormalizarTexto(value2),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizarTexto(string? value)
+        {
+            return (value ?? string.Empty).Trim();
         }
 
         private void ApplyUserToForm(UserRequest source)
@@ -800,6 +922,7 @@ namespace CONATRADEC.ViewModels
 
         private void ResetForm()
         {
+            initialStateCaptured = false;
             user = new UserRequest();
             NombreUsuario = string.Empty;
             ClaveUsuario = string.Empty;

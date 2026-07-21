@@ -1,8 +1,9 @@
-﻿using Microsoft.Maui.Controls;
+﻿using CONATRADEC.Models;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices.Sensors;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
-using CONATRADEC.Models;
 
 namespace CONATRADEC.Views;
 
@@ -16,10 +17,12 @@ public partial class MapaSeleccionPage : ContentPage
     public double? LongitudActual { get; set; }
 
     public FormMode.FormModeSelect Mode { get; set; }
-    public TerrenoRequest Terreno { get; set; }
+    public TerrenoRequest? Terreno { get; set; }
 
     private double? _ultimoLat;
     private double? _ultimoLon;
+
+    private bool _navegando;
 
     public MapaSeleccionPage()
     {
@@ -46,8 +49,14 @@ public partial class MapaSeleccionPage : ContentPage
     {
         set
         {
-            if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lat))
+            if (double.TryParse(
+                    value,
+                    NumberStyles.Any,
+                    CultureInfo.InvariantCulture,
+                    out double lat))
+            {
                 LatitudActual = lat;
+            }
         }
     }
 
@@ -55,107 +64,254 @@ public partial class MapaSeleccionPage : ContentPage
     {
         set
         {
-            if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var lon))
+            if (double.TryParse(
+                    value,
+                    NumberStyles.Any,
+                    CultureInfo.InvariantCulture,
+                    out double lon))
+            {
                 LongitudActual = lon;
+            }
         }
     }
 
-    private void MapaWeb_Navigating(object sender, WebNavigatingEventArgs e)
+    private void MapaWeb_Navigating(
+        object sender,
+        WebNavigatingEventArgs e)
     {
-        if (!e.Url.StartsWith("maui://coords"))
+        if (string.IsNullOrWhiteSpace(e.Url) ||
+            !e.Url.StartsWith(
+                "maui://coords",
+                StringComparison.OrdinalIgnoreCase))
+        {
             return;
+        }
 
         e.Cancel = true;
 
-        var uri = new Uri(e.Url);
-        var parts = uri.Query.TrimStart('?').Split('&');
-
-        foreach (var p in parts)
+        try
         {
-            var kv = p.Split('=');
-            if (kv.Length != 2) continue;
+            var uri = new Uri(e.Url);
+            string query = uri.Query.TrimStart('?');
 
-            if (kv[0] == "lat")
-                _ultimoLat = double.Parse(kv[1], CultureInfo.InvariantCulture);
+            string[] partes = query.Split(
+                '&',
+                StringSplitOptions.RemoveEmptyEntries);
 
-            if (kv[0] == "lon")
-                _ultimoLon = double.Parse(kv[1], CultureInfo.InvariantCulture);
+            foreach (string parte in partes)
+            {
+                string[] claveValor = parte.Split(
+                    '=',
+                    2,
+                    StringSplitOptions.RemoveEmptyEntries);
+
+                if (claveValor.Length != 2)
+                    continue;
+
+                string clave = claveValor[0];
+                string valor = Uri.UnescapeDataString(claveValor[1]);
+
+                if (clave.Equals(
+                        "lat",
+                        StringComparison.OrdinalIgnoreCase) &&
+                    double.TryParse(
+                        valor,
+                        NumberStyles.Any,
+                        CultureInfo.InvariantCulture,
+                        out double latitud))
+                {
+                    _ultimoLat = latitud;
+                }
+
+                if (clave.Equals(
+                        "lon",
+                        StringComparison.OrdinalIgnoreCase) &&
+                    double.TryParse(
+                        valor,
+                        NumberStyles.Any,
+                        CultureInfo.InvariantCulture,
+                        out double longitud))
+                {
+                    _ultimoLon = longitud;
+                }
+            }
+        }
+        catch
+        {
+            // Si el WebView envía una URL inválida,
+            // se conserva la última coordenada válida.
         }
     }
 
-    private void MapaWeb_Navigated(object sender, WebNavigatedEventArgs e)
+    private void MapaWeb_Navigated(
+        object sender,
+        WebNavigatedEventArgs e)
     {
-        // No hace falta ejecutar JS aquí, el mapa ya viene inicializado
+        // El mapa ya se inicializa desde el HTML.
     }
 
-    private async void BtnConfirmar_Clicked(object sender, EventArgs e)
+    private async void BtnConfirmar_Clicked(
+        object sender,
+        EventArgs e)
     {
-        await Shell.Current.GoToAsync(nameof(terrenoFormPage), true, new Dictionary<string, object>
+        if (_navegando)
+            return;
+
+        if (!_ultimoLat.HasValue || !_ultimoLon.HasValue)
         {
-            { "latitud", _ultimoLat?.ToString(CultureInfo.InvariantCulture) },
-            { "longitud", _ultimoLon?.ToString(CultureInfo.InvariantCulture) },
-            { "Mode", Mode },
-            { "Terreno", Terreno }
-        });
-    }
+            await DisplayAlert(
+                "Ubicación",
+                "Seleccione una ubicación válida en el mapa.",
+                "Aceptar");
 
-    private async void BtnCancelar_Clicked(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("..", new Dictionary<string, object>
+            return;
+        }
+
+        try
         {
-            { "Mode", Mode },
-            { "Terreno", Terreno }
-        });
+            _navegando = true;
+
+            /*
+             * No se navega nuevamente hacia terrenoFormPage.
+             *
+             * El formulario ya se encuentra debajo de esta página
+             * en la pila de navegación. Se regresa con ".." y se
+             * entregan las nuevas coordenadas al formulario existente.
+             */
+            await Shell.Current.GoToAsync(
+                "..",
+                true,
+                new Dictionary<string, object>
+                {
+                    {
+                        "latitud",
+                        _ultimoLat.Value.ToString(
+                            CultureInfo.InvariantCulture)
+                    },
+                    {
+                        "longitud",
+                        _ultimoLon.Value.ToString(
+                            CultureInfo.InvariantCulture)
+                    }
+                });
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Error",
+                $"No fue posible confirmar la ubicación.\n\n{ex.Message}",
+                "Aceptar");
+        }
+        finally
+        {
+            _navegando = false;
+        }
     }
 
-    private string BuildLeafletHtml(double lat, double lon)
+    private async void BtnCancelar_Clicked(
+        object sender,
+        EventArgs e)
     {
-        string latStr = lat.ToString(CultureInfo.InvariantCulture);
-        string lonStr = lon.ToString(CultureInfo.InvariantCulture);
+        if (_navegando)
+            return;
+
+        try
+        {
+            _navegando = true;
+
+            /*
+             * Regresa al mismo formulario sin modificar
+             * las coordenadas existentes.
+             */
+            await Shell.Current.GoToAsync("..", true);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Error",
+                $"No fue posible regresar al formulario.\n\n{ex.Message}",
+                "Aceptar");
+        }
+        finally
+        {
+            _navegando = false;
+        }
+    }
+
+    private string BuildLeafletHtml(
+        double lat,
+        double lon)
+    {
+        string latStr =
+            lat.ToString(CultureInfo.InvariantCulture);
+
+        string lonStr =
+            lon.ToString(CultureInfo.InvariantCulture);
 
         return $@"
 <!DOCTYPE html>
 <html>
 <head>
-<meta name='viewport' content='width=device-width, initial-scale=1'>
-<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' />
-<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
+    <meta name='viewport'
+          content='width=device-width, initial-scale=1.0,
+                   maximum-scale=1.0, user-scalable=no'>
 
-<style>
-html, body, #map {{ height: 100%; margin: 0; padding: 0; }}
-</style>
+    <link rel='stylesheet'
+          href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' />
 
+    <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'>
+    </script>
+
+    <style>
+        html,
+        body,
+        #map {{
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }}
+    </style>
 </head>
+
 <body>
+    <div id='map'></div>
 
-<div id='map'></div>
+    <script>
+        var map = L.map('map').setView(
+            [{latStr}, {lonStr}],
+            17
+        );
 
-<script>
-var map;
-var marker;
+        L.tileLayer(
+            'https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png',
+            {{
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }}
+        ).addTo(map);
 
-function initializeMap(lat, lon) {{
-    map = L.map('map').setView([lat, lon], 17);
+        var marker = L.marker(
+            [{latStr}, {lonStr}]
+        ).addTo(map);
 
-    L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-        maxZoom: 19
-    }}).addTo(map);
+        map.on('click', function(e) {{
+            var newLat = e.latlng.lat;
+            var newLon = e.latlng.lng;
 
-    marker = L.marker([lat, lon]).addTo(map);
+            marker.setLatLng([newLat, newLon]);
 
-    map.on('click', function(e) {{
-        var newLat = e.latlng.lat;
-        var newLon = e.latlng.lng;
+            window.location.href =
+                'maui://coords?lat=' +
+                encodeURIComponent(newLat) +
+                '&lon=' +
+                encodeURIComponent(newLon);
+        }});
 
-        marker.setLatLng([newLat, newLon]);
-
-        window.location.href = 'maui://coords?lat=' + newLat + '&lon=' + newLon;
-    }});
-}}
-
-initializeMap({latStr}, {lonStr});
-</script>
-
+        setTimeout(function() {{
+            map.invalidateSize();
+        }}, 300);
+    </script>
 </body>
 </html>";
     }

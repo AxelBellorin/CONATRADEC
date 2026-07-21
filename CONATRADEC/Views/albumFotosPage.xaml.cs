@@ -37,16 +37,6 @@ namespace CONATRADEC.Views
             }
 
             await viewModel.LoadAsync(true);
-
-            /*
-             * La página ahora es una instancia nueva.
-             * Solo se asegura la posición inicial una vez.
-             */
-            await Task.Yield();
-            await AlbumScrollView.ScrollToAsync(
-                0,
-                0,
-                false);
         }
 
         private async void OnBuscarPresionado(

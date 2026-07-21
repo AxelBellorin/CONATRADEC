@@ -144,7 +144,7 @@
                         <Picker Title="Seleccione un rol"
                                 ItemsSource="{Binding Roles}"
                                 ItemDisplayBinding="{Binding NombreRol}"
-                                SelectedItem="{Binding RolSeleccionado}"
+                                SelectedItem="{Binding RolSeleccionado, Mode=TwoWay}"
                                 IsEnabled="{Binding IsEnabled}" />
                     </VerticalStackLayout>
                 </Border>
@@ -158,7 +158,7 @@
                         <Picker Title="Seleccione un país"
                                 ItemsSource="{Binding Paises}"
                                 ItemDisplayBinding="{Binding NombrePais}"
-                                SelectedItem="{Binding PaisSeleccionado}"
+                                SelectedItem="{Binding PaisSeleccionado, Mode=TwoWay}"
                                 IsEnabled="{Binding IsEnabled}" />
                     </VerticalStackLayout>
                 </Border>
@@ -172,7 +172,7 @@
                         <Picker Title="Seleccione un departamento"
                                 ItemsSource="{Binding Departamentos}"
                                 ItemDisplayBinding="{Binding NombreDepartamento}"
-                                SelectedItem="{Binding DepartamentoSeleccionado}"
+                                SelectedItem="{Binding DepartamentoSeleccionado, Mode=TwoWay}"
                                 IsEnabled="{Binding CanPickDepartamento}" />
                     </VerticalStackLayout>
                 </Border>
@@ -186,7 +186,7 @@
                         <Picker Title="Seleccione un municipio"
                                 ItemsSource="{Binding Municipios}"
                                 ItemDisplayBinding="{Binding NombreMunicipio}"
-                                SelectedItem="{Binding MunicipioSeleccionado}"
+                                SelectedItem="{Binding MunicipioSeleccionado, Mode=TwoWay}"
                                 IsEnabled="{Binding CanPickMunicipio}" />
                     </VerticalStackLayout>
                 </Border>
