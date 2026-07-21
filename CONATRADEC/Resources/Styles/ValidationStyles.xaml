@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Mensaje mostrado debajo de un campo inválido. -->
+    <Style x:Key="ValidationMessageStyle"
+           TargetType="Label">
+        <Setter Property="TextColor"
+                Value="{StaticResource RedDelete}" />
+        <Setter Property="FontSize"
+                Value="12" />
+        <Setter Property="FontFamily"
+                Value="MontserratMedium" />
+        <Setter Property="FontAttributes"
+                Value="Bold" />
+        <Setter Property="Margin"
+                Value="2,2,0,0" />
+        <Setter Property="LineBreakMode"
+                Value="WordWrap" />
+    </Style>
+
+    <!-- Contenedor base para campos que tendrán validaciones. -->
+    <Style x:Key="ValidationFieldContainerStyle"
+           TargetType="Border"
+           BasedOn="{StaticResource BorderStyle}">
+        <Setter Property="StrokeThickness"
+                Value="1" />
+    </Style>
+
+    <!-- Bloque general de error dentro de una pantalla. -->
+    <Style x:Key="ValidationErrorSummaryStyle"
+           TargetType="Border">
+        <Setter Property="BackgroundColor"
+                Value="#FEF2F2" />
+        <Setter Property="Stroke"
+                Value="#FECACA" />
+        <Setter Property="StrokeThickness"
+                Value="1" />
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 12" />
+        <Setter Property="Padding"
+                Value="12" />
+    </Style>
+
+    <!-- Bloque general de advertencia dentro de una pantalla. -->
+    <Style x:Key="ValidationWarningSummaryStyle"
+           TargetType="Border">
+        <Setter Property="BackgroundColor"
+                Value="#FFF7ED" />
+        <Setter Property="Stroke"
+                Value="#FED7AA" />
+        <Setter Property="StrokeThickness"
+                Value="1" />
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 12" />
+        <Setter Property="Padding"
+                Value="12" />
+    </Style>
+
+    <!-- Bloque general informativo dentro de una pantalla. -->
+    <Style x:Key="ValidationInformationSummaryStyle"
+           TargetType="Border">
+        <Setter Property="BackgroundColor"
+                Value="#EFF6FF" />
+        <Setter Property="Stroke"
+                Value="#BFDBFE" />
+        <Setter Property="StrokeThickness"
+                Value="1" />
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 12" />
+        <Setter Property="Padding"
+                Value="12" />
+    </Style>
+
+</ResourceDictionary>

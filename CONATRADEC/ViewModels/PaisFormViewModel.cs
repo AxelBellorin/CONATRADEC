@@ -1,347 +1,405 @@
-﻿using CommunityToolkit.Maui.Alerts;
-using CommunityToolkit.Maui.Core;
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
-using System.ComponentModel;
-using System.Windows.Input;
+using System.Text.RegularExpressions;
 
 namespace CONATRADEC.ViewModels
 {
-    // ViewModel del formulario de País.
-    // Hereda de GlobalService para reutilizar navegación (GoToAsyncParameters) y estado (IsBusy).
     public class PaisFormViewModel : GlobalService
     {
-        // ===========================================================
-        // ================= ESTADO / PROPIEDADES BINDABLE ===========
-        // ===========================================================
-
-        // Objeto de trabajo que se edita/crea desde el formulario.
-        private PaisRequest pais;
-
-        // Bandera interna para controlar confirmaciones (cancelar/guardar).
+        private PaisRequest pais = new();
         private bool isCancel;
 
-        // Campos editables desde la vista (Entry: Nombre/Código ISO).
-        private string nombrePais;
-        private string codigoISOPais;
+        private string nombrePais = string.Empty;
+        private string codigoISOPais = string.Empty;
 
-        // Modo del formulario (Create / Edit / View).
-        private FormMode.FormModeSelect mode = new FormMode.FormModeSelect();
+        private string errorNombrePais = string.Empty;
+        private string errorCodigoISOPais = string.Empty;
 
-        // Servicio de API para persistir cambios de País.
-        private readonly PaisApiService paisApiService = new PaisApiService();
+        private FormMode.FormModeSelect mode =
+            new FormMode.FormModeSelect();
 
-        // Comandos expuestos a la vista (botones Guardar/Cancelar).
+        private readonly PaisApiService paisApiService =
+            new PaisApiService();
+
         public Command SaveCommand { get; }
         public Command CancelCommand { get; }
 
-        // ===========================================================
-        // ========================= CTOR ============================
-        // ===========================================================
-
         public PaisFormViewModel()
         {
-            // Guarda si el formulario no está en solo lectura (IsReadOnly).
-            SaveCommand = new Command(async () => await SaveAsync(), () => !IsReadOnly);
+            SaveCommand = new Command(
+                async () => await SaveAsync(),
+                () => !IsReadOnly && !IsBusy);
 
-            // Cancela la edición y vuelve a la página de listado.
-            CancelCommand = new Command(async () => await CancelAsync());
+            CancelCommand = new Command(
+                async () => await CancelAsync(),
+                () => !IsBusy);
         }
 
-        // ===========================================================
-        // =============== PROPIEDADES CON NOTIFICACIÓN ==============
-        // ===========================================================
-
-        // Nombre del País (bindeado a Entry).
         public string NombrePais
         {
             get => nombrePais;
-            set { nombrePais = value; OnPropertyChanged(); }
+            set
+            {
+                nombrePais = value ?? string.Empty;
+                OnPropertyChanged();
+
+                if (!string.IsNullOrWhiteSpace(nombrePais))
+                    ErrorNombrePais = string.Empty;
+            }
         }
 
-        // Código ISO del País (bindeado a Entry).
         public string CodigoISOPais
         {
             get => codigoISOPais;
             set
             {
-                codigoISOPais = value;
+                codigoISOPais =
+                    (value ?? string.Empty)
+                    .ToUpperInvariant();
+
                 OnPropertyChanged();
+
+                if (Regex.IsMatch(
+                    codigoISOPais.Trim(),
+                    "^[A-Z]{3}$"))
+                {
+                    ErrorCodigoISOPais = string.Empty;
+                }
             }
         }
 
-        // Bandera de flujo para confirmar acciones (no es bindable a UI).
+        public string ErrorNombrePais
+        {
+            get => errorNombrePais;
+            set
+            {
+                if (errorNombrePais == value)
+                    return;
+
+                errorNombrePais = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneErrorNombrePais));
+            }
+        }
+
+        public bool TieneErrorNombrePais =>
+            !string.IsNullOrWhiteSpace(ErrorNombrePais);
+
+        public string ErrorCodigoISOPais
+        {
+            get => errorCodigoISOPais;
+            set
+            {
+                if (errorCodigoISOPais == value)
+                    return;
+
+                errorCodigoISOPais = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneErrorCodigoISOPais));
+            }
+        }
+
+        public bool TieneErrorCodigoISOPais =>
+            !string.IsNullOrWhiteSpace(ErrorCodigoISOPais);
+
         public bool IsCancel
         {
             get => isCancel;
             set => isCancel = value;
         }
 
-        // Objeto País seleccionado/creado. Al asignarlo, propaga valores a los campos editables.
         public PaisRequest Pais
         {
             get => pais;
             set
             {
-                pais = value;
+                pais = value ?? new PaisRequest();
+
                 OnPropertyChanged();
-                // Sincroniza el formulario con los datos del objeto.
-                NombrePais = value.NombrePais;
-                CodigoISOPais = value.CodigoISOPais;
+
+                NombrePais = pais.NombrePais ?? string.Empty;
+                CodigoISOPais =
+                    pais.CodigoISOPais ?? string.Empty;
+
+                LimpiarErrores();
             }
         }
 
-        // Modo del formulario: Create/Edit/View. Cambia flags y título dinámicos.
         public FormMode.FormModeSelect Mode
         {
             get => mode;
             set
             {
                 mode = value;
+
                 OnPropertyChanged();
-                // Notifica propiedades dependientes para refrescar la UI.
                 OnPropertyChanged(nameof(IsReadOnly));
                 OnPropertyChanged(nameof(Title));
                 OnPropertyChanged(nameof(ShowSaveButton));
-                // ((Command)SaveCommand).ChangeCanExecute(); // opcional
+
+                SaveCommand.ChangeCanExecute();
             }
         }
 
-        // Indica si los campos del formulario están bloqueados (solo lectura).
-        public bool IsReadOnly => Mode == FormMode.FormModeSelect.View;
+        public bool IsReadOnly =>
+            Mode == FormMode.FormModeSelect.View;
 
-        // Controla la visibilidad del botón Guardar (oculto en modo View).
-        public bool ShowSaveButton => Mode != FormMode.FormModeSelect.View;
+        public bool ShowSaveButton =>
+            Mode != FormMode.FormModeSelect.View;
 
-        // Título dinámico mostrado arriba del formulario según el modo.
-        public string Title => Mode switch
-        {
-            FormMode.FormModeSelect.Create => "Crear País",
-            FormMode.FormModeSelect.Edit => "Editar País",
-            FormMode.FormModeSelect.View => "Detalles del País",
-            _ => "",
-        };
+        public string Title =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create =>
+                    "Crear país",
 
-        // ===========================================================
-        // ======================= MÉTODOS UI ========================
-        // ===========================================================
+                FormMode.FormModeSelect.Edit =>
+                    "Editar país",
 
-        // Acción del botón "Cancelar": confirma si hay cambios y navega al listado.
+                FormMode.FormModeSelect.View =>
+                    "Detalles del país",
+
+                _ =>
+                    "País"
+            };
+
         private async Task CancelAsync()
         {
+            if (IsBusy)
+                return;
+
             try
             {
-                // Verifica si hubo cambios en el formulario.
-                IsCancel = ValidateFields();
+                IsCancel = HayCambios();
 
                 if (IsCancel)
                 {
-                    // Pide confirmación si los campos han cambiado.
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Cancelar",
-                        "Desea no guardar los cambios",
-                        "Aceptar",
-                        "Cancelar");
+                    bool confirm =
+                        await ConfirmarSalidaSinGuardarAsync();
 
-                    if (confirm)
-                    {
-                        await GoToAsyncParameters("//PaisPage");
-                    }
+                    if (!confirm)
+                        return;
                 }
-                else
-                {
-                    // Si no hubo cambios, simplemente regresa.
-                    await GoToAsyncParameters("//PaisPage");
-                }
+
+                await GoToAsyncParameters("//PaisPage");
             }
             catch (Exception ex)
             {
-                // Notifica cualquier error en la operación de cancelación.
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarErrorInesperadoAsync(
+                    "salir del formulario de país",
+                    ex);
             }
             finally
             {
-                // Limpia flag para evitar efectos en flujos posteriores.
                 IsCancel = false;
             }
         }
 
-        // ===========================================================
-        // ===================== LÓGICA DE GUARDADO ==================
-        // ===========================================================
-
-        // Decide si crea o actualiza según el modo del formulario.
         private async Task SaveAsync()
         {
+            if (IsBusy || IsReadOnly)
+                return;
+
             try
             {
+                if (!ValidarCampos())
+                {
+                    await MostrarAdvertenciaAsync(
+                        "Revise los campos marcados antes de continuar.");
+
+                    return;
+                }
+
                 if (Mode == FormMode.FormModeSelect.Create)
+                {
                     await CreatePaisAsync();
+                }
                 else if (Mode == FormMode.FormModeSelect.Edit)
+                {
                     await UpdatePaisAsync();
+                }
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarErrorInesperadoAsync(
+                    "guardar el país",
+                    ex);
             }
         }
 
-        // Crea un nuevo País (confirmación → persistir → navegar → feedback).
         private async Task CreatePaisAsync()
         {
+            bool confirm =
+                await ConfirmarGuardadoAsync("el país");
+
+            if (!confirm)
+                return;
+
+            if (!await ValidarInternetAsync())
+                return;
+
             try
             {
-                // Validación de datos (formulario).
-                if (!ValidateFieldsData()) return;
+                IsBusy = true;
+                RefrescarComandos();
 
-                // Determina si hay cambios significativos para guardar.
-                IsCancel = ValidateFields();
+                SincronizarModelo();
 
-                if (IsCancel)
+                bool response =
+                    await paisApiService.CreatePaisAsync(Pais);
+
+                if (!response)
                 {
-                    // Solicita confirmación antes de persistir.
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Confirmar",
-                        "¿Desea guardar los datos del país?",
-                        "Aceptar",
-                        "Cancelar");
+                    await MostrarErrorAsync(
+                        "No fue posible guardar el país. Intente nuevamente.");
 
-                    if (confirm)
-                    {
-                        // Propaga los valores del formulario al objeto País.
-                        Pais.NombrePais = NombrePais;
-                        Pais.CodigoISOPais = CodigoISOPais;
-
-                        // Valida que el usaurio tenga conexion a internet
-                        bool tieneInternet = await TieneInternetAsync();
-
-                        if (!tieneInternet)
-                        {
-                            _ = MostrarToastAsync("Sin conexión a internet.");
-                            IsBusy = false;
-                            return;
-                        }
-
-                        // Llama a la API para crear el registro.
-                        var response = await paisApiService.CreatePaisAsync(Pais);
-
-                        if (response)
-                        {
-                            await GoToAsyncParameters("//PaisPage"); // Navega al listado.
-                            _ = MostrarToastAsync("Éxito" + "País guardado correctamente");
-                        }
-                        else
-                        {
-                            _ = MostrarToastAsync("Error" + "El país no se pudo guardar, intente nuevamente");
-                        }
-                    }
+                    return;
                 }
+
+                await GoToAsyncParameters("//PaisPage");
+
+                await MostrarExitoAsync(
+                    "País guardado correctamente.");
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarErrorInesperadoAsync(
+                    "guardar el país",
+                    ex);
             }
             finally
             {
-                IsCancel = false;
+                IsBusy = false;
+                RefrescarComandos();
             }
         }
 
-        // Actualiza un País existente (confirmación → persistir → navegar → feedback).
         private async Task UpdatePaisAsync()
         {
+            if (!HayCambios())
+            {
+                await MostrarInformacionAsync(
+                    "No hay cambios para guardar.");
+
+                return;
+            }
+
+            bool confirm =
+                await ConfirmarActualizacionAsync("el país");
+
+            if (!confirm)
+                return;
+
+            if (!await ValidarInternetAsync())
+                return;
+
             try
             {
-                // Validación de datos (formulario).
-                if (!ValidateFieldsData()) return;
+                IsBusy = true;
+                RefrescarComandos();
 
-                // Determina si hay cambios antes de pedir confirmación.
-                IsCancel = ValidateFields();
+                SincronizarModelo();
 
-                if (IsCancel)
+                bool response =
+                    await paisApiService.UpdatePaisAsync(Pais);
+
+                if (!response)
                 {
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Confirmar",
-                        "¿Desea actualizar?",
-                        "Aceptar",
-                        "Cancelar");
+                    await MostrarErrorAsync(
+                        "No fue posible actualizar el país. Intente nuevamente.");
 
-                    if (confirm)
-                    {
-                        // Propaga al objeto principal los cambios del formulario.
-                        Pais.NombrePais = NombrePais;
-                        Pais.CodigoISOPais = CodigoISOPais;
-
-                        // Valida que el usaurio tenga conexion a internet
-                        bool tieneInternet = await TieneInternetAsync();
-
-                        if (!tieneInternet)
-                        {
-                            _ = MostrarToastAsync("Sin conexión a internet.");
-                            IsBusy = false;
-                            return;
-                        }
-
-                        // Llama a la API para actualizar.
-                        var response = await paisApiService.UpdatePaisAsync(Pais);
-
-                        if (response)
-                        {
-                            await GoToAsyncParameters("//PaisPage");
-                            _ = MostrarToastAsync("Éxito" + "País actualizado correctamente");
-                        }
-                        else
-                        {
-                            _ = MostrarToastAsync("Error" + "El país no se pudo actualizar, intente nuevamente");
-                        }
-                    }
+                    return;
                 }
+
+                await GoToAsyncParameters("//PaisPage");
+
+                await MostrarExitoAsync(
+                    "País actualizado correctamente.");
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarErrorInesperadoAsync(
+                    "actualizar el país",
+                    ex);
             }
             finally
             {
-                IsCancel = false;
+                IsBusy = false;
+                RefrescarComandos();
             }
         }
 
-        // ===========================================================
-        // ===================== MÉTODOS AUXILIARES ==================
-        // ===========================================================
-
-        // Valida si los campos del formulario difieren de los del objeto original.
-        private bool ValidateFields()
+        private void SincronizarModelo()
         {
-            if (NombrePais != Pais.NombrePais) return true;
-            if (CodigoISOPais != Pais.CodigoISOPais) return true;
-            
-            return false;
+            Pais.NombrePais = NombrePais.Trim();
+            Pais.CodigoISOPais =
+                CodigoISOPais.Trim().ToUpperInvariant();
         }
 
-        // Valida si los campos del formulario estan correctos.
-        private bool ValidateFieldsData()
+        private bool HayCambios()
         {
-            // Validar que tenga exactamente 3 caracteres
-            if (string.IsNullOrWhiteSpace(CodigoISOPais) || CodigoISOPais.Length != 3)
+            string nombreActual =
+                NombrePais.Trim();
+
+            string codigoActual =
+                CodigoISOPais.Trim().ToUpperInvariant();
+
+            string nombreOriginal =
+                Pais.NombrePais?.Trim() ?? string.Empty;
+
+            string codigoOriginal =
+                Pais.CodigoISOPais?
+                    .Trim()
+                    .ToUpperInvariant() ??
+                string.Empty;
+
+            return
+                nombreActual != nombreOriginal ||
+                codigoActual != codigoOriginal;
+        }
+
+        private bool ValidarCampos()
+        {
+            LimpiarErrores();
+
+            NombrePais = NombrePais.Trim();
+            CodigoISOPais =
+                CodigoISOPais.Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(NombrePais))
             {
-                _ = Snackbar.Make(
-                                "El código ISO debe tener exactamente 3 letras.",
-                                duration: TimeSpan.FromSeconds(3),
-                                visualOptions: new SnackbarOptions
-                                {
-                                    BackgroundColor = Colors.Red,
-                                    TextColor = Colors.White
-                                }).Show();
-
-                return false;
+                ErrorNombrePais =
+                    "Ingrese el nombre del país.";
             }
 
-            // Si es válido
-            codigoISOPais = CodigoISOPais.ToUpper();
-            return true;
+            if (string.IsNullOrWhiteSpace(CodigoISOPais))
+            {
+                ErrorCodigoISOPais =
+                    "Ingrese el código ISO del país.";
+            }
+            else if (!Regex.IsMatch(
+                         CodigoISOPais,
+                         "^[A-Z]{3}$"))
+            {
+                ErrorCodigoISOPais =
+                    "El código ISO debe contener exactamente 3 letras.";
+            }
+
+            return
+                !TieneErrorNombrePais &&
+                !TieneErrorCodigoISOPais;
         }
 
+        private void LimpiarErrores()
+        {
+            ErrorNombrePais = string.Empty;
+            ErrorCodigoISOPais = string.Empty;
+        }
+
+        private void RefrescarComandos()
+        {
+            SaveCommand.ChangeCanExecute();
+            CancelCommand.ChangeCanExecute();
+        }
     }
 }

@@ -1,8 +1,7 @@
-﻿using CommunityToolkit.Maui.Alerts;
-using CommunityToolkit.Maui.Core;
-using Microsoft.Maui.Networking;
+﻿using Microsoft.Maui.Networking;
 using Microsoft.Maui.Storage;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace CONATRADEC.Services
@@ -34,6 +33,7 @@ namespace CONATRADEC.Services
         public Command CerrarSesionCommand { get; }
 
         private bool isBusy;
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public bool IsBusy
@@ -147,15 +147,10 @@ namespace CONATRADEC.Services
             if (IsBusy)
                 return;
 
-            Page? page = Application.Current?.MainPage;
-
-            if (page == null)
-                return;
-
-            bool confirm = await page.DisplayAlert(
+            bool confirm = await ConfirmarAsync(
                 "Cerrar sesión",
-                "¿Está seguro que desea cerrar sesión?",
-                "Sí, cerrar",
+                "¿Está seguro de que desea cerrar la sesión actual?",
+                "Cerrar sesión",
                 "Cancelar");
 
             if (!confirm)
@@ -191,7 +186,7 @@ namespace CONATRADEC.Services
 
             if (permission == null || !permission.leer)
             {
-                _ = MostrarToastAsync(
+                _ = MostrarInformacionAsync(
                     "No tiene permisos para acceder a esta sección.");
 
                 return false;
@@ -220,7 +215,6 @@ namespace CONATRADEC.Services
             NavigateWithoutPermissionAsync(
                 AppRoutes.Configuracion);
 
-        // El álbum usa la interfaz albumFotosPage de la matriz.
         private Task GoToAlbumFotosPage() =>
             NavigateAsync(
                 "albumFotosPage",
@@ -273,30 +267,95 @@ namespace CONATRADEC.Services
                 "rangoNutrientePage",
                 AppRoutes.RangosNutrientes);
 
-        public static async Task MostrarToastAsync(
-            string mensaje)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(mensaje))
-                    return;
+        // ==========================================================
+        // MENSAJES ESTANDARIZADOS
+        // ==========================================================
 
-                await Toast
-                    .Make(
-                        mensaje,
-                        ToastDuration.Short,
-                        14)
-                    .Show();
-            }
-            catch
-            {
-            }
+        public static Task MostrarExitoAsync(string mensaje) =>
+            AppNotificationService.ShowSuccessAsync(mensaje);
+
+        public static Task MostrarErrorAsync(string mensaje) =>
+            AppNotificationService.ShowErrorAsync(mensaje);
+
+        public static Task MostrarAdvertenciaAsync(string mensaje) =>
+            AppNotificationService.ShowWarningAsync(mensaje);
+
+        public static Task MostrarInformacionAsync(string mensaje) =>
+            AppNotificationService.ShowInformationAsync(mensaje);
+
+        /// <summary>
+        /// Se mantiene para no romper los ViewModels existentes.
+        /// El nuevo servicio determina automáticamente el tipo de mensaje.
+        /// </summary>
+        public static Task MostrarToastAsync(string mensaje) =>
+            AppNotificationService.ShowAutoAsync(mensaje);
+
+        public static Task<bool> ConfirmarAsync(
+            string titulo,
+            string mensaje,
+            string textoAceptar,
+            string textoCancelar) =>
+            AppNotificationService.ConfirmAsync(
+                titulo,
+                mensaje,
+                textoAceptar,
+                textoCancelar);
+
+        public static Task<bool> ConfirmarGuardadoAsync(
+            string nombreEntidad) =>
+            AppNotificationService.ConfirmSaveAsync(nombreEntidad);
+
+        public static Task<bool> ConfirmarActualizacionAsync(
+            string nombreEntidad) =>
+            AppNotificationService.ConfirmUpdateAsync(nombreEntidad);
+
+        public static Task<bool> ConfirmarEliminacionAsync(
+            string nombreEntidad) =>
+            AppNotificationService.ConfirmDeleteAsync(nombreEntidad);
+
+        public static Task<bool> ConfirmarSalidaSinGuardarAsync() =>
+            AppNotificationService.ConfirmDiscardChangesAsync();
+
+        public static async Task MostrarErrorInesperadoAsync(
+            string operacion,
+            Exception exception)
+        {
+            Debug.WriteLine(
+                $"Error inesperado al {operacion}: {exception}");
+
+            await MostrarErrorAsync(
+                $"Ocurrió un error inesperado al {operacion}. Intente nuevamente.");
         }
 
-        public Task<bool> TieneInternetAsync() =>
-            Task.FromResult(
-                Connectivity.Current.NetworkAccess ==
-                NetworkAccess.Internet);
+        public Task<bool> TieneInternetAsync()
+        {
+            NetworkAccess networkAccess =
+                Connectivity.Current.NetworkAccess;
+
+#if WINDOWS
+            // En Windows, NetworkAccess puede reportar Local o
+            // ConstrainedInternet aunque la API sea accesible.
+            // La llamada HTTP será la validación definitiva.
+            return Task.FromResult(
+                networkAccess != NetworkAccess.None);
+#else
+            return Task.FromResult(
+                networkAccess == NetworkAccess.Internet);
+#endif
+        }
+
+        public async Task<bool> ValidarInternetAsync()
+        {
+            bool tieneInternet = await TieneInternetAsync();
+
+            if (!tieneInternet)
+            {
+                await MostrarAdvertenciaAsync(
+                    "No hay conexión a internet. Verifique su red e intente nuevamente.");
+            }
+
+            return tieneInternet;
+        }
 
         public void LoadPagePermissions(string pageName)
         {

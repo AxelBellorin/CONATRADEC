@@ -1,303 +1,375 @@
-﻿using CONATRADEC.Services;          // Servicios de acceso a API (RolApiService) y utilidades de navegación (GlobalService).
-using System.ComponentModel;        // INotifyPropertyChanged (lo hereda de GlobalService).
-using System.Windows.Input;         // Command / ICommand para enlazar con la UI (botones).
-using CONATRADEC.Models;            // Modelos de datos (RolRequest, FormMode, etc.).
+﻿using CONATRADEC.Models;
+using CONATRADEC.Services;
 
 namespace CONATRADEC.ViewModels
 {
-    // ViewModel del formulario de Rol (crear/editar/ver).
-    // Hereda de GlobalService para reutilizar navegación con Shell y notificación de propiedades.
+    /// <summary>
+    /// Formulario para crear, editar y visualizar roles.
+    ///
+    /// La operación no se bloquea únicamente por el estado informado
+    /// por Connectivity en Windows. La llamada real a la API determina
+    /// si existe un problema de conexión, servidor o validación.
+    /// </summary>
     public class RolFormViewModel : GlobalService
     {
-        // ===========================================================
-        // ================== ESTADO DEL FORMULARIO ==================
-        // ===========================================================
+        private RolRequest rol = new();
 
-        private RolRequest rol;                 // Entidad Rol a editar/crear (se recibe por navegación).
-        private bool isCancel;                  // Bandera interna para lógica de confirmación al cancelar.
-        private string nombreRol;               // Campo editable: NombreRol (bindeado al Entry).
-        private string descripcionRol;          // Campo editable: DescripcionRol (bindeado al Entry).
+        private string nombreRol = string.Empty;
+        private string descripcionRol = string.Empty;
 
-        // Modo del formulario (Create/Edit/View); controla título, lectura y visibilidad del botón Guardar.
-        private FormMode.FormModeSelect mode = new FormMode.FormModeSelect();
+        private string errorNombreRol = string.Empty;
+        private string errorDescripcionRol = string.Empty;
 
-        // Servicio para operaciones CRUD de Rol contra la API.
-        private readonly RolApiService rolApiService = new RolApiService();
+        private FormMode.FormModeSelect mode =
+            new FormMode.FormModeSelect();
 
-        // Comandos expuestos a la vista.
-        public Command SaveCommand { get; }     // Guardar (crea o actualiza según Mode).
-        public Command CancelCommand { get; }   // Cancelar (con o sin confirmación si hay cambios).
+        private readonly RolApiService rolApiService = new();
 
-        // ===========================================================
-        // ======================= CTOR ==============================
-        // ===========================================================
+        public Command SaveCommand { get; }
+        public Command CancelCommand { get; }
+
         public RolFormViewModel()
         {
-            // Guardar habilitado solo cuando NO es lectura (IsReadOnly == false).
-            // Nota: si cambias Mode en tiempo de ejecución, podría interesar llamar a:
-            // ((Command)SaveCommand).ChangeCanExecute(); (ver comentarios en set de Mode)
-            SaveCommand = new Command(async () => await SaveAsync(), () => !IsReadOnly);
+            SaveCommand = new Command(
+                async () => await SaveAsync(),
+                () => !IsReadOnly && !IsBusy);
 
-            // Cancelar siempre disponible.
-            CancelCommand = new Command(async () => await CancelAsync());
+            CancelCommand = new Command(
+                async () => await CancelAsync(),
+                () => !IsBusy);
         }
 
-        // ===========================================================
-        // =============== PROPIEDADES BINDABLE (UI) =================
-        // ===========================================================
-
-        // Nombre del rol (Entry en la vista).
-        public string NombreRol
-        {
-            get => nombreRol;
-            set { nombreRol = value; OnPropertyChanged(); }
-        }
-
-        // Descripción del rol (Entry en la vista).
-        public string DescripcionRol
-        {
-            get => descripcionRol;
-            set { descripcionRol = value; OnPropertyChanged(); }
-        }
-
-        // Bandera usada internamente durante validaciones/cancelación.
-        public bool IsCancel
-        {
-            get => isCancel;
-            set => isCancel = value;
-        }
-
-        // Entidad Rol que edita el formulario.
-        // Al asignarse, se rellenan los campos editables (NombreRol, DescripcionRol) para mostrar en la UI.
         public RolRequest Rol
         {
             get => rol;
             set
             {
-                rol = value;
+                rol = value ?? new RolRequest();
+
                 OnPropertyChanged();
-                // Precarga de los campos del formulario desde el objeto Rol recibido.
-                NombreRol = value.NombreRol;
-                DescripcionRol = value.DescripcionRol;
+
+                NombreRol =
+                    rol.NombreRol ?? string.Empty;
+
+                DescripcionRol =
+                    rol.DescripcionRol ?? string.Empty;
+
+                LimpiarErrores();
             }
         }
 
-        // Modo del formulario: Create / Edit / View
+        public string NombreRol
+        {
+            get => nombreRol;
+            set
+            {
+                nombreRol = value ?? string.Empty;
+                OnPropertyChanged();
+
+                if (!string.IsNullOrWhiteSpace(nombreRol))
+                    ErrorNombreRol = string.Empty;
+            }
+        }
+
+        public string DescripcionRol
+        {
+            get => descripcionRol;
+            set
+            {
+                descripcionRol = value ?? string.Empty;
+                OnPropertyChanged();
+
+                if (!string.IsNullOrWhiteSpace(descripcionRol))
+                    ErrorDescripcionRol = string.Empty;
+            }
+        }
+
+        public string ErrorNombreRol
+        {
+            get => errorNombreRol;
+            private set
+            {
+                if (errorNombreRol == value)
+                    return;
+
+                errorNombreRol = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneErrorNombreRol));
+            }
+        }
+
+        public bool TieneErrorNombreRol =>
+            !string.IsNullOrWhiteSpace(ErrorNombreRol);
+
+        public string ErrorDescripcionRol
+        {
+            get => errorDescripcionRol;
+            private set
+            {
+                if (errorDescripcionRol == value)
+                    return;
+
+                errorDescripcionRol = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneErrorDescripcionRol));
+            }
+        }
+
+        public bool TieneErrorDescripcionRol =>
+            !string.IsNullOrWhiteSpace(ErrorDescripcionRol);
+
         public FormMode.FormModeSelect Mode
         {
             get => mode;
             set
             {
                 mode = value;
-                OnPropertyChanged();                    // Notifica cambio general.
-                OnPropertyChanged(nameof(IsReadOnly));  // Actualiza la UI de solo lectura.
-                OnPropertyChanged(nameof(Title));       // Refresca el título.
-                OnPropertyChanged(nameof(ShowSaveButton)); // Controla visibilidad del botón Guardar.
 
-                // 💡 Sugerencia (no cambiamos lógica): aquí podría recalcularse CanExecute de Save:
-                // ((Command)SaveCommand).ChangeCanExecute();
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsReadOnly));
+                OnPropertyChanged(nameof(ShowSaveButton));
+                OnPropertyChanged(nameof(Title));
+
+                RefrescarComandos();
             }
         }
 
-        // Indica si el formulario está en modo lectura.
-        public bool IsReadOnly
-        {
-            get => Mode == FormMode.FormModeSelect.View ? true : false;
-        }
+        public bool IsReadOnly =>
+            Mode == FormMode.FormModeSelect.View;
 
-        // Controla la visibilidad del botón Guardar (oculto en modo View).
-        public bool ShowSaveButton
-        {
-            get => Mode != FormMode.FormModeSelect.View ? true : false;
-        }
+        public bool ShowSaveButton =>
+            Mode != FormMode.FormModeSelect.View;
 
-        // Título de la pantalla según el modo actual.
-        public string Title => Mode switch
-        {
-            FormMode.FormModeSelect.Create => "Crear Rol",
-            FormMode.FormModeSelect.Edit => "Editar Rol",
-            FormMode.FormModeSelect.View => "Detalles del Rol",
-            _ => "",
-        };
-
-        // ===========================================================
-        // ======================= ACCIONES ===========================
-        // ===========================================================
-
-        // Acción de cancelar: si detecta cambios, pregunta confirmación; si no, simplemente navega.
-        private async Task CancelAsync()
-        {
-            try
+        public string Title =>
+            Mode switch
             {
-                IsCancel = ValidateFieldsAsync(); // True si hay diferencias entre campos y Rol original.
+                FormMode.FormModeSelect.Create =>
+                    "Crear rol",
 
-                if (IsCancel)
-                {
-                    // Si hay cambios, confirma con el usuario.
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Cancelar",
-                        "Desea no guardar los cambios",
-                        "Aceptar",
-                        "Cancelar");
+                FormMode.FormModeSelect.Edit =>
+                    "Editar rol",
 
-                    if (confirm)
-                    {
-                        await GoToAsyncParameters("//RolPage"); // Vuelve al listado de roles.
-                    }
-                }
-                else
-                {
-                    // Si no hay cambios, regresa inmediatamente.
-                    await GoToAsyncParameters("//RolPage");
-                }
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error" + ex.Message);
-            }
-            finally
-            {
-                IsCancel = false; // Limpia bandera para siguientes intentos.
-            }
-        }
+                FormMode.FormModeSelect.View =>
+                    "Detalles del rol",
 
-        // Comparación de campos para detectar si hay cambios sin guardar.
-        // (NombreRol/DescripcionRol vs. los valores del objeto Rol original).
-        private bool ValidateFieldsAsync()
-        {
-            if (NombreRol != Rol.NombreRol) return true;
-            if (DescripcionRol != Rol.DescripcionRol) return true;
-            return false;
-        }
+                _ =>
+                    "Rol"
+            };
 
-        // Decide si crea o actualiza según el Mode actual.
         private async Task SaveAsync()
         {
-            try
+            if (IsBusy || IsReadOnly)
+                return;
+
+            if (!ValidarCampos())
             {
-                if (Mode == FormMode.FormModeSelect.Create)
-                    await CreateRolAsync();
-                else if (Mode == FormMode.FormModeSelect.Edit)
-                    await UpdateRolAsync();
+                await MostrarAdvertenciaAsync(
+                    "Revise los campos marcados antes de continuar.");
+
+                return;
             }
-            catch (Exception ex)
+
+            if (Mode == FormMode.FormModeSelect.Create)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await CrearRolAsync();
+                return;
             }
-        }
 
-        // Crea un nuevo rol (usa RolApiService.CreateRolAsync).
-        private async Task CreateRolAsync()
-        {
-            try
+            if (Mode == FormMode.FormModeSelect.Edit)
             {
-                IsCancel = ValidateFieldsAsync(); // Reutiliza la bandera como "hay algo que guardar".
-
-                if (IsCancel)
-                {
-                    // 📝 Texto original decía "datos del usuario", lo mantengo para no alterar tu UI.
-                    // (Sugerencia futura: cambiar a "datos del rol")
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Confirmar",
-                        "¿Desea guardar los datos del rol?",
-                        "Aceptar",
-                        "Cancelar");
-
-                    if (confirm)
-                    {
-                        // Sincroniza los campos del formulario hacia el objeto Rol antes de enviar.
-                        Rol.NombreRol = NombreRol;
-                        Rol.DescripcionRol = DescripcionRol;
-
-                        // Valida que el usaurio tenga conexion a internet
-                        bool tieneInternet = await TieneInternetAsync();
-
-                        if (!tieneInternet)
-                        {
-                            _ = MostrarToastAsync("Sin conexión a internet.");
-                            IsBusy = false;
-                            return;
-                        }
-
-                        // Invoca creación en la API.
-                        var response = await rolApiService.CreateRolAsync(Rol);
-
-                        if (response)
-                        {
-                            await GoToRolPage(); // Navega al listado.
-                            _ = MostrarToastAsync("Éxito \nRol guardado correctamente");
-                        }
-                        else
-                        {
-                            _ = MostrarToastAsync("Error \nEl rol no se pudo guardar, intente nuevamente");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _ = MostrarToastAsync("Error" + ex.Message);
-            }
-            finally
-            {
-                IsCancel = false; // Limpia bandera.
+                await ActualizarRolAsync();
             }
         }
 
-        // Actualiza un rol existente (usa RolApiService.UpdateRolAsync).
-        private async Task UpdateRolAsync()
+        private async Task CrearRolAsync()
         {
+            bool confirm =
+                await ConfirmarGuardadoAsync("el rol");
+
+            if (!confirm)
+                return;
+
             try
             {
-                IsCancel = ValidateFieldsAsync(); // True si hay algo modificado.
+                IsBusy = true;
+                RefrescarComandos();
 
-                if (IsCancel)
+                SincronizarModelo();
+
+                ApiResult<bool> result =
+                    await rolApiService.CreateRolResultAsync(Rol);
+
+                if (!result.Success || result.Data != true)
                 {
-                    bool confirm = _ = await App.Current.MainPage.DisplayAlert(
-                        "Confirmar",
-                        "¿Desea actualizar?",
-                        "Aceptar",
-                        "Cancelar");
+                    await MostrarErrorAsync(
+                        string.IsNullOrWhiteSpace(result.Message)
+                            ? "No fue posible guardar el rol. Intente nuevamente."
+                            : result.Message);
 
-                    if (confirm)
-                    {
-                        // Pasa al objeto Rol los cambios del formulario.
-                        Rol.NombreRol = NombreRol;
-                        Rol.DescripcionRol = DescripcionRol;
-
-                        // Valida que el usaurio tenga conexion a internet
-                        bool tieneInternet = await TieneInternetAsync();
-
-                        if (!tieneInternet)
-                        {
-                            _ = MostrarToastAsync("Sin conexión a internet.");
-                            IsBusy = false;
-                            return;
-                        }
-
-                        // Invoca actualización en la API.
-                        var response = await rolApiService.UpdateRolAsync(Rol);
-
-                        if (response)
-                        {
-                            await GoToRolPage();
-                            _ = MostrarToastAsync("Éxito \nRol actualizado correctamente");
-                        }
-                        else
-                        {
-                            _ = MostrarToastAsync("Error \nEl rol no se pudo actualizar, intente nuevamente");
-                        }
-                    }
+                    return;
                 }
+
+                await GoToAsyncParameters("//RolPage");
+
+                await MostrarExitoAsync(
+                    string.IsNullOrWhiteSpace(result.Message)
+                        ? "Rol guardado correctamente."
+                        : result.Message);
             }
             catch (Exception ex)
             {
-                _ = MostrarToastAsync("Error" + ex.Message);
+                await MostrarErrorInesperadoAsync(
+                    "guardar el rol",
+                    ex);
             }
             finally
             {
-                IsCancel = false; // Limpia bandera.
+                IsBusy = false;
+                RefrescarComandos();
             }
+        }
+
+        private async Task ActualizarRolAsync()
+        {
+            if (!HayCambios())
+            {
+                await MostrarInformacionAsync(
+                    "No hay cambios para guardar.");
+
+                return;
+            }
+
+            bool confirm =
+                await ConfirmarActualizacionAsync("el rol");
+
+            if (!confirm)
+                return;
+
+            try
+            {
+                IsBusy = true;
+                RefrescarComandos();
+
+                SincronizarModelo();
+
+                ApiResult<bool> result =
+                    await rolApiService.UpdateRolResultAsync(Rol);
+
+                if (!result.Success || result.Data != true)
+                {
+                    await MostrarErrorAsync(
+                        string.IsNullOrWhiteSpace(result.Message)
+                            ? "No fue posible actualizar el rol. Intente nuevamente."
+                            : result.Message);
+
+                    return;
+                }
+
+                await GoToAsyncParameters("//RolPage");
+
+                await MostrarExitoAsync(
+                    string.IsNullOrWhiteSpace(result.Message)
+                        ? "Rol actualizado correctamente."
+                        : result.Message);
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(
+                    "actualizar el rol",
+                    ex);
+            }
+            finally
+            {
+                IsBusy = false;
+                RefrescarComandos();
+            }
+        }
+
+        private async Task CancelAsync()
+        {
+            if (IsBusy)
+                return;
+
+            try
+            {
+                if (HayCambios())
+                {
+                    bool confirm =
+                        await ConfirmarSalidaSinGuardarAsync();
+
+                    if (!confirm)
+                        return;
+                }
+
+                await GoToAsyncParameters("//RolPage");
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(
+                    "salir del formulario de rol",
+                    ex);
+            }
+        }
+
+        private bool ValidarCampos()
+        {
+            LimpiarErrores();
+
+            NombreRol = NombreRol.Trim();
+            DescripcionRol = DescripcionRol.Trim();
+
+            if (string.IsNullOrWhiteSpace(NombreRol))
+            {
+                ErrorNombreRol =
+                    "Ingrese el nombre del rol.";
+            }
+
+            if (string.IsNullOrWhiteSpace(DescripcionRol))
+            {
+                ErrorDescripcionRol =
+                    "Ingrese la descripción del rol.";
+            }
+
+            return
+                !TieneErrorNombreRol &&
+                !TieneErrorDescripcionRol;
+        }
+
+        private bool HayCambios()
+        {
+            string nombreActual =
+                NombreRol.Trim();
+
+            string descripcionActual =
+                DescripcionRol.Trim();
+
+            string nombreOriginal =
+                Rol.NombreRol?.Trim() ?? string.Empty;
+
+            string descripcionOriginal =
+                Rol.DescripcionRol?.Trim() ?? string.Empty;
+
+            return
+                nombreActual != nombreOriginal ||
+                descripcionActual != descripcionOriginal;
+        }
+
+        private void SincronizarModelo()
+        {
+            Rol.NombreRol = NombreRol.Trim();
+            Rol.DescripcionRol = DescripcionRol.Trim();
+        }
+
+        private void LimpiarErrores()
+        {
+            ErrorNombreRol = string.Empty;
+            ErrorDescripcionRol = string.Empty;
+        }
+
+        private void RefrescarComandos()
+        {
+            SaveCommand.ChangeCanExecute();
+            CancelCommand.ChangeCanExecute();
         }
     }
 }

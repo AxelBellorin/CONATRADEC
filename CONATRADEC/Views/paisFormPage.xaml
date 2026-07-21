@@ -1,95 +1,165 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<!--
-  Página: cargoFormPage.xaml
-  Descripción: Vista para crear, editar o visualizar un cargo.
-  Se asocia al ViewModel correspondiente (CargoFormViewModel),
-  que maneja la lógica de guardado, cancelación y validaciones.
--->
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.paisFormPage"
-             Title="Formulario de pais"
-             Shell.NavBarIsVisible="False"
-             Background="Transparent">
+﻿<?xml version="1.0" encoding="utf-8" ?>
 
-    <!--
-      GRID PRINCIPAL:
-      2 filas -> 0: título, 1: contenido (con scroll)
-    -->
-    <Grid RowDefinitions="auto, *" BackgroundColor="Transparent">
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="CONATRADEC.Views.paisFormPage"
+    Title="Formulario de país"
+    Shell.NavBarIsVisible="False"
+    Background="Transparent">
 
-        <!--
-          ENCABEZADO / TÍTULO PRINCIPAL
-          Se enlaza a {Binding Title}: cambia según modo (Crear/Editar/Ver)
-        -->
-        <Label
-            Text="{Binding Title}"
-            TextColor="{StaticResource color_Verde}"
-            FontSize="24"
-            FontAttributes="Bold"
-            HorizontalOptions="Start"
+    <Grid
+        RowDefinitions="Auto,*"
+        BackgroundColor="Transparent">
+
+        <Grid
             Grid.Row="0"
-            Margin="10,20,0,0" />
+            ColumnDefinitions="*,Auto"
+            Margin="10,20,20,0">
 
-        <!-- SCROLL DEL CONTENIDO -->
+            <Label
+                Grid.Column="0"
+                Text="{Binding Title}"
+                TextColor="{StaticResource color_Verde}"
+                FontSize="24"
+                FontFamily="MontserratBold"
+                FontAttributes="Bold"
+                HorizontalOptions="Start"
+                VerticalOptions="Center" />
+
+            <ActivityIndicator
+                Grid.Column="1"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="{StaticResource color_Naranja}"
+                VerticalOptions="Center" />
+
+        </Grid>
+
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="10" Spacing="15">
 
-                <!-- Campo: Nombre del cargo -->
-                <Border Style="{StaticResource BorderStyle}">
+            <VerticalStackLayout
+                Padding="10"
+                Spacing="15">
+
+                <!-- NOMBRE DEL PAÍS -->
+                <Border
+                    Style="{StaticResource ValidationFieldContainerStyle}">
+
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorNombrePais}"
+                            Value="True">
+
+                            <Setter
+                                Property="Stroke"
+                                Value="{StaticResource RedDelete}" />
+
+                            <Setter
+                                Property="StrokeThickness"
+                                Value="2" />
+
+                        </DataTrigger>
+                    </Border.Triggers>
+
                     <VerticalStackLayout Spacing="5">
+
                         <Label
-                            Text="Nombre del pais"
+                            Text="Nombre del país"
+                            FontFamily="MontserratBold"
                             FontAttributes="Bold"
                             FontSize="14"
                             TextColor="{StaticResource color_Negro}" />
+
                         <Entry
-                            Placeholder="Nombre del pais"
+                            Placeholder="Ingrese el nombre del país"
                             Style="{StaticResource EntryStyle}"
                             Text="{Binding NombrePais}"
                             IsReadOnly="{Binding IsReadOnly}" />
+
+                        <Label
+                            Text="{Binding ErrorNombrePais}"
+                            IsVisible="{Binding TieneErrorNombrePais}"
+                            Style="{StaticResource ValidationMessageStyle}" />
+
                     </VerticalStackLayout>
+
                 </Border>
 
-                <!-- Campo: Descripción -->
-                <Border Style="{StaticResource BorderStyle}">
+                <!-- CÓDIGO ISO -->
+                <Border
+                    Style="{StaticResource ValidationFieldContainerStyle}">
+
+                    <Border.Triggers>
+                        <DataTrigger
+                            TargetType="Border"
+                            Binding="{Binding TieneErrorCodigoISOPais}"
+                            Value="True">
+
+                            <Setter
+                                Property="Stroke"
+                                Value="{StaticResource RedDelete}" />
+
+                            <Setter
+                                Property="StrokeThickness"
+                                Value="2" />
+
+                        </DataTrigger>
+                    </Border.Triggers>
+
                     <VerticalStackLayout Spacing="5">
+
                         <Label
-                            Text="Codigo ISO del pais"
+                            Text="Código ISO del país"
+                            FontFamily="MontserratBold"
                             FontAttributes="Bold"
                             FontSize="14"
                             TextColor="{StaticResource color_Negro}" />
+
                         <Entry
-                            Placeholder="Codigo ISO del pais (3 Caracteres -> NIC)"
+                            Placeholder="Ejemplo: NIC"
                             Style="{StaticResource EntryStyle}"
                             Text="{Binding CodigoISOPais}"
+                            MaxLength="3"
                             IsReadOnly="{Binding IsReadOnly}" />
+
+                        <Label
+                            Text="{Binding ErrorCodigoISOPais}"
+                            IsVisible="{Binding TieneErrorCodigoISOPais}"
+                            Style="{StaticResource ValidationMessageStyle}" />
+
                     </VerticalStackLayout>
+
                 </Border>
 
-                <!-- Botones de acción -->
-                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto" Margin="10,0,10,0">
+                <Grid
+                    ColumnDefinitions="*,*"
+                    Margin="10,0,10,20">
 
-                    <!-- Botón Guardar (visible solo si no es modo Ver) -->
                     <Button
+                        Grid.Column="0"
                         Text="Guardar"
                         Style="{StaticResource UpdateButton}"
                         IsVisible="{Binding ShowSaveButton}"
+                        IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding SaveCommand}"
-                        Grid.Column="0"
                         Margin="10,0,10,0" />
 
-                    <!-- Botón Cancelar -->
                     <Button
+                        Grid.Column="1"
                         Text="Cancelar"
                         Style="{StaticResource CancelButton}"
+                        IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding CancelCommand}"
-                        Grid.Column="1"
                         Margin="10,0,10,0" />
 
                 </Grid>
 
             </VerticalStackLayout>
+
         </ScrollView>
+
     </Grid>
+
 </ContentPage>
