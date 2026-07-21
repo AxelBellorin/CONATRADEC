@@ -1,4 +1,4 @@
-using CONATRADEC.Views;
+﻿using CONATRADEC.Views;
 
 namespace CONATRADEC.Services
 {
@@ -28,6 +28,22 @@ namespace CONATRADEC.Services
         public const string TipoAnalisisSueloFormulario = "//TipoAnalisisSueloFormPage";
         public const string ExtraccionNutrienteFormulario = "//ExtraccionNutrienteFormPage";
         public const string RangoNutrienteFormulario = "//RangoNutrienteFormPage";
+
+        // Rutas secundarias del álbum botánico.
+        public const string AlbumDetalle =
+            nameof(albumDetallePage);
+
+        public const string CategoriaAlbumFormulario =
+            nameof(categoriaAlbumFormPage);
+
+        public const string AlbumRegistroFormulario =
+            nameof(albumRegistroFormPage);
+
+        public const string AlbumFotosAdministrar =
+            nameof(albumFotosAdminPage);
+
+        public const string AlbumFotoVisor =
+            nameof(albumFotoVisorPage);
 
         public const string MapaSeleccion = nameof(MapaSeleccionPage);
         public const string FotosTerrenoGaleria = nameof(FotosTerrenoGaleriaPage);

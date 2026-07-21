@@ -1,0 +1,247 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.albumRegistroFormPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='#F4F7F5', Default={StaticResource color_Blanco}}">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid
+            Grid.Row="0"
+            Padding="{OnPlatform WinUI='26,18', Default='16,12'}"
+            ColumnDefinitions="Auto,*"
+            ColumnSpacing="10"
+            BackgroundColor="White">
+
+            <Button
+                Grid.Column="0"
+                Text="← Regresar"
+                Command="{Binding CancelarCommand}"
+                BackgroundColor="Transparent"
+                TextColor="{StaticResource color_Verde}"
+                FontAttributes="Bold" />
+
+            <Label
+                Grid.Column="1"
+                Text="{Binding TituloPagina}"
+                VerticalOptions="Center"
+                FontFamily="MontserratBold"
+                FontSize="21"
+                FontAttributes="Bold"
+                TextColor="{StaticResource color_Negro}" />
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout
+                Padding="{OnPlatform WinUI='30,26,30,38', Default='16,18,16,28'}"
+                MaximumWidthRequest="920"
+                HorizontalOptions="Center"
+                Spacing="18">
+
+                <Border
+                    Padding="{OnPlatform WinUI=28, Default=20}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20">
+
+                    <VerticalStackLayout Spacing="17">
+                        <VerticalStackLayout Spacing="5">
+                            <Label
+                                Text="Identificación"
+                                FontFamily="MontserratBold"
+                                FontSize="21"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+                            <Label
+                                Text="Defina el capítulo y los nombres principales del registro."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label
+                                Text="Categoría *"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+                            <Border
+                                Padding="12,2"
+                                BackgroundColor="#F8FAF9"
+                                Stroke="#D6E1DC"
+                                StrokeShape="RoundRectangle 12">
+                                <Picker
+                                    ItemsSource="{Binding Categorias}"
+                                    SelectedItem="{Binding CategoriaSeleccionada}"
+                                    ItemDisplayBinding="{Binding NombreCategoria}"
+                                    Title="Seleccione una categoría"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <Grid
+                            ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                            RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
+                            ColumnSpacing="12"
+                            RowSpacing="12">
+
+                            <VerticalStackLayout
+                                Grid.Column="0"
+                                Grid.Row="0"
+                                Spacing="6">
+                                <Label
+                                    Text="Título o nombre común *"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+                                <Border
+                                    Padding="13,3"
+                                    BackgroundColor="#F8FAF9"
+                                    Stroke="#D6E1DC"
+                                    StrokeShape="RoundRectangle 12">
+                                    <Entry
+                                        Text="{Binding Titulo}"
+                                        MaxLength="200"
+                                        Placeholder="Ejemplo: Roya del café"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout
+                                Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                Spacing="6">
+                                <Label
+                                    Text="Nombre científico"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+                                <Border
+                                    Padding="13,3"
+                                    BackgroundColor="#F8FAF9"
+                                    Stroke="#D6E1DC"
+                                    StrokeShape="RoundRectangle 12">
+                                    <Entry
+                                        Text="{Binding NombreCientifico}"
+                                        MaxLength="200"
+                                        Placeholder="Ejemplo: Hemileia vastatrix"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label
+                                Text="Descripción general *"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+                            <Border
+                                Padding="10"
+                                BackgroundColor="#F8FAF9"
+                                Stroke="#D6E1DC"
+                                StrokeShape="RoundRectangle 12">
+                                <Editor
+                                    Text="{Binding Descripcion}"
+                                    Placeholder="Explique de forma general este tema."
+                                    MinimumHeightRequest="130"
+                                    AutoSize="TextChanges"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border
+                    Padding="{OnPlatform WinUI=28, Default=20}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20">
+
+                    <VerticalStackLayout Spacing="17">
+                        <VerticalStackLayout Spacing="5">
+                            <Label
+                                Text="Información técnica"
+                                FontFamily="MontserratBold"
+                                FontSize="21"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Cafe}" />
+                            <Label
+                                Text="Los campos siguientes son opcionales y se mostrarán en la ficha de consulta."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Características" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                            <Border Padding="10" BackgroundColor="#F8FAF9" Stroke="#D6E1DC" StrokeShape="RoundRectangle 12">
+                                <Editor Text="{Binding Caracteristicas}" MinimumHeightRequest="100" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Síntomas" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                            <Border Padding="10" BackgroundColor="#F8FAF9" Stroke="#D6E1DC" StrokeShape="RoundRectangle 12">
+                                <Editor Text="{Binding Sintomas}" MinimumHeightRequest="100" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Causas" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                            <Border Padding="10" BackgroundColor="#F8FAF9" Stroke="#D6E1DC" StrokeShape="RoundRectangle 12">
+                                <Editor Text="{Binding Causas}" MinimumHeightRequest="100" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Recomendaciones" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                            <Border Padding="10" BackgroundColor="#F2F8F5" Stroke="#C8DED6" StrokeShape="RoundRectangle 12">
+                                <Editor Text="{Binding Recomendaciones}" MinimumHeightRequest="110" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Observaciones" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                            <Border Padding="10" BackgroundColor="#FFF8ED" Stroke="#F1D7AF" StrokeShape="RoundRectangle 12">
+                                <Editor Text="{Binding Observaciones}" MinimumHeightRequest="90" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    IsVisible="{Binding IsBusy}"
+                    Color="{StaticResource color_Naranja}" />
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <Button
+                        Grid.Column="0"
+                        Text="Cancelar"
+                        Command="{Binding CancelarCommand}"
+                        BackgroundColor="#F3F4F6"
+                        TextColor="{StaticResource color_GrisOscuro}"
+                        CornerRadius="12"
+                        HeightRequest="52" />
+
+                    <Button
+                        Grid.Column="1"
+                        Text="Guardar registro"
+                        Command="{Binding GuardarCommand}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        BackgroundColor="{StaticResource color_Verde}"
+                        TextColor="White"
+                        CornerRadius="12"
+                        HeightRequest="52"
+                        FontAttributes="Bold" />
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

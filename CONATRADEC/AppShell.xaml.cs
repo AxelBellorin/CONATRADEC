@@ -1,4 +1,4 @@
-using CONATRADEC.Services;
+﻿using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 using System;
@@ -31,6 +31,27 @@ namespace CONATRADEC
             Routing.RegisterRoute(
                 AppRoutes.EditarAnalisisGuardado,
                 typeof(EditarAnalisisGuardadoPage));
+
+            // Pantallas secundarias del álbum botánico.
+            Routing.RegisterRoute(
+                AppRoutes.AlbumDetalle,
+                typeof(albumDetallePage));
+
+            Routing.RegisterRoute(
+                AppRoutes.CategoriaAlbumFormulario,
+                typeof(categoriaAlbumFormPage));
+
+            Routing.RegisterRoute(
+                AppRoutes.AlbumRegistroFormulario,
+                typeof(albumRegistroFormPage));
+
+            Routing.RegisterRoute(
+                AppRoutes.AlbumFotosAdministrar,
+                typeof(albumFotosAdminPage));
+
+            Routing.RegisterRoute(
+                AppRoutes.AlbumFotoVisor,
+                typeof(albumFotoVisorPage));
 
             /*
              * Las páginas declaradas como ShellContent conservan su instancia.

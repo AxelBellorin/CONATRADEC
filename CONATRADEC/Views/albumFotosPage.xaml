@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.albumFotosPage"
+    x:Name="AlbumPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
@@ -8,82 +9,721 @@
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
 
-        <Grid Padding="24">
+        <!--
+            Toda la pantalla usa un único ScrollView:
+            encabezado, búsqueda, capítulos y galería.
+            Así no puede quedar el buscador arriba mientras el contenido
+            permanece desplazado en otra posición.
+        -->
+        <ScrollView x:Name="AlbumScrollView">
+            <VerticalStackLayout
+                Padding="{OnPlatform WinUI='30,24,30,38', Default='16,16,16,28'}"
+                MaximumWidthRequest="{OnPlatform WinUI=1500, Default=760}"
+                HorizontalOptions="Fill"
+                Spacing="20">
 
-            <Border
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                MaximumWidthRequest="620"
-                Padding="28"
-                BackgroundColor="White"
-                Stroke="#DDE7E3"
-                StrokeThickness="1"
-                StrokeShape="RoundRectangle 22">
+                <!-- Encabezado -->
+                <Grid
+                    ColumnDefinitions="{OnPlatform WinUI='*,Auto,Auto', Default='*,*'}"
+                    RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
+                    ColumnSpacing="10"
+                    RowSpacing="10">
 
-                <Border.Shadow>
-                    <Shadow
-                        Brush="Black"
-                        Offset="0,5"
-                        Radius="16"
-                        Opacity="0.10" />
-                </Border.Shadow>
-
-                <VerticalStackLayout
-                    Spacing="15"
-                    HorizontalOptions="Center">
-
-                    <Border
-                        WidthRequest="104"
-                        HeightRequest="104"
-                        Padding="23"
-                        BackgroundColor="#EEF5F2"
-                        StrokeThickness="0"
-                        StrokeShape="RoundRectangle 28"
-                        HorizontalOptions="Center">
-
-                        <Image Source="iconalbum.png" />
-                    </Border>
-
-                    <Label
-                        Text="Álbum de fotos"
-                        FontSize="28"
-                        FontFamily="MontserratBold"
-                        FontAttributes="Bold"
-                        TextColor="{StaticResource color_Verde}"
-                        HorizontalTextAlignment="Center" />
-
-                    <Label
-                        Text="Este módulo estará disponible próximamente."
-                        FontSize="17"
-                        FontAttributes="Bold"
-                        TextColor="{StaticResource color_Negro}"
-                        HorizontalTextAlignment="Center" />
-
-                    <Label
-                        Text="Aquí podrá organizar y consultar las fotografías asociadas a los terrenos y futuros diagnósticos."
-                        FontSize="14"
-                        TextColor="{StaticResource color_GrisOscuro}"
-                        HorizontalTextAlignment="Center"
-                        LineBreakMode="WordWrap" />
-
-                    <Border
-                        Margin="0,8,0,0"
-                        Padding="14,8"
-                        BackgroundColor="#FFF7E6"
-                        Stroke="#F2C94C"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 12"
-                        HorizontalOptions="Center">
+                    <VerticalStackLayout
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="{OnPlatform WinUI=1, Default=2}"
+                        Spacing="3">
 
                         <Label
-                            Text="Módulo en preparación"
-                            FontSize="13"
+                            Text="Álbum botánico"
+                            FontFamily="MontserratBold"
+                            FontSize="{OnPlatform WinUI=31, Default=26}"
                             FontAttributes="Bold"
-                            TextColor="{StaticResource color_Cafe}" />
+                            TextColor="{StaticResource color_Negro}" />
+
+                        <Label
+                            Text="Consulta enfermedades, plagas, deficiencias y etapas del cultivo."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <Button
+                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                        Text="Nueva categoría"
+                        Command="{Binding AgregarCategoriaCommand}"
+                        IsVisible="{Binding CanAdd}"
+                        BackgroundColor="#EEF5F2"
+                        TextColor="{StaticResource color_Verde}"
+                        BorderColor="#C8DED6"
+                        BorderWidth="1"
+                        CornerRadius="12"
+                        Padding="15,11"
+                        FontAttributes="Bold" />
+
+                    <Button
+                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                        Grid.Column="{OnPlatform WinUI=2, Default=1}"
+                        Text="Nuevo registro"
+                        Command="{Binding AgregarRegistroCommand}"
+                        IsVisible="{Binding CanAdd}"
+                        BackgroundColor="{StaticResource color_Verde}"
+                        TextColor="White"
+                        CornerRadius="12"
+                        Padding="15,11"
+                        FontAttributes="Bold" />
+                </Grid>
+
+                <!-- Búsqueda -->
+                <Border
+                    Padding="13"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16">
+
+                    <Grid
+                        ColumnDefinitions="*,Auto"
+                        RowDefinitions="Auto,Auto"
+                        ColumnSpacing="10"
+                        RowSpacing="8">
+
+                        <SearchBar
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Text="{Binding TextoBusqueda}"
+                            SearchButtonPressed="OnBuscarPresionado"
+                            Placeholder="Buscar por título, nombre científico o descripción"
+                            PlaceholderColor="{StaticResource color_Gris}"
+                            TextColor="{StaticResource color_Negro}"
+                            BackgroundColor="Transparent" />
+
+                        <Button
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="Limpiar"
+                            Clicked="OnLimpiarBusquedaClicked"
+                            BackgroundColor="#F3F4F6"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            CornerRadius="10"
+                            Padding="13,8" />
+
+                        <HorizontalStackLayout
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            IsVisible="{Binding MostrarInactivos}"
+                            Spacing="8"
+                            VerticalOptions="Center">
+
+                            <Switch
+                                IsToggled="{Binding IncluirInactivos}"
+                                Toggled="OnIncluirInactivosToggled"
+                                Style="{StaticResource SwitchStyle}" />
+
+                            <Label
+                                Text="Mostrar categorías y registros inactivos"
+                                VerticalOptions="Center"
+                                FontSize="12"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </HorizontalStackLayout>
+                    </Grid>
+                </Border>
+
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    IsVisible="{Binding IsBusy}"
+                    Color="{StaticResource color_Naranja}"
+                    HeightRequest="32" />
+
+                <!-- Capítulos -->
+                <VerticalStackLayout
+                    x:Name="CapitulosSection"
+                    Spacing="13">
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label
+                            Grid.Column="0"
+                            Text="Capítulos"
+                            FontFamily="MontserratBold"
+                            FontSize="22"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding TotalRegistrosTexto}"
+                            VerticalOptions="Center"
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </Grid>
+
+                    <!-- Windows: capítulos en varias filas -->
+                    <Grid
+                        IsVisible="{OnPlatform WinUI=True, Default=False}"
+                        ColumnDefinitions="190,*"
+                        ColumnSpacing="12">
+
+                        <Border
+                            Grid.Column="0"
+                            WidthRequest="180"
+                            HeightRequest="208"
+                            Padding="16"
+                            VerticalOptions="Start"
+                            BackgroundColor="{Binding FondoTodas}"
+                            Stroke="{Binding BordeTodas}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 18">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding SeleccionarTodasCommand}" />
+                            </Border.GestureRecognizers>
+
+                            <VerticalStackLayout
+                                Spacing="10"
+                                VerticalOptions="Center"
+                                HorizontalOptions="Center">
+
+                                <Border
+                                    WidthRequest="58"
+                                    HeightRequest="58"
+                                    Padding="13"
+                                    BackgroundColor="#FFFFFF22"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 16">
+
+                                    <Image Source="iconalbum.png" />
+                                </Border>
+
+                                <Label
+                                    Text="Todos"
+                                    FontFamily="MontserratBold"
+                                    FontSize="16"
+                                    FontAttributes="Bold"
+                                    TextColor="{Binding TextoTodas}"
+                                    HorizontalTextAlignment="Center" />
+
+                                <Label
+                                    Text="Ver la galería completa"
+                                    FontSize="11"
+                                    TextColor="{Binding TextoTodas}"
+                                    HorizontalTextAlignment="Center"
+                                    Opacity="0.85" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <FlexLayout
+                            Grid.Column="1"
+                            HorizontalOptions="Fill"
+                            Direction="Row"
+                            Wrap="Wrap"
+                            AlignItems="Start"
+                            JustifyContent="Start"
+                            BindableLayout.ItemsSource="{Binding Categorias}">
+
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        WidthRequest="260"
+                                        HeightRequest="208"
+                                        Margin="0,0,12,12"
+                                        Padding="0"
+                                        BackgroundColor="{Binding FondoSeleccion}"
+                                        Stroke="{Binding BordeSeleccion}"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 18">
+
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.SeleccionarCategoriaCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </Border.GestureRecognizers>
+
+                                        <Grid RowDefinitions="78,*">
+                                            <Grid Grid.Row="0">
+                                                <Image
+                                                    Source="{Binding ImagenPortadaUrl}"
+                                                    Aspect="AspectFill"
+                                                    IsVisible="{Binding TienePortada}" />
+
+                                                <Grid
+                                                    IsVisible="{Binding SinPortada}"
+                                                    BackgroundColor="#EEF5F2">
+
+                                                    <Image
+                                                        Source="iconalbum.png"
+                                                        WidthRequest="42"
+                                                        HeightRequest="42"
+                                                        HorizontalOptions="Center"
+                                                        VerticalOptions="Center" />
+                                                </Grid>
+
+                                                <Border
+                                                    Margin="8"
+                                                    Padding="8,4"
+                                                    HorizontalOptions="End"
+                                                    VerticalOptions="Start"
+                                                    BackgroundColor="{Binding EstadoColor}"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 10">
+
+                                                    <Label
+                                                        Text="{Binding EstadoTexto}"
+                                                        FontSize="10"
+                                                        FontAttributes="Bold"
+                                                        TextColor="White" />
+                                                </Border>
+                                            </Grid>
+
+                                            <Grid
+                                                Grid.Row="1"
+                                                Padding="12,8"
+                                                RowDefinitions="Auto,Auto,Auto"
+                                                RowSpacing="5">
+
+                                                <Label
+                                                    Grid.Row="0"
+                                                    Text="{Binding NombreCategoria}"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="14"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Negro}"
+                                                    LineBreakMode="WordWrap"
+                                                    MaxLines="3" />
+
+                                                <Label
+                                                    Grid.Row="1"
+                                                    Text="{Binding TotalTexto}"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <HorizontalStackLayout
+                                                    Grid.Row="2"
+                                                    Spacing="6"
+                                                    HorizontalOptions="Start"
+                                                    VerticalOptions="End">
+
+                                                    <Button
+                                                        Text="Editar"
+                                                        Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.EditarCategoriaCommand}"
+                                                        CommandParameter="{Binding .}"
+                                                        IsVisible="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CanEdit}"
+                                                        Padding="7,5"
+                                                        FontSize="10"
+                                                        CornerRadius="8"
+                                                        BackgroundColor="#EAF0FF"
+                                                        TextColor="#2D5A9E" />
+
+                                                    <Button
+                                                        Text="{Binding AccionEstadoTexto}"
+                                                        Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CambiarEstadoCategoriaCommand}"
+                                                        CommandParameter="{Binding .}"
+                                                        IsVisible="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CanDelete}"
+                                                        Padding="7,5"
+                                                        FontSize="10"
+                                                        CornerRadius="8"
+                                                        BackgroundColor="#FFF4E8"
+                                                        TextColor="{StaticResource color_Cafe}" />
+                                                </HorizontalStackLayout>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                    </Grid>
+
+                    <!-- Android: capítulos desplazables horizontalmente -->
+                    <CollectionView
+                        IsVisible="{OnPlatform WinUI=False, Default=True}"
+                        ItemsSource="{Binding Categorias}"
+                        ItemsLayout="HorizontalList"
+                        SelectionMode="None"
+                        HeightRequest="228">
+
+                        <CollectionView.Header>
+                            <Border
+                                WidthRequest="180"
+                                HeightRequest="208"
+                                Margin="0,0,10,0"
+                                Padding="16"
+                                BackgroundColor="{Binding FondoTodas}"
+                                Stroke="{Binding BordeTodas}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 18">
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.SeleccionarTodasCommand}" />
+                                </Border.GestureRecognizers>
+
+                                <VerticalStackLayout
+                                    Spacing="10"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="Center">
+
+                                    <Image
+                                        Source="iconalbum.png"
+                                        WidthRequest="58"
+                                        HeightRequest="58" />
+
+                                    <Label
+                                        Text="Todos"
+                                        FontFamily="MontserratBold"
+                                        FontSize="16"
+                                        FontAttributes="Bold"
+                                        TextColor="{Binding TextoTodas}"
+                                        HorizontalTextAlignment="Center" />
+
+                                    <Label
+                                        Text="Ver la galería completa"
+                                        FontSize="11"
+                                        TextColor="{Binding TextoTodas}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </CollectionView.Header>
+
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    WidthRequest="260"
+                                    HeightRequest="208"
+                                    Margin="0,0,10,0"
+                                    Padding="0"
+                                    BackgroundColor="{Binding FondoSeleccion}"
+                                    Stroke="{Binding BordeSeleccion}"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 18">
+
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.SeleccionarCategoriaCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+
+                                    <Grid RowDefinitions="78,*">
+                                        <Grid Grid.Row="0">
+                                            <Image
+                                                Source="{Binding ImagenPortadaUrl}"
+                                                Aspect="AspectFill"
+                                                IsVisible="{Binding TienePortada}" />
+
+                                            <Grid
+                                                IsVisible="{Binding SinPortada}"
+                                                BackgroundColor="#EEF5F2">
+
+                                                <Image
+                                                    Source="iconalbum.png"
+                                                    WidthRequest="42"
+                                                    HeightRequest="42"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
+                                            </Grid>
+
+                                            <Border
+                                                Margin="8"
+                                                Padding="8,4"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Start"
+                                                BackgroundColor="{Binding EstadoColor}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 10">
+
+                                                <Label
+                                                    Text="{Binding EstadoTexto}"
+                                                    FontSize="10"
+                                                    FontAttributes="Bold"
+                                                    TextColor="White" />
+                                            </Border>
+                                        </Grid>
+
+                                        <Grid
+                                            Grid.Row="1"
+                                            Padding="12,8"
+                                            RowDefinitions="Auto,Auto,Auto"
+                                            RowSpacing="5">
+
+                                            <Label
+                                                Grid.Row="0"
+                                                Text="{Binding NombreCategoria}"
+                                                FontFamily="MontserratBold"
+                                                FontSize="14"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Negro}"
+                                                LineBreakMode="WordWrap"
+                                                MaxLines="3" />
+
+                                            <Label
+                                                Grid.Row="1"
+                                                Text="{Binding TotalTexto}"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                            <HorizontalStackLayout
+                                                Grid.Row="2"
+                                                Spacing="6">
+
+                                                <Button
+                                                    Text="Editar"
+                                                    Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.EditarCategoriaCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    IsVisible="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CanEdit}"
+                                                    Padding="7,5"
+                                                    FontSize="10"
+                                                    CornerRadius="8"
+                                                    BackgroundColor="#EAF0FF"
+                                                    TextColor="#2D5A9E" />
+
+                                                <Button
+                                                    Text="{Binding AccionEstadoTexto}"
+                                                    Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CambiarEstadoCategoriaCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    IsVisible="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CanDelete}"
+                                                    Padding="7,5"
+                                                    FontSize="10"
+                                                    CornerRadius="8"
+                                                    BackgroundColor="#FFF4E8"
+                                                    TextColor="{StaticResource color_Cafe}" />
+                                            </HorizontalStackLayout>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+
+                <!-- Galería -->
+                <VerticalStackLayout
+                    x:Name="GaleriaSection"
+                    Spacing="14">
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout
+                            Grid.Column="0"
+                            Spacing="3">
+
+                            <Label
+                                Text="{Binding TituloGaleria}"
+                                FontFamily="MontserratBold"
+                                FontSize="23"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Label
+                                Text="Seleccione una ficha para consultar toda su información."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding TotalRegistrosTexto}"
+                            VerticalOptions="Center"
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </Grid>
+
+                    <Border
+                        IsVisible="{Binding SinRegistros}"
+                        InputTransparent="True"
+                        Padding="25"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout
+                            HorizontalOptions="Center"
+                            Spacing="10">
+
+                            <Image
+                                Source="iconalbum.png"
+                                WidthRequest="58"
+                                HeightRequest="58" />
+
+                            <Label
+                                Text="No se encontraron registros para los filtros seleccionados."
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_GrisOscuro}"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
                     </Border>
 
+                    <FlexLayout
+                        IsVisible="{Binding HayRegistros}"
+                        HorizontalOptions="Fill"
+                        Direction="Row"
+                        Wrap="Wrap"
+                        AlignItems="Start"
+                        JustifyContent="SpaceBetween"
+                        BindableLayout.ItemsSource="{Binding Registros}">
+
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    FlexLayout.Basis="{OnPlatform WinUI=31%, Default=100%}"
+                                    Margin="{OnPlatform WinUI='0,0,0,16', Default='0,0,0,14'}"
+                                    BackgroundColor="White"
+                                    Stroke="#DDE7E3"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 18">
+
+                                    <Border.Shadow>
+                                        <Shadow
+                                            Brush="Black"
+                                            Offset="0,4"
+                                            Radius="12"
+                                            Opacity="0.08" />
+                                    </Border.Shadow>
+
+                                    <Grid RowDefinitions="190,*">
+                                        <Grid Grid.Row="0">
+                                            <Image
+                                                Source="{Binding FotoPortadaUrl}"
+                                                Aspect="AspectFill"
+                                                IsVisible="{Binding TieneFoto}" />
+
+                                            <Grid
+                                                IsVisible="{Binding SinFoto}"
+                                                BackgroundColor="#EEF5F2">
+
+                                                <VerticalStackLayout
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center"
+                                                    Spacing="8">
+
+                                                    <Image
+                                                        Source="iconalbum.png"
+                                                        WidthRequest="58"
+                                                        HeightRequest="58" />
+
+                                                    <Label
+                                                        Text="Sin fotografía de portada"
+                                                        FontSize="12"
+                                                        TextColor="{StaticResource color_GrisOscuro}" />
+                                                </VerticalStackLayout>
+                                            </Grid>
+
+                                            <Border
+                                                Margin="12"
+                                                Padding="9,5"
+                                                HorizontalOptions="Start"
+                                                VerticalOptions="Start"
+                                                BackgroundColor="{Binding EstadoColor}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 10">
+
+                                                <Label
+                                                    Text="{Binding EstadoTexto}"
+                                                    FontSize="11"
+                                                    FontAttributes="Bold"
+                                                    TextColor="White" />
+                                            </Border>
+
+                                            <Border
+                                                Margin="12"
+                                                Padding="9,5"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Start"
+                                                BackgroundColor="#FFFFFFDD"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 10">
+
+                                                <Label
+                                                    Text="{Binding TotalFotosTexto}"
+                                                    FontSize="11"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Verde}" />
+                                            </Border>
+                                        </Grid>
+
+                                        <VerticalStackLayout
+                                            Grid.Row="1"
+                                            Padding="15"
+                                            Spacing="8">
+
+                                            <Label
+                                                Text="{Binding Categoria}"
+                                                FontSize="11"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Cafe}" />
+
+                                            <Label
+                                                Text="{Binding Titulo}"
+                                                FontFamily="MontserratBold"
+                                                FontSize="18"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Negro}"
+                                                LineBreakMode="WordWrap"
+                                                MaxLines="2" />
+
+                                            <Label
+                                                Text="{Binding NombreCientifico}"
+                                                IsVisible="{Binding TieneNombreCientifico}"
+                                                FontAttributes="Italic"
+                                                FontSize="13"
+                                                TextColor="{StaticResource color_Verde}" />
+
+                                            <Label
+                                                Text="{Binding DescripcionCorta}"
+                                                FontSize="12"
+                                                TextColor="{StaticResource color_GrisOscuro}"
+                                                MaxLines="3"
+                                                LineBreakMode="TailTruncation" />
+
+                                            <Button
+                                                Text="Ver detalle"
+                                                Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.AbrirDetalleCommand}"
+                                                CommandParameter="{Binding .}"
+                                                HeightRequest="46"
+                                                BackgroundColor="{StaticResource color_Verde}"
+                                                TextColor="White"
+                                                CornerRadius="10"
+                                                FontAttributes="Bold" />
+
+                                            <Grid
+                                                ColumnDefinitions="*,*"
+                                                ColumnSpacing="7">
+
+                                                <Button
+                                                    Grid.Column="0"
+                                                    Text="Editar"
+                                                    Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.EditarRegistroCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    IsVisible="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CanEdit}"
+                                                    BackgroundColor="#EAF0FF"
+                                                    TextColor="#2D5A9E"
+                                                    CornerRadius="10"
+                                                    Padding="10,8" />
+
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Text="{Binding AccionEstadoTexto}"
+                                                    Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CambiarEstadoRegistroCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    IsVisible="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CanDelete}"
+                                                    BackgroundColor="#FFF4E8"
+                                                    TextColor="{StaticResource color_Cafe}"
+                                                    CornerRadius="10"
+                                                    Padding="10,8" />
+                                            </Grid>
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
                 </VerticalStackLayout>
-            </Border>
-        </Grid>
+
+                <BoxView
+                    HeightRequest="20"
+                    Color="Transparent" />
+            </VerticalStackLayout>
+        </ScrollView>
     </ContentView>
 </ContentPage>

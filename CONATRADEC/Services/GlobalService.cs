@@ -1,4 +1,4 @@
-using CommunityToolkit.Maui.Alerts;
+﻿using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
 using Microsoft.Maui.Networking;
 using Microsoft.Maui.Storage;
@@ -186,7 +186,8 @@ namespace CONATRADEC.Services
 
         public bool ValidateNavigation(string interfaz)
         {
-            var permission = PermissionService.Instance.Get(interfaz);
+            var permission =
+                PermissionService.Instance.Get(interfaz);
 
             if (permission == null || !permission.leer)
             {
@@ -199,12 +200,15 @@ namespace CONATRADEC.Services
             return true;
         }
 
-        private Task NavigateAsync(string permission, string route) =>
+        private Task NavigateAsync(
+            string permission,
+            string route) =>
             IsBusy || !ValidateNavigation(permission)
                 ? Task.CompletedTask
                 : GoToAsyncParameters(route);
 
-        private Task NavigateWithoutPermissionAsync(string route) =>
+        private Task NavigateWithoutPermissionAsync(
+            string route) =>
             IsBusy
                 ? Task.CompletedTask
                 : GoToAsyncParameters(route);
@@ -213,10 +217,14 @@ namespace CONATRADEC.Services
             NavigateAsync("MainPage", AppRoutes.Principal);
 
         private Task GoToConfiguracionPage() =>
-            NavigateWithoutPermissionAsync(AppRoutes.Configuracion);
+            NavigateWithoutPermissionAsync(
+                AppRoutes.Configuracion);
 
+        // El álbum usa la interfaz albumFotosPage de la matriz.
         private Task GoToAlbumFotosPage() =>
-            NavigateWithoutPermissionAsync(AppRoutes.AlbumFotos);
+            NavigateAsync(
+                "albumFotosPage",
+                AppRoutes.AlbumFotos);
 
         private Task GoToUserPage() =>
             NavigateAsync("userPage", AppRoutes.Usuarios);
@@ -225,22 +233,30 @@ namespace CONATRADEC.Services
             NavigateAsync("rolPage", AppRoutes.Roles);
 
         public Task GoToMatrizPermisosPage() =>
-            NavigateAsync("matrizPermisosPage", AppRoutes.MatrizPermisos);
+            NavigateAsync(
+                "matrizPermisosPage",
+                AppRoutes.MatrizPermisos);
 
         public Task GoToPaisPage() =>
             NavigateAsync("paisPage", AppRoutes.Paises);
 
         public Task GoToElementoQuimicoPage() =>
-            NavigateAsync("elementoQuimicoPage", AppRoutes.ElementosQuimicos);
+            NavigateAsync(
+                "elementoQuimicoPage",
+                AppRoutes.ElementosQuimicos);
 
         public Task GoToTerrenoPage() =>
             NavigateAsync("terrenoPage", AppRoutes.Terrenos);
 
         public Task GoToFuenteNutrientePage() =>
-            NavigateAsync("fuenteNutrientePage", AppRoutes.FuenteNutriente);
+            NavigateAsync(
+                "fuenteNutrientePage",
+                AppRoutes.FuenteNutriente);
 
         public Task GoToTipoCultivoPage() =>
-            NavigateAsync("tipoCultivoPage", AppRoutes.TiposCultivo);
+            NavigateAsync(
+                "tipoCultivoPage",
+                AppRoutes.TiposCultivo);
 
         public Task GoToTipoAnalisisSueloPage() =>
             NavigateAsync(
@@ -257,7 +273,8 @@ namespace CONATRADEC.Services
                 "rangoNutrientePage",
                 AppRoutes.RangosNutrientes);
 
-        public static async Task MostrarToastAsync(string mensaje)
+        public static async Task MostrarToastAsync(
+            string mensaje)
         {
             try
             {
@@ -265,7 +282,10 @@ namespace CONATRADEC.Services
                     return;
 
                 await Toast
-                    .Make(mensaje, ToastDuration.Short, 14)
+                    .Make(
+                        mensaje,
+                        ToastDuration.Short,
+                        14)
                     .Show();
             }
             catch
@@ -280,7 +300,8 @@ namespace CONATRADEC.Services
 
         public void LoadPagePermissions(string pageName)
         {
-            var permission = PermissionService.Instance.Get(pageName);
+            var permission =
+                PermissionService.Instance.Get(pageName);
 
             CanAdd = permission?.agregar == true;
             CanEdit = permission?.actualizar == true;
@@ -295,6 +316,8 @@ namespace CONATRADEC.Services
 
         public void OnPropertyChanged(
             [CallerMemberName] string? name = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(name));
     }
 }

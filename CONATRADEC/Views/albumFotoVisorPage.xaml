@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.albumFotoVisorPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#090B0A">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <Grid
+            Grid.Row="0"
+            Padding="{OnPlatform WinUI='22,16', Default='14,10'}"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="12"
+            BackgroundColor="#DD090B0A">
+
+            <Button
+                Grid.Column="0"
+                Text="✕"
+                Command="{Binding CerrarCommand}"
+                WidthRequest="46"
+                HeightRequest="46"
+                Padding="0"
+                CornerRadius="23"
+                BackgroundColor="#26FFFFFF"
+                TextColor="White"
+                FontSize="18"
+                FontAttributes="Bold"
+                SemanticProperties.Description="Cerrar visor" />
+
+            <Label
+                Grid.Column="1"
+                Text="{Binding TituloAlbum}"
+                VerticalOptions="Center"
+                FontFamily="MontserratBold"
+                FontSize="{OnPlatform WinUI=18, Default=15}"
+                FontAttributes="Bold"
+                TextColor="White"
+                LineBreakMode="TailTruncation" />
+
+            <Border
+                Grid.Column="2"
+                Padding="11,6"
+                VerticalOptions="Center"
+                BackgroundColor="#26FFFFFF"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 12">
+
+                <Label
+                    Text="{Binding ContadorTexto}"
+                    FontSize="12"
+                    FontAttributes="Bold"
+                    TextColor="White" />
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <CarouselView
+                x:Name="FotosCarousel"
+                ItemsSource="{Binding Fotos}"
+                CurrentItem="{Binding FotoSeleccionada, Mode=TwoWay}"
+                IndicatorView="FotosIndicator"
+                Loop="False"
+                HorizontalOptions="Fill"
+                VerticalOptions="Fill">
+
+                <CarouselView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid
+                            Padding="{OnPlatform WinUI='34,20', Default='8,12'}">
+
+                            <Image
+                                Source="{Binding FotoUrl}"
+                                Aspect="AspectFit"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill" />
+
+                            <Border
+                                Margin="12"
+                                Padding="9,5"
+                                HorizontalOptions="End"
+                                VerticalOptions="Start"
+                                IsVisible="{Binding EsPortada}"
+                                BackgroundColor="{StaticResource color_Verde}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10">
+
+                                <Label
+                                    Text="Portada"
+                                    FontSize="11"
+                                    FontAttributes="Bold"
+                                    TextColor="White" />
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CarouselView.ItemTemplate>
+            </CarouselView>
+
+            <IndicatorView
+                x:Name="FotosIndicator"
+                Margin="0,0,0,12"
+                HorizontalOptions="Center"
+                VerticalOptions="End"
+                IndicatorColor="#66FFFFFF"
+                SelectedIndicatorColor="White" />
+        </Grid>
+
+        <Border
+            Grid.Row="2"
+            Margin="{OnPlatform WinUI='22,8,22,18', Default='12,8,12,14'}"
+            Padding="14,11"
+            BackgroundColor="#D91B1E1C"
+            Stroke="#33FFFFFF"
+            StrokeThickness="1"
+            StrokeShape="RoundRectangle 14">
+
+            <Label
+                Text="{Binding DescripcionTexto}"
+                FontSize="12"
+                TextColor="White"
+                HorizontalTextAlignment="Center"
+                LineBreakMode="WordWrap" />
+        </Border>
+    </Grid>
+</ContentPage>

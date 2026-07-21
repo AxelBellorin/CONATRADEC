@@ -1,0 +1,482 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.albumDetallePage"
+    x:Name="DetallePageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='#F4F7F5', Default={StaticResource color_Blanco}}">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <Grid
+            Grid.Row="0"
+            Padding="{OnPlatform WinUI='26,18', Default='16,12'}"
+            ColumnDefinitions="Auto,*"
+            RowDefinitions="Auto,Auto"
+            ColumnSpacing="10"
+            RowSpacing="8"
+            BackgroundColor="White">
+
+            <Button
+                Grid.Row="0"
+                Grid.Column="0"
+                Text="← Regresar"
+                Command="{Binding RegresarCommand}"
+                BackgroundColor="Transparent"
+                TextColor="{StaticResource color_Verde}"
+                FontAttributes="Bold"
+                Padding="8" />
+
+            <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                Text="Detalle del álbum"
+                VerticalOptions="Center"
+                FontFamily="MontserratBold"
+                FontSize="21"
+                FontAttributes="Bold"
+                TextColor="{StaticResource color_Negro}" />
+
+            <HorizontalStackLayout
+                Grid.Row="1"
+                Grid.ColumnSpan="2"
+                HorizontalOptions="{OnPlatform WinUI=End, Default=Start}"
+                Spacing="8">
+
+                <Button
+                    Text="Editar"
+                    Command="{Binding EditarCommand}"
+                    IsVisible="{Binding CanEdit}"
+                    BackgroundColor="#EAF0FF"
+                    TextColor="#2D5A9E"
+                    CornerRadius="10"
+                    Padding="12,8" />
+
+                <Button
+                    Text="Fotografías"
+                    Command="{Binding AdministrarFotosCommand}"
+                    IsVisible="{Binding PuedeAdministrarFotos}"
+                    BackgroundColor="#EEF5F2"
+                    TextColor="{StaticResource color_Verde}"
+                    CornerRadius="10"
+                    Padding="12,8" />
+
+                <Button
+                    Text="{Binding Detalle.AccionEstadoTexto}"
+                    Command="{Binding CambiarEstadoCommand}"
+                    IsVisible="{Binding CanDelete}"
+                    BackgroundColor="#FFF4E8"
+                    TextColor="{StaticResource color_Cafe}"
+                    CornerRadius="10"
+                    Padding="12,8" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout
+                Padding="{OnPlatform WinUI='30,26,30,42', Default='16,18,16,30'}"
+                MaximumWidthRequest="{OnPlatform WinUI=1450, Default=760}"
+                HorizontalOptions="Fill"
+                Spacing="20">
+
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    IsVisible="{Binding IsBusy}"
+                    Color="{StaticResource color_Naranja}"
+                    HeightRequest="34" />
+
+                <!-- Información principal -->
+                <Border
+                    IsVisible="{Binding TieneDetalle}"
+                    Padding="{OnPlatform WinUI=30, Default=20}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 22">
+
+                    <Border.Shadow>
+                        <Shadow
+                            Brush="Black"
+                            Offset="0,5"
+                            Radius="16"
+                            Opacity="0.08" />
+                    </Border.Shadow>
+
+                    <VerticalStackLayout Spacing="14">
+
+                        <HorizontalStackLayout Spacing="8">
+                            <Border
+                                Padding="10,5"
+                                BackgroundColor="#EEF5F2"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10">
+
+                                <Label
+                                    Text="{Binding Detalle.Categoria}"
+                                    FontSize="11"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}" />
+                            </Border>
+
+                            <Border
+                                Padding="10,5"
+                                BackgroundColor="{Binding Detalle.EstadoColor}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 10">
+
+                                <Label
+                                    Text="{Binding Detalle.EstadoTexto}"
+                                    FontSize="11"
+                                    FontAttributes="Bold"
+                                    TextColor="White" />
+                            </Border>
+                        </HorizontalStackLayout>
+
+                        <Label
+                            Text="{Binding Detalle.Titulo}"
+                            FontFamily="MontserratBold"
+                            FontSize="{OnPlatform WinUI=34, Default=28}"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}"
+                            LineBreakMode="WordWrap" />
+
+                        <Label
+                            Text="{Binding Detalle.NombreCientifico}"
+                            IsVisible="{Binding Detalle.TieneNombreCientifico}"
+                            FontSize="18"
+                            FontAttributes="Italic"
+                            TextColor="{StaticResource color_Cafe}" />
+
+                        <BoxView
+                            WidthRequest="72"
+                            HeightRequest="4"
+                            HorizontalOptions="Start"
+                            Color="{StaticResource color_Naranja}" />
+
+                        <Label
+                            Text="{Binding Detalle.Descripcion}"
+                            FontSize="14"
+                            LineHeight="1.25"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Galería -->
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Grid.Column="0" Spacing="3">
+                            <Label
+                                Text="Galería fotográfica"
+                                FontFamily="MontserratBold"
+                                FontSize="23"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Label
+                                Text="Seleccione una imagen para verla en pantalla completa."
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding Detalle.Fotos.Count, StringFormat='{}{0} fotos'}"
+                            VerticalOptions="Center"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+                    </Grid>
+
+                    <Border
+                        IsVisible="{Binding SinFotos}"
+                        Padding="26"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout
+                            HorizontalOptions="Center"
+                            Spacing="10">
+
+                            <Image
+                                Source="iconalbum.png"
+                                WidthRequest="62"
+                                HeightRequest="62" />
+
+                            <Label
+                                Text="Este registro todavía no tiene fotografías."
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_GrisOscuro}"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Cuadrícula Windows -->
+                    <FlexLayout
+                        IsVisible="{OnPlatform WinUI=True, Default=False}"
+                        HorizontalOptions="Fill"
+                        Direction="Row"
+                        Wrap="Wrap"
+                        AlignItems="Start"
+                        JustifyContent="SpaceBetween"
+                        BindableLayout.ItemsSource="{Binding Detalle.Fotos}">
+
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    FlexLayout.Basis="23%"
+                                    HeightRequest="230"
+                                    Margin="0,0,0,16"
+                                    Padding="0"
+                                    BackgroundColor="White"
+                                    Stroke="#DDE7E3"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 17">
+
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={x:Reference DetallePageRoot}, Path=BindingContext.AbrirFotoCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+
+                                    <Grid>
+                                        <Image
+                                            Source="{Binding FotoUrl}"
+                                            Aspect="AspectFill" />
+
+                                        <BoxView
+                                            VerticalOptions="End"
+                                            HeightRequest="58"
+                                            Color="#88000000" />
+
+                                        <Label
+                                            Margin="12,0,12,10"
+                                            Text="{Binding DescripcionMostrar}"
+                                            VerticalOptions="End"
+                                            TextColor="White"
+                                            FontSize="11"
+                                            MaxLines="2"
+                                            LineBreakMode="TailTruncation" />
+
+                                        <Border
+                                            Margin="10"
+                                            Padding="8,4"
+                                            HorizontalOptions="End"
+                                            VerticalOptions="Start"
+                                            IsVisible="{Binding EsPortada}"
+                                            BackgroundColor="{StaticResource color_Verde}"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 9">
+
+                                            <Label
+                                                Text="Portada"
+                                                FontSize="10"
+                                                FontAttributes="Bold"
+                                                TextColor="White" />
+                                        </Border>
+
+                                        <Border
+                                            Margin="10"
+                                            Padding="8,4"
+                                            HorizontalOptions="Start"
+                                            VerticalOptions="Start"
+                                            BackgroundColor="#CCFFFFFF"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 9">
+
+                                            <Label
+                                                Text="Ver completa"
+                                                FontSize="10"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Verde}" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+
+                    <!-- Cuadrícula móvil -->
+                    <FlexLayout
+                        IsVisible="{OnPlatform WinUI=False, Default=True}"
+                        HorizontalOptions="Fill"
+                        Direction="Row"
+                        Wrap="Wrap"
+                        AlignItems="Start"
+                        JustifyContent="SpaceBetween"
+                        BindableLayout.ItemsSource="{Binding Detalle.Fotos}">
+
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    FlexLayout.Basis="48%"
+                                    HeightRequest="156"
+                                    Margin="0,0,0,12"
+                                    Padding="0"
+                                    BackgroundColor="White"
+                                    Stroke="#DDE7E3"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 14">
+
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={x:Reference DetallePageRoot}, Path=BindingContext.AbrirFotoCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+
+                                    <Grid>
+                                        <Image
+                                            Source="{Binding FotoUrl}"
+                                            Aspect="AspectFill" />
+
+                                        <BoxView
+                                            VerticalOptions="End"
+                                            HeightRequest="42"
+                                            Color="#88000000" />
+
+                                        <Label
+                                            Margin="9,0,9,7"
+                                            Text="{Binding DescripcionMostrar}"
+                                            VerticalOptions="End"
+                                            TextColor="White"
+                                            FontSize="9"
+                                            MaxLines="2"
+                                            LineBreakMode="TailTruncation" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+                <!-- Información técnica -->
+                <VerticalStackLayout Spacing="12">
+                    <Label
+                        Text="Información técnica"
+                        FontFamily="MontserratBold"
+                        FontSize="23"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource color_Negro}" />
+
+                    <Border
+                        IsVisible="{Binding Detalle.TieneCaracteristicas}"
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label
+                                Text="Características"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Text="{Binding Detalle.Caracteristicas}"
+                                FontSize="13"
+                                LineHeight="1.2"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding Detalle.TieneSintomas}"
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label
+                                Text="Síntomas"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Cafe}" />
+
+                            <Label
+                                Text="{Binding Detalle.Sintomas}"
+                                FontSize="13"
+                                LineHeight="1.2"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding Detalle.TieneCausas}"
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label
+                                Text="Causas"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Naranja}" />
+
+                            <Label
+                                Text="{Binding Detalle.Causas}"
+                                FontSize="13"
+                                LineHeight="1.2"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding Detalle.TieneRecomendaciones}"
+                        Padding="18"
+                        BackgroundColor="#F2F8F5"
+                        Stroke="#C8DED6"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label
+                                Text="Recomendaciones"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Text="{Binding Detalle.Recomendaciones}"
+                                FontSize="13"
+                                LineHeight="1.2"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding Detalle.TieneObservaciones}"
+                        Padding="18"
+                        BackgroundColor="#FFF8ED"
+                        Stroke="#F1D7AF"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label
+                                Text="Observaciones"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Cafe}" />
+
+                            <Label
+                                Text="{Binding Detalle.Observaciones}"
+                                FontSize="13"
+                                LineHeight="1.2"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
