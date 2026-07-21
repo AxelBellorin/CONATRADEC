@@ -1,149 +1,476 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<!--
-  Página: loginPage.xaml
-  Descripción:
-  Pantalla de inicio de sesión de la aplicación ConatraCafé Soil.
-  VM: LoginViewModel
-  Bindings clave: Username, Password, IsBusy, IsPasswordHidden, PasswordToggleIcon,
-                  RememberMe, CanUseBiometrics, UseBiometrics, BiometricEnabled
-  Comandos: LoginCommand, TogglePasswordCommand, BiometricLoginCommand
--->
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.loginPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F3F7F5">
 
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:login="clr-namespace:CONATRADEC.Views"
-             x:Class="CONATRADEC.Views.loginPage"
-             Shell.NavBarIsVisible="False"
-             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{OnPlatform WinUI='1.08*', Default='0'}" />
+            <ColumnDefinition Width="{OnPlatform WinUI='0.92*', Default='*'}" />
+        </Grid.ColumnDefinitions>
 
-    <ScrollView>
-        <VerticalStackLayout Style="{StaticResource VerticalStackLayoutStyle}">
+        <!-- =========================================================
+             PANEL INSTITUCIONAL: SOLO WINDOWS
+             ========================================================= -->
+        <Border
+            Grid.Column="0"
+            IsVisible="{OnPlatform WinUI=True, Default=False}"
+            Margin="24"
+            Padding="48"
+            BackgroundColor="{StaticResource color_Verde}"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 32">
 
-            <!-- LOGO -->
-            <ImageButton Source="logocontradec.png"
-                         Aspect="AspectFill"
-                         Padding="0"
-                         HeightRequest="200"
-                         WidthRequest="200"
-                         CornerRadius="100">
-                <ImageButton.Clip>
-                    <EllipseGeometry Center="100,100" RadiusX="80" RadiusY="80" />
-                </ImageButton.Clip>
-            </ImageButton>
+            <Border.Shadow>
+                <Shadow
+                    Brush="#233D36"
+                    Offset="0,10"
+                    Radius="26"
+                    Opacity="0.22" />
+            </Border.Shadow>
 
-            <!-- TÍTULO -->
-            <Label Text="ConatraCafé Soil"
-                   FontSize="40"
-                   FontFamily="MontserratBold"
-                   HorizontalOptions="Center"
-                   TextColor="{StaticResource color_Negro}" />
+            <Grid RowDefinitions="*,Auto">
+                <VerticalStackLayout
+                    Grid.Row="0"
+                    MaximumWidthRequest="560"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Spacing="24">
 
-            <!-- SUBTÍTULO -->
-            <Label Text="Iniciar sesión"
-                   HorizontalOptions="Center"
-                   TextColor="{StaticResource color_Negro}"
-                   FontSize="40"
-                   FontAttributes="Bold"
-                   FontFamily="MontserratMedium" />
+                    <Border
+                        WidthRequest="138"
+                        HeightRequest="138"
+                        Padding="8"
+                        HorizontalOptions="Start"
+                        BackgroundColor="#F7FBF9"
+                        Stroke="#D5E4DE"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 36">
 
-            <!-- EMAIL -->
-            <Border Style="{StaticResource BorderStyle}">
-                <Entry Style="{StaticResource EntryStyle}"
-                       Text="{Binding Username}"
-                       x:Name="UserNameEntry"
-                       Completed="UserNameEntryCompleted"
-                       Placeholder="Correo electrónico"
-                       Keyboard="Email" />
-            </Border>
+                        <Image
+                            Source="logocontradec.png"
+                            Aspect="AspectFit" />
+                    </Border>
 
-            <!-- PASSWORD -->
-            <Border Style="{StaticResource BorderStyle}" IsVisible="{Binding LoginButtonVisible}">
-                <Grid ColumnDefinitions="*, Auto">
-                    <Entry Grid.Column="0"
-                           x:Name="PasswordEntry"
-                           Completed="PasswordEntryCompleted"
-                           Style="{StaticResource EntryStyle}"
-                           Placeholder="Contraseña"
-                           Text="{Binding Password}"
-                           IsPassword="{Binding IsPasswordHidden}"
-                           Background="Transparent" />
+                    <VerticalStackLayout Spacing="8">
+                        <Label
+                            Text="ConatraCafé Soil"
+                            FontFamily="MontserratBold"
+                            FontSize="46"
+                            FontAttributes="Bold"
+                            TextColor="White" />
 
-                    <ImageButton Grid.Column="1"
-                                 Margin="10,0,0,0"
-                                 Source="{Binding PasswordToggleIcon}"
-                                 Command="{Binding TogglePasswordCommand}"
-                                 BackgroundColor="Transparent"
-                                 WidthRequest="30"
-                                 HeightRequest="30" />
-                </Grid>
-            </Border>
+                        <Label
+                            Text="Gestión técnica y análisis de suelos para una caficultura más eficiente."
+                            MaximumWidthRequest="500"
+                            FontFamily="MontserratMedium"
+                            FontSize="18"
+                            LineHeight="1.25"
+                            TextColor="#E5F0EC" />
+                    </VerticalStackLayout>
 
-            <!-- RECORDARME -->
-            <HorizontalStackLayout Spacing="6" VerticalOptions="Center" HorizontalOptions="Start">
-                <CheckBox IsChecked="{Binding RememberMe}" Color="{StaticResource color_Verde}"/>
-                <Label Text="Recordarme"
-                       VerticalOptions="Center"
-                       FontFamily="MontserratMedium"
-                       FontSize="14"
-                       TextColor="{StaticResource color_Negro}" />
-            </HorizontalStackLayout>
+                    <BoxView
+                        WidthRequest="72"
+                        HeightRequest="4"
+                        HorizontalOptions="Start"
+                        Color="{StaticResource color_Naranja}"
+                        CornerRadius="2" />
 
-            <!-- SWITCH BIOMÉTRICO (solo si el dispositivo soporta biometría) -->
-            <Grid RowDefinitions="Auto,Auto" IsVisible="{Binding CanUseBiometrics}">
-                <Grid Padding="0,8,0,0" ColumnDefinitions="*,Auto">
-                    <Label Text="Usar huella / Face ID"
-                           Grid.Column="0"
-                           VerticalOptions="Center"
-                           FontFamily="MontserratMedium"
-                           FontSize="14"
-                           TextColor="{StaticResource color_Negro}" />
-                    <Switch Grid.Column="1"
-                            IsToggled="{Binding UseBiometrics}"
-                            IsEnabled="{Binding CanToggleBiometrics}" 
-                            Style="{StaticResource SwitchStyle}"/>
-                </Grid>
-                <Label Grid.Row="1"
-                       Text="Requiere activar 'Recordarme'."
-                       FontSize="12"
-                       TextColor="{StaticResource color_Negro}"
-                       Opacity="0.6"
-                       IsVisible="{Binding TitleBiometric}"/>
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="36,*" ColumnSpacing="12">
+                            <Border
+                                Grid.Column="0"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                BackgroundColor="#FFFFFF22"
+                                Stroke="#FFFFFF44"
+                                StrokeShape="RoundRectangle 10">
+                                <Label
+                                    Text="✓"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    TextColor="White" />
+                            </Border>
+
+                            <Label
+                                Grid.Column="1"
+                                Text="Consulta y administra análisis de suelo."
+                                VerticalOptions="Center"
+                                FontFamily="MontserratMedium"
+                                FontSize="15"
+                                TextColor="White" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="36,*" ColumnSpacing="12">
+                            <Border
+                                Grid.Column="0"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                BackgroundColor="#FFFFFF22"
+                                Stroke="#FFFFFF44"
+                                StrokeShape="RoundRectangle 10">
+                                <Label
+                                    Text="✓"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    TextColor="White" />
+                            </Border>
+
+                            <Label
+                                Grid.Column="1"
+                                Text="Obtén recomendaciones nutricionales."
+                                VerticalOptions="Center"
+                                FontFamily="MontserratMedium"
+                                FontSize="15"
+                                TextColor="White" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="36,*" ColumnSpacing="12">
+                            <Border
+                                Grid.Column="0"
+                                WidthRequest="32"
+                                HeightRequest="32"
+                                BackgroundColor="#FFFFFF22"
+                                Stroke="#FFFFFF44"
+                                StrokeShape="RoundRectangle 10">
+                                <Label
+                                    Text="✓"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    TextColor="White" />
+                            </Border>
+
+                            <Label
+                                Grid.Column="1"
+                                Text="Trabaja con una experiencia segura y organizada."
+                                VerticalOptions="Center"
+                                FontFamily="MontserratMedium"
+                                FontSize="15"
+                                TextColor="White" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <Label
+                    Grid.Row="1"
+                    Text="CONATRADEC · Tecnología al servicio del café"
+                    FontFamily="MontserratMedium"
+                    FontSize="12"
+                    TextColor="#D6E6E0" />
             </Grid>
+        </Border>
 
-            <!-- LOADER -->
-            <ActivityIndicator IsRunning="{Binding IsBusy}"
-                               IsVisible="{Binding IsBusy}"
-                               Color="{StaticResource color_Naranja}" />
+        <!-- =========================================================
+             FORMULARIO: WINDOWS Y MÓVIL
+             Se conservan todos los bindings y eventos existentes.
+             ========================================================= -->
+        <ScrollView Grid.Column="1">
+            <Grid
+                Padding="{OnPlatform WinUI='44,32', Default='20,22'}"
+                MinimumHeightRequest="{OnPlatform WinUI=650, Default=0}">
 
-            <!-- BOTÓN LOGIN -->
-            <Button Style="{StaticResource AddButton}"
-                    Text="Iniciar Sesión"
-                    Padding="0,18,0,18"
-                    Margin="0,10,0,0"
-                    Command="{Binding LoginCommand}" 
-                    IsVisible="{Binding LoginButtonVisible}"/>
+                <VerticalStackLayout
+                    MaximumWidthRequest="480"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Spacing="18">
 
-            <!-- BOTÓN BIOMÉTRICO (solo si está habilitado por switch + recordarme + hardware) -->
-            <Grid Margin="0,12,0,0" HorizontalOptions="Center"
-                  IsVisible="{Binding BiometricEnabled}">
-                <ImageButton
-                    Source="fingerprint.png"
-                    WidthRequest="72"
-                    HeightRequest="72"
-                    CornerRadius="36"
-                    Padding="0"
-                    Command="{Binding BiometricLoginCommand}">
-                    <!-- Agrega fingerprint.png en Resources/Images (Build Action: MauiImage) -->
-                </ImageButton>
+                    <!-- Encabezado exclusivo para móvil -->
+                    <VerticalStackLayout
+                        IsVisible="{OnPlatform WinUI=False, Default=True}"
+                        HorizontalOptions="Center"
+                        Spacing="8"
+                        Margin="0,4,0,4">
+
+                        <Border
+                            WidthRequest="104"
+                            HeightRequest="104"
+                            Padding="6"
+                            BackgroundColor="White"
+                            Stroke="#DCE7E2"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 28">
+
+                            <Border.Shadow>
+                                <Shadow
+                                    Brush="#1F352F"
+                                    Offset="0,5"
+                                    Radius="14"
+                                    Opacity="0.14" />
+                            </Border.Shadow>
+
+                            <Image
+                                Source="logocontradec.png"
+                                Aspect="AspectFit" />
+                        </Border>
+
+                        <Label
+                            Text="ConatraCafé Soil"
+                            FontFamily="MontserratBold"
+                            FontSize="27"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="Center"
+                            TextColor="{StaticResource color_Verde}" />
+                    </VerticalStackLayout>
+
+                    <Border
+                        Padding="{OnPlatform WinUI='34,32', Default='22,24'}"
+                        BackgroundColor="White"
+                        Stroke="#DCE5E1"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 26">
+
+                        <Border.Shadow>
+                            <Shadow
+                                Brush="#233D36"
+                                Offset="0,8"
+                                Radius="24"
+                                Opacity="0.13" />
+                        </Border.Shadow>
+
+                        <VerticalStackLayout Spacing="18">
+
+                            <!-- Título -->
+                            <VerticalStackLayout Spacing="5">
+                                <Label
+                                    Text="Bienvenido"
+                                    FontFamily="MontserratBold"
+                                    FontSize="{OnPlatform WinUI=30, Default=27}"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Label
+                                    Text="Ingresa tus credenciales para continuar."
+                                    FontFamily="MontserratMedium"
+                                    FontSize="14"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
+
+                            <!-- Usuario -->
+                            <VerticalStackLayout Spacing="7">
+                                <Label
+                                    Text="Correo electrónico"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="14,3"
+                                    BackgroundColor="#F8FAF9"
+                                    Stroke="#D6E1DC"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 14">
+
+                                    <Entry
+                                        x:Name="UserNameEntry"
+                                        Text="{Binding Username}"
+                                        Completed="UserNameEntryCompleted"
+                                        Placeholder="nombre@correo.com"
+                                        PlaceholderColor="#8B9691"
+                                        Keyboard="Email"
+                                        ReturnType="Next"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="15"
+                                        TextColor="{StaticResource color_Negro}"
+                                        BackgroundColor="Transparent" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Contraseña -->
+                            <VerticalStackLayout
+                                IsVisible="{Binding LoginButtonVisible}"
+                                Spacing="7">
+
+                                <Label
+                                    Text="Contraseña"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="14,3,8,3"
+                                    BackgroundColor="#F8FAF9"
+                                    Stroke="#D6E1DC"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 14">
+
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Entry
+                                            x:Name="PasswordEntry"
+                                            Grid.Column="0"
+                                            Text="{Binding Password}"
+                                            Completed="PasswordEntryCompleted"
+                                            Placeholder="Ingresa tu contraseña"
+                                            PlaceholderColor="#8B9691"
+                                            IsPassword="{Binding IsPasswordHidden}"
+                                            ReturnType="Go"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="15"
+                                            TextColor="{StaticResource color_Negro}"
+                                            BackgroundColor="Transparent" />
+
+                                        <ImageButton
+                                            Grid.Column="1"
+                                            Source="{Binding PasswordToggleIcon}"
+                                            Command="{Binding TogglePasswordCommand}"
+                                            WidthRequest="38"
+                                            HeightRequest="38"
+                                            Padding="8"
+                                            BackgroundColor="Transparent"
+                                            SemanticProperties.Description="Mostrar u ocultar contraseña" />
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- Recordarme -->
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                <CheckBox
+                                    Grid.Column="0"
+                                    IsChecked="{Binding RememberMe}"
+                                    Color="{StaticResource color_Verde}"
+                                    VerticalOptions="Center" />
+
+                                <VerticalStackLayout
+                                    Grid.Column="1"
+                                    VerticalOptions="Center"
+                                    Spacing="1">
+
+                                    <Label
+                                        Text="Recordarme"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="14"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
+                                    <Label
+                                        Text="Mantiene tus credenciales guardadas en este dispositivo."
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <!-- Configuración biométrica -->
+                            <Border
+                                IsVisible="{Binding CanUseBiometrics}"
+                                Padding="13"
+                                BackgroundColor="#F1F7F4"
+                                Stroke="#CFE0D9"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 14">
+
+                                <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                                    <Grid
+                                        Grid.Row="0"
+                                        ColumnDefinitions="*,Auto"
+                                        ColumnSpacing="12">
+
+                                        <VerticalStackLayout
+                                            Grid.Column="0"
+                                            VerticalOptions="Center"
+                                            Spacing="2">
+
+                                            <Label
+                                                Text="Acceso biométrico"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="14"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Verde}" />
+
+                                            <Label
+                                                Text="Usar huella o reconocimiento facial."
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+                                        </VerticalStackLayout>
+
+                                        <Switch
+                                            Grid.Column="1"
+                                            IsToggled="{Binding UseBiometrics}"
+                                            IsEnabled="{Binding CanToggleBiometrics}"
+                                            Style="{StaticResource SwitchStyle}"
+                                            VerticalOptions="Center" />
+                                    </Grid>
+
+                                    <Label
+                                        Grid.Row="1"
+                                        Text="Activa primero la opción «Recordarme»."
+                                        IsVisible="{Binding TitleBiometric}"
+                                        Margin="0,3,0,0"
+                                        FontSize="11"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Cafe}" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Indicador de carga -->
+                            <ActivityIndicator
+                                IsRunning="{Binding IsBusy}"
+                                IsVisible="{Binding IsBusy}"
+                                Color="{StaticResource color_Naranja}"
+                                HeightRequest="30" />
+
+                            <!-- Inicio de sesión tradicional -->
+                            <Button
+                                Text="Iniciar sesión"
+                                Command="{Binding LoginCommand}"
+                                IsVisible="{Binding LoginButtonVisible}"
+                                IsEnabled="{Binding NotIsBusy}"
+                                HeightRequest="54"
+                                Padding="18,12"
+                                CornerRadius="14"
+                                BackgroundColor="{StaticResource color_Verde}"
+                                TextColor="White"
+                                FontFamily="MontserratBold"
+                                FontSize="16"
+                                FontAttributes="Bold"
+                                SemanticProperties.Hint="Inicia sesión con el correo y la contraseña ingresados" />
+
+                            <!-- Inicio de sesión biométrico -->
+                            <VerticalStackLayout
+                                IsVisible="{Binding BiometricEnabled}"
+                                HorizontalOptions="Center"
+                                Spacing="8">
+
+                                <ImageButton
+                                    Source="fingerprint.png"
+                                    Command="{Binding BiometricLoginCommand}"
+                                    WidthRequest="76"
+                                    HeightRequest="76"
+                                    Padding="8"
+                                    CornerRadius="38"
+                                    BackgroundColor="#EAF3EF"
+                                    BorderColor="#C6DCD3"
+                                    BorderWidth="1"
+                                    SemanticProperties.Description="Autenticar con biometría" />
+
+                                <Label
+                                    Text="Toca para autenticar con huella o Face ID"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12"
+                                    HorizontalTextAlignment="Center"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label
+                        Text="Acceso seguro · CONATRADEC"
+                        HorizontalOptions="Center"
+                        FontFamily="MontserratMedium"
+                        FontSize="11"
+                        TextColor="{StaticResource color_GrisOscuro}" />
+                </VerticalStackLayout>
             </Grid>
-
-            <Label Text="Autenticar con huella / Face ID"
-                   FontSize="12"
-                   HorizontalOptions="Center"
-                   TextColor="{StaticResource color_Negro}"
-                   Margin="0,-4,0,0"
-                   IsVisible="{Binding BiometricEnabled}" />
-
-        </VerticalStackLayout>
-    </ScrollView>
+        </ScrollView>
+    </Grid>
 </ContentPage>
