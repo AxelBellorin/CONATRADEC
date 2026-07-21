@@ -128,6 +128,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiXaml Update="Resources\Styles\SwipeViewMouseStyles.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Resources\Styles\Template.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

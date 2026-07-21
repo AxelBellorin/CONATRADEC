@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Maui;                     // Importa CommunityToolkit para MAUI (Snackbar, Toast, Popup, etc.)
+using CONATRADEC.Behaviors;                      // Comportamientos globales para controles MAUI
 using CONATRADEC.Services;                       // Espacio de nombres de los servicios de la aplicación
 using CONATRADEC.ViewModels;                     // Espacio de nombres de los ViewModels
 using CONATRADEC.Views;                          // Espacio de nombres de las vistas/pages
@@ -54,6 +55,13 @@ namespace CONATRADEC
                     fonts.AddFont("Montserrat-Bold.ttf", "MontserratBold");
                     fonts.AddFont("Montserrat-Medium.ttf", "MontserratMedium");
                 });
+
+            // ==========================================================
+            // Habilita globalmente el clic derecho en los SwipeView.
+            // En Windows muestra un menú contextual con las mismas acciones
+            // Editar/Eliminar. En Android no modifica el swipe táctil.
+            // ==========================================================
+            SwipeViewRightClick.Register();
 
             // ==========================================================
             // Logging solo en modo DEBUG
