@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Views;
+using CONATRADEC.Views;
 
 namespace CONATRADEC.Services
 {
@@ -8,12 +8,7 @@ namespace CONATRADEC.Services
         public const string Principal = "//MainPage";
         public const string Configuracion = "//ConfiguracionPage";
 
-        /*
-         * El álbum ya no es ShellContent.
-         * Se registra como ruta normal para crear una instancia nueva.
-         */
-        public const string AlbumFotos =
-            nameof(albumFotosPage);
+        public const string AlbumFotos = nameof(albumFotosPage);
 
         public const string Usuarios = "//UserPage";
         public const string Roles = "//RolPage";
@@ -35,33 +30,25 @@ namespace CONATRADEC.Services
         public const string ExtraccionNutrienteFormulario = "//ExtraccionNutrienteFormPage";
         public const string RangoNutrienteFormulario = "//RangoNutrienteFormPage";
 
-        // Rutas secundarias del álbum botánico.
-        public const string AlbumDetalle =
-            nameof(albumDetallePage);
-
+        public const string AlbumDetalle = nameof(albumDetallePage);
         public const string CategoriaAlbumFormulario =
             nameof(categoriaAlbumFormPage);
-
         public const string AlbumRegistroFormulario =
             nameof(albumRegistroFormPage);
-
         public const string AlbumFotosAdministrar =
             nameof(albumFotosAdminPage);
+        public const string AlbumFotoVisor = nameof(albumFotoVisorPage);
 
-        public const string AlbumFotoVisor =
-            nameof(albumFotoVisorPage);
-
-        public const string MapaSeleccion =
-            nameof(MapaSeleccionPage);
-
+        public const string MapaSeleccion = nameof(MapaSeleccionPage);
         public const string FotosTerrenoGaleria =
             nameof(FotosTerrenoGaleriaPage);
-
         public const string AnalisisGuardadoDetalle =
             nameof(AnalisisGuardadoDetallePage);
-
         public const string EditarAnalisisGuardado =
             nameof(EditarAnalisisGuardadoPage);
+
+        public const string Bitacora = nameof(bitacoraPage);
+        public const string BitacoraDetalle = nameof(bitacoraDetallePage);
 
         public const string Regresar = "..";
     }

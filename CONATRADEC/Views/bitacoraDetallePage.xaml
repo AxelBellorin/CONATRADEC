@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.bitacoraDetallePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid RowDefinitions="Auto,*">
+            <Grid
+                Padding="18,14"
+                ColumnDefinitions="Auto,*"
+                BackgroundColor="{StaticResource color_Verde}">
+                <Button
+                    Text="‹"
+                    FontSize="30"
+                    WidthRequest="46"
+                    HeightRequest="42"
+                    Padding="0"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    Command="{Binding goToBack}" />
+                <VerticalStackLayout Grid.Column="1" Margin="10,0" Spacing="0">
+                    <Label
+                        Text="Detalle de bitácora"
+                        FontSize="22"
+                        FontFamily="MontserratBold"
+                        TextColor="White" />
+                    <Label
+                        Text="Información técnica y cambios realizados"
+                        FontSize="12"
+                        TextColor="#E4F0EC" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <ScrollView Grid.Row="1" Margin="0,0,0,70">
+                <VerticalStackLayout
+                    Padding="18"
+                    MaximumWidthRequest="1100"
+                    HorizontalOptions="Center"
+                    Spacing="14"
+                    IsVisible="{Binding TieneRegistro}">
+
+                    <Border
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+                        <VerticalStackLayout Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label
+                                        Text="{Binding Registro.Accion}"
+                                        FontFamily="MontserratBold"
+                                        FontSize="21"
+                                        TextColor="{StaticResource color_Verde}" />
+                                    <Label
+                                        Text="{Binding Registro.Modulo}"
+                                        FontFamily="MontserratBold"
+                                        FontSize="15" />
+                                </VerticalStackLayout>
+
+                                <Border
+                                    Grid.Column="1"
+                                    Padding="12,6"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 12">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding Registro.Exitoso}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="#E5F5EA" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding Registro.Exitoso}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="#FCE8E6" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Label
+                                        Text="{Binding Registro.EstadoTexto}"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+                                </Border>
+                            </Grid>
+
+                            <Label
+                                Text="{Binding Registro.Descripcion}"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <BoxView HeightRequest="1" Color="#E7ECEA" />
+
+                            <Grid
+                                ColumnDefinitions="Auto,*"
+                                RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                                ColumnSpacing="14"
+                                RowSpacing="7">
+                                <Label Text="Fecha" FontFamily="MontserratBold" />
+                                <Label Grid.Column="1" Text="{Binding Registro.FechaHoraTexto}" />
+                                <Label Grid.Row="1" Text="Usuario" FontFamily="MontserratBold" />
+                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding Registro.UsuarioTexto}" />
+                                <Label Grid.Row="2" Text="Rol" FontFamily="MontserratBold" />
+                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding Registro.RolTexto}" />
+                                <Label Grid.Row="3" Text="Endpoint" FontFamily="MontserratBold" />
+                                <Label Grid.Row="3" Grid.Column="1" Text="{Binding Registro.Endpoint}" LineBreakMode="WordWrap" />
+                                <Label Grid.Row="4" Text="Pantalla" FontFamily="MontserratBold" />
+                                <Label Grid.Row="4" Grid.Column="1" Text="{Binding Registro.PaginaOrigen}" LineBreakMode="WordWrap" />
+                                <Label Grid.Row="5" Text="Dispositivo" FontFamily="MontserratBold" />
+                                <Label Grid.Row="5" Grid.Column="1" Text="{Binding Registro.Dispositivo}" />
+                                <Label Grid.Row="6" Text="Plataforma" FontFamily="MontserratBold" />
+                                <Label Grid.Row="6" Grid.Column="1" Text="{Binding Registro.Plataforma}" />
+                                <Label Grid.Row="7" Text="IP" FontFamily="MontserratBold" />
+                                <Label Grid.Row="7" Grid.Column="1" Text="{Binding Registro.DireccionIp}" />
+                                <Label Grid.Row="8" Text="Correlación" FontFamily="MontserratBold" />
+                                <Label Grid.Row="8" Grid.Column="1" Text="{Binding Registro.CorrelationId}" LineBreakMode="CharacterWrap" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding Registro.TieneParametros}"
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+                        <VerticalStackLayout Spacing="8">
+                            <Label
+                                Text="Parámetros de la solicitud"
+                                FontFamily="MontserratBold"
+                                FontSize="17" />
+                            <Label
+                                Text="{Binding Registro.ParametrosFormateados}"
+                                FontSize="12"
+                                LineBreakMode="CharacterWrap"
+                                TextColor="#33413B" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding Registro.TieneError}"
+                        Padding="18"
+                        BackgroundColor="#FFF3F2"
+                        Stroke="#F2B8B5"
+                        StrokeShape="RoundRectangle 16">
+                        <VerticalStackLayout Spacing="8">
+                            <Label
+                                Text="Error registrado"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                TextColor="#B3261E" />
+                            <Label
+                                Text="{Binding Registro.Error}"
+                                FontSize="12"
+                                LineBreakMode="CharacterWrap"
+                                TextColor="#7A1A15" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label
+                        Text="Cambios en base de datos"
+                        FontFamily="MontserratBold"
+                        FontSize="20"
+                        TextColor="{StaticResource color_Verde}"
+                        Margin="0,6,0,0" />
+
+                    <Label
+                        IsVisible="{Binding Registro.SinCambios}"
+                        Text="Esta operación no modificó registros de la base de datos."
+                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                    <VerticalStackLayout
+                        BindableLayout.ItemsSource="{Binding Registro.Cambios}"
+                        Spacing="12">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Padding="16"
+                                    BackgroundColor="White"
+                                    Stroke="#DDE7E3"
+                                    StrokeShape="RoundRectangle 15">
+                                    <VerticalStackLayout Spacing="10">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label
+                                                    Text="{Binding Entidad}"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="16" />
+                                                <Label
+                                                    Text="{Binding EntidadId}"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+                                            </VerticalStackLayout>
+                                            <Border
+                                                Grid.Column="1"
+                                                Padding="10,5"
+                                                BackgroundColor="#EEF5F2"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 10">
+                                                <Label
+                                                    Text="{Binding Operacion}"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_Verde}" />
+                                            </Border>
+                                        </Grid>
+
+                                        <VerticalStackLayout IsVisible="{Binding TieneAnteriores}" Spacing="4">
+                                            <Label Text="Valores anteriores" FontFamily="MontserratBold" FontSize="12" />
+                                            <Label Text="{Binding ValoresAnterioresFormateados}" FontSize="11" LineBreakMode="CharacterWrap" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout IsVisible="{Binding TieneNuevos}" Spacing="4">
+                                            <Label Text="Valores nuevos" FontFamily="MontserratBold" FontSize="12" />
+                                            <Label Text="{Binding ValoresNuevosFormateados}" FontSize="11" LineBreakMode="CharacterWrap" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="Propiedades afectadas" FontFamily="MontserratBold" FontSize="12" />
+                                            <Label Text="{Binding PropiedadesFormateadas}" FontSize="11" LineBreakMode="CharacterWrap" />
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <Grid
+                Grid.RowSpan="2"
+                IsVisible="{Binding IsBusy}"
+                BackgroundColor="#66000000">
+                <ActivityIndicator
+                    IsRunning="True"
+                    Color="White"
+                    WidthRequest="55"
+                    HeightRequest="55"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </Grid>
+        </Grid>
+    </ContentView>
+</ContentPage>

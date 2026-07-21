@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.bitacoraPage"
+    x:Name="BitacoraPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid RowDefinitions="Auto,*">
+
+            <Grid
+                Padding="18,14"
+                ColumnDefinitions="Auto,*,Auto"
+                BackgroundColor="{StaticResource color_Verde}">
+
+                <Button
+                    Text="‹"
+                    FontSize="30"
+                    WidthRequest="46"
+                    HeightRequest="42"
+                    Padding="0"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    Command="{Binding goToBack}" />
+
+                <VerticalStackLayout Grid.Column="1" Spacing="0" Margin="10,0">
+                    <Label
+                        Text="Bitácora del sistema"
+                        FontSize="22"
+                        FontFamily="MontserratBold"
+                        TextColor="White" />
+                    <Label
+                        Text="Trazabilidad de consultas, cambios y errores"
+                        FontSize="12"
+                        TextColor="#E4F0EC" />
+                </VerticalStackLayout>
+
+                <Button
+                    Grid.Column="2"
+                    Text="Actualizar"
+                    Padding="14,8"
+                    BackgroundColor="#FFFFFF22"
+                    TextColor="White"
+                    Command="{Binding BuscarCommand}" />
+            </Grid>
+
+            <CollectionView
+                Grid.Row="1"
+                ItemsSource="{Binding Registros}"
+                SelectionMode="None"
+                Margin="0,0,0,70">
+
+                <CollectionView.Header>
+                    <VerticalStackLayout
+                        Padding="18,18,18,8"
+                        Spacing="14"
+                        MaximumWidthRequest="1280"
+                        HorizontalOptions="Center">
+
+                        <Border
+                            Padding="16"
+                            BackgroundColor="White"
+                            Stroke="#DDE7E3"
+                            StrokeShape="RoundRectangle 16">
+
+                            <VerticalStackLayout Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label
+                                            Text="Filtros de consulta"
+                                            FontFamily="MontserratBold"
+                                            FontSize="17"
+                                            TextColor="{StaticResource color_Negro}" />
+                                        <Label
+                                            Text="Puede combinar fechas, usuario, módulo, acción y estado."
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Limpiar"
+                                        Padding="14,7"
+                                        BackgroundColor="#F2F4F3"
+                                        TextColor="{StaticResource color_Verde}"
+                                        Command="{Binding LimpiarCommand}" />
+                                </Grid>
+
+                                <FlexLayout
+                                    Direction="Row"
+                                    Wrap="Wrap"
+                                    AlignItems="End">
+
+                                    <VerticalStackLayout
+                                        FlexLayout.Basis="190"
+                                        Padding="0,0,10,10"
+                                        Spacing="4">
+                                        <Label Text="Desde" FontSize="12" FontFamily="MontserratBold" />
+                                        <DatePicker Date="{Binding FechaDesde}" Format="dd/MM/yyyy" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        FlexLayout.Basis="190"
+                                        Padding="0,0,10,10"
+                                        Spacing="4">
+                                        <Label Text="Hasta" FontSize="12" FontFamily="MontserratBold" />
+                                        <DatePicker Date="{Binding FechaHasta}" Format="dd/MM/yyyy" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        FlexLayout.Basis="220"
+                                        Padding="0,0,10,10"
+                                        Spacing="4">
+                                        <Label Text="Usuario" FontSize="12" FontFamily="MontserratBold" />
+                                        <Picker
+                                            ItemsSource="{Binding Usuarios}"
+                                            ItemDisplayBinding="{Binding Nombre}"
+                                            SelectedItem="{Binding UsuarioSeleccionado}" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        FlexLayout.Basis="210"
+                                        Padding="0,0,10,10"
+                                        Spacing="4">
+                                        <Label Text="Módulo" FontSize="12" FontFamily="MontserratBold" />
+                                        <Picker
+                                            ItemsSource="{Binding Modulos}"
+                                            SelectedItem="{Binding ModuloSeleccionado}" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        FlexLayout.Basis="210"
+                                        Padding="0,0,10,10"
+                                        Spacing="4">
+                                        <Label Text="Acción" FontSize="12" FontFamily="MontserratBold" />
+                                        <Picker
+                                            ItemsSource="{Binding Acciones}"
+                                            SelectedItem="{Binding AccionSeleccionada}" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        FlexLayout.Basis="190"
+                                        Padding="0,0,10,10"
+                                        Spacing="4">
+                                        <Label Text="Estado" FontSize="12" FontFamily="MontserratBold" />
+                                        <Picker
+                                            ItemsSource="{Binding Estados}"
+                                            SelectedItem="{Binding EstadoSeleccionado}" />
+                                    </VerticalStackLayout>
+                                </FlexLayout>
+
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <Entry
+                                        Placeholder="Buscar por usuario, endpoint, descripción o correlación"
+                                        Text="{Binding TextoBusqueda}"
+                                        ReturnType="Search"
+                                        ReturnCommand="{Binding BuscarCommand}" />
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Buscar"
+                                        Padding="22,10"
+                                        BackgroundColor="{StaticResource color_Verde}"
+                                        TextColor="White"
+                                        Command="{Binding BuscarCommand}" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label
+                                Text="{Binding ResumenResultados}"
+                                FontFamily="MontserratBold"
+                                TextColor="{StaticResource color_Negro}" />
+                            <Label
+                                Grid.Column="1"
+                                Text="Seleccione un registro para ver todos sus detalles"
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="18,6"
+                            Padding="15"
+                            MaximumWidthRequest="1280"
+                            HorizontalOptions="Center"
+                            BackgroundColor="White"
+                            Stroke="#DDE7E3"
+                            StrokeShape="RoundRectangle 15">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={x:Reference BitacoraPageRoot}, Path=BindingContext.VerDetalleCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid
+                                ColumnDefinitions="Auto,*,Auto"
+                                RowDefinitions="Auto,Auto,Auto"
+                                ColumnSpacing="13"
+                                RowSpacing="7">
+
+                                <Border
+                                    Grid.RowSpan="3"
+                                    WidthRequest="50"
+                                    HeightRequest="50"
+                                    BackgroundColor="#EEF5F2"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 14"
+                                    VerticalOptions="Start">
+                                    <Label
+                                        Text="≡"
+                                        FontSize="25"
+                                        TextColor="{StaticResource color_Verde}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+
+                                <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                                    <Label
+                                        Text="{Binding Accion}"
+                                        FontFamily="MontserratBold"
+                                        FontSize="15"
+                                        TextColor="{StaticResource color_Verde}" />
+                                    <Label Text="·" TextColor="#9AA6A1" />
+                                    <Label
+                                        Text="{Binding Modulo}"
+                                        FontFamily="MontserratBold"
+                                        FontSize="15"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </HorizontalStackLayout>
+
+                                <Border
+                                    Grid.Column="2"
+                                    Padding="10,5"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 12">
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding Exitoso}"
+                                            Value="True">
+                                            <Setter Property="BackgroundColor" Value="#E5F5EA" />
+                                        </DataTrigger>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding Exitoso}"
+                                            Value="False">
+                                            <Setter Property="BackgroundColor" Value="#FCE8E6" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Label
+                                        Text="{Binding EstadoTexto}"
+                                        FontSize="11"
+                                        FontFamily="MontserratBold">
+                                        <Label.Triggers>
+                                            <DataTrigger
+                                                TargetType="Label"
+                                                Binding="{Binding Exitoso}"
+                                                Value="True">
+                                                <Setter Property="TextColor" Value="#267A42" />
+                                            </DataTrigger>
+                                            <DataTrigger
+                                                TargetType="Label"
+                                                Binding="{Binding Exitoso}"
+                                                Value="False">
+                                                <Setter Property="TextColor" Value="#B3261E" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
+
+                                <Label
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Grid.ColumnSpan="2"
+                                    Text="{Binding Descripcion}"
+                                    FontSize="13"
+                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    LineBreakMode="TailTruncation"
+                                    MaxLines="2" />
+
+                                <FlexLayout
+                                    Grid.Row="2"
+                                    Grid.Column="1"
+                                    Grid.ColumnSpan="2"
+                                    Direction="Row"
+                                    Wrap="Wrap">
+                                    <Label Text="{Binding FechaHoraTexto}" FontSize="11" Margin="0,0,14,0" />
+                                    <Label Text="{Binding UsuarioTexto}" FontSize="11" Margin="0,0,14,0" />
+                                    <Label Text="{Binding RolTexto}" FontSize="11" Margin="0,0,14,0" />
+                                    <Label Text="{Binding DuracionTexto}" FontSize="11" Margin="0,0,14,0" />
+                                    <Label Text="{Binding CambiosTexto}" FontSize="11" />
+                                </FlexLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout
+                        Padding="30,70"
+                        HorizontalOptions="Center"
+                        Spacing="8">
+                        <Label
+                            Text="No se encontraron registros"
+                            FontFamily="MontserratBold"
+                            FontSize="18"
+                            HorizontalTextAlignment="Center" />
+                        <Label
+                            Text="Cambie los filtros o amplíe el rango de fechas."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.Footer>
+                    <Grid
+                        Padding="18,18,18,30"
+                        ColumnDefinitions="Auto,*,Auto"
+                        MaximumWidthRequest="600"
+                        HorizontalOptions="Center">
+                        <Button
+                            Text="Anterior"
+                            IsEnabled="{Binding PuedeAnterior}"
+                            Command="{Binding AnteriorCommand}" />
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding ResumenPagina}"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            FontFamily="MontserratBold" />
+                        <Button
+                            Grid.Column="2"
+                            Text="Siguiente"
+                            IsEnabled="{Binding PuedeSiguiente}"
+                            Command="{Binding SiguienteCommand}" />
+                    </Grid>
+                </CollectionView.Footer>
+            </CollectionView>
+
+            <Grid
+                Grid.RowSpan="2"
+                IsVisible="{Binding IsBusy}"
+                BackgroundColor="#66000000"
+                InputTransparent="False">
+                <Border
+                    Padding="24"
+                    BackgroundColor="White"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 16"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                    <VerticalStackLayout Spacing="10">
+                        <ActivityIndicator
+                            IsRunning="True"
+                            Color="{StaticResource color_Verde}" />
+                        <Label Text="Consultando bitácora..." />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </Grid>
+    </ContentView>
+</ContentPage>
