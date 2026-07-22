@@ -40,10 +40,45 @@
                 <Button
                     Grid.Column="2"
                     Text="Actualizar"
-                    Padding="14,8"
-                    BackgroundColor="#FFFFFF22"
-                    TextColor="White"
-                    Command="{Binding BuscarCommand}" />
+                    Padding="16,9"
+                    FontFamily="MontserratBold"
+                    BackgroundColor="White"
+                    TextColor="{StaticResource color_Verde}"
+                    IsEnabled="{Binding NotIsBusy}"
+                    SemanticProperties.Description="Actualizar los registros de la bitácora"
+                    Command="{Binding BuscarCommand}">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroupList>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal">
+                                    <VisualState.Setters>
+                                        <Setter Property="BackgroundColor" Value="White" />
+                                        <Setter Property="TextColor" Value="{StaticResource color_Verde}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Property="BackgroundColor" Value="#E8F1EE" />
+                                        <Setter Property="TextColor" Value="{StaticResource color_Verde}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Property="BackgroundColor" Value="#D5E5DF" />
+                                        <Setter Property="TextColor" Value="{StaticResource color_Verde}" />
+                                        <Setter Property="Scale" Value="0.98" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Property="BackgroundColor" Value="#C8D6D1" />
+                                        <Setter Property="TextColor" Value="#64736E" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateGroupList>
+                    </VisualStateManager.VisualStateGroups>
+                </Button>
             </Grid>
 
             <CollectionView
@@ -85,6 +120,7 @@
                                         Padding="14,7"
                                         BackgroundColor="#F2F4F3"
                                         TextColor="{StaticResource color_Verde}"
+                                        IsEnabled="{Binding NotIsBusy}"
                                         Command="{Binding LimpiarCommand}" />
                                 </Grid>
 
@@ -98,7 +134,7 @@
                                         Padding="0,0,10,10"
                                         Spacing="4">
                                         <Label Text="Desde" FontSize="12" FontFamily="MontserratBold" />
-                                        <DatePicker Date="{Binding FechaDesde}" Format="dd/MM/yyyy" />
+                                        <DatePicker Date="{Binding FechaDesde}" Format="dd/MM/yyyy" IsEnabled="{Binding NotIsBusy}" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
@@ -106,7 +142,7 @@
                                         Padding="0,0,10,10"
                                         Spacing="4">
                                         <Label Text="Hasta" FontSize="12" FontFamily="MontserratBold" />
-                                        <DatePicker Date="{Binding FechaHasta}" Format="dd/MM/yyyy" />
+                                        <DatePicker Date="{Binding FechaHasta}" Format="dd/MM/yyyy" IsEnabled="{Binding NotIsBusy}" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
@@ -115,9 +151,10 @@
                                         Spacing="4">
                                         <Label Text="Usuario" FontSize="12" FontFamily="MontserratBold" />
                                         <Picker
+                                            Title="Todos"
                                             ItemsSource="{Binding Usuarios}"
-                                            ItemDisplayBinding="{Binding Nombre}"
-                                            SelectedItem="{Binding UsuarioSeleccionado}" />
+                                            SelectedIndex="{Binding UsuarioSeleccionadoIndex, Mode=TwoWay}"
+                                            IsEnabled="{Binding NotIsBusy}" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
@@ -127,7 +164,8 @@
                                         <Label Text="Módulo" FontSize="12" FontFamily="MontserratBold" />
                                         <Picker
                                             ItemsSource="{Binding Modulos}"
-                                            SelectedItem="{Binding ModuloSeleccionado}" />
+                                            SelectedItem="{Binding ModuloSeleccionado}"
+                                            IsEnabled="{Binding NotIsBusy}" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
@@ -137,7 +175,8 @@
                                         <Label Text="Acción" FontSize="12" FontFamily="MontserratBold" />
                                         <Picker
                                             ItemsSource="{Binding Acciones}"
-                                            SelectedItem="{Binding AccionSeleccionada}" />
+                                            SelectedItem="{Binding AccionSeleccionada}"
+                                            IsEnabled="{Binding NotIsBusy}" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
@@ -147,7 +186,8 @@
                                         <Label Text="Estado" FontSize="12" FontFamily="MontserratBold" />
                                         <Picker
                                             ItemsSource="{Binding Estados}"
-                                            SelectedItem="{Binding EstadoSeleccionado}" />
+                                            SelectedItem="{Binding EstadoSeleccionado}"
+                                            IsEnabled="{Binding NotIsBusy}" />
                                     </VerticalStackLayout>
                                 </FlexLayout>
 
@@ -156,6 +196,7 @@
                                         Placeholder="Buscar por usuario, endpoint, descripción o correlación"
                                         Text="{Binding TextoBusqueda}"
                                         ReturnType="Search"
+                                        IsEnabled="{Binding NotIsBusy}"
                                         ReturnCommand="{Binding BuscarCommand}" />
 
                                     <Button
@@ -164,6 +205,7 @@
                                         Padding="22,10"
                                         BackgroundColor="{StaticResource color_Verde}"
                                         TextColor="White"
+                                        IsEnabled="{Binding NotIsBusy}"
                                         Command="{Binding BuscarCommand}" />
                                 </Grid>
                             </VerticalStackLayout>
@@ -178,8 +220,47 @@
                                 Grid.Column="1"
                                 Text="Seleccione un registro para ver todos sus detalles"
                                 FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                                TextColor="{StaticResource color_GrisOscuro}"
+                                IsVisible="{Binding MostrarAyudaDetalle}" />
                         </Grid>
+
+                        <!--
+                            Se muestra dentro del encabezado y no como
+                            CollectionView.EmptyView. Esto evita el bloqueo
+                            de medición/renderizado observado en WinUI cuando
+                            ItemsSource queda vacío y existen Header y Footer.
+                        -->
+                        <Border
+                            IsVisible="{Binding MostrarSinResultados}"
+                            Padding="28,34"
+                            BackgroundColor="White"
+                            Stroke="#DDE7E3"
+                            StrokeShape="RoundRectangle 16">
+
+                            <VerticalStackLayout
+                                HorizontalOptions="Center"
+                                Spacing="8">
+
+                                <Label
+                                    Text="No se encontraron registros"
+                                    FontFamily="MontserratBold"
+                                    FontSize="18"
+                                    TextColor="{StaticResource color_Negro}"
+                                    HorizontalTextAlignment="Center" />
+
+                                <Label
+                                    Text="No existen operaciones que coincidan con los filtros seleccionados."
+                                    FontSize="13"
+                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    HorizontalTextAlignment="Center" />
+
+                                <Label
+                                    Text="Cambie los filtros o amplíe el rango de fechas."
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
                     </VerticalStackLayout>
                 </CollectionView.Header>
 
@@ -303,26 +384,9 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
 
-                <CollectionView.EmptyView>
-                    <VerticalStackLayout
-                        Padding="30,70"
-                        HorizontalOptions="Center"
-                        Spacing="8">
-                        <Label
-                            Text="No se encontraron registros"
-                            FontFamily="MontserratBold"
-                            FontSize="18"
-                            HorizontalTextAlignment="Center" />
-                        <Label
-                            Text="Cambie los filtros o amplíe el rango de fechas."
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}"
-                            HorizontalTextAlignment="Center" />
-                    </VerticalStackLayout>
-                </CollectionView.EmptyView>
-
-                <CollectionView.Footer>
+<CollectionView.Footer>
                     <Grid
+                        IsVisible="{Binding MostrarPaginacion}"
                         Padding="18,18,18,30"
                         ColumnDefinitions="Auto,*,Auto"
                         MaximumWidthRequest="600"
