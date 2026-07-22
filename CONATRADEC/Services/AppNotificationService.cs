@@ -57,6 +57,10 @@ namespace CONATRADEC.Services
             if (string.IsNullOrWhiteSpace(normalizedMessage))
                 return;
 
+            // El Snackbar se muestra después de que Android haya cerrado
+            // el teclado y reajustado el área visible.
+            await KeyboardService.HideAsync();
+
             await NotificationLock.WaitAsync();
 
             try
@@ -104,6 +108,10 @@ namespace CONATRADEC.Services
             string acceptText,
             string cancelText)
         {
+            // Evita que DisplayAlert quede visualmente limitado por
+            // el teclado virtual.
+            await KeyboardService.HideAsync();
+
             Page? page = Application.Current?.MainPage;
 
             if (page == null)

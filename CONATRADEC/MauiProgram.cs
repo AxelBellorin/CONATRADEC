@@ -64,6 +64,13 @@ namespace CONATRADEC
             SwipeViewRightClick.Register();
 
             // ==========================================================
+            // Habilita globalmente el cierre del teclado al finalizar
+            // campos de entrada o ejecutar búsquedas.
+            // El toque fuera del campo se controla desde MainActivity.
+            // ==========================================================
+            KeyboardDismissBehavior.Register();
+
+            // ==========================================================
             // Logging solo en modo DEBUG
             // ==========================================================
 #if DEBUG

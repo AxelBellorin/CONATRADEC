@@ -163,7 +163,7 @@ namespace CONATRADEC.Services
 
             PermissionService.Instance.ClearPermissions();
 
-            await Shell.Current.GoToAsync(AppRoutes.Login);
+            await GoToAsyncParameters(AppRoutes.Login);
         }
 
         public async Task GoToAsyncParameters(
@@ -172,6 +172,10 @@ namespace CONATRADEC.Services
         {
             if (string.IsNullOrWhiteSpace(route))
                 return;
+
+            // Evita navegar mientras el teclado todavía ocupa parte
+            // de la pantalla en Android.
+            await KeyboardService.HideAsync();
 
             if (parameters == null)
                 await Shell.Current.GoToAsync(route, false);
@@ -188,7 +192,6 @@ namespace CONATRADEC.Services
             {
                 _ = MostrarInformacionAsync(
                     "No tiene permisos para acceder a esta sección.");
-
                 return false;
             }
 

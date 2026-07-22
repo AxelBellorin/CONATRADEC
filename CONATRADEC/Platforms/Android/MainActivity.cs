@@ -1,43 +1,107 @@
-﻿using Android.App;
+using Android.App;
 using Android.Content.PM;
 using Android.OS;
+using Android.Views;
+using Android.Widget;
 using AndroidX.Core.View;
-using Microsoft.Maui;                         
-using Microsoft.Maui.ApplicationModel;        // para Platform.CurrentActivity (opcional)
-using Plugin.Fingerprint;             // Plugin de biometría (huella/Face ID)
-using Plugin.Fingerprint.Abstractions; // Tipos del plugin (AuthenticationRequestConfiguration)        
+using CONATRADEC.Services;
+using Microsoft.Maui;
+using Plugin.Fingerprint;
+
+// Alias explícitos para evitar ambigüedad con Microsoft.Maui.Graphics.
+using AndroidColor = Android.Graphics.Color;
+using AndroidRect = Android.Graphics.Rect;
 
 namespace CONATRADEC
 {
-    [Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+    [Activity(
+        Theme = "@style/Maui.SplashTheme",
+        MainLauncher = true,
+        LaunchMode = LaunchMode.SingleTop,
+        ConfigurationChanges =
+            ConfigChanges.ScreenSize |
+            ConfigChanges.Orientation |
+            ConfigChanges.UiMode |
+            ConfigChanges.ScreenLayout |
+            ConfigChanges.SmallestScreenSize |
+            ConfigChanges.Density)]
     public class MainActivity : MauiAppCompatActivity
     {
-        protected override void OnCreate(Android.OS.Bundle? savedInstanceState)
+        protected override void OnCreate(
+            Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
 
-            // Color de la barra de estado
-            Window.SetStatusBarColor(Android.Graphics.Color.ParseColor("#3B655B"));
+            // Color de la barra de estado.
+            Window?.SetStatusBarColor(
+                AndroidColor.ParseColor("#3B655B"));
 
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.M)
+            if (Build.VERSION.SdkInt >=
+                    BuildVersionCodes.M &&
+                Window != null)
             {
-                // Iconos oscuros (útil si el fondo es claro). 
-                var insets = WindowCompat.GetInsetsController(Window, Window.DecorView);
+                var insets =
+                    WindowCompat.GetInsetsController(
+                        Window,
+                        Window.DecorView);
+
                 if (insets is not null)
-                    insets.AppearanceLightStatusBars = false; // false = iconos claros
+                {
+                    // False = iconos claros.
+                    insets.AppearanceLightStatusBars =
+                        false;
+                }
             }
 
-            // ✅ Así es como se registra correctamente el resolver
-            CrossFingerprint.SetCurrentActivityResolver(() => this);
+            // Mantiene funcionando la autenticación biométrica.
+            CrossFingerprint
+                .SetCurrentActivityResolver(
+                    () => this);
         }
 
-        // (Opcional) si quieres asegurarte en reanudaciones:
         protected override void OnResume()
         {
             base.OnResume();
 
-            // (Opcional, refuerza la asociación si la actividad se reanuda)
-            CrossFingerprint.SetCurrentActivityResolver(() => this);
+            CrossFingerprint
+                .SetCurrentActivityResolver(
+                    () => this);
+        }
+
+        /// <summary>
+        /// Detecta globalmente cuando el usuario toca fuera del campo
+        /// de texto, campo numérico, campo decimal o Editor activo.
+        ///
+        /// Todos esos controles de MAUI utilizan internamente un
+        /// EditText en Android, por lo que no es necesario modificar
+        /// cada página XAML.
+        /// </summary>
+        public override bool DispatchTouchEvent(
+            MotionEvent? motionEvent)
+        {
+            if (motionEvent?.Action ==
+                    MotionEventActions.Down &&
+                CurrentFocus is EditText focusedInput)
+            {
+                var inputBounds =
+                    new AndroidRect();
+
+                focusedInput.GetGlobalVisibleRect(
+                    inputBounds);
+
+                bool touchedOutsideInput =
+                    !inputBounds.Contains(
+                        (int)motionEvent.RawX,
+                        (int)motionEvent.RawY);
+
+                if (touchedOutsideInput)
+                {
+                    KeyboardService.HideImmediately();
+                }
+            }
+
+            return base.DispatchTouchEvent(
+                motionEvent);
         }
     }
 }
