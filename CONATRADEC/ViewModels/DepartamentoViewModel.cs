@@ -1,6 +1,7 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
@@ -10,8 +11,8 @@ namespace CONATRADEC.ViewModels
         private string titlePage = string.Empty;
         private ObservableCollection<DepartamentoResponse> list = new();
         private readonly DepartamentoApiService departamentoApiService;
-        private bool cargandoDepartamentos;
         private bool eliminandoDepartamento;
+        private long versionCargaDepartamentos;
 
         public ObservableCollection<DepartamentoResponse> List
         {
@@ -21,7 +22,7 @@ namespace CONATRADEC.ViewModels
                 if (ReferenceEquals(list, value))
                     return;
 
-                list = value;
+                list = value ?? new ObservableCollection<DepartamentoResponse>();
                 OnPropertyChanged();
             }
         }
@@ -33,6 +34,12 @@ namespace CONATRADEC.ViewModels
             {
                 paisRequest = value ?? new PaisRequest();
                 OnPropertyChanged();
+
+                // La página puede reutilizar el mismo ViewModel al navegar.
+                // Invalidamos cualquier consulta anterior y limpiamos de inmediato
+                // los departamentos del país previamente visualizado.
+                Interlocked.Increment(ref versionCargaDepartamentos);
+                List = new ObservableCollection<DepartamentoResponse>();
             }
         }
 
@@ -83,15 +90,27 @@ namespace CONATRADEC.ViewModels
         {
             if (!CanView)
             {
+                List = new ObservableCollection<DepartamentoResponse>();
+
                 await MostrarToastAsync(
                     "No tiene permisos para ver departamentos.");
                 return;
             }
 
-            if (cargandoDepartamentos)
-                return;
+            int paisId = PaisRequest.PaisId;
 
-            cargandoDepartamentos = true;
+            if (paisId <= 0)
+            {
+                // Shell todavía puede estar aplicando QueryProperty.
+                // La página volverá a intentar la carga cuando llegue el PaisId.
+                List = new ObservableCollection<DepartamentoResponse>();
+                return;
+            }
+
+            // Cada carga recibe una versión. Si el usuario cambia de país antes
+            // de que la solicitud termine, la respuesta anterior se descarta.
+            long versionActual =
+                Interlocked.Increment(ref versionCargaDepartamentos);
 
             if (mostrarIndicadorCarga)
                 IsBusy = true;
@@ -99,33 +118,66 @@ namespace CONATRADEC.ViewModels
             try
             {
                 var resultado = await departamentoApiService
-                    .GetDepartamentosResultAsync(PaisRequest.PaisId);
+                    .GetDepartamentosResultAsync(paisId);
+
+                if (!EsCargaActual(versionActual, paisId))
+                    return;
 
                 if (!resultado.Success)
                 {
+                    List = new ObservableCollection<DepartamentoResponse>();
+
                     await MostrarToastAsync(resultado.Message);
                     return;
                 }
 
                 List = new ObservableCollection<DepartamentoResponse>(
-                    (resultado.Data ?? new ObservableCollection<DepartamentoResponse>())
-                    .OrderBy(x => x.NombreDepartamento ?? string.Empty));
+                    (resultado.Data ??
+                     new ObservableCollection<DepartamentoResponse>())
+                    .OrderBy(
+                        departamento =>
+                            departamento.NombreDepartamento ??
+                            string.Empty));
 
                 if (List.Count == 0)
-                    await MostrarToastAsync("No se encontraron departamentos.");
+                {
+                    string nombrePais =
+                        string.IsNullOrWhiteSpace(PaisRequest.NombrePais)
+                            ? "seleccionado"
+                            : PaisRequest.NombrePais;
+
+                    await MostrarInformacionAsync(
+                        $"El país '{nombrePais}' todavía no tiene departamentos registrados.");
+                }
             }
             catch
             {
+                if (!EsCargaActual(versionActual, paisId))
+                    return;
+
+                List = new ObservableCollection<DepartamentoResponse>();
+
                 await MostrarToastAsync(
                     "Ocurrió un error inesperado al cargar los departamentos.");
             }
             finally
             {
-                cargandoDepartamentos = false;
-
-                if (mostrarIndicadorCarga)
+                // Una solicitud anterior no puede apagar el indicador de una
+                // solicitud más reciente.
+                if (mostrarIndicadorCarga &&
+                    EsCargaActual(versionActual, paisId))
+                {
                     IsBusy = false;
+                }
             }
+        }
+
+        private bool EsCargaActual(
+            long version,
+            int paisId)
+        {
+            return Volatile.Read(ref versionCargaDepartamentos) == version &&
+                   PaisRequest.PaisId == paisId;
         }
 
         private async Task OnAddAsync()
@@ -149,10 +201,13 @@ namespace CONATRADEC.ViewModels
                 }
             };
 
-            await GoToAsyncParameters("//DepartamentoFormPage", parameters);
+            await GoToAsyncParameters(
+                "//DepartamentoFormPage",
+                parameters);
         }
 
-        private async Task OnEditAsync(DepartamentoResponse? departamento)
+        private async Task OnEditAsync(
+            DepartamentoResponse? departamento)
         {
             if (!CanEdit)
             {
@@ -167,13 +222,19 @@ namespace CONATRADEC.ViewModels
             {
                 { "Pais", PaisRequest },
                 { "Mode", FormMode.FormModeSelect.Edit },
-                { "Departamento", new DepartamentoRequest(departamento) }
+                {
+                    "Departamento",
+                    new DepartamentoRequest(departamento)
+                }
             };
 
-            await GoToAsyncParameters("//DepartamentoFormPage", parameters);
+            await GoToAsyncParameters(
+                "//DepartamentoFormPage",
+                parameters);
         }
 
-        private async Task OnViewAsync(DepartamentoResponse? departamento)
+        private async Task OnViewAsync(
+            DepartamentoResponse? departamento)
         {
             if (!CanView)
             {
@@ -188,17 +249,23 @@ namespace CONATRADEC.ViewModels
             var parameters = new Dictionary<string, object>
             {
                 { "Pais", PaisRequest },
-                { "Departamento", new DepartamentoRequest(departamento) },
+                {
+                    "Departamento",
+                    new DepartamentoRequest(departamento)
+                },
                 {
                     "TitlePage",
                     $"Municipios de {departamento.NombreDepartamento} - {PaisRequest.NombrePais}"
                 }
             };
 
-            await GoToAsyncParameters("//MunicipioPage", parameters);
+            await GoToAsyncParameters(
+                "//MunicipioPage",
+                parameters);
         }
 
-        private async Task OnDeleteAsync(DepartamentoResponse? departamento)
+        private async Task OnDeleteAsync(
+            DepartamentoResponse? departamento)
         {
             if (!CanDelete)
             {
@@ -206,14 +273,19 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (IsBusy || eliminandoDepartamento || departamento == null)
+            if (IsBusy ||
+                eliminandoDepartamento ||
+                departamento == null)
+            {
                 return;
+            }
 
-            bool confirmar = await App.Current.MainPage.DisplayAlert(
-                "Eliminar departamento",
-                $"¿Desea eliminar el departamento '{departamento.NombreDepartamento}'?",
-                "Sí",
-                "No");
+            bool confirmar =
+                await App.Current.MainPage.DisplayAlert(
+                    "Eliminar departamento",
+                    $"¿Desea eliminar el departamento '{departamento.NombreDepartamento}'?",
+                    "Sí",
+                    "No");
 
             if (!confirmar)
                 return;
@@ -234,6 +306,7 @@ namespace CONATRADEC.ViewModels
                 }
 
                 List.Remove(departamento);
+
                 await MostrarToastAsync(
                     string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Departamento eliminado correctamente."

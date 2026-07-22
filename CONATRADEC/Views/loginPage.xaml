@@ -1,4 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
+
 <ContentPage
     x:Class="CONATRADEC.Views.loginPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -14,6 +15,7 @@
 
         <!-- =========================================================
              PANEL INSTITUCIONAL: SOLO WINDOWS
+             La mascota ya no ocupa el espacio del logo.
              ========================================================= -->
         <Border
             Grid.Column="0"
@@ -40,20 +42,33 @@
                     VerticalOptions="Center"
                     Spacing="24">
 
-                    <Border
-                        WidthRequest="138"
-                        HeightRequest="138"
-                        Padding="8"
-                        HorizontalOptions="Start"
-                        BackgroundColor="#F7FBF9"
-                        Stroke="#D5E4DE"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 36">
+                    <!-- Logo institucional centrado -->
+                    <Grid HorizontalOptions="Fill">
 
-                        <Image
-                            Source="logocontradec.png"
-                            Aspect="AspectFit" />
-                    </Border>
+                        <Border
+                            WidthRequest="138"
+                            HeightRequest="138"
+                            Padding="8"
+                            HorizontalOptions="Center"
+                            BackgroundColor="#F7FBF9"
+                            Stroke="#D5E4DE"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 36">
+
+                            <Border.Shadow>
+                                <Shadow
+                                    Brush="#1F352F"
+                                    Offset="0,6"
+                                    Radius="16"
+                                    Opacity="0.16" />
+                            </Border.Shadow>
+
+                            <Image
+                                Source="logocontradec.png"
+                                Aspect="AspectFit" />
+                        </Border>
+
+                    </Grid>
 
                     <VerticalStackLayout Spacing="8">
                         <Label
@@ -80,21 +95,36 @@
                         CornerRadius="2" />
 
                     <VerticalStackLayout Spacing="14">
-                        <Grid ColumnDefinitions="36,*" ColumnSpacing="12">
+
+                        <Grid ColumnDefinitions="42,*" ColumnSpacing="14">
                             <Border
                                 Grid.Column="0"
-                                WidthRequest="32"
-                                HeightRequest="32"
-                                BackgroundColor="#FFFFFF22"
-                                Stroke="#FFFFFF44"
-                                StrokeShape="RoundRectangle 10">
+                                WidthRequest="36"
+                                HeightRequest="36"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                BackgroundColor="{StaticResource color_Amarillo}"
+                                Stroke="#FFF1A6"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Shadow>
+                                    <Shadow
+                                        Brush="#1F352F"
+                                        Offset="0,3"
+                                        Radius="8"
+                                        Opacity="0.20" />
+                                </Border.Shadow>
+
                                 <Label
                                     Text="✓"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    FontSize="17"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill"
+                                    HorizontalTextAlignment="Center"
+                                    VerticalTextAlignment="Center"
+                                    FontSize="21"
                                     FontAttributes="Bold"
-                                    TextColor="White" />
+                                    TextColor="{StaticResource color_Verde}" />
                             </Border>
 
                             <Label
@@ -103,24 +133,39 @@
                                 VerticalOptions="Center"
                                 FontFamily="MontserratMedium"
                                 FontSize="15"
+                                LineBreakMode="WordWrap"
                                 TextColor="White" />
                         </Grid>
 
-                        <Grid ColumnDefinitions="36,*" ColumnSpacing="12">
+                        <Grid ColumnDefinitions="42,*" ColumnSpacing="14">
                             <Border
                                 Grid.Column="0"
-                                WidthRequest="32"
-                                HeightRequest="32"
-                                BackgroundColor="#FFFFFF22"
-                                Stroke="#FFFFFF44"
-                                StrokeShape="RoundRectangle 10">
+                                WidthRequest="36"
+                                HeightRequest="36"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                BackgroundColor="{StaticResource color_Amarillo}"
+                                Stroke="#FFF1A6"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Shadow>
+                                    <Shadow
+                                        Brush="#1F352F"
+                                        Offset="0,3"
+                                        Radius="8"
+                                        Opacity="0.20" />
+                                </Border.Shadow>
+
                                 <Label
                                     Text="✓"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    FontSize="17"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill"
+                                    HorizontalTextAlignment="Center"
+                                    VerticalTextAlignment="Center"
+                                    FontSize="21"
                                     FontAttributes="Bold"
-                                    TextColor="White" />
+                                    TextColor="{StaticResource color_Verde}" />
                             </Border>
 
                             <Label
@@ -129,24 +174,39 @@
                                 VerticalOptions="Center"
                                 FontFamily="MontserratMedium"
                                 FontSize="15"
+                                LineBreakMode="WordWrap"
                                 TextColor="White" />
                         </Grid>
 
-                        <Grid ColumnDefinitions="36,*" ColumnSpacing="12">
+                        <Grid ColumnDefinitions="42,*" ColumnSpacing="14">
                             <Border
                                 Grid.Column="0"
-                                WidthRequest="32"
-                                HeightRequest="32"
-                                BackgroundColor="#FFFFFF22"
-                                Stroke="#FFFFFF44"
-                                StrokeShape="RoundRectangle 10">
+                                WidthRequest="36"
+                                HeightRequest="36"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                BackgroundColor="{StaticResource color_Amarillo}"
+                                Stroke="#FFF1A6"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Shadow>
+                                    <Shadow
+                                        Brush="#1F352F"
+                                        Offset="0,3"
+                                        Radius="8"
+                                        Opacity="0.20" />
+                                </Border.Shadow>
+
                                 <Label
                                     Text="✓"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    FontSize="17"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill"
+                                    HorizontalTextAlignment="Center"
+                                    VerticalTextAlignment="Center"
+                                    FontSize="21"
                                     FontAttributes="Bold"
-                                    TextColor="White" />
+                                    TextColor="{StaticResource color_Verde}" />
                             </Border>
 
                             <Label
@@ -155,8 +215,10 @@
                                 VerticalOptions="Center"
                                 FontFamily="MontserratMedium"
                                 FontSize="15"
+                                LineBreakMode="WordWrap"
                                 TextColor="White" />
                         </Grid>
+
                     </VerticalStackLayout>
                 </VerticalStackLayout>
 
@@ -170,16 +232,15 @@
         </Border>
 
         <!-- =========================================================
-             FORMULARIO: WINDOWS Y MÓVIL
-             Se conservan todos los bindings y eventos existentes.
+             FORMULARIO: WINDOWS Y ANDROID
              ========================================================= -->
         <ScrollView Grid.Column="1">
             <Grid
-                Padding="{OnPlatform WinUI='44,32', Default='20,22'}"
+                Padding="{OnPlatform WinUI='44,32', Default='18,20'}"
                 MinimumHeightRequest="{OnPlatform WinUI=650, Default=0}">
 
                 <VerticalStackLayout
-                    MaximumWidthRequest="480"
+                    MaximumWidthRequest="500"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     Spacing="18">
@@ -192,13 +253,13 @@
                         Margin="0,4,0,4">
 
                         <Border
-                            WidthRequest="104"
-                            HeightRequest="104"
+                            WidthRequest="88"
+                            HeightRequest="88"
                             Padding="6"
                             BackgroundColor="White"
                             Stroke="#DCE7E2"
                             StrokeThickness="1"
-                            StrokeShape="RoundRectangle 28">
+                            StrokeShape="RoundRectangle 24">
 
                             <Border.Shadow>
                                 <Shadow
@@ -220,10 +281,20 @@
                             FontAttributes="Bold"
                             HorizontalTextAlignment="Center"
                             TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="CONATRADEC · Tecnología al servicio del café"
+                            MaximumWidthRequest="340"
+                            FontFamily="MontserratMedium"
+                            FontSize="11"
+                            HorizontalTextAlignment="Center"
+                            LineBreakMode="WordWrap"
+                            TextColor="#60736B" />
                     </VerticalStackLayout>
 
+                    <!-- Tarjeta del login -->
                     <Border
-                        Padding="{OnPlatform WinUI='34,32', Default='22,24'}"
+                        Padding="{OnPlatform WinUI='34,30', Default='22,24'}"
                         BackgroundColor="White"
                         Stroke="#DCE5E1"
                         StrokeThickness="1"
@@ -239,21 +310,208 @@
 
                         <VerticalStackLayout Spacing="18">
 
-                            <!-- Título -->
-                            <VerticalStackLayout Spacing="5">
-                                <Label
-                                    Text="Bienvenido"
-                                    FontFamily="MontserratBold"
-                                    FontSize="{OnPlatform WinUI=30, Default=27}"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Negro}" />
+                            <!-- Encabezado y mascota interactiva -->
+                            <Grid
+                                ColumnDefinitions="*,Auto"
+                                ColumnSpacing="8">
 
-                                <Label
-                                    Text="Ingresa tus credenciales para continuar."
-                                    FontFamily="MontserratMedium"
-                                    FontSize="14"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-                            </VerticalStackLayout>
+                                <VerticalStackLayout
+                                    Grid.Column="0"
+                                    VerticalOptions="Center"
+                                    Spacing="5">
+
+                                    <Label
+                                        Text="Bienvenido"
+                                        FontFamily="MontserratBold"
+                                        FontSize="{OnPlatform WinUI=30, Default=27}"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
+                                    <Label
+                                        Text="Ingresa tus credenciales para continuar."
+                                        MaximumWidthRequest="285"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="14"
+                                        LineBreakMode="WordWrap"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+                                </VerticalStackLayout>
+
+                                <!-- Escenario de la mascota -->
+                                <Grid
+                                    x:Name="MascotStage"
+                                    Grid.Column="1"
+                                    WidthRequest="{OnPlatform WinUI=150, Default=126}"
+                                    HeightRequest="{OnPlatform WinUI=138, Default=126}"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Center">
+
+                                    <!-- Partículas de celebración -->
+                                    <Border
+                                        x:Name="Confetti1"
+                                        WidthRequest="7"
+                                        HeightRequest="13"
+                                        HorizontalOptions="Start"
+                                        VerticalOptions="Start"
+                                        BackgroundColor="#F2C94C"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 4"
+                                        Opacity="0" />
+
+                                    <Border
+                                        x:Name="Confetti2"
+                                        WidthRequest="7"
+                                        HeightRequest="13"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Start"
+                                        BackgroundColor="#E33E32"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 4"
+                                        Opacity="0" />
+
+                                    <Border
+                                        x:Name="Confetti3"
+                                        WidthRequest="8"
+                                        HeightRequest="8"
+                                        HorizontalOptions="Start"
+                                        VerticalOptions="Center"
+                                        BackgroundColor="#3B655B"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 8"
+                                        Opacity="0" />
+
+                                    <Border
+                                        x:Name="Confetti4"
+                                        WidthRequest="8"
+                                        HeightRequest="8"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Center"
+                                        BackgroundColor="#FF9800"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 8"
+                                        Opacity="0" />
+
+                                    <Border
+                                        x:Name="Confetti5"
+                                        WidthRequest="7"
+                                        HeightRequest="12"
+                                        HorizontalOptions="Start"
+                                        VerticalOptions="End"
+                                        BackgroundColor="#5EA8E5"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 4"
+                                        Opacity="0" />
+
+                                    <Border
+                                        x:Name="Confetti6"
+                                        WidthRequest="7"
+                                        HeightRequest="12"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="End"
+                                        BackgroundColor="#7AB648"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 4"
+                                        Opacity="0" />
+
+                                    <!-- Halo -->
+                                    <Border
+                                        x:Name="MascotGlow"
+                                        WidthRequest="{OnPlatform WinUI=108, Default=96}"
+                                        HeightRequest="{OnPlatform WinUI=96, Default=88}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="End"
+                                        Margin="0,0,0,2"
+                                        BackgroundColor="#F2C94C22"
+                                        Stroke="#F2C94C55"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 38">
+
+                                        <Border.Shadow>
+                                            <Shadow
+                                                Brush="#F2C94C"
+                                                Offset="0,0"
+                                                Radius="22"
+                                                Opacity="0.18" />
+                                        </Border.Shadow>
+                                    </Border>
+
+                                    <!-- Globo -->
+                                    <Border
+                                        x:Name="MascotSpeechBubble"
+                                        Padding="9,5"
+                                        HorizontalOptions="Start"
+                                        VerticalOptions="Start"
+                                        BackgroundColor="#FFF8D9"
+                                        Stroke="#F2C94C"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 15"
+                                        ZIndex="10">
+
+                                        <Label
+                                            x:Name="MascotSpeechText"
+                                            Text="¡Bienvenido!"
+                                            MaximumWidthRequest="{OnPlatform WinUI=126, Default=104}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="{OnPlatform WinUI=10, Default=9}"
+                                            LineBreakMode="WordWrap"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{StaticResource color_Verde}" />
+                                    </Border>
+
+                                    <!-- Parte que se mueve -->
+                                    <Grid
+                                        x:Name="MascotVisual"
+                                        WidthRequest="{OnPlatform WinUI=112, Default=100}"
+                                        HeightRequest="{OnPlatform WinUI=112, Default=100}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="End"
+                                        ZIndex="5">
+
+                                        <Image
+                                            x:Name="MascotImage"
+                                            Source="mascota_cafe_conatradec.png"
+                                            WidthRequest="{OnPlatform WinUI=108, Default=96}"
+                                            HeightRequest="{OnPlatform WinUI=108, Default=96}"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            BackgroundColor="Transparent"
+                                            Aspect="AspectFit"
+                                            SemanticProperties.Description="Mascota de café de CONATRADEC">
+
+                                            <Image.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="MascotTapped" />
+                                            </Image.GestureRecognizers>
+                                        </Image>
+
+                                        <!-- Antifaz de privacidad:
+                                             aparece al escribir la contraseña -->
+                                        <Border
+                                            x:Name="PrivacyShield"
+                                            WidthRequest="{OnPlatform WinUI=76, Default=68}"
+                                            HeightRequest="{OnPlatform WinUI=27, Default=25}"
+                                            Margin="{OnPlatform WinUI='0,27,0,0', Default='0,24,0,0'}"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Start"
+                                            BackgroundColor="#2D554A"
+                                            Stroke="#F2C94C"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 13"
+                                            Opacity="0"
+                                            Scale="0.65"
+                                            TranslationX="35"
+                                            ZIndex="15">
+
+                                            <Label
+                                                Text="🔒  PRIVADO"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center"
+                                                FontFamily="MontserratBold"
+                                                FontSize="{OnPlatform WinUI=8, Default=7}"
+                                                FontAttributes="Bold"
+                                                TextColor="White" />
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
 
                             <!-- Usuario -->
                             <VerticalStackLayout Spacing="7">
@@ -265,6 +523,7 @@
                                     TextColor="{StaticResource color_Negro}" />
 
                                 <Border
+                                    x:Name="UserBorder"
                                     Padding="14,3"
                                     BackgroundColor="#F8FAF9"
                                     Stroke="#D6E1DC"
@@ -275,6 +534,9 @@
                                         x:Name="UserNameEntry"
                                         Text="{Binding Username}"
                                         Completed="UserNameEntryCompleted"
+                                        Focused="UserNameEntry_Focused"
+                                        Unfocused="InputEntry_Unfocused"
+                                        TextChanged="UserNameEntry_TextChanged"
                                         Placeholder="nombre@correo.com"
                                         PlaceholderColor="#8B9691"
                                         Keyboard="Email"
@@ -299,6 +561,7 @@
                                     TextColor="{StaticResource color_Negro}" />
 
                                 <Border
+                                    x:Name="PasswordBorder"
                                     Padding="14,3,8,3"
                                     BackgroundColor="#F8FAF9"
                                     Stroke="#D6E1DC"
@@ -311,6 +574,9 @@
                                             Grid.Column="0"
                                             Text="{Binding Password}"
                                             Completed="PasswordEntryCompleted"
+                                            Focused="PasswordEntry_Focused"
+                                            Unfocused="InputEntry_Unfocused"
+                                            TextChanged="PasswordEntry_TextChanged"
                                             Placeholder="Ingresa tu contraseña"
                                             PlaceholderColor="#8B9691"
                                             IsPassword="{Binding IsPasswordHidden}"
@@ -321,9 +587,10 @@
                                             BackgroundColor="Transparent" />
 
                                         <ImageButton
+                                            x:Name="PasswordToggleButton"
                                             Grid.Column="1"
                                             Source="{Binding PasswordToggleIcon}"
-                                            Command="{Binding TogglePasswordCommand}"
+                                            Clicked="PasswordToggleButton_Clicked"
                                             WidthRequest="38"
                                             HeightRequest="38"
                                             Padding="8"
@@ -356,11 +623,12 @@
                                     <Label
                                         Text="Mantiene tus credenciales guardadas en este dispositivo."
                                         FontSize="11"
+                                        LineBreakMode="WordWrap"
                                         TextColor="{StaticResource color_GrisOscuro}" />
                                 </VerticalStackLayout>
                             </Grid>
 
-                            <!-- Configuración biométrica -->
+                            <!-- Biométrico -->
                             <Border
                                 IsVisible="{Binding CanUseBiometrics}"
                                 Padding="13"
@@ -412,17 +680,18 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Indicador de carga -->
                             <ActivityIndicator
                                 IsRunning="{Binding IsBusy}"
                                 IsVisible="{Binding IsBusy}"
                                 Color="{StaticResource color_Naranja}"
                                 HeightRequest="30" />
 
-                            <!-- Inicio de sesión tradicional -->
+                            <!-- Login tradicional -->
                             <Button
+                                x:Name="LoginButton"
                                 Text="Iniciar sesión"
                                 Command="{Binding LoginCommand}"
+                                Clicked="LoginButton_Clicked"
                                 IsVisible="{Binding LoginButtonVisible}"
                                 IsEnabled="{Binding NotIsBusy}"
                                 HeightRequest="54"
@@ -435,15 +704,17 @@
                                 FontAttributes="Bold"
                                 SemanticProperties.Hint="Inicia sesión con el correo y la contraseña ingresados" />
 
-                            <!-- Inicio de sesión biométrico -->
+                            <!-- Login biométrico -->
                             <VerticalStackLayout
                                 IsVisible="{Binding BiometricEnabled}"
                                 HorizontalOptions="Center"
                                 Spacing="8">
 
                                 <ImageButton
+                                    x:Name="BiometricButton"
                                     Source="fingerprint.png"
                                     Command="{Binding BiometricLoginCommand}"
+                                    Clicked="BiometricButton_Clicked"
                                     WidthRequest="76"
                                     HeightRequest="76"
                                     Padding="8"
@@ -464,8 +735,9 @@
                     </Border>
 
                     <Label
-                        Text="Acceso seguro · CONATRADEC"
+                        Text="CONATRADEC · Tecnología al servicio del café"
                         HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"
                         FontFamily="MontserratMedium"
                         FontSize="11"
                         TextColor="{StaticResource color_GrisOscuro}" />

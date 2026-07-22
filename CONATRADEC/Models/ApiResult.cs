@@ -1,3 +1,5 @@
+﻿using CONATRADEC.Services;
+
 namespace CONATRADEC.Models
 {
     /// <summary>
@@ -31,6 +33,8 @@ namespace CONATRADEC.Models
             string message,
             int? statusCode = null)
         {
+            ApiErrorContext.Set(message, statusCode);
+
             return new ApiResult<T>
             {
                 Success = false,

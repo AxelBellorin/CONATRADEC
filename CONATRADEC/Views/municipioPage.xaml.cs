@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
@@ -10,7 +10,9 @@ namespace CONATRADEC.Views
     public partial class municipioPage : ContentPage
     {
         private readonly MunicipioViewModel viewModel = new();
-        private string paisNombre;
+
+        private bool paginaVisible;
+        private bool permisosCargados;
 
         public string TitlePage
         {
@@ -19,10 +21,15 @@ namespace CONATRADEC.Views
 
         public PaisRequest Pais
         {
-            set 
-            { 
-                viewModel.PaisRequest = value;
-                paisNombre = value.NombrePais;
+            set
+            {
+                viewModel.PaisRequest =
+                    value ?? new PaisRequest();
+
+                // Las QueryProperty pueden llegar en distinto orden.
+                // La carga inicia cuando País y Departamento sean válidos.
+                if (paginaVisible && permisosCargados)
+                    _ = IntentarCargarMunicipiosAsync(true);
             }
         }
 
@@ -30,31 +37,74 @@ namespace CONATRADEC.Views
         {
             set
             {
-                viewModel.DepartamentoRequest = value;
-                _ = viewModel.LoadMunicipio(true);
+                viewModel.DepartamentoRequest =
+                    value ?? new DepartamentoRequest();
+
+                if (paginaVisible && permisosCargados)
+                    _ = IntentarCargarMunicipiosAsync(true);
             }
         }
 
         public municipioPage()
         {
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
             InitializeComponent();
+            BindingContext = viewModel;
         }
 
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            if (!PermissionService.Instance.HasRead("municipioPage"))
-            {
-                _ = GlobalService.MostrarToastAsync("No tiene permisos para ver municipios.");
+            paginaVisible = true;
 
-                Shell.Current.GoToAsync("//MainPage");
+            if (!PermissionService.Instance.HasRead(
+                    "municipioPage"))
+            {
+                paginaVisible = false;
+
+                await GlobalService.MostrarToastAsync(
+                    "No tiene permisos para ver municipios.");
+
+                await Shell.Current.GoToAsync("//MainPage");
                 return;
             }
 
-            viewModel.LoadPagePermissions("municipioPage");
+            viewModel.LoadPagePermissions(
+                "municipioPage");
+
+            permisosCargados = true;
+
+            // Si los parámetros ya llegaron, carga ahora.
+            // Si aún falta alguno, su setter ejecutará la carga después.
+            await IntentarCargarMunicipiosAsync(true);
+        }
+
+        protected override void OnDisappearing()
+        {
+            paginaVisible = false;
+            base.OnDisappearing();
+        }
+
+        private async Task IntentarCargarMunicipiosAsync(
+            bool mostrarIndicadorCarga)
+        {
+            int? departamentoId =
+                viewModel.DepartamentoRequest.DepartamentoId;
+
+            if (!paginaVisible ||
+                !permisosCargados ||
+                viewModel.PaisRequest.PaisId <= 0 ||
+                !departamentoId.HasValue ||
+                departamentoId.Value <= 0)
+            {
+                return;
+            }
+
+            await viewModel.LoadMunicipio(
+                mostrarIndicadorCarga);
         }
     }
 }

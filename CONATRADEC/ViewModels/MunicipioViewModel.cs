@@ -1,6 +1,7 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
@@ -11,8 +12,8 @@ namespace CONATRADEC.ViewModels
         private string titlePage = string.Empty;
         private ObservableCollection<MunicipioResponse> list = new();
         private readonly MunicipioApiService municipioApiService;
-        private bool cargandoMunicipios;
         private bool eliminandoMunicipio;
+        private long versionCargaMunicipios;
 
         public ObservableCollection<MunicipioResponse> List
         {
@@ -22,7 +23,7 @@ namespace CONATRADEC.ViewModels
                 if (ReferenceEquals(list, value))
                     return;
 
-                list = value;
+                list = value ?? new ObservableCollection<MunicipioResponse>();
                 OnPropertyChanged();
             }
         }
@@ -32,8 +33,15 @@ namespace CONATRADEC.ViewModels
             get => departamentoRequest;
             set
             {
-                departamentoRequest = value ?? new DepartamentoRequest();
+                departamentoRequest =
+                    value ?? new DepartamentoRequest();
+
                 OnPropertyChanged();
+
+                // Descarta cualquier carga perteneciente al departamento
+                // anteriormente visualizado y limpia su colección.
+                Interlocked.Increment(ref versionCargaMunicipios);
+                List = new ObservableCollection<MunicipioResponse>();
             }
         }
 
@@ -44,6 +52,11 @@ namespace CONATRADEC.ViewModels
             {
                 paisRequest = value ?? new PaisRequest();
                 OnPropertyChanged();
+
+                // También se invalida al cambiar el país porque Shell puede
+                // aplicar las QueryProperty en un orden diferente.
+                Interlocked.Increment(ref versionCargaMunicipios);
+                List = new ObservableCollection<MunicipioResponse>();
             }
         }
 
@@ -68,7 +81,8 @@ namespace CONATRADEC.ViewModels
         {
         }
 
-        public MunicipioViewModel(MunicipioApiService municipioApiService)
+        public MunicipioViewModel(
+            MunicipioApiService municipioApiService)
         {
             this.municipioApiService = municipioApiService
                 ?? throw new ArgumentNullException(nameof(municipioApiService));
@@ -93,15 +107,31 @@ namespace CONATRADEC.ViewModels
         {
             if (!CanView)
             {
+                List = new ObservableCollection<MunicipioResponse>();
+
                 await MostrarToastAsync(
                     "No tiene permisos para ver municipios.");
                 return;
             }
 
-            if (cargandoMunicipios)
-                return;
+            int? departamentoId =
+                DepartamentoRequest.DepartamentoId;
 
-            cargandoMunicipios = true;
+            if (!departamentoId.HasValue ||
+                departamentoId.Value <= 0)
+            {
+                // Shell todavía puede estar aplicando QueryProperty.
+                // La página volverá a intentar cuando llegue DepartamentoId.
+                List = new ObservableCollection<MunicipioResponse>();
+                return;
+            }
+
+            int idSeleccionado = departamentoId.Value;
+
+            // La versión evita que una respuesta tardía de otro departamento
+            // reemplace la colección del departamento actualmente seleccionado.
+            long versionActual =
+                Interlocked.Increment(ref versionCargaMunicipios);
 
             if (mostrarIndicadorCarga)
                 IsBusy = true;
@@ -109,34 +139,76 @@ namespace CONATRADEC.ViewModels
             try
             {
                 var resultado = await municipioApiService
-                    .GetMunicipiosResultAsync(
-                        DepartamentoRequest.DepartamentoId);
+                    .GetMunicipiosResultAsync(idSeleccionado);
+
+                if (!EsCargaActual(
+                        versionActual,
+                        idSeleccionado))
+                {
+                    return;
+                }
 
                 if (!resultado.Success)
                 {
+                    List = new ObservableCollection<MunicipioResponse>();
+
                     await MostrarToastAsync(resultado.Message);
                     return;
                 }
 
                 List = new ObservableCollection<MunicipioResponse>(
-                    (resultado.Data ?? new ObservableCollection<MunicipioResponse>())
-                    .OrderBy(x => x.NombreMunicipio ?? string.Empty));
+                    (resultado.Data ??
+                     new ObservableCollection<MunicipioResponse>())
+                    .OrderBy(
+                        municipio =>
+                            municipio.NombreMunicipio ??
+                            string.Empty));
 
                 if (List.Count == 0)
-                    await MostrarToastAsync("No se encontraron municipios.");
+                {
+                    string nombreDepartamento =
+                        string.IsNullOrWhiteSpace(
+                            DepartamentoRequest.NombreDepartamento)
+                            ? "seleccionado"
+                            : DepartamentoRequest.NombreDepartamento;
+
+                    await MostrarInformacionAsync(
+                        $"El departamento '{nombreDepartamento}' todavía no tiene municipios registrados.");
+                }
             }
             catch
             {
+                if (!EsCargaActual(
+                        versionActual,
+                        idSeleccionado))
+                {
+                    return;
+                }
+
+                List = new ObservableCollection<MunicipioResponse>();
+
                 await MostrarToastAsync(
                     "Ocurrió un error inesperado al cargar los municipios.");
             }
             finally
             {
-                cargandoMunicipios = false;
-
-                if (mostrarIndicadorCarga)
+                if (mostrarIndicadorCarga &&
+                    EsCargaActual(
+                        versionActual,
+                        idSeleccionado))
+                {
                     IsBusy = false;
+                }
             }
+        }
+
+        private bool EsCargaActual(
+            long version,
+            int departamentoId)
+        {
+            return Volatile.Read(ref versionCargaMunicipios) == version &&
+                   DepartamentoRequest.DepartamentoId ==
+                   departamentoId;
         }
 
         private async Task ReturnToDepartamentoAsync()
@@ -153,7 +225,9 @@ namespace CONATRADEC.ViewModels
                 }
             };
 
-            await GoToAsyncParameters("//DepartamentoPage", parameters);
+            await GoToAsyncParameters(
+                "//DepartamentoPage",
+                parameters);
         }
 
         private async Task OnAddAsync()
@@ -172,13 +246,19 @@ namespace CONATRADEC.ViewModels
                 { "Mode", FormMode.FormModeSelect.Create },
                 { "Pais", PaisRequest },
                 { "Departamento", DepartamentoRequest },
-                { "Municipio", new MunicipioRequest(new MunicipioResponse()) }
+                {
+                    "Municipio",
+                    new MunicipioRequest(new MunicipioResponse())
+                }
             };
 
-            await GoToAsyncParameters("//MunicipioFormPage", parameters);
+            await GoToAsyncParameters(
+                "//MunicipioFormPage",
+                parameters);
         }
 
-        private async Task OnEditAsync(MunicipioResponse? municipio)
+        private async Task OnEditAsync(
+            MunicipioResponse? municipio)
         {
             if (!CanEdit)
             {
@@ -194,13 +274,19 @@ namespace CONATRADEC.ViewModels
                 { "Mode", FormMode.FormModeSelect.Edit },
                 { "Pais", PaisRequest },
                 { "Departamento", DepartamentoRequest },
-                { "Municipio", new MunicipioRequest(municipio) }
+                {
+                    "Municipio",
+                    new MunicipioRequest(municipio)
+                }
             };
 
-            await GoToAsyncParameters("//MunicipioFormPage", parameters);
+            await GoToAsyncParameters(
+                "//MunicipioFormPage",
+                parameters);
         }
 
-        private async Task OnViewAsync(MunicipioResponse? municipio)
+        private async Task OnViewAsync(
+            MunicipioResponse? municipio)
         {
             if (!CanView)
             {
@@ -217,13 +303,19 @@ namespace CONATRADEC.ViewModels
                 { "Mode", FormMode.FormModeSelect.View },
                 { "Pais", PaisRequest },
                 { "Departamento", DepartamentoRequest },
-                { "Municipio", new MunicipioRequest(municipio) }
+                {
+                    "Municipio",
+                    new MunicipioRequest(municipio)
+                }
             };
 
-            await GoToAsyncParameters("//MunicipioFormPage", parameters);
+            await GoToAsyncParameters(
+                "//MunicipioFormPage",
+                parameters);
         }
 
-        private async Task OnDeleteAsync(MunicipioResponse? municipio)
+        private async Task OnDeleteAsync(
+            MunicipioResponse? municipio)
         {
             if (!CanDelete)
             {
@@ -231,14 +323,19 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (IsBusy || eliminandoMunicipio || municipio == null)
+            if (IsBusy ||
+                eliminandoMunicipio ||
+                municipio == null)
+            {
                 return;
+            }
 
-            bool confirmar = await App.Current.MainPage.DisplayAlert(
-                "Eliminar municipio",
-                $"¿Desea eliminar el municipio '{municipio.NombreMunicipio}'?",
-                "Sí",
-                "No");
+            bool confirmar =
+                await App.Current.MainPage.DisplayAlert(
+                    "Eliminar municipio",
+                    $"¿Desea eliminar el municipio '{municipio.NombreMunicipio}'?",
+                    "Sí",
+                    "No");
 
             if (!confirmar)
                 return;
@@ -259,6 +356,7 @@ namespace CONATRADEC.ViewModels
                 }
 
                 List.Remove(municipio);
+
                 await MostrarToastAsync(
                     string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Municipio eliminado correctamente."

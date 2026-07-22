@@ -16,24 +16,29 @@ namespace CONATRADEC.Services
         {
             try
             {
-                using var response = await httpClient.GetAsync(route, cancellationToken);
+                using var response = await httpClient.GetAsync(
+                    route,
+                    cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     return ApiResult<ObservableCollection<T>>.Fail(
-                        await GetResponseMessageAsync(
+                        await ReadResponseMessageAsync(
                             response,
-                            $"No fue posible cargar {entityName}."),
+                            $"No fue posible cargar {entityName}.",
+                            cancellationToken),
                         (int)response.StatusCode);
                 }
 
-                var data = await response.Content.ReadFromJsonAsync<ObservableCollection<T>>(
-                    cancellationToken: cancellationToken);
+                var data = await response.Content
+                    .ReadFromJsonAsync<ObservableCollection<T>>(
+                        cancellationToken: cancellationToken);
 
                 return ApiResult<ObservableCollection<T>>.Ok(
                     data ?? new ObservableCollection<T>());
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<ObservableCollection<T>>.Fail(
                     "La solicitud tardó demasiado. Intente nuevamente.");
@@ -76,27 +81,32 @@ namespace CONATRADEC.Services
                 if (request is not null)
                     message.Content = JsonContent.Create(request);
 
-                using var response = await httpClient.SendAsync(message, cancellationToken);
+                using var response = await httpClient.SendAsync(
+                    message,
+                    cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     return ApiResult<bool>.Fail(
-                        await GetResponseMessageAsync(
+                        await ReadResponseMessageAsync(
                             response,
-                            $"No fue posible {action}."),
+                            $"No fue posible {action}.",
+                            cancellationToken),
                         (int)response.StatusCode);
                 }
 
                 return ApiResult<bool>.Ok(true, successMessage);
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<bool>.Fail(
                     "La solicitud tardó demasiado. Intente nuevamente.");
             }
             catch (OperationCanceledException)
             {
-                return ApiResult<bool>.Fail("La operación fue cancelada.");
+                return ApiResult<bool>.Fail(
+                    "La operación fue cancelada.");
             }
             catch (HttpRequestException)
             {
@@ -126,19 +136,23 @@ namespace CONATRADEC.Services
                     Content = JsonContent.Create(request)
                 };
 
-                using var response = await httpClient.SendAsync(message, cancellationToken);
+                using var response = await httpClient.SendAsync(
+                    message,
+                    cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     return ApiResult<TResponse>.Fail(
-                        await GetResponseMessageAsync(
+                        await ReadResponseMessageAsync(
                             response,
-                            $"No fue posible {action}."),
+                            $"No fue posible {action}.",
+                            cancellationToken),
                         (int)response.StatusCode);
                 }
 
-                var data = await response.Content.ReadFromJsonAsync<TResponse>(
-                    cancellationToken: cancellationToken);
+                var data = await response.Content
+                    .ReadFromJsonAsync<TResponse>(
+                        cancellationToken: cancellationToken);
 
                 if (data == null)
                 {
@@ -146,16 +160,20 @@ namespace CONATRADEC.Services
                         "La operación se procesó, pero el servidor no devolvió los datos esperados.");
                 }
 
-                return ApiResult<TResponse>.Ok(data, successMessage);
+                return ApiResult<TResponse>.Ok(
+                    data,
+                    successMessage);
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<TResponse>.Fail(
                     "La solicitud tardó demasiado. Intente nuevamente.");
             }
             catch (OperationCanceledException)
             {
-                return ApiResult<TResponse>.Fail("La operación fue cancelada.");
+                return ApiResult<TResponse>.Fail(
+                    "La operación fue cancelada.");
             }
             catch (HttpRequestException)
             {
@@ -174,81 +192,34 @@ namespace CONATRADEC.Services
             }
         }
 
-        private static async Task<string> GetResponseMessageAsync(
+        internal static async Task<string> ReadResponseMessageAsync(
             HttpResponseMessage response,
-            string fallback)
+            string fallback,
+            CancellationToken cancellationToken = default)
         {
+            string content;
+
             try
             {
-                string content = await response.Content.ReadAsStringAsync();
-
-                if (string.IsNullOrWhiteSpace(content))
-                    return GetHttpMessage(response.StatusCode, fallback);
-
-                content = content.Trim();
-
-                if (!content.StartsWith("{") && !content.StartsWith("["))
-                    return content.Trim('"');
-
-                using JsonDocument document = JsonDocument.Parse(content);
-                JsonElement root = document.RootElement;
-
-                foreach (string propertyName in new[] { "message", "mensaje", "title", "detail" })
-                {
-                    if (root.ValueKind == JsonValueKind.Object &&
-                        root.TryGetProperty(propertyName, out JsonElement value) &&
-                        value.ValueKind == JsonValueKind.String &&
-                        !string.IsNullOrWhiteSpace(value.GetString()))
-                    {
-                        return value.GetString()!;
-                    }
-                }
-
-                if (root.ValueKind == JsonValueKind.Object &&
-                    root.TryGetProperty("errors", out JsonElement errors) &&
-                    errors.ValueKind == JsonValueKind.Object)
-                {
-                    foreach (JsonProperty property in errors.EnumerateObject())
-                    {
-                        if (property.Value.ValueKind == JsonValueKind.Array)
-                        {
-                            string? first = property.Value
-                                .EnumerateArray()
-                                .FirstOrDefault(x => x.ValueKind == JsonValueKind.String)
-                                .GetString();
-
-                            if (!string.IsNullOrWhiteSpace(first))
-                                return first;
-                        }
-                    }
-                }
+                content = await response.Content.ReadAsStringAsync(
+                    cancellationToken);
             }
             catch
             {
-                // Se usa el mensaje alternativo.
+                content = string.Empty;
             }
 
-            return GetHttpMessage(response.StatusCode, fallback);
+            return ApiErrorMessageParser.Parse(
+                response.StatusCode,
+                content,
+                fallback);
         }
 
         public static string GetHttpMessage(
             HttpStatusCode statusCode,
-            string fallback)
-        {
-            return statusCode switch
-            {
-                HttpStatusCode.BadRequest => "Revise los datos ingresados.",
-                HttpStatusCode.Unauthorized => "La sesión no está autorizada. Inicie sesión nuevamente.",
-                HttpStatusCode.Forbidden => "No tiene permisos para realizar esta operación.",
-                HttpStatusCode.NotFound => "No se encontró el registro solicitado.",
-                HttpStatusCode.Conflict => "La información ingresada ya está siendo utilizada.",
-                HttpStatusCode.InternalServerError or
-                HttpStatusCode.BadGateway or
-                HttpStatusCode.ServiceUnavailable or
-                HttpStatusCode.GatewayTimeout =>
-                    "El servidor presentó un problema. Intente nuevamente.",
-                _ => fallback
-            };
-        }
+            string fallback) =>
+            ApiErrorMessageParser.GetDefaultMessage(
+                statusCode,
+                fallback);
     }
 }

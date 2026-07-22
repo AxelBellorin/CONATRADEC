@@ -1,4 +1,4 @@
-using Microsoft.Maui.ApplicationModel;
+﻿using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 using System.Net.Http.Headers;
@@ -51,14 +51,16 @@ namespace CONATRADEC.Services
 
         private sealed class ContextoBitacoraHandler : DelegatingHandler
         {
-            protected override Task<HttpResponseMessage> SendAsync(
+            protected override async Task<HttpResponseMessage> SendAsync(
                 HttpRequestMessage request,
                 CancellationToken cancellationToken)
             {
                 AgregarEncabezado(
                     request,
                     "X-Usuario-Id",
-                    Preferences.Get(SessionKeys.KeyUserId, string.Empty));
+                    Preferences.Get(
+                        SessionKeys.KeyUserId,
+                        string.Empty));
 
                 AgregarEncabezado(
                     request,
@@ -77,7 +79,10 @@ namespace CONATRADEC.Services
                 AgregarEncabezado(
                     request,
                     "X-Pagina-Origen",
-                    Shell.Current?.CurrentState?.Location?.OriginalString ??
+                    Shell.Current?
+                        .CurrentState?
+                        .Location?
+                        .OriginalString ??
                     string.Empty);
 
                 AgregarEncabezado(
@@ -93,9 +98,41 @@ namespace CONATRADEC.Services
                 AgregarEncabezado(
                     request,
                     "X-Version-App",
-                    AppInfo.Current.VersionString ?? string.Empty);
+                    AppInfo.Current.VersionString ??
+                    string.Empty);
 
-                return base.SendAsync(request, cancellationToken);
+                HttpResponseMessage response =
+                    await base.SendAsync(
+                        request,
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string content;
+
+                    try
+                    {
+                        content = await response.Content
+                            .ReadAsStringAsync(cancellationToken);
+                    }
+                    catch
+                    {
+                        content = string.Empty;
+                    }
+
+                    string message = ApiErrorMessageParser.Parse(
+                        response.StatusCode,
+                        content,
+                        ApiErrorMessageParser.GetDefaultMessage(
+                            response.StatusCode,
+                            "No fue posible completar la operación."));
+
+                    ApiErrorContext.Set(
+                        message,
+                        (int)response.StatusCode);
+                }
+
+                return response;
             }
 
             private static void AgregarEncabezado(
@@ -114,16 +151,30 @@ namespace CONATRADEC.Services
 
             private static string ObtenerDispositivo()
             {
-                string fabricante = DeviceInfo.Current.Manufacturer ??
+                string fabricante =
+                    DeviceInfo.Current.Manufacturer ??
                     string.Empty;
-                string modelo = DeviceInfo.Current.Model ?? string.Empty;
-                string nombre = DeviceInfo.Current.Name ?? string.Empty;
+
+                string modelo =
+                    DeviceInfo.Current.Model ??
+                    string.Empty;
+
+                string nombre =
+                    DeviceInfo.Current.Name ??
+                    string.Empty;
 
                 return string.Join(
                     " ",
-                    new[] { fabricante, modelo, nombre }
-                        .Where(x => !string.IsNullOrWhiteSpace(x))
-                        .Distinct(StringComparer.OrdinalIgnoreCase));
+                    new[]
+                    {
+                        fabricante,
+                        modelo,
+                        nombre
+                    }
+                    .Where(value =>
+                        !string.IsNullOrWhiteSpace(value))
+                    .Distinct(
+                        StringComparer.OrdinalIgnoreCase));
             }
         }
     }

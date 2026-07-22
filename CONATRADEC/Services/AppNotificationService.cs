@@ -18,12 +18,20 @@ namespace CONATRADEC.Services
     /// </summary>
     public static class AppNotificationService
     {
-        private static readonly SemaphoreSlim NotificationLock = new(1, 1);
+        private static readonly SemaphoreSlim NotificationLock =
+            new(1, 1);
 
-        private static readonly Color SuccessBackground = Color.FromArgb("#2E7D32");
-        private static readonly Color ErrorBackground = Color.FromArgb("#C62828");
-        private static readonly Color WarningBackground = Color.FromArgb("#ED6C02");
-        private static readonly Color InformationBackground = Color.FromArgb("#1565C0");
+        private static readonly Color SuccessBackground =
+            Color.FromArgb("#2E7D32");
+
+        private static readonly Color ErrorBackground =
+            Color.FromArgb("#C62828");
+
+        private static readonly Color WarningBackground =
+            Color.FromArgb("#ED6C02");
+
+        private static readonly Color InformationBackground =
+            Color.FromArgb("#1565C0");
 
         public static Task ShowSuccessAsync(string message) =>
             ShowAsync(message, AppMessageType.Success);
@@ -52,7 +60,16 @@ namespace CONATRADEC.Services
             string message,
             AppMessageType type)
         {
-            string normalizedMessage = NormalizeMessage(message, type);
+            if (type == AppMessageType.Error)
+            {
+                // Reemplaza mensajes genéricos del ViewModel por el motivo
+                // real devuelto por la API, incluso cuando un servicio
+                // antiguo todavía entrega únicamente true/false.
+                message = ApiErrorContext.ResolveForDisplay(message);
+            }
+
+            string normalizedMessage =
+                NormalizeMessage(message, type);
 
             if (string.IsNullOrWhiteSpace(normalizedMessage))
                 return;
@@ -77,7 +94,9 @@ namespace CONATRADEC.Services
 
                 TimeSpan duration =
                     type is AppMessageType.Error or AppMessageType.Warning
-                        ? TimeSpan.FromSeconds(4)
+                        ? normalizedMessage.Length > 120
+                            ? TimeSpan.FromSeconds(7)
+                            : TimeSpan.FromSeconds(5)
                         : TimeSpan.FromSeconds(3);
 
                 await MainThread.InvokeOnMainThreadAsync(
@@ -125,21 +144,24 @@ namespace CONATRADEC.Services
                     cancelText));
         }
 
-        public static Task<bool> ConfirmSaveAsync(string entityName) =>
+        public static Task<bool> ConfirmSaveAsync(
+            string entityName) =>
             ConfirmAsync(
                 $"Guardar {entityName}",
                 $"¿Desea guardar los datos de {entityName}?",
                 "Guardar",
                 "Cancelar");
 
-        public static Task<bool> ConfirmUpdateAsync(string entityName) =>
+        public static Task<bool> ConfirmUpdateAsync(
+            string entityName) =>
             ConfirmAsync(
                 $"Actualizar {entityName}",
                 $"¿Desea guardar los cambios realizados en {entityName}?",
                 "Actualizar",
                 "Cancelar");
 
-        public static Task<bool> ConfirmDeleteAsync(string entityName) =>
+        public static Task<bool> ConfirmDeleteAsync(
+            string entityName) =>
             ConfirmAsync(
                 $"Eliminar {entityName}",
                 $"¿Está seguro de que desea eliminar {entityName}? Esta acción no se puede deshacer.",
@@ -233,7 +255,9 @@ namespace CONATRADEC.Services
 
         private static AppMessageType InferType(string? message)
         {
-            string value = message?.Trim().ToLowerInvariant() ?? string.Empty;
+            string value =
+                message?.Trim().ToLowerInvariant() ??
+                string.Empty;
 
             if (value.Contains("pero") &&
                 (value.Contains("guardad") ||
@@ -293,7 +317,8 @@ namespace CONATRADEC.Services
             return AppMessageType.Information;
         }
 
-        private static bool LooksLikeTechnicalException(string value)
+        private static bool LooksLikeTechnicalException(
+            string value)
         {
             string lower = value.ToLowerInvariant();
 
@@ -310,7 +335,8 @@ namespace CONATRADEC.Services
                    lower.Contains(" at conatradec.");
         }
 
-        private static string GetIcon(AppMessageType type) =>
+        private static string GetIcon(
+            AppMessageType type) =>
             type switch
             {
                 AppMessageType.Success => "✓",
@@ -319,7 +345,8 @@ namespace CONATRADEC.Services
                 _ => "ℹ"
             };
 
-        private static Color GetBackgroundColor(AppMessageType type) =>
+        private static Color GetBackgroundColor(
+            AppMessageType type) =>
             type switch
             {
                 AppMessageType.Success => SuccessBackground,
