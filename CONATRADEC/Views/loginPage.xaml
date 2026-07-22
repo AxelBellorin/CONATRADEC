@@ -5,7 +5,8 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="#F3F7F5">
+    BackgroundColor="#F3F7F5"
+    SizeChanged="LoginPage_SizeChanged">
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -234,12 +235,16 @@
         <!-- =========================================================
              FORMULARIO: WINDOWS Y ANDROID
              ========================================================= -->
-        <ScrollView Grid.Column="1">
+        <ScrollView
+            x:Name="LoginScrollView"
+            Grid.Column="1">
             <Grid
-                Padding="{OnPlatform WinUI='44,32', Default='18,20'}"
+                x:Name="ResponsiveRootGrid"
+                Padding="{OnPlatform WinUI='44,32', Default='16,10'}"
                 MinimumHeightRequest="{OnPlatform WinUI=650, Default=0}">
 
                 <VerticalStackLayout
+                    x:Name="LoginContentStack"
                     MaximumWidthRequest="500"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
@@ -247,15 +252,17 @@
 
                     <!-- Encabezado exclusivo para móvil -->
                     <VerticalStackLayout
+                        x:Name="MobileHeader"
                         IsVisible="{OnPlatform WinUI=False, Default=True}"
                         HorizontalOptions="Center"
-                        Spacing="8"
-                        Margin="0,4,0,4">
+                        Spacing="4"
+                        Margin="0,0,0,2">
 
                         <Border
-                            WidthRequest="88"
-                            HeightRequest="88"
-                            Padding="6"
+                            x:Name="MobileLogoBorder"
+                            WidthRequest="64"
+                            HeightRequest="64"
+                            Padding="4"
                             BackgroundColor="White"
                             Stroke="#DCE7E2"
                             StrokeThickness="1"
@@ -275,18 +282,20 @@
                         </Border>
 
                         <Label
+                            x:Name="MobileAppTitle"
                             Text="ConatraCafé Soil"
                             FontFamily="MontserratBold"
-                            FontSize="27"
+                            FontSize="22"
                             FontAttributes="Bold"
                             HorizontalTextAlignment="Center"
                             TextColor="{StaticResource color_Verde}" />
 
                         <Label
+                            x:Name="MobileTagline"
                             Text="CONATRADEC · Tecnología al servicio del café"
                             MaximumWidthRequest="340"
                             FontFamily="MontserratMedium"
-                            FontSize="11"
+                            FontSize="10"
                             HorizontalTextAlignment="Center"
                             LineBreakMode="WordWrap"
                             TextColor="#60736B" />
@@ -294,7 +303,8 @@
 
                     <!-- Tarjeta del login -->
                     <Border
-                        Padding="{OnPlatform WinUI='34,30', Default='22,24'}"
+                        x:Name="LoginCard"
+                        Padding="{OnPlatform WinUI='34,30', Default='18,16'}"
                         BackgroundColor="White"
                         Stroke="#DCE5E1"
                         StrokeThickness="1"
@@ -308,30 +318,36 @@
                                 Opacity="0.13" />
                         </Border.Shadow>
 
-                        <VerticalStackLayout Spacing="18">
+                        <VerticalStackLayout
+                            x:Name="LoginCardContent"
+                            Spacing="12">
 
                             <!-- Encabezado y mascota interactiva -->
                             <Grid
+                                x:Name="LoginHeaderGrid"
                                 ColumnDefinitions="*,Auto"
-                                ColumnSpacing="8">
+                                ColumnSpacing="6">
 
                                 <VerticalStackLayout
+                                    x:Name="WelcomeTextStack"
                                     Grid.Column="0"
                                     VerticalOptions="Center"
-                                    Spacing="5">
+                                    Spacing="3">
 
                                     <Label
+                                        x:Name="WelcomeTitle"
                                         Text="Bienvenido"
                                         FontFamily="MontserratBold"
-                                        FontSize="{OnPlatform WinUI=30, Default=27}"
+                                        FontSize="{OnPlatform WinUI=30, Default=25}"
                                         FontAttributes="Bold"
                                         TextColor="{StaticResource color_Negro}" />
 
                                     <Label
+                                        x:Name="WelcomeSubtitle"
                                         Text="Ingresa tus credenciales para continuar."
                                         MaximumWidthRequest="285"
                                         FontFamily="MontserratMedium"
-                                        FontSize="14"
+                                        FontSize="12"
                                         LineBreakMode="WordWrap"
                                         TextColor="{StaticResource color_GrisOscuro}" />
                                 </VerticalStackLayout>
@@ -340,8 +356,8 @@
                                 <Grid
                                     x:Name="MascotStage"
                                     Grid.Column="1"
-                                    WidthRequest="{OnPlatform WinUI=150, Default=126}"
-                                    HeightRequest="{OnPlatform WinUI=138, Default=126}"
+                                    WidthRequest="{OnPlatform WinUI=150, Default=110}"
+                                    HeightRequest="{OnPlatform WinUI=138, Default=100}"
                                     HorizontalOptions="End"
                                     VerticalOptions="Center">
 
@@ -415,8 +431,8 @@
                                     <!-- Halo -->
                                     <Border
                                         x:Name="MascotGlow"
-                                        WidthRequest="{OnPlatform WinUI=108, Default=96}"
-                                        HeightRequest="{OnPlatform WinUI=96, Default=88}"
+                                        WidthRequest="{OnPlatform WinUI=108, Default=82}"
+                                        HeightRequest="{OnPlatform WinUI=96, Default=75}"
                                         HorizontalOptions="Center"
                                         VerticalOptions="End"
                                         Margin="0,0,0,2"
@@ -449,9 +465,9 @@
                                         <Label
                                             x:Name="MascotSpeechText"
                                             Text="¡Bienvenido!"
-                                            MaximumWidthRequest="{OnPlatform WinUI=126, Default=104}"
+                                            MaximumWidthRequest="{OnPlatform WinUI=126, Default=92}"
                                             FontFamily="MontserratMedium"
-                                            FontSize="{OnPlatform WinUI=10, Default=9}"
+                                            FontSize="{OnPlatform WinUI=10, Default=8.5}"
                                             LineBreakMode="WordWrap"
                                             HorizontalTextAlignment="Center"
                                             TextColor="{StaticResource color_Verde}" />
@@ -460,8 +476,8 @@
                                     <!-- Parte que se mueve -->
                                     <Grid
                                         x:Name="MascotVisual"
-                                        WidthRequest="{OnPlatform WinUI=112, Default=100}"
-                                        HeightRequest="{OnPlatform WinUI=112, Default=100}"
+                                        WidthRequest="{OnPlatform WinUI=112, Default=86}"
+                                        HeightRequest="{OnPlatform WinUI=112, Default=86}"
                                         HorizontalOptions="Center"
                                         VerticalOptions="End"
                                         ZIndex="5">
@@ -469,8 +485,8 @@
                                         <Image
                                             x:Name="MascotImage"
                                             Source="mascota_cafe_conatradec.png"
-                                            WidthRequest="{OnPlatform WinUI=108, Default=96}"
-                                            HeightRequest="{OnPlatform WinUI=108, Default=96}"
+                                            WidthRequest="{OnPlatform WinUI=108, Default=82}"
+                                            HeightRequest="{OnPlatform WinUI=108, Default=82}"
                                             HorizontalOptions="Center"
                                             VerticalOptions="Center"
                                             BackgroundColor="Transparent"
@@ -486,9 +502,9 @@
                                              aparece al escribir la contraseña -->
                                         <Border
                                             x:Name="PrivacyShield"
-                                            WidthRequest="{OnPlatform WinUI=76, Default=68}"
-                                            HeightRequest="{OnPlatform WinUI=27, Default=25}"
-                                            Margin="{OnPlatform WinUI='0,27,0,0', Default='0,24,0,0'}"
+                                            WidthRequest="{OnPlatform WinUI=76, Default=58}"
+                                            HeightRequest="{OnPlatform WinUI=27, Default=22}"
+                                            Margin="{OnPlatform WinUI='0,27,0,0', Default='0,20,0,0'}"
                                             HorizontalOptions="Center"
                                             VerticalOptions="Start"
                                             BackgroundColor="#2D554A"
@@ -501,6 +517,7 @@
                                             ZIndex="15">
 
                                             <Label
+                                                x:Name="PrivacyShieldText"
                                                 Text="🔒  PRIVADO"
                                                 HorizontalOptions="Center"
                                                 VerticalOptions="Center"
@@ -514,7 +531,9 @@
                             </Grid>
 
                             <!-- Usuario -->
-                            <VerticalStackLayout Spacing="7">
+                            <VerticalStackLayout
+                                x:Name="UserFieldStack"
+                                Spacing="5">
                                 <Label
                                     Text="Correo electrónico"
                                     FontFamily="MontserratMedium"
@@ -550,8 +569,9 @@
 
                             <!-- Contraseña -->
                             <VerticalStackLayout
+                                x:Name="PasswordFieldStack"
                                 IsVisible="{Binding LoginButtonVisible}"
-                                Spacing="7">
+                                Spacing="5">
 
                                 <Label
                                     Text="Contraseña"
@@ -601,7 +621,10 @@
                             </VerticalStackLayout>
 
                             <!-- Recordarme -->
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <Grid
+                                x:Name="RememberMeGrid"
+                                ColumnDefinitions="Auto,*"
+                                ColumnSpacing="6">
                                 <CheckBox
                                     Grid.Column="0"
                                     IsChecked="{Binding RememberMe}"
@@ -630,8 +653,9 @@
 
                             <!-- Biométrico -->
                             <Border
+                                x:Name="BiometricBorder"
                                 IsVisible="{Binding CanUseBiometrics}"
-                                Padding="13"
+                                Padding="10"
                                 BackgroundColor="#F1F7F4"
                                 Stroke="#CFE0D9"
                                 StrokeThickness="1"
@@ -681,6 +705,7 @@
                             </Border>
 
                             <ActivityIndicator
+                                x:Name="BusyIndicator"
                                 IsRunning="{Binding IsBusy}"
                                 IsVisible="{Binding IsBusy}"
                                 Color="{StaticResource color_Naranja}"
@@ -735,6 +760,7 @@
                     </Border>
 
                     <Label
+                        x:Name="MobileFooter"
                         Text="CONATRADEC · Tecnología al servicio del café"
                         HorizontalOptions="Center"
                         HorizontalTextAlignment="Center"

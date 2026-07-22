@@ -1,5 +1,6 @@
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Devices;
 using System.ComponentModel;
 using System.Linq;
 
@@ -21,6 +22,8 @@ public partial class loginPage : ContentPage
 
     private int _tapPhraseIndex;
     private DateTime _lastTypingAnimation = DateTime.MinValue;
+
+    private MobileLayoutMode? _currentMobileLayoutMode;
 
     private readonly string[] _tapPhrases =
     {
@@ -138,6 +141,7 @@ public partial class loginPage : ContentPage
         await Task.Delay(100);
         await _viewModel.LoadSavedAsync();
 
+        ApplyResponsiveMobileLayout(Width, Height);
         StartIdleAnimation();
     }
 
@@ -150,6 +154,255 @@ public partial class loginPage : ContentPage
         CancelMascotAnimations();
 
         base.OnDisappearing();
+    }
+
+    // =============================================================
+    // DISEÑO RESPONSIVE EXCLUSIVO PARA ANDROID
+    // =============================================================
+
+    private enum MobileLayoutMode
+    {
+        Compact,
+        Standard,
+        Tall
+    }
+
+    private void LoginPage_SizeChanged(
+        object? sender,
+        EventArgs e)
+    {
+        ApplyResponsiveMobileLayout(Width, Height);
+    }
+
+    /// <summary>
+    /// Ajusta únicamente la presentación móvil según la altura lógica
+    /// disponible. Windows conserva exactamente su diseño original.
+    /// El ScrollView se mantiene como respaldo para pantallas pequeñas,
+    /// teclado abierto y tamaños de fuente ampliados.
+    /// </summary>
+    private void ApplyResponsiveMobileLayout(
+        double width,
+        double height)
+    {
+        if (DeviceInfo.Platform == DevicePlatform.WinUI ||
+            width <= 0 ||
+            height <= 0)
+        {
+            return;
+        }
+
+        MobileLayoutMode mode = height switch
+        {
+            < 720 => MobileLayoutMode.Compact,
+            < 900 => MobileLayoutMode.Standard,
+            _ => MobileLayoutMode.Tall
+        };
+
+        if (_currentMobileLayoutMode == mode)
+            return;
+
+        _currentMobileLayoutMode = mode;
+        LoginContentStack.VerticalOptions = LayoutOptions.Start;
+
+        switch (mode)
+        {
+            case MobileLayoutMode.Compact:
+                ApplyCompactMobileLayout();
+                break;
+
+            case MobileLayoutMode.Standard:
+                ApplyStandardMobileLayout();
+                break;
+
+            default:
+                ApplyTallMobileLayout();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Para teléfonos con poca altura útil. No reduce las zonas táctiles
+    /// esenciales; compacta logo, mascota, márgenes y espacios.
+    /// </summary>
+    private void ApplyCompactMobileLayout()
+    {
+        ResponsiveRootGrid.Padding = new Thickness(12, 6);
+        LoginContentStack.Spacing = 8;
+
+        MobileHeader.Spacing = 2;
+        MobileHeader.Margin = new Thickness(0, 0, 0, 1);
+        MobileLogoBorder.WidthRequest = 50;
+        MobileLogoBorder.HeightRequest = 50;
+        MobileLogoBorder.Padding = new Thickness(3);
+        MobileAppTitle.FontSize = 20;
+        MobileTagline.FontSize = 9;
+        MobileTagline.IsVisible = true;
+
+        LoginCard.Padding = new Thickness(14, 12);
+        LoginCardContent.Spacing = 10;
+        LoginHeaderGrid.ColumnSpacing = 4;
+        WelcomeTextStack.Spacing = 2;
+        WelcomeTitle.FontSize = 23;
+        WelcomeSubtitle.FontSize = 11;
+        WelcomeSubtitle.MaximumWidthRequest = 245;
+
+        ApplyMascotSize(
+            stageWidth: 94,
+            stageHeight: 86,
+            glowWidth: 70,
+            glowHeight: 64,
+            visualSize: 74,
+            imageSize: 70,
+            speechWidth: 78,
+            speechFontSize: 7.5,
+            privacyWidth: 50,
+            privacyHeight: 20,
+            privacyTop: 17,
+            privacyFontSize: 6);
+
+        UserFieldStack.Spacing = 4;
+        PasswordFieldStack.Spacing = 4;
+        RememberMeGrid.ColumnSpacing = 5;
+        BiometricBorder.Padding = new Thickness(9);
+
+        LoginButton.HeightRequest = 50;
+        BusyIndicator.HeightRequest = 24;
+        MobileFooter.IsVisible = false;
+    }
+
+    /// <summary>
+    /// Presentación principal para la mayoría de teléfonos actuales en
+    /// orientación vertical.
+    /// </summary>
+    private void ApplyStandardMobileLayout()
+    {
+        ResponsiveRootGrid.Padding = new Thickness(16, 10);
+        LoginContentStack.Spacing = 10;
+
+        MobileHeader.Spacing = 4;
+        MobileHeader.Margin = new Thickness(0, 0, 0, 2);
+        MobileLogoBorder.WidthRequest = 64;
+        MobileLogoBorder.HeightRequest = 64;
+        MobileLogoBorder.Padding = new Thickness(4);
+        MobileAppTitle.FontSize = 22;
+        MobileTagline.FontSize = 10;
+        MobileTagline.IsVisible = true;
+
+        LoginCard.Padding = new Thickness(18, 16);
+        LoginCardContent.Spacing = 12;
+        LoginHeaderGrid.ColumnSpacing = 6;
+        WelcomeTextStack.Spacing = 3;
+        WelcomeTitle.FontSize = 25;
+        WelcomeSubtitle.FontSize = 12;
+        WelcomeSubtitle.MaximumWidthRequest = 270;
+
+        ApplyMascotSize(
+            stageWidth: 110,
+            stageHeight: 100,
+            glowWidth: 82,
+            glowHeight: 75,
+            visualSize: 86,
+            imageSize: 82,
+            speechWidth: 92,
+            speechFontSize: 8.5,
+            privacyWidth: 58,
+            privacyHeight: 22,
+            privacyTop: 20,
+            privacyFontSize: 6.5);
+
+        UserFieldStack.Spacing = 5;
+        PasswordFieldStack.Spacing = 5;
+        RememberMeGrid.ColumnSpacing = 6;
+        BiometricBorder.Padding = new Thickness(10);
+
+        LoginButton.HeightRequest = 50;
+        BusyIndicator.HeightRequest = 26;
+        MobileFooter.IsVisible = false;
+    }
+
+    /// <summary>
+    /// Aprovecha el espacio extra en teléfonos muy altos y tabletas sin
+    /// agrandar excesivamente los campos.
+    /// </summary>
+    private void ApplyTallMobileLayout()
+    {
+        ResponsiveRootGrid.Padding = new Thickness(18, 18);
+        LoginContentStack.Spacing = 16;
+
+        MobileHeader.Spacing = 6;
+        MobileHeader.Margin = new Thickness(0, 2, 0, 4);
+        MobileLogoBorder.WidthRequest = 76;
+        MobileLogoBorder.HeightRequest = 76;
+        MobileLogoBorder.Padding = new Thickness(5);
+        MobileAppTitle.FontSize = 25;
+        MobileTagline.FontSize = 11;
+        MobileTagline.IsVisible = true;
+
+        LoginCard.Padding = new Thickness(22, 22);
+        LoginCardContent.Spacing = 16;
+        LoginHeaderGrid.ColumnSpacing = 8;
+        WelcomeTextStack.Spacing = 4;
+        WelcomeTitle.FontSize = 27;
+        WelcomeSubtitle.FontSize = 14;
+        WelcomeSubtitle.MaximumWidthRequest = 285;
+
+        ApplyMascotSize(
+            stageWidth: 126,
+            stageHeight: 118,
+            glowWidth: 96,
+            glowHeight: 88,
+            visualSize: 100,
+            imageSize: 96,
+            speechWidth: 104,
+            speechFontSize: 9,
+            privacyWidth: 68,
+            privacyHeight: 25,
+            privacyTop: 24,
+            privacyFontSize: 7);
+
+        UserFieldStack.Spacing = 7;
+        PasswordFieldStack.Spacing = 7;
+        RememberMeGrid.ColumnSpacing = 8;
+        BiometricBorder.Padding = new Thickness(13);
+
+        LoginButton.HeightRequest = 54;
+        BusyIndicator.HeightRequest = 30;
+        MobileFooter.IsVisible = true;
+    }
+
+    private void ApplyMascotSize(
+        double stageWidth,
+        double stageHeight,
+        double glowWidth,
+        double glowHeight,
+        double visualSize,
+        double imageSize,
+        double speechWidth,
+        double speechFontSize,
+        double privacyWidth,
+        double privacyHeight,
+        double privacyTop,
+        double privacyFontSize)
+    {
+        MascotStage.WidthRequest = stageWidth;
+        MascotStage.HeightRequest = stageHeight;
+
+        MascotGlow.WidthRequest = glowWidth;
+        MascotGlow.HeightRequest = glowHeight;
+
+        MascotVisual.WidthRequest = visualSize;
+        MascotVisual.HeightRequest = visualSize;
+
+        MascotImage.WidthRequest = imageSize;
+        MascotImage.HeightRequest = imageSize;
+
+        MascotSpeechText.MaximumWidthRequest = speechWidth;
+        MascotSpeechText.FontSize = speechFontSize;
+
+        PrivacyShield.WidthRequest = privacyWidth;
+        PrivacyShield.HeightRequest = privacyHeight;
+        PrivacyShield.Margin = new Thickness(0, privacyTop, 0, 0);
+        PrivacyShieldText.FontSize = privacyFontSize;
     }
 
     private void AttachShellNavigationEvent()

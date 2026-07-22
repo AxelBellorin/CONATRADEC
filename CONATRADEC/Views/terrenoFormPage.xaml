@@ -30,7 +30,7 @@
 
                         <Entry Placeholder="Código único del terreno"
                                Style="{StaticResource EntryStyle}"
-                               Text="{Binding CodigoTerreno}"
+                               Text="{Binding CodigoTerreno, Mode=TwoWay}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -43,9 +43,13 @@
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
 
-                        <Entry Placeholder="Cédula o identificación"
+                        <Entry x:Name="IdentificacionEntry"
+                               Placeholder="Ej: 001-080701-1050R"
                                Style="{StaticResource EntryStyle}"
-                               Text="{Binding IdentificacionPropietarioTerreno}"
+                               Keyboard="Text"
+                               MaxLength="16"
+                               TextChanged="IdentificacionEntry_TextChanged"
+                               Text="{Binding IdentificacionPropietarioTerreno, Mode=TwoWay}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -60,7 +64,7 @@
 
                         <Entry Placeholder="Nombre completo"
                                Style="{StaticResource EntryStyle}"
-                               Text="{Binding NombrePropietarioTerreno}"
+                               Text="{Binding NombrePropietarioTerreno, Mode=TwoWay}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -76,7 +80,9 @@
                         <Entry Placeholder="Número de teléfono"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Telephone"
-                               Text="{Binding TelefonoPropietarioTexto}"
+                               MaxLength="9"
+                               TextChanged="Entero_TextChanged"
+                               Text="{Binding TelefonoPropietarioTexto, Mode=TwoWay}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -92,7 +98,7 @@
                         <Entry Placeholder="correo@ejemplo.com"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Email"
-                               Text="{Binding CorreoPropietario}"
+                               Text="{Binding CorreoPropietario, Mode=TwoWay}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -107,7 +113,7 @@
 
                         <Editor Placeholder="Dirección detallada"
                                 AutoSize="TextChanges"
-                                Text="{Binding DireccionTerreno}"
+                                Text="{Binding DireccionTerreno, Mode=TwoWay}"
                                 IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -120,10 +126,12 @@
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
 
-                        <Entry Placeholder="Ej: 3.50"
+                        <Entry x:Name="ExtensionEntry"
+                               Placeholder="Ej: 3.50"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Numeric"
-                               Text="{Binding ExtensionManzanaTerreno}"
+                               TextChanged="DecimalDosDigitos_TextChanged"
+                               Text="{Binding ExtensionManzanaTerreno, Mode=TwoWay}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -136,10 +144,12 @@
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
 
-                        <Entry Placeholder="Ej: 25.00"
+                        <Entry x:Name="CantidadQuintalesEntry"
+                               Placeholder="Ej: 25.00"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Numeric"
-                               Text="{Binding CantidadQuintalesOro}"
+                               TextChanged="DecimalDosDigitos_TextChanged"
+                               Text="{Binding CantidadQuintalesOro, Mode=TwoWay}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -155,7 +165,8 @@
                         <Entry Placeholder="Ejemplo: 3500"
                                Style="{StaticResource EntryStyle}"
                                Keyboard="Numeric"
-                               Text="{Binding CantidadPlantasTerreno}"
+                               TextChanged="Entero_TextChanged"
+                               Text="{Binding CantidadPlantasTerreno, Mode=TwoWay}"
                                IsReadOnly="{Binding IsReadOnly}" />
                     </VerticalStackLayout>
                 </Border>
@@ -221,9 +232,11 @@
                                FontSize="17"
                                TextColor="{StaticResource color_Negro}" />
 
-                        <Entry Placeholder="Ej: 12°13'35.8N 86°28'06.9W ó 12.1234, -86.1234"
+                        <Entry x:Name="CoordenadasEntry"
+                               Placeholder="Ej: 12°13'35.8N 86°28'06.9W ó 12.1234, -86.1234"
                                Style="{StaticResource EntryStyle}"
-                               Text="{Binding CoordenadasTexto}"
+                               TextChanged="CoordenadasEntry_TextChanged"
+                               Text="{Binding CoordenadasTexto, Mode=OneWay}"
                                IsEnabled="{Binding IsEnabled}" />
                     </VerticalStackLayout>
                 </Border>
@@ -242,18 +255,20 @@
                                 <Label Text="Latitud"
                                        FontSize="14" />
 
-                                <Entry Style="{StaticResource EntryStyle}"
+                                <Entry x:Name="LatitudEntry"
+                                       Style="{StaticResource EntryStyle}"
                                        IsReadOnly="True"
-                                       Text="{Binding Latitud}" />
+                                       Text="{Binding Latitud, Mode=OneWay}" />
                             </VerticalStackLayout>
 
                             <VerticalStackLayout Grid.Column="1">
                                 <Label Text="Longitud"
                                        FontSize="14" />
 
-                                <Entry Style="{StaticResource EntryStyle}"
+                                <Entry x:Name="LongitudEntry"
+                                       Style="{StaticResource EntryStyle}"
                                        IsReadOnly="True"
-                                       Text="{Binding Longitud}" />
+                                       Text="{Binding Longitud, Mode=OneWay}" />
                             </VerticalStackLayout>
                         </Grid>
 
@@ -388,7 +403,7 @@
                     <Button Text="Guardar"
                             Style="{StaticResource UpdateButton}"
                             IsVisible="{Binding ShowSaveButton}"
-                            Command="{Binding SaveCommand}"
+                            Clicked="BtnGuardar_Clicked"
                             Grid.Column="0"
                             Margin="10,0,10,0" />
 
