@@ -3,7 +3,7 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="CONATRADEC.Views.rangoNutrientePage"
+    x:Class="CONATRADEC.Views.rangoNutrienteDetallePage"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
@@ -11,48 +11,77 @@
         x:Name="RootPage"
         ControlTemplate="{StaticResource FooterTemplate}">
 
-        <Grid RowDefinitions="Auto,Auto,*">
+        <Grid RowDefinitions="Auto,Auto,Auto,*">
 
             <Grid
                 Grid.Row="0"
-                ColumnDefinitions="*,Auto"
-                Padding="20,12,8,4">
+                ColumnDefinitions="Auto,*,Auto"
+                Padding="8,10,8,2">
 
-                <VerticalStackLayout Spacing="1">
-                    <Label
-                        Text="Tipos de cultivo"
-                        FontSize="26"
-                        FontFamily="MontserratBold"
-                        TextColor="{StaticResource color_Negro}" />
+                <Button
+                    Grid.Column="0"
+                    Text="‹"
+                    FontSize="28"
+                    WidthRequest="48"
+                    HeightRequest="48"
+                    Padding="0"
+                    BackgroundColor="Transparent"
+                    TextColor="{StaticResource color_Verde}"
+                    Command="{Binding BackCommand}"
+                    IsEnabled="{Binding NotIsBusy}" />
 
-                    <Label
-                        Text="Seleccione un tipo de cultivo para administrar sus rangos de aporte"
-                        FontSize="12"
-                        TextColor="{StaticResource color_Gris}" />
-                </VerticalStackLayout>
+                <Label
+                    Grid.Column="1"
+                    Text="{Binding Titulo}"
+                    FontSize="23"
+                    FontFamily="MontserratBold"
+                    TextColor="{StaticResource color_Negro}"
+                    VerticalOptions="Center"
+                    LineBreakMode="TailTruncation"
+                    MaxLines="2" />
 
                 <ImageButton
-                    Grid.Column="1"
+                    Grid.Column="2"
                     Source="iconadd.png"
                     WidthRequest="54"
                     HeightRequest="54"
-                    Command="{Binding AddCategoryCommand}"
+                    Command="{Binding AddCommand}"
                     IsVisible="{Binding CanAdd}"
                     IsEnabled="{Binding NotIsBusy}"
                     BackgroundColor="Transparent"
-                    SemanticProperties.Description="Agregar tipo de cultivo" />
+                    SemanticProperties.Description="Agregar rango de aporte" />
 
             </Grid>
 
-            <ActivityIndicator
+            <VerticalStackLayout
                 Grid.Row="1"
+                Padding="20,0,20,8"
+                Spacing="3">
+
+                <Label
+                    Text="{Binding ResumenAportes}"
+                    FontSize="13"
+                    FontFamily="MontserratMedium"
+                    TextColor="{StaticResource color_Verde}" />
+
+                <Label
+                    Text="{Binding DescripcionCategoria}"
+                    FontSize="12"
+                    TextColor="{StaticResource color_Gris}"
+                    LineBreakMode="TailTruncation"
+                    MaxLines="2" />
+
+            </VerticalStackLayout>
+
+            <ActivityIndicator
+                Grid.Row="2"
                 IsRunning="{Binding IsBusy}"
                 IsVisible="{Binding IsBusy}"
                 Color="{StaticResource color_Naranja}" />
 
             <CollectionView
-                Grid.Row="2"
-                ItemsSource="{Binding List}"
+                Grid.Row="3"
+                ItemsSource="{Binding Aportes}"
                 SelectionMode="None">
 
                 <CollectionView.EmptyView>
@@ -63,14 +92,15 @@
                             Spacing="8">
 
                             <Label
-                                Text="No hay tipos de cultivo para mostrar."
+                                Text="Este tipo de cultivo todavía no tiene rangos de aporte."
                                 HorizontalTextAlignment="Center" />
 
                             <Label
-                                Text="Presione + para crear el primer tipo de cultivo."
+                                Text="Presione + para agregar el primero."
                                 FontSize="12"
                                 TextColor="{StaticResource color_Gris}"
                                 HorizontalTextAlignment="Center" />
+
                         </VerticalStackLayout>
                     </Grid>
                 </CollectionView.EmptyView>
@@ -88,7 +118,7 @@
                                         Text="Editar"
                                         IconImageSource="iconupdate.png"
                                         BackgroundColor="{StaticResource BlueUpdate}"
-                                        Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.EditCategoryCommand}"
+                                        Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.EditCommand}"
                                         CommandParameter="{Binding .}"
                                         IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanEdit}" />
 
@@ -96,7 +126,7 @@
                                         Text="Eliminar"
                                         IconImageSource="icondelete.png"
                                         BackgroundColor="{StaticResource RedDelete}"
-                                        Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.DeleteCategoryCommand}"
+                                        Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.DeleteCommand}"
                                         CommandParameter="{Binding .}"
                                         IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanDelete}" />
 
@@ -107,46 +137,36 @@
                                 Margin="12,5"
                                 Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius}, Default={StaticResource BorderStyle}}">
 
-                                <Grid
-                                    Padding="14"
-                                    ColumnDefinitions="*,Auto">
+                                <Grid Padding="14">
 
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer
-                                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.OpenCategoryCommand}"
+                                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.ViewCommand}"
                                             CommandParameter="{Binding .}" />
                                     </Grid.GestureRecognizers>
 
                                     <VerticalStackLayout Spacing="5">
 
                                         <Label
-                                            Text="{Binding NombreCategoria}"
-                                            FontSize="19"
+                                            Text="{Binding ElementoTexto}"
+                                            FontSize="18"
                                             FontFamily="MontserratBold"
                                             TextColor="{StaticResource color_Verde}" />
 
                                         <Label
-                                            Text="{Binding AportesTexto}"
+                                            Text="{Binding RangoTexto}"
                                             FontSize="14"
                                             FontFamily="MontserratMedium"
                                             TextColor="{StaticResource color_Negro}" />
 
                                         <Label
-                                            Text="{Binding DescripcionCategoria}"
+                                            Text="{Binding DescripcionParametro}"
                                             FontSize="12"
                                             TextColor="{StaticResource color_Gris}"
                                             LineBreakMode="TailTruncation"
                                             MaxLines="2" />
 
                                     </VerticalStackLayout>
-
-                                    <Label
-                                        Grid.Column="1"
-                                        Text="›"
-                                        FontSize="32"
-                                        TextColor="{StaticResource color_Verde}"
-                                        VerticalOptions="Center"
-                                        Margin="12,0,2,0" />
 
                                 </Grid>
 

@@ -7,20 +7,18 @@ namespace CONATRADEC.ViewModels
     public class ExtraccionNutrienteFormViewModel : GlobalService
     {
         private readonly ExtraccionNutrienteApiService apiService = new();
-        private readonly ElementoQuimicoApiService
-            elementoApiService = new();
+        private readonly ElementoQuimicoApiService elementoApiService = new();
 
         private ExtraccionNutrienteRequest item = new();
         private FormMode.FormModeSelect mode;
-        private ElementoQuimicoSelectorItem?
-            elementoSeleccionado;
+        private ElementoQuimicoSelectorItem? elementoSeleccionado;
 
         private string cantidadTexto = string.Empty;
         private string descripcion = string.Empty;
         private string errorElemento = string.Empty;
         private string errorCantidad = string.Empty;
         private string errorDescripcion = string.Empty;
-        private bool initialized;
+        private bool cargandoElementos;
 
         public ObservableCollection<ElementoQuimicoSelectorItem>
             Elementos { get; } = new();
@@ -44,8 +42,7 @@ namespace CONATRADEC.ViewModels
             get => item;
             set
             {
-                item =
-                    value ?? new ExtraccionNutrienteRequest();
+                item = value ?? new ExtraccionNutrienteRequest();
 
                 CantidadTexto =
                     item.CantidadExtraidaPorQQOro > 0
@@ -78,8 +75,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public ElementoQuimicoSelectorItem?
-            ElementoSeleccionado
+        public ElementoQuimicoSelectorItem? ElementoSeleccionado
         {
             get => elementoSeleccionado;
             set
@@ -194,56 +190,130 @@ namespace CONATRADEC.ViewModels
 
         public async Task InitializeAsync()
         {
-            if (initialized)
+            if (cargandoElementos)
                 return;
 
-            initialized = true;
+            cargandoElementos = true;
             IsBusy = true;
             RefrescarComandos();
 
             try
             {
-                ApiResult<ObservableCollection<
-                    ElementoQuimicoResponse>> result =
-                    await elementoApiService
-                        .GetElementoQuimicoResultAsync();
+                /*
+                 * Se consultan nuevamente los elementos y las extracciones
+                 * cada vez que aparece el formulario.
+                 */
+                Task<ApiResult<ObservableCollection<ElementoQuimicoResponse>>>
+                    elementosTask =
+                        elementoApiService.GetElementoQuimicoResultAsync();
 
-                if (!result.Success)
+                Task<ApiResult<ObservableCollection<ExtraccionNutrienteResponse>>>
+                    extraccionesTask =
+                        apiService.GetAsync();
+
+                await Task.WhenAll(
+                    elementosTask,
+                    extraccionesTask);
+
+                ApiResult<ObservableCollection<ElementoQuimicoResponse>>
+                    elementosResult = await elementosTask;
+
+                if (!elementosResult.Success)
                 {
-                    await MostrarErrorAsync(result.Message);
-                    initialized = false;
+                    await MostrarErrorAsync(elementosResult.Message);
                     return;
                 }
 
+                ApiResult<ObservableCollection<ExtraccionNutrienteResponse>>
+                    extraccionesResult = await extraccionesTask;
+
+                if (!extraccionesResult.Success)
+                {
+                    await MostrarErrorAsync(extraccionesResult.Message);
+                    return;
+                }
+
+                int elementoActualId =
+                    Item.ElementoQuimicosId;
+
+                int parametroActualId =
+                    Item.ParametroExtraccionNutrienteCafeId;
+
+                /*
+                 * No deben mostrarse elementos que ya tienen una extracción
+                 * activa, porque el backend no permite duplicarlos.
+                 *
+                 * Al editar o visualizar se conserva el elemento del registro
+                 * actual.
+                 */
+                HashSet<int> elementosOcupados =
+                    (extraccionesResult.Data ??
+                     new ObservableCollection<ExtraccionNutrienteResponse>())
+                    .Where(x =>
+                        x.Activo &&
+                        x.ParametroExtraccionNutrienteCafeId !=
+                            parametroActualId)
+                    .Select(x => x.ElementoQuimicosId)
+                    .Where(id => id > 0)
+                    .ToHashSet();
+
+                IEnumerable<ElementoQuimicoResponse>
+                    elementosDisponibles =
+                        (elementosResult.Data ??
+                         new ObservableCollection<ElementoQuimicoResponse>())
+                        .Where(x =>
+                        {
+                            int id =
+                                x.ElementoQuimicosId ?? 0;
+
+                            return
+                                id > 0 &&
+                                (!elementosOcupados.Contains(id) ||
+                                 id == elementoActualId);
+                        })
+                        .OrderBy(x =>
+                            x.NombreElementoQuimico ??
+                            string.Empty);
+
                 Elementos.Clear();
 
-                foreach (ElementoQuimicoResponse element in
-                         (result.Data ??
-                          new ObservableCollection<
-                              ElementoQuimicoResponse>())
-                         .Where(x =>
-                             (x.ElementoQuimicosId ?? 0) > 0)
-                         .OrderBy(x =>
-                             x.NombreElementoQuimico
-                             ?? string.Empty))
+                foreach (ElementoQuimicoResponse elemento in
+                         elementosDisponibles)
                 {
                     Elementos.Add(
                         ElementoQuimicoSelectorItem
-                            .FromResponse(element));
+                            .FromResponse(elemento));
                 }
 
-                SelectCurrentElement();
+                if (elementoActualId > 0)
+                {
+                    ElementoSeleccionado =
+                        Elementos.FirstOrDefault(x =>
+                            x.ElementoQuimicosId ==
+                            elementoActualId);
+                }
+                else
+                {
+                    ElementoSeleccionado = null;
+                }
+
+                if (Mode == FormMode.FormModeSelect.Create &&
+                    Elementos.Count == 0)
+                {
+                    await MostrarInformacionAsync(
+                        "Todos los elementos químicos activos ya tienen " +
+                        "configurado su aporte de extracción de nutriente.");
+                }
             }
             catch (Exception ex)
             {
-                initialized = false;
-
                 await MostrarErrorInesperadoAsync(
-                    "cargar los elementos químicos",
+                    "cargar los elementos químicos disponibles",
                     ex);
             }
             finally
             {
+                cargandoElementos = false;
                 IsBusy = false;
                 RefrescarComandos();
             }
@@ -251,11 +321,14 @@ namespace CONATRADEC.ViewModels
 
         private void SelectCurrentElement()
         {
-            if (Item.ElementoQuimicosId <= 0 ||
-                Elementos.Count == 0)
+            if (Item.ElementoQuimicosId <= 0)
             {
+                ElementoSeleccionado = null;
                 return;
             }
+
+            if (Elementos.Count == 0)
+                return;
 
             ElementoSeleccionado =
                 Elementos.FirstOrDefault(x =>

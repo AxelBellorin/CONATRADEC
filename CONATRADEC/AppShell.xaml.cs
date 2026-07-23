@@ -62,6 +62,23 @@ namespace CONATRADEC
                 typeof(albumFotoVisorPage));
 
             /*
+             * Pantallas maestro-detalle de rangos nutricionales.
+             * Se registran como rutas secundarias para que cada navegación
+             * cree una página nueva y no conserve datos de otra categoría.
+             */
+            Routing.RegisterRoute(
+                AppRoutes.RangoNutrienteDetalle,
+                typeof(rangoNutrienteDetallePage));
+
+            Routing.RegisterRoute(
+                AppRoutes.RangoNutrienteCategoriaFormulario,
+                typeof(rangoNutrienteCategoriaFormPage));
+
+            Routing.RegisterRoute(
+                AppRoutes.RangoNutrienteFormulario,
+                typeof(rangoNutrienteFormPage));
+
+            /*
              * Las páginas declaradas como ShellContent conservan su instancia.
              * Antes de volver a NuevoAnalisisFormPage desde MainPage se limpia
              * explícitamente el formulario y el cálculo temporal anterior.
