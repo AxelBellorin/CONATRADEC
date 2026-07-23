@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http.Json;
@@ -11,10 +11,11 @@ namespace CONATRADEC.Services
     {
         private readonly HttpClient httpClient;
 
-        private readonly JsonSerializerOptions jsonOptions = new(JsonSerializerDefaults.Web)
-        {
-            PropertyNameCaseInsensitive = true
-        };
+        private readonly JsonSerializerOptions jsonOptions =
+            new(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            };
 
         public FuenteNutrienteApiService()
             : this(ApiClientService.Client)
@@ -43,51 +44,207 @@ namespace CONATRADEC.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return ApiResult<ObservableCollection<FuenteNutrienteResponse>>.Fail(
-                        ObtenerMensajeHttp(
-                            response.StatusCode,
-                            "cargar las fuentes de nutrientes"),
-                        (int)response.StatusCode);
+                    string mensaje =
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            ObtenerMensajeHttp(
+                                response.StatusCode,
+                                "cargar las fuentes de nutrientes"),
+                            cancellationToken);
+
+                    return ApiResult<ObservableCollection<FuenteNutrienteResponse>>
+                        .Fail(
+                            mensaje,
+                            (int)response.StatusCode);
                 }
 
                 var fuentes = await response.Content
-                    .ReadFromJsonAsync<ObservableCollection<FuenteNutrienteResponse>>(
+                    .ReadFromJsonAsync<
+                        ObservableCollection<FuenteNutrienteResponse>>(
                         jsonOptions,
                         cancellationToken);
 
-                return ApiResult<ObservableCollection<FuenteNutrienteResponse>>.Ok(
-                    fuentes ?? new ObservableCollection<FuenteNutrienteResponse>());
+                return ApiResult<
+                    ObservableCollection<FuenteNutrienteResponse>>.Ok(
+                    fuentes ??
+                    new ObservableCollection<FuenteNutrienteResponse>());
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
-                return ApiResult<ObservableCollection<FuenteNutrienteResponse>>.Fail(
+                return ApiResult<
+                    ObservableCollection<FuenteNutrienteResponse>>.Fail(
                     "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
             }
             catch (OperationCanceledException)
             {
-                return ApiResult<ObservableCollection<FuenteNutrienteResponse>>.Fail(
+                return ApiResult<
+                    ObservableCollection<FuenteNutrienteResponse>>.Fail(
                     "La operación fue cancelada.");
             }
             catch (HttpRequestException)
             {
-                return ApiResult<ObservableCollection<FuenteNutrienteResponse>>.Fail(
+                return ApiResult<
+                    ObservableCollection<FuenteNutrienteResponse>>.Fail(
                     "No fue posible conectarse con el servidor. Verifique su conexión.");
             }
             catch (JsonException)
             {
-                return ApiResult<ObservableCollection<FuenteNutrienteResponse>>.Fail(
+                return ApiResult<
+                    ObservableCollection<FuenteNutrienteResponse>>.Fail(
                     "El servidor respondió, pero los datos de fuentes de nutrientes no tienen el formato esperado.");
             }
-            catch (Exception)
+            catch
             {
-                return ApiResult<ObservableCollection<FuenteNutrienteResponse>>.Fail(
+                return ApiResult<
+                    ObservableCollection<FuenteNutrienteResponse>>.Fail(
                     "Ocurrió un error inesperado al cargar las fuentes de nutrientes.");
             }
         }
 
-        public async Task<ApiResult<bool>> DeleteFuenteNutrienteResultAsync(
-            FuenteNutrienteRequest fuente,
-            CancellationToken cancellationToken = default)
+        public async Task<ApiResult<FuenteNutrienteResponse>>
+            CreateFuenteNutrienteResultAsync(
+                FuenteNutrienteRequest fuente,
+                CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(fuente);
+
+            try
+            {
+                using var response = await httpClient.PostAsJsonAsync(
+                    "api/fuente-nutriente/crear-con-elementos",
+                    fuente,
+                    jsonOptions,
+                    cancellationToken);
+
+                string contenido = await response.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string mensaje =
+                        ApiErrorMessageParser.Parse(
+                            response.StatusCode,
+                            contenido,
+                            ObtenerMensajeHttp(
+                                response.StatusCode,
+                                "crear la fuente de nutriente"));
+
+                    return ApiResult<FuenteNutrienteResponse>.Fail(
+                        mensaje,
+                        (int)response.StatusCode);
+                }
+
+                FuenteNutrienteResponse? creada =
+                    DeserializarRespuestaFuente(contenido);
+
+                if (creada?.FuenteNutrientesId == null ||
+                    creada.FuenteNutrientesId <= 0)
+                {
+                    return ApiResult<FuenteNutrienteResponse>.Fail(
+                        "La fuente fue procesada, pero el servidor no devolvió su identificador.");
+                }
+
+                return ApiResult<FuenteNutrienteResponse>.Ok(
+                    creada,
+                    "Fuente de nutriente creada correctamente.");
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<FuenteNutrienteResponse>.Fail(
+                    "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<FuenteNutrienteResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<FuenteNutrienteResponse>.Fail(
+                    "No fue posible conectarse con el servidor. Verifique su conexión.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<FuenteNutrienteResponse>.Fail(
+                    "El servidor respondió, pero no fue posible interpretar la fuente creada.");
+            }
+            catch
+            {
+                return ApiResult<FuenteNutrienteResponse>.Fail(
+                    "Ocurrió un error inesperado al crear la fuente de nutriente.");
+            }
+        }
+
+        public async Task<ApiResult<bool>>
+            UpdateFuenteNutrienteResultAsync(
+                FuenteNutrienteRequest fuente,
+                CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(fuente);
+
+            if (!fuente.FuenteNutrientesId.HasValue ||
+                fuente.FuenteNutrientesId.Value <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "No se recibió un identificador de fuente de nutriente válido.");
+            }
+
+            try
+            {
+                using var response = await httpClient.PutAsJsonAsync(
+                    $"api/fuente-nutriente/editar-con-elementos/{fuente.FuenteNutrientesId.Value}",
+                    fuente,
+                    jsonOptions,
+                    cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string mensaje =
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            ObtenerMensajeHttp(
+                                response.StatusCode,
+                                "actualizar la fuente de nutriente"),
+                            cancellationToken);
+
+                    return ApiResult<bool>.Fail(
+                        mensaje,
+                        (int)response.StatusCode);
+                }
+
+                return ApiResult<bool>.Ok(
+                    true,
+                    "Fuente de nutriente actualizada correctamente.");
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<bool>.Fail(
+                    "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<bool>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<bool>.Fail(
+                    "No fue posible conectarse con el servidor. Verifique su conexión.");
+            }
+            catch
+            {
+                return ApiResult<bool>.Fail(
+                    "Ocurrió un error inesperado al actualizar la fuente de nutriente.");
+            }
+        }
+
+        public async Task<ApiResult<bool>>
+            DeleteFuenteNutrienteResultAsync(
+                FuenteNutrienteRequest fuente,
+                CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(fuente);
 
@@ -106,10 +263,16 @@ namespace CONATRADEC.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    string mensaje =
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            ObtenerMensajeHttp(
+                                response.StatusCode,
+                                "eliminar la fuente de nutriente"),
+                            cancellationToken);
+
                     return ApiResult<bool>.Fail(
-                        ObtenerMensajeHttp(
-                            response.StatusCode,
-                            "eliminar la fuente de nutriente"),
+                        mensaje,
                         (int)response.StatusCode);
                 }
 
@@ -117,21 +280,23 @@ namespace CONATRADEC.Services
                     true,
                     "Fuente de nutriente eliminada correctamente.");
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<bool>.Fail(
                     "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
             }
             catch (OperationCanceledException)
             {
-                return ApiResult<bool>.Fail("La operación fue cancelada.");
+                return ApiResult<bool>.Fail(
+                    "La operación fue cancelada.");
             }
             catch (HttpRequestException)
             {
                 return ApiResult<bool>.Fail(
                     "No fue posible conectarse con el servidor. Verifique su conexión.");
             }
-            catch (Exception)
+            catch
             {
                 return ApiResult<bool>.Fail(
                     "Ocurrió un error inesperado al eliminar la fuente de nutriente.");
@@ -139,8 +304,7 @@ namespace CONATRADEC.Services
         }
 
         // =========================================================
-        // MÉTODOS ANTERIORES
-        // Se conservan para no romper formularios ni otros módulos.
+        // MÉTODOS COMPATIBLES CON EL RESTO DEL PROYECTO
         // =========================================================
 
         public async Task<ObservableCollection<FuenteNutrienteResponse>>
@@ -153,97 +317,67 @@ namespace CONATRADEC.Services
                 : new ObservableCollection<FuenteNutrienteResponse>();
         }
 
-        public async Task<ObservableCollection<FuenteNutrienteAporteTablaResponse>>
+        public async Task<
+            ObservableCollection<FuenteNutrienteAporteTablaResponse>>
             GetAportesTablaAsync()
         {
             try
             {
                 var response = await httpClient
-                    .GetFromJsonAsync<ObservableCollection<FuenteNutrienteAporteTablaResponse>>(
+                    .GetFromJsonAsync<
+                        ObservableCollection<
+                            FuenteNutrienteAporteTablaResponse>>(
                         "api/fuente-nutriente/aportes-tabla",
                         jsonOptions);
 
-                return response
-                    ?? new ObservableCollection<FuenteNutrienteAporteTablaResponse>();
+                return response ??
+                    new ObservableCollection<
+                        FuenteNutrienteAporteTablaResponse>();
             }
             catch
             {
-                return new ObservableCollection<FuenteNutrienteAporteTablaResponse>();
+                return new ObservableCollection<
+                    FuenteNutrienteAporteTablaResponse>();
             }
         }
 
         public async Task<bool> CreateFuenteNutrienteAsync(
             FuenteNutrienteRequest fuente)
         {
-            FuenteNutrienteResponse? creada =
-                await CreateFuenteNutrienteConRespuestaAsync(fuente);
+            var resultado =
+                await CreateFuenteNutrienteResultAsync(fuente);
 
-            return creada?.FuenteNutrientesId != null &&
-                   creada.FuenteNutrientesId > 0;
+            return resultado.Success &&
+                   resultado.Data?.FuenteNutrientesId > 0;
         }
 
         public async Task<FuenteNutrienteResponse?>
             CreateFuenteNutrienteConRespuestaAsync(
                 FuenteNutrienteRequest fuente)
         {
-            try
-            {
-                using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
-                    "api/fuente-nutriente/crear-con-elementos",
-                    fuente,
-                    jsonOptions);
+            var resultado =
+                await CreateFuenteNutrienteResultAsync(fuente);
 
-                string jsonRespuesta = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode ||
-                    string.IsNullOrWhiteSpace(jsonRespuesta))
-                {
-                    return null;
-                }
-
-                ApiDataResponse<FuenteNutrienteResponse>? respuesta =
-                    JsonSerializer.Deserialize<ApiDataResponse<FuenteNutrienteResponse>>(
-                        jsonRespuesta,
-                        jsonOptions);
-
-                if (respuesta?.Data != null)
-                    return respuesta.Data;
-
-                return JsonSerializer.Deserialize<FuenteNutrienteResponse>(
-                    jsonRespuesta,
-                    jsonOptions);
-            }
-            catch
-            {
-                return null;
-            }
+            return resultado.Success
+                ? resultado.Data
+                : null;
         }
 
         public async Task<bool> UpdateFuenteNutrienteAsync(
             FuenteNutrienteRequest fuente)
         {
-            try
-            {
-                if (!fuente.FuenteNutrientesId.HasValue)
-                    return false;
+            var resultado =
+                await UpdateFuenteNutrienteResultAsync(fuente);
 
-                using var response = await httpClient.PutAsJsonAsync(
-                    $"api/fuente-nutriente/editar-con-elementos/{fuente.FuenteNutrientesId.Value}",
-                    fuente,
-                    jsonOptions);
-
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
+            return resultado.Success;
         }
 
         public async Task<bool> DeleteFuenteNutrienteAsync(
             FuenteNutrienteRequest fuente)
         {
-            var resultado = await DeleteFuenteNutrienteResultAsync(fuente);
+            var resultado =
+                await DeleteFuenteNutrienteResultAsync(fuente);
+
             return resultado.Success;
         }
 
@@ -253,7 +387,7 @@ namespace CONATRADEC.Services
         {
             try
             {
-                using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
+                using var response = await httpClient.PostAsJsonAsync(
                     $"api/fuente-nutriente/{fuenteNutrientesId}/habilitar-enmienda-calcarea",
                     request,
                     jsonOptions);
@@ -271,7 +405,7 @@ namespace CONATRADEC.Services
         {
             try
             {
-                using HttpResponseMessage response = await httpClient.PutAsync(
+                using var response = await httpClient.PutAsync(
                     $"api/fuente-nutriente/deshabilitar-enmienda-calcarea/{fuenteNutrientesId}",
                     null);
 
@@ -288,7 +422,7 @@ namespace CONATRADEC.Services
         {
             try
             {
-                using HttpResponseMessage response = await httpClient.PostAsync(
+                using var response = await httpClient.PostAsync(
                     $"api/fuente-nutriente/habilitar-fertilizacion-mixta/{fuenteNutrientesId}",
                     null);
 
@@ -305,7 +439,7 @@ namespace CONATRADEC.Services
         {
             try
             {
-                using HttpResponseMessage response = await httpClient.PutAsync(
+                using var response = await httpClient.PutAsync(
                     $"api/fuente-nutriente/deshabilitar-fertilizacion-mixta/{fuenteNutrientesId}",
                     null);
 
@@ -318,8 +452,28 @@ namespace CONATRADEC.Services
         }
 
         // =========================================================
-        // MÉTODOS AUXILIARES
+        // AUXILIARES
         // =========================================================
+
+        private FuenteNutrienteResponse?
+            DeserializarRespuestaFuente(string contenido)
+        {
+            if (string.IsNullOrWhiteSpace(contenido))
+                return null;
+
+            ApiDataResponse<FuenteNutrienteResponse>? respuesta =
+                JsonSerializer.Deserialize<
+                    ApiDataResponse<FuenteNutrienteResponse>>(
+                    contenido,
+                    jsonOptions);
+
+            if (respuesta?.Data != null)
+                return respuesta.Data;
+
+            return JsonSerializer.Deserialize<FuenteNutrienteResponse>(
+                contenido,
+                jsonOptions);
+        }
 
         private static string ObtenerMensajeHttp(
             HttpStatusCode statusCode,

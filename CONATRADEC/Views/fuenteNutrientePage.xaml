@@ -78,9 +78,7 @@
                                     TextColor="{StaticResource color_Negro}"
                                     TitleColor="{StaticResource color_Gris}" />
                         </VerticalStackLayout>
-
                     </Border>
-
                 </VerticalStackLayout>
 
                 <CollectionView Grid.Row="1"
@@ -103,12 +101,9 @@
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
-
                             <SwipeView>
-
                                 <SwipeView.RightItems>
                                     <SwipeItems Mode="Reveal">
-
                                         <SwipeItem Text="Editar"
                                                    IconImageSource="iconupdate.png"
                                                    BackgroundColor="{StaticResource BlueUpdate}"
@@ -122,20 +117,18 @@
                                                    Command="{Binding Source={x:Reference FuenteNutrientePage}, Path=BindingContext.DeleteCommand}"
                                                    CommandParameter="{Binding .}"
                                                    IsVisible="{Binding Source={x:Reference FuenteNutrientePage}, Path=BindingContext.CanDelete}" />
-
                                     </SwipeItems>
                                 </SwipeView.RightItems>
 
                                 <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
                                                         Default={StaticResource BorderStyleNoBorder}}">
-
                                     <Grid Padding="14"
                                           RowDefinitions="Auto,Auto,Auto,Auto"
                                           ColumnDefinitions="*"
                                           RowSpacing="4">
 
                                         <Grid.GestureRecognizers>
-                                            <TapGestureRecognizer 
+                                            <TapGestureRecognizer
                                                 Command="{Binding Source={x:Reference FuenteNutrientePage}, Path=BindingContext.ViewCommand}"
                                                 CommandParameter="{Binding .}" />
                                         </Grid.GestureRecognizers>
@@ -168,12 +161,9 @@
                                                FontAttributes="Bold"
                                                TextColor="{StaticResource color_Cafe}"
                                                Margin="0,6,0,0" />
-
                                     </Grid>
                                 </Border>
-
                             </SwipeView>
-
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
@@ -182,12 +172,12 @@
                 <Border Grid.Row="2"
                         Margin="10,8,10,0"
                         Padding="10"
+                        IsVisible="{Binding MostrarSeccionTablaComposicion}"
                         BackgroundColor="White"
                         Stroke="{StaticResource color_Gris}"
                         StrokeThickness="0.5">
 
                     <VerticalStackLayout Spacing="8">
-
                         <Grid ColumnDefinitions="*,Auto"
                               ColumnSpacing="10">
 
@@ -213,7 +203,6 @@
                                     CornerRadius="18"
                                     Padding="14,0"
                                     VerticalOptions="Center" />
-
                         </Grid>
 
                         <Label Text="No hay fuentes con aportes químicos para mostrar en esta clasificación."
@@ -222,109 +211,77 @@
                                TextColor="{StaticResource color_Gris}"
                                Margin="0,5,0,0" />
 
-                        <!-- Scroll horizontal general: mueve encabezado y cuerpo juntos -->
                         <ScrollView Orientation="Horizontal"
                                     IsVisible="{Binding MostrarTablaConDatos}">
 
                             <VerticalStackLayout>
-
-                                <!-- HEADER FIJO VERTICALMENTE -->
                                 <HorizontalStackLayout Spacing="0">
-
                                     <Grid WidthRequest="230"
                                           Padding="8"
                                           BackgroundColor="{StaticResource color_Verde}">
-
                                         <Label Text="Fuente"
                                                TextColor="White"
                                                FontAttributes="Bold" />
-
                                     </Grid>
 
                                     <HorizontalStackLayout BindableLayout.ItemsSource="{Binding ElementosTabla}"
                                                            Spacing="0">
-
                                         <BindableLayout.ItemTemplate>
                                             <DataTemplate>
-
                                                 <Grid WidthRequest="70"
                                                       Padding="8"
                                                       BackgroundColor="{StaticResource color_Verde}">
-
                                                     <Label Text="{Binding .}"
                                                            TextColor="White"
                                                            FontAttributes="Bold"
                                                            HorizontalTextAlignment="Center" />
-
                                                 </Grid>
-
                                             </DataTemplate>
                                         </BindableLayout.ItemTemplate>
                                     </HorizontalStackLayout>
-
                                 </HorizontalStackLayout>
 
-                                <!-- CUERPO CON SCROLL VERTICAL: EL HEADER NO SE MUEVE -->
                                 <ScrollView Orientation="Vertical"
                                             HeightRequest="190">
-
                                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding TablaComposicion}"
                                                          Spacing="0">
-
                                         <BindableLayout.ItemTemplate>
                                             <DataTemplate>
-
                                                 <HorizontalStackLayout Spacing="0">
-
                                                     <Grid WidthRequest="230"
                                                           Padding="8"
                                                           BackgroundColor="White">
-
                                                         <Label Text="{Binding Fuente}"
                                                                FontSize="12"
                                                                TextColor="{StaticResource color_Negro}"
                                                                LineBreakMode="TailTruncation" />
-
                                                     </Grid>
 
                                                     <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Celdas}"
                                                                            Spacing="0">
-
                                                         <BindableLayout.ItemTemplate>
                                                             <DataTemplate>
-
                                                                 <Grid WidthRequest="70"
                                                                       Padding="8"
                                                                       BackgroundColor="White">
-
                                                                     <Label Text="{Binding Texto}"
                                                                            FontSize="12"
                                                                            TextColor="{StaticResource color_Negro}"
                                                                            HorizontalTextAlignment="Center" />
-
                                                                 </Grid>
-
                                                             </DataTemplate>
                                                         </BindableLayout.ItemTemplate>
                                                     </HorizontalStackLayout>
-
                                                 </HorizontalStackLayout>
-
                                             </DataTemplate>
                                         </BindableLayout.ItemTemplate>
                                     </VerticalStackLayout>
-
                                 </ScrollView>
-
                             </VerticalStackLayout>
                         </ScrollView>
-
                     </VerticalStackLayout>
                 </Border>
-
             </Grid>
-
         </Grid>
-
     </ContentView>
 </ContentPage>
