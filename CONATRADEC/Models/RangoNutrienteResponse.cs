@@ -1,4 +1,4 @@
-namespace CONATRADEC.Models
+﻿namespace CONATRADEC.Models
 {
     public class RangoNutrienteResponse
     {
@@ -14,12 +14,43 @@ namespace CONATRADEC.Models
         public string? DescripcionParametro { get; set; }
         public bool Activo { get; set; }
 
-        public string ElementoTexto =>
-            string.IsNullOrWhiteSpace(SimboloElementoQuimico)
-                ? NombreElementoQuimico ?? string.Empty
-                : $"{SimboloElementoQuimico} - {NombreElementoQuimico}";
+        private string SimboloLimpio =>
+            (SimboloElementoQuimico ?? string.Empty)
+                .Trim();
+
+        private string NombreElementoLimpio =>
+            (NombreElementoQuimico ?? string.Empty)
+                .Trim();
+
+        private string UnidadBaseLimpia =>
+            (UnidadBase ?? string.Empty)
+                .Trim();
+
+        public string ElementoTexto
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(
+                        SimboloLimpio))
+                {
+                    return NombreElementoLimpio;
+                }
+
+                if (string.IsNullOrWhiteSpace(
+                        NombreElementoLimpio))
+                {
+                    return SimboloLimpio;
+                }
+
+                return
+                    $"{SimboloLimpio} - " +
+                    $"{NombreElementoLimpio}";
+            }
+        }
 
         public string RangoTexto =>
-            $"{ValorMinimo:0.##} - {ValorMaximo:0.##} {UnidadBase}".Trim();
+            $"{ValorMinimo:0.##} - " +
+            $"{ValorMaximo:0.##} " +
+            $"{UnidadBaseLimpia}";
     }
 }

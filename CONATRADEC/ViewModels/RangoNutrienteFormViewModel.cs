@@ -26,7 +26,7 @@ namespace CONATRADEC.ViewModels
         private ElementoQuimicoSelectorItem?
             elementoSeleccionado;
 
-        private string minimoTexto = "0";
+        private string minimoTexto = string.Empty;
         private string maximoTexto = string.Empty;
         private string descripcion = string.Empty;
 
@@ -88,10 +88,10 @@ namespace CONATRADEC.ViewModels
                     UnidadBaseFija;
 
                 MinimoTexto =
-                    item.ValorMinimo != 0
+                    item.ParametroRangoNutrienteCultivoId > 0
                         ? NumeroFormularioHelper.ToText(
                             item.ValorMinimo)
-                        : "0";
+                        : string.Empty;
 
                 MaximoTexto =
                     item.ValorMaximo > 0
@@ -194,7 +194,7 @@ namespace CONATRADEC.ViewModels
                         .TryParseDecimal(
                             minimoTexto,
                             out decimal minimo) &&
-                    minimo >= 0)
+                    minimo > 0)
                 {
                     ErrorMinimo =
                         string.Empty;
@@ -546,10 +546,10 @@ namespace CONATRADEC.ViewModels
                     .TryParseDecimal(
                         MinimoTexto,
                         out minimo) ||
-                minimo < 0)
+                minimo <= 0)
             {
                 ErrorMinimo =
-                    "El valor mínimo debe ser un número igual o mayor que cero.";
+                    "El valor mínimo debe ser mayor que cero.";
             }
 
             if (!NumeroFormularioHelper
