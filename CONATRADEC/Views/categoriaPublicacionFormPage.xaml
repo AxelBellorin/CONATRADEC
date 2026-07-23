@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.categoriaPublicacionFormPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Tipo de publicación"
+    BackgroundColor="#FFF5FF"
+    ControlTemplate="{StaticResource FooterTemplate}">
+
+    <Grid>
+        <Grid
+            x:Name="ContenidoPrincipal"
+            RowDefinitions="Auto,*"
+            Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
+            RowSpacing="14">
+
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <Button
+                    Text="‹ Cancelar"
+                    Command="{Binding CancelarCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="#3B655B"
+                    FontFamily="MontserratBold" />
+
+                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                    <Label
+                        Text="{Binding TituloPagina}"
+                        FontFamily="MontserratBold"
+                        FontSize="{OnPlatform WinUI=27, Default=21}"
+                        TextColor="#3B655B" />
+                    <Label
+                        Text="Defina el nombre, descripción, color y orden en que aparecerá en los formularios."
+                        FontFamily="MontserratMedium"
+                        FontSize="12"
+                        TextColor="#6B7280"
+                        LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+
+                <Button
+                    Grid.Column="2"
+                    Text="{Binding TextoBoton}"
+                    Command="{Binding GuardarCommand}"
+                    IsVisible="{Binding PuedeGuardar}"
+                    BackgroundColor="#3B655B"
+                    TextColor="White"
+                    FontFamily="MontserratBold"
+                    CornerRadius="11"
+                    Padding="16,10" />
+            </Grid>
+
+            <ScrollView Grid.Row="1">
+                <VerticalStackLayout
+                    MaximumWidthRequest="760"
+                    HorizontalOptions="Center"
+                    Spacing="14"
+                    Padding="0,0,0,30">
+
+                    <Border
+                        Padding="20"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 18">
+
+                        <VerticalStackLayout Spacing="16">
+                            <Label
+                                Text="Información del tipo"
+                                FontFamily="MontserratBold"
+                                FontSize="19"
+                                TextColor="#3B655B" />
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label
+                                    Text="Nombre *"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <Entry
+                                    Text="{Binding Nombre}"
+                                    Placeholder="Ejemplo: Capacitación"
+                                    MaxLength="80"
+                                    FontFamily="MontserratMedium"
+                                    BackgroundColor="#F8FAF9" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label
+                                        Text="Descripción"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="{Binding CaracteresDescripcion}"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="11"
+                                        TextColor="#6B7280" />
+                                </Grid>
+                                <Editor
+                                    Text="{Binding Descripcion}"
+                                    Placeholder="Explique qué clase de publicaciones utilizarán este tipo."
+                                    MaxLength="250"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="110"
+                                    FontFamily="MontserratMedium"
+                                    BackgroundColor="#F8FAF9" />
+                            </VerticalStackLayout>
+
+                            <Grid
+                                ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                                RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
+                                ColumnSpacing="14"
+                                RowSpacing="14">
+
+                                <VerticalStackLayout Spacing="6">
+                                    <Label
+                                        Text="Color sugerido"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
+                                    <Picker
+                                        Title="Seleccione un color"
+                                        ItemsSource="{Binding Colores}"
+                                        ItemDisplayBinding="{Binding Texto}"
+                                        SelectedItem="{Binding ColorSeleccionado}"
+                                        FontFamily="MontserratMedium"
+                                        BackgroundColor="#F8FAF9" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                    Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                    Spacing="6">
+                                    <Label
+                                        Text="Código hexadecimal *"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
+                                    <Entry
+                                        Text="{Binding ColorHex}"
+                                        Placeholder="#3B655B"
+                                        MaxLength="7"
+                                        FontFamily="MontserratMedium"
+                                        BackgroundColor="#F8FAF9" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <Grid
+                                ColumnDefinitions="Auto,*"
+                                ColumnSpacing="14">
+                                <Border
+                                    WidthRequest="70"
+                                    HeightRequest="70"
+                                    Padding="8"
+                                    BackgroundColor="#F8FAF9"
+                                    Stroke="#DDE7E3"
+                                    StrokeShape="RoundRectangle 16">
+                                    <Border
+                                        BackgroundColor="{Binding ColorVistaPrevia}"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 11" />
+                                </Border>
+
+                                <VerticalStackLayout
+                                    Grid.Column="1"
+                                    Spacing="3"
+                                    VerticalOptions="Center">
+                                    <Label
+                                        Text="Vista previa"
+                                        FontFamily="MontserratBold"
+                                        FontSize="14"
+                                        TextColor="#1F2937" />
+                                    <Label
+                                        Text="Este color identificará el tipo en las tarjetas y filtros de Noticias."
+                                        FontFamily="MontserratMedium"
+                                        FontSize="12"
+                                        TextColor="#6B7280"
+                                        LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label
+                                    Text="Orden *"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <Entry
+                                    Text="{Binding OrdenTexto}"
+                                    Placeholder="1"
+                                    Keyboard="Numeric"
+                                    MaxLength="4"
+                                    FontFamily="MontserratMedium"
+                                    BackgroundColor="#F8FAF9" />
+                                <Label
+                                    Text="Los números menores aparecen primero en los selectores."
+                                    FontFamily="MontserratMedium"
+                                    FontSize="11"
+                                    TextColor="#6B7280" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Button
+                        Text="{Binding TextoBoton}"
+                        Command="{Binding GuardarCommand}"
+                        IsVisible="{Binding PuedeGuardar}"
+                        BackgroundColor="#3B655B"
+                        TextColor="White"
+                        FontFamily="MontserratBold"
+                        CornerRadius="12"
+                        Padding="18,13"
+                        HorizontalOptions="Fill" />
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <ActivityIndicator
+                Grid.RowSpan="2"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="#3B655B"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <Grid
+            x:Name="ContenidoSinPermiso"
+            IsVisible="False"
+            Padding="24">
+            <Border
+                MaximumWidthRequest="560"
+                Padding="28"
+                BackgroundColor="White"
+                Stroke="#DDE7E3"
+                StrokeShape="RoundRectangle 20"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+                <VerticalStackLayout Spacing="12">
+                    <Label
+                        Text="Sin permiso"
+                        FontFamily="MontserratBold"
+                        FontSize="22"
+                        TextColor="#3B655B"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="No tiene permiso para crear o editar tipos de publicación."
+                        FontFamily="MontserratMedium"
+                        TextColor="#4B5563"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

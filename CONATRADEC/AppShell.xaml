@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Shell
     x:Class="CONATRADEC.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -28,16 +28,24 @@
         FlyoutItemIsVisible="False"
         ContentTemplate="{DataTemplate views:MainPage}" />
 
+    <!--
+        Inicio, Noticias y Configuración son secciones principales.
+        Álbum se mantiene como ruta dinámica porque su módulo crea una
+        instancia nueva en cada entrada y contiene navegación interna propia.
+    -->
+
+    <!-- Noticias es una sección principal. -->
+    <ShellContent
+        Title="Noticias"
+        Route="noticiasPage"
+        FlyoutItemIsVisible="False"
+        ContentTemplate="{DataTemplate views:noticiasPage}" />
+
     <ShellContent
         Title="ConfiguracionPage"
         Route="ConfiguracionPage"
         FlyoutItemIsVisible="False"
         ContentTemplate="{DataTemplate views:configuracionPage}" />
-
-    <!--
-        AlbumFotosPage se eliminó de ShellContent.
-        Se registra en AppShell.xaml.cs para crear una instancia nueva.
-    -->
 
     <ShellContent
         Title="UserPage"

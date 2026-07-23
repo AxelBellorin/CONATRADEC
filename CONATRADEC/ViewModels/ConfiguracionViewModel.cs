@@ -27,11 +27,15 @@ namespace CONATRADEC.ViewModels
                 "extraccionNutrientePage",
                 "rangoNutrientePage");
 
+        public bool MostrarContenidoComunicacion =>
+            TieneLectura("categoriaPublicacionPage");
+
         public bool MostrarSinOpciones =>
             !MostrarSeguridadUsuarios &&
             !MostrarUbicacionFincas &&
             !MostrarCatalogosAgronomicos &&
-            !MostrarParametrosNutricionales;
+            !MostrarParametrosNutricionales &&
+            !MostrarContenidoComunicacion;
 
         public void ActualizarVisibilidad()
         {
@@ -39,6 +43,7 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(MostrarUbicacionFincas));
             OnPropertyChanged(nameof(MostrarCatalogosAgronomicos));
             OnPropertyChanged(nameof(MostrarParametrosNutricionales));
+            OnPropertyChanged(nameof(MostrarContenidoComunicacion));
             OnPropertyChanged(nameof(MostrarSinOpciones));
         }
 

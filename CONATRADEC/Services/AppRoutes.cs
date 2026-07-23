@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Views;
+using CONATRADEC.Views;
 
 namespace CONATRADEC.Services
 {
@@ -68,6 +68,26 @@ namespace CONATRADEC.Services
 
         public const string BitacoraDetalle =
             nameof(bitacoraDetallePage);
+
+        // Centro de noticias e intereses.
+        public const string Noticias =
+            nameof(noticiasPage);
+
+        public const string NoticiaDetalle =
+            nameof(noticiaDetallePage);
+
+        public const string PublicacionesAdmin =
+            nameof(publicacionesAdminPage);
+
+        public const string PublicacionFormulario =
+            nameof(publicacionFormPage);
+
+        // Catálogo de tipos de publicación.
+        public const string CategoriasPublicacion =
+            nameof(categoriaPublicacionPage);
+
+        public const string CategoriaPublicacionFormulario =
+            nameof(categoriaPublicacionFormPage);
 
         public const string Regresar = "..";
     }

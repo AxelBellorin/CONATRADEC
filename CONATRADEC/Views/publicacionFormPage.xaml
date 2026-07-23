@@ -1,0 +1,502 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.publicacionFormPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Publicación"
+    BackgroundColor="#FFF5FF"
+    ControlTemplate="{StaticResource FooterTemplate}">
+
+    <Grid>
+        <Grid
+            x:Name="ContenidoPrincipal"
+            RowDefinitions="Auto,*"
+            Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
+            RowSpacing="14">
+
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <Button
+                    Text="‹ Cancelar"
+                    Command="{Binding CancelarCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="#3B655B"
+                    FontFamily="MontserratBold" />
+
+                <Label
+                    Grid.Column="1"
+                    Text="{Binding TituloPagina}"
+                    FontFamily="MontserratBold"
+                    FontSize="{OnPlatform WinUI=27, Default=21}"
+                    TextColor="#3B655B"
+                    VerticalOptions="Center" />
+
+                <Button
+                    Grid.Column="2"
+                    Text="{Binding TextoBotonGuardar}"
+                    Command="{Binding GuardarCommand}"
+                    BackgroundColor="#3B655B"
+                    TextColor="White"
+                    FontFamily="MontserratBold"
+                    CornerRadius="11"
+                    Padding="16,10" />
+            </Grid>
+
+            <ScrollView Grid.Row="1">
+                <VerticalStackLayout
+                    MaximumWidthRequest="940"
+                    HorizontalOptions="Center"
+                    Spacing="14">
+
+                    <Border
+                        IsVisible="{Binding TieneMensaje}"
+                        Padding="13"
+                        BackgroundColor="#FFF7ED"
+                        Stroke="#FDBA74"
+                        StrokeShape="RoundRectangle 12">
+                        <Label
+                            Text="{Binding Mensaje}"
+                            FontFamily="MontserratMedium"
+                            TextColor="#9A3412" />
+                    </Border>
+
+                    <Border
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 18">
+                        <VerticalStackLayout Spacing="13">
+                            <Label
+                                Text="Información principal"
+                                FontFamily="MontserratBold"
+                                FontSize="18"
+                                TextColor="#3B655B" />
+
+                            <Label
+                                Text="Categoría *"
+                                FontFamily="MontserratBold"
+                                FontSize="12"
+                                TextColor="#374151" />
+                            <Picker
+                                Title="Seleccione una categoría"
+                                ItemsSource="{Binding Categorias}"
+                                ItemDisplayBinding="{Binding Nombre}"
+                                SelectedItem="{Binding CategoriaSeleccionada}"
+                                FontFamily="MontserratMedium" />
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label
+                                    Text="Título *"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="{Binding CaracteresTitulo}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="11"
+                                    TextColor="#6B7280" />
+                            </Grid>
+                            <Entry
+                                Text="{Binding Titulo}"
+                                Placeholder="Título de la publicación"
+                                MaxLength="180"
+                                FontFamily="MontserratMedium" />
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label
+                                    Text="Resumen *"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="{Binding CaracteresResumen}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="11"
+                                    TextColor="#6B7280" />
+                            </Grid>
+                            <Editor
+                                Text="{Binding Resumen}"
+                                Placeholder="Texto breve que aparecerá en la tarjeta"
+                                MaxLength="500"
+                                AutoSize="TextChanges"
+                                MinimumHeightRequest="90"
+                                FontFamily="MontserratMedium" />
+
+                            <Label
+                                Text="Contenido completo *"
+                                FontFamily="MontserratBold"
+                                FontSize="12"
+                                TextColor="#374151" />
+                            <Editor
+                                Text="{Binding Contenido}"
+                                Placeholder="Desarrolle aquí toda la información de la publicación"
+                                AutoSize="TextChanges"
+                                MinimumHeightRequest="220"
+                                FontFamily="MontserratMedium" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 18">
+                        <VerticalStackLayout Spacing="13">
+                            <Label
+                                Text="Imagen de portada"
+                                FontFamily="MontserratBold"
+                                FontSize="18"
+                                TextColor="#3B655B" />
+
+                            <Grid
+                                HeightRequest="{OnPlatform WinUI=320, Default=220}"
+                                BackgroundColor="#EEF5F2">
+                                <Label
+                                    Text="Seleccione una imagen para la portada"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    HorizontalTextAlignment="Center"
+                                    FontFamily="MontserratMedium"
+                                    TextColor="#6B7280"
+                                    Margin="20" />
+                                <Image
+                                    Source="{Binding PortadaPreview}"
+                                    IsVisible="{Binding TienePortada}"
+                                    Aspect="AspectFill" />
+                            </Grid>
+
+                            <FlexLayout
+                                Direction="Row"
+                                Wrap="Wrap"
+                                AlignItems="Center">
+                                <Button
+                                    Margin="0,0,8,6"
+                                    Text="Seleccionar imagen"
+                                    Clicked="OnSeleccionarPortadaClicked"
+                                    BackgroundColor="#3B655B"
+                                    TextColor="White"
+                                    FontFamily="MontserratBold"
+                                    CornerRadius="10" />
+                                <Button
+                                    Margin="0,0,8,6"
+                                    Text="Quitar portada"
+                                    Command="{Binding EliminarPortadaCommand}"
+                                    IsVisible="{Binding TienePortada}"
+                                    BackgroundColor="#B42318"
+                                    TextColor="White"
+                                    FontFamily="MontserratBold"
+                                    CornerRadius="10" />
+                            </FlexLayout>
+
+                            <Label
+                                Text="Formatos permitidos: JPG, JPEG, PNG y WEBP. Máximo 8 MB."
+                                FontFamily="MontserratMedium"
+                                FontSize="11"
+                                TextColor="#6B7280" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 18">
+                        <VerticalStackLayout Spacing="13">
+                            <Label
+                                Text="Publicación y vigencia"
+                                FontFamily="MontserratBold"
+                                FontSize="18"
+                                TextColor="#3B655B" />
+
+                            <Grid
+                                ColumnDefinitions="*,*"
+                                RowDefinitions="Auto,Auto"
+                                ColumnSpacing="12"
+                                RowSpacing="8">
+                                <Label
+                                    Text="Fecha de inicio *"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Hora de inicio *"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <DatePicker
+                                    Grid.Row="1"
+                                    Date="{Binding FechaInicioPublicacion}"
+                                    FontFamily="MontserratMedium" />
+                                <TimePicker
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Time="{Binding HoraInicioPublicacion}"
+                                    FontFamily="MontserratMedium" />
+                            </Grid>
+
+                            <HorizontalStackLayout Spacing="9">
+                                <Switch
+                                    IsToggled="{Binding TieneFechaFinPublicacion}"
+                                    OnColor="#3B655B" />
+                                <Label
+                                    Text="La publicación tiene fecha de vencimiento"
+                                    VerticalOptions="Center"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12" />
+                            </HorizontalStackLayout>
+
+                            <Grid
+                                IsVisible="{Binding TieneFechaFinPublicacion}"
+                                ColumnDefinitions="*,*"
+                                RowDefinitions="Auto,Auto"
+                                ColumnSpacing="12"
+                                RowSpacing="8">
+                                <Label
+                                    Text="Fecha final"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Hora final"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <DatePicker
+                                    Grid.Row="1"
+                                    Date="{Binding FechaFinPublicacion}"
+                                    FontFamily="MontserratMedium" />
+                                <TimePicker
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    Time="{Binding HoraFinPublicacion}"
+                                    FontFamily="MontserratMedium" />
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <VerticalStackLayout Spacing="6">
+                                    <Label
+                                        Text="Estado"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
+                                    <Picker
+                                        ItemsSource="{Binding Estados}"
+                                        SelectedItem="{Binding EstadoSeleccionado}"
+                                        FontFamily="MontserratMedium" />
+                                </VerticalStackLayout>
+
+                                <HorizontalStackLayout
+                                    Grid.Column="1"
+                                    Spacing="9"
+                                    VerticalOptions="End"
+                                    Padding="0,0,0,8">
+                                    <Switch
+                                        IsToggled="{Binding Destacada}"
+                                        OnColor="#F2C94C" />
+                                    <Label
+                                        Text="Publicación destacada"
+                                        VerticalOptions="Center"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="12" />
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 18">
+                        <VerticalStackLayout Spacing="13">
+                            <HorizontalStackLayout Spacing="9">
+                                <Switch
+                                    IsToggled="{Binding TieneEvento}"
+                                    OnColor="#3B655B" />
+                                <Label
+                                    Text="Esta publicación corresponde a un evento"
+                                    VerticalOptions="Center"
+                                    FontFamily="MontserratBold"
+                                    FontSize="14"
+                                    TextColor="#3B655B" />
+                            </HorizontalStackLayout>
+
+                            <VerticalStackLayout
+                                IsVisible="{Binding TieneEvento}"
+                                Spacing="12">
+                                <Grid
+                                    ColumnDefinitions="*,*"
+                                    RowDefinitions="Auto,Auto"
+                                    ColumnSpacing="12"
+                                    RowSpacing="8">
+                                    <Label
+                                        Text="Fecha de inicio del evento"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="Hora de inicio"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
+                                    <DatePicker
+                                        Grid.Row="1"
+                                        Date="{Binding FechaEventoInicio}"
+                                        FontFamily="MontserratMedium" />
+                                    <TimePicker
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Time="{Binding HoraEventoInicio}"
+                                        FontFamily="MontserratMedium" />
+                                </Grid>
+
+                                <HorizontalStackLayout Spacing="9">
+                                    <Switch
+                                        IsToggled="{Binding TieneFechaFinEvento}"
+                                        OnColor="#3B655B" />
+                                    <Label
+                                        Text="El evento tiene fecha y hora final"
+                                        VerticalOptions="Center"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="12" />
+                                </HorizontalStackLayout>
+
+                                <Grid
+                                    IsVisible="{Binding TieneFechaFinEvento}"
+                                    ColumnDefinitions="*,*"
+                                    RowDefinitions="Auto,Auto"
+                                    ColumnSpacing="12"
+                                    RowSpacing="8">
+                                    <Label
+                                        Text="Fecha final del evento"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="Hora final"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
+                                    <DatePicker
+                                        Grid.Row="1"
+                                        Date="{Binding FechaEventoFin}"
+                                        FontFamily="MontserratMedium" />
+                                    <TimePicker
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Time="{Binding HoraEventoFin}"
+                                        FontFamily="MontserratMedium" />
+                                </Grid>
+
+                                <Label
+                                    Text="Ubicación"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#374151" />
+                                <Entry
+                                    Text="{Binding Ubicacion}"
+                                    Placeholder="Lugar donde se realizará el evento"
+                                    MaxLength="300"
+                                    FontFamily="MontserratMedium" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="18"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 18">
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Enlace externo opcional"
+                                FontFamily="MontserratBold"
+                                FontSize="18"
+                                TextColor="#3B655B" />
+
+                            <Label
+                                Text="Dirección web"
+                                FontFamily="MontserratBold"
+                                FontSize="12"
+                                TextColor="#374151" />
+                            <Entry
+                                Text="{Binding EnlaceExterno}"
+                                Placeholder="https://..."
+                                Keyboard="Url"
+                                MaxLength="1000"
+                                FontFamily="MontserratMedium" />
+
+                            <Label
+                                Text="Texto del botón"
+                                FontFamily="MontserratBold"
+                                FontSize="12"
+                                TextColor="#374151" />
+                            <Entry
+                                Text="{Binding TextoEnlace}"
+                                Placeholder="Ejemplo: Más información"
+                                MaxLength="120"
+                                FontFamily="MontserratMedium" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="12"
+                        Padding="0,4,0,24">
+                        <Button
+                            Text="Cancelar"
+                            Command="{Binding CancelarCommand}"
+                            BackgroundColor="#E5E7EB"
+                            TextColor="#374151"
+                            FontFamily="MontserratBold"
+                            CornerRadius="12"
+                            Padding="16,12" />
+                        <Button
+                            Grid.Column="1"
+                            Text="{Binding TextoBotonGuardar}"
+                            Command="{Binding GuardarCommand}"
+                            BackgroundColor="#3B655B"
+                            TextColor="White"
+                            FontFamily="MontserratBold"
+                            CornerRadius="12"
+                            Padding="16,12" />
+                    </Grid>
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <ActivityIndicator
+                Grid.RowSpan="2"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="#3B655B"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <Grid
+            x:Name="ContenidoSinPermiso"
+            IsVisible="False"
+            Padding="24">
+            <Border
+                MaximumWidthRequest="560"
+                Padding="28"
+                BackgroundColor="White"
+                Stroke="#DDE7E3"
+                StrokeShape="RoundRectangle 20"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+                <Label
+                    Text="No tiene permiso para crear o editar publicaciones."
+                    FontFamily="MontserratBold"
+                    FontSize="20"
+                    TextColor="#3B655B"
+                    HorizontalTextAlignment="Center" />
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Services;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 using System;
@@ -15,13 +15,39 @@ namespace CONATRADEC
         {
             InitializeComponent();
 
-            /*
-             * AlbumFotosPage ya no es ShellContent.
-             * Cada navegación crea una instancia nueva de la página.
-             */
+            // Inicio, Noticias y Configuración están declarados como
+            // ShellContent. Álbum conserva una ruta dinámica para crear una
+            // instancia nueva y mantener estable su navegación interna.
             Routing.RegisterRoute(
                 AppRoutes.AlbumFotos,
                 typeof(albumFotosPage));
+
+            // ================================================
+            // CENTRO DE NOTICIAS E INTERESES
+            // ================================================
+            // noticiasPage está declarada como ShellContent en AppShell.xaml.
+            // Las páginas secundarias continúan registradas dinámicamente.
+            Routing.RegisterRoute(
+                AppRoutes.NoticiaDetalle,
+                typeof(noticiaDetallePage));
+
+            Routing.RegisterRoute(
+                AppRoutes.PublicacionesAdmin,
+                typeof(publicacionesAdminPage));
+
+            Routing.RegisterRoute(
+                AppRoutes.PublicacionFormulario,
+                typeof(publicacionFormPage));
+
+
+            // Catálogo de tipos de publicación.
+            Routing.RegisterRoute(
+                AppRoutes.CategoriasPublicacion,
+                typeof(categoriaPublicacionPage));
+
+            Routing.RegisterRoute(
+                AppRoutes.CategoriaPublicacionFormulario,
+                typeof(categoriaPublicacionFormPage));
 
             // Pantallas secundarias.
             Routing.RegisterRoute(
@@ -97,7 +123,6 @@ namespace CONATRADEC
             }
 
             var deferral = e.GetDeferral();
-
             if (deferral == null)
                 return;
 

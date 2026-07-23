@@ -1,14 +1,20 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:CONATRADEC.Controls">
 
     <!--
-        Un único template de navegación:
-        - Windows: barra lateral para mouse y teclado.
-        - Android/iOS: barra inferior para móvil.
-        La lógica, comandos y permisos siguen siendo los mismos.
+        Menú principal compartido:
+        - Windows: barra lateral.
+        - Android/iOS: barra inferior.
+
+        Las cuatro opciones principales usan AppNavigationMenuItem para:
+        - no depender del IsBusy de la pantalla actual;
+        - evitar navegaciones duplicadas;
+        - marcar automáticamente la opción activa;
+        - mantener inmóvil el menú durante la navegación;
+        - animar únicamente el contenido de la derecha.
     -->
     <ControlTemplate x:Key="FooterTemplate">
 
@@ -66,98 +72,32 @@
                         Grid.Row="1"
                         Spacing="8">
 
-                        <Border
-                            Padding="14,11"
-                            BackgroundColor="#EEF5F2"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 12">
+                        <controls:AppNavigationMenuItem
+                            Texto="Inicio"
+                            Icono="iconhome.png"
+                            Interfaz="MainPage"
+                            Ruta="//MainPage"
+                            Seccion="Inicio" />
 
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer
-                                    Command="{Binding goToMainPageCommand}" />
-                            </Border.GestureRecognizers>
+                        <controls:AppNavigationMenuItem
+                            Texto="Álbum de fotos"
+                            Icono="iconalbum.png"
+                            Interfaz="albumFotosPage"
+                            Ruta="albumFotosPage"
+                            Seccion="Album" />
 
-                            <Grid
-                                ColumnDefinitions="26,*"
-                                ColumnSpacing="12">
+                        <controls:AppNavigationMenuItem
+                            Texto="Noticias"
+                            Icono="iconnews.png"
+                            Interfaz="noticiasPage"
+                            Ruta="//noticiasPage"
+                            Seccion="Noticias" />
 
-                                <Image
-                                    Source="iconhome.png"
-                                    HeightRequest="24"
-                                    WidthRequest="24"
-                                    VerticalOptions="Center" />
-
-                                <Label
-                                    Grid.Column="1"
-                                    Text="Inicio"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="15"
-                                    TextColor="{StaticResource color_Verde}"
-                                    VerticalOptions="Center" />
-                            </Grid>
-                        </Border>
-
-                        <Border
-                            Padding="14,11"
-                            BackgroundColor="Transparent"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 12">
-
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer
-                                    Command="{Binding goToAlbumFotosPageCommand}" />
-                            </Border.GestureRecognizers>
-
-                            <Grid
-                                ColumnDefinitions="26,*"
-                                ColumnSpacing="12">
-
-                                <Image
-                                    Source="iconalbum.png"
-                                    HeightRequest="24"
-                                    WidthRequest="24"
-                                    VerticalOptions="Center" />
-
-                                <Label
-                                    Grid.Column="1"
-                                    Text="Álbum de fotos"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="15"
-                                    TextColor="{StaticResource color_Negro}"
-                                    VerticalOptions="Center" />
-                            </Grid>
-                        </Border>
-
-                        <Border
-                            Padding="14,11"
-                            BackgroundColor="Transparent"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 12">
-
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer
-                                    Command="{Binding goToConfiguracionPageCommand}" />
-                            </Border.GestureRecognizers>
-
-                            <Grid
-                                ColumnDefinitions="26,*"
-                                ColumnSpacing="12">
-
-                                <Image
-                                    Source="iconsettings.png"
-                                    HeightRequest="24"
-                                    WidthRequest="24"
-                                    VerticalOptions="Center" />
-
-                                <Label
-                                    Grid.Column="1"
-                                    Text="Configuración"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="15"
-                                    TextColor="{StaticResource color_Negro}"
-                                    VerticalOptions="Center" />
-                            </Grid>
-                        </Border>
+                        <controls:AppNavigationMenuItem
+                            Texto="Configuración"
+                            Icono="iconsettings.png"
+                            Ruta="//ConfiguracionPage"
+                            Seccion="Configuracion" />
 
                     </VerticalStackLayout>
 
@@ -211,7 +151,12 @@
             <ContentPresenter
                 Grid.Row="0"
                 Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                BackgroundColor="{StaticResource color_Blanco}" />
+                BackgroundColor="{StaticResource color_Blanco}">
+
+                <ContentPresenter.Behaviors>
+                    <controls:NavigationContentTransitionBehavior />
+                </ContentPresenter.Behaviors>
+            </ContentPresenter>
 
             <!-- ===================================================== -->
             <!-- NAVEGACIÓN DE MÓVIL                                  -->
@@ -220,7 +165,7 @@
                 Grid.Row="1"
                 Grid.Column="0"
                 IsVisible="{OnPlatform WinUI=False, Default=True}"
-                Padding="8,8,8,10"
+                Padding="5,8,5,10"
                 BackgroundColor="{StaticResource color_Blanco}"
                 Stroke="#E5E7EB"
                 StrokeThickness="1">
@@ -234,101 +179,48 @@
                 </Border.Shadow>
 
                 <Grid
-                    ColumnDefinitions="*,*,*,*"
-                    ColumnSpacing="2">
+                    ColumnDefinitions="*,*,*,*,*"
+                    ColumnSpacing="1">
 
-                    <!-- Inicio -->
-                    <controls:PermissionMenuItem
+                    <controls:AppNavigationMenuItem
                         Grid.Column="0"
+                        Texto="Inicio"
+                        Icono="iconhome.png"
                         Interfaz="MainPage"
-                        Padding="4,5"
-                        Spacing="4"
-                        BackgroundColor="Transparent"
-                        HorizontalOptions="Fill">
+                        Ruta="//MainPage"
+                        Seccion="Inicio"
+                        EsMovil="True" />
 
-                        <controls:PermissionMenuItem.GestureRecognizers>
-                            <TapGestureRecognizer
-                                Command="{Binding goToMainPageCommand}" />
-                        </controls:PermissionMenuItem.GestureRecognizers>
-
-                        <Image
-                            Source="iconhome.png"
-                            HeightRequest="26"
-                            WidthRequest="26"
-                            HorizontalOptions="Center" />
-
-                        <Label
-                            Text="Inicio"
-                            FontSize="11"
-                            FontFamily="MontserratMedium"
-                            TextColor="{StaticResource color_Negro}"
-                            HorizontalTextAlignment="Center"
-                            HorizontalOptions="Fill" />
-
-                    </controls:PermissionMenuItem>
-
-                    <!-- Álbum -->
-                    <VerticalStackLayout
+                    <controls:AppNavigationMenuItem
                         Grid.Column="1"
-                        Padding="4,5"
-                        Spacing="4"
-                        BackgroundColor="Transparent"
-                        HorizontalOptions="Fill">
+                        Texto="Álbum"
+                        Icono="iconalbum.png"
+                        Interfaz="albumFotosPage"
+                        Ruta="albumFotosPage"
+                        Seccion="Album"
+                        EsMovil="True" />
 
-                        <VerticalStackLayout.GestureRecognizers>
-                            <TapGestureRecognizer
-                                Command="{Binding goToAlbumFotosPageCommand}" />
-                        </VerticalStackLayout.GestureRecognizers>
-
-                        <Image
-                            Source="iconalbum.png"
-                            HeightRequest="26"
-                            WidthRequest="26"
-                            HorizontalOptions="Center" />
-
-                        <Label
-                            Text="Álbum"
-                            FontSize="11"
-                            FontFamily="MontserratMedium"
-                            TextColor="{StaticResource color_Negro}"
-                            HorizontalTextAlignment="Center"
-                            HorizontalOptions="Fill" />
-
-                    </VerticalStackLayout>
-
-                    <!-- Configuración -->
-                    <VerticalStackLayout
+                    <controls:AppNavigationMenuItem
                         Grid.Column="2"
-                        Padding="4,5"
-                        Spacing="4"
-                        BackgroundColor="Transparent"
-                        HorizontalOptions="Fill">
+                        Texto="Noticias"
+                        Icono="iconnews.png"
+                        Interfaz="noticiasPage"
+                        Ruta="//noticiasPage"
+                        Seccion="Noticias"
+                        EsMovil="True" />
 
-                        <VerticalStackLayout.GestureRecognizers>
-                            <TapGestureRecognizer
-                                Command="{Binding goToConfiguracionPageCommand}" />
-                        </VerticalStackLayout.GestureRecognizers>
-
-                        <Image
-                            Source="iconsettings.png"
-                            HeightRequest="26"
-                            WidthRequest="26"
-                            HorizontalOptions="Center" />
-
-                        <Label
-                            Text="Config."
-                            FontSize="11"
-                            FontFamily="MontserratMedium"
-                            TextColor="{StaticResource color_Negro}"
-                            HorizontalTextAlignment="Center"
-                            HorizontalOptions="Fill" />
-
-                    </VerticalStackLayout>
+                    <controls:AppNavigationMenuItem
+                        Grid.Column="3"
+                        Texto="Config."
+                        Icono="iconsettings.png"
+                        Ruta="//ConfiguracionPage"
+                        Seccion="Configuracion"
+                        EsMovil="True" />
 
                     <!-- Salir -->
                     <VerticalStackLayout
-                        Grid.Column="3"
-                        Padding="4,5"
+                        Grid.Column="4"
+                        Padding="2,5"
                         Spacing="4"
                         BackgroundColor="Transparent"
                         HorizontalOptions="Fill">
@@ -340,13 +232,13 @@
 
                         <Image
                             Source="iconloginout.png"
-                            HeightRequest="26"
-                            WidthRequest="26"
+                            HeightRequest="25"
+                            WidthRequest="25"
                             HorizontalOptions="Center" />
 
                         <Label
                             Text="Salir"
-                            FontSize="11"
+                            FontSize="10"
                             FontFamily="MontserratMedium"
                             TextColor="{StaticResource RedDelete}"
                             HorizontalTextAlignment="Center"

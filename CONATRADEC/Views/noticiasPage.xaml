@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.noticiasPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Title="Noticias"
+    BackgroundColor="#FFF5FF"
+    ControlTemplate="{StaticResource FooterTemplate}">
+
+    <Grid>
+        <Grid
+            x:Name="ContenidoPrincipal"
+            RowDefinitions="Auto,*"
+            Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
+            RowSpacing="14">
+
+            <Grid
+                Grid.Row="0"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="12">
+
+                <VerticalStackLayout Spacing="2">
+                    <Label
+                        Text="Noticias e intereses"
+                        FontFamily="MontserratBold"
+                        FontAttributes="Bold"
+                        FontSize="{OnPlatform WinUI=28, Default=23}"
+                        TextColor="#3B655B" />
+
+                    <Label
+                        Text="Manténgase al tanto de las novedades de CONATRADEC."
+                        FontFamily="MontserratMedium"
+                        FontSize="13"
+                        TextColor="#6B7280" />
+                </VerticalStackLayout>
+
+                <Button
+                    Grid.Column="1"
+                    Text="Administrar"
+                    Command="{Binding AbrirAdministracionCommand}"
+                    IsVisible="{Binding CanAdministrar}"
+                    BackgroundColor="#9B552C"
+                    TextColor="White"
+                    FontFamily="MontserratBold"
+                    CornerRadius="12"
+                    Padding="16,10" />
+            </Grid>
+
+            <RefreshView
+                Grid.Row="1"
+                IsRefreshing="{Binding IsRefreshing}"
+                Command="{Binding RefrescarCommand}">
+
+                <CollectionView
+                    ItemsSource="{Binding Publicaciones}"
+                    SelectionMode="None"
+                    ItemSizingStrategy="MeasureAllItems">
+
+                    <CollectionView.Header>
+                        <VerticalStackLayout Spacing="12" Padding="0,0,0,12">
+
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <VerticalStackLayout Spacing="10">
+                                    <SearchBar
+                                        Placeholder="Buscar noticias, eventos u ofertas"
+                                        Text="{Binding TextoBusqueda}"
+                                        SearchCommand="{Binding BuscarCommand}"
+                                        FontFamily="MontserratMedium"
+                                        BackgroundColor="#F8FAF9" />
+
+                                    <Grid
+                                        ColumnDefinitions="*,Auto"
+                                        ColumnSpacing="10">
+
+                                        <Picker
+                                            Title="Categoría"
+                                            ItemsSource="{Binding Categorias}"
+                                            ItemDisplayBinding="{Binding Nombre}"
+                                            SelectedItem="{Binding CategoriaSeleccionada}"
+                                            FontFamily="MontserratMedium" />
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Buscar"
+                                            Command="{Binding BuscarCommand}"
+                                            BackgroundColor="#3B655B"
+                                            TextColor="White"
+                                            FontFamily="MontserratBold"
+                                            CornerRadius="10" />
+                                    </Grid>
+
+                                    <Grid
+                                        ColumnDefinitions="Auto,*,Auto,*,Auto"
+                                        ColumnSpacing="8">
+
+                                        <Switch
+                                            IsToggled="{Binding SoloDestacadas}"
+                                            OnColor="#3B655B" />
+                                        <Label
+                                            Grid.Column="1"
+                                            Text="Solo destacadas"
+                                            VerticalOptions="Center"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="12" />
+
+                                        <Switch
+                                            Grid.Column="2"
+                                            IsToggled="{Binding SoloEventos}"
+                                            OnColor="#3B655B" />
+                                        <Label
+                                            Grid.Column="3"
+                                            Text="Solo eventos"
+                                            VerticalOptions="Center"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="12" />
+
+                                        <Button
+                                            Grid.Column="4"
+                                            Text="Limpiar"
+                                            Command="{Binding LimpiarFiltrosCommand}"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#9B552C"
+                                            FontFamily="MontserratBold" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border
+                                IsVisible="{Binding TieneMensaje}"
+                                Padding="12"
+                                BackgroundColor="#FFF7ED"
+                                Stroke="#FDBA74"
+                                StrokeShape="RoundRectangle 12">
+                                <Label
+                                    Text="{Binding Mensaje}"
+                                    FontFamily="MontserratMedium"
+                                    TextColor="#9A3412" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </CollectionView.Header>
+
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout
+                            Orientation="Vertical"
+                            ItemSpacing="14" />
+                    </CollectionView.ItemsLayout>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:PublicacionListadoResponse">
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E3EAE7"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 18"
+                                Padding="0">
+
+                                <Border.Shadow>
+                                    <Shadow
+                                        Brush="Black"
+                                        Offset="0,3"
+                                        Radius="10"
+                                        Opacity="0.08" />
+                                </Border.Shadow>
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.AbrirDetalleCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+
+                                <Grid
+                                    ColumnDefinitions="{OnPlatform WinUI='250,*', Default='*'}"
+                                    RowDefinitions="{OnPlatform WinUI='Auto', Default='190,Auto'}">
+
+                                    <Grid
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        BackgroundColor="#EEF5F2"
+                                        MinimumHeightRequest="170">
+
+                                        <Label
+                                            Text="CONATRADEC"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            FontFamily="MontserratBold"
+                                            TextColor="#3B655B" />
+
+                                        <Image
+                                            Source="{Binding ImagenPortadaUrl}"
+                                            Aspect="AspectFill"
+                                            IsVisible="{Binding TieneImagen}" />
+                                    </Grid>
+
+                                    <VerticalStackLayout
+                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                        Padding="18"
+                                        Spacing="9">
+
+                                        <HorizontalStackLayout Spacing="8">
+                                            <Border
+                                                Padding="10,4"
+                                                BackgroundColor="{Binding CategoriaColor}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 10">
+                                                <Label
+                                                    Text="{Binding Categoria}"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="11"
+                                                    TextColor="White" />
+                                            </Border>
+
+                                            <Border
+                                                IsVisible="{Binding Destacada}"
+                                                Padding="10,4"
+                                                BackgroundColor="#FFF3CD"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 10">
+                                                <Label
+                                                    Text="Destacada"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="11"
+                                                    TextColor="#8A5A00" />
+                                            </Border>
+                                        </HorizontalStackLayout>
+
+                                        <Label
+                                            Text="{Binding Titulo}"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            FontSize="19"
+                                            TextColor="#1F2937"
+                                            LineBreakMode="WordWrap" />
+
+                                        <Label
+                                            Text="{Binding Resumen}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="13"
+                                            TextColor="#4B5563"
+                                            MaxLines="3"
+                                            LineBreakMode="TailTruncation" />
+
+                                        <Label
+                                            Text="{Binding FechaEventoTexto}"
+                                            IsVisible="{Binding TieneEvento}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            TextColor="#9B552C" />
+
+                                        <Label
+                                            Text="{Binding Ubicacion, StringFormat='Ubicación: {0}'}"
+                                            IsVisible="{Binding TieneUbicacion}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="12"
+                                            TextColor="#6B7280" />
+
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label
+                                                Text="{Binding FechaPublicacionTexto}"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="11"
+                                                TextColor="#6B7280"
+                                                VerticalOptions="Center" />
+
+                                            <Label
+                                                Grid.Column="1"
+                                                Text="Leer más ›"
+                                                FontFamily="MontserratBold"
+                                                FontSize="13"
+                                                TextColor="#3B655B"
+                                                VerticalOptions="Center" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout
+                            IsVisible="{Binding MostrarVacio}"
+                            Padding="30"
+                            Spacing="10"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center">
+                            <Label
+                                Text="No hay publicaciones para mostrar"
+                                FontFamily="MontserratBold"
+                                FontSize="18"
+                                TextColor="#3B655B"
+                                HorizontalTextAlignment="Center" />
+                            <Label
+                                Text="Cambie los filtros o actualice la lista."
+                                FontFamily="MontserratMedium"
+                                FontSize="13"
+                                TextColor="#6B7280"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+
+                    <CollectionView.Footer>
+                        <VerticalStackLayout Padding="0,16" Spacing="12">
+                            <Button
+                                Text="Cargar más"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.CargarMasCommand}"
+                                IsVisible="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.PuedeCargarMas}"
+                                HorizontalOptions="Center"
+                                BackgroundColor="#3B655B"
+                                TextColor="White"
+                                FontFamily="MontserratBold"
+                                CornerRadius="12" />
+                        </VerticalStackLayout>
+                    </CollectionView.Footer>
+                </CollectionView>
+            </RefreshView>
+
+            <ActivityIndicator
+                Grid.RowSpan="2"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="#3B655B"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <Grid
+            x:Name="ContenidoSinPermiso"
+            IsVisible="False"
+            Padding="24">
+            <Border
+                MaximumWidthRequest="540"
+                Padding="28"
+                BackgroundColor="White"
+                Stroke="#DDE7E3"
+                StrokeShape="RoundRectangle 20"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+                <VerticalStackLayout Spacing="14">
+                    <Label
+                        Text="Sin permiso para consultar noticias"
+                        FontFamily="MontserratBold"
+                        FontSize="23"
+                        TextColor="#3B655B"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="Su usuario está activo, pero su rol no tiene permiso de lectura para este apartado."
+                        FontFamily="MontserratMedium"
+                        TextColor="#4B5563"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

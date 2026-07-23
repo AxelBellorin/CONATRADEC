@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.noticiaDetallePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Detalle de publicación"
+    BackgroundColor="#FFF5FF"
+    ControlTemplate="{StaticResource FooterTemplate}">
+
+    <Grid>
+        <Grid
+            x:Name="ContenidoPrincipal"
+            RowDefinitions="Auto,*"
+            Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
+            RowSpacing="14">
+
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <Button
+                    Text="‹ Regresar"
+                    Command="{Binding RegresarCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="#3B655B"
+                    FontFamily="MontserratBold" />
+
+                <Label
+                    Grid.Column="1"
+                    Text="Detalle de publicación"
+                    FontFamily="MontserratBold"
+                    FontSize="22"
+                    TextColor="#3B655B"
+                    VerticalOptions="Center" />
+
+                <Button
+                    Grid.Column="2"
+                    Text="Editar"
+                    Command="{Binding EditarCommand}"
+                    IsVisible="{Binding CanEdit}"
+                    BackgroundColor="#9B552C"
+                    TextColor="White"
+                    FontFamily="MontserratBold"
+                    CornerRadius="10" />
+            </Grid>
+
+            <ScrollView Grid.Row="1">
+                <VerticalStackLayout
+                    MaximumWidthRequest="920"
+                    HorizontalOptions="Center"
+                    Spacing="16">
+
+                    <Border
+                        IsVisible="{Binding TieneMensaje}"
+                        Padding="14"
+                        BackgroundColor="#FFF7ED"
+                        Stroke="#FDBA74"
+                        StrokeShape="RoundRectangle 12">
+                        <Label
+                            Text="{Binding Mensaje}"
+                            FontFamily="MontserratMedium"
+                            TextColor="#9A3412" />
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding TienePublicacion}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 20"
+                        Padding="0">
+
+                        <VerticalStackLayout Spacing="0">
+                            <Grid
+                                HeightRequest="{OnPlatform WinUI=390, Default=240}"
+                                BackgroundColor="#EEF5F2">
+                                <Label
+                                    Text="CONATRADEC"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    FontFamily="MontserratBold"
+                                    FontSize="22"
+                                    TextColor="#3B655B" />
+                                <Image
+                                    Source="{Binding Publicacion.ImagenPortadaUrl}"
+                                    IsVisible="{Binding Publicacion.TieneImagen}"
+                                    Aspect="AspectFill" />
+                            </Grid>
+
+                            <VerticalStackLayout Padding="22" Spacing="13">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Border
+                                        Padding="11,5"
+                                        BackgroundColor="{Binding Publicacion.CategoriaColor}"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 10">
+                                        <Label
+                                            Text="{Binding Publicacion.Categoria}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            TextColor="White" />
+                                    </Border>
+
+                                    <Border
+                                        IsVisible="{Binding Publicacion.Destacada}"
+                                        Padding="11,5"
+                                        BackgroundColor="#FFF3CD"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 10">
+                                        <Label
+                                            Text="Destacada"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            TextColor="#8A5A00" />
+                                    </Border>
+                                </HorizontalStackLayout>
+
+                                <Label
+                                    Text="{Binding Publicacion.Titulo}"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    FontSize="{OnPlatform WinUI=30, Default=24}"
+                                    TextColor="#1F2937"
+                                    LineBreakMode="WordWrap" />
+
+                                <Label
+                                    Text="{Binding Publicacion.Resumen}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="16"
+                                    TextColor="#4B5563"
+                                    LineBreakMode="WordWrap" />
+
+                                <BoxView HeightRequest="1" Color="#E5E7EB" />
+
+                                <Grid
+                                    ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                                    RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
+                                    ColumnSpacing="18"
+                                    RowSpacing="8">
+
+                                    <VerticalStackLayout Spacing="5">
+                                        <Label
+                                            Text="{Binding Publicacion.FechaPublicacionTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="12"
+                                            TextColor="#6B7280" />
+                                        <Label
+                                            Text="{Binding Publicacion.VigenciaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="12"
+                                            TextColor="#6B7280" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                        Spacing="5">
+                                        <Label
+                                            Text="{Binding Publicacion.FechaEventoTexto}"
+                                            IsVisible="{Binding Publicacion.TieneEvento}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="13"
+                                            TextColor="#9B552C" />
+                                        <Label
+                                            Text="{Binding Publicacion.Ubicacion, StringFormat='Ubicación: {0}'}"
+                                            IsVisible="{Binding Publicacion.TieneUbicacion}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="12"
+                                            TextColor="#6B7280" />
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <Label
+                                    Text="{Binding Publicacion.Contenido}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="15"
+                                    TextColor="#27313B"
+                                    LineBreakMode="WordWrap" />
+
+                                <Button
+                                    Text="{Binding Publicacion.TextoBotonEnlace}"
+                                    Command="{Binding AbrirEnlaceCommand}"
+                                    IsVisible="{Binding Publicacion.TieneEnlace}"
+                                    HorizontalOptions="Start"
+                                    BackgroundColor="#3B655B"
+                                    TextColor="White"
+                                    FontFamily="MontserratBold"
+                                    CornerRadius="12"
+                                    Padding="18,11" />
+
+                                <Label
+                                    Text="Publicado por CONATRADEC"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="#3B655B" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <ActivityIndicator
+                Grid.RowSpan="2"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="#3B655B"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <Grid
+            x:Name="ContenidoSinPermiso"
+            IsVisible="False"
+            Padding="24">
+            <Border
+                MaximumWidthRequest="540"
+                Padding="28"
+                BackgroundColor="White"
+                Stroke="#DDE7E3"
+                StrokeShape="RoundRectangle 20"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+                <Label
+                    Text="No tiene permiso para consultar esta publicación."
+                    FontFamily="MontserratBold"
+                    FontSize="20"
+                    TextColor="#3B655B"
+                    HorizontalTextAlignment="Center" />
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>
