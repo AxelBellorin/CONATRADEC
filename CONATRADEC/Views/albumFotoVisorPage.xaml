@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.albumFotoVisorPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -70,8 +70,13 @@
                         <Grid
                             Padding="{OnPlatform WinUI='34,20', Default='8,12'}">
 
+                            <!--
+                                Solamente el visor solicita la fotografía
+                                original. Las tarjetas del álbum utilizan
+                                miniaturas para reducir memoria y descarga.
+                            -->
                             <Image
-                                Source="{Binding FotoUrl}"
+                                Source="{Binding FotoOriginalUrl}"
                                 Aspect="AspectFit"
                                 HorizontalOptions="Fill"
                                 VerticalOptions="Fill" />

@@ -1,11 +1,65 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Text.Json.Serialization;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
+    /// <summary>
+    /// Convierte las rutas completas de las imágenes del álbum en rutas de
+    /// miniatura. La imagen original se conserva internamente para abrir el
+    /// visor de pantalla completa.
+    /// </summary>
+    internal static class AlbumMiniaturaUrlHelper
+    {
+        public static string? Crear(
+            string? urlOriginal,
+            int ancho,
+            int alto,
+            int calidad)
+        {
+            if (string.IsNullOrWhiteSpace(urlOriginal))
+                return urlOriginal;
+
+            if (!Uri.TryCreate(
+                    urlOriginal,
+                    UriKind.Absolute,
+                    out Uri? uri))
+            {
+                return urlOriginal;
+            }
+
+            if (uri.AbsolutePath.StartsWith(
+                    "/imagenes/miniatura",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return urlOriginal;
+            }
+
+            if (!uri.AbsolutePath.StartsWith(
+                    "/resources/uploads/",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return urlOriginal;
+            }
+
+            string autoridad =
+                uri.GetLeftPart(UriPartial.Authority)
+                    .TrimEnd('/');
+
+            string ruta = Uri.EscapeDataString(
+                uri.AbsolutePath);
+
+            return
+                $"{autoridad}/imagenes/miniatura" +
+                $"?ruta={ruta}" +
+                $"&ancho={ancho}" +
+                $"&alto={alto}" +
+                $"&calidad={calidad}";
+        }
+    }
+
     public sealed class ApiEnvelope<T>
     {
         public bool Success { get; set; }
@@ -17,12 +71,32 @@ namespace CONATRADEC.Models
         INotifyPropertyChanged
     {
         private bool isSelected;
+        private string? imagenPortadaUrlOriginal;
 
         public int CategoriaAlbumBotanicoId { get; set; }
         public string NombreCategoria { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
         public string? RutaImagenPortada { get; set; }
-        public string? ImagenPortadaUrl { get; set; }
+
+        /// <summary>
+        /// En las tarjetas se utiliza una miniatura de 420 x 260.
+        /// La URL completa recibida desde la API queda almacenada en el
+        /// campo privado para no perder la referencia original.
+        /// </summary>
+        public string? ImagenPortadaUrl
+        {
+            get => AlbumMiniaturaUrlHelper.Crear(
+                imagenPortadaUrlOriginal,
+                420,
+                260,
+                65);
+            set => imagenPortadaUrlOriginal = value;
+        }
+
+        [JsonIgnore]
+        public string? ImagenPortadaOriginalUrl =>
+            imagenPortadaUrlOriginal;
+
         public int TotalRegistros { get; set; }
         public int TotalRegistrosActivos { get; set; }
         public bool Activo { get; set; }
@@ -109,6 +183,11 @@ namespace CONATRADEC.Models
                 response.CategoriaAlbumBotanicoId;
             NombreCategoria = response.NombreCategoria;
             Descripcion = response.Descripcion;
+
+            /*
+             * Para el formulario basta la miniatura. Así editar una
+             * categoría no vuelve a descargar la portada completa.
+             */
             RutaImagenPortadaActual =
                 response.ImagenPortadaUrl;
         }
@@ -116,6 +195,8 @@ namespace CONATRADEC.Models
 
     public sealed class AlbumGaleriaItemResponse
     {
+        private string? fotoPortadaUrlOriginal;
+
         public int AlbumBotanicoCafeId { get; set; }
         public int CategoriaAlbumBotanicoId { get; set; }
         public string Categoria { get; set; } = string.Empty;
@@ -123,7 +204,25 @@ namespace CONATRADEC.Models
         public string? NombreCientifico { get; set; }
         public string DescripcionCorta { get; set; } = string.Empty;
         public string? FotoPortada { get; set; }
-        public string? FotoPortadaUrl { get; set; }
+
+        /// <summary>
+        /// La galería utiliza una miniatura de 720 x 480 en lugar de la
+        /// fotografía original de hasta 1600 x 1600.
+        /// </summary>
+        public string? FotoPortadaUrl
+        {
+            get => AlbumMiniaturaUrlHelper.Crear(
+                fotoPortadaUrlOriginal,
+                720,
+                480,
+                68);
+            set => fotoPortadaUrlOriginal = value;
+        }
+
+        [JsonIgnore]
+        public string? FotoPortadaOriginalUrl =>
+            fotoPortadaUrlOriginal;
+
         public int TotalFotos { get; set; }
         public bool Activo { get; set; }
         public bool CategoriaActiva { get; set; }
@@ -229,10 +328,29 @@ namespace CONATRADEC.Models
         private string? descripcionFoto;
         private int orden;
         private bool esPortada;
+        private string? fotoUrlOriginal;
 
         public int AlbumBotanicoCafeFotoId { get; set; }
         public string RutaFoto { get; set; } = string.Empty;
-        public string? FotoUrl { get; set; }
+
+        /// <summary>
+        /// Las cuadrículas de detalle y administración usan la miniatura.
+        /// El visor usa FotoOriginalUrl para descargar la imagen completa
+        /// únicamente cuando el usuario decide abrirla.
+        /// </summary>
+        public string? FotoUrl
+        {
+            get => AlbumMiniaturaUrlHelper.Crear(
+                fotoUrlOriginal,
+                720,
+                480,
+                68);
+            set => fotoUrlOriginal = value;
+        }
+
+        [JsonIgnore]
+        public string? FotoOriginalUrl =>
+            fotoUrlOriginal;
 
         public string? DescripcionFoto
         {
@@ -295,7 +413,9 @@ namespace CONATRADEC.Models
 
         [JsonIgnore]
         public string PortadaTexto =>
-            EsPortada ? "Portada actual" : "Establecer portada";
+            EsPortada
+                ? "Portada actual"
+                : "Establecer portada";
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -323,7 +443,8 @@ namespace CONATRADEC.Models
         {
         }
 
-        public AlbumRegistroRequest(AlbumDetalleResponse response)
+        public AlbumRegistroRequest(
+            AlbumDetalleResponse response)
         {
             AlbumBotanicoCafeId =
                 response.AlbumBotanicoCafeId;

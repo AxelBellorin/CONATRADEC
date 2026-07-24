@@ -30,6 +30,10 @@ namespace CONATRADEC.Views
         private bool aplicandoDiseno;
         private int ultimoSpan = -1;
         private int ultimoModo = -1;
+        private bool? ultimoUsoCapitulosCompactos;
+
+        private static bool EsWindows =>
+            DeviceInfo.Platform == DevicePlatform.WinUI;
 
         public albumFotosPage()
         {
@@ -40,18 +44,38 @@ namespace CONATRADEC.Views
 
             BindingContext = viewModel;
 
-            AlbumCollectionView.Loaded +=
-                OnAlbumCollectionViewLoaded;
-            AlbumCollectionView.SizeChanged +=
-                OnAlbumCollectionViewSizeChanged;
+            /*
+             * MeasureAllItems obliga a Android a crear y medir cada tarjeta
+             * antes de terminar de mostrar la página. Las tarjetas del álbum
+             * tienen una estructura uniforme, por lo que basta medir la
+             * primera y reutilizar ese tamaño.
+             */
+            AlbumCollectionView.ItemSizingStrategy =
+                ItemSizingStrategy.MeasureFirstItem;
+
+            /*
+             * El rediseño dinámico mediante SizeChanged solamente es
+             * necesario en Windows, donde el usuario puede redimensionar la
+             * ventana. En Android provocaba mediciones encadenadas mientras
+             * cargaban las imágenes y podía terminar en un ANR.
+             */
+            if (EsWindows)
+            {
+                AlbumCollectionView.Loaded +=
+                    OnAlbumCollectionViewLoaded;
+
+                AlbumCollectionView.SizeChanged +=
+                    OnAlbumCollectionViewSizeChanged;
+            }
+            else
+            {
+                OptimizarColeccionesMoviles();
+            }
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-
-            AplicarDisenoResponsivo(
-                AlbumCollectionView.Width);
 
             viewModel.ActualizarPermisos();
 
@@ -64,38 +88,125 @@ namespace CONATRADEC.Views
 
                 await Shell.Current.GoToAsync(
                     AppRoutes.Principal);
+
                 return;
             }
 
+            if (EsWindows)
+            {
+                AplicarDisenoResponsivo(
+                    AlbumCollectionView.Width);
+            }
+            else
+            {
+                OptimizarColeccionesMoviles();
+
+                /*
+                 * Permite que Android pinte el encabezado y el indicador
+                 * antes de comenzar las solicitudes del álbum.
+                 */
+                await Task.Yield();
+            }
+
             await viewModel.LoadAsync(true);
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+
+            /*
+             * Libera el foco del buscador antes de navegar. Esto evita que el
+             * teclado y una medición pendiente acompañen a la siguiente
+             * pantalla en Android.
+             */
+            if (!EsWindows)
+                barraBusqueda?.Unfocus();
         }
 
         private void OnAlbumCollectionViewLoaded(
             object? sender,
             EventArgs e)
         {
-            Dispatcher.Dispatch(() =>
-                AplicarDisenoResponsivo(
-                    AlbumCollectionView.Width));
+            if (!EsWindows)
+                return;
+
+            AplicarDisenoResponsivo(
+                AlbumCollectionView.Width);
         }
 
         private void OnAlbumCollectionViewSizeChanged(
             object? sender,
             EventArgs e)
         {
-            if (aplicandoDiseno)
+            if (!EsWindows || aplicandoDiseno)
                 return;
 
-            Dispatcher.Dispatch(() =>
-                AplicarDisenoResponsivo(
-                    AlbumCollectionView.Width));
+            /*
+             * Se ejecuta directamente. Antes se acumulaban llamadas con
+             * Dispatcher.Dispatch y cada cambio de margen generaba otra
+             * medición pendiente.
+             */
+            AplicarDisenoResponsivo(
+                AlbumCollectionView.Width);
         }
 
-        private void AplicarDisenoResponsivo(double anchoDisponible)
+        private void OptimizarColeccionesMoviles()
         {
-            if (aplicandoDiseno ||
+            if (EsWindows)
+                return;
+
+            AlbumCollectionView.ItemSizingStrategy =
+                ItemSizingStrategy.MeasureFirstItem;
+
+            LocalizarControlesResponsivos();
+
+            if (capitulosCompactos != null)
+            {
+                capitulosCompactos.ItemSizingStrategy =
+                    ItemSizingStrategy.MeasureFirstItem;
+            }
+        }
+
+        private void AplicarDisenoResponsivo(
+            double anchoDisponible)
+        {
+            if (!EsWindows ||
+                aplicandoDiseno ||
                 double.IsNaN(anchoDisponible) ||
                 anchoDisponible <= 0)
+            {
+                return;
+            }
+
+            LocalizarControlesResponsivos();
+
+            int modo = anchoDisponible switch
+            {
+                < 520 => 0,
+                < 820 => 1,
+                _ => 2
+            };
+
+            int span = anchoDisponible switch
+            {
+                < 620 => 1,
+                < 1080 => 2,
+                _ => 3
+            };
+
+            bool usarCapitulosCompactos =
+                anchoDisponible < 760;
+
+            bool cambioModo = modo != ultimoModo;
+            bool cambioSpan = span != ultimoSpan;
+            bool cambioCapitulos =
+                ultimoUsoCapitulosCompactos !=
+                usarCapitulosCompactos;
+
+            if (!cambioModo &&
+                !cambioSpan &&
+                !cambioCapitulos)
             {
                 return;
             }
@@ -104,51 +215,33 @@ namespace CONATRADEC.Views
 
             try
             {
-                LocalizarControlesResponsivos();
+                if (cambioSpan)
+                    AplicarColumnasGaleria(span);
 
-                bool esWindows =
-                    DeviceInfo.Platform == DevicePlatform.WinUI;
-
-                // Se usa el ancho real del área de contenido, no el ancho
-                // completo de la ventana. Así se descuenta automáticamente
-                // el espacio ocupado por el menú lateral.
-                int modo = anchoDisponible switch
+                if (cambioModo)
                 {
-                    < 520 => 0, // compacto
-                    < 820 => 1, // mediano
-                    _ => 2      // amplio
-                };
-
-                int span = anchoDisponible switch
-                {
-                    < 620 => 1,
-                    < 1080 => 2,
-                    _ => 3
-                };
-
-                AplicarColumnasGaleria(span);
-                AplicarMargenGaleria(modo);
-
-                if (modo != ultimoModo)
-                {
+                    AplicarMargenGaleria(modo);
                     AplicarEncabezado(modo);
                     AplicarBuscador(modo);
                     AplicarTituloGaleria(modo);
                     ultimoModo = modo;
                 }
 
-                bool usarCapitulosCompactos =
-                    !esWindows || anchoDisponible < 760;
-
-                if (capitulosWindows != null)
+                if (cambioCapitulos)
                 {
-                    capitulosWindows.IsVisible =
-                        esWindows && !usarCapitulosCompactos;
-                }
+                    if (capitulosWindows != null)
+                    {
+                        capitulosWindows.IsVisible =
+                            !usarCapitulosCompactos;
+                    }
 
-                if (capitulosCompactos != null)
-                {
-                    capitulosCompactos.IsVisible =
+                    if (capitulosCompactos != null)
+                    {
+                        capitulosCompactos.IsVisible =
+                            usarCapitulosCompactos;
+                    }
+
+                    ultimoUsoCapitulosCompactos =
                         usarCapitulosCompactos;
                 }
             }
@@ -180,19 +273,20 @@ namespace CONATRADEC.Views
                         .OfType<VerticalStackLayout>()
                         .FirstOrDefault();
 
-                var botones = encabezadoGrid.Children
-                    .OfType<Button>()
-                    .ToList();
+                List<Button> botones =
+                    encabezadoGrid.Children
+                        .OfType<Button>()
+                        .ToList();
 
-                botonNuevaCategoria = botones
-                    .FirstOrDefault(x =>
+                botonNuevaCategoria =
+                    botones.FirstOrDefault(x =>
                         string.Equals(
                             x.Text,
                             "Nueva categoría",
                             StringComparison.OrdinalIgnoreCase));
 
-                botonNuevoRegistro = botones
-                    .FirstOrDefault(x =>
+                botonNuevoRegistro =
+                    botones.FirstOrDefault(x =>
                         string.Equals(
                             x.Text,
                             "Nuevo registro",
@@ -201,18 +295,25 @@ namespace CONATRADEC.Views
 
             if (header.Children[1]
                 is Border bordeBusqueda &&
-                bordeBusqueda.Content is Grid gridBusqueda)
+                bordeBusqueda.Content
+                    is Grid gridBusqueda)
             {
                 busquedaGrid = gridBusqueda;
-                barraBusqueda = gridBusqueda.Children
-                    .OfType<SearchBar>()
-                    .FirstOrDefault();
-                botonLimpiar = gridBusqueda.Children
-                    .OfType<Button>()
-                    .FirstOrDefault();
-                opcionesBusqueda = gridBusqueda.Children
-                    .OfType<HorizontalStackLayout>()
-                    .FirstOrDefault();
+
+                barraBusqueda =
+                    gridBusqueda.Children
+                        .OfType<SearchBar>()
+                        .FirstOrDefault();
+
+                botonLimpiar =
+                    gridBusqueda.Children
+                        .OfType<Button>()
+                        .FirstOrDefault();
+
+                opcionesBusqueda =
+                    gridBusqueda.Children
+                        .OfType<HorizontalStackLayout>()
+                        .FirstOrDefault();
             }
 
             if (header.Children[2]
@@ -221,6 +322,7 @@ namespace CONATRADEC.Views
             {
                 capitulosWindows =
                     seccionCapitulos.Children[1] as Grid;
+
                 capitulosCompactos =
                     seccionCapitulos.Children[2]
                     as CollectionView;
@@ -245,6 +347,7 @@ namespace CONATRADEC.Views
             controlesResponsivosLocalizados =
                 encabezadoGrid != null &&
                 busquedaGrid != null &&
+                capitulosCompactos != null &&
                 tituloGaleriaGrid != null;
         }
 
@@ -257,8 +360,10 @@ namespace CONATRADEC.Views
                 is GridItemsLayout layout)
             {
                 layout.Span = span;
+
                 layout.HorizontalItemSpacing =
                     span == 1 ? 0 : 14;
+
                 layout.VerticalItemSpacing = 14;
                 ultimoSpan = span;
             }
@@ -291,10 +396,13 @@ namespace CONATRADEC.Views
             {
                 encabezadoGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Star));
+
                 encabezadoGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Auto));
+
                 encabezadoGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Auto));
+
                 encabezadoGrid.RowDefinitions.Add(
                     new RowDefinition(GridLength.Auto));
 
@@ -304,8 +412,10 @@ namespace CONATRADEC.Views
 
                 botonNuevaCategoria.HorizontalOptions =
                     LayoutOptions.End;
+
                 botonNuevoRegistro.HorizontalOptions =
                     LayoutOptions.End;
+
                 return;
             }
 
@@ -313,10 +423,13 @@ namespace CONATRADEC.Views
             {
                 encabezadoGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Star));
+
                 encabezadoGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Star));
+
                 encabezadoGrid.RowDefinitions.Add(
                     new RowDefinition(GridLength.Auto));
+
                 encabezadoGrid.RowDefinitions.Add(
                     new RowDefinition(GridLength.Auto));
 
@@ -326,17 +439,22 @@ namespace CONATRADEC.Views
 
                 botonNuevaCategoria.HorizontalOptions =
                     LayoutOptions.Fill;
+
                 botonNuevoRegistro.HorizontalOptions =
                     LayoutOptions.Fill;
+
                 return;
             }
 
             encabezadoGrid.ColumnDefinitions.Add(
                 new ColumnDefinition(GridLength.Star));
+
             encabezadoGrid.RowDefinitions.Add(
                 new RowDefinition(GridLength.Auto));
+
             encabezadoGrid.RowDefinitions.Add(
                 new RowDefinition(GridLength.Auto));
+
             encabezadoGrid.RowDefinitions.Add(
                 new RowDefinition(GridLength.Auto));
 
@@ -346,6 +464,7 @@ namespace CONATRADEC.Views
 
             botonNuevaCategoria.HorizontalOptions =
                 LayoutOptions.Fill;
+
             botonNuevoRegistro.HorizontalOptions =
                 LayoutOptions.Fill;
         }
@@ -367,10 +486,13 @@ namespace CONATRADEC.Views
             {
                 busquedaGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Star));
+
                 busquedaGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Auto));
+
                 busquedaGrid.RowDefinitions.Add(
                     new RowDefinition(GridLength.Auto));
+
                 busquedaGrid.RowDefinitions.Add(
                     new RowDefinition(GridLength.Auto));
 
@@ -380,15 +502,19 @@ namespace CONATRADEC.Views
 
                 botonLimpiar.HorizontalOptions =
                     LayoutOptions.End;
+
                 return;
             }
 
             busquedaGrid.ColumnDefinitions.Add(
                 new ColumnDefinition(GridLength.Star));
+
             busquedaGrid.RowDefinitions.Add(
                 new RowDefinition(GridLength.Auto));
+
             busquedaGrid.RowDefinitions.Add(
                 new RowDefinition(GridLength.Auto));
+
             busquedaGrid.RowDefinitions.Add(
                 new RowDefinition(GridLength.Auto));
 
@@ -416,8 +542,10 @@ namespace CONATRADEC.Views
             {
                 tituloGaleriaGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Star));
+
                 tituloGaleriaGrid.ColumnDefinitions.Add(
                     new ColumnDefinition(GridLength.Auto));
+
                 tituloGaleriaGrid.RowDefinitions.Add(
                     new RowDefinition(GridLength.Auto));
 
@@ -426,15 +554,19 @@ namespace CONATRADEC.Views
 
                 totalRegistrosLabel.HorizontalOptions =
                     LayoutOptions.End;
+
                 totalRegistrosLabel.VerticalOptions =
                     LayoutOptions.Center;
+
                 return;
             }
 
             tituloGaleriaGrid.ColumnDefinitions.Add(
                 new ColumnDefinition(GridLength.Star));
+
             tituloGaleriaGrid.RowDefinitions.Add(
                 new RowDefinition(GridLength.Auto));
+
             tituloGaleriaGrid.RowDefinitions.Add(
                 new RowDefinition(GridLength.Auto));
 
@@ -443,6 +575,7 @@ namespace CONATRADEC.Views
 
             totalRegistrosLabel.HorizontalOptions =
                 LayoutOptions.Start;
+
             totalRegistrosLabel.VerticalOptions =
                 LayoutOptions.Start;
         }

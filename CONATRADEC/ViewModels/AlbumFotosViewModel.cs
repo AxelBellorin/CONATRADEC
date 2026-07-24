@@ -1,19 +1,24 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
-using System.Collections.ObjectModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
+using System.Collections.ObjectModel;
 
 namespace CONATRADEC.ViewModels
 {
     public sealed class AlbumFotosViewModel : GlobalService
     {
         private readonly AlbumBotanicoApiService apiService = new();
+
         private ObservableCollection<CategoriaAlbumBotanicoResponse>
             categorias = new();
+
         private ObservableCollection<AlbumGaleriaItemResponse>
             registros = new();
-        private CategoriaAlbumBotanicoResponse? categoriaSeleccionada;
+
+        private CategoriaAlbumBotanicoResponse?
+            categoriaSeleccionada;
+
         private string textoBusqueda = string.Empty;
         private bool incluirInactivos;
         private bool isRefreshing;
@@ -94,10 +99,13 @@ namespace CONATRADEC.ViewModels
         public bool HayCategorias => Categorias.Count > 0;
         public bool HayRegistros => Registros.Count > 0;
         public bool SinRegistros => !HayRegistros;
+
         public bool TodasSeleccionada =>
             CategoriaSeleccionada == null;
+
         public string FondoTodas =>
             TodasSeleccionada ? "#3B655B" : "#FFFFFF";
+
         public string TextoTodas =>
             TodasSeleccionada ? "#FFFFFF" : "#3B655B";
 
@@ -133,18 +141,26 @@ namespace CONATRADEC.ViewModels
         public Command BuscarCommand { get; }
         public Command LimpiarBusquedaCommand { get; }
         public Command SeleccionarTodasCommand { get; }
+
         public Command<CategoriaAlbumBotanicoResponse>
             SeleccionarCategoriaCommand { get; }
+
         public Command AgregarCategoriaCommand { get; }
+
         public Command<CategoriaAlbumBotanicoResponse>
             EditarCategoriaCommand { get; }
+
         public Command<CategoriaAlbumBotanicoResponse>
             CambiarEstadoCategoriaCommand { get; }
+
         public Command AgregarRegistroCommand { get; }
+
         public Command<AlbumGaleriaItemResponse>
             AbrirDetalleCommand { get; }
+
         public Command<AlbumGaleriaItemResponse>
             EditarRegistroCommand { get; }
+
         public Command<AlbumGaleriaItemResponse>
             CambiarEstadoRegistroCommand { get; }
 
@@ -233,14 +249,47 @@ namespace CONATRADEC.ViewModels
                     CategoriaSeleccionada?
                         .CategoriaAlbumBotanicoId;
 
-                var categoryResult =
-                    await apiService.GetCategoriasAsync(
-                        IncluirInactivos);
+                /*
+                 * Categorías y galería no dependen entre sí para realizar
+                 * la consulta. Se solicitan al mismo tiempo para evitar dos
+                 * esperas consecutivas, algo especialmente perceptible en
+                 * conexiones móviles.
+                 */
+                Task<ApiResult<List<CategoriaAlbumBotanicoResponse>>>
+                    categoriasTask =
+                        apiService.GetCategoriasAsync(
+                            IncluirInactivos);
+
+                Task<ApiResult<List<AlbumGaleriaItemResponse>>>
+                    galeriaTask =
+                        apiService.GetGaleriaAsync(
+                            selectedId,
+                            TextoBusqueda,
+                            IncluirInactivos);
+
+                await Task.WhenAll(
+                    categoriasTask,
+                    galeriaTask);
+
+                ApiResult<List<CategoriaAlbumBotanicoResponse>>
+                    categoryResult =
+                        await categoriasTask;
+
+                ApiResult<List<AlbumGaleriaItemResponse>>
+                    galleryResult =
+                        await galeriaTask;
 
                 if (!categoryResult.Success)
                 {
                     await MostrarToastAsync(
                         categoryResult.Message);
+                    return;
+                }
+
+                if (!galleryResult.Success)
+                {
+                    await MostrarToastAsync(
+                        galleryResult.Message);
                     return;
                 }
 
@@ -260,7 +309,35 @@ namespace CONATRADEC.ViewModels
 
                 MarcarCategoriaSeleccionada();
 
-                await CargarGaleriaAsync(false);
+                /*
+                 * Si una categoría seleccionada dejó de existir o fue
+                 * desactivada, la consulta paralela se hizo con su ID.
+                 * En ese caso se corrige una sola vez cargando la galería
+                 * completa para que la interfaz no quede vacía.
+                 */
+                if (selectedId.HasValue &&
+                    CategoriaSeleccionada == null)
+                {
+                    galleryResult =
+                        await apiService.GetGaleriaAsync(
+                            null,
+                            TextoBusqueda,
+                            IncluirInactivos);
+
+                    if (!galleryResult.Success)
+                    {
+                        await MostrarToastAsync(
+                            galleryResult.Message);
+                        return;
+                    }
+                }
+
+                Registros =
+                    new ObservableCollection<
+                        AlbumGaleriaItemResponse>(
+                        galleryResult.Data ??
+                        new List<
+                            AlbumGaleriaItemResponse>());
             }
             finally
             {
@@ -525,7 +602,8 @@ namespace CONATRADEC.ViewModels
                 AppRoutes.AlbumDetalle,
                 new Dictionary<string, object>
                 {
-                    ["RegistroId"] = item.AlbumBotanicoCafeId
+                    ["RegistroId"] =
+                        item.AlbumBotanicoCafeId
                 });
         }
 
@@ -548,7 +626,8 @@ namespace CONATRADEC.ViewModels
                 {
                     ["Mode"] =
                         FormMode.FormModeSelect.Edit,
-                    ["RegistroId"] = item.AlbumBotanicoCafeId,
+                    ["RegistroId"] =
+                        item.AlbumBotanicoCafeId,
                     ["CategoriaId"] =
                         item.CategoriaAlbumBotanicoId
                 });
