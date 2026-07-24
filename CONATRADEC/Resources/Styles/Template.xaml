@@ -5,32 +5,38 @@
     xmlns:controls="clr-namespace:CONATRADEC.Controls">
 
     <!--
-        Menú principal compartido:
-        - Windows: barra lateral.
-        - Android/iOS: barra inferior.
+        Menú responsivo compartido:
+        - Windows con 900 px o más: barra lateral.
+        - Windows estrecho, Android e iOS: barra inferior.
 
-        Las cuatro opciones principales usan AppNavigationMenuItem para:
-        - no depender del IsBusy de la pantalla actual;
-        - evitar navegaciones duplicadas;
-        - marcar automáticamente la opción activa;
-        - mantener inmóvil el menú durante la navegación;
-        - animar únicamente el contenido de la derecha.
+        El cambio depende únicamente del ancho disponible. No modifica las
+        rutas ni aplica animaciones al contenido de las páginas.
     -->
     <ControlTemplate x:Key="FooterTemplate">
 
         <Grid
             RowDefinitions="*,Auto"
-            ColumnDefinitions="{OnPlatform WinUI='230,*', Default='*'}"
             BackgroundColor="{StaticResource color_Blanco}">
 
+            <Grid.ColumnDefinitions>
+                <!-- El Behavior cambia esta columna entre 230 y 0. -->
+                <ColumnDefinition Width="0" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid.Behaviors>
+                <controls:ResponsiveNavigationLayoutBehavior />
+            </Grid.Behaviors>
+
             <!-- ===================================================== -->
-            <!-- NAVEGACIÓN DE WINDOWS                                 -->
+            <!-- NAVEGACIÓN LATERAL: WINDOWS AMPLIO                    -->
             <!-- ===================================================== -->
             <Border
+                AutomationId="DesktopNavigation"
                 Grid.Row="0"
                 Grid.RowSpan="2"
                 Grid.Column="0"
-                IsVisible="{OnPlatform WinUI=True, Default=False}"
+                IsVisible="False"
                 Padding="14,18"
                 BackgroundColor="White"
                 Stroke="#E5E7EB"
@@ -46,7 +52,6 @@
 
                 <Grid RowDefinitions="Auto,*,Auto">
 
-                    <!-- Identidad de la aplicación -->
                     <VerticalStackLayout
                         Grid.Row="0"
                         Padding="10,8,10,20"
@@ -67,7 +72,6 @@
 
                     </VerticalStackLayout>
 
-                    <!-- Opciones principales -->
                     <VerticalStackLayout
                         Grid.Row="1"
                         Spacing="8">
@@ -101,7 +105,6 @@
 
                     </VerticalStackLayout>
 
-                    <!-- Cerrar sesión -->
                     <VerticalStackLayout
                         Grid.Row="2"
                         Spacing="10">
@@ -112,9 +115,12 @@
                             Margin="0,0,0,4" />
 
                         <Border
+                            HeightRequest="50"
+                            MinimumHeightRequest="50"
                             Padding="14,11"
                             BackgroundColor="#FEF2F2"
-                            StrokeThickness="0"
+                            Stroke="Transparent"
+                            StrokeThickness="1"
                             StrokeShape="RoundRectangle 12">
 
                             <Border.GestureRecognizers>
@@ -147,24 +153,21 @@
                 </Grid>
             </Border>
 
-            <!-- Contenido compartido por ambas plataformas -->
+            <!-- El contenido siempre ocupa la segunda columna. Cuando la
+                 primera columna vale 0 utiliza todo el ancho disponible. -->
             <ContentPresenter
                 Grid.Row="0"
-                Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                BackgroundColor="{StaticResource color_Blanco}">
-
-                <ContentPresenter.Behaviors>
-                    <controls:NavigationContentTransitionBehavior />
-                </ContentPresenter.Behaviors>
-            </ContentPresenter>
+                Grid.Column="1"
+                BackgroundColor="{StaticResource color_Blanco}" />
 
             <!-- ===================================================== -->
-            <!-- NAVEGACIÓN DE MÓVIL                                  -->
+            <!-- NAVEGACIÓN INFERIOR: VENTANA ESTRECHA Y MÓVIL         -->
             <!-- ===================================================== -->
             <Border
+                AutomationId="CompactNavigation"
                 Grid.Row="1"
-                Grid.Column="0"
-                IsVisible="{OnPlatform WinUI=False, Default=True}"
+                Grid.Column="1"
+                IsVisible="True"
                 Padding="5,8,5,10"
                 BackgroundColor="{StaticResource color_Blanco}"
                 Stroke="#E5E7EB"
@@ -217,13 +220,15 @@
                         Seccion="Configuracion"
                         EsMovil="True" />
 
-                    <!-- Salir -->
                     <VerticalStackLayout
                         Grid.Column="4"
+                        HeightRequest="58"
+                        MinimumHeightRequest="58"
                         Padding="2,5"
                         Spacing="4"
                         BackgroundColor="Transparent"
-                        HorizontalOptions="Fill">
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Center">
 
                         <VerticalStackLayout.GestureRecognizers>
                             <TapGestureRecognizer
@@ -232,13 +237,13 @@
 
                         <Image
                             Source="iconloginout.png"
-                            HeightRequest="25"
-                            WidthRequest="25"
+                            HeightRequest="26"
+                            WidthRequest="26"
                             HorizontalOptions="Center" />
 
                         <Label
                             Text="Salir"
-                            FontSize="10"
+                            FontSize="11"
                             FontFamily="MontserratMedium"
                             TextColor="{StaticResource RedDelete}"
                             HorizontalTextAlignment="Center"

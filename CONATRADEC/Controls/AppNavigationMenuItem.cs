@@ -1,17 +1,16 @@
 using CONATRADEC.Services;
 using Microsoft.Maui.Controls.Shapes;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace CONATRADEC.Controls
 {
     /// <summary>
-    /// Opción reutilizable del menú principal.
+    /// Opción estable del menú principal.
     ///
-    /// No depende del estado IsBusy del ViewModel de la página actual, por lo
-    /// que Inicio, Álbum, Noticias y Configuración siguen disponibles mientras
-    /// una pantalla carga información. También evita abrir dos veces la misma
-    /// sección, actualiza automáticamente el resaltado de la opción activa
-    /// y mantiene fijo el menú mientras cambia únicamente el contenido.
+    /// No usa Flyout, animaciones, opacidad ni eventos de navegación globales.
+    /// Mantiene medidas fijas para que seleccionar una opción no desplace las
+    /// demás opciones del menú.
     /// </summary>
     public sealed class AppNavigationMenuItem : Border
     {
@@ -81,8 +80,6 @@ namespace CONATRADEC.Controls
         private readonly Label desktopLabel;
         private readonly Label mobileLabel;
 
-        private bool subscribed;
-
         public static readonly BindableProperty TextoProperty =
             BindableProperty.Create(
                 nameof(Texto),
@@ -110,13 +107,6 @@ namespace CONATRADEC.Controls
         public static readonly BindableProperty RutaProperty =
             BindableProperty.Create(
                 nameof(Ruta),
-                typeof(string),
-                typeof(AppNavigationMenuItem),
-                string.Empty);
-
-        public static readonly BindableProperty RutaRaizProperty =
-            BindableProperty.Create(
-                nameof(RutaRaiz),
                 typeof(string),
                 typeof(AppNavigationMenuItem),
                 string.Empty);
@@ -161,12 +151,6 @@ namespace CONATRADEC.Controls
             set => SetValue(RutaProperty, value);
         }
 
-        public string RutaRaiz
-        {
-            get => (string)GetValue(RutaRaizProperty);
-            set => SetValue(RutaRaizProperty, value);
-        }
-
         public string Seccion
         {
             get => (string)GetValue(SeccionProperty);
@@ -181,32 +165,41 @@ namespace CONATRADEC.Controls
 
         public AppNavigationMenuItem()
         {
+            Padding = 0;
+            Margin = 0;
             HorizontalOptions = LayoutOptions.Fill;
+            VerticalOptions = LayoutOptions.Start;
+            StrokeThickness = 1;
+            Stroke = new SolidColorBrush(Colors.Transparent);
             StrokeShape = new RoundRectangle
             {
                 CornerRadius = new CornerRadius(12)
             };
 
-            desktopIcon = CrearIcono(24);
-            mobileIcon = CrearIcono(25);
+            desktopIcon = CreateIcon(24);
+            mobileIcon = CreateIcon(26);
 
             desktopLabel = new Label
             {
                 FontFamily = "MontserratMedium",
                 FontSize = 15,
-                VerticalOptions = LayoutOptions.Center
+                VerticalOptions = LayoutOptions.Center,
+                LineBreakMode = LineBreakMode.NoWrap
             };
 
             mobileLabel = new Label
             {
                 FontFamily = "MontserratMedium",
-                FontSize = 10,
+                FontSize = 11,
                 HorizontalTextAlignment = TextAlignment.Center,
-                HorizontalOptions = LayoutOptions.Fill
+                HorizontalOptions = LayoutOptions.Fill,
+                LineBreakMode = LineBreakMode.NoWrap
             };
 
             desktopLayout = new Grid
             {
+                HeightRequest = 50,
+                MinimumHeightRequest = 50,
                 Padding = new Thickness(14, 11),
                 ColumnDefinitions =
                 {
@@ -221,18 +214,21 @@ namespace CONATRADEC.Controls
 
             mobileLayout = new VerticalStackLayout
             {
+                HeightRequest = 58,
+                MinimumHeightRequest = 58,
                 Padding = new Thickness(2, 5),
                 Spacing = 4,
-                HorizontalOptions = LayoutOptions.Fill
+                HorizontalOptions = LayoutOptions.Fill,
+                VerticalOptions = LayoutOptions.Center
             };
 
             mobileLayout.Add(mobileIcon);
             mobileLayout.Add(mobileLabel);
 
-            var container = new Grid();
-            container.Add(desktopLayout);
-            container.Add(mobileLayout);
-            Content = container;
+            var contentGrid = new Grid();
+            contentGrid.Add(desktopLayout);
+            contentGrid.Add(mobileLayout);
+            Content = contentGrid;
 
             GestureRecognizers.Add(
                 new TapGestureRecognizer
@@ -241,46 +237,42 @@ namespace CONATRADEC.Controls
                         async () => await NavigateAsync())
                 });
 
+            Loaded += OnLoaded;
+
             ApplyVisualProperties();
             ApplyPermission();
             UpdateActiveState();
         }
 
-        protected override void OnParentSet()
-        {
-            base.OnParentSet();
-
-            if (Parent == null)
-            {
-                UnsubscribeEvents();
-                return;
-            }
-
-            SubscribeEvents();
-            ApplyPermission();
-            UpdateActiveState();
-        }
-
-        private static Image CrearIcono(double size) =>
+        private static Image CreateIcon(double size) =>
             new()
             {
                 HeightRequest = size,
                 WidthRequest = size,
+                MinimumHeightRequest = size,
+                MinimumWidthRequest = size,
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 Aspect = Aspect.AspectFit
             };
+
+        private void OnLoaded(object? sender, EventArgs e)
+        {
+            ApplyPermission();
+            UpdateActiveState();
+            Dispatcher.Dispatch(UpdateActiveState);
+        }
 
         private static void OnVisualPropertyChanged(
             BindableObject bindable,
             object oldValue,
             object newValue)
         {
-            if (bindable is AppNavigationMenuItem item)
-            {
-                item.ApplyVisualProperties();
-                item.UpdateActiveState();
-            }
+            if (bindable is not AppNavigationMenuItem item)
+                return;
+
+            item.ApplyVisualProperties();
+            item.UpdateActiveState();
         }
 
         private static void OnPermissionPropertyChanged(
@@ -316,46 +308,13 @@ namespace CONATRADEC.Controls
 
             desktopLayout.IsVisible = !EsMovil;
             mobileLayout.IsVisible = EsMovil;
-        }
 
-        private void SubscribeEvents()
-        {
-            if (subscribed)
-                return;
-
-            PermissionService.Instance.PermissionsChanged +=
-                OnPermissionsChanged;
-
-            if (Shell.Current != null)
-                Shell.Current.Navigated += OnShellNavigated;
-
-            subscribed = true;
-        }
-
-        private void UnsubscribeEvents()
-        {
-            if (!subscribed)
-                return;
-
-            PermissionService.Instance.PermissionsChanged -=
-                OnPermissionsChanged;
-
-            if (Shell.Current != null)
-                Shell.Current.Navigated -= OnShellNavigated;
-
-            subscribed = false;
-        }
-
-        private void OnPermissionsChanged(object? sender, EventArgs e)
-        {
-            MainThread.BeginInvokeOnMainThread(ApplyPermission);
-        }
-
-        private void OnShellNavigated(
-            object? sender,
-            ShellNavigatedEventArgs e)
-        {
-            MainThread.BeginInvokeOnMainThread(UpdateActiveState);
+            double fixedHeight = EsMovil ? 58 : 50;
+            HeightRequest = fixedHeight;
+            MinimumHeightRequest = fixedHeight;
+            VerticalOptions = EsMovil
+                ? LayoutOptions.Fill
+                : LayoutOptions.Start;
         }
 
         private void ApplyPermission()
@@ -383,8 +342,6 @@ namespace CONATRADEC.Controls
                     ? Color.FromArgb("#BFD8CF")
                     : Colors.Transparent);
 
-            StrokeThickness = active ? 1 : 0;
-
             Color textColor = active
                 ? Color.FromArgb("#3B655B")
                 : Color.FromArgb("#111827");
@@ -395,8 +352,11 @@ namespace CONATRADEC.Controls
 
         private async Task NavigateAsync()
         {
-            if (!IsVisible || InputTransparent)
+            if (!IsVisible || InputTransparent ||
+                string.IsNullOrWhiteSpace(Ruta))
+            {
                 return;
+            }
 
             if (!string.IsNullOrWhiteSpace(Interfaz) &&
                 !PermissionService.Instance.HasRead(Interfaz))
@@ -406,34 +366,19 @@ namespace CONATRADEC.Controls
                 return;
             }
 
-            if (string.Equals(
-                    GetCurrentSection(),
-                    Seccion,
-                    StringComparison.OrdinalIgnoreCase))
+            if (IsCurrentPageRoute(Ruta) ||
+                !await NavigationLock.WaitAsync(0))
             {
                 return;
             }
-
-            if (!await NavigationLock.WaitAsync(0))
-                return;
 
             try
             {
                 await KeyboardService.HideAsync();
 
                 Shell? shell = Shell.Current;
-                if (shell == null)
-                    return;
-
-                // La animación nativa de Shell se desactiva porque desplaza
-                // el ContentPage completo, incluido el menú lateral/inferior.
-                // El contenido derecho aplica su propia transición breve desde
-                // NavigationContentTransitionBehavior.
-                if (!string.IsNullOrWhiteSpace(Ruta) &&
-                    !IsCurrentPageRoute(Ruta))
-                {
+                if (shell != null)
                     await shell.GoToAsync(Ruta, false);
-                }
             }
             catch (Exception ex)
             {
