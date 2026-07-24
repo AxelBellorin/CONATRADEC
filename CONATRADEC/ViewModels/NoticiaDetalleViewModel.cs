@@ -7,24 +7,29 @@ namespace CONATRADEC.ViewModels
     public sealed class NoticiaDetalleViewModel : GlobalService
     {
         private readonly PublicacionApiService apiService = new();
-
         private int publicacionId;
         private PublicacionDetalleResponse? publicacion;
         private string mensaje = string.Empty;
+        private long versionAplicada = -1;
+        private CancellationTokenSource? cargaCancellationTokenSource;
 
         public NoticiaDetalleViewModel()
         {
             RegresarCommand = new Command(
-                async () => await GoToAsyncParameters(AppRoutes.Regresar),
+                async () => await GoToAsyncParameters(
+                    AppRoutes.Regresar),
                 () => !IsBusy);
 
             AbrirEnlaceCommand = new Command(
                 async () => await AbrirEnlaceAsync(),
-                () => !IsBusy && Publicacion?.TieneEnlace == true);
+                () => !IsBusy &&
+                      Publicacion?.TieneEnlace == true);
 
             EditarCommand = new Command(
                 async () => await EditarAsync(),
-                () => !IsBusy && CanEdit && Publicacion != null);
+                () => !IsBusy &&
+                      CanEdit &&
+                      Publicacion != null);
         }
 
         public PublicacionDetalleResponse? Publicacion
@@ -71,8 +76,25 @@ namespace CONATRADEC.ViewModels
             if (id <= 0 || IsBusy)
                 return;
 
+            bool mismoRegistro =
+                publicacionId == id &&
+                Publicacion != null;
+
             publicacionId = id;
+
+            if (mismoRegistro &&
+                !PublicacionListadoEstadoService
+                    .HayCambiosDesde(versionAplicada))
+            {
+                return;
+            }
+
             await CargarAsync();
+        }
+
+        public void CancelarCarga()
+        {
+            cargaCancellationTokenSource?.Cancel();
         }
 
         private async Task CargarAsync()
@@ -80,36 +102,81 @@ namespace CONATRADEC.ViewModels
             if (!CanView || publicacionId <= 0 || IsBusy)
                 return;
 
-            if (!await ValidarInternetAsync())
-                return;
+            cargaCancellationTokenSource?.Cancel();
+            cargaCancellationTokenSource?.Dispose();
+
+            var source = new CancellationTokenSource();
+            cargaCancellationTokenSource = source;
 
             try
             {
                 IsBusy = true;
                 Mensaje = string.Empty;
-                Publicacion = null;
 
                 ApiResult<PublicacionDetalleResponse> result =
-                    await apiService.GetDetalleAsync(publicacionId);
+                    await apiService.GetDetalleAsync(
+                        publicacionId,
+                        source.Token);
+
+                if (source.IsCancellationRequested)
+                    return;
 
                 if (!result.Success || result.Data == null)
                 {
-                    Mensaje = result.Message;
+                    if (!string.Equals(
+                            result.Message,
+                            "La operación fue cancelada.",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        Mensaje = result.Message;
+                    }
+
                     return;
                 }
 
+                result.Data.ImagenPortadaUrl =
+                    ImagenMiniaturaUrlService.Crear(
+                        result.Data.ImagenPortadaUrl,
+                        ancho: 1200,
+                        alto: 900,
+                        calidad: 76);
+
                 Publicacion = result.Data;
+                versionAplicada =
+                    PublicacionListadoEstadoService.VersionActual;
+            }
+            catch (OperationCanceledException)
+            {
+                // Se canceló al navegar fuera del detalle.
             }
             catch (Exception ex)
             {
-                Mensaje = "No fue posible cargar la publicación.";
-                await MostrarErrorInesperadoAsync(
-                    "cargar la publicación",
-                    ex);
+                if (!source.IsCancellationRequested)
+                {
+                    Mensaje =
+                        "No fue posible cargar la publicación.";
+
+                    await MostrarErrorInesperadoAsync(
+                        "cargar la publicación",
+                        ex);
+                }
             }
             finally
             {
                 IsBusy = false;
+
+                if (ReferenceEquals(
+                        cargaCancellationTokenSource,
+                        source))
+                {
+                    cargaCancellationTokenSource.Dispose();
+                    cargaCancellationTokenSource = null;
+                }
+                else
+                {
+                    source.Dispose();
+                }
+
                 RegresarCommand.ChangeCanExecute();
                 AbrirEnlaceCommand.ChangeCanExecute();
                 EditarCommand.ChangeCanExecute();

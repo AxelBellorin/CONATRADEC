@@ -321,6 +321,7 @@ namespace CONATRADEC.ViewModels
                 }
 
                 await MostrarToastAsync(result.Message);
+                AlbumBotanicoRefreshState.MarcarCambio();
 
                 LimpiarArchivoSeleccionado();
                 DescripcionNueva = string.Empty;
@@ -409,6 +410,7 @@ namespace CONATRADEC.ViewModels
                 }
 
                 await MostrarToastAsync(result.Message);
+                AlbumBotanicoRefreshState.MarcarCambio();
                 await LoadAsync(false);
             }
             finally
@@ -453,6 +455,7 @@ namespace CONATRADEC.ViewModels
                 }
 
                 await MostrarToastAsync(result.Message);
+                AlbumBotanicoRefreshState.MarcarCambio();
                 await LoadAsync(false);
             }
             finally
@@ -506,6 +509,7 @@ namespace CONATRADEC.ViewModels
                 }
 
                 await MostrarToastAsync(result.Message);
+                AlbumBotanicoRefreshState.MarcarCambio();
                 await LoadAsync(false);
             }
             finally

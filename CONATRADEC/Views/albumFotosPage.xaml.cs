@@ -54,6 +54,14 @@ namespace CONATRADEC.Views
                 ItemSizingStrategy.MeasureFirstItem;
 
             /*
+             * Solicita la siguiente página únicamente cuando el usuario se
+             * aproxima al final. No se crean todas las tarjetas al entrar.
+             */
+            AlbumCollectionView.RemainingItemsThreshold = 2;
+            AlbumCollectionView.RemainingItemsThresholdReachedCommand =
+                viewModel.CargarMasCommand;
+
+            /*
              * El rediseño dinámico mediante SizeChanged solamente es
              * necesario en Windows, donde el usuario puede redimensionar la
              * ventana. En Android provocaba mediciones encadenadas mientras
@@ -108,7 +116,7 @@ namespace CONATRADEC.Views
                 await Task.Yield();
             }
 
-            await viewModel.LoadAsync(true);
+            await viewModel.AsegurarCargaAsync(true);
         }
 
         protected override void OnDisappearing()
@@ -122,6 +130,8 @@ namespace CONATRADEC.Views
              */
             if (!EsWindows)
                 barraBusqueda?.Unfocus();
+
+            viewModel.CancelarConsultas();
         }
 
         private void OnAlbumCollectionViewLoaded(

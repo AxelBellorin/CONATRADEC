@@ -1,28 +1,34 @@
-using System;
-using System.Collections.Generic;
+using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using CONATRADEC.Models;
 
 namespace CONATRADEC.Services
 {
     public class AnalisisSueloApiService
     {
-        private const string EndpointCalcular = "api/analisis-suelo/calcular";
-        private const string EndpointGuardarCalculo = "api/analisis-suelo/guardar-calculo";
-        private const string EndpointTipoCultivoListar = "api/analisis-suelo/tipo-cultivo/listar";
+        private const string EndpointCalcular =
+            "api/analisis-suelo/calcular";
+
+        private const string EndpointGuardarCalculo =
+            "api/analisis-suelo/guardar-calculo";
+
+        private const string EndpointTipoCultivoListar =
+            "api/analisis-suelo/tipo-cultivo/listar";
 
         private readonly HttpClient httpClient;
 
-        private readonly JsonSerializerOptions jsonOptions = new()
+        private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
+
+        private static readonly SemaphoreSlim TiposCultivoLock = new(1, 1);
+        private static List<TipoCultivoResponse>? tiposCultivoCache;
+        private static DateTime tiposCultivoCacheUtc;
+        private static readonly TimeSpan DuracionCache =
+            TimeSpan.FromMinutes(20);
 
         public AnalisisSueloApiService()
             : this(ApiClientService.Client)
@@ -35,131 +41,178 @@ namespace CONATRADEC.Services
                 ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public async Task<AnalisisSueloCalculoResponse?> CalcularAsync(AnalisisSueloCalcularRequest request)
-        {
-            return await PostAnalisisSueloAsync(EndpointCalcular, request);
-        }
+        public Task<AnalisisSueloCalculoResponse?> CalcularAsync(
+            AnalisisSueloCalcularRequest request) =>
+            PostAnalisisSueloAsync(
+                EndpointCalcular,
+                request);
 
-        public async Task<AnalisisSueloCalculoResponse?> GuardarCalculoAsync(AnalisisSueloGuardarCalculoRequest request)
-        {
-            return await PostAnalisisSueloAsync(EndpointGuardarCalculo, request);
-        }
+        public Task<AnalisisSueloCalculoResponse?> GuardarCalculoAsync(
+            AnalisisSueloGuardarCalculoRequest request) =>
+            PostAnalisisSueloAsync(
+                EndpointGuardarCalculo,
+                request);
 
-        public async Task<ObservableCollection<TipoCultivoResponse>> ListarTiposCultivoAsync()
+        /// <summary>
+        /// El tipo de cultivo cambia poco. Se mantiene una copia temporal para
+        /// que crear o editar un análisis no repita esta solicitud cada vez que
+        /// se construye una nueva página.
+        /// </summary>
+        public async Task<ObservableCollection<TipoCultivoResponse>>
+            ListarTiposCultivoAsync()
         {
+            if (CacheTiposCultivoVigente())
+                return CrearColeccionTiposCultivo();
+
+            await TiposCultivoLock.WaitAsync()
+                .ConfigureAwait(false);
+
             try
             {
-                HttpResponseMessage response = await httpClient.GetAsync(EndpointTipoCultivoListar);
+                if (CacheTiposCultivoVigente())
+                    return CrearColeccionTiposCultivo();
 
-                string jsonRespuesta = await response.Content.ReadAsStringAsync();
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        EndpointTipoCultivoListar,
+                        HttpCompletionOption.ResponseHeadersRead)
+                    .ConfigureAwait(false);
 
                 if (!response.IsSuccessStatusCode)
-                    return new ObservableCollection<TipoCultivoResponse>();
-
-                if (string.IsNullOrWhiteSpace(jsonRespuesta))
-                    return new ObservableCollection<TipoCultivoResponse>();
-
-                string jsonTrim = jsonRespuesta.Trim();
-
-                if (jsonTrim.StartsWith("["))
                 {
-                    ObservableCollection<TipoCultivoResponse>? listaDirecta =
-                        await Task.Run(() =>
-                            JsonSerializer.Deserialize<
-                                ObservableCollection<
-                                    TipoCultivoResponse>>(
-                                        jsonRespuesta,
-                                        jsonOptions));
-
-                    return listaDirecta ?? new ObservableCollection<TipoCultivoResponse>();
+                    return new ObservableCollection<TipoCultivoResponse>();
                 }
 
-                ApiListaResponse<TipoCultivoResponse>? respuesta =
-                    await Task.Run(() =>
+                string jsonRespuesta =
+                    await response.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false);
+
+                if (string.IsNullOrWhiteSpace(jsonRespuesta))
+                {
+                    return new ObservableCollection<TipoCultivoResponse>();
+                }
+
+                List<TipoCultivoResponse> items;
+                string jsonTrim = jsonRespuesta.TrimStart();
+
+                if (jsonTrim.StartsWith("[", StringComparison.Ordinal))
+                {
+                    items = JsonSerializer.Deserialize<
+                        List<TipoCultivoResponse>>(
+                            jsonRespuesta,
+                            JsonOptions)
+                        ?? new List<TipoCultivoResponse>();
+                }
+                else
+                {
+                    ApiListaResponse<TipoCultivoResponse>? envelope =
                         JsonSerializer.Deserialize<
                             ApiListaResponse<TipoCultivoResponse>>(
                                 jsonRespuesta,
-                                jsonOptions));
+                                JsonOptions);
 
-                if (respuesta?.Data == null)
-                    return new ObservableCollection<TipoCultivoResponse>();
+                    items = envelope?.Data ??
+                        new List<TipoCultivoResponse>();
+                }
 
-                return new ObservableCollection<TipoCultivoResponse>(respuesta.Data);
+                tiposCultivoCache = items
+                    .Where(x => x != null &&
+                                x.TipoCultivoId is > 0 &&
+                                x.Activo != false)
+                    .ToList();
+
+                tiposCultivoCacheUtc = DateTime.UtcNow;
+                return CrearColeccionTiposCultivo();
             }
             catch
             {
                 return new ObservableCollection<TipoCultivoResponse>();
             }
+            finally
+            {
+                TiposCultivoLock.Release();
+            }
         }
 
-        private async Task<AnalisisSueloCalculoResponse?> PostAnalisisSueloAsync<TRequest>(
-            string endpoint,
-            TRequest request)
+        public static void LimpiarCacheTiposCultivo()
+        {
+            tiposCultivoCache = null;
+            tiposCultivoCacheUtc = default;
+        }
+
+        private async Task<AnalisisSueloCalculoResponse?>
+            PostAnalisisSueloAsync<TRequest>(
+                string endpoint,
+                TRequest request)
         {
             try
             {
-                string jsonRequest = await Task.Run(() =>
-                    JsonSerializer.Serialize(
+                Debug.WriteLine(
+                    $"========== REQUEST API: {endpoint} ==========");
+
+                using HttpResponseMessage response =
+                    await httpClient.PostAsJsonAsync(
+                        endpoint,
                         request,
-                        jsonOptions));
+                        JsonOptions)
+                    .ConfigureAwait(false);
 
-                Debug.WriteLine($"========== REQUEST API: {endpoint} ==========");
+                string jsonRespuesta =
+                    await response.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false);
 
-                using StringContent content = new StringContent(
-                    jsonRequest,
-                    Encoding.UTF8,
-                    "application/json"
-                );
-
-                HttpResponseMessage response = await httpClient.PostAsync(endpoint, content);
-
-                string jsonRespuesta = await response.Content.ReadAsStringAsync();
-
-                Debug.WriteLine($"========== RESPONSE API: {endpoint} ({(int)response.StatusCode}) ==========");
+                Debug.WriteLine(
+                    $"========== RESPONSE API: {endpoint} " +
+                    $"({(int)response.StatusCode}) ==========");
 
                 if (!response.IsSuccessStatusCode)
                 {
                     return new AnalisisSueloCalculoResponse
                     {
                         Success = false,
-                        Message = $"Error API ({(int)response.StatusCode}): {jsonRespuesta}"
+                        Message =
+                            $"Error API ({(int)response.StatusCode}): " +
+                            jsonRespuesta
                     };
                 }
 
                 AnalisisSueloCalculoResponse? data =
-                    await Task.Run(() =>
-                        JsonSerializer.Deserialize<
-                            AnalisisSueloCalculoResponse>(
-                                jsonRespuesta,
-                                jsonOptions));
+                    JsonSerializer.Deserialize<
+                        AnalisisSueloCalculoResponse>(
+                            jsonRespuesta,
+                            JsonOptions);
 
-                if (data == null)
+                return data ?? new AnalisisSueloCalculoResponse
                 {
-                    return new AnalisisSueloCalculoResponse
-                    {
-                        Success = false,
-                        Message = "La API respondió, pero no se pudo interpretar la respuesta."
-                    };
-                }
-
-                return data;
+                    Success = false,
+                    Message =
+                        "La API respondió, pero no se pudo interpretar la respuesta."
+                };
             }
             catch (Exception ex)
             {
                 return new AnalisisSueloCalculoResponse
                 {
                     Success = false,
-                    Message = $"No se pudo conectar con la API: {ex.Message}"
+                    Message =
+                        $"No se pudo conectar con la API: {ex.Message}"
                 };
             }
         }
 
-        private class ApiListaResponse<T>
+        private static bool CacheTiposCultivoVigente() =>
+            tiposCultivoCache != null &&
+            DateTime.UtcNow - tiposCultivoCacheUtc < DuracionCache;
+
+        private static ObservableCollection<TipoCultivoResponse>
+            CrearColeccionTiposCultivo() =>
+            new(tiposCultivoCache ??
+                Enumerable.Empty<TipoCultivoResponse>());
+
+        private sealed class ApiListaResponse<T>
         {
             public bool Success { get; set; }
-
             public string? Message { get; set; }
-
             public List<T>? Data { get; set; }
         }
     }

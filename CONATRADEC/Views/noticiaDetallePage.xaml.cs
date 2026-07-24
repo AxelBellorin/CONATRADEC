@@ -2,7 +2,9 @@ using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
-    public partial class noticiaDetallePage : ContentPage, IQueryAttributable
+    public partial class noticiaDetallePage :
+        ContentPage,
+        IQueryAttributable
     {
         private readonly NoticiaDetalleViewModel viewModel = new();
         private int publicacionId;
@@ -17,8 +19,12 @@ namespace CONATRADEC.Views
         public void ApplyQueryAttributes(
             IDictionary<string, object> query)
         {
-            if (query.TryGetValue("PublicacionId", out object? value) &&
-                int.TryParse(value?.ToString(), out int id))
+            if (query.TryGetValue(
+                    "PublicacionId",
+                    out object? value) &&
+                int.TryParse(
+                    value?.ToString(),
+                    out int id))
             {
                 publicacionId = id;
             }
@@ -32,8 +38,17 @@ namespace CONATRADEC.Views
             ContenidoPrincipal.IsVisible = viewModel.CanView;
             ContenidoSinPermiso.IsVisible = !viewModel.CanView;
 
-            if (viewModel.CanView && publicacionId > 0)
-                await viewModel.InicializarAsync(publicacionId);
+            if (!viewModel.CanView || publicacionId <= 0)
+                return;
+
+            await Task.Yield();
+            await viewModel.InicializarAsync(publicacionId);
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+            base.OnDisappearing();
         }
     }
 }

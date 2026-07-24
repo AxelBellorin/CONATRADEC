@@ -329,6 +329,8 @@ namespace CONATRADEC.ViewModels
                  * albumFotosPage ejecuta LoadAsync(true) y actualiza el menú,
                  * las categorías y la galería.
                  */
+                AlbumBotanicoRefreshState.MarcarCambio();
+
                 await GoToAsyncParameters(
                     AppRoutes.Regresar);
 

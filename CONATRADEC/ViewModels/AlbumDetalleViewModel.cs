@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 
 namespace CONATRADEC.ViewModels
@@ -49,10 +49,6 @@ namespace CONATRADEC.ViewModels
 
         public AlbumDetalleViewModel()
         {
-            /*
-             * Regresa a la instancia del álbum que está debajo
-             * en la pila de navegación.
-             */
             RegresarCommand = new Command(
                 async () => await GoToAsyncParameters(
                     AppRoutes.Regresar));
@@ -88,9 +84,10 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                var result = await apiService.GetDetalleAsync(
-                    Id,
-                    CanEdit || CanDelete);
+                ApiResult<AlbumDetalleResponse> result =
+                    await apiService.GetDetalleAsync(
+                        Id,
+                        CanEdit || CanDelete);
 
                 if (!result.Success || result.Data == null)
                 {
@@ -186,9 +183,7 @@ namespace CONATRADEC.ViewModels
                 return;
 
             bool confirm = await page.DisplayAlert(
-                nuevoEstado
-                    ? "Activar registro"
-                    : "Desactivar registro",
+                nuevoEstado ? "Activar registro" : "Desactivar registro",
                 $"¿Desea {(nuevoEstado ? "activar" : "desactivar")} " +
                 $"'{Detalle.Titulo}'?",
                 "Sí",
@@ -201,7 +196,7 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                var result =
+                ApiResult<bool> result =
                     await apiService.CambiarEstadoRegistroAsync(
                         Id,
                         nuevoEstado);
@@ -215,6 +210,7 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
+                AlbumBotanicoRefreshState.MarcarCambio();
                 await MostrarToastAsync(result.Message);
                 await LoadAsync(false);
             }

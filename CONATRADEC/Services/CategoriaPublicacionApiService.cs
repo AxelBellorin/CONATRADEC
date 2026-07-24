@@ -20,9 +20,9 @@ namespace CONATRADEC.Services
 
         public Task<ApiResult<ObservableCollection<
             CategoriaPublicacionCatalogoResponse>>> GetAsync(
-            bool incluirInactivas,
-            string? buscar,
-            CancellationToken cancellationToken = default)
+                bool incluirInactivas,
+                string? buscar,
+                CancellationToken cancellationToken = default)
         {
             string ruta =
                 "api/configuracion/categorias-publicacion" +
@@ -42,27 +42,39 @@ namespace CONATRADEC.Services
                     cancellationToken);
         }
 
-        public Task<ApiResult<bool>> CrearAsync(
+        public async Task<ApiResult<bool>> CrearAsync(
             CategoriaPublicacionGuardarRequest request,
-            CancellationToken cancellationToken = default) =>
-            ConfiguracionApiServiceHelper.SendAsync(
-                httpClient,
-                HttpMethod.Post,
-                "api/configuracion/categorias-publicacion",
-                request,
-                "No fue posible crear el tipo de publicación.",
-                "Tipo de publicación creado correctamente.",
-                cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper.SendAsync(
+                    httpClient,
+                    HttpMethod.Post,
+                    "api/configuracion/categorias-publicacion",
+                    request,
+                    "No fue posible crear el tipo de publicación.",
+                    "Tipo de publicación creado correctamente.",
+                    cancellationToken);
 
-        public Task<ApiResult<bool>> ActualizarAsync(
+            if (result.Success)
+                PublicacionListadoEstadoService.MarcarActualizacion();
+
+            return result;
+        }
+
+        public async Task<ApiResult<bool>> ActualizarAsync(
             int categoriaId,
             CategoriaPublicacionGuardarRequest request,
-            CancellationToken cancellationToken = default) =>
-            categoriaId <= 0
-                ? Task.FromResult(
-                    ApiResult<bool>.Fail(
-                        "El tipo de publicación seleccionado no es válido."))
-                : ConfiguracionApiServiceHelper.SendAsync(
+            CancellationToken cancellationToken = default)
+        {
+            if (categoriaId <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "El tipo de publicación seleccionado no es válido.");
+            }
+
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper.SendAsync(
                     httpClient,
                     HttpMethod.Put,
                     $"api/configuracion/categorias-publicacion/{categoriaId}",
@@ -71,15 +83,25 @@ namespace CONATRADEC.Services
                     "Tipo de publicación actualizado correctamente.",
                     cancellationToken);
 
-        public Task<ApiResult<bool>> CambiarEstadoAsync(
+            if (result.Success)
+                PublicacionListadoEstadoService.MarcarActualizacion();
+
+            return result;
+        }
+
+        public async Task<ApiResult<bool>> CambiarEstadoAsync(
             int categoriaId,
             bool activo,
-            CancellationToken cancellationToken = default) =>
-            categoriaId <= 0
-                ? Task.FromResult(
-                    ApiResult<bool>.Fail(
-                        "El tipo de publicación seleccionado no es válido."))
-                : ConfiguracionApiServiceHelper.SendAsync(
+            CancellationToken cancellationToken = default)
+        {
+            if (categoriaId <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "El tipo de publicación seleccionado no es válido.");
+            }
+
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper.SendAsync(
                     httpClient,
                     HttpMethod.Patch,
                     $"api/configuracion/categorias-publicacion/{categoriaId}/estado",
@@ -91,5 +113,11 @@ namespace CONATRADEC.Services
                         ? "Tipo de publicación reactivado correctamente."
                         : "Tipo de publicación desactivado correctamente.",
                     cancellationToken);
+
+            if (result.Success)
+                PublicacionListadoEstadoService.MarcarActualizacion();
+
+            return result;
+        }
     }
 }

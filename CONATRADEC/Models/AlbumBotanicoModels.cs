@@ -488,4 +488,29 @@ namespace CONATRADEC.Models
         public int CategoriaAlbumBotanicoId { get; set; }
         public string RutaImagenPortada { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// Página de resultados del álbum botánico. El backend devuelve únicamente
+    /// los registros solicitados para no cargar toda la galería en Android.
+    /// </summary>
+    public sealed class AlbumGaleriaPaginaResponse
+    {
+        public List<AlbumGaleriaItemResponse> Items { get; set; } = new();
+        public int PaginaActual { get; set; }
+        public int TamanoPagina { get; set; }
+        public int TotalRegistros { get; set; }
+        public int TotalPaginas { get; set; }
+        public bool TieneMas { get; set; }
+    }
+
+    /// <summary>
+    /// Carga mínima utilizada al entrar por primera vez al álbum: categorías
+    /// activas y solamente la primera página de registros activos.
+    /// </summary>
+    public sealed class AlbumInicioResponse
+    {
+        public List<CategoriaAlbumBotanicoResponse> Categorias { get; set; } = new();
+        public AlbumGaleriaPaginaResponse Galeria { get; set; } = new();
+    }
+
 }

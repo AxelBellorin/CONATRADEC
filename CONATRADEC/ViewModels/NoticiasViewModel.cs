@@ -1,5 +1,6 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
 
 namespace CONATRADEC.ViewModels
@@ -7,17 +8,20 @@ namespace CONATRADEC.ViewModels
     public sealed class NoticiasViewModel : GlobalService
     {
         private readonly PublicacionApiService apiService = new();
-
         private CategoriaPublicacionResponse? categoriaSeleccionada;
         private string textoBusqueda = string.Empty;
         private bool soloDestacadas;
         private bool soloEventos;
         private bool isRefreshing;
+        private bool cargandoMas;
         private string mensaje = string.Empty;
-        private int paginaActual = 1;
+        private int paginaActual;
         private int totalPaginas = 1;
+        private int totalRegistros;
         private bool categoriasCargadas;
         private bool pantallaCargada;
+        private bool ultimaCargaExitosa;
+        private long versionAplicada = -1;
         private CancellationTokenSource? cargaCancellationTokenSource;
 
         public NoticiasViewModel()
@@ -42,7 +46,8 @@ namespace CONATRADEC.ViewModels
 
             CargarMasCommand = new Command(
                 async () => await CargarMasAsync(),
-                () => !IsBusy && PuedeCargarMas && CanView);
+                () => !IsBusy && !CargandoMas &&
+                      PuedeCargarMas && CanView);
 
             AbrirDetalleCommand =
                 new Command<PublicacionListadoResponse>(
@@ -109,6 +114,20 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public new bool IsBusy
+        {
+            get => base.IsBusy;
+            set
+            {
+                if (base.IsBusy == value)
+                    return;
+
+                base.IsBusy = value;
+                ActualizarComandos();
+                NotificarEstadoLista();
+            }
+        }
+
         public bool IsRefreshing
         {
             get => isRefreshing;
@@ -119,6 +138,20 @@ namespace CONATRADEC.ViewModels
 
                 isRefreshing = value;
                 OnPropertyChanged();
+            }
+        }
+
+        public bool CargandoMas
+        {
+            get => cargandoMas;
+            private set
+            {
+                if (cargandoMas == value)
+                    return;
+
+                cargandoMas = value;
+                OnPropertyChanged();
+                ActualizarComandos();
             }
         }
 
@@ -136,14 +169,26 @@ namespace CONATRADEC.ViewModels
         public bool TieneMensaje =>
             !string.IsNullOrWhiteSpace(Mensaje);
 
-        public bool TienePublicaciones =>
-            Publicaciones.Count > 0;
+        public bool TienePublicaciones => Publicaciones.Count > 0;
 
         public bool MostrarVacio =>
-            pantallaCargada && !TienePublicaciones && !IsBusy;
+            pantallaCargada &&
+            !TienePublicaciones &&
+            !IsBusy;
 
         public bool PuedeCargarMas =>
             paginaActual < totalPaginas;
+
+        public bool MostrarFinLista =>
+            pantallaCargada &&
+            TienePublicaciones &&
+            !PuedeCargarMas &&
+            !CargandoMas;
+
+        public string TotalTexto =>
+            totalRegistros == 1
+                ? "1 publicación"
+                : $"{totalRegistros} publicaciones";
 
         public bool CanAdministrar =>
             CanAdd || CanEdit || CanDelete;
@@ -167,98 +212,93 @@ namespace CONATRADEC.ViewModels
             if (!CanView || IsBusy)
                 return;
 
-            bool debeRecargar =
-                !pantallaCargada ||
-                PublicacionListadoEstadoService.HayActualizacionPendiente;
+            bool hayCambios =
+                PublicacionListadoEstadoService
+                    .HayCambiosDesde(versionAplicada);
 
-            if (debeRecargar)
+            bool debeRecargar =
+                !pantallaCargada || hayCambios;
+
+            if (!debeRecargar)
+                return;
+
+            if (hayCambios)
+                categoriasCargadas = false;
+
+            await CargarInicialAsync();
+            if (ultimaCargaExitosa)
             {
-                await CargarAsync(true);
-                PublicacionListadoEstadoService.ConfirmarActualizacion();
+                versionAplicada =
+                    PublicacionListadoEstadoService.VersionActual;
             }
         }
 
         public async Task CargarAsync(bool reiniciar)
         {
-            if (!CanView || IsBusy)
+            if (!CanView)
                 return;
 
-            if (!await ValidarInternetAsync())
+            if (reiniciar && IsBusy)
                 return;
 
-            cargaCancellationTokenSource?.Cancel();
-            cargaCancellationTokenSource?.Dispose();
+            if (!reiniciar &&
+                (CargandoMas || !PuedeCargarMas))
+            {
+                return;
+            }
 
-            var currentCancellationTokenSource =
-                new CancellationTokenSource();
-
-            cargaCancellationTokenSource =
-                currentCancellationTokenSource;
-
-            CancellationToken cancellationToken =
-                currentCancellationTokenSource.Token;
+            CancellationTokenSource source =
+                PrepararNuevaCarga(reiniciar);
 
             try
             {
-                IsBusy = true;
-                Mensaje = string.Empty;
-
-                if (!categoriasCargadas)
+                if (reiniciar)
                 {
-                    await CargarCategoriasAsync(cancellationToken);
+                    ultimaCargaExitosa = false;
+                    IsBusy = true;
+                    Mensaje = string.Empty;
+                }
+                else
+                {
+                    CargandoMas = true;
                 }
 
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-
-                int paginaSolicitada = reiniciar
+                int pagina = reiniciar
                     ? 1
-                    : paginaActual;
+                    : paginaActual + 1;
 
                 ApiResult<PublicacionPaginadaResponse> result =
                     await apiService.GetFeedAsync(
-                        CategoriaSeleccionada?.CategoriaPublicacionId,
+                        ObtenerCategoriaId(),
                         TextoBusqueda,
                         SoloDestacadas,
                         SoloEventos,
-                        paginaSolicitada,
-                        12,
-                        cancellationToken);
+                        pagina,
+                        ObtenerTamanoPagina(),
+                        source.Token);
 
-                if (cancellationToken.IsCancellationRequested)
+                if (source.IsCancellationRequested)
                     return;
 
                 if (!result.Success || result.Data == null)
                 {
-                    Mensaje = result.Message;
+                    if (!EsMensajeCancelacion(result.Message))
+                        Mensaje = result.Message;
+
                     return;
                 }
 
-                if (reiniciar)
-                    Publicaciones.Clear();
-
-                foreach (PublicacionListadoResponse item
-                         in result.Data.Items)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        return;
-
-                    Publicaciones.Add(item);
-                }
-
-                paginaActual = result.Data.Pagina;
-                totalPaginas = result.Data.TotalPaginas;
-                pantallaCargada = true;
-
-                NotificarEstadoLista();
+                AplicarPagina(
+                    result.Data,
+                    reiniciar);
             }
             catch (OperationCanceledException)
             {
-                // La carga se cancela al salir de la pantalla.
+                // La pantalla se cerró o una nueva consulta reemplazó esta.
             }
             catch (Exception ex)
             {
-                if (!cancellationToken.IsCancellationRequested)
+                if (!source.IsCancellationRequested)
                 {
                     Mensaje =
                         "No fue posible cargar las noticias en este momento.";
@@ -270,16 +310,17 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                if (ReferenceEquals(
-                        cargaCancellationTokenSource,
-                        currentCancellationTokenSource))
+                if (reiniciar)
                 {
-                    cargaCancellationTokenSource.Dispose();
-                    cargaCancellationTokenSource = null;
+                    IsBusy = false;
+                    IsRefreshing = false;
+                }
+                else
+                {
+                    CargandoMas = false;
                 }
 
-                IsBusy = false;
-                IsRefreshing = false;
+                LiberarCarga(source);
                 ActualizarComandos();
                 NotificarEstadoLista();
             }
@@ -290,58 +331,220 @@ namespace CONATRADEC.ViewModels
             cargaCancellationTokenSource?.Cancel();
         }
 
-        private async Task CargarCategoriasAsync(
-            CancellationToken cancellationToken)
+        private async Task CargarInicialAsync()
         {
-            ApiResult<List<CategoriaPublicacionResponse>> result =
-                await apiService.GetCategoriasAsync(cancellationToken);
+            CancellationTokenSource source =
+                PrepararNuevaCarga(true);
 
-            if (cancellationToken.IsCancellationRequested)
-                return;
-
-            if (!result.Success || result.Data == null)
+            try
             {
-                Mensaje = result.Message;
-                return;
+                ultimaCargaExitosa = false;
+                IsBusy = true;
+                Mensaje = string.Empty;
+
+                Task<ApiResult<List<CategoriaPublicacionResponse>>>
+                    categoriasTask = categoriasCargadas
+                        ? Task.FromResult(
+                            ApiResult<List<CategoriaPublicacionResponse>>
+                                .Ok(new List<CategoriaPublicacionResponse>()))
+                        : apiService.GetCategoriasAsync(source.Token);
+
+                Task<ApiResult<PublicacionPaginadaResponse>>
+                    publicacionesTask = apiService.GetFeedAsync(
+                        ObtenerCategoriaId(),
+                        TextoBusqueda,
+                        SoloDestacadas,
+                        SoloEventos,
+                        1,
+                        ObtenerTamanoPagina(),
+                        source.Token);
+
+                await Task.WhenAll(
+                    categoriasTask,
+                    publicacionesTask);
+
+                if (source.IsCancellationRequested)
+                    return;
+
+                ApiResult<List<CategoriaPublicacionResponse>>
+                    categoriasResult = await categoriasTask;
+
+                ApiResult<PublicacionPaginadaResponse>
+                    publicacionesResult = await publicacionesTask;
+
+                if (!categoriasCargadas)
+                {
+                    if (!categoriasResult.Success ||
+                        categoriasResult.Data == null)
+                    {
+                        Mensaje = categoriasResult.Message;
+                        return;
+                    }
+
+                    AplicarCategorias(categoriasResult.Data);
+                }
+
+                if (!publicacionesResult.Success ||
+                    publicacionesResult.Data == null)
+                {
+                    Mensaje = publicacionesResult.Message;
+                    return;
+                }
+
+                AplicarPagina(
+                    publicacionesResult.Data,
+                    reiniciar: true);
             }
+            catch (OperationCanceledException)
+            {
+                // Se canceló al navegar.
+            }
+            finally
+            {
+                IsBusy = false;
+                LiberarCarga(source);
+                ActualizarComandos();
+                NotificarEstadoLista();
+            }
+        }
+
+        private void AplicarCategorias(
+            IEnumerable<CategoriaPublicacionResponse> items)
+        {
+            int? seleccionAnterior =
+                CategoriaSeleccionada?.CategoriaPublicacionId;
 
             Categorias.Clear();
-            CategoriaPublicacionResponse todas =
-                CategoriaPublicacionResponse.Todas();
-
-            Categorias.Add(todas);
+            Categorias.Add(
+                CategoriaPublicacionResponse.Todas());
 
             foreach (CategoriaPublicacionResponse categoria
-                     in result.Data.OrderBy(x => x.Orden))
+                     in items.OrderBy(x => x.Orden))
             {
                 Categorias.Add(categoria);
             }
 
-            CategoriaSeleccionada ??= todas;
+            CategoriaSeleccionada =
+                Categorias.FirstOrDefault(x =>
+                    x.CategoriaPublicacionId == seleccionAnterior)
+                ?? Categorias.FirstOrDefault();
+
             categoriasCargadas = true;
+        }
+
+        private void AplicarPagina(
+            PublicacionPaginadaResponse pagina,
+            bool reiniciar)
+        {
+            if (reiniciar)
+                Publicaciones.Clear();
+
+            foreach (PublicacionListadoResponse item
+                     in pagina.Items)
+            {
+                if (Publicaciones.Any(x =>
+                        x.PublicacionId == item.PublicacionId))
+                {
+                    continue;
+                }
+
+                item.ImagenPortadaUrl =
+                    ImagenMiniaturaUrlService.Crear(
+                        item.ImagenPortadaUrl,
+                        ancho: 720,
+                        alto: 480,
+                        calidad: 68);
+
+                Publicaciones.Add(item);
+            }
+
+            paginaActual = pagina.Pagina;
+            totalPaginas = Math.Max(1, pagina.TotalPaginas);
+            totalRegistros = pagina.TotalRegistros;
+            pantallaCargada = true;
+            ultimaCargaExitosa = true;
+            versionAplicada =
+                PublicacionListadoEstadoService.VersionActual;
+            NotificarEstadoLista();
+        }
+
+        private int? ObtenerCategoriaId()
+        {
+            int? id =
+                CategoriaSeleccionada?
+                    .CategoriaPublicacionId;
+
+            return id.HasValue && id.Value > 0
+                ? id
+                : null;
+        }
+
+        private static int ObtenerTamanoPagina() =>
+            DeviceInfo.Current.Platform == DevicePlatform.WinUI
+                ? 12
+                : 6;
+
+        private CancellationTokenSource PrepararNuevaCarga(
+            bool cancelarAnterior)
+        {
+            if (cancelarAnterior)
+            {
+                cargaCancellationTokenSource?.Cancel();
+                cargaCancellationTokenSource?.Dispose();
+                cargaCancellationTokenSource = null;
+            }
+
+            var source = new CancellationTokenSource();
+            cargaCancellationTokenSource = source;
+            return source;
+        }
+
+        private void LiberarCarga(
+            CancellationTokenSource source)
+        {
+            if (!ReferenceEquals(
+                    cargaCancellationTokenSource,
+                    source))
+            {
+                source.Dispose();
+                return;
+            }
+
+            cargaCancellationTokenSource.Dispose();
+            cargaCancellationTokenSource = null;
         }
 
         private async Task LimpiarFiltrosAsync()
         {
-            TextoBusqueda = string.Empty;
-            SoloDestacadas = false;
-            SoloEventos = false;
-            CategoriaSeleccionada = Categorias.FirstOrDefault();
+            textoBusqueda = string.Empty;
+            soloDestacadas = false;
+            soloEventos = false;
+            categoriaSeleccionada =
+                Categorias.FirstOrDefault();
+
+            OnPropertyChanged(nameof(TextoBusqueda));
+            OnPropertyChanged(nameof(SoloDestacadas));
+            OnPropertyChanged(nameof(SoloEventos));
+            OnPropertyChanged(nameof(CategoriaSeleccionada));
+
             await CargarAsync(true);
         }
 
         private async Task RefrescarAsync()
         {
-            IsRefreshing = true;
-            await CargarAsync(true);
+            try
+            {
+                IsRefreshing = true;
+                await CargarAsync(true);
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
         }
 
         private async Task CargarMasAsync()
         {
-            if (!PuedeCargarMas)
-                return;
-
-            paginaActual++;
             await CargarAsync(false);
         }
 
@@ -368,11 +571,20 @@ namespace CONATRADEC.ViewModels
                 AppRoutes.PublicacionesAdmin);
         }
 
+        private static bool EsMensajeCancelacion(
+            string? message) =>
+            string.Equals(
+                message,
+                "La operación fue cancelada.",
+                StringComparison.OrdinalIgnoreCase);
+
         private void NotificarEstadoLista()
         {
             OnPropertyChanged(nameof(TienePublicaciones));
             OnPropertyChanged(nameof(MostrarVacio));
             OnPropertyChanged(nameof(PuedeCargarMas));
+            OnPropertyChanged(nameof(MostrarFinLista));
+            OnPropertyChanged(nameof(TotalTexto));
         }
 
         private void ActualizarComandos()

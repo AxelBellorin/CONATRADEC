@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.noticiasPage"
+    x:Name="NoticiasRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:CONATRADEC.Models"
@@ -13,13 +14,9 @@
             x:Name="ContenidoPrincipal"
             RowDefinitions="Auto,*"
             Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
-            RowSpacing="14">
+            RowSpacing="12">
 
-            <Grid
-                Grid.Row="0"
-                ColumnDefinitions="*,Auto"
-                ColumnSpacing="12">
-
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                 <VerticalStackLayout Spacing="2">
                     <Label
                         Text="Noticias e intereses"
@@ -27,11 +24,10 @@
                         FontAttributes="Bold"
                         FontSize="{OnPlatform WinUI=28, Default=23}"
                         TextColor="#3B655B" />
-
                     <Label
-                        Text="Manténgase al tanto de las novedades de CONATRADEC."
+                        Text="{Binding TotalTexto}"
                         FontFamily="MontserratMedium"
-                        FontSize="13"
+                        FontSize="12"
                         TextColor="#6B7280" />
                 </VerticalStackLayout>
 
@@ -43,8 +39,8 @@
                     BackgroundColor="#9B552C"
                     TextColor="White"
                     FontFamily="MontserratBold"
-                    CornerRadius="12"
-                    Padding="16,10" />
+                    CornerRadius="11"
+                    Padding="14,9" />
             </Grid>
 
             <RefreshView
@@ -53,21 +49,27 @@
                 Command="{Binding RefrescarCommand}">
 
                 <CollectionView
+                    x:Name="NoticiasCollectionView"
                     ItemsSource="{Binding Publicaciones}"
                     SelectionMode="None"
-                    ItemSizingStrategy="MeasureAllItems">
+                    ItemSizingStrategy="MeasureFirstItem"
+                    RemainingItemsThreshold="2"
+                    RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout
+                            Orientation="Vertical"
+                            ItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
 
                     <CollectionView.Header>
-                        <VerticalStackLayout Spacing="12" Padding="0,0,0,12">
-
+                        <VerticalStackLayout Spacing="10" Padding="0,0,0,10">
                             <Border
-                                Padding="14"
+                                Padding="12"
                                 BackgroundColor="White"
                                 Stroke="#DDE7E3"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 16">
-
-                                <VerticalStackLayout Spacing="10">
+                                StrokeShape="RoundRectangle 15">
+                                <VerticalStackLayout Spacing="9">
                                     <SearchBar
                                         Placeholder="Buscar noticias, eventos u ofertas"
                                         Text="{Binding TextoBusqueda}"
@@ -75,17 +77,13 @@
                                         FontFamily="MontserratMedium"
                                         BackgroundColor="#F8FAF9" />
 
-                                    <Grid
-                                        ColumnDefinitions="*,Auto"
-                                        ColumnSpacing="10">
-
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                         <Picker
                                             Title="Categoría"
                                             ItemsSource="{Binding Categorias}"
                                             ItemDisplayBinding="{Binding Nombre}"
                                             SelectedItem="{Binding CategoriaSeleccionada}"
                                             FontFamily="MontserratMedium" />
-
                                         <Button
                                             Grid.Column="1"
                                             Text="Buscar"
@@ -98,100 +96,80 @@
 
                                     <Grid
                                         ColumnDefinitions="Auto,*,Auto,*,Auto"
-                                        ColumnSpacing="8">
-
+                                        ColumnSpacing="6">
                                         <Switch
                                             IsToggled="{Binding SoloDestacadas}"
                                             OnColor="#3B655B" />
                                         <Label
                                             Grid.Column="1"
-                                            Text="Solo destacadas"
+                                            Text="Destacadas"
                                             VerticalOptions="Center"
                                             FontFamily="MontserratMedium"
-                                            FontSize="12" />
-
+                                            FontSize="11" />
                                         <Switch
                                             Grid.Column="2"
                                             IsToggled="{Binding SoloEventos}"
                                             OnColor="#3B655B" />
                                         <Label
                                             Grid.Column="3"
-                                            Text="Solo eventos"
+                                            Text="Eventos"
                                             VerticalOptions="Center"
                                             FontFamily="MontserratMedium"
-                                            FontSize="12" />
-
+                                            FontSize="11" />
                                         <Button
                                             Grid.Column="4"
                                             Text="Limpiar"
                                             Command="{Binding LimpiarFiltrosCommand}"
                                             BackgroundColor="Transparent"
                                             TextColor="#9B552C"
-                                            FontFamily="MontserratBold" />
+                                            FontFamily="MontserratBold"
+                                            Padding="8,4" />
                                     </Grid>
                                 </VerticalStackLayout>
                             </Border>
 
                             <Border
                                 IsVisible="{Binding TieneMensaje}"
-                                Padding="12"
+                                Padding="11"
                                 BackgroundColor="#FFF7ED"
                                 Stroke="#FDBA74"
-                                StrokeShape="RoundRectangle 12">
+                                StrokeShape="RoundRectangle 11">
                                 <Label
                                     Text="{Binding Mensaje}"
                                     FontFamily="MontserratMedium"
+                                    FontSize="12"
                                     TextColor="#9A3412" />
                             </Border>
                         </VerticalStackLayout>
                     </CollectionView.Header>
-
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout
-                            Orientation="Vertical"
-                            ItemSpacing="14" />
-                    </CollectionView.ItemsLayout>
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:PublicacionListadoResponse">
                             <Border
                                 BackgroundColor="White"
                                 Stroke="#E3EAE7"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 18"
+                                StrokeShape="RoundRectangle 16"
                                 Padding="0">
-
-                                <Border.Shadow>
-                                    <Shadow
-                                        Brush="Black"
-                                        Offset="0,3"
-                                        Radius="10"
-                                        Opacity="0.08" />
-                                </Border.Shadow>
 
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.AbrirDetalleCommand}"
+                                        Command="{Binding Source={x:Reference NoticiasRoot}, Path=BindingContext.AbrirDetalleCommand}"
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
 
                                 <Grid
-                                    ColumnDefinitions="{OnPlatform WinUI='250,*', Default='*'}"
-                                    RowDefinitions="{OnPlatform WinUI='Auto', Default='190,Auto'}">
+                                    ColumnDefinitions="{OnPlatform WinUI='230,*', Default='*'}"
+                                    RowDefinitions="{OnPlatform WinUI='210', Default='180,Auto'}">
 
                                     <Grid
-                                        Grid.Row="0"
-                                        Grid.Column="0"
                                         BackgroundColor="#EEF5F2"
-                                        MinimumHeightRequest="170">
-
+                                        HeightRequest="{OnPlatform WinUI=210, Default=180}">
                                         <Label
                                             Text="CONATRADEC"
                                             HorizontalOptions="Center"
                                             VerticalOptions="Center"
                                             FontFamily="MontserratBold"
                                             TextColor="#3B655B" />
-
                                         <Image
                                             Source="{Binding ImagenPortadaUrl}"
                                             Aspect="AspectFill"
@@ -199,34 +177,33 @@
                                     </Grid>
 
                                     <VerticalStackLayout
-                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
                                         Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                        Padding="18"
-                                        Spacing="9">
+                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                        Padding="14"
+                                        Spacing="7">
 
-                                        <HorizontalStackLayout Spacing="8">
+                                        <HorizontalStackLayout Spacing="7">
                                             <Border
-                                                Padding="10,4"
+                                                Padding="8,3"
                                                 BackgroundColor="{Binding CategoriaColor}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 10">
+                                                StrokeShape="RoundRectangle 8">
                                                 <Label
                                                     Text="{Binding Categoria}"
                                                     FontFamily="MontserratBold"
-                                                    FontSize="11"
+                                                    FontSize="10"
                                                     TextColor="White" />
                                             </Border>
-
                                             <Border
                                                 IsVisible="{Binding Destacada}"
-                                                Padding="10,4"
+                                                Padding="8,3"
                                                 BackgroundColor="#FFF3CD"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 10">
+                                                StrokeShape="RoundRectangle 8">
                                                 <Label
                                                     Text="Destacada"
                                                     FontFamily="MontserratBold"
-                                                    FontSize="11"
+                                                    FontSize="10"
                                                     TextColor="#8A5A00" />
                                             </Border>
                                         </HorizontalStackLayout>
@@ -234,48 +211,40 @@
                                         <Label
                                             Text="{Binding Titulo}"
                                             FontFamily="MontserratBold"
-                                            FontAttributes="Bold"
-                                            FontSize="19"
+                                            FontSize="18"
                                             TextColor="#1F2937"
-                                            LineBreakMode="WordWrap" />
+                                            MaxLines="2"
+                                            LineBreakMode="TailTruncation" />
 
                                         <Label
                                             Text="{Binding Resumen}"
                                             FontFamily="MontserratMedium"
-                                            FontSize="13"
+                                            FontSize="12"
                                             TextColor="#4B5563"
                                             MaxLines="3"
                                             LineBreakMode="TailTruncation" />
 
                                         <Label
                                             Text="{Binding FechaEventoTexto}"
-                                            IsVisible="{Binding TieneEvento}"
+                                            HeightRequest="16"
                                             FontFamily="MontserratBold"
-                                            FontSize="12"
-                                            TextColor="#9B552C" />
-
-                                        <Label
-                                            Text="{Binding Ubicacion, StringFormat='Ubicación: {0}'}"
-                                            IsVisible="{Binding TieneUbicacion}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="12"
-                                            TextColor="#6B7280" />
+                                            FontSize="11"
+                                            TextColor="#9B552C"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation" />
 
                                         <Grid ColumnDefinitions="*,Auto">
                                             <Label
                                                 Text="{Binding FechaPublicacionTexto}"
                                                 FontFamily="MontserratMedium"
-                                                FontSize="11"
-                                                TextColor="#6B7280"
-                                                VerticalOptions="Center" />
-
+                                                FontSize="10"
+                                                TextColor="#6B7280" />
                                             <Label
                                                 Grid.Column="1"
                                                 Text="Leer más ›"
                                                 FontFamily="MontserratBold"
-                                                FontSize="13"
-                                                TextColor="#3B655B"
-                                                VerticalOptions="Center" />
+                                                FontSize="12"
+                                                TextColor="#3B655B" />
                                         </Grid>
                                     </VerticalStackLayout>
                                 </Grid>
@@ -287,35 +256,37 @@
                         <VerticalStackLayout
                             IsVisible="{Binding MostrarVacio}"
                             Padding="30"
-                            Spacing="10"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center">
+                            Spacing="8"
+                            HorizontalOptions="Center">
                             <Label
                                 Text="No hay publicaciones para mostrar"
                                 FontFamily="MontserratBold"
-                                FontSize="18"
+                                FontSize="17"
                                 TextColor="#3B655B"
                                 HorizontalTextAlignment="Center" />
                             <Label
                                 Text="Cambie los filtros o actualice la lista."
                                 FontFamily="MontserratMedium"
-                                FontSize="13"
+                                FontSize="12"
                                 TextColor="#6B7280"
                                 HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
                     </CollectionView.EmptyView>
 
                     <CollectionView.Footer>
-                        <VerticalStackLayout Padding="0,16" Spacing="12">
-                            <Button
-                                Text="Cargar más"
-                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.CargarMasCommand}"
-                                IsVisible="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.PuedeCargarMas}"
-                                HorizontalOptions="Center"
-                                BackgroundColor="#3B655B"
-                                TextColor="White"
-                                FontFamily="MontserratBold"
-                                CornerRadius="12" />
+                        <VerticalStackLayout
+                            Padding="0,14,0,28"
+                            Spacing="8"
+                            HorizontalOptions="Center">
+                            <ActivityIndicator
+                                IsVisible="{Binding CargandoMas}"
+                                IsRunning="{Binding CargandoMas}"
+                                Color="#3B655B" />
+                            <Label
+                                IsVisible="{Binding MostrarFinLista}"
+                                Text="No hay más publicaciones."
+                                FontSize="11"
+                                TextColor="#6B7280" />
                         </VerticalStackLayout>
                     </CollectionView.Footer>
                 </CollectionView>
@@ -336,17 +307,17 @@
             Padding="24">
             <Border
                 MaximumWidthRequest="540"
-                Padding="28"
+                Padding="26"
                 BackgroundColor="White"
                 Stroke="#DDE7E3"
-                StrokeShape="RoundRectangle 20"
+                StrokeShape="RoundRectangle 18"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
-                <VerticalStackLayout Spacing="14">
+                <VerticalStackLayout Spacing="12">
                     <Label
                         Text="Sin permiso para consultar noticias"
                         FontFamily="MontserratBold"
-                        FontSize="23"
+                        FontSize="22"
                         TextColor="#3B655B"
                         HorizontalTextAlignment="Center" />
                     <Label

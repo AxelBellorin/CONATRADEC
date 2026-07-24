@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.categoriaPublicacionPage"
+    x:Name="CategoriaPublicacionRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:CONATRADEC.Models"
@@ -13,9 +14,9 @@
             x:Name="ContenidoPrincipal"
             RowDefinitions="Auto,*"
             Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
-            RowSpacing="14">
+            RowSpacing="12">
 
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                 <Button
                     Text="‹ Regresar"
                     Command="{Binding RegresarCommand}"
@@ -30,11 +31,10 @@
                         FontSize="{OnPlatform WinUI=27, Default=21}"
                         TextColor="#3B655B" />
                     <Label
-                        Text="Administre las categorías disponibles para noticias, ofertas, eventos y demás publicaciones."
+                        Text="Administre las categorías de noticias, ofertas y eventos."
                         FontFamily="MontserratMedium"
-                        FontSize="12"
-                        TextColor="#6B7280"
-                        LineBreakMode="WordWrap" />
+                        FontSize="11"
+                        TextColor="#6B7280" />
                 </VerticalStackLayout>
 
                 <Button
@@ -45,8 +45,8 @@
                     BackgroundColor="#3B655B"
                     TextColor="White"
                     FontFamily="MontserratBold"
-                    CornerRadius="11"
-                    Padding="16,10" />
+                    CornerRadius="10"
+                    Padding="13,9" />
             </Grid>
 
             <RefreshView
@@ -57,224 +57,185 @@
                 <CollectionView
                     ItemsSource="{Binding Categorias}"
                     SelectionMode="None"
-                    ItemSizingStrategy="MeasureAllItems">
+                    ItemSizingStrategy="MeasureFirstItem">
+
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout
+                            Orientation="Vertical"
+                            ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
 
                     <CollectionView.Header>
-                        <VerticalStackLayout Spacing="12" Padding="0,0,0,12">
+                        <VerticalStackLayout Spacing="10" Padding="0,0,0,10">
                             <Border
-                                Padding="14"
+                                Padding="12"
                                 BackgroundColor="White"
                                 Stroke="#DDE7E3"
-                                StrokeShape="RoundRectangle 16">
-
-                                <Grid
-                                    ColumnDefinitions="{OnPlatform WinUI='*,Auto,Auto,Auto', Default='*,Auto,Auto'}"
-                                    RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
-                                    ColumnSpacing="10"
-                                    RowSpacing="10">
-
+                                StrokeShape="RoundRectangle 15">
+                                <VerticalStackLayout Spacing="9">
                                     <SearchBar
-                                        Grid.ColumnSpan="{OnPlatform WinUI=1, Default=3}"
                                         Placeholder="Buscar por nombre o descripción"
                                         Text="{Binding TextoBusqueda}"
                                         SearchCommand="{Binding BuscarCommand}"
                                         FontFamily="MontserratMedium"
                                         BackgroundColor="#F8FAF9" />
 
-                                    <HorizontalStackLayout
-                                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                        Spacing="8"
-                                        VerticalOptions="Center">
-                                        <Switch
-                                            IsToggled="{Binding IncluirInactivas}"
-                                            OnColor="#3B655B" />
-                                        <Label
-                                            Text="Mostrar inactivos"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="12"
-                                            TextColor="#4B5563"
-                                            VerticalOptions="Center" />
-                                    </HorizontalStackLayout>
-
-                                    <Button
-                                        Grid.Column="{OnPlatform WinUI=2, Default=1}"
-                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                        Text="Buscar"
-                                        Command="{Binding BuscarCommand}"
-                                        BackgroundColor="#3B655B"
-                                        TextColor="White"
-                                        FontFamily="MontserratBold"
-                                        CornerRadius="10" />
-
-                                    <Button
-                                        Grid.Column="{OnPlatform WinUI=3, Default=2}"
-                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                        Text="Limpiar"
-                                        Command="{Binding LimpiarCommand}"
-                                        BackgroundColor="Transparent"
-                                        TextColor="#9B552C"
-                                        FontFamily="MontserratBold" />
-                                </Grid>
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                                            <Switch
+                                                IsToggled="{Binding IncluirInactivas}"
+                                                OnColor="#3B655B" />
+                                            <Label
+                                                Text="Mostrar inactivos"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="11"
+                                                VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Buscar"
+                                            Command="{Binding BuscarCommand}"
+                                            BackgroundColor="#3B655B"
+                                            TextColor="White"
+                                            FontFamily="MontserratBold"
+                                            CornerRadius="9" />
+                                        <Button
+                                            Grid.Column="2"
+                                            Text="Limpiar"
+                                            Command="{Binding LimpiarCommand}"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#9B552C"
+                                            FontFamily="MontserratBold" />
+                                    </Grid>
+                                </VerticalStackLayout>
                             </Border>
 
                             <Border
                                 IsVisible="{Binding TieneMensaje}"
-                                Padding="12"
+                                Padding="11"
                                 BackgroundColor="#FFF7ED"
                                 Stroke="#FDBA74"
-                                StrokeShape="RoundRectangle 12">
+                                StrokeShape="RoundRectangle 11">
                                 <Label
                                     Text="{Binding Mensaje}"
                                     FontFamily="MontserratMedium"
+                                    FontSize="12"
                                     TextColor="#9A3412" />
                             </Border>
                         </VerticalStackLayout>
                     </CollectionView.Header>
 
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout
-                            Orientation="Vertical"
-                            ItemSpacing="12" />
-                    </CollectionView.ItemsLayout>
-
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:CategoriaPublicacionCatalogoResponse">
                             <Border
-                                Padding="15"
+                                Padding="13"
                                 BackgroundColor="White"
                                 Stroke="#E3EAE7"
-                                StrokeShape="RoundRectangle 16">
-
-                                <Grid
-                                    ColumnDefinitions="Auto,*,Auto"
-                                    ColumnSpacing="14">
-
+                                StrokeShape="RoundRectangle 14">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="11">
                                     <Border
-                                        WidthRequest="54"
-                                        HeightRequest="54"
-                                        Padding="8"
+                                        WidthRequest="46"
+                                        HeightRequest="46"
+                                        Padding="7"
                                         BackgroundColor="#F8FAF9"
                                         Stroke="#DDE7E3"
-                                        StrokeShape="RoundRectangle 14"
-                                        VerticalOptions="Start">
+                                        StrokeShape="RoundRectangle 12">
                                         <Border
                                             BackgroundColor="{Binding ColorMuestra}"
                                             StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 9" />
+                                            StrokeShape="RoundRectangle 7" />
                                     </Border>
 
-                                    <VerticalStackLayout
-                                        Grid.Column="1"
-                                        Spacing="6">
-
-                                        <FlexLayout
-                                            Direction="Row"
-                                            Wrap="Wrap"
-                                            AlignItems="Center">
+                                    <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                                             <Label
-                                                Margin="0,0,10,4"
                                                 Text="{Binding NombreCategoriaPublicacion}"
                                                 FontFamily="MontserratBold"
-                                                FontSize="18"
-                                                TextColor="#1F2937" />
-
+                                                FontSize="17"
+                                                TextColor="#1F2937"
+                                                MaxLines="1"
+                                                LineBreakMode="TailTruncation" />
                                             <Border
-                                                Margin="0,0,7,4"
-                                                Padding="9,4"
+                                                Grid.Column="1"
+                                                Padding="7,3"
                                                 BackgroundColor="{Binding EstadoFondo}"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 9">
+                                                StrokeShape="RoundRectangle 7">
                                                 <Label
                                                     Text="{Binding EstadoTexto}"
                                                     FontFamily="MontserratBold"
-                                                    FontSize="10"
+                                                    FontSize="9"
                                                     TextColor="{Binding EstadoTextoColor}" />
                                             </Border>
-
                                             <Border
-                                                Margin="0,0,7,4"
-                                                Padding="9,4"
+                                                Grid.Column="2"
+                                                Padding="7,3"
                                                 BackgroundColor="#F7F1EC"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 9">
+                                                StrokeShape="RoundRectangle 7">
                                                 <Label
-                                                    Text="{Binding Orden, StringFormat='Orden: {0}'}"
+                                                    Text="{Binding Orden, StringFormat='Orden {0}'}"
                                                     FontFamily="MontserratBold"
-                                                    FontSize="10"
+                                                    FontSize="9"
                                                     TextColor="#9B552C" />
                                             </Border>
-                                        </FlexLayout>
+                                        </Grid>
 
                                         <Label
                                             Text="{Binding DescripcionCategoriaPublicacion}"
                                             FontFamily="MontserratMedium"
-                                            FontSize="12"
+                                            FontSize="11"
                                             TextColor="#4B5563"
-                                            LineBreakMode="WordWrap" />
+                                            MaxLines="2"
+                                            LineBreakMode="TailTruncation" />
 
                                         <Label
                                             Text="{Binding PublicacionesTexto}"
                                             FontFamily="MontserratMedium"
-                                            FontSize="11"
+                                            FontSize="10"
                                             TextColor="#6B7280" />
 
-                                        <Label
-                                            Text="{Binding ColorHex, StringFormat='Color: {0}'}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="11"
-                                            TextColor="#6B7280" />
-
-                                        <FlexLayout
-                                            Direction="Row"
-                                            Wrap="Wrap"
-                                            AlignItems="Center">
-
+                                        <HorizontalStackLayout Spacing="6">
                                             <Button
-                                                Margin="0,3,7,0"
                                                 Text="Editar"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditarCommand}"
+                                                Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.EditarCommand}"
                                                 CommandParameter="{Binding .}"
-                                                IsVisible="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.CanEdit}"
+                                                IsVisible="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.CanEdit}"
                                                 BackgroundColor="#3B655B"
                                                 TextColor="White"
                                                 FontFamily="MontserratBold"
-                                                FontSize="11"
-                                                CornerRadius="9"
-                                                Padding="12,8" />
-
+                                                FontSize="9"
+                                                CornerRadius="8"
+                                                Padding="10,6" />
                                             <Button
-                                                Margin="0,3,7,0"
                                                 Text="Desactivar"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DesactivarCommand}"
+                                                Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.DesactivarCommand}"
                                                 CommandParameter="{Binding .}"
                                                 IsVisible="{Binding PuedeDesactivar}"
                                                 BackgroundColor="#B42318"
                                                 TextColor="White"
                                                 FontFamily="MontserratBold"
-                                                FontSize="11"
-                                                CornerRadius="9"
-                                                Padding="12,8" />
-
+                                                FontSize="9"
+                                                CornerRadius="8"
+                                                Padding="10,6" />
                                             <Button
-                                                Margin="0,3,7,0"
                                                 Text="Reactivar"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ReactivarCommand}"
+                                                Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.ReactivarCommand}"
                                                 CommandParameter="{Binding .}"
                                                 IsVisible="{Binding PuedeReactivar}"
                                                 BackgroundColor="#F2C94C"
                                                 TextColor="#4B3B00"
                                                 FontFamily="MontserratBold"
-                                                FontSize="11"
-                                                CornerRadius="9"
-                                                Padding="12,8" />
-                                        </FlexLayout>
+                                                FontSize="9"
+                                                CornerRadius="8"
+                                                Padding="10,6" />
+                                        </HorizontalStackLayout>
                                     </VerticalStackLayout>
 
                                     <Label
                                         Grid.Column="2"
                                         Text="›"
-                                        FontSize="28"
+                                        FontSize="25"
                                         TextColor="#3B655B"
                                         VerticalOptions="Center" />
                                 </Grid>
@@ -286,19 +247,12 @@
                         <VerticalStackLayout
                             IsVisible="{Binding MostrarVacio}"
                             Padding="30"
-                            Spacing="10"
                             HorizontalOptions="Center">
                             <Label
                                 Text="No hay tipos de publicación"
                                 FontFamily="MontserratBold"
-                                FontSize="18"
-                                TextColor="#3B655B"
-                                HorizontalTextAlignment="Center" />
-                            <Label
-                                Text="Cree un nuevo tipo o cambie los filtros."
-                                FontFamily="MontserratMedium"
-                                TextColor="#6B7280"
-                                HorizontalTextAlignment="Center" />
+                                FontSize="17"
+                                TextColor="#3B655B" />
                         </VerticalStackLayout>
                     </CollectionView.EmptyView>
                 </CollectionView>
@@ -319,10 +273,10 @@
             Padding="24">
             <Border
                 MaximumWidthRequest="560"
-                Padding="28"
+                Padding="26"
                 BackgroundColor="White"
                 Stroke="#DDE7E3"
-                StrokeShape="RoundRectangle 20"
+                StrokeShape="RoundRectangle 18"
                 HorizontalOptions="Center"
                 VerticalOptions="Center">
                 <VerticalStackLayout Spacing="12">

@@ -7,39 +7,59 @@ namespace CONATRADEC.Services
     {
         private readonly HttpClient httpClient;
 
-        public TipoCultivoApiService() : this(ApiClientService.Client) { }
+        public TipoCultivoApiService()
+            : this(ApiClientService.Client)
+        {
+        }
 
         public TipoCultivoApiService(HttpClient httpClient)
         {
-            this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            this.httpClient = httpClient ??
+                throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public Task<ApiResult<ObservableCollection<TipoCultivoResponse>>> GetAsync(
-            CancellationToken cancellationToken = default) =>
-            ConfiguracionApiServiceHelper.GetCollectionAsync<TipoCultivoResponse>(
-                httpClient,
-                "api/configuracion/tipos-cultivo",
-                "los tipos de cultivo",
-                cancellationToken);
+        public Task<ApiResult<ObservableCollection<TipoCultivoResponse>>>
+            GetAsync(
+                CancellationToken cancellationToken = default) =>
+            ConfiguracionApiServiceHelper
+                .GetCollectionAsync<TipoCultivoResponse>(
+                    httpClient,
+                    "api/configuracion/tipos-cultivo",
+                    "los tipos de cultivo",
+                    cancellationToken);
 
-        public Task<ApiResult<bool>> CreateAsync(
+        public async Task<ApiResult<bool>> CreateAsync(
             TipoCultivoRequest request,
-            CancellationToken cancellationToken = default) =>
-            ConfiguracionApiServiceHelper.SendAsync(
-                httpClient,
-                HttpMethod.Post,
-                "api/configuracion/tipos-cultivo",
-                request,
-                "No fue posible crear el tipo de cultivo.",
-                "Tipo de cultivo creado correctamente.",
-                cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper.SendAsync(
+                    httpClient,
+                    HttpMethod.Post,
+                    "api/configuracion/tipos-cultivo",
+                    request,
+                    "No fue posible crear el tipo de cultivo.",
+                    "Tipo de cultivo creado correctamente.",
+                    cancellationToken);
 
-        public Task<ApiResult<bool>> UpdateAsync(
+            if (result.Success)
+                AnalisisSueloApiService.LimpiarCacheTiposCultivo();
+
+            return result;
+        }
+
+        public async Task<ApiResult<bool>> UpdateAsync(
             TipoCultivoRequest request,
-            CancellationToken cancellationToken = default) =>
-            request.TipoCultivoId <= 0
-                ? Task.FromResult(ApiResult<bool>.Fail("El identificador del tipo de cultivo no es válido."))
-                : ConfiguracionApiServiceHelper.SendAsync(
+            CancellationToken cancellationToken = default)
+        {
+            if (request.TipoCultivoId <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "El identificador del tipo de cultivo no es válido.");
+            }
+
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper.SendAsync(
                     httpClient,
                     HttpMethod.Put,
                     $"api/configuracion/tipos-cultivo/{request.TipoCultivoId}",
@@ -48,12 +68,24 @@ namespace CONATRADEC.Services
                     "Tipo de cultivo actualizado correctamente.",
                     cancellationToken);
 
-        public Task<ApiResult<bool>> DeleteAsync(
+            if (result.Success)
+                AnalisisSueloApiService.LimpiarCacheTiposCultivo();
+
+            return result;
+        }
+
+        public async Task<ApiResult<bool>> DeleteAsync(
             int id,
-            CancellationToken cancellationToken = default) =>
-            id <= 0
-                ? Task.FromResult(ApiResult<bool>.Fail("El identificador del tipo de cultivo no es válido."))
-                : ConfiguracionApiServiceHelper.SendAsync<object>(
+            CancellationToken cancellationToken = default)
+        {
+            if (id <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "El identificador del tipo de cultivo no es válido.");
+            }
+
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper.SendAsync<object>(
                     httpClient,
                     HttpMethod.Put,
                     $"api/configuracion/tipos-cultivo/{id}/eliminar",
@@ -61,5 +93,11 @@ namespace CONATRADEC.Services
                     "No fue posible eliminar el tipo de cultivo.",
                     "Tipo de cultivo desactivado correctamente.",
                     cancellationToken);
+
+            if (result.Success)
+                AnalisisSueloApiService.LimpiarCacheTiposCultivo();
+
+            return result;
+        }
     }
 }

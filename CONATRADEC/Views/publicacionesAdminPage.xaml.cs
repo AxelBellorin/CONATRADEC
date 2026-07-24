@@ -21,8 +21,17 @@ namespace CONATRADEC.Views
             ContenidoPrincipal.IsVisible = viewModel.CanAdministrar;
             ContenidoSinPermiso.IsVisible = !viewModel.CanAdministrar;
 
-            if (viewModel.CanAdministrar)
-                await viewModel.InicializarAsync();
+            if (!viewModel.CanAdministrar)
+                return;
+
+            await Task.Yield();
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+            base.OnDisappearing();
         }
     }
 }

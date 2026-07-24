@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -81,7 +81,8 @@ namespace CONATRADEC.Models
         [JsonPropertyName("tieneFertilizacionMixta")]
         public bool TieneFertilizacionMixta { get; set; }
 
-        [JsonIgnore]
+        // El endpoint optimizado ya envía el nombre listo para mostrar.
+        [JsonPropertyName("nombreUsuario")]
         public string NombreUsuario { get; set; } = string.Empty;
 
         [JsonIgnore]
@@ -105,7 +106,9 @@ namespace CONATRADEC.Models
         [JsonIgnore]
         public string UsuarioMostrar =>
             string.IsNullOrWhiteSpace(NombreUsuario)
-                ? $"Usuario #{UsuarioId}"
+                ? UsuarioId.HasValue
+                    ? $"Usuario #{UsuarioId}"
+                    : "Usuario no especificado"
                 : NombreUsuario.Trim();
 
         [JsonIgnore]
@@ -123,7 +126,10 @@ namespace CONATRADEC.Models
 
                 if (!string.IsNullOrWhiteSpace(codigo) &&
                     !string.IsNullOrWhiteSpace(nombre) &&
-                    !string.Equals(codigo, nombre, StringComparison.OrdinalIgnoreCase))
+                    !string.Equals(
+                        codigo,
+                        nombre,
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     return $"{codigo} · {nombre}";
                 }
@@ -139,18 +145,21 @@ namespace CONATRADEC.Models
         }
 
         [JsonIgnore]
-        public DateTime? FechaAnalisisValor => ConvertirFecha(FechaAnalisisSuelo);
+        public DateTime? FechaAnalisisValor =>
+            ConvertirFecha(FechaAnalisisSuelo);
 
         [JsonIgnore]
         public DateTime? FechaRegistroValor =>
             ConvertirFecha(FechaCreacionAnalisisSuelo);
 
         [JsonIgnore]
-        public DateTime? FechaCalculoValor => ConvertirFecha(FechaCalculo);
+        public DateTime? FechaCalculoValor =>
+            ConvertirFecha(FechaCalculo);
 
         [JsonIgnore]
         public string FechaAnalisisTexto =>
-            FechaAnalisisValor?.ToString("dd/MM/yyyy") ?? "No disponible";
+            FechaAnalisisValor?.ToString("dd/MM/yyyy") ??
+            "No disponible";
 
         [JsonIgnore]
         public string FechaRegistroTexto =>
@@ -160,16 +169,20 @@ namespace CONATRADEC.Models
 
         [JsonIgnore]
         public string FechaCalculoTexto =>
-            FechaCalculoValor?.ToString("dd/MM/yyyy HH:mm") ?? "No disponible";
+            FechaCalculoValor?.ToString("dd/MM/yyyy HH:mm") ??
+            "No disponible";
 
         [JsonIgnore]
-        public string ProduccionTexto => $"{CantidadQuintalesOro:N2} qq oro";
+        public string ProduccionTexto =>
+            $"{CantidadQuintalesOro:N2} qq oro";
 
         [JsonIgnore]
-        public string TamanoFincaTexto => $"{TamanoFinca:N2} mz";
+        public string TamanoFincaTexto =>
+            $"{TamanoFinca:N2} mz";
 
         [JsonIgnore]
-        public string PhTexto => PhAnalisisSuelo.ToString("N2");
+        public string PhTexto =>
+            PhAnalisisSuelo.ToString("N2");
 
         [JsonIgnore]
         public string TextoBusqueda => string.Join(" ", new[]

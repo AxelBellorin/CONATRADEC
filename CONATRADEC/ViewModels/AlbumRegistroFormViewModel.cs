@@ -469,6 +469,8 @@ namespace CONATRADEC.ViewModels
                      */
                     Mode = FormMode.FormModeSelect.Edit;
 
+                    AlbumBotanicoRefreshState.MarcarCambio();
+
                     await MostrarExitoAsync(
                         string.IsNullOrWhiteSpace(
                             result.Message)
@@ -501,6 +503,8 @@ namespace CONATRADEC.ViewModels
                             result.Message);
                         return;
                     }
+
+                    AlbumBotanicoRefreshState.MarcarCambio();
 
                     await MostrarExitoAsync(
                         string.IsNullOrWhiteSpace(

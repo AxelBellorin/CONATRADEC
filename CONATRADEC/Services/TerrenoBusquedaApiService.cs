@@ -1,19 +1,17 @@
 using CONATRADEC.Models;
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace CONATRADEC.Services
 {
-    class TerrenoBusquedaApiService
+    internal class TerrenoBusquedaApiService
     {
         private readonly HttpClient httpClient;
 
-        private readonly JsonSerializerOptions jsonOptions = new()
+        private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
@@ -29,16 +27,28 @@ namespace CONATRADEC.Services
                 ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public async Task<ObservableCollection<TerrenoResponse>> BuscarTerrenosAsync(
-            string? texto,
-            int? paisId,
-            int? departamentoId,
-            int? municipioId,
-            int page = 1,
-            int pageSize = 50)
+        public async Task<ObservableCollection<TerrenoResponse>>
+            BuscarTerrenosAsync(
+                string? texto,
+                int? paisId,
+                int? departamentoId,
+                int? municipioId,
+                int page = 1,
+                int pageSize = 50,
+                CancellationToken cancellationToken = default)
         {
             try
             {
+                int limiteDispositivo =
+                    DeviceInfo.Current.Platform == DevicePlatform.WinUI
+                        ? 50
+                        : 24;
+
+                int tamanoPagina = Math.Clamp(
+                    pageSize,
+                    1,
+                    limiteDispositivo);
+
                 string endpoint = ConstruirEndpointBusqueda(
                     texto: texto,
                     codigoTerreno: null,
@@ -48,24 +58,31 @@ namespace CONATRADEC.Services
                     paisId: paisId,
                     departamentoId: departamentoId,
                     municipioId: municipioId,
-                    page: page,
-                    pageSize: pageSize);
+                    page: Math.Max(1, page),
+                    pageSize: tamanoPagina);
 
-                HttpResponseMessage response = await httpClient.GetAsync(endpoint);
-                string jsonRespuesta = await response.Content.ReadAsStringAsync();
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        endpoint,
+                        HttpCompletionOption.ResponseHeadersRead,
+                        cancellationToken);
 
-                if (!response.IsSuccessStatusCode || string.IsNullOrWhiteSpace(jsonRespuesta))
+                if (!response.IsSuccessStatusCode)
                     return new ObservableCollection<TerrenoResponse>();
 
                 TerrenoBusquedaPaginadaResponse? resultado =
-                    JsonSerializer.Deserialize<TerrenoBusquedaPaginadaResponse>(
-                        jsonRespuesta,
-                        jsonOptions);
+                    await response.Content.ReadFromJsonAsync<
+                        TerrenoBusquedaPaginadaResponse>(
+                            JsonOptions,
+                            cancellationToken);
 
-                if (resultado?.Data == null)
-                    return new ObservableCollection<TerrenoResponse>();
-
-                return new ObservableCollection<TerrenoResponse>(resultado.Data);
+                return new ObservableCollection<TerrenoResponse>(
+                    resultado?.Data ??
+                    Enumerable.Empty<TerrenoResponse>());
+            }
+            catch (OperationCanceledException)
+            {
+                return new ObservableCollection<TerrenoResponse>();
             }
             catch
             {
@@ -88,42 +105,64 @@ namespace CONATRADEC.Services
             var parametros = new List<string>();
 
             AgregarParametroTexto(parametros, "texto", texto);
-            AgregarParametroTexto(parametros, "codigoTerreno", codigoTerreno);
-            AgregarParametroTexto(parametros, "nombrePropietario", nombrePropietario);
-            AgregarParametroTexto(parametros, "identificacionPropietario", identificacionPropietario);
-            AgregarParametroTexto(parametros, "direccion", direccion);
+            AgregarParametroTexto(
+                parametros,
+                "codigoTerreno",
+                codigoTerreno);
+            AgregarParametroTexto(
+                parametros,
+                "nombrePropietario",
+                nombrePropietario);
+            AgregarParametroTexto(
+                parametros,
+                "identificacionPropietario",
+                identificacionPropietario);
+            AgregarParametroTexto(
+                parametros,
+                "direccion",
+                direccion);
 
             AgregarParametroEntero(parametros, "paisId", paisId);
-            AgregarParametroEntero(parametros, "departamentoId", departamentoId);
-            AgregarParametroEntero(parametros, "municipioId", municipioId);
+            AgregarParametroEntero(
+                parametros,
+                "departamentoId",
+                departamentoId);
+            AgregarParametroEntero(
+                parametros,
+                "municipioId",
+                municipioId);
 
-            parametros.Add($"page={page.ToString(CultureInfo.InvariantCulture)}");
-            parametros.Add($"pageSize={pageSize.ToString(CultureInfo.InvariantCulture)}");
+            parametros.Add(
+                $"page={page.ToString(CultureInfo.InvariantCulture)}");
+            parametros.Add(
+                $"pageSize={pageSize.ToString(CultureInfo.InvariantCulture)}");
 
             return $"api/terreno/buscar?{string.Join("&", parametros)}";
         }
 
         private static void AgregarParametroTexto(
-            List<string> parametros,
+            ICollection<string> parametros,
             string nombre,
             string? valor)
         {
             if (string.IsNullOrWhiteSpace(valor))
                 return;
 
-            parametros.Add($"{nombre}={Uri.EscapeDataString(valor.Trim())}");
+            parametros.Add(
+                $"{nombre}={Uri.EscapeDataString(valor.Trim())}");
         }
 
         private static void AgregarParametroEntero(
-            List<string> parametros,
+            ICollection<string> parametros,
             string nombre,
             int? valor)
         {
-            if (valor == null || valor <= 0)
+            if (!valor.HasValue || valor.Value <= 0)
                 return;
 
             parametros.Add(
-                $"{nombre}={valor.Value.ToString(CultureInfo.InvariantCulture)}");
+                $"{nombre}=" +
+                valor.Value.ToString(CultureInfo.InvariantCulture));
         }
     }
 }

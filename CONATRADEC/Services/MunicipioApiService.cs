@@ -1,4 +1,5 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 
 namespace CONATRADEC.Services
@@ -6,6 +7,19 @@ namespace CONATRADEC.Services
     public class MunicipioApiService
     {
         private readonly HttpClient httpClient;
+
+        private sealed record CacheEntry(
+            List<MunicipioResponse> Items,
+            DateTime CreadoUtc);
+
+        private static readonly ConcurrentDictionary<int, CacheEntry>
+            CachePorDepartamento = new();
+
+        private static readonly ConcurrentDictionary<int, SemaphoreSlim>
+            BloqueosPorDepartamento = new();
+
+        private static readonly TimeSpan DuracionCache =
+            TimeSpan.FromMinutes(30);
 
         public MunicipioApiService()
             : this(ApiClientService.Client)
@@ -18,9 +32,10 @@ namespace CONATRADEC.Services
                 ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public Task<ApiResult<ObservableCollection<MunicipioResponse>>> GetMunicipiosResultAsync(
-            int? departamentoId,
-            CancellationToken cancellationToken = default)
+        public Task<ApiResult<ObservableCollection<MunicipioResponse>>>
+            GetMunicipiosResultAsync(
+                int? departamentoId,
+                CancellationToken cancellationToken = default)
         {
             if (!departamentoId.HasValue || departamentoId.Value <= 0)
             {
@@ -36,8 +51,9 @@ namespace CONATRADEC.Services
                 cancellationToken);
         }
 
-        public Task<ApiResult<ObservableCollection<MunicipioResponse>>> GetMunicipiosConUbicacionResultAsync(
-            CancellationToken cancellationToken = default)
+        public Task<ApiResult<ObservableCollection<MunicipioResponse>>>
+            GetMunicipiosConUbicacionResultAsync(
+                CancellationToken cancellationToken = default)
         {
             return ApiServiceHelper.GetCollectionAsync<MunicipioResponse>(
                 httpClient,
@@ -46,13 +62,13 @@ namespace CONATRADEC.Services
                 cancellationToken);
         }
 
-        public Task<ApiResult<bool>> CreateMunicipioResultAsync(
+        public async Task<ApiResult<bool>> CreateMunicipioResultAsync(
             MunicipioRequest municipio,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(municipio);
 
-            return ApiServiceHelper.SendAsync(
+            ApiResult<bool> result = await ApiServiceHelper.SendAsync(
                 httpClient,
                 HttpMethod.Post,
                 "/crear",
@@ -60,22 +76,27 @@ namespace CONATRADEC.Services
                 "crear el municipio",
                 "Municipio creado correctamente.",
                 cancellationToken);
+
+            if (result.Success)
+                LimpiarCache();
+
+            return result;
         }
 
-        public Task<ApiResult<bool>> UpdateMunicipioResultAsync(
+        public async Task<ApiResult<bool>> UpdateMunicipioResultAsync(
             MunicipioRequest municipio,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(municipio);
 
-            if (!municipio.MunicipioId.HasValue || municipio.MunicipioId.Value <= 0)
+            if (!municipio.MunicipioId.HasValue ||
+                municipio.MunicipioId.Value <= 0)
             {
-                return Task.FromResult(
-                    ApiResult<bool>.Fail(
-                        "No se recibió un identificador de municipio válido."));
+                return ApiResult<bool>.Fail(
+                    "No se recibió un identificador de municipio válido.");
             }
 
-            return ApiServiceHelper.SendAsync(
+            ApiResult<bool> result = await ApiServiceHelper.SendAsync(
                 httpClient,
                 HttpMethod.Put,
                 $"/actualizar/{municipio.MunicipioId.Value}",
@@ -83,54 +104,132 @@ namespace CONATRADEC.Services
                 "actualizar el municipio",
                 "Municipio actualizado correctamente.",
                 cancellationToken);
+
+            if (result.Success)
+                LimpiarCache();
+
+            return result;
         }
 
-        public Task<ApiResult<bool>> DeleteMunicipioResultAsync(
+        public async Task<ApiResult<bool>> DeleteMunicipioResultAsync(
             MunicipioRequest municipio,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(municipio);
 
-            if (!municipio.MunicipioId.HasValue || municipio.MunicipioId.Value <= 0)
+            if (!municipio.MunicipioId.HasValue ||
+                municipio.MunicipioId.Value <= 0)
             {
-                return Task.FromResult(
-                    ApiResult<bool>.Fail(
-                        "No se recibió un identificador de municipio válido."));
+                return ApiResult<bool>.Fail(
+                    "No se recibió un identificador de municipio válido.");
             }
 
-            return ApiServiceHelper.SendAsync<MunicipioRequest>(
-                httpClient,
-                HttpMethod.Delete,
-                $"/eliminar/{municipio.MunicipioId.Value}",
-                null,
-                "eliminar el municipio",
-                "Municipio eliminado correctamente.",
-                cancellationToken);
+            ApiResult<bool> result = await ApiServiceHelper
+                .SendAsync<MunicipioRequest>(
+                    httpClient,
+                    HttpMethod.Delete,
+                    $"/eliminar/{municipio.MunicipioId.Value}",
+                    null,
+                    "eliminar el municipio",
+                    "Municipio eliminado correctamente.",
+                    cancellationToken);
+
+            if (result.Success)
+                LimpiarCache();
+
+            return result;
         }
 
-        public async Task<ObservableCollection<MunicipioResponse>> GetMunicipiosAsync(
-            int? departamentoId)
+        public async Task<ObservableCollection<MunicipioResponse>>
+            GetMunicipiosAsync(int? departamentoId)
         {
-            var result = await GetMunicipiosResultAsync(departamentoId);
-            return result.Data ?? new ObservableCollection<MunicipioResponse>();
+            if (!departamentoId.HasValue || departamentoId.Value <= 0)
+                return new ObservableCollection<MunicipioResponse>();
+
+            int id = departamentoId.Value;
+
+            if (ObtenerCacheVigente(id) is List<MunicipioResponse> cache)
+                return new ObservableCollection<MunicipioResponse>(cache);
+
+            SemaphoreSlim bloqueo = BloqueosPorDepartamento.GetOrAdd(
+                id,
+                _ => new SemaphoreSlim(1, 1));
+
+            await bloqueo.WaitAsync();
+
+            try
+            {
+                if (ObtenerCacheVigente(id) is List<MunicipioResponse> vigente)
+                    return new ObservableCollection<MunicipioResponse>(vigente);
+
+                ApiResult<ObservableCollection<MunicipioResponse>> result =
+                    await GetMunicipiosResultAsync(id);
+
+                List<MunicipioResponse> items = result.Data?
+                    .Where(x => x != null && x.MunicipioId is > 0)
+                    .ToList()
+                    ?? new List<MunicipioResponse>();
+
+                CachePorDepartamento[id] =
+                    new CacheEntry(items, DateTime.UtcNow);
+
+                return new ObservableCollection<MunicipioResponse>(items);
+            }
+            finally
+            {
+                bloqueo.Release();
+            }
         }
 
-        public async Task<bool> CreateMunicipioAsync(MunicipioRequest municipio)
+        public async Task<bool> CreateMunicipioAsync(
+            MunicipioRequest municipio)
         {
-            var result = await CreateMunicipioResultAsync(municipio);
+            ApiResult<bool> result =
+                await CreateMunicipioResultAsync(municipio);
+
             return result.Success && result.Data == true;
         }
 
-        public async Task<bool> UpdateMunicipioAsync(MunicipioRequest municipio)
+        public async Task<bool> UpdateMunicipioAsync(
+            MunicipioRequest municipio)
         {
-            var result = await UpdateMunicipioResultAsync(municipio);
+            ApiResult<bool> result =
+                await UpdateMunicipioResultAsync(municipio);
+
             return result.Success && result.Data == true;
         }
 
-        public async Task<bool> DeleteMunicipioAsync(MunicipioRequest municipio)
+        public async Task<bool> DeleteMunicipioAsync(
+            MunicipioRequest municipio)
         {
-            var result = await DeleteMunicipioResultAsync(municipio);
+            ApiResult<bool> result =
+                await DeleteMunicipioResultAsync(municipio);
+
             return result.Success && result.Data == true;
+        }
+
+        private static List<MunicipioResponse>? ObtenerCacheVigente(
+            int departamentoId)
+        {
+            if (!CachePorDepartamento.TryGetValue(
+                    departamentoId,
+                    out CacheEntry? entry))
+            {
+                return null;
+            }
+
+            if (DateTime.UtcNow - entry.CreadoUtc >= DuracionCache)
+            {
+                CachePorDepartamento.TryRemove(departamentoId, out _);
+                return null;
+            }
+
+            return entry.Items;
+        }
+
+        private static void LimpiarCache()
+        {
+            CachePorDepartamento.Clear();
         }
     }
 }
