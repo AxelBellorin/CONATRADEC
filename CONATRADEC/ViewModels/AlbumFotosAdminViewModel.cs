@@ -1,6 +1,8 @@
-﻿using CONATRADEC.Models;
-using Microsoft.Maui.Storage;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
+using System.IO;
 
 namespace CONATRADEC.ViewModels
 {
@@ -11,6 +13,7 @@ namespace CONATRADEC.ViewModels
         private int id;
         private AlbumDetalleResponse? detalle;
         private FileResult? archivoSeleccionado;
+        private ImageSource? vistaPreviaImagen;
         private string descripcionNueva = string.Empty;
         private bool esPortadaNueva;
         private int ordenNuevo = 1;
@@ -74,8 +77,14 @@ namespace CONATRADEC.ViewModels
                 ? "Seleccione una imagen para cargar."
                 : archivoSeleccionado.FileName;
 
+        public ImageSource? ImagenSeleccionadaPreview =>
+            vistaPreviaImagen;
+
         public bool TieneArchivoSeleccionado =>
             archivoSeleccionado != null;
+
+        public bool SinArchivoSeleccionado =>
+            !TieneArchivoSeleccionado;
 
         public bool TieneFotos =>
             Detalle?.Fotos.Count > 0;
@@ -182,35 +191,77 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            FileResult? archivo =
-                await FilePicker.Default.PickAsync(
-                    new PickOptions
-                    {
-                        PickerTitle =
-                            "Seleccione una fotografía",
-                        FileTypes = FilePickerFileType.Images
-                    });
-
-            if (archivo == null)
+            if (IsBusy)
                 return;
 
-            string extension =
-                Path.GetExtension(archivo.FileName)
-                    .ToLowerInvariant();
-
-            if (extension is not
-                (".jpg" or ".jpeg" or ".png" or ".webp"))
+            try
             {
-                await MostrarToastAsync(
-                    "Seleccione una imagen JPG, JPEG, PNG o WEBP.");
-                return;
-            }
+                FileResult? archivo =
+                    await FilePicker.Default.PickAsync(
+                        new PickOptions
+                        {
+                            PickerTitle =
+                                "Seleccione una fotografía",
+                            FileTypes =
+                                FilePickerFileType.Images
+                        });
 
-            archivoSeleccionado = archivo;
-            OnPropertyChanged(
-                nameof(ArchivoSeleccionadoTexto));
-            OnPropertyChanged(
-                nameof(TieneArchivoSeleccionado));
+                if (archivo == null)
+                    return;
+
+                string extension =
+                    Path.GetExtension(archivo.FileName)
+                        .ToLowerInvariant();
+
+                if (extension is not
+                    (".jpg" or ".jpeg" or ".png" or ".webp"))
+                {
+                    await MostrarToastAsync(
+                        "Seleccione una imagen JPG, JPEG, PNG o WEBP.");
+                    return;
+                }
+
+                const long tamanioMaximo =
+                    8L * 1024 * 1024;
+
+                await using Stream stream =
+                    await archivo.OpenReadAsync();
+
+                if (stream.CanSeek &&
+                    stream.Length > tamanioMaximo)
+                {
+                    await MostrarToastAsync(
+                        "La imagen no puede superar los 8 MB.");
+                    return;
+                }
+
+                using var memoria = new MemoryStream();
+                await stream.CopyToAsync(memoria);
+
+                if (memoria.Length > tamanioMaximo)
+                {
+                    await MostrarToastAsync(
+                        "La imagen no puede superar los 8 MB.");
+                    return;
+                }
+
+                byte[] bytesImagen = memoria.ToArray();
+
+                archivoSeleccionado = archivo;
+                vistaPreviaImagen =
+                    ImageSource.FromStream(
+                        () => new MemoryStream(
+                            bytesImagen,
+                            writable: false));
+
+                NotificarArchivoSeleccionado();
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(
+                    "seleccionar la fotografía",
+                    ex);
+            }
         }
 
         private async Task SubirFotoAsync()
@@ -271,14 +322,9 @@ namespace CONATRADEC.ViewModels
 
                 await MostrarToastAsync(result.Message);
 
-                archivoSeleccionado = null;
+                LimpiarArchivoSeleccionado();
                 DescripcionNueva = string.Empty;
                 EsPortadaNueva = false;
-
-                OnPropertyChanged(
-                    nameof(ArchivoSeleccionadoTexto));
-                OnPropertyChanged(
-                    nameof(TieneArchivoSeleccionado));
 
                 await LoadAsync(false);
             }
@@ -286,6 +332,25 @@ namespace CONATRADEC.ViewModels
             {
                 IsBusy = false;
             }
+        }
+
+        private void LimpiarArchivoSeleccionado()
+        {
+            archivoSeleccionado = null;
+            vistaPreviaImagen = null;
+            NotificarArchivoSeleccionado();
+        }
+
+        private void NotificarArchivoSeleccionado()
+        {
+            OnPropertyChanged(
+                nameof(ArchivoSeleccionadoTexto));
+            OnPropertyChanged(
+                nameof(TieneArchivoSeleccionado));
+            OnPropertyChanged(
+                nameof(SinArchivoSeleccionado));
+            OnPropertyChanged(
+                nameof(ImagenSeleccionadaPreview));
         }
 
         private async Task AbrirFotoAsync(
@@ -450,11 +515,6 @@ namespace CONATRADEC.ViewModels
         }
 
         private Task RegresarAsync() =>
-            GoToAsyncParameters(
-                AppRoutes.AlbumDetalle,
-                new Dictionary<string, object>
-                {
-                    ["RegistroId"] = Id
-                });
+            GoToAsyncParameters(AppRoutes.Regresar);
     }
 }

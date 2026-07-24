@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.albumFotosAdminPage"
     x:Name="FotosAdminRoot"
@@ -137,11 +137,31 @@
                                     VerticalOptions="Center"
                                     Spacing="15">
 
+                                    <!-- Icono mientras todavía no se selecciona una imagen. -->
                                     <Image
                                         Source="iconalbum.png"
                                         WidthRequest="82"
                                         HeightRequest="82"
+                                        Aspect="AspectFit"
+                                        IsVisible="{Binding SinArchivoSeleccionado}"
                                         HorizontalOptions="Center" />
+
+                                    <!-- Vista previa inmediata de la fotografía seleccionada. -->
+                                    <Border
+                                        IsVisible="{Binding TieneArchivoSeleccionado}"
+                                        HeightRequest="{OnPlatform WinUI=170, Default=150}"
+                                        HorizontalOptions="Fill"
+                                        BackgroundColor="#E5EFEB"
+                                        Stroke="#C8DED6"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 12">
+
+                                        <Image
+                                            Source="{Binding ImagenSeleccionadaPreview}"
+                                            Aspect="AspectFit"
+                                            HorizontalOptions="Fill"
+                                            VerticalOptions="Fill" />
+                                    </Border>
 
                                     <Button
                                         Text="Seleccionar fotografía"

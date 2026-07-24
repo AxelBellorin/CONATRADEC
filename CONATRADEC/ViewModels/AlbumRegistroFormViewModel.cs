@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
 
@@ -462,18 +462,32 @@ namespace CONATRADEC.ViewModels
                     RegistroId =
                         result.Data.AlbumBotanicoCafeId;
 
-                    await GoToAsyncParameters(
-                        AppRoutes.AlbumFotosAdministrar,
-                        new Dictionary<string, object>
-                        {
-                            ["RegistroId"] = RegistroId
-                        });
+                    /*
+                     * El registro ya fue insertado. El modo se cambia antes
+                     * de navegar para impedir otra inserción si la navegación
+                     * llegara a fallar.
+                     */
+                    Mode = FormMode.FormModeSelect.Edit;
 
                     await MostrarExitoAsync(
                         string.IsNullOrWhiteSpace(
                             result.Message)
                             ? "Registro botánico guardado correctamente."
                             : result.Message);
+
+                    /*
+                     * Retira el formulario de creación de la pila y abre la
+                     * administración de fotografías. De esta forma, al usar
+                     * Regresar desde fotografías se vuelve directamente al
+                     * panel principal del álbum.
+                     */
+                    await GoToAsyncParameters(
+                        $"{AppRoutes.Regresar}/" +
+                        AppRoutes.AlbumFotosAdministrar,
+                        new Dictionary<string, object>
+                        {
+                            ["RegistroId"] = RegistroId
+                        });
                 }
                 else
                 {
@@ -488,18 +502,19 @@ namespace CONATRADEC.ViewModels
                         return;
                     }
 
-                    await GoToAsyncParameters(
-                        AppRoutes.AlbumDetalle,
-                        new Dictionary<string, object>
-                        {
-                            ["RegistroId"] = RegistroId
-                        });
-
                     await MostrarExitoAsync(
                         string.IsNullOrWhiteSpace(
                             result.Message)
                             ? "Registro botánico actualizado correctamente."
                             : result.Message);
+
+                    /*
+                     * Retroceso real. Si la edición se abrió desde la galería,
+                     * vuelve a la galería. Si se abrió desde el detalle,
+                     * vuelve al detalle. No crea una nueva página.
+                     */
+                    await GoToAsyncParameters(
+                        AppRoutes.Regresar);
                 }
             }
             catch (Exception ex)
@@ -522,20 +537,12 @@ namespace CONATRADEC.ViewModels
             if (IsBusy)
                 return;
 
-            if (RegistroId > 0)
-            {
-                await GoToAsyncParameters(
-                    AppRoutes.AlbumDetalle,
-                    new Dictionary<string, object>
-                    {
-                        ["RegistroId"] = RegistroId
-                    });
-            }
-            else
-            {
-                await GoToAsyncParameters(
-                    AppRoutes.AlbumFotos);
-            }
+            /*
+             * El formulario siempre fue abierto desde otra pantalla del álbum.
+             * Solo se elimina la página actual de la pila para evitar ciclos.
+             */
+            await GoToAsyncParameters(
+                AppRoutes.Regresar);
         }
 
         private bool ValidarCampos()

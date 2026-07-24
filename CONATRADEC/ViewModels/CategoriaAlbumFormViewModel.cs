@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Storage;
 
@@ -261,6 +261,14 @@ namespace CONATRADEC.ViewModels
                         result.Data
                             .CategoriaAlbumBotanicoId;
 
+                    /*
+                     * La categoría ya existe desde este momento.
+                     * Si la navegación no pudiera completarse, un nuevo clic
+                     * actualizará el registro y no volverá a insertarlo.
+                     */
+                    Item.CategoriaAlbumBotanicoId = categoriaId;
+                    Mode = FormMode.FormModeSelect.Edit;
+
                     mensajePrincipal =
                         string.IsNullOrWhiteSpace(
                             result.Message)
@@ -312,8 +320,17 @@ namespace CONATRADEC.ViewModels
                     }
                 }
 
+                archivoSeleccionado = null;
+                OnPropertyChanged(
+                    nameof(ArchivoSeleccionadoTexto));
+
+                /*
+                 * Regresa a la misma instancia del álbum. Al reaparecer,
+                 * albumFotosPage ejecuta LoadAsync(true) y actualiza el menú,
+                 * las categorías y la galería.
+                 */
                 await GoToAsyncParameters(
-                    AppRoutes.AlbumFotos);
+                    AppRoutes.Regresar);
 
                 await MostrarExitoAsync(
                     mensajePrincipal);
@@ -353,7 +370,7 @@ namespace CONATRADEC.ViewModels
             }
 
             await GoToAsyncParameters(
-                AppRoutes.AlbumFotos);
+                AppRoutes.Regresar);
         }
 
         private bool ValidarCampos()

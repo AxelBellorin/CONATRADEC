@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Services;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using static CONATRADEC.Models.FormMode;
 
@@ -63,7 +63,8 @@ namespace CONATRADEC.Views
                     "Aceptar");
 
                 await Shell.Current.GoToAsync(
-                    AppRoutes.AlbumFotos);
+                    AppRoutes.Regresar,
+                    false);
 
                 return;
             }
