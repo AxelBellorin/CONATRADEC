@@ -1,143 +1,509 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.terrenoPage"
-             Shell.NavBarIsVisible="False"
-             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+<ContentPage
+    x:Class="CONATRADEC.Views.terrenoPage"
+    x:Name="TerrenosRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#FFF5FF"
+    ControlTemplate="{StaticResource FooterTemplate}">
 
-    <ContentView x:Name="TerrenoPage"
-                 ControlTemplate="{StaticResource FooterTemplate}">
-
-        <Grid ColumnDefinitions="*"
-              RowDefinitions="Auto,auto,*">
+    <Grid>
+        <Grid
+            x:Name="ContenidoPrincipal"
+            RowDefinitions="Auto,*"
+            RowSpacing="12"
+            Padding="{OnPlatform WinUI='24,20', Default='14,12'}">
 
             <!-- Encabezado -->
-            <Grid ColumnDefinitions="*,auto"
-                  Grid.Row="0"
-                  Padding="0,10,0,0">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <VerticalStackLayout Spacing="2">
+                    <Label
+                        Text="Terrenos"
+                        FontFamily="MontserratBold"
+                        FontAttributes="Bold"
+                        FontSize="{OnPlatform WinUI=28, Default=23}"
+                        TextColor="#3B655B" />
+                    <Label
+                        Text="{Binding TotalTexto}"
+                        FontFamily="MontserratMedium"
+                        FontSize="12"
+                        TextColor="#6B7280" />
+                </VerticalStackLayout>
 
-                <Label Text="Terrenos"
-                       FontSize="30"
-                       FontFamily="MontserratBold"
-                       TextColor="{StaticResource color_Negro}"
-                       FontAttributes="Bold"
-                       VerticalOptions="Center"
-                       HorizontalOptions="Start"
-                       Padding="30,0,0,0" />
-
-                <!-- Botón agregar SOLO SI CanAdd -->
-                <ImageButton Source="iconadd.png"
-                             WidthRequest="60"
-                             HeightRequest="60"
-                             CornerRadius="30"
-                             Grid.Column="1"
-                             Padding="0,0,20,0"
-                             Command="{Binding AddCommand}"
-                             IsVisible="{Binding CanAdd}" />
+                <Button
+                    Grid.Column="1"
+                    Text="+ Nuevo"
+                    Command="{Binding AddCommand}"
+                    IsVisible="{Binding CanAdd}"
+                    BackgroundColor="#3B655B"
+                    TextColor="White"
+                    FontFamily="MontserratBold"
+                    CornerRadius="11"
+                    Padding="15,9" />
             </Grid>
 
-            <!-- Loading -->
-            <ActivityIndicator Grid.Row="1"
-                               IsRunning="{Binding IsBusy}"
-                               IsVisible="{Binding IsBusy}"
-                               Color="{StaticResource color_Naranja}" />
+            <RefreshView
+                Grid.Row="1"
+                IsRefreshing="{Binding IsRefreshing}"
+                Command="{Binding RefrescarCommand}">
 
-            <!-- Lista de terrenos -->
-            <CollectionView Grid.Row="2"
-                            ItemsSource="{Binding List}"
-                            SelectionMode="None">
+                <CollectionView
+                    x:Name="TerrenosCollectionView"
+                    ItemsSource="{Binding List}"
+                    SelectionMode="None"
+                    ItemSizingStrategy="MeasureFirstItem"
+                    RemainingItemsThreshold="3"
+                    RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
 
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="2" />
-                </CollectionView.ItemsLayout>
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout
+                            Orientation="Vertical"
+                            ItemSpacing="11" />
+                    </CollectionView.ItemsLayout>
 
-                <CollectionView.EmptyView>
-                    <Grid Padding="20">
-                        <Label Text="No hay terrenos para mostrar."
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
-                    </Grid>
-                </CollectionView.EmptyView>
+                    <CollectionView.Header>
+                        <VerticalStackLayout Spacing="10" Padding="0,0,0,10">
 
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                            <!-- Búsqueda principal -->
+                            <Border
+                                Padding="12"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeShape="RoundRectangle 15">
+                                <VerticalStackLayout Spacing="10">
+                                    <SearchBar
+                                        Placeholder="Código, propietario, identificación o dirección"
+                                        Text="{Binding TextoBusqueda}"
+                                        SearchCommand="{Binding BuscarCommand}"
+                                        FontFamily="MontserratMedium"
+                                        BackgroundColor="#F8FAF9" />
 
-                        <SwipeView IsEnabled="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.CanView}">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                        <Button
+                                            Text="Buscar"
+                                            Command="{Binding BuscarCommand}"
+                                            BackgroundColor="#3B655B"
+                                            TextColor="White"
+                                            FontFamily="MontserratBold"
+                                            CornerRadius="10" />
 
-                            <SwipeView.RightItems>
-                                <SwipeItems Mode="Reveal">
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="{Binding TextoBotonFiltros}"
+                                            Command="{Binding AlternarFiltrosCommand}"
+                                            BackgroundColor="#EEF5F2"
+                                            TextColor="#3B655B"
+                                            FontFamily="MontserratBold"
+                                            CornerRadius="10" />
 
-                                    <!-- EDITAR -->
-                                    <SwipeItem Text="Editar"
-                                               IconImageSource="iconupdate.png"
-                                               BackgroundColor="{StaticResource BlueUpdate}"
-                                               Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.EditCommand}"
-                                               CommandParameter="{Binding .}"
-                                               IsVisible="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.CanEdit}" />
+                                        <Button
+                                            Grid.Column="2"
+                                            Text="Limpiar"
+                                            Command="{Binding LimpiarFiltrosCommand}"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#9B552C"
+                                            FontFamily="MontserratBold"
+                                            Padding="8,4" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
 
-                                    <!-- ELIMINAR -->
-                                    <SwipeItem Text="Eliminar"
-                                               IconImageSource="icondelete.png"
-                                               BackgroundColor="{StaticResource RedDelete}"
-                                               Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.DeleteCommand}"
-                                               CommandParameter="{Binding .}"
-                                               IsVisible="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.CanDelete}" />
+                            <!-- Filtros avanzados -->
+                            <Border
+                                IsVisible="{Binding MostrarFiltrosAvanzados}"
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeShape="RoundRectangle 15">
+                                <VerticalStackLayout Spacing="13">
+                                    <Label
+                                        Text="Búsqueda avanzada"
+                                        FontFamily="MontserratBold"
+                                        FontSize="16"
+                                        TextColor="#3B655B" />
 
-                                </SwipeItems>
-                            </SwipeView.RightItems>
+                                    <Grid
+                                        ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                                        RowDefinitions="Auto,Auto,Auto,Auto"
+                                        ColumnSpacing="12"
+                                        RowSpacing="10">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="Código" FontFamily="MontserratBold" FontSize="11" />
+                                            <Entry
+                                                Placeholder="Ej: TRR-0025-000127"
+                                                Text="{Binding CodigoFiltro}"
+                                                BackgroundColor="#F8FAF9" />
+                                        </VerticalStackLayout>
 
-                            <Border Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius},
-                                                    Default={StaticResource BorderStyleNoBorder}}">
+                                        <VerticalStackLayout
+                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Spacing="4">
+                                            <Label Text="Propietario" FontFamily="MontserratBold" FontSize="11" />
+                                            <Entry
+                                                Placeholder="Nombre del propietario"
+                                                Text="{Binding PropietarioFiltro}"
+                                                BackgroundColor="#F8FAF9" />
+                                        </VerticalStackLayout>
 
-                                <Grid Padding="10" ColumnDefinitions="*,*"
-                                      IsEnabled="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.CanView}">
+                                        <VerticalStackLayout
+                                            Grid.Row="{OnPlatform WinUI=1, Default=2}"
+                                            Spacing="4">
+                                            <Label Text="Identificación" FontFamily="MontserratBold" FontSize="11" />
+                                            <Entry
+                                                Placeholder="001-080701-1050R"
+                                                Text="{Binding IdentificacionFiltro}"
+                                                BackgroundColor="#F8FAF9" />
+                                        </VerticalStackLayout>
 
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={x:Reference TerrenoPage}, Path=BindingContext.ViewCommand}"
-                                                              CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
+                                        <VerticalStackLayout
+                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=1, Default=3}"
+                                            Spacing="4">
+                                            <Label Text="Dirección" FontFamily="MontserratBold" FontSize="11" />
+                                            <Entry
+                                                Placeholder="Sector, comunidad o referencia"
+                                                Text="{Binding DireccionFiltro}"
+                                                BackgroundColor="#F8FAF9" />
+                                        </VerticalStackLayout>
+                                    </Grid>
 
-                                    <!-- Izquierda -->
-                                    <VerticalStackLayout Grid.Column="0"
-                                                         Spacing="2"
-                                                         VerticalOptions="Center">
-                                        <Label Text="{Binding CodigoTerreno}"
-                                               FontSize="18"
-                                               FontFamily="MontserratBold"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource color_Negro}" />
-                                        <Label Text="{Binding NombrePropietarioTerreno}"
-                                               FontSize="14"
-                                               TextColor="{StaticResource color_Gris}" />
-                                    </VerticalStackLayout>
+                                    <BoxView HeightRequest="1" Color="#E5E7EB" />
 
-                                    <!-- Derecha -->
-                                    <VerticalStackLayout Grid.Column="1"
-                                                         Spacing="2"
-                                                         HorizontalOptions="End"
-                                                         VerticalOptions="Center">
-                                        <Label Text="{Binding Ubicacion.NombrePais}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource color_Verde}" />
-                                        <Label Text="{Binding Ubicacion.NombreDepartamento}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource color_Verde}" />
-                                        <Label Text="{Binding Ubicacion.NombreMunicipio}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource color_Verde}" />
-                                        <Label Text="{Binding ExtensionManzanaTerreno, StringFormat='Extensión: {0:F2} mz'}"
-                                               FontSize="12"
-                                               TextColor="{StaticResource color_GrisOscuro}" />
-                                    </VerticalStackLayout>
+                                    <Label
+                                        Text="Ubicación administrativa"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="#374151" />
 
+                                    <Grid
+                                        ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
+                                        RowDefinitions="Auto,Auto,Auto"
+                                        ColumnSpacing="10"
+                                        RowSpacing="8">
+                                        <Picker
+                                            Title="Todos los países"
+                                            ItemsSource="{Binding Paises}"
+                                            ItemDisplayBinding="{Binding NombrePais}"
+                                            SelectedItem="{Binding PaisSeleccionado}" />
+
+                                        <Picker
+                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Title="Todos los departamentos"
+                                            ItemsSource="{Binding Departamentos}"
+                                            ItemDisplayBinding="{Binding NombreDepartamento}"
+                                            SelectedItem="{Binding DepartamentoSeleccionado}" />
+
+                                        <Picker
+                                            Grid.Column="{OnPlatform WinUI=2, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=2}"
+                                            Title="Todos los municipios"
+                                            ItemsSource="{Binding Municipios}"
+                                            ItemDisplayBinding="{Binding NombreMunicipio}"
+                                            SelectedItem="{Binding MunicipioSeleccionado}" />
+                                    </Grid>
+
+                                    <ActivityIndicator
+                                        IsVisible="{Binding UbicacionCargando}"
+                                        IsRunning="{Binding UbicacionCargando}"
+                                        Color="#3B655B"
+                                        HorizontalOptions="Start" />
+
+                                    <BoxView HeightRequest="1" Color="#E5E7EB" />
+
+                                    <Grid
+                                        ColumnDefinitions="{OnPlatform WinUI='Auto,*,*,*', Default='Auto,*'}"
+                                        RowDefinitions="Auto,Auto"
+                                        ColumnSpacing="10"
+                                        RowSpacing="8">
+                                        <Switch
+                                            IsToggled="{Binding FiltrarPorFecha}"
+                                            OnColor="#3B655B" />
+                                        <Label
+                                            Grid.Column="1"
+                                            Text="Filtrar fecha de ingreso"
+                                            VerticalOptions="Center"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="12" />
+
+                                        <DatePicker
+                                            Grid.Column="{OnPlatform WinUI=2, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Date="{Binding FechaDesde}"
+                                            IsVisible="{Binding FiltrarPorFecha}" />
+
+                                        <DatePicker
+                                            Grid.Column="{OnPlatform WinUI=3, Default=1}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Date="{Binding FechaHasta}"
+                                            IsVisible="{Binding FiltrarPorFecha}" />
+                                    </Grid>
+
+                                    <Grid
+                                        ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
+                                        RowDefinitions="Auto,Auto,Auto"
+                                        ColumnSpacing="10"
+                                        RowSpacing="8">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="Extensión mínima (mz)" FontFamily="MontserratBold" FontSize="11" />
+                                            <Entry
+                                                Keyboard="Numeric"
+                                                Placeholder="0.00"
+                                                Text="{Binding ExtensionMinimaTexto}"
+                                                BackgroundColor="#F8FAF9" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Spacing="4">
+                                            <Label Text="Extensión máxima (mz)" FontFamily="MontserratBold" FontSize="11" />
+                                            <Entry
+                                                Keyboard="Numeric"
+                                                Placeholder="100.00"
+                                                Text="{Binding ExtensionMaximaTexto}"
+                                                BackgroundColor="#F8FAF9" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Column="{OnPlatform WinUI=2, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=2}"
+                                            Spacing="4">
+                                            <Label Text="Ordenar por" FontFamily="MontserratBold" FontSize="11" />
+                                            <Picker
+                                                ItemsSource="{Binding Ordenamientos}"
+                                                SelectedItem="{Binding OrdenarSeleccionado}" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+
+                                    <Button
+                                        Text="Aplicar filtros"
+                                        Command="{Binding BuscarCommand}"
+                                        BackgroundColor="#3B655B"
+                                        TextColor="White"
+                                        FontFamily="MontserratBold"
+                                        CornerRadius="10"
+                                        HorizontalOptions="End" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border
+                                IsVisible="{Binding TieneMensaje}"
+                                Padding="11"
+                                BackgroundColor="#FFF7ED"
+                                Stroke="#FDBA74"
+                                StrokeShape="RoundRectangle 11">
+                                <Label
+                                    Text="{Binding Mensaje}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12"
+                                    TextColor="#9A3412" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </CollectionView.Header>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:TerrenoResponse">
+                            <Border
+                                BackgroundColor="White"
+                                Stroke="#E3EAE7"
+                                StrokeShape="RoundRectangle 16"
+                                Padding="14">
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.ViewCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+
+                                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <VerticalStackLayout Spacing="3">
+                                            <Label
+                                                Text="{Binding CodigoTerreno}"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                FontSize="17"
+                                                TextColor="#1F2937"
+                                                LineBreakMode="TailTruncation" />
+                                            <Label
+                                                Text="{Binding NombrePropietarioTerreno}"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="13"
+                                                TextColor="#4B5563"
+                                                MaxLines="1"
+                                                LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+
+                                        <Border
+                                            Grid.Column="1"
+                                            Padding="9,4"
+                                            BackgroundColor="#EEF5F2"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 9">
+                                            <Label
+                                                Text="{Binding ExtensionManzanaTerreno, StringFormat='{0:F2} mz'}"
+                                                FontFamily="MontserratBold"
+                                                FontSize="11"
+                                                TextColor="#3B655B" />
+                                        </Border>
+                                    </Grid>
+
+                                    <Grid
+                                        Grid.Row="1"
+                                        ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
+                                        RowDefinitions="Auto,Auto,Auto"
+                                        ColumnSpacing="10"
+                                        RowSpacing="4">
+                                        <Label
+                                            Text="{Binding Ubicacion.NombreMunicipio}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            TextColor="#3B655B"
+                                            MaxLines="1" />
+                                        <Label
+                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Text="{Binding Ubicacion.NombreDepartamento}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="11"
+                                            TextColor="#6B7280"
+                                            MaxLines="1" />
+                                        <Label
+                                            Grid.Column="{OnPlatform WinUI=2, Default=0}"
+                                            Grid.Row="{OnPlatform WinUI=0, Default=2}"
+                                            Text="{Binding FechaIngresoTerreno, StringFormat='Ingreso: {0:dd/MM/yyyy}'}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="11"
+                                            TextColor="#6B7280" />
+                                    </Grid>
+
+                                    <!-- Acciones visibles también con mouse en Windows -->
+                                    <Grid
+                                        Grid.Row="2"
+                                        ColumnDefinitions="*,Auto,Auto"
+                                        ColumnSpacing="8">
+                                        <Button
+                                            Text="Ver detalle"
+                                            Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.ViewCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#3B655B"
+                                            FontFamily="MontserratBold"
+                                            FontSize="11"
+                                            HorizontalOptions="Start"
+                                            Padding="5,4" />
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Editar"
+                                            Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.EditCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.CanEdit}"
+                                            BackgroundColor="#EEF2FF"
+                                            TextColor="#2563EB"
+                                            FontFamily="MontserratBold"
+                                            FontSize="11"
+                                            CornerRadius="9"
+                                            Padding="11,6" />
+
+                                        <Button
+                                            Grid.Column="2"
+                                            Text="Eliminar"
+                                            Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.DeleteCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.CanDelete}"
+                                            BackgroundColor="#FEF2F2"
+                                            TextColor="#DC2626"
+                                            FontFamily="MontserratBold"
+                                            FontSize="11"
+                                            CornerRadius="9"
+                                            Padding="11,6" />
+                                    </Grid>
                                 </Grid>
                             </Border>
-                        </SwipeView>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
 
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout
+                            IsVisible="{Binding MostrarVacio}"
+                            Padding="34"
+                            Spacing="8"
+                            HorizontalOptions="Center">
+                            <Label
+                                Text="No hay terrenos para mostrar"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                TextColor="#3B655B"
+                                HorizontalTextAlignment="Center" />
+                            <Label
+                                Text="Cambie los filtros o actualice la lista."
+                                FontFamily="MontserratMedium"
+                                FontSize="12"
+                                TextColor="#6B7280"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
 
+                    <CollectionView.Footer>
+                        <VerticalStackLayout
+                            Padding="0,14,0,28"
+                            Spacing="8"
+                            HorizontalOptions="Center">
+                            <ActivityIndicator
+                                IsVisible="{Binding CargandoMas}"
+                                IsRunning="{Binding CargandoMas}"
+                                Color="#3B655B" />
+                            <Label
+                                IsVisible="{Binding MostrarFinLista}"
+                                Text="No hay más terrenos."
+                                FontFamily="MontserratMedium"
+                                FontSize="11"
+                                TextColor="#6B7280" />
+                        </VerticalStackLayout>
+                    </CollectionView.Footer>
+                </CollectionView>
+            </RefreshView>
+
+            <ActivityIndicator
+                Grid.RowSpan="2"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                Color="#3B655B"
+                HorizontalOptions="Center"
+                VerticalOptions="Center" />
         </Grid>
-    </ContentView>
+
+        <Grid
+            x:Name="ContenidoSinPermiso"
+            IsVisible="False"
+            Padding="24">
+            <Border
+                MaximumWidthRequest="540"
+                Padding="26"
+                BackgroundColor="White"
+                Stroke="#DDE7E3"
+                StrokeShape="RoundRectangle 18"
+                HorizontalOptions="Center"
+                VerticalOptions="Center">
+                <VerticalStackLayout Spacing="12">
+                    <Label
+                        Text="Sin permiso para consultar terrenos"
+                        FontFamily="MontserratBold"
+                        FontSize="22"
+                        TextColor="#3B655B"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="Su usuario está activo, pero su rol no tiene permiso de lectura para este apartado."
+                        FontFamily="MontserratMedium"
+                        TextColor="#4B5563"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
 </ContentPage>

@@ -1,21 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace CONATRADEC.Models
 {
-    public class PaisResponse
+    public sealed class PaisResponse
     {
-        private int paisId;
-        private string nombrePais;
-        private string codigoISOPais;
+        public int PaisId { get; set; }
+        public string NombrePais { get; set; } = string.Empty;
+        public string CodigoISOPais { get; set; } = string.Empty;
+        public bool Activo { get; set; }
+        public int CantidadDepartamentos { get; set; }
 
-        public int PaisId { get => paisId; set => paisId = value; }
-        public string NombrePais { get => nombrePais; set => nombrePais = value; }
-        public string CodigoISOPais { get => codigoISOPais; set => codigoISOPais = value; }
-
-        public PaisResponse() { }
+        public string ResumenDepartamentos =>
+            CantidadDepartamentos == 1
+                ? "1 departamento registrado"
+                : $"{CantidadDepartamentos} departamentos registrados";
     }
 }

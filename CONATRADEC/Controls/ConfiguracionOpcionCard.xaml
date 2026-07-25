@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="CONATRADEC.Controls.ConfiguracionOpcionCard"
+    x:Name="ControlRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <Border
+        Padding="15"
+        MinimumHeightRequest="96"
+        BackgroundColor="White"
+        Stroke="#DDE7E3"
+        StrokeThickness="1"
+        StrokeShape="RoundRectangle 16">
+
+        <Border.GestureRecognizers>
+            <TapGestureRecognizer
+                Command="{Binding Command, Source={x:Reference ControlRoot}}"
+                CommandParameter="{Binding Opcion, Source={x:Reference ControlRoot}}" />
+        </Border.GestureRecognizers>
+
+        <Grid
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="12">
+
+            <Border
+                WidthRequest="50"
+                HeightRequest="50"
+                Padding="10"
+                BackgroundColor="{Binding Opcion.ColorFondoIcono, Source={x:Reference ControlRoot}}"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 14">
+
+                <Image
+                    Source="{Binding Opcion.Icono, Source={x:Reference ControlRoot}}"
+                    Aspect="AspectFit" />
+            </Border>
+
+            <VerticalStackLayout
+                Grid.Column="1"
+                Spacing="3"
+                VerticalOptions="Center">
+
+                <Label
+                    Text="{Binding Opcion.Titulo, Source={x:Reference ControlRoot}}"
+                    FontSize="15"
+                    FontFamily="MontserratBold"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource color_Negro}"
+                    LineBreakMode="TailTruncation" />
+
+                <Label
+                    Text="{Binding Opcion.Descripcion, Source={x:Reference ControlRoot}}"
+                    FontSize="12"
+                    TextColor="{StaticResource color_GrisOscuro}"
+                    MaxLines="2"
+                    LineBreakMode="TailTruncation" />
+            </VerticalStackLayout>
+
+            <Label
+                Grid.Column="2"
+                Text="›"
+                FontSize="28"
+                TextColor="{StaticResource color_Verde}"
+                VerticalOptions="Center" />
+        </Grid>
+    </Border>
+</ContentView>

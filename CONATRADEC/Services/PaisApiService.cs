@@ -1,16 +1,19 @@
 using CONATRADEC.Models;
 using System.Collections.ObjectModel;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace CONATRADEC.Services
 {
-    public class PaisApiService
+    public sealed class PaisApiService
     {
         private readonly HttpClient httpClient;
 
         private static readonly SemaphoreSlim CacheLock = new(1, 1);
         private static List<PaisResponse>? cacheFormulario;
         private static DateTime cacheCreadoUtc;
-        private static readonly TimeSpan DuracionCache = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan DuracionCache =
+            TimeSpan.FromMinutes(30);
 
         public PaisApiService()
             : this(ApiClientService.Client)
@@ -32,6 +35,82 @@ namespace CONATRADEC.Services
                 "api/pais",
                 "los países",
                 cancellationToken);
+        }
+
+        public async Task<ApiResult<PaisPaginaResponse>>
+            BuscarPaisesAsync(
+                string? buscar,
+                int pagina,
+                int tamanoPagina,
+                CancellationToken cancellationToken = default)
+        {
+            pagina = Math.Max(1, pagina);
+            tamanoPagina = Math.Clamp(tamanoPagina, 5, 100);
+
+            string ruta =
+                "api/pais/buscar" +
+                $"?pagina={pagina}" +
+                $"&tamanoPagina={tamanoPagina}" +
+                "&orden=nombre" +
+                "&direccion=asc";
+
+            if (!string.IsNullOrWhiteSpace(buscar))
+            {
+                ruta +=
+                    $"&buscar={Uri.EscapeDataString(buscar.Trim())}";
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        ruta,
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<PaisPaginaResponse>.Fail(
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            "No fue posible cargar los países.",
+                            cancellationToken),
+                        (int)response.StatusCode);
+                }
+
+                PaisPaginaResponse? data =
+                    await response.Content
+                        .ReadFromJsonAsync<PaisPaginaResponse>(
+                            cancellationToken: cancellationToken);
+
+                return ApiResult<PaisPaginaResponse>.Ok(
+                    data ?? new PaisPaginaResponse());
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<PaisPaginaResponse>.Fail(
+                    "La carga de países tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<PaisPaginaResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<PaisPaginaResponse>.Fail(
+                    "No fue posible comunicarse con el servidor para cargar los países.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<PaisPaginaResponse>.Fail(
+                    "El servidor respondió, pero el listado de países no tiene el formato esperado.");
+            }
+            catch
+            {
+                return ApiResult<PaisPaginaResponse>.Fail(
+                    "Ocurrió un error inesperado al cargar los países.");
+            }
         }
 
         public async Task<ApiResult<bool>> CreatePaisResultAsync(
@@ -94,8 +173,8 @@ namespace CONATRADEC.Services
                     "No se recibió un identificador de país válido.");
             }
 
-            ApiResult<bool> result = await ApiServiceHelper
-                .SendAsync<PaisRequest>(
+            ApiResult<bool> result =
+                await ApiServiceHelper.SendAsync<PaisRequest>(
                     httpClient,
                     HttpMethod.Delete,
                     $"api/pais/eliminarPais/{pais.PaisId}",
@@ -110,7 +189,8 @@ namespace CONATRADEC.Services
             return result;
         }
 
-        public async Task<ObservableCollection<PaisResponse>> GetPaisAsync()
+        public async Task<ObservableCollection<PaisResponse>>
+            GetPaisAsync()
         {
             if (CacheVigente())
                 return CrearColeccionCache();
@@ -126,7 +206,7 @@ namespace CONATRADEC.Services
                     await GetPaisResultAsync();
 
                 cacheFormulario = result.Data?
-                    .Where(x => x != null && x.PaisId is > 0)
+                    .Where(pais => pais.PaisId > 0)
                     .ToList()
                     ?? new List<PaisResponse>();
 
@@ -139,21 +219,28 @@ namespace CONATRADEC.Services
             }
         }
 
+        // Métodos conservados para no afectar código existente.
         public async Task<bool> CreatePaisAsync(PaisRequest pais)
         {
-            ApiResult<bool> result = await CreatePaisResultAsync(pais);
+            ApiResult<bool> result =
+                await CreatePaisResultAsync(pais);
+
             return result.Success && result.Data == true;
         }
 
         public async Task<bool> UpdatePaisAsync(PaisRequest pais)
         {
-            ApiResult<bool> result = await UpdatePaisResultAsync(pais);
+            ApiResult<bool> result =
+                await UpdatePaisResultAsync(pais);
+
             return result.Success && result.Data == true;
         }
 
         public async Task<bool> DeletePaisAsync(PaisRequest pais)
         {
-            ApiResult<bool> result = await DeletePaisResultAsync(pais);
+            ApiResult<bool> result =
+                await DeletePaisResultAsync(pais);
+
             return result.Success && result.Data == true;
         }
 

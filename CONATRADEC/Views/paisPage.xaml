@@ -1,127 +1,431 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage 
+<ContentPage
+    x:Class="CONATRADEC.Views.paisPage"
+    x:Name="PaisPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="CONATRADEC.Views.paisPage"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{StaticResource color_Blanco}">
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <ContentView x:Name="PaisPage"
-                 ControlTemplate="{StaticResource FooterTemplate}">
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid>
 
-        <Grid RowDefinitions="Auto,Auto,*"
-              ColumnDefinitions="*">
+            <!-- Acceso denegado -->
+            <Grid
+                IsVisible="{Binding MostrarAccesoDenegado}"
+                Padding="24">
 
-            <!-- ENCABEZADO -->
-            <Grid Grid.Row="0"
-                  ColumnDefinitions="*,Auto"
-                  Padding="0,10,0,0">
+                <Border
+                    MaximumWidthRequest="620"
+                    Padding="28"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#E5E7EB"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
 
-                <Label Text="País"
-                       FontSize="30"
-                       FontFamily="MontserratBold"
-                       TextColor="{StaticResource color_Negro}"
-                       FontAttributes="Bold"
-                       VerticalOptions="Center"
-                       HorizontalOptions="Start"
-                       Padding="30,0,0,0" />
+                    <VerticalStackLayout
+                        Spacing="10"
+                        HorizontalOptions="Center">
 
-                <!-- AGREGAR -->
-                <ImageButton Source="iconadd.png"
-                             WidthRequest="60"
-                             HeightRequest="60"
-                             Grid.Column="1"
-                             Background="Transparent"
-                             Padding="0,0,20,0"
-                             Command="{Binding AddCommand}"
-                             IsVisible="{Binding CanAdd}" />
+                        <Image
+                            Source="iconpermission.png"
+                            WidthRequest="64"
+                            HeightRequest="64"
+                            Opacity="0.65" />
+
+                        <Label
+                            Text="Sin permiso de lectura"
+                            FontSize="21"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}"
+                            HorizontalTextAlignment="Center" />
+
+                        <Label
+                            Text="Su usuario no tiene permiso para consultar el catálogo de países."
+                            FontSize="14"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
             </Grid>
 
-            <!-- LOADING -->
-            <ActivityIndicator Grid.Row="1"
-                               IsRunning="{Binding IsBusy}"
-                               IsVisible="{Binding IsBusy}"
-                               Color="{StaticResource color_Naranja}" />
+            <!-- Contenido principal -->
+            <Grid
+                IsVisible="{Binding CanView}"
+                Padding="{OnPlatform WinUI='26,22,26,28', Default='16,16,16,24'}"
+                RowDefinitions="Auto,Auto,Auto,*"
+                RowSpacing="14">
 
-            <!-- LISTA -->
-            <CollectionView Grid.Row="2"
-                            ItemsSource="{Binding List}"
-                            SelectionMode="None">
+                <!-- Encabezado para Windows -->
+                <Grid
+                    Grid.Row="0"
+                    IsVisible="{OnPlatform WinUI=True, Default=False}"
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="16">
 
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical"
-                                       ItemSpacing="2" />
-                </CollectionView.ItemsLayout>
+                    <Button
+                        Grid.Column="0"
+                        Text="← Configuración"
+                        Padding="16,10"
+                        VerticalOptions="Center"
+                        BackgroundColor="#EEF2F0"
+                        TextColor="{StaticResource color_Verde}"
+                        CornerRadius="11"
+                        Command="{Binding RegresarConfiguracionCommand}" />
 
-                <CollectionView.EmptyView>
-                    <Grid Padding="20">
-                        <Label Text="No hay países para mostrar."
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
+                    <VerticalStackLayout
+                        Grid.Column="1"
+                        Spacing="3"
+                        VerticalOptions="Center">
+
+                        <Label
+                            Text="Países"
+                            FontSize="30"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Administre los países y consulte sus departamentos."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <Button
+                        Grid.Column="2"
+                        Text="+  Nuevo país"
+                        Padding="18,11"
+                        VerticalOptions="Center"
+                        Style="{StaticResource AddButton}"
+                        IsVisible="{Binding CanAdd}"
+                        Command="{Binding AddCommand}" />
+                </Grid>
+
+                <!-- Encabezado para móvil -->
+                <VerticalStackLayout
+                    Grid.Row="0"
+                    IsVisible="{OnPlatform WinUI=False, Default=True}"
+                    Spacing="12">
+
+                    <VerticalStackLayout Spacing="3">
+                        <Label
+                            Text="Países"
+                            FontSize="26"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Administre los países y consulte sus departamentos."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="10">
+
+                        <Button
+                            Grid.Column="0"
+                            Text="← Configuración"
+                            Padding="12,10"
+                            BackgroundColor="#EEF2F0"
+                            TextColor="{StaticResource color_Verde}"
+                            CornerRadius="11"
+                            Command="{Binding RegresarConfiguracionCommand}" />
+
+                        <Button
+                            Grid.Column="1"
+                            Text="+ Nuevo país"
+                            Padding="12,10"
+                            Style="{StaticResource AddButton}"
+                            IsVisible="{Binding CanAdd}"
+                            Command="{Binding AddCommand}" />
                     </Grid>
-                </CollectionView.EmptyView>
+                </VerticalStackLayout>
 
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                <!-- Búsqueda -->
+                <Border
+                    Grid.Row="1"
+                    Padding="{OnPlatform WinUI='16,14', Default='12'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16">
 
-                        <SwipeView IsEnabled="{Binding Source={x:Reference PaisPage}, Path=BindingContext.CanView}">
-                            <SwipeView.RightItems>
-                                <SwipeItems Mode="Reveal">
+                    <Grid
+                        RowDefinitions="Auto,Auto"
+                        RowSpacing="10">
 
-                                    <!-- EDITAR -->
-                                    <SwipeItem Text="Editar"
-                                               IconImageSource="iconupdate.png"
-                                               BackgroundColor="{StaticResource BlueUpdate}"
-                                               Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.EditCommand}"
-                                               CommandParameter="{Binding .}"
-                                               IsVisible="{Binding Source={x:Reference PaisPage}, Path=BindingContext.CanEdit}" />
+                        <SearchBar
+                            Grid.Row="0"
+                            Placeholder="Buscar por nombre o código ISO"
+                            Text="{Binding TextoBusqueda}"
+                            SearchCommand="{Binding BuscarCommand}"
+                            BackgroundColor="#F8FAF9"
+                            CancelButtonColor="{StaticResource color_Verde}" />
 
-                                    <!-- ELIMINAR -->
-                                    <SwipeItem Text="Eliminar"
-                                               IconImageSource="icondelete.png"
-                                               BackgroundColor="{StaticResource RedDelete}"
-                                               Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.DeleteCommand}"
-                                               CommandParameter="{Binding .}"
-                                               IsVisible="{Binding Source={x:Reference PaisPage}, Path=BindingContext.CanDelete}" />
+                        <Grid
+                            Grid.Row="1"
+                            ColumnDefinitions="*,Auto,Auto"
+                            ColumnSpacing="10">
 
-                                </SwipeItems>
-                            </SwipeView.RightItems>
+                            <Label
+                                Text="{Binding ResumenResultados}"
+                                VerticalOptions="Center"
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
 
-                            <!-- CONTENIDO -->
-                            <Border Style="{StaticResource BorderStyleNoCornerRadius}">
+                            <Button
+                                Grid.Column="1"
+                                Text="Buscar"
+                                Padding="16,9"
+                                Command="{Binding BuscarCommand}"
+                                BackgroundColor="{StaticResource color_Verde}"
+                                TextColor="White"
+                                CornerRadius="10" />
 
-                                <Grid Padding="10"
-                                      ColumnDefinitions="Auto,*"
-                                      IsEnabled="{Binding Source={x:Reference PaisPage}, Path=BindingContext.CanView}">
+                            <Button
+                                Grid.Column="2"
+                                Text="Limpiar"
+                                Padding="16,9"
+                                Command="{Binding LimpiarFiltrosCommand}"
+                                BackgroundColor="#EEF2F0"
+                                TextColor="{StaticResource color_Verde}"
+                                CornerRadius="10" />
+                        </Grid>
+                    </Grid>
+                </Border>
 
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer 
-                                            Command="{Binding Source={x:Reference PaisPage}, Path=BindingContext.ViewCommand}"
-                                            CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
+                <!-- Mensaje -->
+                <Border
+                    Grid.Row="2"
+                    IsVisible="{Binding TieneMensaje}"
+                    Padding="12"
+                    BackgroundColor="#FFF7E6"
+                    Stroke="#F2C94C"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12">
 
-                                    <StackLayout Grid.Column="0" Margin="0,0,10,0">
-                                        <Label Text="{Binding CodigoISOPais}"
-                                               FontAttributes="Bold"
-                                               FontSize="20"
-                                               FontFamily="MontserratBold"
-                                               TextColor="{StaticResource color_Verde}" />
-                                    </StackLayout>
+                    <Label
+                        Text="{Binding Mensaje}"
+                        FontSize="13"
+                        TextColor="{StaticResource color_Negro}" />
+                </Border>
 
-                                    <StackLayout Grid.Column="1">
-                                        <Label Text="{Binding NombrePais}"
-                                               FontAttributes="Bold"
-                                               FontSize="20"
-                                               FontFamily="MontserratBold"
-                                               TextColor="{StaticResource color_Negro}" />
-                                    </StackLayout>
-                                </Grid>
-                            </Border>
-                        </SwipeView>
+                <!-- Lista -->
+                <RefreshView
+                    Grid.Row="3"
+                    IsRefreshing="{Binding IsRefreshing}"
+                    Command="{Binding RefrescarCommand}">
 
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+                    <CollectionView
+                        x:Name="PaisesCollectionView"
+                        ItemsSource="{Binding List}"
+                        SelectionMode="None"
+                        RemainingItemsThreshold="3"
+                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout
+                                x:Name="PaisesGridLayout"
+                                Orientation="Vertical"
+                                Span="1"
+                                HorizontalItemSpacing="12"
+                                VerticalItemSpacing="12" />
+                        </CollectionView.ItemsLayout>
+
+                        <CollectionView.EmptyView>
+                            <Grid Padding="30">
+                                <VerticalStackLayout
+                                    IsVisible="{Binding MostrarVacio}"
+                                    Spacing="8"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center">
+
+                                    <Image
+                                        Source="iconcountry.png"
+                                        WidthRequest="64"
+                                        HeightRequest="64"
+                                        Opacity="0.5" />
+
+                                    <Label
+                                        Text="No se encontraron países"
+                                        FontSize="18"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}"
+                                        HorizontalTextAlignment="Center" />
+
+                                    <Label
+                                        Text="Pruebe con otro nombre o código ISO."
+                                        FontSize="13"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </CollectionView.EmptyView>
+
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:PaisResponse">
+                                <Border
+                                    Padding="16"
+                                    MinimumHeightRequest="146"
+                                    BackgroundColor="White"
+                                    Stroke="#DDE7E3"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 16">
+
+                                    <Grid
+                                        RowDefinitions="*,Auto"
+                                        RowSpacing="14">
+
+                                        <Grid
+                                            Grid.Row="0"
+                                            ColumnDefinitions="Auto,*,Auto"
+                                            ColumnSpacing="12">
+
+                                            <Border
+                                                Padding="12,8"
+                                                BackgroundColor="#EEF5F2"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 12"
+                                                VerticalOptions="Start">
+
+                                                <Label
+                                                    Text="{Binding CodigoISOPais}"
+                                                    FontSize="17"
+                                                    FontFamily="MontserratBold"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Verde}" />
+                                            </Border>
+
+                                            <VerticalStackLayout
+                                                Grid.Column="1"
+                                                Spacing="3"
+                                                VerticalOptions="Center">
+
+                                                <Label
+                                                    Text="{Binding NombrePais}"
+                                                    FontSize="17"
+                                                    FontFamily="MontserratBold"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Negro}"
+                                                    LineBreakMode="TailTruncation" />
+
+                                                <Label
+                                                    Text="{Binding ResumenDepartamentos}"
+                                                    FontSize="12"
+                                                    TextColor="{StaticResource color_GrisOscuro}"
+                                                    LineBreakMode="WordWrap" />
+                                            </VerticalStackLayout>
+
+                                            <Label
+                                                Grid.Column="2"
+                                                Text="Activo"
+                                                Padding="9,5"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_Verde}"
+                                                BackgroundColor="#EAF7EF"
+                                                VerticalOptions="Start" />
+                                        </Grid>
+
+                                        <Grid
+                                            Grid.Row="1"
+                                            ColumnDefinitions="*,*,*"
+                                            ColumnSpacing="8">
+
+                                            <Button
+                                                Grid.Column="0"
+                                                Text="Ver"
+                                                Padding="10,9"
+                                                BackgroundColor="#EEF5F2"
+                                                TextColor="{StaticResource color_Verde}"
+                                                CornerRadius="10"
+                                                Command="{Binding Source={x:Reference PaisPageRoot}, Path=BindingContext.ViewCommand}"
+                                                CommandParameter="{Binding .}" />
+
+                                            <Button
+                                                Grid.Column="1"
+                                                Text="Editar"
+                                                Padding="10,9"
+                                                BackgroundColor="{StaticResource BlueUpdate}"
+                                                TextColor="White"
+                                                CornerRadius="10"
+                                                IsVisible="{Binding Source={x:Reference PaisPageRoot}, Path=BindingContext.CanEdit}"
+                                                Command="{Binding Source={x:Reference PaisPageRoot}, Path=BindingContext.EditCommand}"
+                                                CommandParameter="{Binding .}" />
+
+                                            <Button
+                                                Grid.Column="2"
+                                                Text="Eliminar"
+                                                Padding="10,9"
+                                                BackgroundColor="{StaticResource RedDelete}"
+                                                TextColor="White"
+                                                CornerRadius="10"
+                                                IsVisible="{Binding Source={x:Reference PaisPageRoot}, Path=BindingContext.CanDelete}"
+                                                Command="{Binding Source={x:Reference PaisPageRoot}, Path=BindingContext.DeleteCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+
+                        <CollectionView.Footer>
+                            <VerticalStackLayout
+                                Padding="10,16,10,24"
+                                Spacing="8"
+                                HorizontalOptions="Center">
+
+                                <ActivityIndicator
+                                    IsRunning="{Binding CargandoMas}"
+                                    IsVisible="{Binding CargandoMas}"
+                                    Color="{StaticResource color_Naranja}" />
+
+                                <Label
+                                    IsVisible="{Binding MostrarFinLista}"
+                                    Text="Fin del listado"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </CollectionView.Footer>
+                    </CollectionView>
+                </RefreshView>
+
+                <!-- Indicador inicial -->
+                <Grid
+                    Grid.RowSpan="4"
+                    IsVisible="{Binding IsBusy}"
+                    InputTransparent="True"
+                    BackgroundColor="#40FFFFFF">
+
+                    <Border
+                        Padding="18"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 14">
+
+                        <HorizontalStackLayout Spacing="10">
+                            <ActivityIndicator
+                                IsRunning="True"
+                                Color="{StaticResource color_Naranja}" />
+
+                            <Label
+                                Text="Cargando países..."
+                                VerticalOptions="Center"
+                                TextColor="{StaticResource color_Negro}" />
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>

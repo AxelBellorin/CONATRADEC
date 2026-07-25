@@ -8,30 +8,30 @@ namespace CONATRADEC.Views
 
         public terrenoPage()
         {
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
             InitializeComponent();
+            BindingContext = viewModel;
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            // Carga permisos
-            viewModel.LoadPagePermissions("terrenoPage");
+            viewModel.ActualizarPermisos();
+
+            ContenidoPrincipal.IsVisible = viewModel.CanView;
+            ContenidoSinPermiso.IsVisible = !viewModel.CanView;
 
             if (!viewModel.CanView)
-            {
-                await App.Current.MainPage.DisplayAlert(
-                    "Permiso denegado",
-                    "No tiene permisos para ver los terrenos.",
-                    "Aceptar");
-
-                await Shell.Current.GoToAsync("//MainPage");
                 return;
-            }
 
-            await viewModel.LoadTerrenosAsync(true);
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            viewModel.CancelarCarga();
         }
     }
 }

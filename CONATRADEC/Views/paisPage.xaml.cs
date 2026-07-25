@@ -1,38 +1,66 @@
-using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
-namespace CONATRADEC.Views;
-
-public partial class paisPage : ContentPage
+namespace CONATRADEC.Views
 {
-    private readonly PaisViewModel viewModel = new();
-
-    public paisPage()
+    public partial class paisPage : ContentPage
     {
-        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-        BindingContext = viewModel;
-        InitializeComponent();
-    }
+        private readonly PaisViewModel viewModel = new();
+        private int cantidadColumnasActual;
 
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-
-        // VALIDAR PERMISOS DE LECTURA
-        if (!PermissionService.Instance.HasRead("paisPage"))
+        public paisPage()
         {
-            await DisplayAlert("Acceso denegado",
-                               "No tiene permisos para ver países.",
-                               "Aceptar");
+            InitializeComponent();
 
-            await Shell.Current.GoToAsync("//MainPage");
-            return;
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
+            BindingContext = viewModel;
         }
 
-        // CARGAR PERMISOS EN EL VM
-        viewModel.LoadPagePermissions("paisPage");
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
 
-        // CARGAR DATOS
-        await viewModel.LoadPais(true);
+            viewModel.ActualizarPermisos();
+            AjustarCantidadColumnas(Width);
+
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            viewModel.CancelarCarga();
+        }
+
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
+        {
+            base.OnSizeAllocated(width, height);
+            AjustarCantidadColumnas(width);
+        }
+
+        private void AjustarCantidadColumnas(double width)
+        {
+            if (width <= 0 ||
+                PaisesGridLayout == null)
+            {
+                return;
+            }
+
+            int nuevasColumnas =
+                width >= 1280
+                    ? 3
+                    : width >= 760
+                        ? 2
+                        : 1;
+
+            if (cantidadColumnasActual == nuevasColumnas)
+                return;
+
+            cantidadColumnasActual = nuevasColumnas;
+            PaisesGridLayout.Span = nuevasColumnas;
+        }
     }
 }
