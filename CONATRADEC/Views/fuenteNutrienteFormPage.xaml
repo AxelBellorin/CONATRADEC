@@ -1,285 +1,580 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.fuenteNutrienteFormPage"
-             x:Name="FuenteNutrienteFormPageRoot"
-             Title="Formulario de fuente de nutriente"
-             Shell.NavBarIsVisible="False"
-             Background="Transparent">
+<ContentPage
+    x:Class="CONATRADEC.Views.fuenteNutrienteFormPage"
+    x:Name="FuenteNutrienteFormPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <Grid RowDefinitions="Auto,*"
-          BackgroundColor="Transparent">
+    <Grid
+        Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
 
-        <Label Grid.Row="0"
-               Text="{Binding Title}"
-               TextColor="{StaticResource color_Verde}"
-               FontSize="24"
-               FontAttributes="Bold"
-               HorizontalOptions="Start"
-               Margin="10,20,0,0" />
+        <ScrollView
+            HorizontalOptions="Fill"
+            HorizontalScrollBarVisibility="Never">
 
-        <ActivityIndicator Grid.Row="0"
-                           HorizontalOptions="End"
-                           Margin="0,20,20,0"
-                           IsRunning="{Binding IsBusy}"
-                           IsVisible="{Binding IsBusy}"
-                           Color="{StaticResource color_Naranja}" />
+            <!--
+                El ancho se calcula con el tamaño real de la ventana.
+                Esto evita el formulario angosto que deja grandes
+                espacios laterales en Windows.
+            -->
+            <VerticalStackLayout
+                x:Name="FormularioContainer"
+                MaximumWidthRequest="1100"
+                HorizontalOptions="Center"
+                Spacing="18">
 
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="10"
-                                 Spacing="15">
+                <!-- Encabezado -->
+                <Grid
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="12">
 
-                <!-- NOMBRE -->
-                <Border Style="{StaticResource BorderStyle}">
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="Nombre de la fuente"
-                               FontAttributes="Bold"
-                               FontSize="17"
-                               TextColor="{StaticResource color_Negro}" />
+                    <VerticalStackLayout Spacing="4">
 
-                        <Entry Placeholder="Ejemplo: Urea 46%"
-                               Style="{StaticResource EntryStyle}"
-                               Text="{Binding NombreNutriente}"
-                               IsReadOnly="{Binding IsReadOnly}" />
+                        <Label
+                            Text="{Binding Title}"
+                            FontSize="{OnPlatform WinUI=30, Default=26}"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
 
-                        <Label Text="{Binding ErrorNombre}"
-                               IsVisible="{Binding TieneErrorNombre}"
-                               TextColor="{StaticResource RedDelete}"
-                               FontSize="12" />
+                        <Label
+                            Text="Configure la información general y la clasificación de la fuente."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+
+                    <ActivityIndicator
+                        Grid.Column="1"
+                        IsRunning="{Binding IsBusy}"
+                        IsVisible="{Binding IsBusy}"
+                        Color="{StaticResource color_Naranja}"
+                        VerticalOptions="Center" />
+                </Grid>
+
+                <!-- Datos básicos -->
+                <Border
+                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
+
+                    <VerticalStackLayout Spacing="17">
+
+                        <VerticalStackLayout Spacing="3">
+
+                            <Label
+                                Text="Información general"
+                                FontSize="19"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Text="Nombre, descripción y precio por quintal."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <Grid
+                            x:Name="DatosBasicosGrid"
+                            ColumnDefinitions="*"
+                            RowDefinitions="Auto,Auto,Auto"
+                            ColumnSpacing="14"
+                            RowSpacing="14">
+
+                            <!-- Nombre -->
+                            <VerticalStackLayout
+                                x:Name="NombreSection"
+                                Grid.Row="0"
+                                Spacing="6">
+
+                                <Label
+                                    Text="Nombre de la fuente"
+                                    FontSize="13"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="3"
+                                    BackgroundColor="#FAFBFA"
+                                    Stroke="#D1D5DB"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 11">
+
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding TieneErrorNombre}"
+                                            Value="True">
+
+                                            <Setter
+                                                Property="Stroke"
+                                                Value="{StaticResource RedDelete}" />
+
+                                            <Setter
+                                                Property="StrokeThickness"
+                                                Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+
+                                    <Entry
+                                        Placeholder="Ejemplo: UREA 46%"
+                                        Text="{Binding NombreNutriente}"
+                                        MaxLength="100"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        BackgroundColor="Transparent" />
+                                </Border>
+
+                                <Label
+                                    Text="{Binding ErrorNombre}"
+                                    IsVisible="{Binding TieneErrorNombre}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource RedDelete}" />
+                            </VerticalStackLayout>
+
+                            <!-- Precio -->
+                            <VerticalStackLayout
+                                x:Name="PrecioSection"
+                                Grid.Row="1"
+                                Spacing="6">
+
+                                <Label
+                                    Text="Precio por quintal"
+                                    FontSize="13"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="3"
+                                    BackgroundColor="#FAFBFA"
+                                    Stroke="#D1D5DB"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 11">
+
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding TieneErrorPrecio}"
+                                            Value="True">
+
+                                            <Setter
+                                                Property="Stroke"
+                                                Value="{StaticResource RedDelete}" />
+
+                                            <Setter
+                                                Property="StrokeThickness"
+                                                Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+
+                                    <Entry
+                                        Placeholder="Ejemplo: 1945.94"
+                                        Text="{Binding PrecioNutrienteTexto}"
+                                        Keyboard="Numeric"
+                                        MaxLength="13"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        BackgroundColor="Transparent" />
+                                </Border>
+
+                                <Label
+                                    Text="Ingrese el precio correspondiente a un quintal."
+                                    FontSize="11"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                <Label
+                                    Text="{Binding ErrorPrecio}"
+                                    IsVisible="{Binding TieneErrorPrecio}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource RedDelete}" />
+                            </VerticalStackLayout>
+
+                            <!-- Descripción -->
+                            <VerticalStackLayout
+                                x:Name="DescripcionSection"
+                                Grid.Row="2"
+                                Spacing="6">
+
+                                <Label
+                                    Text="Descripción"
+                                    FontSize="13"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="3"
+                                    BackgroundColor="#FAFBFA"
+                                    Stroke="#D1D5DB"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 11">
+
+                                    <Editor
+                                        Placeholder="Descripción de la fuente de nutriente"
+                                        Text="{Binding DescripcionNutriente}"
+                                        MaxLength="250"
+                                        MinimumHeightRequest="105"
+                                        AutoSize="TextChanges"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </Border>
+
+                                <Label
+                                    Text="Máximo 250 caracteres."
+                                    FontSize="11"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
+                        </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- DESCRIPCIÓN -->
-                <Border Style="{StaticResource BorderStyle}">
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="Descripción"
-                               FontAttributes="Bold"
-                               FontSize="17"
-                               TextColor="{StaticResource color_Negro}" />
+                <!-- Clasificación -->
+                <Border
+                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
 
-                        <Editor Placeholder="Descripción de la fuente de nutriente"
-                                Text="{Binding DescripcionNutriente}"
-                                IsReadOnly="{Binding IsReadOnly}"
-                                AutoSize="TextChanges"
-                                MinimumHeightRequest="90"
-                                TextColor="{StaticResource color_Negro}" />
-                    </VerticalStackLayout>
-                </Border>
+                    <VerticalStackLayout Spacing="15">
 
-                <!-- PRECIO -->
-                <Border Style="{StaticResource BorderStyle}">
-                    <VerticalStackLayout Spacing="5">
-                        <Label Text="Precio por quintal"
-                               FontAttributes="Bold"
-                               FontSize="17"
-                               TextColor="{StaticResource color_Negro}" />
+                        <VerticalStackLayout Spacing="3">
 
-                        <Entry Placeholder="Ejemplo: 1945.94"
-                               Style="{StaticResource EntryStyle}"
-                               Keyboard="Numeric"
-                               Text="{Binding PrecioNutrienteTexto}"
-                               IsReadOnly="{Binding IsReadOnly}" />
+                            <Label
+                                Text="Clasificación de la fuente"
+                                FontSize="19"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
 
-                        <Label Text="{Binding ErrorPrecio}"
-                               IsVisible="{Binding TieneErrorPrecio}"
-                               TextColor="{StaticResource RedDelete}"
-                               FontSize="12" />
-                    </VerticalStackLayout>
-                </Border>
+                            <Label
+                                Text="Seleccione el cálculo en el que se utilizará esta fuente."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
 
-                <!-- CLASIFICACIÓN -->
-                <Border Style="{StaticResource BorderStyle}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Clasificación de la fuente"
-                               FontAttributes="Bold"
-                               FontSize="17"
-                               TextColor="{StaticResource color_Negro}" />
+                        <Border
+                            Padding="3"
+                            BackgroundColor="#FAFBFA"
+                            Stroke="#D1D5DB"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 11">
 
-                        <Label Text="Seleccione si esta fuente se usará para balance nutricional, enmienda calcárea o fertilización mixta."
-                               FontSize="12"
-                               TextColor="{StaticResource color_Gris}" />
+                            <Border.Triggers>
+                                <DataTrigger
+                                    TargetType="Border"
+                                    Binding="{Binding TieneErrorCategoria}"
+                                    Value="True">
 
-                        <Picker Title="Seleccione clasificación"
+                                    <Setter
+                                        Property="Stroke"
+                                        Value="{StaticResource RedDelete}" />
+
+                                    <Setter
+                                        Property="StrokeThickness"
+                                        Value="2" />
+                                </DataTrigger>
+                            </Border.Triggers>
+
+                            <Picker
+                                Title="Seleccione clasificación"
                                 ItemsSource="{Binding CategoriasFuente}"
                                 ItemDisplayBinding="{Binding Nombre}"
                                 SelectedItem="{Binding CategoriaSeleccionada}"
                                 IsEnabled="{Binding IsFormEnabled}"
+                                BackgroundColor="Transparent"
                                 TextColor="{StaticResource color_Negro}"
-                                TitleColor="{StaticResource color_Gris}" />
+                                TitleColor="{StaticResource color_GrisOscuro}" />
+                        </Border>
 
-                        <Label Text="{Binding ErrorCategoria}"
-                               IsVisible="{Binding TieneErrorCategoria}"
-                               TextColor="{StaticResource RedDelete}"
-                               FontSize="12" />
+                        <Label
+                            Text="{Binding ErrorCategoria}"
+                            IsVisible="{Binding TieneErrorCategoria}"
+                            FontSize="12"
+                            TextColor="{StaticResource RedDelete}" />
 
-                        <!-- DATOS ESPECIALES PARA ENMIENDA CALCÁREA -->
-                        <Border IsVisible="{Binding MostrarDatosEnmiendaCalcarea}"
-                                Padding="10"
-                                Margin="0,8,0,0"
-                                BackgroundColor="#EEF5F2"
-                                Stroke="{StaticResource color_Verde}"
-                                StrokeThickness="0.8">
-                            <VerticalStackLayout Spacing="8">
-                                <Label Text="Datos para enmienda calcárea"
-                                       FontAttributes="Bold"
-                                       FontSize="15"
-                                       TextColor="{StaticResource color_Verde}" />
+                        <!-- Datos de enmienda -->
+                        <Border
+                            IsVisible="{Binding MostrarDatosEnmiendaCalcarea}"
+                            Padding="16"
+                            BackgroundColor="#EEF5F2"
+                            Stroke="{StaticResource color_Verde}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14">
 
-                                <Label Text="Ingrese el PRNT y la descripción del parámetro correspondiente a la fuente encalante."
-                                       FontSize="12"
-                                       TextColor="{StaticResource color_Gris}" />
+                            <VerticalStackLayout Spacing="13">
 
-                                <VerticalStackLayout Spacing="5">
-                                    <Label Text="PRNT"
-                                           FontAttributes="Bold"
-                                           FontSize="14"
-                                           TextColor="{StaticResource color_Negro}" />
+                                <VerticalStackLayout Spacing="3">
 
-                                    <Entry Placeholder="Ejemplo: 80"
-                                           Keyboard="Numeric"
-                                           Text="{Binding PrntEnmiendaCalcareaTexto}"
-                                           IsReadOnly="{Binding IsReadOnly}"
-                                           Style="{StaticResource EntryStyle}" />
+                                    <Label
+                                        Text="Datos para enmienda calcárea"
+                                        FontSize="16"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
 
-                                    <Label Text="{Binding ErrorPrntEnmiendaCalcarea}"
-                                           IsVisible="{Binding TieneErrorPrntEnmiendaCalcarea}"
-                                           TextColor="{StaticResource RedDelete}"
-                                           FontSize="12" />
+                                    <Label
+                                        Text="Ingrese el PRNT y la descripción del parámetro de la fuente encalante."
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
                                 </VerticalStackLayout>
 
-                                <VerticalStackLayout Spacing="5">
-                                    <Label Text="Descripción del parámetro"
-                                           FontAttributes="Bold"
-                                           FontSize="14"
-                                           TextColor="{StaticResource color_Negro}" />
+                                <VerticalStackLayout Spacing="6">
 
-                                    <Editor Placeholder="Ejemplo: Material encalante habilitado desde la app móvil"
-                                            Text="{Binding DescripcionParametroEnmiendaCalcarea}"
+                                    <Label
+                                        Text="PRNT"
+                                        FontSize="13"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
+                                    <Border
+                                        Padding="3"
+                                        BackgroundColor="White"
+                                        Stroke="#D1D5DB"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 11">
+
+                                        <Entry
+                                            Placeholder="Ejemplo: 80.00"
+                                            Text="{Binding PrntEnmiendaCalcareaTexto}"
+                                            Keyboard="Numeric"
+                                            MaxLength="7"
                                             IsReadOnly="{Binding IsReadOnly}"
-                                            AutoSize="TextChanges"
-                                            MinimumHeightRequest="70"
-                                            TextColor="{StaticResource color_Negro}" />
+                                            BackgroundColor="Transparent" />
+                                    </Border>
 
-                                    <Label Text="{Binding ErrorDescripcionParametroEnmiendaCalcarea}"
-                                           IsVisible="{Binding TieneErrorDescripcionParametroEnmiendaCalcarea}"
-                                           TextColor="{StaticResource RedDelete}"
-                                           FontSize="12" />
+                                    <Label
+                                        Text="{Binding ErrorPrntEnmiendaCalcarea}"
+                                        IsVisible="{Binding TieneErrorPrntEnmiendaCalcarea}"
+                                        FontSize="12"
+                                        TextColor="{StaticResource RedDelete}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="6">
+
+                                    <Label
+                                        Text="Descripción del parámetro"
+                                        FontSize="13"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}" />
+
+                                    <Border
+                                        Padding="3"
+                                        BackgroundColor="White"
+                                        Stroke="#D1D5DB"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 11">
+
+                                        <Editor
+                                            Placeholder="Descripción del material encalante"
+                                            Text="{Binding DescripcionParametroEnmiendaCalcarea}"
+                                            MaxLength="200"
+                                            MinimumHeightRequest="85"
+                                            AutoSize="TextChanges"
+                                            IsReadOnly="{Binding IsReadOnly}"
+                                            BackgroundColor="Transparent"
+                                            TextColor="{StaticResource color_Negro}" />
+                                    </Border>
+
+                                    <Label
+                                        Text="{Binding ErrorDescripcionParametroEnmiendaCalcarea}"
+                                        IsVisible="{Binding TieneErrorDescripcionParametroEnmiendaCalcarea}"
+                                        FontSize="12"
+                                        TextColor="{StaticResource RedDelete}" />
                                 </VerticalStackLayout>
                             </VerticalStackLayout>
                         </Border>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- APORTES PARA BALANCE NUTRICIONAL Y FERTILIZACIÓN MIXTA -->
-                <Border Style="{StaticResource BorderStyle}"
-                        IsVisible="{Binding MostrarAportesElementosQuimicos}">
-                    <VerticalStackLayout Spacing="10">
-                        <Grid ColumnDefinitions="*,Auto">
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="{Binding TituloSeccionAportes}"
-                                       FontAttributes="Bold"
-                                       FontSize="17"
-                                       TextColor="{StaticResource color_Negro}" />
+                <!-- Aportes -->
+                <Border
+                    IsVisible="{Binding MostrarAportesElementosQuimicos}"
+                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
 
-                                <Label Text="{Binding DescripcionSeccionAportes}"
-                                       FontSize="12"
-                                       TextColor="{StaticResource color_Gris}" />
+                    <VerticalStackLayout Spacing="14">
+
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            ColumnSpacing="12">
+
+                            <VerticalStackLayout Spacing="3">
+
+                                <Label
+                                    Text="{Binding TituloSeccionAportes}"
+                                    FontSize="19"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}" />
+
+                                <Label
+                                    Text="{Binding DescripcionSeccionAportes}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
                             </VerticalStackLayout>
 
-                            <ImageButton Grid.Column="1"
-                                         Source="iconadd.png"
-                                         WidthRequest="46"
-                                         HeightRequest="46"
-                                         Padding="6"
-                                         Command="{Binding AddAporteCommand}"
-                                         IsVisible="{Binding MostrarBotonAgregarAporte}" />
+                            <Button
+                                Grid.Column="1"
+                                Text="+ Agregar"
+                                Padding="14,9"
+                                Command="{Binding AddAporteCommand}"
+                                IsVisible="{Binding MostrarBotonAgregarAporte}"
+                                BackgroundColor="#EEF5F2"
+                                TextColor="{StaticResource color_Verde}"
+                                CornerRadius="10"
+                                VerticalOptions="Center" />
                         </Grid>
 
-                        <Label Text="{Binding ErrorAportes}"
-                               IsVisible="{Binding TieneErrorAportes}"
-                               TextColor="{StaticResource RedDelete}"
-                               FontSize="12" />
+                        <Label
+                            Text="{Binding ErrorAportes}"
+                            IsVisible="{Binding TieneErrorAportes}"
+                            FontSize="12"
+                            TextColor="{StaticResource RedDelete}" />
 
-                        <CollectionView ItemsSource="{Binding Aportes}"
-                                        SelectionMode="None">
-                            <CollectionView.EmptyView>
-                                <Grid Padding="10">
-                                    <Label Text="No hay aportes agregados."
-                                           TextColor="{StaticResource color_Gris}"
-                                           HorizontalOptions="Center" />
-                                </Grid>
-                            </CollectionView.EmptyView>
+                        <!--
+                            La cantidad de elementos químicos es pequeña.
+                            BindableLayout evita un CollectionView anidado
+                            dentro del ScrollView principal.
+                        -->
+                        <VerticalStackLayout
+                            BindableLayout.ItemsSource="{Binding Aportes}"
+                            Spacing="10">
 
-                            <CollectionView.ItemTemplate>
+                            <BindableLayout.EmptyView>
+                                <Label
+                                    Text="No hay aportes agregados."
+                                    Padding="10"
+                                    HorizontalTextAlignment="Center"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                            </BindableLayout.EmptyView>
+
+                            <BindableLayout.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Margin="0,4"
-                                            Padding="10"
-                                            Stroke="{StaticResource color_Gris}"
-                                            StrokeThickness="0.5"
-                                            BackgroundColor="White">
-                                        <Grid ColumnDefinitions="2*,*,Auto"
-                                              ColumnSpacing="10"
-                                              RowDefinitions="Auto,Auto">
 
-                                            <Label Text="Elemento"
-                                                   FontSize="12"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{StaticResource color_Negro}" />
+                                    <Border
+                                        Padding="12"
+                                        BackgroundColor="#FAFBFA"
+                                        Stroke="#DDE7E3"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 12">
 
-                                            <Label Grid.Column="1"
-                                                   Text="% Aporte"
-                                                   FontSize="12"
-                                                   FontAttributes="Bold"
-                                                   TextColor="{StaticResource color_Negro}" />
+                                        <Grid
+                                            RowDefinitions="Auto,Auto"
+                                            ColumnDefinitions="*,Auto"
+                                            RowSpacing="10"
+                                            ColumnSpacing="10">
 
-                                            <Picker Grid.Row="1"
-                                                    Grid.Column="0"
-                                                    Title="Seleccione"
+                                            <VerticalStackLayout
+                                                Grid.Row="0"
+                                                Grid.Column="0"
+                                                Spacing="5">
+
+                                                <Label
+                                                    Text="Elemento químico"
+                                                    FontSize="12"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Negro}" />
+
+                                                <Picker
+                                                    Title="Seleccione un elemento"
                                                     ItemsSource="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.ElementosQuimicos}"
                                                     ItemDisplayBinding="{Binding NombreElementoQuimico}"
                                                     SelectedItem="{Binding ElementoSeleccionado}"
-                                                    IsEnabled="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsFormEnabled}" />
+                                                    IsEnabled="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsFormEnabled}"
+                                                    BackgroundColor="White" />
+                                            </VerticalStackLayout>
 
-                                            <Entry Grid.Row="1"
-                                                   Grid.Column="1"
-                                                   Placeholder="0"
-                                                   Keyboard="Numeric"
-                                                   Text="{Binding CantidadAporteTexto}"
-                                                   IsReadOnly="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsReadOnly}" />
+                                            <Button
+                                                Grid.Row="0"
+                                                Grid.Column="1"
+                                                Text="Quitar"
+                                                Padding="10,8"
+                                                VerticalOptions="End"
+                                                IsVisible="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.MostrarBotonAgregarAporte}"
+                                                Command="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.RemoveAporteCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="#FDECEC"
+                                                TextColor="{StaticResource RedDelete}"
+                                                CornerRadius="9" />
 
-                                            <ImageButton Grid.Row="1"
-                                                         Grid.Column="2"
-                                                         Source="icondelete.png"
-                                                         WidthRequest="42"
-                                                         HeightRequest="42"
-                                                         Padding="7"
-                                                         Command="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.RemoveAporteCommand}"
-                                                         CommandParameter="{Binding .}"
-                                                         IsVisible="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.MostrarBotonAgregarAporte}" />
+                                            <VerticalStackLayout
+                                                Grid.Row="1"
+                                                Grid.Column="0"
+                                                Grid.ColumnSpan="2"
+                                                Spacing="5">
+
+                                                <Label
+                                                    Text="Porcentaje de aporte"
+                                                    FontSize="12"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Negro}" />
+
+                                                <Border
+                                                    Padding="3"
+                                                    BackgroundColor="White"
+                                                    Stroke="#D1D5DB"
+                                                    StrokeThickness="1"
+                                                    StrokeShape="RoundRectangle 10">
+
+                                                    <Entry
+                                                        Placeholder="Ejemplo: 46.00"
+                                                        Text="{Binding CantidadAporteTexto}"
+                                                        Keyboard="Numeric"
+                                                        MaxLength="6"
+                                                        IsReadOnly="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsReadOnly}"
+                                                        BackgroundColor="Transparent" />
+                                                </Border>
+                                            </VerticalStackLayout>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- BOTONES -->
-                <Grid ColumnDefinitions="*,*"
-                      RowDefinitions="Auto"
-                      Margin="10,0,10,20">
-                    <Button Grid.Column="0"
-                            Text="Guardar"
-                            Style="{StaticResource UpdateButton}"
-                            IsVisible="{Binding ShowSaveButton}"
-                            Command="{Binding SaveCommand}"
-                            Margin="10,0,10,0" />
+                <!-- Acciones -->
+                <Grid
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="12"
+                    Margin="0,2,0,16">
 
-                    <Button Grid.Column="1"
-                            Text="Cancelar"
-                            Style="{StaticResource CancelButton}"
-                            Command="{Binding CancelCommand}"
-                            Margin="10,0,10,0" />
+                    <Button
+                        Grid.Column="0"
+                        Text="Guardar"
+                        IsVisible="{Binding ShowSaveButton}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource UpdateButton}" />
+
+                    <Button
+                        Grid.Column="1"
+                        Text="Cancelar"
+                        IsVisible="{Binding IsFormEnabled}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource CancelButton}" />
+
+                    <Button
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Text="Regresar"
+                        IsVisible="{Binding IsReadOnly}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource CancelButton}" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
