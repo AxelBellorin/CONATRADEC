@@ -1,4 +1,5 @@
 using CONATRADEC.Services;
+using CONATRADEC.Views;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using System.Windows.Input;
@@ -20,9 +21,14 @@ namespace CONATRADEC.Controls
             Desktop
         }
 
+        private const string TituloFuenteNutriente =
+            "Fuentes de nutrientes";
+
         private LayoutMode? currentMode;
         private CatalogoEliminadoConfiguracion?
             catalogoEliminados;
+
+        private bool esFuenteNutriente;
 
         public static readonly BindableProperty TitleProperty =
             BindableProperty.Create(
@@ -488,17 +494,39 @@ namespace CONATRADEC.Controls
             object? sender,
             EventArgs e)
         {
-            if (catalogoEliminados == null)
+            if (!esFuenteNutriente &&
+                catalogoEliminados == null)
+            {
                 return;
+            }
 
             DeletedButton.IsEnabled =
                 false;
 
             try
             {
+                /*
+                 * Fuente de Nutriente conserva su pantalla especializada,
+                 * porque muestra composición, clasificación y precio.
+                 */
+                if (esFuenteNutriente)
+                {
+                    INavigation? navigation =
+                        Shell.Current?.Navigation;
+
+                    if (navigation == null)
+                        return;
+
+                    await navigation.PushModalAsync(
+                        new NavigationPage(
+                            new FuenteNutrienteEliminadasPage()));
+
+                    return;
+                }
+
                 await CatalogoEliminadosLauncher
                     .AbrirAsync(
-                        catalogoEliminados);
+                        catalogoEliminados!);
             }
             finally
             {
@@ -521,12 +549,19 @@ namespace CONATRADEC.Controls
                     ? configuracion
                     : null;
 
+            esFuenteNutriente =
+                string.Equals(
+                    Title?.Trim(),
+                    TituloFuenteNutriente,
+                    StringComparison.OrdinalIgnoreCase);
+
             /*
-             * Fuente de Nutriente conserva su implementación propia.
-             * No aparece en la tabla de títulos compatibles.
+             * Los catálogos comunes utilizan CatalogoEliminadosPage.
+             * Fuente de Nutriente abre su pantalla especializada.
              */
             DeletedButton.IsVisible =
-                disponible;
+                disponible ||
+                esFuenteNutriente;
 
             if (currentMode is
                 LayoutMode mode)
