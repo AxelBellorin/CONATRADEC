@@ -1,54 +1,42 @@
-﻿using System;
 using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
-    /// <summary>
-    /// Modelo de solicitud para Elemento Químico.
-    /// Representa los datos que se envían a la API para crear/editar.
-    /// </summary>
-    public class ElementoQuimicoRequest
+    public sealed class ElementoQuimicoRequest
     {
-        // Campos privados
-        private int? elementoQuimicosId;
-        private string? simboloElementoQuimico;
-        private string? nombreElementoQuimico;
-        private decimal? pesoEquivalenteElementoQuimico; // decimal(10,4)
+        public int? ElementoQuimicosId { get; set; }
 
-        // Propiedades públicas
-        public int? ElementoQuimicosId
+        public string SimboloElementoQuimico { get; set; } =
+            string.Empty;
+
+        public string NombreElementoQuimico { get; set; } =
+            string.Empty;
+
+        [JsonPropertyName("pesoEquivalenteElementoQuimico")]
+        public decimal? PesoEquivalenteElementoQuimico { get; set; }
+
+        public ElementoQuimicoRequest()
         {
-            get => elementoQuimicosId;
-            set => elementoQuimicosId = value;
         }
 
-        public string? SimboloElementoQuimico
+        public ElementoQuimicoRequest(
+            ElementoQuimicoResponse elemento)
         {
-            get => simboloElementoQuimico;
-            set => simboloElementoQuimico = value;
-        }
+            ArgumentNullException.ThrowIfNull(elemento);
 
-        public string? NombreElementoQuimico
-        {
-            get => nombreElementoQuimico;
-            set => nombreElementoQuimico = value;
-        }
+            ElementoQuimicosId =
+                elemento.ElementoQuimicosId;
 
-        [JsonPropertyName("pesoEquivalentEelementoQuimico")]
-        public decimal? PesoEquivalenteElementoQuimico
-        {
-            get => pesoEquivalenteElementoQuimico;
-            set => pesoEquivalenteElementoQuimico = value;
-        }
+            SimboloElementoQuimico =
+                elemento.SimboloElementoQuimico ??
+                string.Empty;
 
-        public ElementoQuimicoRequest() { }
+            NombreElementoQuimico =
+                elemento.NombreElementoQuimico ??
+                string.Empty;
 
-        public ElementoQuimicoRequest(ElementoQuimicoResponse elementoRP)
-        {
-            ElementoQuimicosId = elementoRP.ElementoQuimicosId;
-            SimboloElementoQuimico = elementoRP.SimboloElementoQuimico;
-            NombreElementoQuimico = elementoRP.NombreElementoQuimico;
-            pesoEquivalenteElementoQuimico = elementoRP.PesoEquivalenteElementoQuimico;
+            PesoEquivalenteElementoQuimico =
+                elemento.PesoEquivalenteElementoQuimico;
         }
     }
 }

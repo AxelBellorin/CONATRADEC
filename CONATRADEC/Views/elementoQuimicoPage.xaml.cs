@@ -1,35 +1,69 @@
-using CONATRADEC;
-using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
     public partial class elementoQuimicoPage : ContentPage
     {
-        private readonly ElementoQuimicoViewModel viewModel = new();
+        private readonly ElementoQuimicoViewModel
+            viewModel = new();
+
+        private int cantidadColumnasActual;
 
         public elementoQuimicoPage()
         {
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
             InitializeComponent();
+
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
+            BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            // Carga permisos para esta página
-            viewModel.LoadPagePermissions("elementoQuimicoPage");
+            viewModel.ActualizarPermisos();
+            AjustarCantidadColumnas(Width);
 
-            if (!viewModel.CanView)
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+            base.OnDisappearing();
+        }
+
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
+        {
+            base.OnSizeAllocated(width, height);
+            AjustarCantidadColumnas(width);
+        }
+
+        private void AjustarCantidadColumnas(
+            double width)
+        {
+            if (width <= 0 ||
+                ElementosGridLayout == null)
             {
-                await GlobalService.MostrarToastAsync("No tiene permisos para ver elementos químicos.");
-                await Shell.Current.GoToAsync("//MainPage");
                 return;
             }
 
-            await viewModel.LoadElementoQuimico(true);
+            int nuevasColumnas =
+                width >= 1280
+                    ? 3
+                    : width >= 760
+                        ? 2
+                        : 1;
+
+            if (cantidadColumnasActual == nuevasColumnas)
+                return;
+
+            cantidadColumnasActual = nuevasColumnas;
+            ElementosGridLayout.Span = nuevasColumnas;
         }
     }
 }

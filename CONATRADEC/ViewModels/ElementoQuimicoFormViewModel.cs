@@ -1,37 +1,98 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Globalization;
+using System.Text;
 
 namespace CONATRADEC.ViewModels
 {
-    public class ElementoQuimicoFormViewModel : GlobalService
+    public sealed class ElementoQuimicoFormViewModel : GlobalService
     {
+        private readonly ElementoQuimicoApiService elementoApiService;
+        private CancellationTokenSource? guardadoCts;
+
         private ElementoQuimicoRequest elementoQuimico = new();
         private string simboloElementoQuimico = string.Empty;
         private string nombreElementoQuimico = string.Empty;
-        private decimal? pesoEquivalenteElementoQuimico;
         private string pesoEquivalenteTexto = string.Empty;
+        private string simboloOriginal = string.Empty;
+        private string nombreOriginal = string.Empty;
+        private decimal? pesoOriginal;
         private string errorSimbolo = string.Empty;
         private string errorNombre = string.Empty;
         private string errorPesoEquivalente = string.Empty;
-        private FormMode.FormModeSelect mode =
-            new FormMode.FormModeSelect();
-
-        private readonly ElementoQuimicoApiService
-            elementoApiService = new();
-
-        public Command SaveCommand { get; }
-        public Command CancelCommand { get; }
+        private FormMode.FormModeSelect mode;
 
         public ElementoQuimicoFormViewModel()
+            : this(new ElementoQuimicoApiService())
         {
+        }
+
+        public ElementoQuimicoFormViewModel(
+            ElementoQuimicoApiService elementoApiService)
+        {
+            this.elementoApiService = elementoApiService
+                ?? throw new ArgumentNullException(
+                    nameof(elementoApiService));
+
             SaveCommand = new Command(
                 async () => await SaveAsync(),
-                () => !IsReadOnly && !IsBusy);
+                () => CanSave && !IsBusy);
 
             CancelCommand = new Command(
                 async () => await CancelAsync(),
                 () => !IsBusy);
+        }
+
+        public Command SaveCommand { get; }
+        public Command CancelCommand { get; }
+
+        public ElementoQuimicoRequest ElementoQuimico
+        {
+            get => elementoQuimico;
+            set
+            {
+                elementoQuimico =
+                    value ?? new ElementoQuimicoRequest();
+
+                SimboloElementoQuimico =
+                    elementoQuimico.SimboloElementoQuimico
+                    ?? string.Empty;
+
+                NombreElementoQuimico =
+                    elementoQuimico.NombreElementoQuimico
+                    ?? string.Empty;
+
+                PesoEquivalenteTexto =
+                    elementoQuimico
+                        .PesoEquivalenteElementoQuimico
+                        .HasValue
+                            ? elementoQuimico
+                                .PesoEquivalenteElementoQuimico
+                                .Value
+                                .ToString(
+                                    "0.00",
+                                    CultureInfo.InvariantCulture)
+                            : string.Empty;
+
+                simboloOriginal =
+                    SimboloElementoQuimico.Trim();
+
+                nombreOriginal =
+                    NombreElementoQuimico.Trim();
+
+                pesoOriginal =
+                    elementoQuimico
+                        .PesoEquivalenteElementoQuimico
+                        .HasValue
+                            ? RedondearDosDecimales(
+                                elementoQuimico
+                                    .PesoEquivalenteElementoQuimico
+                                    .Value)
+                            : null;
+
+                LimpiarErrores();
+                OnPropertyChanged();
+            }
         }
 
         public string SimboloElementoQuimico
@@ -39,8 +100,14 @@ namespace CONATRADEC.ViewModels
             get => simboloElementoQuimico;
             set
             {
-                simboloElementoQuimico =
-                    value ?? string.Empty;
+                string nuevoValor =
+                    (value ?? string.Empty)
+                        .ReplaceLineEndings(" ");
+
+                if (simboloElementoQuimico == nuevoValor)
+                    return;
+
+                simboloElementoQuimico = nuevoValor;
                 OnPropertyChanged();
 
                 if (!string.IsNullOrWhiteSpace(
@@ -56,8 +123,14 @@ namespace CONATRADEC.ViewModels
             get => nombreElementoQuimico;
             set
             {
-                nombreElementoQuimico =
-                    value ?? string.Empty;
+                string nuevoValor =
+                    (value ?? string.Empty)
+                        .ReplaceLineEndings(" ");
+
+                if (nombreElementoQuimico == nuevoValor)
+                    return;
+
+                nombreElementoQuimico = nuevoValor;
                 OnPropertyChanged();
 
                 if (!string.IsNullOrWhiteSpace(
@@ -68,23 +141,22 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public decimal? PesoEquivalentEelementoQuimico
-        {
-            get => pesoEquivalenteElementoQuimico;
-            set
-            {
-                pesoEquivalenteElementoQuimico = value;
-                OnPropertyChanged();
-            }
-        }
-
+        /// <summary>
+        /// Limita la entrada a dígitos, un separador decimal y
+        /// un máximo de dos cifras decimales.
+        /// </summary>
         public string PesoEquivalenteTexto
         {
             get => pesoEquivalenteTexto;
             set
             {
-                pesoEquivalenteTexto =
-                    value ?? string.Empty;
+                string nuevoValor =
+                    LimitarDosDecimales(value);
+
+                if (pesoEquivalenteTexto == nuevoValor)
+                    return;
+
+                pesoEquivalenteTexto = nuevoValor;
                 OnPropertyChanged();
 
                 if (TryParseDecimal(
@@ -150,55 +222,23 @@ namespace CONATRADEC.ViewModels
             !string.IsNullOrWhiteSpace(
                 ErrorPesoEquivalente);
 
-        public ElementoQuimicoRequest ElementoQuimico
-        {
-            get => elementoQuimico;
-            set
-            {
-                elementoQuimico =
-                    value ?? new ElementoQuimicoRequest();
-
-                SimboloElementoQuimico =
-                    elementoQuimico
-                        .SimboloElementoQuimico
-                    ?? string.Empty;
-
-                NombreElementoQuimico =
-                    elementoQuimico
-                        .NombreElementoQuimico
-                    ?? string.Empty;
-
-                PesoEquivalentEelementoQuimico =
-                    elementoQuimico
-                        .PesoEquivalenteElementoQuimico;
-
-                PesoEquivalenteTexto =
-                    elementoQuimico
-                        .PesoEquivalenteElementoQuimico
-                        .HasValue
-                        ? elementoQuimico
-                            .PesoEquivalenteElementoQuimico
-                            .Value
-                            .ToString(
-                                "0.##",
-                                CultureInfo.InvariantCulture)
-                        : string.Empty;
-
-                LimpiarErrores();
-                OnPropertyChanged();
-            }
-        }
-
         public FormMode.FormModeSelect Mode
         {
             get => mode;
             set
             {
+                if (mode == value)
+                    return;
+
                 mode = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
-                OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(ShowSaveButton));
+                OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(Subtitulo));
+                OnPropertyChanged(nameof(TextoBotonCancelar));
+                OnPropertyChanged(nameof(MostrarBotonCancelar));
                 RefrescarComandos();
             }
         }
@@ -206,96 +246,80 @@ namespace CONATRADEC.ViewModels
         public bool IsReadOnly =>
             Mode == FormMode.FormModeSelect.View;
 
+        public bool CanSave =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create => CanAdd,
+                FormMode.FormModeSelect.Edit => CanEdit,
+                _ => false
+            };
+
         public bool ShowSaveButton =>
-            Mode != FormMode.FormModeSelect.View;
+            CanSave;
 
         public string Title =>
             Mode switch
             {
                 FormMode.FormModeSelect.Create =>
                     "Crear elemento químico",
+
                 FormMode.FormModeSelect.Edit =>
                     "Editar elemento químico",
+
                 FormMode.FormModeSelect.View =>
                     "Detalles del elemento químico",
+
                 _ =>
                     "Elemento químico"
             };
 
-        private async Task CancelAsync()
+        public string Subtitulo =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create =>
+                    "Registre el símbolo, nombre y peso equivalente con dos decimales.",
+
+                FormMode.FormModeSelect.Edit =>
+                    "Actualice la información del elemento seleccionado.",
+
+                FormMode.FormModeSelect.View =>
+                    "Consulte la información registrada.",
+
+                _ =>
+                    string.Empty
+            };
+
+        public string TextoBotonCancelar =>
+            IsReadOnly
+                ? "Regresar"
+                : "Cancelar";
+
+        public bool MostrarBotonCancelar =>
+            !IsReadOnly;
+
+        public void ActualizarPermisos()
         {
-            if (IsBusy)
-                return;
+            LoadPagePermissions("elementoQuimicoPage");
 
-            try
-            {
-                decimal? pesoActual = null;
-
-                if (TryParseDecimal(
-                        PesoEquivalenteTexto,
-                        out decimal pesoParseado))
-                {
-                    pesoActual = pesoParseado;
-                }
-
-                bool hayCambios =
-                    ValidateFieldsAsync(pesoActual);
-
-                if (hayCambios && !IsReadOnly)
-                {
-                    bool confirm =
-                        await ConfirmarSalidaSinGuardarAsync();
-
-                    if (!confirm)
-                        return;
-                }
-
-                await GoToElementoQuimicoPage();
-            }
-            catch (Exception ex)
-            {
-                await MostrarErrorInesperadoAsync(
-                    "salir del formulario de elemento químico",
-                    ex);
-            }
+            OnPropertyChanged(nameof(CanSave));
+            OnPropertyChanged(nameof(ShowSaveButton));
+            RefrescarComandos();
         }
 
-        private bool ValidateFieldsAsync(
-            decimal? pesoActual)
+        public void CancelarOperaciones()
         {
-            if (ElementoQuimico == null)
-                return false;
-
-            if (!string.Equals(
-                    SimboloElementoQuimico.Trim(),
-                    ElementoQuimico
-                        .SimboloElementoQuimico?
-                        .Trim() ??
-                    string.Empty,
-                    StringComparison.Ordinal))
+            try
             {
-                return true;
+                guardadoCts?.Cancel();
             }
-
-            if (!string.Equals(
-                    NombreElementoQuimico.Trim(),
-                    ElementoQuimico
-                        .NombreElementoQuimico?
-                        .Trim() ??
-                    string.Empty,
-                    StringComparison.Ordinal))
+            catch (ObjectDisposedException)
             {
-                return true;
             }
-
-            return pesoActual !=
-                   ElementoQuimico
-                       .PesoEquivalenteElementoQuimico;
         }
 
         private async Task SaveAsync()
         {
-            if (IsReadOnly || IsBusy)
+            if (!CanSave || IsBusy)
                 return;
 
             if (!ValidarFormulario(
@@ -303,77 +327,91 @@ namespace CONATRADEC.ViewModels
             {
                 await MostrarAdvertenciaAsync(
                     "Revise los campos marcados antes de continuar.");
+
                 return;
             }
 
-            if (!ValidateFieldsAsync(pesoEquivalente))
+            if (!await ValidarInternetAsync())
+                return;
+
+            if (Mode == FormMode.FormModeSelect.Edit &&
+                !HayCambios(pesoEquivalente))
             {
                 await MostrarInformacionAsync(
                     "No hay cambios para guardar.");
+
                 return;
             }
 
-            bool confirm =
+            bool confirmar =
                 Mode == FormMode.FormModeSelect.Create
                     ? await ConfirmarGuardadoAsync(
                         "el elemento químico")
                     : await ConfirmarActualizacionAsync(
                         "el elemento químico");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
 
-            ElementoQuimico.SimboloElementoQuimico =
-                SimboloElementoQuimico.Trim();
-
-            ElementoQuimico.NombreElementoQuimico =
-                NombreElementoQuimico.Trim();
-
-            ElementoQuimico.PesoEquivalenteElementoQuimico =
-                pesoEquivalente;
-
-            PesoEquivalentEelementoQuimico =
-                pesoEquivalente;
-
-            if (!await ValidarInternetAsync())
-                return;
+            guardadoCts?.Cancel();
+            guardadoCts?.Dispose();
+            guardadoCts = new CancellationTokenSource();
 
             try
             {
                 IsBusy = true;
                 RefrescarComandos();
 
-                bool response =
+                ElementoQuimico.SimboloElementoQuimico =
+                    SimboloElementoQuimico
+                        .Trim()
+                        .ToUpperInvariant();
+
+                ElementoQuimico.NombreElementoQuimico =
+                    NombreElementoQuimico
+                        .Trim()
+                        .ToUpperInvariant();
+
+                ElementoQuimico.PesoEquivalenteElementoQuimico =
+                    RedondearDosDecimales(
+                        pesoEquivalente);
+
+                ApiResult<bool> resultado =
                     Mode == FormMode.FormModeSelect.Create
                         ? await elementoApiService
-                            .CreateElementoQuimicoAsync(
-                                ElementoQuimico)
+                            .CreateElementoQuimicoResultAsync(
+                                ElementoQuimico,
+                                guardadoCts.Token)
                         : await elementoApiService
-                            .UpdateElementoQuimicoAsync(
-                                ElementoQuimico);
+                            .UpdateElementoQuimicoResultAsync(
+                                ElementoQuimico,
+                                guardadoCts.Token);
 
-                if (!response)
+                if (!resultado.Success ||
+                    resultado.Data != true)
                 {
-                    await MostrarErrorAsync(
-                        Mode == FormMode.FormModeSelect.Create
-                            ? "No fue posible guardar el elemento químico. Intente nuevamente."
-                            : "No fue posible actualizar el elemento químico. Intente nuevamente.");
+                    await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
-                await GoToElementoQuimicoPage();
+                ElementoQuimicoListadoEstadoService
+                    .MarcarCambio();
+
+                await RegresarAlListadoAsync();
 
                 await MostrarExitoAsync(
-                    Mode == FormMode.FormModeSelect.Create
+                    string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Elemento químico guardado correctamente."
-                        : "Elemento químico actualizado correctamente.");
+                        : resultado.Message);
+            }
+            catch (OperationCanceledException)
+            {
+                // La página se cerró durante el guardado.
             }
             catch (Exception ex)
             {
                 await MostrarErrorInesperadoAsync(
-                    Mode == FormMode.FormModeSelect.Create
-                        ? "guardar el elemento químico"
-                        : "actualizar el elemento químico",
+                    "guardar el elemento químico",
                     ex);
             }
             finally
@@ -381,6 +419,31 @@ namespace CONATRADEC.ViewModels
                 IsBusy = false;
                 RefrescarComandos();
             }
+        }
+
+        private async Task CancelAsync()
+        {
+            if (IsBusy)
+                return;
+
+            decimal? pesoActual =
+                TryParseDecimal(
+                    PesoEquivalenteTexto,
+                    out decimal peso)
+                        ? RedondearDosDecimales(peso)
+                        : null;
+
+            if (!IsReadOnly &&
+                HayCambios(pesoActual))
+            {
+                bool confirmar =
+                    await ConfirmarSalidaSinGuardarAsync();
+
+                if (!confirmar)
+                    return;
+            }
+
+            await RegresarAlListadoAsync();
         }
 
         private bool ValidarFormulario(
@@ -401,12 +464,22 @@ namespace CONATRADEC.ViewModels
                 ErrorSimbolo =
                     "Ingrese el símbolo del elemento químico.";
             }
+            else if (SimboloElementoQuimico.Length > 10)
+            {
+                ErrorSimbolo =
+                    "El símbolo no puede superar 10 caracteres.";
+            }
 
             if (string.IsNullOrWhiteSpace(
                     NombreElementoQuimico))
             {
                 ErrorNombre =
                     "Ingrese el nombre del elemento químico.";
+            }
+            else if (NombreElementoQuimico.Length > 100)
+            {
+                ErrorNombre =
+                    "El nombre no puede superar 100 caracteres.";
             }
 
             if (!TryParseDecimal(
@@ -421,12 +494,61 @@ namespace CONATRADEC.ViewModels
                 ErrorPesoEquivalente =
                     "El peso equivalente debe ser mayor que cero.";
             }
+            else if (pesoEquivalente > 99999999.99m)
+            {
+                ErrorPesoEquivalente =
+                    "El peso equivalente supera el valor permitido.";
+            }
+            else
+            {
+                pesoEquivalente =
+                    RedondearDosDecimales(
+                        pesoEquivalente);
+
+                PesoEquivalenteTexto =
+                    pesoEquivalente.ToString(
+                        "0.00",
+                        CultureInfo.InvariantCulture);
+            }
 
             return
                 !TieneErrorSimbolo &&
                 !TieneErrorNombre &&
                 !TieneErrorPesoEquivalente;
         }
+
+        private bool HayCambios(
+            decimal? pesoActual)
+        {
+            string simboloActual =
+                SimboloElementoQuimico.Trim();
+
+            string nombreActual =
+                NombreElementoQuimico.Trim();
+
+            if (Mode == FormMode.FormModeSelect.Create)
+            {
+                return
+                    !string.IsNullOrWhiteSpace(simboloActual) ||
+                    !string.IsNullOrWhiteSpace(nombreActual) ||
+                    pesoActual.HasValue;
+            }
+
+            return
+                !string.Equals(
+                    simboloActual,
+                    simboloOriginal,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(
+                    nombreActual,
+                    nombreOriginal,
+                    StringComparison.OrdinalIgnoreCase) ||
+                pesoActual != pesoOriginal;
+        }
+
+        private Task RegresarAlListadoAsync() =>
+            GoToAsyncParameters(
+                AppRoutes.ElementosQuimicos);
 
         private void LimpiarErrores()
         {
@@ -435,54 +557,79 @@ namespace CONATRADEC.ViewModels
             ErrorPesoEquivalente = string.Empty;
         }
 
-        private static bool TryParseDecimal(
-            string value,
-            out decimal result)
-        {
-            result = 0;
-
-            if (string.IsNullOrWhiteSpace(value))
-                return false;
-
-            value = value.Trim();
-
-            if (decimal.TryParse(
-                    value,
-                    NumberStyles.Number,
-                    CultureInfo.CurrentCulture,
-                    out result))
-            {
-                return true;
-            }
-
-            if (decimal.TryParse(
-                    value,
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out result))
-            {
-                return true;
-            }
-
-            value = value.Replace(",", ".");
-
-            return decimal.TryParse(
-                value,
-                NumberStyles.Number,
-                CultureInfo.InvariantCulture,
-                out result);
-        }
-
-        private Task GoToElementoQuimicoPage()
-        {
-            return GoToAsyncParameters(
-                "//ElementoQuimicoPage");
-        }
-
         private void RefrescarComandos()
         {
             SaveCommand.ChangeCanExecute();
             CancelCommand.ChangeCanExecute();
         }
+
+        private static string LimitarDosDecimales(
+            string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                return string.Empty;
+
+            var resultado = new StringBuilder();
+            bool tieneSeparador = false;
+            int decimales = 0;
+
+            foreach (char caracter in valor.Trim())
+            {
+                if (char.IsDigit(caracter))
+                {
+                    if (!tieneSeparador ||
+                        decimales < 2)
+                    {
+                        resultado.Append(caracter);
+
+                        if (tieneSeparador)
+                            decimales++;
+                    }
+
+                    continue;
+                }
+
+                if ((caracter == '.' ||
+                     caracter == ',') &&
+                    !tieneSeparador)
+                {
+                    if (resultado.Length == 0)
+                        resultado.Append('0');
+
+                    resultado.Append(caracter);
+                    tieneSeparador = true;
+                }
+            }
+
+            return resultado.ToString();
+        }
+
+        private static bool TryParseDecimal(
+            string? valor,
+            out decimal resultado)
+        {
+            resultado = 0;
+
+            if (string.IsNullOrWhiteSpace(valor))
+                return false;
+
+            string normalizado =
+                valor
+                    .Trim()
+                    .Replace(',', '.');
+
+            return decimal.TryParse(
+                normalizado,
+                NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture,
+                out resultado);
+        }
+
+        private static decimal RedondearDosDecimales(
+            decimal valor) =>
+            decimal.Round(
+                valor,
+                2,
+                MidpointRounding.AwayFromZero);
     }
 }

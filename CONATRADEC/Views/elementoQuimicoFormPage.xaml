@@ -1,192 +1,241 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
+    x:Class="CONATRADEC.Views.elementoQuimicoFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="CONATRADEC.Views.elementoQuimicoFormPage"
-    Title="Formulario de elemento químico"
     Shell.NavBarIsVisible="False"
-    Background="Transparent">
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid
+        Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
 
-        <Grid
-            Grid.Row="0"
-            ColumnDefinitions="*,Auto"
-            Margin="10,20,20,0">
-
-            <Label
-                Text="{Binding Title}"
-                TextColor="{StaticResource color_Verde}"
-                FontSize="24"
-                FontFamily="MontserratBold"
-                FontAttributes="Bold"
-                HorizontalOptions="Start"
-                VerticalOptions="Center" />
-
-            <ActivityIndicator
-                Grid.Column="1"
-                IsRunning="{Binding IsBusy}"
-                IsVisible="{Binding IsBusy}"
-                Color="{StaticResource color_Naranja}"
-                VerticalOptions="Center" />
-
-        </Grid>
-
-        <ScrollView Grid.Row="1">
-
+        <ScrollView>
             <VerticalStackLayout
-                Padding="10"
-                Spacing="15">
+                MaximumWidthRequest="920"
+                HorizontalOptions="Center"
+                Spacing="18">
 
-                <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
+                <Grid
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="12">
 
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorSimbolo}"
-                            Value="True">
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <VerticalStackLayout Spacing="5">
-
+                    <VerticalStackLayout Spacing="4">
                         <Label
-                            Text="Símbolo del elemento"
+                            Text="{Binding Title}"
+                            FontSize="{OnPlatform WinUI=30, Default=26}"
+                            FontFamily="MontserratBold"
                             FontAttributes="Bold"
-                            FontSize="17"
-                            TextColor="{StaticResource color_Negro}" />
-
-                        <Entry
-                            Placeholder="Ejemplo: N, P, K"
-                            Style="{StaticResource EntryStyle}"
-                            Text="{Binding SimboloElementoQuimico}"
-                            IsReadOnly="{Binding IsReadOnly}" />
+                            TextColor="{StaticResource color_Verde}" />
 
                         <Label
-                            Text="{Binding ErrorSimbolo}"
-                            IsVisible="{Binding TieneErrorSimbolo}"
-                            Style="{StaticResource ValidationMessageStyle}" />
-
+                            Text="{Binding Subtitulo}"
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
 
-                </Border>
+                    <ActivityIndicator
+                        Grid.Column="1"
+                        IsRunning="{Binding IsBusy}"
+                        IsVisible="{Binding IsBusy}"
+                        Color="{StaticResource color_Naranja}"
+                        VerticalOptions="Center" />
+                </Grid>
 
                 <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
+                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
 
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorNombre}"
-                            Value="True">
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-                        </DataTrigger>
-                    </Border.Triggers>
+                    <VerticalStackLayout Spacing="17">
 
-                    <VerticalStackLayout Spacing="5">
+                        <VerticalStackLayout Spacing="3">
+                            <Label
+                                Text="Información general"
+                                FontSize="19"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
 
-                        <Label
-                            Text="Nombre del elemento"
-                            FontAttributes="Bold"
-                            FontSize="17"
-                            TextColor="{StaticResource color_Negro}" />
+                            <Label
+                                Text="El peso equivalente se registra y presenta con exactamente dos decimales."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
 
-                        <Entry
-                            Placeholder="Nombre del elemento químico"
-                            Style="{StaticResource EntryStyle}"
-                            Text="{Binding NombreElementoQuimico}"
-                            IsReadOnly="{Binding IsReadOnly}" />
+                        <VerticalStackLayout Spacing="6">
+                            <Label
+                                Text="Símbolo del elemento"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
 
-                        <Label
-                            Text="{Binding ErrorNombre}"
-                            IsVisible="{Binding TieneErrorNombre}"
-                            Style="{StaticResource ValidationMessageStyle}" />
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
 
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorSimbolo}"
+                                        Value="True">
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Entry
+                                    Placeholder="Ejemplo: N, P, K"
+                                    Text="{Binding SimboloElementoQuimico}"
+                                    MaxLength="10"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent" />
+                            </Border>
+
+                            <Label
+                                Text="{Binding ErrorSimbolo}"
+                                IsVisible="{Binding TieneErrorSimbolo}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label
+                                Text="Nombre del elemento"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorNombre}"
+                                        Value="True">
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Entry
+                                    Placeholder="Ejemplo: Nitrógeno"
+                                    Text="{Binding NombreElementoQuimico}"
+                                    MaxLength="100"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent" />
+                            </Border>
+
+                            <Label
+                                Text="{Binding ErrorNombre}"
+                                IsVisible="{Binding TieneErrorNombre}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label
+                                Text="Peso equivalente"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorPesoEquivalente}"
+                                        Value="True">
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Entry
+                                    Placeholder="Ejemplo: 14.01"
+                                    Text="{Binding PesoEquivalenteTexto}"
+                                    Keyboard="Numeric"
+                                    MaxLength="11"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent" />
+                            </Border>
+
+                            <Label
+                                Text="Formato permitido: número mayor que cero con máximo dos decimales."
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="{Binding ErrorPesoEquivalente}"
+                                IsVisible="{Binding TieneErrorPesoEquivalente}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
-
-                </Border>
-
-                <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
-
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorPesoEquivalente}"
-                            Value="True">
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <VerticalStackLayout Spacing="5">
-
-                        <Label
-                            Text="Peso equivalente"
-                            FontAttributes="Bold"
-                            FontSize="17"
-                            TextColor="{StaticResource color_Negro}" />
-
-                        <Entry
-                            Placeholder="Ejemplo: 14.0067"
-                            Style="{StaticResource EntryStyle}"
-                            Keyboard="Numeric"
-                            Text="{Binding PesoEquivalenteTexto}"
-                            IsReadOnly="{Binding IsReadOnly}" />
-
-                        <Label
-                            Text="{Binding ErrorPesoEquivalente}"
-                            IsVisible="{Binding TieneErrorPesoEquivalente}"
-                            Style="{StaticResource ValidationMessageStyle}" />
-
-                    </VerticalStackLayout>
-
                 </Border>
 
                 <Grid
                     ColumnDefinitions="*,*"
-                    Margin="10,0,10,20">
+                    ColumnSpacing="12"
+                    Margin="0,2,0,16">
 
                     <Button
                         Grid.Column="0"
                         Text="Guardar"
-                        Style="{StaticResource UpdateButton}"
                         IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding SaveCommand}"
-                        Margin="10,0" />
+                        Style="{StaticResource UpdateButton}" />
 
                     <Button
                         Grid.Column="1"
                         Text="Cancelar"
-                        Style="{StaticResource CancelButton}"
+                        IsVisible="{Binding MostrarBotonCancelar}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding CancelCommand}"
-                        Margin="10,0" />
+                        Style="{StaticResource CancelButton}" />
 
+                    <Button
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Text="Regresar"
+                        IsVisible="{Binding IsReadOnly}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource CancelButton}" />
                 </Grid>
-
             </VerticalStackLayout>
-
         </ScrollView>
-
     </Grid>
-
 </ContentPage>

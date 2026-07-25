@@ -1,39 +1,49 @@
+using CONATRADEC.Models;
+using CONATRADEC.ViewModels;
+
 namespace CONATRADEC.Views
 {
-    using static CONATRADEC.Models.FormMode;
-    using CONATRADEC.Models;
-    using CONATRADEC.ViewModels;
-
     [QueryProperty(nameof(Mode), "Mode")]
     [QueryProperty(nameof(ElementoQuimico), "ElementoQuimico")]
     public partial class elementoQuimicoFormPage : ContentPage
     {
-        private ElementoQuimicoFormViewModel viewModel = new ElementoQuimicoFormViewModel();
-        private ElementoQuimicoRequest elementoRQ;
+        private readonly ElementoQuimicoFormViewModel
+            viewModel = new();
 
-        public FormModeSelect Mode
+        public elementoQuimicoFormPage()
         {
-            set => viewModel.Mode = value;
+            InitializeComponent();
+
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
+            BindingContext = viewModel;
+        }
+
+        public FormMode.FormModeSelect Mode
+        {
+            set =>
+                viewModel.Mode = value;
         }
 
         public ElementoQuimicoRequest ElementoQuimico
         {
-            get => elementoRQ;
-            set => viewModel.ElementoQuimico = value;
+            set =>
+                viewModel.ElementoQuimico =
+                    value ??
+                    new ElementoQuimicoRequest();
         }
 
-        public elementoQuimicoFormPage()
+        protected override void OnAppearing()
         {
-            try
-            {
-                Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-                BindingContext = viewModel;
-                InitializeComponent();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
+            base.OnAppearing();
+            viewModel.ActualizarPermisos();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarOperaciones();
+            base.OnDisappearing();
         }
     }
 }
