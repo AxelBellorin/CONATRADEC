@@ -71,6 +71,16 @@ namespace CONATRADEC
             KeyboardDismissBehavior.Register();
 
             // ==========================================================
+            // Adapta el login para tabletas Android.
+            //
+            // Se registra aquí y no mediante ModuleInitializer para evitar
+            // acceder a PageHandler antes de que MAUI esté inicializado.
+            //
+            // En Windows no cambia la interfaz ni ejecuta el mapper.
+            // ==========================================================
+            LoginTabletResponsiveMapper.Register();
+
+            // ==========================================================
             // Logging solo en modo DEBUG
             // ==========================================================
 #if DEBUG
@@ -100,15 +110,24 @@ namespace CONATRADEC
                         // ==================================================
                         // Obtiene el identificador nativo de la ventana
                         // ==================================================
-                        IntPtr nativeWindowHandle = WinRT.Interop.WindowNative.GetWindowHandle(window);
-                        WindowId win32WindowsId = Win32Interop.GetWindowIdFromWindow(nativeWindowHandle);
-                        AppWindow winuiAppWindow = AppWindow.GetFromWindowId(win32WindowsId);
+                        IntPtr nativeWindowHandle =
+                            WinRT.Interop.WindowNative.GetWindowHandle(window);
+
+                        WindowId win32WindowsId =
+                            Win32Interop.GetWindowIdFromWindow(
+                                nativeWindowHandle);
+
+                        AppWindow winuiAppWindow =
+                            AppWindow.GetFromWindowId(
+                                win32WindowsId);
 
                         // ==================================================
                         // Maximiza la ventana si el modo lo permite
                         // ==================================================
                         if (winuiAppWindow.Presenter is OverlappedPresenter p)
+                        {
                             p.Maximize();
+                        }
                         else
                         {
                             // ==============================================
@@ -118,11 +137,12 @@ namespace CONATRADEC
                             const int width = 1200;
                             const int height = 800;
 
-                            winuiAppWindow.MoveAndResize(new RectInt32(
-                                1920 / 2 - width / 2,
-                                1080 / 2 - height / 2,
-                                width,
-                                height));
+                            winuiAppWindow.MoveAndResize(
+                                new RectInt32(
+                                    1920 / 2 - width / 2,
+                                    1080 / 2 - height / 2,
+                                    width,
+                                    height));
                         }
                     });
                 });

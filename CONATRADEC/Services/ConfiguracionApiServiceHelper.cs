@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -13,11 +13,12 @@ namespace CONATRADEC.Services
                 PropertyNameCaseInsensitive = true
             };
 
-        public static async Task<ApiResult<ObservableCollection<T>>> GetCollectionAsync<T>(
-            HttpClient httpClient,
-            string route,
-            string entityName,
-            CancellationToken cancellationToken = default)
+        public static async Task<ApiResult<ObservableCollection<T>>>
+            GetCollectionAsync<T>(
+                HttpClient httpClient,
+                string route,
+                string entityName,
+                CancellationToken cancellationToken = default)
         {
             try
             {
@@ -29,10 +30,11 @@ namespace CONATRADEC.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     string message =
-                        await ApiServiceHelper.ReadResponseMessageAsync(
-                            response,
-                            $"No fue posible cargar {entityName}.",
-                            cancellationToken);
+                        await ApiServiceHelper
+                            .ReadResponseMessageAsync(
+                                response,
+                                $"No fue posible cargar {entityName}.",
+                                cancellationToken);
 
                     return ApiResult<ObservableCollection<T>>.Fail(
                         message,
@@ -46,7 +48,8 @@ namespace CONATRADEC.Services
                             cancellationToken);
 
                 return ApiResult<ObservableCollection<T>>.Ok(
-                    data ?? new ObservableCollection<T>());
+                    data ??
+                    new ObservableCollection<T>());
             }
             catch (TaskCanceledException)
                 when (!cancellationToken.IsCancellationRequested)
@@ -85,15 +88,42 @@ namespace CONATRADEC.Services
             string successMessage,
             CancellationToken cancellationToken = default)
         {
+            /*
+             * Mantiene el mismo flujo de reactivación para los servicios
+             * de Configuración sin alterar cada servicio individual.
+             */
+            if (request is not null &&
+                CatalogoEliminadoCodigos.TryGetCodigoCreacion(
+                    method,
+                    route,
+                    out string catalogo))
+            {
+                var reactivacionService =
+                    new CatalogosEliminadosApiService(
+                        httpClient);
+
+                return await reactivacionService
+                    .CrearConResolucionAsync(
+                        catalogo,
+                        request,
+                        errorMessage,
+                        successMessage,
+                        cancellationToken);
+            }
+
             try
             {
-                using var message = new HttpRequestMessage(method, route);
+                using var message =
+                    new HttpRequestMessage(
+                        method,
+                        route);
 
                 if (request is not null)
                 {
-                    message.Content = JsonContent.Create(
-                        request,
-                        options: JsonOptions);
+                    message.Content =
+                        JsonContent.Create(
+                            request,
+                            options: JsonOptions);
                 }
 
                 using HttpResponseMessage response =
@@ -102,12 +132,13 @@ namespace CONATRADEC.Services
                         cancellationToken);
 
                 string apiMessage =
-                    await ApiServiceHelper.ReadResponseMessageAsync(
-                        response,
-                        response.IsSuccessStatusCode
-                            ? successMessage
-                            : errorMessage,
-                        cancellationToken);
+                    await ApiServiceHelper
+                        .ReadResponseMessageAsync(
+                            response,
+                            response.IsSuccessStatusCode
+                                ? successMessage
+                                : errorMessage,
+                            cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -118,7 +149,8 @@ namespace CONATRADEC.Services
 
                 return ApiResult<bool>.Ok(
                     true,
-                    string.IsNullOrWhiteSpace(apiMessage)
+                    string.IsNullOrWhiteSpace(
+                        apiMessage)
                         ? successMessage
                         : apiMessage);
             }
@@ -140,7 +172,8 @@ namespace CONATRADEC.Services
             }
             catch
             {
-                return ApiResult<bool>.Fail(errorMessage);
+                return ApiResult<bool>.Fail(
+                    errorMessage);
             }
         }
     }

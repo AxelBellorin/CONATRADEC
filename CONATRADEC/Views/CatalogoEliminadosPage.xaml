@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.CatalogoEliminadosPage"
+    x:Name="PaginaEliminados"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F6F8F7">
+
+    <Grid
+        RowDefinitions="Auto,Auto,*"
+        Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
+        RowSpacing="14">
+
+        <Grid
+            Grid.Row="0"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="12">
+
+            <VerticalStackLayout Spacing="3">
+                <Label
+                    Text="{Binding Titulo}"
+                    FontSize="{OnIdiom Phone=24, Tablet=27, Desktop=29}"
+                    FontFamily="MontserratBold"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource color_Verde}"
+                    LineBreakMode="WordWrap" />
+
+                <Label
+                    Text="{Binding Descripcion}"
+                    FontSize="13"
+                    TextColor="{StaticResource color_GrisOscuro}"
+                    LineBreakMode="WordWrap"
+                    MaxLines="3" />
+            </VerticalStackLayout>
+
+            <Button
+                Grid.Column="1"
+                Text="Cerrar"
+                Padding="16,10"
+                BackgroundColor="#EEF2F0"
+                TextColor="{StaticResource color_Verde}"
+                CornerRadius="11"
+                Command="{Binding CerrarCommand}" />
+        </Grid>
+
+        <Border
+            Grid.Row="1"
+            Padding="12"
+            BackgroundColor="White"
+            Stroke="#DDE7E3"
+            StrokeThickness="1"
+            StrokeShape="RoundRectangle 15">
+
+            <Grid
+                RowDefinitions="Auto,Auto"
+                RowSpacing="10">
+
+                <SearchBar
+                    Grid.Row="0"
+                    Placeholder="{Binding PlaceholderBusqueda}"
+                    Text="{Binding TextoBusqueda, Mode=TwoWay}"
+                    SearchCommand="{Binding BuscarCommand}"
+                    BackgroundColor="#F8FAF9"
+                    CancelButtonColor="{StaticResource color_Verde}" />
+
+                <Grid
+                    Grid.Row="1"
+                    ColumnDefinitions="*,Auto,Auto"
+                    ColumnSpacing="9">
+
+                    <Label
+                        Text="{Binding Resumen}"
+                        VerticalOptions="Center"
+                        FontSize="12"
+                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                    <Button
+                        Grid.Column="1"
+                        Text="Buscar"
+                        Padding="14,8"
+                        BackgroundColor="{StaticResource color_Verde}"
+                        TextColor="White"
+                        CornerRadius="10"
+                        Command="{Binding BuscarCommand}" />
+
+                    <Button
+                        Grid.Column="2"
+                        Text="Limpiar"
+                        Padding="14,8"
+                        BackgroundColor="#EEF2F0"
+                        TextColor="{StaticResource color_Verde}"
+                        CornerRadius="10"
+                        Command="{Binding LimpiarCommand}" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+
+            <Grid
+                IsVisible="{Binding MostrarAccesoDenegado}"
+                Padding="24">
+
+                <Border
+                    MaximumWidthRequest="620"
+                    Padding="26"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#E5E7EB"
+                    StrokeShape="RoundRectangle 18">
+
+                    <VerticalStackLayout
+                        Spacing="10"
+                        HorizontalOptions="Center">
+
+                        <Image
+                            Source="iconpermission.png"
+                            WidthRequest="64"
+                            HeightRequest="64"
+                            Opacity="0.65" />
+
+                        <Label
+                            Text="Sin permiso de lectura"
+                            FontSize="20"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}"
+                            HorizontalTextAlignment="Center" />
+
+                        <Label
+                            Text="Su usuario no puede consultar los registros eliminados de esta interfaz."
+                            HorizontalTextAlignment="Center"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                        <Button
+                            Text="Cerrar"
+                            Command="{Binding CerrarCommand}"
+                            BackgroundColor="{StaticResource color_Verde}"
+                            TextColor="White"
+                            CornerRadius="10" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <RefreshView
+                IsVisible="{Binding CanView}"
+                IsRefreshing="{Binding IsRefreshing}"
+                Command="{Binding RefrescarCommand}">
+
+                <CollectionView
+                    x:Name="RegistrosCollection"
+                    ItemsSource="{Binding Registros}"
+                    SelectionMode="None">
+
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout
+                            x:Name="RegistrosGrid"
+                            Orientation="Vertical"
+                            Span="1"
+                            HorizontalItemSpacing="12"
+                            VerticalItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+
+                    <CollectionView.EmptyView>
+                        <Grid Padding="30">
+                            <VerticalStackLayout
+                                IsVisible="{Binding MostrarVacio}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                Spacing="8">
+
+                                <Border
+                                    WidthRequest="64"
+                                    HeightRequest="64"
+                                    BackgroundColor="#EAF7EF"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 18">
+
+                                    <Label
+                                        Text="✓"
+                                        FontSize="28"
+                                        TextColor="{StaticResource color_Verde}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+
+                                <Label
+                                    Text="No hay registros eliminados"
+                                    FontSize="18"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}"
+                                    HorizontalTextAlignment="Center" />
+
+                                <Label
+                                    Text="Todos los registros están activos o no coinciden con la búsqueda."
+                                    FontSize="13"
+                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </CollectionView.EmptyView>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:CatalogoEliminadoItem">
+                            <Border
+                                Padding="16"
+                                MinimumHeightRequest="196"
+                                BackgroundColor="White"
+                                Stroke="#E5D8D0"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
+
+                                <Grid
+                                    RowDefinitions="Auto,*,Auto"
+                                    RowSpacing="12">
+
+                                    <Grid
+                                        Grid.Row="0"
+                                        ColumnDefinitions="Auto,*,Auto"
+                                        ColumnSpacing="12">
+
+                                        <Border
+                                            WidthRequest="54"
+                                            HeightRequest="54"
+                                            BackgroundColor="#F7EEE9"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 14">
+
+                                            <Label
+                                                Text="{Binding Iniciales}"
+                                                FontSize="17"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <VerticalStackLayout
+                                            Grid.Column="1"
+                                            Spacing="3"
+                                            VerticalOptions="Center">
+
+                                            <Label
+                                                Text="{Binding Titulo}"
+                                                FontSize="17"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Negro}"
+                                                LineBreakMode="TailTruncation" />
+
+                                            <Label
+                                                IsVisible="{Binding TieneSubtitulo}"
+                                                Text="{Binding Subtitulo}"
+                                                FontSize="12"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                MaxLines="2"
+                                                LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+
+                                        <Label
+                                            Grid.Column="2"
+                                            Text="Eliminado"
+                                            Padding="9,5"
+                                            FontSize="11"
+                                            TextColor="#B42318"
+                                            BackgroundColor="#FEECEB"
+                                            VerticalOptions="Start" />
+                                    </Grid>
+
+                                    <VerticalStackLayout
+                                        Grid.Row="1"
+                                        Spacing="7">
+
+                                        <Border
+                                            IsVisible="{Binding TieneCodigo}"
+                                            Padding="10,7"
+                                            BackgroundColor="#FFF7E6"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 9">
+
+                                            <Label
+                                                Text="{Binding Codigo}"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                HorizontalTextAlignment="Center" />
+                                        </Border>
+
+                                        <Label
+                                            IsVisible="{Binding TieneDetalle}"
+                                            Text="{Binding Detalle}"
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            MaxLines="3"
+                                            LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+
+                                    <Button
+                                        Grid.Row="2"
+                                        Text="Reactivar registro"
+                                        Padding="12,10"
+                                        BackgroundColor="{StaticResource color_Verde}"
+                                        TextColor="White"
+                                        CornerRadius="10"
+                                        IsVisible="{Binding Source={x:Reference PaginaEliminados}, Path=BindingContext.CanEdit}"
+                                        Command="{Binding Source={x:Reference PaginaEliminados}, Path=BindingContext.ReactivarCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+
+            <Border
+                IsVisible="{Binding TieneMensaje}"
+                Padding="14"
+                Margin="16"
+                HorizontalOptions="Fill"
+                VerticalOptions="Start"
+                BackgroundColor="#FFF7E6"
+                Stroke="#F2C94C"
+                StrokeShape="RoundRectangle 12">
+
+                <Label
+                    Text="{Binding Mensaje}"
+                    FontSize="13"
+                    TextColor="{StaticResource color_Negro}" />
+            </Border>
+
+            <Grid
+                IsVisible="{Binding IsBusy}"
+                InputTransparent="True"
+                BackgroundColor="#40FFFFFF">
+
+                <Border
+                    Padding="18"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeShape="RoundRectangle 14">
+
+                    <HorizontalStackLayout Spacing="10">
+                        <ActivityIndicator
+                            IsRunning="True"
+                            Color="{StaticResource color_Naranja}" />
+
+                        <Label
+                            Text="Cargando registros eliminados..."
+                            VerticalOptions="Center"
+                            TextColor="{StaticResource color_Negro}" />
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentPage>

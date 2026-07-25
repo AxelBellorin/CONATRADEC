@@ -3,6 +3,7 @@ using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Handlers;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -26,18 +27,34 @@ namespace CONATRADEC.Behaviors
     /// </summary>
     internal static class LoginTabletResponsiveMapper
     {
+        private const string MapperKey =
+            "CONATRADEC.LoginTabletResponsive";
+
         private static readonly ConditionalWeakTable<
             loginPage,
             LoginResponsiveState> States = new();
 
+        private static bool isRegistered;
+
         /// <summary>
-        /// Registra la adaptación sin requerir cambios en MauiProgram.cs.
+        /// Registra una sola vez la adaptación del login.
+        ///
+        /// Se llama explícitamente desde MauiProgram.CreateMauiApp(),
+        /// cuando MAUI ya ha inicializado su infraestructura.
+        ///
+        /// El código del mapper solo se compila y ejecuta en Android,
+        /// porque esta adaptación está destinada a tabletas Android.
         /// </summary>
-        [ModuleInitializer]
         internal static void Register()
         {
+#if ANDROID
+            if (isRegistered)
+                return;
+
+            isRegistered = true;
+
             PageHandler.Mapper.AppendToMapping(
-                "CONATRADEC.LoginTabletResponsive",
+                MapperKey,
                 static (_, view) =>
                 {
                     if (view is not loginPage page)
@@ -46,6 +63,7 @@ namespace CONATRADEC.Behaviors
                     MainThread.BeginInvokeOnMainThread(
                         () => Attach(page));
                 });
+#endif
         }
 
         private static void Attach(loginPage page)
@@ -153,16 +171,11 @@ namespace CONATRADEC.Behaviors
                 currentOrientation = orientation;
                 tabletLayoutWasApplied = true;
 
-                ApplyTabletLayout(
-                    orientation,
-                    width,
-                    height);
+                ApplyTabletLayout(orientation);
             }
 
             private void ApplyTabletLayout(
-                TabletOrientation orientation,
-                double width,
-                double height)
+                TabletOrientation orientation)
             {
                 if (!TryResolveVisualTree(
                         out LoginVisualTree visual))

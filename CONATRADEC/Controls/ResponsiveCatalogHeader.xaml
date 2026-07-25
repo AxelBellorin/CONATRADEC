@@ -8,7 +8,7 @@
     <Grid
         x:Name="HeaderGrid"
         RowSpacing="10"
-        ColumnSpacing="14">
+        ColumnSpacing="10">
 
         <Button
             x:Name="BackButton"
@@ -67,6 +67,18 @@
                 LineBreakMode="WordWrap"
                 MaxLines="3" />
         </VerticalStackLayout>
+
+        <Button
+            x:Name="DeletedButton"
+            Text="↺ Eliminados"
+            IsVisible="False"
+            Clicked="OnDeletedClicked"
+            Padding="14,10"
+            BackgroundColor="#F7EEE9"
+            TextColor="{StaticResource color_Cafe}"
+            CornerRadius="11"
+            FontFamily="MontserratBold"
+            VerticalOptions="Center" />
 
         <Button
             x:Name="PrimaryButton"

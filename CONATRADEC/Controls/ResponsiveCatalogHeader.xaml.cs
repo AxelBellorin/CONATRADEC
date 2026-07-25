@@ -1,3 +1,4 @@
+using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using System.Windows.Input;
@@ -7,12 +8,8 @@ namespace CONATRADEC.Controls
     /// <summary>
     /// Encabezado reutilizable para catálogos.
     ///
-    /// Teléfono:
-    /// - título y subtítulo a todo el ancho;
-    /// - botones en una segunda fila.
-    ///
-    /// Tablet y escritorio:
-    /// - regreso, título y acción principal en una sola fila.
+    /// Además de la acción principal, detecta automáticamente los
+    /// catálogos que admiten reactivación y muestra "Eliminados".
     /// </summary>
     public partial class ResponsiveCatalogHeader : ContentView
     {
@@ -24,13 +21,16 @@ namespace CONATRADEC.Controls
         }
 
         private LayoutMode? currentMode;
+        private CatalogoEliminadoConfiguracion?
+            catalogoEliminados;
 
         public static readonly BindableProperty TitleProperty =
             BindableProperty.Create(
                 nameof(Title),
                 typeof(string),
                 typeof(ResponsiveCatalogHeader),
-                string.Empty);
+                string.Empty,
+                propertyChanged: OnTitleChanged);
 
         public static readonly BindableProperty SubtitleProperty =
             BindableProperty.Create(
@@ -72,7 +72,8 @@ namespace CONATRADEC.Controls
                 nameof(IsBackVisible),
                 typeof(bool),
                 typeof(ResponsiveCatalogHeader),
-                true);
+                true,
+                propertyChanged: OnActionVisibilityChanged);
 
         public static readonly BindableProperty PrimaryTextProperty =
             BindableProperty.Create(
@@ -87,124 +88,170 @@ namespace CONATRADEC.Controls
                 typeof(ICommand),
                 typeof(ResponsiveCatalogHeader));
 
-        public static readonly BindableProperty PrimaryBackgroundColorProperty =
-            BindableProperty.Create(
-                nameof(PrimaryBackgroundColor),
-                typeof(Color),
-                typeof(ResponsiveCatalogHeader),
-                Color.FromArgb("#3B655B"));
+        public static readonly BindableProperty
+            PrimaryBackgroundColorProperty =
+                BindableProperty.Create(
+                    nameof(PrimaryBackgroundColor),
+                    typeof(Color),
+                    typeof(ResponsiveCatalogHeader),
+                    Color.FromArgb("#3B655B"));
 
-        public static readonly BindableProperty PrimaryTextColorProperty =
-            BindableProperty.Create(
-                nameof(PrimaryTextColor),
-                typeof(Color),
-                typeof(ResponsiveCatalogHeader),
-                Colors.White);
+        public static readonly BindableProperty
+            PrimaryTextColorProperty =
+                BindableProperty.Create(
+                    nameof(PrimaryTextColor),
+                    typeof(Color),
+                    typeof(ResponsiveCatalogHeader),
+                    Colors.White);
 
-        public static readonly BindableProperty IsPrimaryVisibleProperty =
-            BindableProperty.Create(
-                nameof(IsPrimaryVisible),
-                typeof(bool),
-                typeof(ResponsiveCatalogHeader),
-                true,
-                propertyChanged: OnActionVisibilityChanged);
+        public static readonly BindableProperty
+            IsPrimaryVisibleProperty =
+                BindableProperty.Create(
+                    nameof(IsPrimaryVisible),
+                    typeof(bool),
+                    typeof(ResponsiveCatalogHeader),
+                    true,
+                    propertyChanged:
+                        OnActionVisibilityChanged);
 
-        private static readonly BindablePropertyKey HasSubtitlePropertyKey =
-            BindableProperty.CreateReadOnly(
-                nameof(HasSubtitle),
-                typeof(bool),
-                typeof(ResponsiveCatalogHeader),
-                false);
+        private static readonly BindablePropertyKey
+            HasSubtitlePropertyKey =
+                BindableProperty.CreateReadOnly(
+                    nameof(HasSubtitle),
+                    typeof(bool),
+                    typeof(ResponsiveCatalogHeader),
+                    false);
 
-        public static readonly BindableProperty HasSubtitleProperty =
-            HasSubtitlePropertyKey.BindableProperty;
+        public static readonly BindableProperty
+            HasSubtitleProperty =
+                HasSubtitlePropertyKey.BindableProperty;
 
         public ResponsiveCatalogHeader()
         {
             InitializeComponent();
             UpdateSubtitleState();
+            UpdateDeletedState();
         }
 
         public string Title
         {
-            get => (string)GetValue(TitleProperty);
-            set => SetValue(TitleProperty, value);
+            get => (string)GetValue(
+                TitleProperty);
+            set => SetValue(
+                TitleProperty,
+                value);
         }
 
         public string Subtitle
         {
-            get => (string)GetValue(SubtitleProperty);
-            set => SetValue(SubtitleProperty, value);
+            get => (string)GetValue(
+                SubtitleProperty);
+            set => SetValue(
+                SubtitleProperty,
+                value);
         }
 
         public string ContextText
         {
-            get => (string)GetValue(ContextTextProperty);
-            set => SetValue(ContextTextProperty, value);
+            get => (string)GetValue(
+                ContextTextProperty);
+            set => SetValue(
+                ContextTextProperty,
+                value);
         }
 
         public bool IsContextVisible
         {
-            get => (bool)GetValue(IsContextVisibleProperty);
-            set => SetValue(IsContextVisibleProperty, value);
+            get => (bool)GetValue(
+                IsContextVisibleProperty);
+            set => SetValue(
+                IsContextVisibleProperty,
+                value);
         }
 
         public string BackText
         {
-            get => (string)GetValue(BackTextProperty);
-            set => SetValue(BackTextProperty, value);
+            get => (string)GetValue(
+                BackTextProperty);
+            set => SetValue(
+                BackTextProperty,
+                value);
         }
 
         public ICommand? BackCommand
         {
-            get => (ICommand?)GetValue(BackCommandProperty);
-            set => SetValue(BackCommandProperty, value);
+            get => (ICommand?)GetValue(
+                BackCommandProperty);
+            set => SetValue(
+                BackCommandProperty,
+                value);
         }
 
         public bool IsBackVisible
         {
-            get => (bool)GetValue(IsBackVisibleProperty);
-            set => SetValue(IsBackVisibleProperty, value);
+            get => (bool)GetValue(
+                IsBackVisibleProperty);
+            set => SetValue(
+                IsBackVisibleProperty,
+                value);
         }
 
         public string PrimaryText
         {
-            get => (string)GetValue(PrimaryTextProperty);
-            set => SetValue(PrimaryTextProperty, value);
+            get => (string)GetValue(
+                PrimaryTextProperty);
+            set => SetValue(
+                PrimaryTextProperty,
+                value);
         }
 
         public ICommand? PrimaryCommand
         {
-            get => (ICommand?)GetValue(PrimaryCommandProperty);
-            set => SetValue(PrimaryCommandProperty, value);
+            get => (ICommand?)GetValue(
+                PrimaryCommandProperty);
+            set => SetValue(
+                PrimaryCommandProperty,
+                value);
         }
 
         public Color PrimaryBackgroundColor
         {
-            get => (Color)GetValue(PrimaryBackgroundColorProperty);
-            set => SetValue(PrimaryBackgroundColorProperty, value);
+            get => (Color)GetValue(
+                PrimaryBackgroundColorProperty);
+            set => SetValue(
+                PrimaryBackgroundColorProperty,
+                value);
         }
 
         public Color PrimaryTextColor
         {
-            get => (Color)GetValue(PrimaryTextColorProperty);
-            set => SetValue(PrimaryTextColorProperty, value);
+            get => (Color)GetValue(
+                PrimaryTextColorProperty);
+            set => SetValue(
+                PrimaryTextColorProperty,
+                value);
         }
 
         public bool IsPrimaryVisible
         {
-            get => (bool)GetValue(IsPrimaryVisibleProperty);
-            set => SetValue(IsPrimaryVisibleProperty, value);
+            get => (bool)GetValue(
+                IsPrimaryVisibleProperty);
+            set => SetValue(
+                IsPrimaryVisibleProperty,
+                value);
         }
 
         public bool HasSubtitle =>
-            (bool)GetValue(HasSubtitleProperty);
+            (bool)GetValue(
+                HasSubtitleProperty);
 
         protected override void OnSizeAllocated(
             double width,
             double height)
         {
-            base.OnSizeAllocated(width, height);
+            base.OnSizeAllocated(
+                width,
+                height);
 
             if (width <= 0)
                 return;
@@ -223,7 +270,8 @@ namespace CONATRADEC.Controls
             ApplyLayout(mode);
         }
 
-        private void ApplyLayout(LayoutMode mode)
+        private void ApplyLayout(
+            LayoutMode mode)
         {
             HeaderGrid.RowDefinitions.Clear();
             HeaderGrid.ColumnDefinitions.Clear();
@@ -231,33 +279,17 @@ namespace CONATRADEC.Controls
             switch (mode)
             {
                 case LayoutMode.Phone:
-                    HeaderGrid.ColumnDefinitions.Add(
-                        new ColumnDefinition(GridLength.Star));
-                    HeaderGrid.ColumnDefinitions.Add(
-                        new ColumnDefinition(GridLength.Star));
-                    HeaderGrid.RowDefinitions.Add(
-                        new RowDefinition(GridLength.Auto));
-                    HeaderGrid.RowDefinitions.Add(
-                        new RowDefinition(GridLength.Auto));
-
-                    Grid.SetRow(TitleContainer, 0);
-                    Grid.SetColumn(TitleContainer, 0);
-                    Grid.SetColumnSpan(TitleContainer, 2);
-
-                    Grid.SetRow(BackButton, 1);
-                    Grid.SetColumn(BackButton, 0);
-                    Grid.SetColumnSpan(
-                        BackButton,
-                        IsPrimaryVisible ? 1 : 2);
-
-                    Grid.SetRow(PrimaryButton, 1);
-                    Grid.SetColumn(PrimaryButton, 1);
-                    Grid.SetColumnSpan(PrimaryButton, 1);
+                    ConfigurePhoneGrid();
 
                     TitleLabel.FontSize = 25;
-                    BackButton.Padding = new Thickness(10, 9);
-                    PrimaryButton.Padding = new Thickness(10, 9);
+                    BackButton.Padding =
+                        new Thickness(10, 9);
+                    DeletedButton.Padding =
+                        new Thickness(10, 9);
+                    PrimaryButton.Padding =
+                        new Thickness(10, 9);
                     BackButton.FontSize = 12;
+                    DeletedButton.FontSize = 12;
                     PrimaryButton.FontSize = 12;
                     SubtitleLabel.MaxLines = 3;
                     break;
@@ -266,9 +298,14 @@ namespace CONATRADEC.Controls
                     ConfigureHorizontalGrid();
 
                     TitleLabel.FontSize = 27;
-                    BackButton.Padding = new Thickness(13, 9);
-                    PrimaryButton.Padding = new Thickness(14, 10);
+                    BackButton.Padding =
+                        new Thickness(13, 9);
+                    DeletedButton.Padding =
+                        new Thickness(13, 9);
+                    PrimaryButton.Padding =
+                        new Thickness(14, 10);
                     BackButton.FontSize = 12;
+                    DeletedButton.FontSize = 12;
                     PrimaryButton.FontSize = 12;
                     SubtitleLabel.MaxLines = 2;
                     break;
@@ -277,37 +314,234 @@ namespace CONATRADEC.Controls
                     ConfigureHorizontalGrid();
 
                     TitleLabel.FontSize = 30;
-                    BackButton.Padding = new Thickness(16, 10);
-                    PrimaryButton.Padding = new Thickness(18, 11);
+                    BackButton.Padding =
+                        new Thickness(16, 10);
+                    DeletedButton.Padding =
+                        new Thickness(16, 10);
+                    PrimaryButton.Padding =
+                        new Thickness(18, 11);
                     BackButton.FontSize = 13;
+                    DeletedButton.FontSize = 13;
                     PrimaryButton.FontSize = 13;
                     SubtitleLabel.MaxLines = 2;
                     break;
             }
         }
 
+        private void ConfigurePhoneGrid()
+        {
+            var acciones =
+                ObtenerAccionesVisibles();
+
+            int columnas =
+                Math.Max(
+                    1,
+                    acciones.Count);
+
+            for (int indice = 0;
+                 indice < columnas;
+                 indice++)
+            {
+                HeaderGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(
+                        GridLength.Star));
+            }
+
+            HeaderGrid.RowDefinitions.Add(
+                new RowDefinition(
+                    GridLength.Auto));
+
+            HeaderGrid.RowDefinitions.Add(
+                new RowDefinition(
+                    GridLength.Auto));
+
+            Grid.SetRow(
+                TitleContainer,
+                0);
+            Grid.SetColumn(
+                TitleContainer,
+                0);
+            Grid.SetColumnSpan(
+                TitleContainer,
+                columnas);
+
+            for (int indice = 0;
+                 indice < acciones.Count;
+                 indice++)
+            {
+                View accion =
+                    acciones[indice];
+
+                Grid.SetRow(
+                    accion,
+                    1);
+                Grid.SetColumn(
+                    accion,
+                    indice);
+                Grid.SetColumnSpan(
+                    accion,
+                    1);
+            }
+        }
+
         private void ConfigureHorizontalGrid()
         {
-            HeaderGrid.ColumnDefinitions.Add(
-                new ColumnDefinition(GridLength.Auto));
-            HeaderGrid.ColumnDefinitions.Add(
-                new ColumnDefinition(GridLength.Star));
-            HeaderGrid.ColumnDefinitions.Add(
-                new ColumnDefinition(GridLength.Auto));
             HeaderGrid.RowDefinitions.Add(
-                new RowDefinition(GridLength.Auto));
+                new RowDefinition(
+                    GridLength.Auto));
 
-            Grid.SetRow(BackButton, 0);
-            Grid.SetColumn(BackButton, 0);
-            Grid.SetColumnSpan(BackButton, 1);
+            int columna = 0;
 
-            Grid.SetRow(TitleContainer, 0);
-            Grid.SetColumn(TitleContainer, 1);
-            Grid.SetColumnSpan(TitleContainer, 1);
+            if (IsBackVisible)
+            {
+                HeaderGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(
+                        GridLength.Auto));
 
-            Grid.SetRow(PrimaryButton, 0);
-            Grid.SetColumn(PrimaryButton, 2);
-            Grid.SetColumnSpan(PrimaryButton, 1);
+                Grid.SetRow(
+                    BackButton,
+                    0);
+                Grid.SetColumn(
+                    BackButton,
+                    columna++);
+                Grid.SetColumnSpan(
+                    BackButton,
+                    1);
+            }
+
+            HeaderGrid.ColumnDefinitions.Add(
+                new ColumnDefinition(
+                    GridLength.Star));
+
+            Grid.SetRow(
+                TitleContainer,
+                0);
+            Grid.SetColumn(
+                TitleContainer,
+                columna++);
+            Grid.SetColumnSpan(
+                TitleContainer,
+                1);
+
+            if (DeletedButton.IsVisible)
+            {
+                HeaderGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(
+                        GridLength.Auto));
+
+                Grid.SetRow(
+                    DeletedButton,
+                    0);
+                Grid.SetColumn(
+                    DeletedButton,
+                    columna++);
+                Grid.SetColumnSpan(
+                    DeletedButton,
+                    1);
+            }
+
+            if (IsPrimaryVisible)
+            {
+                HeaderGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(
+                        GridLength.Auto));
+
+                Grid.SetRow(
+                    PrimaryButton,
+                    0);
+                Grid.SetColumn(
+                    PrimaryButton,
+                    columna);
+                Grid.SetColumnSpan(
+                    PrimaryButton,
+                    1);
+            }
+        }
+
+        private List<View> ObtenerAccionesVisibles()
+        {
+            var acciones =
+                new List<View>();
+
+            if (IsBackVisible)
+            {
+                acciones.Add(
+                    BackButton);
+            }
+
+            if (DeletedButton.IsVisible)
+            {
+                acciones.Add(
+                    DeletedButton);
+            }
+
+            if (IsPrimaryVisible)
+            {
+                acciones.Add(
+                    PrimaryButton);
+            }
+
+            return acciones;
+        }
+
+        private async void OnDeletedClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (catalogoEliminados == null)
+                return;
+
+            DeletedButton.IsEnabled =
+                false;
+
+            try
+            {
+                await CatalogoEliminadosLauncher
+                    .AbrirAsync(
+                        catalogoEliminados);
+            }
+            finally
+            {
+                DeletedButton.IsEnabled =
+                    true;
+            }
+        }
+
+        private void UpdateDeletedState()
+        {
+            bool disponible =
+                CatalogoEliminadoCodigos
+                    .TryGetPorTitulo(
+                        Title,
+                        out CatalogoEliminadoConfiguracion
+                            configuracion);
+
+            catalogoEliminados =
+                disponible
+                    ? configuracion
+                    : null;
+
+            /*
+             * Fuente de Nutriente conserva su implementación propia.
+             * No aparece en la tabla de títulos compatibles.
+             */
+            DeletedButton.IsVisible =
+                disponible;
+
+            if (currentMode is
+                LayoutMode mode)
+            {
+                ApplyLayout(mode);
+            }
+        }
+
+        private static void OnTitleChanged(
+            BindableObject bindable,
+            object oldValue,
+            object newValue)
+        {
+            ((ResponsiveCatalogHeader)bindable)
+                .UpdateDeletedState();
         }
 
         private static void OnActionVisibilityChanged(
@@ -318,8 +552,11 @@ namespace CONATRADEC.Controls
             var control =
                 (ResponsiveCatalogHeader)bindable;
 
-            if (control.currentMode is LayoutMode mode)
+            if (control.currentMode is
+                LayoutMode mode)
+            {
                 control.ApplyLayout(mode);
+            }
         }
 
         private static void OnSubtitleChanged(
@@ -335,7 +572,8 @@ namespace CONATRADEC.Controls
         {
             SetValue(
                 HasSubtitlePropertyKey,
-                !string.IsNullOrWhiteSpace(Subtitle));
+                !string.IsNullOrWhiteSpace(
+                    Subtitle));
         }
     }
 }

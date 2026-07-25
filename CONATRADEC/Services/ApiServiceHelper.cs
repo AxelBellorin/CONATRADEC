@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http.Json;
@@ -8,17 +8,19 @@ namespace CONATRADEC.Services
 {
     internal static class ApiServiceHelper
     {
-        public static async Task<ApiResult<ObservableCollection<T>>> GetCollectionAsync<T>(
-            HttpClient httpClient,
-            string route,
-            string entityName,
-            CancellationToken cancellationToken = default)
+        public static async Task<ApiResult<ObservableCollection<T>>>
+            GetCollectionAsync<T>(
+                HttpClient httpClient,
+                string route,
+                string entityName,
+                CancellationToken cancellationToken = default)
         {
             try
             {
-                using var response = await httpClient.GetAsync(
-                    route,
-                    cancellationToken);
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        route,
+                        cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -30,12 +32,15 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
-                var data = await response.Content
-                    .ReadFromJsonAsync<ObservableCollection<T>>(
-                        cancellationToken: cancellationToken);
+                ObservableCollection<T>? data =
+                    await response.Content
+                        .ReadFromJsonAsync<ObservableCollection<T>>(
+                            cancellationToken:
+                                cancellationToken);
 
                 return ApiResult<ObservableCollection<T>>.Ok(
-                    data ?? new ObservableCollection<T>());
+                    data ??
+                    new ObservableCollection<T>());
             }
             catch (TaskCanceledException)
                 when (!cancellationToken.IsCancellationRequested)
@@ -74,16 +79,48 @@ namespace CONATRADEC.Services
             string successMessage,
             CancellationToken cancellationToken = default)
         {
+            /*
+             * Las creaciones de catálogos compatibles pasan por un único
+             * flujo. Esto permite detectar coincidencias inactivas sin
+             * modificar cada ViewModel o cada servicio individual.
+             */
+            if (request is not null &&
+                CatalogoEliminadoCodigos.TryGetCodigoCreacion(
+                    method,
+                    route,
+                    out string catalogo))
+            {
+                var reactivacionService =
+                    new CatalogosEliminadosApiService(
+                        httpClient);
+
+                return await reactivacionService
+                    .CrearConResolucionAsync(
+                        catalogo,
+                        request,
+                        $"No fue posible {action}.",
+                        successMessage,
+                        cancellationToken);
+            }
+
             try
             {
-                using var message = new HttpRequestMessage(method, route);
+                using var message =
+                    new HttpRequestMessage(
+                        method,
+                        route);
 
                 if (request is not null)
-                    message.Content = JsonContent.Create(request);
+                {
+                    message.Content =
+                        JsonContent.Create(
+                            request);
+                }
 
-                using var response = await httpClient.SendAsync(
-                    message,
-                    cancellationToken);
+                using HttpResponseMessage response =
+                    await httpClient.SendAsync(
+                        message,
+                        cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -95,7 +132,9 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
-                return ApiResult<bool>.Ok(true, successMessage);
+                return ApiResult<bool>.Ok(
+                    true,
+                    successMessage);
             }
             catch (TaskCanceledException)
                 when (!cancellationToken.IsCancellationRequested)
@@ -120,25 +159,61 @@ namespace CONATRADEC.Services
             }
         }
 
-        public static async Task<ApiResult<TResponse>> SendAndReadAsync<TRequest, TResponse>(
-            HttpClient httpClient,
-            HttpMethod method,
-            string route,
-            TRequest request,
-            string action,
-            string successMessage,
-            CancellationToken cancellationToken = default)
+        public static async Task<ApiResult<TResponse>>
+            SendAndReadAsync<TRequest, TResponse>(
+                HttpClient httpClient,
+                HttpMethod method,
+                string route,
+                TRequest request,
+                string action,
+                string successMessage,
+                CancellationToken cancellationToken = default)
         {
+            string rutaLimpia =
+                (route ?? string.Empty)
+                    .Split('?', 2)[0]
+                    .Trim()
+                    .TrimStart('/')
+                    .TrimEnd('/');
+
+            if (method == HttpMethod.Post &&
+                string.Equals(
+                    rutaLimpia,
+                    "api/usuarios/crear",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                var reactivacionService =
+                    new CatalogosEliminadosApiService(
+                        httpClient);
+
+                ApiResult<TResponse>? resuelto =
+                    await reactivacionService
+                        .IntentarResolverUsuarioInactivoAsync<
+                            TRequest,
+                            TResponse>(
+                                request,
+                                cancellationToken);
+
+                if (resuelto != null)
+                    return resuelto;
+            }
+
             try
             {
-                using var message = new HttpRequestMessage(method, route)
-                {
-                    Content = JsonContent.Create(request)
-                };
+                using var message =
+                    new HttpRequestMessage(
+                        method,
+                        route)
+                    {
+                        Content =
+                            JsonContent.Create(
+                                request)
+                    };
 
-                using var response = await httpClient.SendAsync(
-                    message,
-                    cancellationToken);
+                using HttpResponseMessage response =
+                    await httpClient.SendAsync(
+                        message,
+                        cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -150,9 +225,11 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
-                var data = await response.Content
-                    .ReadFromJsonAsync<TResponse>(
-                        cancellationToken: cancellationToken);
+                TResponse? data =
+                    await response.Content
+                        .ReadFromJsonAsync<TResponse>(
+                            cancellationToken:
+                                cancellationToken);
 
                 if (data == null)
                 {
@@ -192,21 +269,24 @@ namespace CONATRADEC.Services
             }
         }
 
-        internal static async Task<string> ReadResponseMessageAsync(
-            HttpResponseMessage response,
-            string fallback,
-            CancellationToken cancellationToken = default)
+        internal static async Task<string>
+            ReadResponseMessageAsync(
+                HttpResponseMessage response,
+                string fallback,
+                CancellationToken cancellationToken = default)
         {
             string content;
 
             try
             {
-                content = await response.Content.ReadAsStringAsync(
-                    cancellationToken);
+                content =
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
             }
             catch
             {
-                content = string.Empty;
+                content =
+                    string.Empty;
             }
 
             return ApiErrorMessageParser.Parse(
