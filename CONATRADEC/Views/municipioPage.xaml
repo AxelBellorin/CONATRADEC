@@ -4,6 +4,7 @@
     x:Name="MunicipioPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
@@ -65,173 +66,30 @@
             <!-- Contenido principal -->
             <Grid
                 IsVisible="{Binding CanView}"
-                Padding="{OnPlatform WinUI='26,22,26,28', Default='16,16,16,24'}"
+                Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
                 RowDefinitions="Auto,Auto,Auto,*"
                 RowSpacing="14">
 
-                <!-- Encabezado Windows -->
-                <Grid
+                <controls:ResponsiveCatalogHeader
                     Grid.Row="0"
-                    IsVisible="{OnPlatform WinUI=True, Default=False}"
-                    ColumnDefinitions="Auto,*,Auto"
-                    ColumnSpacing="16">
-
-                    <Button
-                        Grid.Column="0"
-                        Text="← Departamentos"
-                        Padding="16,10"
-                        VerticalOptions="Center"
-                        BackgroundColor="#EEF2F0"
-                        TextColor="{StaticResource color_Verde}"
-                        CornerRadius="11"
-                        Command="{Binding ReturnCommand}" />
-
-                    <VerticalStackLayout
-                        Grid.Column="1"
-                        Spacing="3"
-                        VerticalOptions="Center">
-
-                        <HorizontalStackLayout Spacing="10">
-
-                            <Label
-                                Text="{Binding TitlePage}"
-                                FontSize="30"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Verde}" />
-
-                            <Border
-                                IsVisible="{Binding MostrarCodigoPais}"
-                                Padding="9,5"
-                                VerticalOptions="Center"
-                                BackgroundColor="#EEF5F2"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 9">
-
-                                <Label
-                                    Text="{Binding CodigoPais}"
-                                    FontSize="11"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Verde}" />
-                            </Border>
-                        </HorizontalStackLayout>
-
-                        <Label
-                            Text="Administre los municipios y consulte su utilización en terrenos y usuarios."
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}" />
-                    </VerticalStackLayout>
-
-                    <Button
-                        Grid.Column="2"
-                        Text="+  Nuevo municipio"
-                        Padding="18,11"
-                        VerticalOptions="Center"
-                        Style="{StaticResource AddButton}"
-                        IsVisible="{Binding CanAdd}"
-                        Command="{Binding AddCommand}" />
-                </Grid>
-
-                <!-- Encabezado móvil -->
-                <VerticalStackLayout
-                    Grid.Row="0"
-                    IsVisible="{OnPlatform WinUI=False, Default=True}"
-                    Spacing="12">
-
-                    <VerticalStackLayout Spacing="3">
-
-                        <Label
-                            Text="{Binding TitlePage}"
-                            FontSize="25"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}"
-                            LineBreakMode="WordWrap" />
-
-                        <Label
-                            Text="Administre los municipios y consulte sus relaciones."
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}" />
-                    </VerticalStackLayout>
-
-                    <Grid
-                        ColumnDefinitions="*,*"
-                        ColumnSpacing="10">
-
-                        <Button
-                            Grid.Column="0"
-                            Text="← Departamentos"
-                            Padding="12,10"
-                            BackgroundColor="#EEF2F0"
-                            TextColor="{StaticResource color_Verde}"
-                            CornerRadius="11"
-                            Command="{Binding ReturnCommand}" />
-
-                        <Button
-                            Grid.Column="1"
-                            Text="+ Nuevo"
-                            Padding="12,10"
-                            Style="{StaticResource AddButton}"
-                            IsVisible="{Binding CanAdd}"
-                            Command="{Binding AddCommand}" />
-                    </Grid>
-                </VerticalStackLayout>
+                    Title="{Binding TitlePage}"
+                    Subtitle="Administre los municipios y consulte sus relaciones."
+                    BackText="← Departamentos"
+                    BackCommand="{Binding ReturnCommand}"
+                    PrimaryText="+ Nuevo municipio"
+                    PrimaryCommand="{Binding AddCommand}"
+                    IsPrimaryVisible="{Binding CanAdd}"
+                    ContextText="{Binding CodigoPais}"
+                    IsContextVisible="{Binding MostrarCodigoPais}" />
 
                 <!-- Búsqueda -->
-                <Border
+                <controls:ResponsiveSearchPanel
                     Grid.Row="1"
-                    Padding="{OnPlatform WinUI='16,14', Default='12'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 16">
-
-                    <Grid
-                        RowDefinitions="Auto,Auto"
-                        RowSpacing="10">
-
-                        <SearchBar
-                            Grid.Row="0"
-                            Placeholder="Buscar municipio por nombre"
-                            Text="{Binding TextoBusqueda}"
-                            SearchCommand="{Binding BuscarCommand}"
-                            BackgroundColor="#F8FAF9"
-                            CancelButtonColor="{StaticResource color_Verde}" />
-
-                        <Grid
-                            Grid.Row="1"
-                            ColumnDefinitions="*,Auto,Auto"
-                            ColumnSpacing="10">
-
-                            <Label
-                                Text="{Binding ResumenResultados}"
-                                VerticalOptions="Center"
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
-
-                            <Button
-                                Grid.Column="1"
-                                Text="Buscar"
-                                Padding="16,9"
-                                Command="{Binding BuscarCommand}"
-                                BackgroundColor="{StaticResource color_Verde}"
-                                TextColor="White"
-                                CornerRadius="10" />
-
-                            <Button
-                                Grid.Column="2"
-                                Text="Limpiar"
-                                Padding="16,9"
-                                Command="{Binding LimpiarFiltrosCommand}"
-                                BackgroundColor="#EEF2F0"
-                                TextColor="{StaticResource color_Verde}"
-                                CornerRadius="10" />
-                        </Grid>
-                    </Grid>
-                </Border>
-
-                <!-- Mensaje -->
+                    Placeholder="Buscar municipio por nombre"
+                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                    SummaryText="{Binding ResumenResultados}"
+                    SearchCommand="{Binding BuscarCommand}"
+                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
                 <Border
                     Grid.Row="2"
                     IsVisible="{Binding TieneMensaje}"

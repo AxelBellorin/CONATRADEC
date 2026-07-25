@@ -389,6 +389,8 @@ namespace CONATRADEC.ViewModels
                 foreach (InterfazResponse item
                          in resultado.Data.Interfaz
                              .OrderBy(item =>
+                                 item.NombreMostrar)
+                             .ThenBy(item =>
                                  item.NombreInterfaz))
                 {
                     /*
@@ -635,6 +637,9 @@ namespace CONATRADEC.ViewModels
                 string.IsNullOrWhiteSpace(texto)
                     ? Permisos
                     : Permisos.Where(item =>
+                        item.NombreMostrar.Contains(
+                            texto,
+                            StringComparison.OrdinalIgnoreCase) ||
                         item.NombreInterfaz.Contains(
                             texto,
                             StringComparison.OrdinalIgnoreCase));

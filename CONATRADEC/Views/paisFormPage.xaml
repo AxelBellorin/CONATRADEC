@@ -6,7 +6,7 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <Grid Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
+    <Grid Padding="{OnIdiom Phone='14,16,14,22', Tablet='22,20,22,26', Desktop='28,24,28,30'}">
 
         <ScrollView>
             <VerticalStackLayout
@@ -22,7 +22,7 @@
                     <VerticalStackLayout Spacing="4">
                         <Label
                             Text="{Binding Title}"
-                            FontSize="{OnPlatform WinUI=30, Default=26}"
+                            FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
                             FontFamily="MontserratBold"
                             FontAttributes="Bold"
                             TextColor="{StaticResource color_Verde}" />
@@ -44,7 +44,7 @@
 
                 <!-- Información general -->
                 <Border
-                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
                     BackgroundColor="White"
                     Stroke="#DDE7E3"
                     StrokeThickness="1"
@@ -67,8 +67,8 @@
                         </VerticalStackLayout>
 
                         <Grid
-                            ColumnDefinitions="{OnPlatform WinUI='2*,*', Default='*'}"
-                            RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Tablet='2*,*', Desktop='2*,*'}"
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Tablet='Auto', Desktop='Auto'}"
                             ColumnSpacing="16"
                             RowSpacing="16">
 
@@ -125,8 +125,8 @@
 
                             <!-- Código ISO -->
                             <VerticalStackLayout
-                                Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                                 Spacing="6">
 
                                 <Label

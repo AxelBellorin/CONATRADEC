@@ -8,6 +8,7 @@ namespace CONATRADEC.Views
             viewModel = new();
 
         private int cantidadColumnasActual;
+        private bool accionesFiltroCompactas;
 
         public fuenteNutrientePage()
         {
@@ -16,8 +17,7 @@ namespace CONATRADEC.Views
             Shell.Current.FlyoutBehavior =
                 FlyoutBehavior.Disabled;
 
-            BindingContext =
-                viewModel;
+            BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
@@ -25,7 +25,7 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             viewModel.ActualizarPermisos();
-            AjustarCantidadColumnas(Width);
+            AjustarDiseno(Width);
 
             await viewModel.InicializarAsync();
         }
@@ -41,16 +41,18 @@ namespace CONATRADEC.Views
             double width,
             double height)
         {
-            base.OnSizeAllocated(
-                width,
-                height);
+            base.OnSizeAllocated(width, height);
 
-            AjustarCantidadColumnas(
-                width);
+            AjustarDiseno(width);
         }
 
-        private void AjustarCantidadColumnas(
-            double width)
+        private void AjustarDiseno(double width)
+        {
+            AjustarCantidadColumnas(width);
+            AjustarAccionesFiltro(width);
+        }
+
+        private void AjustarCantidadColumnas(double width)
         {
             if (width <= 0 ||
                 FuentesGridLayout == null)
@@ -61,21 +63,89 @@ namespace CONATRADEC.Views
             int nuevasColumnas =
                 width >= 1280
                     ? 3
-                    : width >= 760
+                    : width >= 700
                         ? 2
                         : 1;
 
-            if (cantidadColumnasActual ==
-                nuevasColumnas)
+            if (cantidadColumnasActual == nuevasColumnas)
+                return;
+
+            cantidadColumnasActual = nuevasColumnas;
+            FuentesGridLayout.Span = nuevasColumnas;
+        }
+
+        /// <summary>
+        /// En teléfono, el total ocupa una fila y Buscar/Limpiar comparten
+        /// una segunda fila. En tablet y escritorio se usa una sola fila.
+        /// </summary>
+        private void AjustarAccionesFiltro(double width)
+        {
+            if (width <= 0 ||
+                FuenteFiltroAccionesGrid == null)
             {
                 return;
             }
 
-            cantidadColumnasActual =
-                nuevasColumnas;
+            bool compacto = width < 600;
 
-            FuentesGridLayout.Span =
-                nuevasColumnas;
+            if (accionesFiltroCompactas == compacto)
+                return;
+
+            accionesFiltroCompactas = compacto;
+
+            FuenteFiltroAccionesGrid.ColumnDefinitions.Clear();
+            FuenteFiltroAccionesGrid.RowDefinitions.Clear();
+
+            View resumen = (View)FuenteFiltroAccionesGrid.Children[0];
+            View buscar = (View)FuenteFiltroAccionesGrid.Children[1];
+            View limpiar = (View)FuenteFiltroAccionesGrid.Children[2];
+
+            if (compacto)
+            {
+                FuenteFiltroAccionesGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Star));
+                FuenteFiltroAccionesGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Star));
+                FuenteFiltroAccionesGrid.RowDefinitions.Add(
+                    new RowDefinition(GridLength.Auto));
+                FuenteFiltroAccionesGrid.RowDefinitions.Add(
+                    new RowDefinition(GridLength.Auto));
+
+                Grid.SetRow(resumen, 0);
+                Grid.SetColumn(resumen, 0);
+                Grid.SetColumnSpan(resumen, 2);
+
+                Grid.SetRow(buscar, 1);
+                Grid.SetColumn(buscar, 0);
+                Grid.SetColumnSpan(buscar, 1);
+
+                Grid.SetRow(limpiar, 1);
+                Grid.SetColumn(limpiar, 1);
+                Grid.SetColumnSpan(limpiar, 1);
+
+                return;
+            }
+
+            FuenteFiltroAccionesGrid.ColumnDefinitions.Add(
+                new ColumnDefinition(GridLength.Star));
+            FuenteFiltroAccionesGrid.ColumnDefinitions.Add(
+                new ColumnDefinition(GridLength.Auto));
+            FuenteFiltroAccionesGrid.ColumnDefinitions.Add(
+                new ColumnDefinition(GridLength.Auto));
+            FuenteFiltroAccionesGrid.RowDefinitions.Add(
+                new RowDefinition(GridLength.Auto));
+
+            Grid.SetRow(resumen, 0);
+            Grid.SetColumn(resumen, 0);
+            Grid.SetColumnSpan(resumen, 1);
+
+            Grid.SetRow(buscar, 0);
+            Grid.SetColumn(buscar, 1);
+            Grid.SetColumnSpan(buscar, 1);
+
+            Grid.SetRow(limpiar, 0);
+            Grid.SetColumn(limpiar, 2);
+            Grid.SetColumnSpan(limpiar, 1);
         }
     }
 }

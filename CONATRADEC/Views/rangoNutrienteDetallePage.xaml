@@ -4,114 +4,33 @@
     x:Name="DetallePageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
-            Padding="{OnPlatform WinUI='26,22,26,28', Default='16,16,16,24'}"
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
             RowDefinitions="Auto,Auto,Auto,*"
             RowSpacing="14">
 
-            <Grid
+            <controls:ResponsiveCatalogHeader
                 Grid.Row="0"
-                ColumnDefinitions="Auto,*,Auto"
-                ColumnSpacing="14">
-
-                <Button
-                    Grid.Column="0"
-                    Text="← Cultivos"
-                    Padding="16,10"
-                    VerticalOptions="Center"
-                    BackgroundColor="#EEF2F0"
-                    TextColor="{StaticResource color_Verde}"
-                    CornerRadius="11"
-                    Command="{Binding BackCommand}" />
-
-                <VerticalStackLayout
-                    Grid.Column="1"
-                    Spacing="3"
-                    VerticalOptions="Center">
-
-                    <Label
-                        Text="{Binding Titulo}"
-                        FontSize="{OnPlatform WinUI=29, Default=24}"
-                        FontFamily="MontserratBold"
-                        FontAttributes="Bold"
-                        TextColor="{StaticResource color_Verde}"
-                        LineBreakMode="TailTruncation" />
-
-                    <Label
-                        Text="{Binding DescripcionCategoria}"
-                        FontSize="12"
-                        TextColor="{StaticResource color_GrisOscuro}"
-                        MaxLines="2"
-                        LineBreakMode="TailTruncation" />
-                </VerticalStackLayout>
-
-                <Button
-                    Grid.Column="2"
-                    Text="+ Nuevo rango"
-                    Padding="16,10"
-                    VerticalOptions="Center"
-                    Style="{StaticResource AddButton}"
-                    IsVisible="{Binding CanAdd}"
-                    Command="{Binding AddCommand}" />
-            </Grid>
-
-            <Border
+                Title="{Binding Titulo}"
+                Subtitle="{Binding DescripcionCategoria}"
+                BackText="← Cultivos"
+                BackCommand="{Binding BackCommand}"
+                PrimaryText="+ Nuevo rango"
+                PrimaryCommand="{Binding AddCommand}"
+                IsPrimaryVisible="{Binding CanAdd}" />
+            <controls:ResponsiveSearchPanel
                 Grid.Row="1"
-                Padding="{OnPlatform WinUI='16,14', Default='12'}"
-                BackgroundColor="White"
-                Stroke="#DDE7E3"
-                StrokeThickness="1"
-                StrokeShape="RoundRectangle 16">
-
-                <Grid
-                    RowDefinitions="Auto,Auto"
-                    RowSpacing="10">
-
-                    <SearchBar
-                        Grid.Row="0"
-                        Placeholder="Buscar por elemento, símbolo o descripción"
-                        Text="{Binding TextoBusqueda}"
-                        SearchCommand="{Binding BuscarCommand}"
-                        BackgroundColor="#F8FAF9"
-                        CancelButtonColor="{StaticResource color_Verde}" />
-
-                    <Grid
-                        Grid.Row="1"
-                        ColumnDefinitions="*,Auto,Auto"
-                        ColumnSpacing="10">
-
-                        <Label
-                            Text="{Binding ResumenAportes}"
-                            VerticalOptions="Center"
-                            FontSize="12"
-                            TextColor="{StaticResource color_GrisOscuro}" />
-
-                        <Button
-                            Grid.Column="1"
-                            Text="Buscar"
-                            Padding="16,9"
-                            Command="{Binding BuscarCommand}"
-                            BackgroundColor="{StaticResource color_Verde}"
-                            TextColor="White"
-                            CornerRadius="10" />
-
-                        <Button
-                            Grid.Column="2"
-                            Text="Limpiar"
-                            Padding="16,9"
-                            Command="{Binding LimpiarFiltrosCommand}"
-                            BackgroundColor="#EEF2F0"
-                            TextColor="{StaticResource color_Verde}"
-                            CornerRadius="10" />
-                    </Grid>
-                </Grid>
-            </Border>
-
+                Placeholder="Buscar por elemento, símbolo o descripción"
+                SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                SummaryText="{Binding ResumenAportes}"
+                SearchCommand="{Binding BuscarCommand}"
+                ClearCommand="{Binding LimpiarFiltrosCommand}" />
             <Border
                 Grid.Row="2"
                 IsVisible="{Binding TieneMensaje}"

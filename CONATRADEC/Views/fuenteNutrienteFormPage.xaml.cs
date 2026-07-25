@@ -93,8 +93,7 @@ namespace CONATRADEC.Views
                     1100);
 
             bool disenoAmplio =
-                anchoPagina >=
-                760;
+                anchoPagina >= 700;
 
             AjustarDatosBasicos(
                 disenoAmplio);

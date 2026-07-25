@@ -6,7 +6,6 @@ namespace CONATRADEC.Views
     {
         private readonly MatrizPermisosViewModel viewModel = new();
 
-        private bool modoCompactoActual;
         private bool anchoCompactoActual;
 
         public matrizPermisosPage()
@@ -26,9 +25,7 @@ namespace CONATRADEC.Views
             if (!viewModel.CanView)
                 return;
 
-            AjustarDistribucion(
-                Width,
-                Height);
+            AjustarDistribucion(Width, Height);
 
             await viewModel.InicializarAsync();
         }
@@ -44,19 +41,17 @@ namespace CONATRADEC.Views
             double width,
             double height)
         {
-            base.OnSizeAllocated(
-                width,
-                height);
+            base.OnSizeAllocated(width, height);
 
-            AjustarDistribucion(
-                width,
-                height);
+            AjustarDistribucion(width, height);
         }
 
         /// <summary>
-        /// Prioriza el listado de permisos cuando la ventana tiene poca
-        /// altura. El encabezado y los filtros quedan disponibles mediante
-        /// su propio desplazamiento vertical.
+        /// La matriz prioriza el listado de permisos.
+        ///
+        /// El encabezado, selector, buscador y acciones masivas comparten
+        /// un panel superior desplazable que cede espacio en teléfonos y
+        /// ventanas con poca altura.
         /// </summary>
         private void AjustarDistribucion(
             double width,
@@ -69,31 +64,29 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            bool modoCompacto =
-                height < 760;
+            bool telefono = width < 600;
+            bool alturaCompacta = height < 760;
 
-            bool anchoCompacto =
-                width < 780;
-
-            /*
-             * En una ventana baja, el panel superior no consume más del
-             * 34 % de la altura. En una ventana amplia puede crecer un poco
-             * más, pero siempre deja la mayor parte para los permisos.
-             */
             double porcentajeSuperior =
-                modoCompacto
-                    ? 0.34
-                    : 0.42;
+                telefono
+                    ? 0.44
+                    : alturaCompacta
+                        ? 0.34
+                        : 0.42;
 
             double minimoSuperior =
-                modoCompacto
-                    ? 170
-                    : 245;
+                telefono
+                    ? 230
+                    : alturaCompacta
+                        ? 175
+                        : 245;
 
             double maximoSuperior =
-                modoCompacto
-                    ? 245
-                    : 380;
+                telefono
+                    ? 360
+                    : alturaCompacta
+                        ? 250
+                        : 390;
 
             PanelSuperiorScroll.MaximumHeightRequest =
                 Math.Clamp(
@@ -102,74 +95,38 @@ namespace CONATRADEC.Views
                     maximoSuperior);
 
             PermisosList.MinimumHeightRequest =
-                modoCompacto
+                telefono
                     ? 220
-                    : 280;
+                    : alturaCompacta
+                        ? 230
+                        : 290;
 
-            if (modoCompactoActual != modoCompacto)
-            {
-                modoCompactoActual =
-                    modoCompacto;
+            bool anchoCompacto = width < 720;
 
-                TituloMatrizLabel.FontSize =
-                    modoCompacto
-                        ? 23
-                        : 30;
+            if (anchoCompactoActual == anchoCompacto)
+                return;
 
-                SubtituloMatrizLabel.IsVisible =
-                    !modoCompacto;
+            anchoCompactoActual = anchoCompacto;
 
-                EncabezadoGrid.ColumnSpacing =
-                    modoCompacto
-                        ? 8
-                        : 16;
+            BotonGuardar.Text =
+                anchoCompacto
+                    ? "Guardar"
+                    : "Guardar cambios";
 
-                BotonConfiguracion.Padding =
-                    modoCompacto
-                        ? new Thickness(11, 8)
-                        : new Thickness(16, 10);
+            BotonRevertir.Padding =
+                anchoCompacto
+                    ? new Thickness(11, 8)
+                    : new Thickness(16, 10);
 
-                BotonRefrescar.Padding =
-                    modoCompacto
-                        ? new Thickness(11, 8)
-                        : new Thickness(16, 10);
+            BotonGuardar.Padding =
+                anchoCompacto
+                    ? new Thickness(12, 8)
+                    : new Thickness(18, 10);
 
-                AccionesInferioresGrid.Padding =
-                    modoCompacto
-                        ? new Thickness(0, 1)
-                        : new Thickness(0, 4);
-            }
-
-            if (anchoCompactoActual != anchoCompacto)
-            {
-                anchoCompactoActual =
-                    anchoCompacto;
-
-                BotonConfiguracion.Text =
-                    anchoCompacto
-                        ? "← Volver"
-                        : "← Configuración";
-
-                BotonRefrescar.Text =
-                    anchoCompacto
-                        ? "↻"
-                        : "Refrescar";
-
-                BotonGuardar.Text =
-                    anchoCompacto
-                        ? "Guardar"
-                        : "Guardar cambios";
-
-                BotonRevertir.Padding =
-                    anchoCompacto
-                        ? new Thickness(11, 8)
-                        : new Thickness(16, 10);
-
-                BotonGuardar.Padding =
-                    anchoCompacto
-                        ? new Thickness(12, 8)
-                        : new Thickness(18, 10);
-            }
+            AccionesInferioresGrid.Padding =
+                alturaCompacta
+                    ? new Thickness(0, 1)
+                    : new Thickness(0, 4);
         }
     }
 }

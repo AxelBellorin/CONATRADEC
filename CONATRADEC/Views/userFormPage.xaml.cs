@@ -84,7 +84,7 @@ namespace CONATRADEC.Views
                     Math.Max(280, ancho - margen),
                     1100);
 
-            bool amplio = ancho >= 820;
+            bool amplio = ancho >= 700;
 
             AjustarGrid(
                 AccesoGrid,

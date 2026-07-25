@@ -153,7 +153,7 @@ namespace CONATRADEC.Views
                 Math.Min(anchoDisponible, 1100);
 
             bool amplio =
-                anchoPagina >= 760;
+                anchoPagina >= 700;
 
             AjustarGrid(
                 DatosReferenciaGrid,

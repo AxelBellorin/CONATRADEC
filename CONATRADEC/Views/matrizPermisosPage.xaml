@@ -4,6 +4,7 @@
     x:Name="MatrizPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
@@ -60,7 +61,7 @@
             <!-- Contenido principal sin ScrollView exterior -->
             <Grid
                 IsVisible="{Binding CanView}"
-                Padding="{OnPlatform WinUI='26,22,26,28', Default='16,16,16,24'}"
+                Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
                 RowDefinitions="Auto,*,Auto"
                 RowSpacing="12">
 
@@ -76,56 +77,20 @@
                     HorizontalScrollBarVisibility="Never">
 
                     <VerticalStackLayout Spacing="12">
-                <!-- Encabezado -->
-                <Grid
-                    x:Name="EncabezadoGrid"
-                    ColumnDefinitions="Auto,*,Auto"
-                    ColumnSpacing="16">
-
-                    <Button
-                        x:Name="BotonConfiguracion"
-                        Grid.Column="0"
-                        Text="← Configuración"
-                        Padding="16,10"
-                        BackgroundColor="#EEF2F0"
-                        TextColor="{StaticResource color_Verde}"
-                        CornerRadius="11"
-                        Command="{Binding RegresarConfiguracionCommand}" />
-
-                    <VerticalStackLayout
-                        Grid.Column="1"
-                        Spacing="3"
-                        VerticalOptions="Center">
-
-                        <Label
-                            x:Name="TituloMatrizLabel"
-                            Text="Matriz de permisos"
-                            FontSize="{OnPlatform WinUI=30, Default=25}"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
-
-                        <Label
-                            x:Name="SubtituloMatrizLabel"
-                            Text="Seleccione un rol y configure sus acciones por interfaz."
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}" />
-                    </VerticalStackLayout>
-
-                    <Button
-                        x:Name="BotonRefrescar"
-                        Grid.Column="2"
-                        Text="Refrescar"
-                        Padding="16,10"
-                        BackgroundColor="#EEF5F2"
-                        TextColor="{StaticResource color_Verde}"
-                        CornerRadius="10"
-                        Command="{Binding RefrescarCommand}" />
-                </Grid>
+                <controls:ResponsiveCatalogHeader
+                    Title="Matriz de permisos"
+                    Subtitle="Seleccione un rol y configure sus acciones por interfaz."
+                    BackText="← Configuración"
+                    BackCommand="{Binding RegresarConfiguracionCommand}"
+                    PrimaryText="Refrescar"
+                    PrimaryCommand="{Binding RefrescarCommand}"
+                    IsPrimaryVisible="True"
+                    PrimaryBackgroundColor="#EEF5F2"
+                    PrimaryTextColor="{StaticResource color_Verde}" />
 
                 <!-- Selector y búsqueda -->
                 <Border
-                    Padding="{OnPlatform WinUI='16,14', Default='12'}"
+                    Padding="{OnIdiom Phone='11', Tablet='14,12', Desktop='16,14'}"
                     BackgroundColor="White"
                     Stroke="#DDE7E3"
                     StrokeShape="RoundRectangle 16">
@@ -295,7 +260,7 @@
                                         ColumnSpacing="8">
 
                                         <Label
-                                            Text="{Binding NombreInterfaz}"
+                                            Text="{Binding NombreMostrar}"
                                             FontSize="15"
                                             FontFamily="MontserratBold"
                                             FontAttributes="Bold"

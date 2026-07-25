@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="CONATRADEC.Controls.ResponsiveCatalogHeader"
+    x:Name="HeaderRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <Grid
+        x:Name="HeaderGrid"
+        RowSpacing="10"
+        ColumnSpacing="14">
+
+        <Button
+            x:Name="BackButton"
+            Text="{Binding BackText, Source={x:Reference HeaderRoot}}"
+            Command="{Binding BackCommand, Source={x:Reference HeaderRoot}}"
+            IsVisible="{Binding IsBackVisible, Source={x:Reference HeaderRoot}}"
+            BackgroundColor="#EEF2F0"
+            TextColor="{StaticResource color_Verde}"
+            CornerRadius="11"
+            FontFamily="MontserratMedium"
+            VerticalOptions="Center" />
+
+        <VerticalStackLayout
+            x:Name="TitleContainer"
+            Spacing="3"
+            VerticalOptions="Center">
+
+            <Grid
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="8">
+
+                <Label
+                    x:Name="TitleLabel"
+                    Text="{Binding Title, Source={x:Reference HeaderRoot}}"
+                    FontFamily="MontserratBold"
+                    FontAttributes="Bold"
+                    TextColor="{StaticResource color_Verde}"
+                    LineBreakMode="WordWrap"
+                    VerticalOptions="Center" />
+
+                <Border
+                    Grid.Column="1"
+                    IsVisible="{Binding IsContextVisible, Source={x:Reference HeaderRoot}}"
+                    Padding="8,4"
+                    VerticalOptions="Center"
+                    BackgroundColor="#EEF5F2"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8">
+
+                    <Label
+                        Text="{Binding ContextText, Source={x:Reference HeaderRoot}}"
+                        FontSize="10"
+                        FontFamily="MontserratBold"
+                        FontAttributes="Bold"
+                        TextColor="{StaticResource color_Verde}"
+                        LineBreakMode="TailTruncation" />
+                </Border>
+            </Grid>
+
+            <Label
+                x:Name="SubtitleLabel"
+                Text="{Binding Subtitle, Source={x:Reference HeaderRoot}}"
+                IsVisible="{Binding HasSubtitle, Source={x:Reference HeaderRoot}}"
+                FontSize="13"
+                TextColor="{StaticResource color_GrisOscuro}"
+                LineBreakMode="WordWrap"
+                MaxLines="3" />
+        </VerticalStackLayout>
+
+        <Button
+            x:Name="PrimaryButton"
+            Text="{Binding PrimaryText, Source={x:Reference HeaderRoot}}"
+            Command="{Binding PrimaryCommand, Source={x:Reference HeaderRoot}}"
+            IsVisible="{Binding IsPrimaryVisible, Source={x:Reference HeaderRoot}}"
+            BackgroundColor="{Binding PrimaryBackgroundColor, Source={x:Reference HeaderRoot}}"
+            TextColor="{Binding PrimaryTextColor, Source={x:Reference HeaderRoot}}"
+            CornerRadius="11"
+            FontFamily="MontserratBold"
+            VerticalOptions="Center" />
+    </Grid>
+</ContentView>

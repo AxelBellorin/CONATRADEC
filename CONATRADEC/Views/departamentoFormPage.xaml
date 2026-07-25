@@ -7,7 +7,7 @@
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
     <Grid
-        Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
+        Padding="{OnIdiom Phone='14,16,14,22', Tablet='22,20,22,26', Desktop='28,24,28,30'}">
 
         <ScrollView>
             <VerticalStackLayout
@@ -24,7 +24,7 @@
 
                         <Label
                             Text="{Binding Title}"
-                            FontSize="{OnPlatform WinUI=30, Default=26}"
+                            FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
                             FontFamily="MontserratBold"
                             FontAttributes="Bold"
                             TextColor="{StaticResource color_Verde}" />
@@ -108,7 +108,7 @@
 
                 <!-- Información del departamento -->
                 <Border
-                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
                     BackgroundColor="White"
                     Stroke="#DDE7E3"
                     StrokeThickness="1"

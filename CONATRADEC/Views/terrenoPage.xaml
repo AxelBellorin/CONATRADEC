@@ -4,6 +4,7 @@
     x:Name="TerrenosRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     BackgroundColor="#FFF5FF"
@@ -14,35 +15,16 @@
             x:Name="ContenidoPrincipal"
             RowDefinitions="Auto,*"
             RowSpacing="12"
-            Padding="{OnPlatform WinUI='24,20', Default='14,12'}">
+            Padding="{OnIdiom Phone='14,12', Tablet='24,20', Desktop='24,20'}">
 
-            <!-- Encabezado -->
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <VerticalStackLayout Spacing="2">
-                    <Label
-                        Text="Terrenos"
-                        FontFamily="MontserratBold"
-                        FontAttributes="Bold"
-                        FontSize="{OnPlatform WinUI=28, Default=23}"
-                        TextColor="#3B655B" />
-                    <Label
-                        Text="{Binding TotalTexto}"
-                        FontFamily="MontserratMedium"
-                        FontSize="12"
-                        TextColor="#6B7280" />
-                </VerticalStackLayout>
-
-                <Button
-                    Grid.Column="1"
-                    Text="+ Nuevo"
-                    Command="{Binding AddCommand}"
-                    IsVisible="{Binding CanAdd}"
-                    BackgroundColor="#3B655B"
-                    TextColor="White"
-                    FontFamily="MontserratBold"
-                    CornerRadius="11"
-                    Padding="15,9" />
-            </Grid>
+            <controls:ResponsiveCatalogHeader
+                Title="Terrenos"
+                Subtitle="{Binding TotalTexto}"
+                BackText="← Configuración"
+                BackCommand="{Binding Source={x:Reference TerrenosRoot}, Path=RegresarConfiguracionCommand}"
+                PrimaryText="+ Nuevo terreno"
+                PrimaryCommand="{Binding AddCommand}"
+                IsPrimaryVisible="{Binding CanAdd}" />
 
             <RefreshView
                 Grid.Row="1"
@@ -80,7 +62,11 @@
                                         FontFamily="MontserratMedium"
                                         BackgroundColor="#F8FAF9" />
 
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <Grid
+                                        x:Name="BusquedaAccionesGrid"
+                                        ColumnDefinitions="*,Auto,Auto"
+                                        ColumnSpacing="8"
+                                        RowSpacing="8">
                                         <Button
                                             Text="Buscar"
                                             Command="{Binding BuscarCommand}"
@@ -125,7 +111,7 @@
                                         TextColor="#3B655B" />
 
                                     <Grid
-                                        ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*', Desktop='*,*'}"
                                         RowDefinitions="Auto,Auto,Auto,Auto"
                                         ColumnSpacing="12"
                                         RowSpacing="10">
@@ -138,8 +124,8 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
                                             Spacing="4">
                                             <Label Text="Propietario" FontFamily="MontserratBold" FontSize="11" />
                                             <Entry
@@ -149,7 +135,7 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Row="{OnPlatform WinUI=1, Default=2}"
+                                            Grid.Row="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
                                             Spacing="4">
                                             <Label Text="Identificación" FontFamily="MontserratBold" FontSize="11" />
                                             <Entry
@@ -159,8 +145,8 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=1, Default=3}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                            Grid.Row="{OnIdiom Phone=3, Tablet=1, Desktop=1}"
                                             Spacing="4">
                                             <Label Text="Dirección" FontFamily="MontserratBold" FontSize="11" />
                                             <Entry
@@ -179,7 +165,7 @@
                                         TextColor="#374151" />
 
                                     <Grid
-                                        ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
+                                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*,*', Desktop='*,*,*'}"
                                         RowDefinitions="Auto,Auto,Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="8">
@@ -190,16 +176,16 @@
                                             SelectedItem="{Binding PaisSeleccionado}" />
 
                                         <Picker
-                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
                                             Title="Todos los departamentos"
                                             ItemsSource="{Binding Departamentos}"
                                             ItemDisplayBinding="{Binding NombreDepartamento}"
                                             SelectedItem="{Binding DepartamentoSeleccionado}" />
 
                                         <Picker
-                                            Grid.Column="{OnPlatform WinUI=2, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=2}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
+                                            Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
                                             Title="Todos los municipios"
                                             ItemsSource="{Binding Municipios}"
                                             ItemDisplayBinding="{Binding NombreMunicipio}"
@@ -215,7 +201,7 @@
                                     <BoxView HeightRequest="1" Color="#E5E7EB" />
 
                                     <Grid
-                                        ColumnDefinitions="{OnPlatform WinUI='Auto,*,*,*', Default='Auto,*'}"
+                                        ColumnDefinitions="{OnIdiom Phone='Auto,*', Tablet='Auto,*,*,*', Desktop='Auto,*,*,*'}"
                                         RowDefinitions="Auto,Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="8">
@@ -230,20 +216,20 @@
                                             FontSize="12" />
 
                                         <DatePicker
-                                            Grid.Column="{OnPlatform WinUI=2, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
+                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
                                             Date="{Binding FechaDesde}"
                                             IsVisible="{Binding FiltrarPorFecha}" />
 
                                         <DatePicker
-                                            Grid.Column="{OnPlatform WinUI=3, Default=1}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Grid.Column="{OnIdiom Phone=1, Tablet=3, Desktop=3}"
+                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
                                             Date="{Binding FechaHasta}"
                                             IsVisible="{Binding FiltrarPorFecha}" />
                                     </Grid>
 
                                     <Grid
-                                        ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
+                                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*,*', Desktop='*,*,*'}"
                                         RowDefinitions="Auto,Auto,Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="8">
@@ -257,8 +243,8 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
                                             Spacing="4">
                                             <Label Text="Extensión máxima (mz)" FontFamily="MontserratBold" FontSize="11" />
                                             <Entry
@@ -269,8 +255,8 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Column="{OnPlatform WinUI=2, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=2}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
+                                            Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
                                             Spacing="4">
                                             <Label Text="Ordenar por" FontFamily="MontserratBold" FontSize="11" />
                                             <Picker
@@ -354,7 +340,7 @@
 
                                     <Grid
                                         Grid.Row="1"
-                                        ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
+                                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*,*', Desktop='*,*,*'}"
                                         RowDefinitions="Auto,Auto,Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="4">
@@ -365,16 +351,16 @@
                                             TextColor="#3B655B"
                                             MaxLines="1" />
                                         <Label
-                                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
                                             Text="{Binding Ubicacion.NombreDepartamento}"
                                             FontFamily="MontserratMedium"
                                             FontSize="11"
                                             TextColor="#6B7280"
                                             MaxLines="1" />
                                         <Label
-                                            Grid.Column="{OnPlatform WinUI=2, Default=0}"
-                                            Grid.Row="{OnPlatform WinUI=0, Default=2}"
+                                            Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
+                                            Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
                                             Text="{Binding FechaIngresoTerreno, StringFormat='Ingreso: {0:dd/MM/yyyy}'}"
                                             FontFamily="MontserratMedium"
                                             FontSize="11"

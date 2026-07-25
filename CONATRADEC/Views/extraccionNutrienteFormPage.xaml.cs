@@ -81,7 +81,7 @@ namespace CONATRADEC.Views
             FormularioContainer.WidthRequest =
                 Math.Min(anchoDisponible, 1100);
 
-            bool disenoAmplio = anchoPagina >= 760;
+            bool disenoAmplio = anchoPagina >= 700;
 
             CamposPrincipalesGrid.ColumnDefinitions.Clear();
             CamposPrincipalesGrid.RowDefinitions.Clear();

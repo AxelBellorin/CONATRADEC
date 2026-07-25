@@ -41,9 +41,9 @@ namespace CONATRADEC.Views
             if (width <= 0 || ExtraccionesGridLayout == null)
                 return;
 
-            int nuevasColumnas = width >= 1280
+            int nuevasColumnas = width >= 1200
                 ? 3
-                : width >= 760
+                : width >= 700
                     ? 2
                     : 1;
 

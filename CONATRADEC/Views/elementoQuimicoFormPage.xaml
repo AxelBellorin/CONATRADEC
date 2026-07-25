@@ -7,11 +7,20 @@
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
     <Grid
-        Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
+        Padding="{OnIdiom Phone='14,16,14,22', Tablet='22,20,22,26', Desktop='28,24,28,30'}">
 
-        <ScrollView>
+        <ScrollView
+            HorizontalOptions="Fill"
+            HorizontalScrollBarVisibility="Never">
+
+            <!--
+                El ancho se calcula desde el code-behind según el tamaño
+                real de la ventana. Así no queda reducido al ancho mínimo
+                de los Entry en Windows y tampoco se desborda en móvil.
+            -->
             <VerticalStackLayout
-                MaximumWidthRequest="920"
+                x:Name="FormularioContainer"
+                MaximumWidthRequest="1100"
                 HorizontalOptions="Center"
                 Spacing="18">
 
@@ -22,7 +31,7 @@
                     <VerticalStackLayout Spacing="4">
                         <Label
                             Text="{Binding Title}"
-                            FontSize="{OnPlatform WinUI=30, Default=26}"
+                            FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
                             FontFamily="MontserratBold"
                             FontAttributes="Bold"
                             TextColor="{StaticResource color_Verde}" />
@@ -43,7 +52,7 @@
                 </Grid>
 
                 <Border
-                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
                     BackgroundColor="White"
                     Stroke="#DDE7E3"
                     StrokeThickness="1"

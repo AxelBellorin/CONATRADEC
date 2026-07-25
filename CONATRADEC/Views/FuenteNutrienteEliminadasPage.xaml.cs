@@ -2,35 +2,22 @@ using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
-    public partial class paisPage : ContentPage
+    public partial class FuenteNutrienteEliminadasPage : ContentPage
     {
-        private readonly PaisViewModel viewModel = new();
+        private readonly FuenteNutrienteEliminadasViewModel viewModel = new();
         private int cantidadColumnasActual;
 
-        public paisPage()
+        public FuenteNutrienteEliminadasPage()
         {
             InitializeComponent();
-
-            Shell.Current.FlyoutBehavior =
-                FlyoutBehavior.Disabled;
-
             BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-
-            viewModel.ActualizarPermisos();
             AjustarCantidadColumnas(Width);
-
             await viewModel.InicializarAsync();
-        }
-
-        protected override void OnDisappearing()
-        {
-            base.OnDisappearing();
-            viewModel.CancelarCarga();
         }
 
         protected override void OnSizeAllocated(
@@ -43,16 +30,13 @@ namespace CONATRADEC.Views
 
         private void AjustarCantidadColumnas(double width)
         {
-            if (width <= 0 ||
-                PaisesGridLayout == null)
-            {
+            if (width <= 0 || FuentesEliminadasGrid == null)
                 return;
-            }
 
             int nuevasColumnas =
-                width >= 1200
+                width >= 1180
                     ? 3
-                    : width >= 700
+                    : width >= 720
                         ? 2
                         : 1;
 
@@ -60,7 +44,7 @@ namespace CONATRADEC.Views
                 return;
 
             cantidadColumnasActual = nuevasColumnas;
-            PaisesGridLayout.Span = nuevasColumnas;
+            FuentesEliminadasGrid.Span = nuevasColumnas;
         }
     }
 }

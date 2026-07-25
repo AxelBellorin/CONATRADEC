@@ -1,3 +1,5 @@
+using Microsoft.Maui.Graphics;
+
 namespace CONATRADEC.Models
 {
     /// <summary>

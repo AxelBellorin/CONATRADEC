@@ -1,106 +1,146 @@
-﻿using CONATRADEC.Models;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using CONATRADEC.Services;
 
-// Espacio de nombres que contiene los modelos del proyecto CONATRADEC.
 namespace CONATRADEC.Models
 {
-    // Clase que representa la estructura de respuesta (Response)
-    // para los permisos o interfaces obtenidas desde la API.
-    // Hereda de la clase "Permiso", lo que le otorga las propiedades:
-    // Leer, Agregar, Actualizar, Eliminar e IsDirty (indicador de cambios).
-    public class InterfazResponse : Permiso
+    /// <summary>
+    /// Representa una página principal dentro de la matriz.
+    ///
+    /// NombreInterfaz es técnico y se conserva únicamente para
+    /// autorización, guardado y búsqueda interna.
+    /// </summary>
+    public sealed class InterfazResponse : Permiso
     {
-        // ===========================================================
-        // =============== CAMPOS PRIVADOS DE LA CLASE ===============
-        // ===========================================================
-
-        // Campo que almacena el identificador único del permiso o interfaz.
         private int interfazId;
-
-        // Campo que almacena el nombre del permiso o interfaz (por ejemplo: "usuarioPage", "rolPage", etc.).
-        // Se inicializa con una cadena vacía para evitar valores nulos.
         private string nombreInterfaz = string.Empty;
+        private string nombreAmigableInterfaz = string.Empty;
+        private bool isExpanded;
+        private bool canEdit = true;
 
-        private bool _isExpanded;
+        public int InterfazId
+        {
+            get => interfazId;
+            set
+            {
+                if (interfazId == value)
+                    return;
 
-        private bool _canEdit = true;
+                interfazId = value;
+                OnPropertyChanged();
+            }
+        }
 
+        public string NombreInterfaz
+        {
+            get => nombreInterfaz;
+            set
+            {
+                string nuevo = value ?? string.Empty;
 
-        // ===========================================================
-        // ============= PROPIEDADES PÚBLICAS CON NOTIFICACIÓN =======
-        // ===========================================================
+                if (nombreInterfaz == nuevo)
+                    return;
 
-        // Propiedad pública para acceder o modificar el ID del permiso.
-        // Incluye OnPropertyChanged() para notificar cambios en la interfaz de usuario (binding).
-        public int InterfazId { get => interfazId; set { interfazId = value; OnPropertyChanged(); } }
+                nombreInterfaz = nuevo;
 
-        // Propiedad pública para acceder o modificar el nombre del permiso.
-        // También notifica cambios al UI cuando su valor cambia.
-        public string NombreInterfaz { get => nombreInterfaz; set { nombreInterfaz = value; OnPropertyChanged(); } }
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(NombreMostrar));
+            }
+        }
 
-        
+        public string NombreAmigableInterfaz
+        {
+            get => nombreAmigableInterfaz;
+            set
+            {
+                string nuevo = value ?? string.Empty;
+
+                if (nombreAmigableInterfaz == nuevo)
+                    return;
+
+                nombreAmigableInterfaz = nuevo;
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(NombreMostrar));
+            }
+        }
+
+        /// <summary>
+        /// Único texto destinado a mostrarse en la tarjeta.
+        /// Nunca devuelve directamente un código terminado en Page.
+        /// </summary>
+        public string NombreMostrar =>
+            InterfazCodigos.ObtenerNombreAmigable(
+                NombreInterfaz,
+                NombreAmigableInterfaz);
+
         public bool CanEdit
         {
-            get => _canEdit;
-            set { _canEdit = value; OnPropertyChanged(); }
+            get => canEdit;
+            set
+            {
+                if (canEdit == value)
+                    return;
+
+                canEdit = value;
+                OnPropertyChanged();
+            }
         }
 
         public bool IsExpanded
         {
-            get => _isExpanded;
+            get => isExpanded;
             set
             {
-                if (_isExpanded == value)
+                if (isExpanded == value)
                     return;
 
-                _isExpanded = value;
-                OnPropertyChanged(nameof(IsExpanded));
+                isExpanded = value;
+                OnPropertyChanged();
             }
         }
 
-
-        // ===========================================================
-        // ==================== CONSTRUCTORES ========================
-        // ===========================================================
-
-        // Constructor principal: permite inicializar un objeto InterfazResponse
-        // con todos los valores requeridos. Ideal para poblar la matriz de permisos.
-        public InterfazResponse(int id, string nombre, bool leer, bool agregar, bool actualizar, bool eliminar)
+        public InterfazResponse()
         {
-            // Asignación de propiedades básicas del permiso.
-            InterfazId = id;
-            NombreInterfaz = nombre;
+        }
 
-            // Propiedades heredadas desde la clase base "Permiso".
+        public InterfazResponse(
+            int id,
+            string nombre,
+            bool leer,
+            bool agregar,
+            bool actualizar,
+            bool eliminar)
+            : this(
+                id,
+                nombre,
+                string.Empty,
+                leer,
+                agregar,
+                actualizar,
+                eliminar)
+        {
+        }
+
+        public InterfazResponse(
+            int id,
+            string codigoInterno,
+            string nombreAmigable,
+            bool leer,
+            bool agregar,
+            bool actualizar,
+            bool eliminar)
+        {
+            InterfazId = id;
+            NombreInterfaz = codigoInterno;
+            NombreAmigableInterfaz = nombreAmigable;
+
             Leer = leer;
             Agregar = agregar;
             Actualizar = actualizar;
             Eliminar = eliminar;
 
-            // Marca el objeto como no modificado (sin cambios pendientes).
             IsDirty = false;
         }
 
-        // Constructor vacío: necesario para inicializaciones sin parámetros
-        // (por ejemplo, deserialización JSON o creación manual en código).
-        public InterfazResponse()
-        {
-
-        }
-
-
-        // ===========================================================
-        // ====================== MÉTODOS ============================
-        // ===========================================================
-
-        // Método que permite asignar el mismo valor (true/false)
-        // a todas las propiedades de permisos (leer, agregar, actualizar, eliminar).
-        // Es útil cuando se desea marcar o desmarcar todos los permisos de una fila o columna en la matriz.
         public void SetAll(bool valor)
         {
             Leer = valor;
@@ -109,8 +149,7 @@ namespace CONATRADEC.Models
             Eliminar = valor;
         }
 
-        // Método que establece el indicador "IsDirty" en false.
-        // Se utiliza después de guardar los cambios, indicando que el objeto ya está sincronizado con la base de datos.
-        public void AcceptChanges() => IsDirty = false;
+        public void AcceptChanges() =>
+            IsDirty = false;
     }
 }

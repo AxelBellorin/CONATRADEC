@@ -11,18 +11,17 @@
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
-            Padding="{OnPlatform WinUI='26,22,26,30', Default='16,16,16,24'}"
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,30'}"
             RowDefinitions="Auto,Auto,*"
-            RowSpacing="14">
+            RowSpacing="{OnIdiom Phone=12, Tablet=14, Desktop=14}">
 
-            <!-- Encabezado -->
             <VerticalStackLayout
                 Grid.Row="0"
                 Spacing="4">
 
                 <Label
                     Text="Configuración"
-                    FontSize="{OnPlatform WinUI=30, Default=26}"
+                    FontSize="{OnIdiom Phone=26, Tablet=28, Desktop=30}"
                     FontFamily="MontserratBold"
                     FontAttributes="Bold"
                     TextColor="{StaticResource color_Verde}" />
@@ -34,7 +33,6 @@
                     LineBreakMode="WordWrap" />
             </VerticalStackLayout>
 
-            <!-- Buscador -->
             <Border
                 Grid.Row="1"
                 Padding="4"
@@ -61,14 +59,10 @@
                         VerticalOptions="Center"
                         FontSize="12"
                         TextColor="{StaticResource color_GrisOscuro}"
-                        IsVisible="{OnPlatform WinUI=True, Default=False}" />
+                        IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}" />
                 </Grid>
             </Border>
 
-            <!--
-                Una sola CollectionView lineal.
-                Los encabezados y las filas se generan desde el ViewModel.
-            -->
             <CollectionView
                 Grid.Row="2"
                 ItemsSource="{Binding ElementosVisibles}"
@@ -127,7 +121,6 @@
 
                         <VerticalStackLayout>
 
-                            <!-- Encabezado de categoría -->
                             <Grid
                                 IsVisible="{Binding EsEncabezado}"
                                 Padding="0,20,0,10"
@@ -156,7 +149,6 @@
                                     BackgroundColor="#E4ECE8" />
                             </Grid>
 
-                            <!-- Fila para una columna -->
                             <Grid
                                 IsVisible="{Binding EsFilaUnaColumna}"
                                 Padding="0,0,0,12">
@@ -166,7 +158,6 @@
                                     Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}" />
                             </Grid>
 
-                            <!-- Fila para dos columnas -->
                             <Grid
                                 IsVisible="{Binding EsFilaDosColumnas}"
                                 Padding="0,0,0,12"
@@ -185,7 +176,6 @@
                                     Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}" />
                             </Grid>
 
-                            <!-- Fila para tres columnas -->
                             <Grid
                                 IsVisible="{Binding EsFilaTresColumnas}"
                                 Padding="0,0,0,12"
@@ -214,7 +204,6 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Indicador durante navegación -->
             <Grid
                 Grid.RowSpan="3"
                 IsVisible="{Binding Navegando}"

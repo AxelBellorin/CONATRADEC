@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="CONATRADEC.Controls.ResponsiveSearchPanel"
+    x:Name="SearchRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <Border
+        x:Name="ContainerBorder"
+        BackgroundColor="White"
+        Stroke="#DDE7E3"
+        StrokeThickness="1"
+        StrokeShape="RoundRectangle 16">
+
+        <Grid
+            RowDefinitions="Auto,Auto"
+            RowSpacing="10">
+
+            <SearchBar
+                Grid.Row="0"
+                Placeholder="{Binding Placeholder, Source={x:Reference SearchRoot}}"
+                Text="{Binding SearchText, Source={x:Reference SearchRoot}, Mode=TwoWay}"
+                SearchCommand="{Binding SearchCommand, Source={x:Reference SearchRoot}}"
+                BackgroundColor="#F8FAF9"
+                CancelButtonColor="{StaticResource color_Verde}" />
+
+            <Grid
+                x:Name="ActionsGrid"
+                Grid.Row="1"
+                ColumnSpacing="10"
+                RowSpacing="8">
+
+                <Label
+                    x:Name="SummaryLabel"
+                    Text="{Binding SummaryText, Source={x:Reference SearchRoot}}"
+                    VerticalOptions="Center"
+                    FontSize="12"
+                    TextColor="{StaticResource color_GrisOscuro}"
+                    LineBreakMode="WordWrap" />
+
+                <Button
+                    x:Name="SearchButton"
+                    Text="{Binding SearchButtonText, Source={x:Reference SearchRoot}}"
+                    Command="{Binding SearchCommand, Source={x:Reference SearchRoot}}"
+                    BackgroundColor="{StaticResource color_Verde}"
+                    TextColor="White"
+                    CornerRadius="10"
+                    FontFamily="MontserratMedium" />
+
+                <Button
+                    x:Name="ClearButton"
+                    Text="{Binding ClearButtonText, Source={x:Reference SearchRoot}}"
+                    Command="{Binding ClearCommand, Source={x:Reference SearchRoot}}"
+                    BackgroundColor="#EEF2F0"
+                    TextColor="{StaticResource color_Verde}"
+                    CornerRadius="10"
+                    FontFamily="MontserratMedium" />
+            </Grid>
+        </Grid>
+    </Border>
+</ContentView>

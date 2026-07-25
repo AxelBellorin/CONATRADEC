@@ -107,9 +107,9 @@ namespace CONATRADEC.Views
             }
 
             int nuevasColumnas =
-                width >= 1280
+                width >= 1200
                     ? 3
-                    : width >= 760
+                    : width >= 700
                         ? 2
                         : 1;
 
