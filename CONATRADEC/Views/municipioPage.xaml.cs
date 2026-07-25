@@ -1,5 +1,4 @@
-﻿using CONATRADEC.Models;
-using CONATRADEC.Services;
+using CONATRADEC.Models;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
@@ -13,6 +12,15 @@ namespace CONATRADEC.Views
 
         private bool paginaVisible;
         private bool permisosCargados;
+        private int cantidadColumnasActual;
+
+        public municipioPage()
+        {
+            InitializeComponent();
+
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+            BindingContext = viewModel;
+        }
 
         public string TitlePage
         {
@@ -23,13 +31,10 @@ namespace CONATRADEC.Views
         {
             set
             {
-                viewModel.PaisRequest =
-                    value ?? new PaisRequest();
+                viewModel.PaisRequest = value ?? new PaisRequest();
 
-                // Las QueryProperty pueden llegar en distinto orden.
-                // La carga inicia cuando País y Departamento sean válidos.
                 if (paginaVisible && permisosCargados)
-                    _ = IntentarCargarMunicipiosAsync(true);
+                    _ = IntentarInicializarAsync();
             }
         }
 
@@ -41,17 +46,8 @@ namespace CONATRADEC.Views
                     value ?? new DepartamentoRequest();
 
                 if (paginaVisible && permisosCargados)
-                    _ = IntentarCargarMunicipiosAsync(true);
+                    _ = IntentarInicializarAsync();
             }
-        }
-
-        public municipioPage()
-        {
-            Shell.Current.FlyoutBehavior =
-                FlyoutBehavior.Disabled;
-
-            InitializeComponent();
-            BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
@@ -59,52 +55,57 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             paginaVisible = true;
-
-            if (!PermissionService.Instance.HasRead(
-                    "municipioPage"))
-            {
-                paginaVisible = false;
-
-                await GlobalService.MostrarToastAsync(
-                    "No tiene permisos para ver municipios.");
-
-                await Shell.Current.GoToAsync("//MainPage");
-                return;
-            }
-
-            viewModel.LoadPagePermissions(
-                "municipioPage");
-
+            viewModel.ActualizarPermisos();
             permisosCargados = true;
 
-            // Si los parámetros ya llegaron, carga ahora.
-            // Si aún falta alguno, su setter ejecutará la carga después.
-            await IntentarCargarMunicipiosAsync(true);
+            AjustarCantidadColumnas(Width);
+            await IntentarInicializarAsync();
         }
 
         protected override void OnDisappearing()
         {
             paginaVisible = false;
+            viewModel.CancelarCarga();
             base.OnDisappearing();
         }
 
-        private async Task IntentarCargarMunicipiosAsync(
-            bool mostrarIndicadorCarga)
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
         {
-            int? departamentoId =
-                viewModel.DepartamentoRequest.DepartamentoId;
+            base.OnSizeAllocated(width, height);
+            AjustarCantidadColumnas(width);
+        }
 
+        private async Task IntentarInicializarAsync()
+        {
             if (!paginaVisible ||
                 !permisosCargados ||
-                viewModel.PaisRequest.PaisId <= 0 ||
-                !departamentoId.HasValue ||
-                departamentoId.Value <= 0)
+                !viewModel.UbicacionValida)
             {
                 return;
             }
 
-            await viewModel.LoadMunicipio(
-                mostrarIndicadorCarga);
+            await viewModel.InicializarAsync();
+        }
+
+        private void AjustarCantidadColumnas(double width)
+        {
+            if (width <= 0 || MunicipiosGridLayout == null)
+                return;
+
+            int nuevasColumnas =
+                width >= 1280
+                    ? 3
+                    : width >= 760
+                        ? 2
+                        : 1;
+
+            if (cantidadColumnasActual == nuevasColumnas)
+                return;
+
+            cantidadColumnasActual = nuevasColumnas;
+            MunicipiosGridLayout.Span = nuevasColumnas;
         }
     }
 }

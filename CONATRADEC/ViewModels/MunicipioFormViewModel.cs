@@ -1,30 +1,90 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 
 namespace CONATRADEC.ViewModels
 {
-    public class MunicipioFormViewModel : GlobalService
+    public sealed class MunicipioFormViewModel : GlobalService
     {
+        private readonly MunicipioApiService municipioApiService;
+        private CancellationTokenSource? guardadoCts;
+
         private DepartamentoRequest departamentoRequest = new();
         private PaisRequest paisRequest = new();
         private MunicipioRequest municipioRequest = new();
         private string nombreMunicipio = string.Empty;
+        private string nombreOriginal = string.Empty;
         private string errorNombreMunicipio = string.Empty;
-        private FormMode.FormModeSelect mode = new();
-        private readonly MunicipioApiService municipioApiService = new();
-
-        public Command SaveCommand { get; }
-        public Command CancelCommand { get; }
+        private FormMode.FormModeSelect mode;
 
         public MunicipioFormViewModel()
+            : this(new MunicipioApiService())
         {
+        }
+
+        public MunicipioFormViewModel(MunicipioApiService municipioApiService)
+        {
+            this.municipioApiService = municipioApiService
+                ?? throw new ArgumentNullException(nameof(municipioApiService));
+
             SaveCommand = new Command(
                 async () => await SaveAsync(),
-                () => !IsReadOnly && !IsBusy);
+                () => CanSave && !IsBusy);
 
             CancelCommand = new Command(
                 async () => await CancelAsync(),
                 () => !IsBusy);
+        }
+
+        public Command SaveCommand { get; }
+        public Command CancelCommand { get; }
+
+        public MunicipioRequest MunicipioRequest
+        {
+            get => municipioRequest;
+            set
+            {
+                municipioRequest = value ?? new MunicipioRequest();
+                NombreMunicipio = municipioRequest.NombreMunicipio ?? string.Empty;
+                nombreOriginal = NombreMunicipio.Trim();
+                LimpiarErrores();
+                OnPropertyChanged();
+            }
+        }
+
+        public DepartamentoRequest DepartamentoRequest
+        {
+            get => departamentoRequest;
+            set
+            {
+                departamentoRequest = value ?? new DepartamentoRequest();
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(NombreDepartamento));
+                OnPropertyChanged(nameof(DepartamentoValido));
+                OnPropertyChanged(nameof(UbicacionValida));
+                OnPropertyChanged(nameof(Subtitulo));
+
+                RefrescarComandos();
+            }
+        }
+
+        public PaisRequest PaisRequest
+        {
+            get => paisRequest;
+            set
+            {
+                paisRequest = value ?? new PaisRequest();
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(NombrePais));
+                OnPropertyChanged(nameof(CodigoPais));
+                OnPropertyChanged(nameof(MostrarCodigoPais));
+                OnPropertyChanged(nameof(PaisValido));
+                OnPropertyChanged(nameof(UbicacionValida));
+                OnPropertyChanged(nameof(Subtitulo));
+
+                RefrescarComandos();
+            }
         }
 
         public string NombreMunicipio
@@ -32,7 +92,12 @@ namespace CONATRADEC.ViewModels
             get => nombreMunicipio;
             set
             {
-                nombreMunicipio = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (nombreMunicipio == nuevoValor)
+                    return;
+
+                nombreMunicipio = nuevoValor;
                 OnPropertyChanged();
 
                 if (!string.IsNullOrWhiteSpace(nombreMunicipio))
@@ -57,102 +122,105 @@ namespace CONATRADEC.ViewModels
         public bool TieneErrorNombreMunicipio =>
             !string.IsNullOrWhiteSpace(ErrorNombreMunicipio);
 
-        public MunicipioRequest MunicipioRequest
-        {
-            get => municipioRequest;
-            set
-            {
-                municipioRequest = value ?? new MunicipioRequest();
-                NombreMunicipio =
-                    municipioRequest.NombreMunicipio ?? string.Empty;
-                LimpiarErrores();
-                OnPropertyChanged();
-            }
-        }
-
-        public DepartamentoRequest DepartamentoRequest
-        {
-            get => departamentoRequest;
-            set
-            {
-                departamentoRequest =
-                    value ?? new DepartamentoRequest();
-                OnPropertyChanged();
-            }
-        }
-
-        public PaisRequest PaisRequest
-        {
-            get => paisRequest;
-            set
-            {
-                paisRequest = value ?? new PaisRequest();
-                OnPropertyChanged();
-            }
-        }
-
         public FormMode.FormModeSelect Mode
         {
             get => mode;
             set
             {
+                if (mode == value)
+                    return;
+
                 mode = value;
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
-                OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(ShowSaveButton));
+                OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(Subtitulo));
+                OnPropertyChanged(nameof(TextoBotonCancelar));
+
                 RefrescarComandos();
             }
         }
 
+        public string NombreDepartamento =>
+            string.IsNullOrWhiteSpace(DepartamentoRequest.NombreDepartamento)
+                ? "Departamento seleccionado"
+                : DepartamentoRequest.NombreDepartamento;
+
+        public string NombrePais =>
+            string.IsNullOrWhiteSpace(PaisRequest.NombrePais)
+                ? "País seleccionado"
+                : PaisRequest.NombrePais;
+
+        public string CodigoPais => PaisRequest.CodigoISOPais ?? string.Empty;
+        public bool MostrarCodigoPais => !string.IsNullOrWhiteSpace(CodigoPais);
+        public bool DepartamentoValido => DepartamentoRequest.DepartamentoId is > 0;
+        public bool PaisValido => PaisRequest.PaisId > 0;
+        public bool UbicacionValida => DepartamentoValido && PaisValido;
+
         public bool IsReadOnly =>
             Mode == FormMode.FormModeSelect.View;
 
-        public bool ShowSaveButton =>
-            Mode != FormMode.FormModeSelect.View;
+        public bool CanSave =>
+            UbicacionValida &&
+            (Mode switch
+            {
+                FormMode.FormModeSelect.Create => CanAdd,
+                FormMode.FormModeSelect.Edit => CanEdit,
+                _ => false
+            });
+
+        public bool ShowSaveButton => CanSave;
 
         public string Title =>
             Mode switch
             {
-                FormMode.FormModeSelect.Create =>
-                    "Crear municipio",
-                FormMode.FormModeSelect.Edit =>
-                    "Editar municipio",
-                FormMode.FormModeSelect.View =>
-                    "Detalles del municipio",
-                _ =>
-                    "Municipio"
+                FormMode.FormModeSelect.Create => "Crear municipio",
+                FormMode.FormModeSelect.Edit => "Editar municipio",
+                FormMode.FormModeSelect.View => "Detalles del municipio",
+                _ => "Municipio"
             };
 
-        private async Task CancelAsync()
-        {
-            if (IsBusy)
-                return;
+        public string Subtitulo =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create =>
+                    $"Registre un municipio en {NombreDepartamento}, {NombrePais}.",
+                FormMode.FormModeSelect.Edit =>
+                    $"Actualice el municipio seleccionado de {NombreDepartamento}.",
+                FormMode.FormModeSelect.View =>
+                    "Consulte la ubicación y la información registrada.",
+                _ => string.Empty
+            };
 
+        public string TextoBotonCancelar =>
+            IsReadOnly ? "Regresar" : "Cancelar";
+
+        public void ActualizarPermisos()
+        {
+            LoadPagePermissions("municipioPage");
+
+            OnPropertyChanged(nameof(CanSave));
+            OnPropertyChanged(nameof(ShowSaveButton));
+            RefrescarComandos();
+        }
+
+        public void CancelarOperaciones()
+        {
             try
             {
-                if (!IsReadOnly && HayCambios())
-                {
-                    bool confirm =
-                        await ConfirmarSalidaSinGuardarAsync();
-
-                    if (!confirm)
-                        return;
-                }
-
-                await ReturnToList();
+                guardadoCts?.Cancel();
             }
-            catch (Exception ex)
+            catch (ObjectDisposedException)
             {
-                await MostrarErrorInesperadoAsync(
-                    "salir del formulario de municipio",
-                    ex);
             }
         }
 
         private async Task SaveAsync()
         {
-            if (IsBusy || IsReadOnly)
+            if (!CanSave || IsBusy)
                 return;
 
             if (!ValidarCampos())
@@ -162,12 +230,25 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            bool confirm = Mode == FormMode.FormModeSelect.Create
+            if (!await ValidarInternetAsync())
+                return;
+
+            if (Mode == FormMode.FormModeSelect.Edit && !HayCambios())
+            {
+                await MostrarInformacionAsync("No hay cambios para guardar.");
+                return;
+            }
+
+            bool confirmar = Mode == FormMode.FormModeSelect.Create
                 ? await ConfirmarGuardadoAsync("el municipio")
                 : await ConfirmarActualizacionAsync("el municipio");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
+
+            guardadoCts?.Cancel();
+            guardadoCts?.Dispose();
+            guardadoCts = new CancellationTokenSource();
 
             try
             {
@@ -175,47 +256,51 @@ namespace CONATRADEC.ViewModels
                 RefrescarComandos();
 
                 MunicipioRequest.NombreMunicipio =
-                    NombreMunicipio.Trim();
+                    NombreMunicipio.ReplaceLineEndings(" ").Trim();
 
                 MunicipioRequest.DepartamentoId =
                     DepartamentoRequest.DepartamentoId;
 
-                if (Mode == FormMode.FormModeSelect.Create &&
-                    !await ValidarInternetAsync())
-                {
-                    return;
-                }
-
-                bool response =
+                ApiResult<bool> resultado =
                     Mode == FormMode.FormModeSelect.Create
-                        ? await municipioApiService
-                            .CreateMunicipioAsync(MunicipioRequest)
-                        : await municipioApiService
-                            .UpdateMunicipioAsync(MunicipioRequest);
+                        ? await municipioApiService.CreateMunicipioResultAsync(
+                            MunicipioRequest,
+                            guardadoCts.Token)
+                        : await municipioApiService.UpdateMunicipioResultAsync(
+                            MunicipioRequest,
+                            guardadoCts.Token);
 
-                if (!response)
+                if (!resultado.Success || resultado.Data != true)
                 {
-                    await MostrarErrorAsync(
-                        Mode == FormMode.FormModeSelect.Create
-                            ? "No fue posible guardar el municipio. Intente nuevamente."
-                            : "No fue posible actualizar el municipio. Intente nuevamente.");
+                    await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
-                await ReturnToList();
+                int departamentoId = DepartamentoRequest.DepartamentoId!.Value;
+
+                MunicipioListadoEstadoService.MarcarCambio(departamentoId);
+
+                // Crear un municipio cambia el conteo de la tarjeta Departamento.
+                if (Mode == FormMode.FormModeSelect.Create)
+                {
+                    DepartamentoListadoEstadoService.MarcarCambio(
+                        PaisRequest.PaisId);
+                }
+
+                await ReturnToListAsync();
 
                 await MostrarExitoAsync(
-                    Mode == FormMode.FormModeSelect.Create
+                    string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Municipio guardado correctamente."
-                        : "Municipio actualizado correctamente.");
+                        : resultado.Message);
+            }
+            catch (OperationCanceledException)
+            {
+                // La página se cerró durante el guardado.
             }
             catch (Exception ex)
             {
-                await MostrarErrorInesperadoAsync(
-                    Mode == FormMode.FormModeSelect.Create
-                        ? "guardar el municipio"
-                        : "actualizar el municipio",
-                    ex);
+                await MostrarErrorInesperadoAsync("guardar el municipio", ex);
             }
             finally
             {
@@ -224,22 +309,41 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private async Task CancelAsync()
+        {
+            if (IsBusy)
+                return;
+
+            if (!IsReadOnly && HayCambios())
+            {
+                bool confirmar = await ConfirmarSalidaSinGuardarAsync();
+
+                if (!confirmar)
+                    return;
+            }
+
+            await ReturnToListAsync();
+        }
+
         private bool ValidarCampos()
         {
             LimpiarErrores();
-            NombreMunicipio = NombreMunicipio.Trim();
 
-            if (string.IsNullOrWhiteSpace(NombreMunicipio))
+            NombreMunicipio =
+                NombreMunicipio.ReplaceLineEndings(" ").Trim();
+
+            if (!UbicacionValida)
+            {
+                ErrorNombreMunicipio = "No se recibió una ubicación válida.";
+            }
+            else if (string.IsNullOrWhiteSpace(NombreMunicipio))
+            {
+                ErrorNombreMunicipio = "Ingrese el nombre del municipio.";
+            }
+            else if (NombreMunicipio.Length > 80)
             {
                 ErrorNombreMunicipio =
-                    "Ingrese el nombre del municipio.";
-            }
-
-            if (DepartamentoRequest?.DepartamentoId is not > 0)
-            {
-                _ = MostrarAdvertenciaAsync(
-                    "No se recibió un departamento válido.");
-                return false;
+                    "El nombre no puede superar 80 caracteres.";
             }
 
             return !TieneErrorNombreMunicipio;
@@ -247,11 +351,16 @@ namespace CONATRADEC.ViewModels
 
         private bool HayCambios()
         {
+            string nombreActual =
+                NombreMunicipio.ReplaceLineEndings(" ").Trim();
+
+            if (Mode == FormMode.FormModeSelect.Create)
+                return !string.IsNullOrWhiteSpace(nombreActual);
+
             return !string.Equals(
-                NombreMunicipio.Trim(),
-                MunicipioRequest.NombreMunicipio?.Trim()
-                    ?? string.Empty,
-                StringComparison.Ordinal);
+                nombreActual,
+                nombreOriginal,
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private void LimpiarErrores()
@@ -259,21 +368,19 @@ namespace CONATRADEC.ViewModels
             ErrorNombreMunicipio = string.Empty;
         }
 
-        private Task ReturnToList()
+        private Task ReturnToListAsync()
         {
-            var parameters = new Dictionary<string, object>
+            var parametros = new Dictionary<string, object>
             {
                 { "Pais", PaisRequest },
                 { "Departamento", DepartamentoRequest },
                 {
                     "TitlePage",
-                    $"Municipios de {DepartamentoRequest.NombreDepartamento} - {PaisRequest.NombrePais}"
+                    $"Municipios de {NombreDepartamento} - {NombrePais}"
                 }
             };
 
-            return GoToAsyncParameters(
-                "//MunicipioPage",
-                parameters);
+            return GoToAsyncParameters("//MunicipioPage", parametros);
         }
 
         private void RefrescarComandos()

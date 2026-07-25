@@ -1,92 +1,56 @@
-// ================================================================
-//  Archivo: paisFormPage.xaml.cs
-//  Propósito:
-//     Code-behind (código detrás) de la vista paisFormPage.xaml.
-//     Gestiona la inicialización del BindingContext y recibe parámetros
-//     desde la navegación Shell (por ejemplo, el modo del formulario y el país actual).
-// ================================================================
+using CONATRADEC.Models;
+using CONATRADEC.ViewModels;
 
-namespace CONATRADEC.Views;
-
-using static CONATRADEC.Models.FormMode;  // Importa el enum FormModeSelect directamente
-using CONATRADEC.Models;                  // Importa los modelos (PaisRequest, etc.)
-using CONATRADEC.ViewModels;              // Importa el ViewModel asociado (PaisFormViewModel)
-
-// ================================================================
-// Atributos QueryProperty
-// ---------------------------------------------------------------
-// Permiten que la página reciba parámetros desde la navegación Shell.
-// Ejemplo:
-//     await Shell.Current.GoToAsync("//PaisFormPage", parameters);
-// Donde 'parameters' contiene las claves "Mode" y "Pais".
-// ================================================================
-[QueryProperty(nameof(Mode), "Mode")]   // Recibe el modo del formulario (Create, Edit, View)
-[QueryProperty(nameof(Pais), "Pais")]   // Recibe el objeto País (PaisRequest)
-[QueryProperty(nameof(Departamento), "Departamento")]   // Recibe el objeto Departamento (DepartamentoRequest)
-[QueryProperty(nameof(Municipio), "Municipio")]   // Recibe el objeto Departamento (DepartamentoRequest)
-
-// ================================================================
-//  Clase principal de la página
-// ================================================================
-public partial class municipioFormPage : ContentPage
+namespace CONATRADEC.Views
 {
-    // ------------------------------------------------------------
-    // ViewModel principal de esta vista (patrón MVVM)
-    // ------------------------------------------------------------
-    private readonly MunicipioFormViewModel viewModel = new MunicipioFormViewModel();
-
-    // ============================================================
-    //  Propiedad: Mode
-    // ------------------------------------------------------------
-    // Se asigna automáticamente cuando se navega hacia esta página.
-    // Actualiza la propiedad Mode del ViewModel para controlar el comportamiento:
-    // - Create: Campos editables y botón "Guardar".
-    // - Edit:   Carga datos y permite modificar.
-    // - View:   Solo lectura, sin botón Guardar.
-    // ============================================================
-    public FormModeSelect Mode
+    [QueryProperty(nameof(Mode), "Mode")]
+    [QueryProperty(nameof(Pais), "Pais")]
+    [QueryProperty(nameof(Departamento), "Departamento")]
+    [QueryProperty(nameof(Municipio), "Municipio")]
+    public partial class municipioFormPage : ContentPage
     {
-        set => viewModel.Mode = value;
-    }
+        private readonly MunicipioFormViewModel viewModel = new();
 
-    // ============================================================
-    // Propiedad: Pais
-    // ------------------------------------------------------------
-    // Recibe un objeto PaisRequest con la información del país
-    // que será creado, editado o mostrado.
-    // ============================================================
-    public PaisRequest Pais
-    {
-        set => viewModel.PaisRequest = value;
-    }
+        public municipioFormPage()
+        {
+            InitializeComponent();
 
-    public DepartamentoRequest Departamento
-    {
-        set => viewModel.DepartamentoRequest = value;
-    }
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+            BindingContext = viewModel;
+        }
 
-    public MunicipioRequest Municipio
-    {
-        set => viewModel.MunicipioRequest = value;
-    }
+        public FormMode.FormModeSelect Mode
+        {
+            set => viewModel.Mode = value;
+        }
 
-    // ============================================================
-    // Constructor de la página
-    // ------------------------------------------------------------
-    // - Deshabilita el menú lateral (Flyout) mientras está activa.
-    // - Inicializa los componentes del XAML.
-    // - Asigna el ViewModel al contexto de enlace (BindingContext),
-    //   permitiendo que la vista acceda a sus propiedades y comandos.
-    // ============================================================
-    public municipioFormPage()
-    {
-        // Deshabilita el menú lateral de Shell (evita abrirlo en formularios)
-        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+        public PaisRequest Pais
+        {
+            set => viewModel.PaisRequest = value ?? new PaisRequest();
+        }
 
-        // Conecta la vista con su ViewModel (MVVM binding)
-        BindingContext = viewModel;
+        public DepartamentoRequest Departamento
+        {
+            set => viewModel.DepartamentoRequest =
+                value ?? new DepartamentoRequest();
+        }
 
-        // Carga el diseño visual (paisFormPage.xaml)
-        InitializeComponent();
+        public MunicipioRequest Municipio
+        {
+            set => viewModel.MunicipioRequest =
+                value ?? new MunicipioRequest();
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            viewModel.ActualizarPermisos();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            viewModel.CancelarOperaciones();
+        }
     }
 }
