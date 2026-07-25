@@ -4,46 +4,45 @@
     x:Name="ConfiguracionPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
-            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,30'}"
+            Padding="{OnIdiom Phone='14,12,14,18', Tablet='18,16,18,22', Desktop='26,22,26,30'}"
             RowDefinitions="Auto,Auto,*"
-            RowSpacing="{OnIdiom Phone=12, Tablet=14, Desktop=14}">
+            RowSpacing="{OnIdiom Phone=10, Tablet=12, Desktop=14}">
 
             <VerticalStackLayout
                 Grid.Row="0"
-                Spacing="4">
+                Spacing="3">
 
                 <Label
                     Text="Configuración"
-                    FontSize="{OnIdiom Phone=26, Tablet=28, Desktop=30}"
+                    FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
                     FontFamily="MontserratBold"
                     FontAttributes="Bold"
                     TextColor="{StaticResource color_Verde}" />
 
                 <Label
                     Text="Acceda a los catálogos y herramientas habilitados para su usuario."
-                    FontSize="13"
+                    FontSize="{OnIdiom Phone=12, Tablet=13, Desktop=13}"
                     TextColor="{StaticResource color_GrisOscuro}"
                     LineBreakMode="WordWrap" />
             </VerticalStackLayout>
 
             <Border
                 Grid.Row="1"
-                Padding="4"
+                Padding="3"
                 BackgroundColor="White"
                 Stroke="#DDE7E3"
                 StrokeThickness="1"
-                StrokeShape="RoundRectangle 14">
+                StrokeShape="RoundRectangle 13">
 
                 <Grid
                     ColumnDefinitions="*,Auto"
-                    ColumnSpacing="10">
+                    ColumnSpacing="8">
 
                     <SearchBar
                         Grid.Column="0"
@@ -55,48 +54,59 @@
                     <Label
                         Grid.Column="1"
                         Text="{Binding ResumenOpciones}"
-                        Margin="0,0,14,0"
+                        Margin="0,0,12,0"
                         VerticalOptions="Center"
-                        FontSize="12"
+                        FontSize="11"
                         TextColor="{StaticResource color_GrisOscuro}"
                         IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}" />
                 </Grid>
             </Border>
 
+            <!--
+                Un único CollectionView agrupado y virtualizado.
+                Se crea exactamente una tarjeta por opción.
+            -->
             <CollectionView
+                x:Name="OpcionesCollection"
                 Grid.Row="2"
-                ItemsSource="{Binding ElementosVisibles}"
-                SelectionMode="None">
+                ItemsSource="{Binding GruposVisibles}"
+                IsGrouped="True"
+                SelectionMode="None"
+                ItemSizingStrategy="MeasureFirstItem"
+                ItemsUpdatingScrollMode="KeepScrollOffset">
 
                 <CollectionView.ItemsLayout>
-                    <LinearItemsLayout
+                    <GridItemsLayout
+                        x:Name="OpcionesGridLayout"
                         Orientation="Vertical"
-                        ItemSpacing="0" />
+                        Span="1"
+                        HorizontalItemSpacing="12"
+                        VerticalItemSpacing="12" />
                 </CollectionView.ItemsLayout>
 
                 <CollectionView.EmptyView>
-                    <Grid Padding="30">
+                    <Grid Padding="24">
 
                         <Border
                             IsVisible="{Binding MostrarSinOpciones}"
                             MaximumWidthRequest="620"
-                            Padding="26"
+                            Padding="24"
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
                             BackgroundColor="White"
                             Stroke="#E5E7EB"
                             StrokeThickness="1"
-                            StrokeShape="RoundRectangle 18">
+                            StrokeShape="RoundRectangle 16">
 
                             <VerticalStackLayout
-                                Spacing="9"
+                                Spacing="8"
                                 HorizontalOptions="Center">
 
                                 <Image
                                     Source="iconsettings.png"
-                                    WidthRequest="62"
-                                    HeightRequest="62"
-                                    Opacity="0.55" />
+                                    WidthRequest="54"
+                                    HeightRequest="54"
+                                    Opacity="0.5" />
 
                                 <Label
                                     Text="No hay opciones disponibles"
@@ -107,8 +117,8 @@
                                     HorizontalTextAlignment="Center" />
 
                                 <Label
-                                    Text="No hay coincidencias con la búsqueda o su usuario no tiene permisos de lectura sobre estas opciones."
-                                    FontSize="13"
+                                    Text="No hay coincidencias o su usuario no tiene permisos de lectura."
+                                    FontSize="12"
                                     TextColor="{StaticResource color_GrisOscuro}"
                                     HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
@@ -116,90 +126,102 @@
                     </Grid>
                 </CollectionView.EmptyView>
 
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="models:ConfiguracionGrupoVisual">
+
+                        <Grid
+                            Padding="{OnIdiom Phone='0,16,0,7', Tablet='0,18,0,8', Desktop='0,20,0,9'}"
+                            RowDefinitions="Auto,Auto,Auto"
+                            RowSpacing="2">
+
+                            <Label
+                                Grid.Row="0"
+                                Text="{Binding Titulo}"
+                                FontSize="{OnIdiom Phone=17, Tablet=18, Desktop=19}"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Grid.Row="1"
+                                Text="{Binding Descripcion}"
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}"
+                                LineBreakMode="WordWrap"
+                                MaxLines="2" />
+
+                            <BoxView
+                                Grid.Row="2"
+                                Margin="0,7,0,0"
+                                HeightRequest="1"
+                                BackgroundColor="#E4ECE8" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:ConfiguracionElementoVisual">
+                    <DataTemplate x:DataType="models:ConfiguracionOpcion">
 
-                        <VerticalStackLayout>
+                        <Border
+                            HeightRequest="{OnIdiom Phone=92, Tablet=98, Desktop=100}"
+                            Padding="{OnIdiom Phone='12', Tablet='14', Desktop='15'}"
+                            BackgroundColor="White"
+                            Stroke="#DDE7E3"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 15">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
 
                             <Grid
-                                IsVisible="{Binding EsEncabezado}"
-                                Padding="0,20,0,10"
-                                RowDefinitions="Auto,Auto,Auto"
-                                RowSpacing="3">
+                                ColumnDefinitions="Auto,*,Auto"
+                                ColumnSpacing="{OnIdiom Phone=10, Tablet=11, Desktop=12}">
+
+                                <Border
+                                    WidthRequest="{OnIdiom Phone=46, Tablet=48, Desktop=50}"
+                                    HeightRequest="{OnIdiom Phone=46, Tablet=48, Desktop=50}"
+                                    Padding="9"
+                                    BackgroundColor="{Binding ColorFondoIcono}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 13">
+
+                                    <Image
+                                        Source="{Binding Icono}"
+                                        Aspect="AspectFit" />
+                                </Border>
+
+                                <VerticalStackLayout
+                                    Grid.Column="1"
+                                    Spacing="2"
+                                    VerticalOptions="Center">
+
+                                    <Label
+                                        Text="{Binding Titulo}"
+                                        FontSize="{OnIdiom Phone=14, Tablet=14.5, Desktop=15}"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}"
+                                        LineBreakMode="TailTruncation" />
+
+                                    <Label
+                                        Text="{Binding Descripcion}"
+                                        FontSize="{OnIdiom Phone=11, Tablet=11.5, Desktop=12}"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        MaxLines="2"
+                                        LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
 
                                 <Label
-                                    Grid.Row="0"
-                                    Text="{Binding TituloCategoria}"
-                                    FontSize="19"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Verde}" />
-
-                                <Label
-                                    Grid.Row="1"
-                                    Text="{Binding DescripcionCategoria}"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}"
-                                    LineBreakMode="WordWrap" />
-
-                                <BoxView
-                                    Grid.Row="2"
-                                    Margin="0,8,0,0"
-                                    HeightRequest="1"
-                                    BackgroundColor="#E4ECE8" />
-                            </Grid>
-
-                            <Grid
-                                IsVisible="{Binding EsFilaUnaColumna}"
-                                Padding="0,0,0,12">
-
-                                <controls:ConfiguracionOpcionCard
-                                    Opcion="{Binding Opcion1}"
-                                    Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}" />
-                            </Grid>
-
-                            <Grid
-                                IsVisible="{Binding EsFilaDosColumnas}"
-                                Padding="0,0,0,12"
-                                ColumnDefinitions="*,*"
-                                ColumnSpacing="12">
-
-                                <controls:ConfiguracionOpcionCard
-                                    Grid.Column="0"
-                                    Opcion="{Binding Opcion1}"
-                                    Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}" />
-
-                                <controls:ConfiguracionOpcionCard
-                                    Grid.Column="1"
-                                    IsVisible="{Binding MostrarOpcion2}"
-                                    Opcion="{Binding Opcion2}"
-                                    Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}" />
-                            </Grid>
-
-                            <Grid
-                                IsVisible="{Binding EsFilaTresColumnas}"
-                                Padding="0,0,0,12"
-                                ColumnDefinitions="*,*,*"
-                                ColumnSpacing="12">
-
-                                <controls:ConfiguracionOpcionCard
-                                    Grid.Column="0"
-                                    Opcion="{Binding Opcion1}"
-                                    Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}" />
-
-                                <controls:ConfiguracionOpcionCard
-                                    Grid.Column="1"
-                                    IsVisible="{Binding MostrarOpcion2}"
-                                    Opcion="{Binding Opcion2}"
-                                    Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}" />
-
-                                <controls:ConfiguracionOpcionCard
                                     Grid.Column="2"
-                                    IsVisible="{Binding MostrarOpcion3}"
-                                    Opcion="{Binding Opcion3}"
-                                    Command="{Binding Source={x:Reference ConfiguracionPageRoot}, Path=BindingContext.AbrirOpcionCommand}" />
+                                    Text="›"
+                                    FontSize="26"
+                                    TextColor="{StaticResource color_Verde}"
+                                    VerticalOptions="Center" />
                             </Grid>
-                        </VerticalStackLayout>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
@@ -207,8 +229,8 @@
             <Grid
                 Grid.RowSpan="3"
                 IsVisible="{Binding Navegando}"
-                InputTransparent="True"
-                BackgroundColor="#30FFFFFF">
+                InputTransparent="False"
+                BackgroundColor="#28FFFFFF">
 
                 <ActivityIndicator
                     IsRunning="True"

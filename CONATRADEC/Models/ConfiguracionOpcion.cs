@@ -3,7 +3,7 @@ using Microsoft.Maui.Graphics;
 namespace CONATRADEC.Models
 {
     /// <summary>
-    /// Opción individual del menú de configuración.
+    /// Opción individual de Configuración.
     /// </summary>
     public sealed class ConfiguracionOpcion
     {
@@ -20,12 +20,11 @@ namespace CONATRADEC.Models
             Colors.Transparent;
 
         public string TextoBusqueda =>
-            $"{Titulo} {Descripcion}".ToUpperInvariant();
+            $"{Titulo} {Descripcion}";
     }
 
     /// <summary>
-    /// Categoría lógica que agrupa opciones relacionadas.
-    /// No se enlaza directamente a una lista visual anidada.
+    /// Categoría lógica utilizada para construir el catálogo completo.
     /// </summary>
     public sealed class ConfiguracionCategoria
     {
@@ -35,20 +34,49 @@ namespace CONATRADEC.Models
 
         public List<ConfiguracionOpcion> Opciones { get; init; } =
             new();
+
+        public string TextoBusqueda =>
+            $"{Titulo} {Descripcion}";
     }
 
     /// <summary>
-    /// Elemento plano que puede representar un encabezado de categoría
-    /// o una fila de hasta tres tarjetas.
-    /// Esta estructura evita BindableLayout y CollectionView anidados.
+    /// Grupo inmutable presentado directamente al CollectionView.
+    ///
+    /// Heredar de List permite utilizar IsGrouped sin crear
+    /// CollectionView anidados, filas artificiales ni tarjetas ocultas.
     /// </summary>
+    public sealed class ConfiguracionGrupoVisual :
+        List<ConfiguracionOpcion>
+    {
+        public ConfiguracionGrupoVisual(
+            string titulo,
+            string descripcion,
+            IEnumerable<ConfiguracionOpcion> opciones)
+            : base(opciones)
+        {
+            Titulo = titulo;
+            Descripcion = descripcion;
+        }
+
+        public string Titulo { get; }
+        public string Descripcion { get; }
+    }
+
+    /*
+     * Se conserva esta clase por compatibilidad con cualquier archivo
+     * anterior que todavía la referencie. La nueva pantalla optimizada
+     * no la utiliza.
+     */
     public sealed class ConfiguracionElementoVisual
     {
         public bool EsEncabezado { get; init; }
         public bool EsFila { get; init; }
 
-        public string TituloCategoria { get; init; } = string.Empty;
-        public string DescripcionCategoria { get; init; } = string.Empty;
+        public string TituloCategoria { get; init; } =
+            string.Empty;
+
+        public string DescripcionCategoria { get; init; } =
+            string.Empty;
 
         public int CantidadColumnas { get; init; } = 1;
 
@@ -68,30 +96,5 @@ namespace CONATRADEC.Models
 
         public bool EsFilaTresColumnas =>
             EsFila && CantidadColumnas == 3;
-
-        public static ConfiguracionElementoVisual CrearEncabezado(
-            ConfiguracionCategoria categoria) =>
-            new()
-            {
-                EsEncabezado = true,
-                EsFila = false,
-                TituloCategoria = categoria.Titulo,
-                DescripcionCategoria = categoria.Descripcion
-            };
-
-        public static ConfiguracionElementoVisual CrearFila(
-            int cantidadColumnas,
-            ConfiguracionOpcion? opcion1,
-            ConfiguracionOpcion? opcion2 = null,
-            ConfiguracionOpcion? opcion3 = null) =>
-            new()
-            {
-                EsEncabezado = false,
-                EsFila = true,
-                CantidadColumnas = cantidadColumnas,
-                Opcion1 = opcion1,
-                Opcion2 = opcion2,
-                Opcion3 = opcion3
-            };
     }
 }

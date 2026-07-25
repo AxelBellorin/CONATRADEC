@@ -1,18 +1,24 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
-using System.Collections.ObjectModel;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Graphics;
 using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
     public sealed class ConfiguracionViewModel : GlobalService
     {
-        private readonly List<ConfiguracionCategoria> catalogoCompleto;
+        private readonly IReadOnlyList<ConfiguracionCategoria>
+            catalogoCompleto;
+
         private CancellationTokenSource? filtroCts;
+
+        private IReadOnlyList<ConfiguracionGrupoVisual>
+            gruposVisibles =
+                Array.Empty<ConfiguracionGrupoVisual>();
 
         private string textoBusqueda = string.Empty;
         private bool navegando;
-        private int cantidadColumnas = 1;
         private int cantidadOpciones;
 
         public ConfiguracionViewModel()
@@ -29,11 +35,22 @@ namespace CONATRADEC.ViewModels
         }
 
         /// <summary>
-        /// Colección visual plana. Contiene encabezados y filas,
-        /// pero nunca listas visuales anidadas.
+        /// El CollectionView recibe la colección completa mediante una
+        /// única notificación. No se ejecutan Clear/Add por cada tarjeta.
         /// </summary>
-        public ObservableCollection<ConfiguracionElementoVisual>
-            ElementosVisibles { get; } = new();
+        public IReadOnlyList<ConfiguracionGrupoVisual>
+            GruposVisibles
+        {
+            get => gruposVisibles;
+            private set
+            {
+                if (ReferenceEquals(gruposVisibles, value))
+                    return;
+
+                gruposVisibles = value;
+                OnPropertyChanged();
+            }
+        }
 
         public Command<ConfiguracionOpcion>
             AbrirOpcionCommand { get; }
@@ -43,7 +60,8 @@ namespace CONATRADEC.ViewModels
             get => textoBusqueda;
             set
             {
-                string nuevoValor = value ?? string.Empty;
+                string nuevoValor =
+                    value ?? string.Empty;
 
                 if (textoBusqueda == nuevoValor)
                     return;
@@ -79,21 +97,9 @@ namespace CONATRADEC.ViewModels
                 : $"{cantidadOpciones} opciones disponibles";
 
         /// <summary>
-        /// Ajusta la distribución según el ancho real de la ventana.
-        /// </summary>
-        public void ConfigurarColumnas(int columnas)
-        {
-            int nuevoValor = Math.Clamp(columnas, 1, 3);
-
-            if (cantidadColumnas == nuevoValor)
-                return;
-
-            cantidadColumnas = nuevoValor;
-            AplicarFiltro();
-        }
-
-        /// <summary>
-        /// Recarga las opciones y vuelve a evaluar los permisos.
+        /// Recarga permisos y búsqueda una sola vez al mostrar la página.
+        /// La cantidad de columnas se controla directamente en el
+        /// GridItemsLayout y ya no reconstruye los datos.
         /// </summary>
         public void ActualizarOpciones()
         {
@@ -113,7 +119,8 @@ namespace CONATRADEC.ViewModels
 
         private void ProgramarFiltro()
         {
-            var source = new CancellationTokenSource();
+            var source =
+                new CancellationTokenSource();
 
             CancellationTokenSource? anterior =
                 Interlocked.Exchange(
@@ -131,7 +138,7 @@ namespace CONATRADEC.ViewModels
             try
             {
                 await Task.Delay(
-                    TimeSpan.FromMilliseconds(300),
+                    TimeSpan.FromMilliseconds(250),
                     source.Token);
 
                 if (source.IsCancellationRequested ||
@@ -145,11 +152,11 @@ namespace CONATRADEC.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Una nueva tecla sustituyó este filtro.
+                // Una nueva tecla sustituyó esta búsqueda.
             }
             catch (ObjectDisposedException)
             {
-                // La página se cerró antes de terminar la espera.
+                // La pantalla se cerró antes de finalizar.
             }
             finally
             {
@@ -165,85 +172,70 @@ namespace CONATRADEC.ViewModels
         private void AplicarFiltro()
         {
             string filtro =
-                TextoBusqueda.Trim().ToUpperInvariant();
+                TextoBusqueda.Trim();
 
-            var nuevosElementos =
-                new List<ConfiguracionElementoVisual>();
+            var grupos =
+                new List<ConfiguracionGrupoVisual>(
+                    catalogoCompleto.Count);
 
             int totalOpciones = 0;
 
-            foreach (ConfiguracionCategoria categoria in
-                     catalogoCompleto.OrderBy(x => x.Orden))
+            foreach (ConfiguracionCategoria categoria
+                     in catalogoCompleto)
             {
-                List<ConfiguracionOpcion> opciones =
-                    categoria.Opciones
-                        .Where(opcion =>
-                            PermissionService.Instance.HasRead(
-                                opcion.Interfaz))
-                        .Where(opcion =>
-                            string.IsNullOrWhiteSpace(filtro) ||
-                            opcion.TextoBusqueda.Contains(filtro) ||
-                            categoria.Titulo
-                                .ToUpperInvariant()
-                                .Contains(filtro) ||
-                            categoria.Descripcion
-                                .ToUpperInvariant()
-                                .Contains(filtro))
-                        .OrderBy(opcion => opcion.Orden)
-                        .ToList();
+                bool coincideCategoria =
+                    string.IsNullOrWhiteSpace(filtro) ||
+                    categoria.TextoBusqueda.Contains(
+                        filtro,
+                        StringComparison.OrdinalIgnoreCase);
+
+                var opciones =
+                    new List<ConfiguracionOpcion>(
+                        categoria.Opciones.Count);
+
+                foreach (ConfiguracionOpcion opcion
+                         in categoria.Opciones)
+                {
+                    if (!PermissionService.Instance.HasRead(
+                            opcion.Interfaz))
+                    {
+                        continue;
+                    }
+
+                    bool coincide =
+                        coincideCategoria ||
+                        opcion.TextoBusqueda.Contains(
+                            filtro,
+                            StringComparison.OrdinalIgnoreCase);
+
+                    if (coincide)
+                        opciones.Add(opcion);
+                }
 
                 if (opciones.Count == 0)
                     continue;
 
                 totalOpciones += opciones.Count;
 
-                nuevosElementos.Add(
-                    ConfiguracionElementoVisual
-                        .CrearEncabezado(categoria));
-
-                for (int indice = 0;
-                     indice < opciones.Count;
-                     indice += cantidadColumnas)
-                {
-                    ConfiguracionOpcion opcion1 =
-                        opciones[indice];
-
-                    ConfiguracionOpcion? opcion2 =
-                        indice + 1 < opciones.Count
-                            ? opciones[indice + 1]
-                            : null;
-
-                    ConfiguracionOpcion? opcion3 =
-                        indice + 2 < opciones.Count
-                            ? opciones[indice + 2]
-                            : null;
-
-                    nuevosElementos.Add(
-                        ConfiguracionElementoVisual.CrearFila(
-                            cantidadColumnas,
-                            opcion1,
-                            cantidadColumnas >= 2
-                                ? opcion2
-                                : null,
-                            cantidadColumnas >= 3
-                                ? opcion3
-                                : null));
-                }
+                grupos.Add(
+                    new ConfiguracionGrupoVisual(
+                        categoria.Titulo,
+                        categoria.Descripcion,
+                        opciones));
             }
 
-            ElementosVisibles.Clear();
-
-            foreach (ConfiguracionElementoVisual elemento in
-                     nuevosElementos)
-            {
-                ElementosVisibles.Add(elemento);
-            }
-
+            /*
+             * Una sola asignación evita decenas de eventos
+             * CollectionChanged y mediciones repetidas.
+             */
+            GruposVisibles = grupos;
             cantidadOpciones = totalOpciones;
 
-            OnPropertyChanged(nameof(ElementosVisibles));
-            OnPropertyChanged(nameof(MostrarSinOpciones));
-            OnPropertyChanged(nameof(ResumenOpciones));
+            OnPropertyChanged(
+                nameof(MostrarSinOpciones));
+
+            OnPropertyChanged(
+                nameof(ResumenOpciones));
         }
 
         private async Task AbrirOpcionAsync(
@@ -268,7 +260,9 @@ namespace CONATRADEC.ViewModels
             try
             {
                 CancelarBusqueda();
-                await GoToAsyncParameters(opcion.Ruta);
+
+                await GoToAsyncParameters(
+                    opcion.Ruta);
             }
             catch (Exception ex)
             {
@@ -300,11 +294,11 @@ namespace CONATRADEC.ViewModels
             }
             catch (ObjectDisposedException)
             {
-                // El filtro ya había terminado.
+                // La búsqueda ya había finalizado.
             }
         }
 
-        private static List<ConfiguracionCategoria>
+        private static IReadOnlyList<ConfiguracionCategoria>
             CrearCatalogo()
         {
             Color verdeSuave =
@@ -477,7 +471,10 @@ namespace CONATRADEC.ViewModels
                 Titulo = titulo,
                 Descripcion = descripcion,
                 Orden = orden,
-                Opciones = opciones.ToList()
+                Opciones =
+                    opciones
+                        .OrderBy(item => item.Orden)
+                        .ToList()
             };
 
         private static ConfiguracionOpcion Opcion(

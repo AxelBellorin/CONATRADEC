@@ -6,9 +6,12 @@ namespace CONATRADEC.Views
     public partial class configuracionPage : ContentPage
     {
         private static bool rutasRegistradas;
-        private readonly ConfiguracionViewModel viewModel = new();
+
+        private readonly ConfiguracionViewModel
+            viewModel = new();
 
         private int cantidadColumnasActual;
+        private bool paginaVisible;
 
         public configuracionPage()
         {
@@ -26,14 +29,26 @@ namespace CONATRADEC.Views
         {
             base.OnAppearing();
 
+            paginaVisible = true;
+
+            /*
+             * El Span se cambia directamente en el layout.
+             * Ya no reconstruye toda la colección.
+             */
             AjustarCantidadColumnas(Width);
+
+            /*
+             * Una sola carga al entrar.
+             */
             viewModel.ActualizarOpciones();
         }
 
         protected override void OnDisappearing()
         {
-            base.OnDisappearing();
+            paginaVisible = false;
             viewModel.CancelarBusqueda();
+
+            base.OnDisappearing();
         }
 
         protected override void OnSizeAllocated(
@@ -41,18 +56,24 @@ namespace CONATRADEC.Views
             double height)
         {
             base.OnSizeAllocated(width, height);
-            AjustarCantidadColumnas(width);
+
+            if (paginaVisible)
+                AjustarCantidadColumnas(width);
         }
 
-        private void AjustarCantidadColumnas(double width)
+        private void AjustarCantidadColumnas(
+            double width)
         {
-            if (width <= 0)
+            if (width <= 0 ||
+                OpcionesGridLayout == null)
+            {
                 return;
+            }
 
             int nuevasColumnas =
-                width >= 1200
+                width >= 1180
                     ? 3
-                    : width >= 700
+                    : width >= 680
                         ? 2
                         : 1;
 
@@ -60,9 +81,7 @@ namespace CONATRADEC.Views
                 return;
 
             cantidadColumnasActual = nuevasColumnas;
-
-            viewModel.ConfigurarColumnas(
-                nuevasColumnas);
+            OpcionesGridLayout.Span = nuevasColumnas;
         }
 
         private static void RegistrarRutas()
