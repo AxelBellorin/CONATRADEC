@@ -1,56 +1,459 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="CONATRADEC.Views.extraccionNutrientePage"
-             Shell.NavBarIsVisible="False"
-             BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
-    <ContentView x:Name="RootPage" ControlTemplate="{StaticResource FooterTemplate}">
-        <Grid RowDefinitions="Auto,Auto,*">
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="20,12,8,4">
-                <Label Text="Extracción por quintal oro" FontSize="26" FontFamily="MontserratBold"
-                       TextColor="{StaticResource color_Negro}" VerticalOptions="Center" />
-                <ImageButton Grid.Column="1" Source="iconadd.png" WidthRequest="54" HeightRequest="54"
-                             Command="{Binding AddCommand}" IsVisible="{Binding CanAdd}" BackgroundColor="Transparent" />
+<ContentPage
+    x:Class="CONATRADEC.Views.extraccionNutrientePage"
+    x:Name="ExtraccionPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid>
+
+            <Grid
+                IsVisible="{Binding MostrarAccesoDenegado}"
+                Padding="24">
+
+                <Border
+                    MaximumWidthRequest="620"
+                    Padding="28"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#E5E7EB"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
+
+                    <VerticalStackLayout
+                        Spacing="10"
+                        HorizontalOptions="Center">
+
+                        <Image
+                            Source="iconpermission.png"
+                            WidthRequest="64"
+                            HeightRequest="64"
+                            Opacity="0.65" />
+
+                        <Label
+                            Text="Sin permiso de lectura"
+                            FontSize="21"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Negro}"
+                            HorizontalTextAlignment="Center" />
+
+                        <Label
+                            Text="Su usuario no tiene permiso para consultar los parámetros de extracción."
+                            FontSize="14"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            HorizontalTextAlignment="Center" />
+
+                        <Button
+                            Text="Regresar a configuración"
+                            Padding="16,10"
+                            BackgroundColor="{StaticResource color_Verde}"
+                            TextColor="White"
+                            CornerRadius="11"
+                            Command="{Binding RegresarConfiguracionCommand}" />
+                    </VerticalStackLayout>
+                </Border>
             </Grid>
-            <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
-                               Color="{StaticResource color_Naranja}" />
-            <CollectionView Grid.Row="2" ItemsSource="{Binding List}" SelectionMode="None">
-                <CollectionView.EmptyView>
-                    <Grid Padding="24"><Label Text="No hay parámetros de extracción para mostrar." HorizontalOptions="Center" VerticalOptions="Center" /></Grid>
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <SwipeView IsEnabled="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanView}">
-                            <SwipeView.RightItems>
-                                <SwipeItems Mode="Reveal">
-                                    <SwipeItem Text="Editar" IconImageSource="iconupdate.png" BackgroundColor="{StaticResource BlueUpdate}"
-                                               Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.EditCommand}"
-                                               CommandParameter="{Binding .}"
-                                               IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanEdit}" />
-                                    <SwipeItem Text="Eliminar" IconImageSource="icondelete.png" BackgroundColor="{StaticResource RedDelete}"
-                                               Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.DeleteCommand}"
-                                               CommandParameter="{Binding .}"
-                                               IsVisible="{Binding Source={x:Reference RootPage}, Path=BindingContext.CanDelete}" />
-                                </SwipeItems>
-                            </SwipeView.RightItems>
-                            <Border Margin="12,4" Style="{OnPlatform WinUI={StaticResource BorderStyleNoCornerRadius}, Default={StaticResource BorderStyle}}">
-                                <Grid Padding="12">
-                                    <Grid.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.ViewCommand}"
-                                                              CommandParameter="{Binding .}" />
-                                    </Grid.GestureRecognizers>
-                                    <VerticalStackLayout Spacing="4">
-                                        <Label Text="{Binding ElementoTexto}" FontSize="18" FontFamily="MontserratBold"
-                                               TextColor="{StaticResource color_Verde}" />
-                                        <Label Text="{Binding CantidadExtraidaPorQQOro, StringFormat='Cantidad: {0:0.####}'}" FontSize="14" TextColor="{StaticResource color_Negro}" />
-                                        <Label Text="{Binding DescripcionParametro}" FontSize="13" TextColor="{StaticResource color_Gris}" />
-                                    </VerticalStackLayout>
-                                </Grid>
-                            </Border>
-                        </SwipeView>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+
+            <Grid
+                IsVisible="{Binding CanView}"
+                Padding="{OnPlatform WinUI='26,22,26,28', Default='16,16,16,24'}"
+                RowDefinitions="Auto,Auto,Auto,*"
+                RowSpacing="14">
+
+                <Grid
+                    Grid.Row="0"
+                    IsVisible="{OnPlatform WinUI=True, Default=False}"
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="16">
+
+                    <Button
+                        Grid.Column="0"
+                        Text="← Configuración"
+                        Padding="16,10"
+                        VerticalOptions="Center"
+                        BackgroundColor="#EEF2F0"
+                        TextColor="{StaticResource color_Verde}"
+                        CornerRadius="11"
+                        Command="{Binding RegresarConfiguracionCommand}" />
+
+                    <VerticalStackLayout
+                        Grid.Column="1"
+                        Spacing="3"
+                        VerticalOptions="Center">
+
+                        <Label
+                            Text="Extracción por quintal oro"
+                            FontSize="30"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Configure la cantidad de nutriente exportada por cada quintal oro producido."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <Button
+                        Grid.Column="2"
+                        Text="+  Nuevo parámetro"
+                        Padding="18,11"
+                        VerticalOptions="Center"
+                        Style="{StaticResource AddButton}"
+                        IsVisible="{Binding CanAdd}"
+                        Command="{Binding AddCommand}" />
+                </Grid>
+
+                <VerticalStackLayout
+                    Grid.Row="0"
+                    IsVisible="{OnPlatform WinUI=False, Default=True}"
+                    Spacing="12">
+
+                    <VerticalStackLayout Spacing="3">
+                        <Label
+                            Text="Extracción por quintal oro"
+                            FontSize="25"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Cantidad exportada por cada quintal oro producido."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="10">
+
+                        <Button
+                            Grid.Column="0"
+                            Text="← Configuración"
+                            Padding="12,10"
+                            BackgroundColor="#EEF2F0"
+                            TextColor="{StaticResource color_Verde}"
+                            CornerRadius="11"
+                            Command="{Binding RegresarConfiguracionCommand}" />
+
+                        <Button
+                            Grid.Column="1"
+                            Text="+ Nuevo"
+                            Padding="12,10"
+                            Style="{StaticResource AddButton}"
+                            IsVisible="{Binding CanAdd}"
+                            Command="{Binding AddCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <Border
+                    Grid.Row="1"
+                    Padding="{OnPlatform WinUI='16,14', Default='12'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16">
+
+                    <Grid
+                        RowDefinitions="Auto,Auto"
+                        RowSpacing="10">
+
+                        <SearchBar
+                            Grid.Row="0"
+                            Placeholder="Buscar por elemento, símbolo o descripción"
+                            Text="{Binding TextoBusqueda}"
+                            SearchCommand="{Binding BuscarCommand}"
+                            BackgroundColor="#F8FAF9"
+                            CancelButtonColor="{StaticResource color_Verde}" />
+
+                        <Grid
+                            Grid.Row="1"
+                            ColumnDefinitions="*,Auto,Auto"
+                            ColumnSpacing="10">
+
+                            <Label
+                                Text="{Binding ResumenResultados}"
+                                VerticalOptions="Center"
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Button
+                                Grid.Column="1"
+                                Text="Buscar"
+                                Padding="16,9"
+                                Command="{Binding BuscarCommand}"
+                                BackgroundColor="{StaticResource color_Verde}"
+                                TextColor="White"
+                                CornerRadius="10" />
+
+                            <Button
+                                Grid.Column="2"
+                                Text="Limpiar"
+                                Padding="16,9"
+                                Command="{Binding LimpiarFiltrosCommand}"
+                                BackgroundColor="#EEF2F0"
+                                TextColor="{StaticResource color_Verde}"
+                                CornerRadius="10" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border
+                    Grid.Row="2"
+                    IsVisible="{Binding TieneMensaje}"
+                    Padding="12"
+                    BackgroundColor="#FFF7E6"
+                    Stroke="#F2C94C"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12">
+
+                    <Label
+                        Text="{Binding Mensaje}"
+                        FontSize="13"
+                        TextColor="{StaticResource color_Negro}" />
+                </Border>
+
+                <RefreshView
+                    Grid.Row="3"
+                    IsRefreshing="{Binding IsRefreshing}"
+                    Command="{Binding RefrescarCommand}">
+
+                    <CollectionView
+                        ItemsSource="{Binding List}"
+                        SelectionMode="None"
+                        RemainingItemsThreshold="3"
+                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout
+                                x:Name="ExtraccionesGridLayout"
+                                Orientation="Vertical"
+                                Span="1"
+                                HorizontalItemSpacing="12"
+                                VerticalItemSpacing="12" />
+                        </CollectionView.ItemsLayout>
+
+                        <CollectionView.EmptyView>
+                            <Grid Padding="30">
+                                <VerticalStackLayout
+                                    IsVisible="{Binding MostrarVacio}"
+                                    Spacing="8"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center">
+
+                                    <Border
+                                        WidthRequest="64"
+                                        HeightRequest="64"
+                                        BackgroundColor="#EEF5F2"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 18">
+
+                                        <Label
+                                            Text="EX"
+                                            FontSize="21"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Verde}"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Border>
+
+                                    <Label
+                                        Text="No se encontraron parámetros"
+                                        FontSize="18"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}"
+                                        HorizontalTextAlignment="Center" />
+
+                                    <Label
+                                        Text="Pruebe con otro término o configure un nuevo elemento."
+                                        FontSize="13"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </CollectionView.EmptyView>
+
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:ExtraccionNutrienteResponse">
+
+                                <Border
+                                    Padding="16"
+                                    MinimumHeightRequest="214"
+                                    BackgroundColor="White"
+                                    Stroke="#DDE7E3"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 16">
+
+                                    <Grid
+                                        RowDefinitions="Auto,Auto,Auto"
+                                        RowSpacing="12">
+
+                                        <Grid
+                                            Grid.Row="0"
+                                            ColumnDefinitions="Auto,*,Auto"
+                                            ColumnSpacing="12">
+
+                                            <Border
+                                                WidthRequest="56"
+                                                HeightRequest="56"
+                                                BackgroundColor="#EEF5F2"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 14">
+
+                                                <Label
+                                                    Text="{Binding SimboloElementoQuimico}"
+                                                    FontSize="18"
+                                                    FontFamily="MontserratBold"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Verde}"
+                                                    HorizontalOptions="Center"
+                                                    VerticalOptions="Center" />
+                                            </Border>
+
+                                            <VerticalStackLayout
+                                                Grid.Column="1"
+                                                Spacing="3"
+                                                VerticalOptions="Center">
+
+                                                <Label
+                                                    Text="{Binding NombreElementoQuimico}"
+                                                    FontSize="17"
+                                                    FontFamily="MontserratBold"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Negro}"
+                                                    LineBreakMode="TailTruncation" />
+
+                                                <Label
+                                                    Text="{Binding DescripcionMostrar}"
+                                                    FontSize="12"
+                                                    TextColor="{StaticResource color_GrisOscuro}"
+                                                    MaxLines="2"
+                                                    LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+
+                                            <Label
+                                                Grid.Column="2"
+                                                Text="Activo"
+                                                Padding="9,5"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_Verde}"
+                                                BackgroundColor="#EAF7EF"
+                                                VerticalOptions="Start" />
+                                        </Grid>
+
+                                        <Border
+                                            Grid.Row="1"
+                                            Padding="10,8"
+                                            BackgroundColor="#FFF7E6"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 9">
+
+                                            <Label
+                                                Text="{Binding ResumenCantidad}"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                HorizontalTextAlignment="Center" />
+                                        </Border>
+
+                                        <Grid
+                                            Grid.Row="2"
+                                            ColumnDefinitions="*,*,*"
+                                            ColumnSpacing="8">
+
+                                            <Button
+                                                Grid.Column="0"
+                                                Text="Ver"
+                                                Padding="8,9"
+                                                BackgroundColor="#EEF5F2"
+                                                TextColor="{StaticResource color_Verde}"
+                                                CornerRadius="10"
+                                                Command="{Binding Source={x:Reference ExtraccionPageRoot}, Path=BindingContext.ViewCommand}"
+                                                CommandParameter="{Binding .}" />
+
+                                            <Button
+                                                Grid.Column="1"
+                                                Text="Editar"
+                                                Padding="8,9"
+                                                BackgroundColor="{StaticResource BlueUpdate}"
+                                                TextColor="White"
+                                                CornerRadius="10"
+                                                IsVisible="{Binding Source={x:Reference ExtraccionPageRoot}, Path=BindingContext.CanEdit}"
+                                                Command="{Binding Source={x:Reference ExtraccionPageRoot}, Path=BindingContext.EditCommand}"
+                                                CommandParameter="{Binding .}" />
+
+                                            <Button
+                                                Grid.Column="2"
+                                                Text="Eliminar"
+                                                Padding="8,9"
+                                                BackgroundColor="{StaticResource RedDelete}"
+                                                TextColor="White"
+                                                CornerRadius="10"
+                                                IsVisible="{Binding Source={x:Reference ExtraccionPageRoot}, Path=BindingContext.CanDelete}"
+                                                Command="{Binding Source={x:Reference ExtraccionPageRoot}, Path=BindingContext.DeleteCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+
+                        <CollectionView.Footer>
+                            <VerticalStackLayout
+                                Padding="10,16,10,24"
+                                Spacing="8"
+                                HorizontalOptions="Center">
+
+                                <ActivityIndicator
+                                    IsRunning="{Binding CargandoMas}"
+                                    IsVisible="{Binding CargandoMas}"
+                                    Color="{StaticResource color_Naranja}" />
+
+                                <Label
+                                    IsVisible="{Binding MostrarFinLista}"
+                                    Text="Fin del listado"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
+                        </CollectionView.Footer>
+                    </CollectionView>
+                </RefreshView>
+
+                <Grid
+                    Grid.RowSpan="4"
+                    IsVisible="{Binding IsBusy}"
+                    InputTransparent="True"
+                    BackgroundColor="#40FFFFFF">
+
+                    <Border
+                        Padding="18"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 14">
+
+                        <HorizontalStackLayout Spacing="10">
+                            <ActivityIndicator
+                                IsRunning="True"
+                                Color="{StaticResource color_Naranja}" />
+
+                            <Label
+                                Text="Cargando parámetros..."
+                                VerticalOptions="Center"
+                                TextColor="{StaticResource color_Negro}" />
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>
