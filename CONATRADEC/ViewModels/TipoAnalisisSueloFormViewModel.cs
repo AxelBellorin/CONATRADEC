@@ -1,31 +1,51 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 
 namespace CONATRADEC.ViewModels
 {
-    public class TipoAnalisisSueloFormViewModel : GlobalService
+    public sealed class TipoAnalisisSueloFormViewModel : GlobalService
     {
-        private readonly TipoAnalisisSueloApiService apiService = new();
+        private readonly TipoAnalisisSueloApiService apiService;
+        private CancellationTokenSource? guardadoCts;
+
         private TipoAnalisisSueloRequest item = new();
         private FormMode.FormModeSelect mode;
         private string nombre = string.Empty;
         private string descripcion = string.Empty;
+        private string nombreOriginal = string.Empty;
+        private string descripcionOriginal = string.Empty;
         private string errorNombre = string.Empty;
         private string errorDescripcion = string.Empty;
 
+        public TipoAnalisisSueloFormViewModel()
+            : this(new TipoAnalisisSueloApiService())
+        {
+        }
+
+        public TipoAnalisisSueloFormViewModel(
+            TipoAnalisisSueloApiService apiService)
+        {
+            this.apiService =
+                apiService
+                ?? throw new ArgumentNullException(
+                    nameof(apiService));
+
+            SaveCommand =
+                new Command(
+                    async () => await SaveAsync(),
+                    () =>
+                        CanSave &&
+                        !IsBusy);
+
+            CancelCommand =
+                new Command(
+                    async () => await CancelAsync(),
+                    () =>
+                        !IsBusy);
+        }
+
         public Command SaveCommand { get; }
         public Command CancelCommand { get; }
-
-        public TipoAnalisisSueloFormViewModel()
-        {
-            SaveCommand = new Command(
-                async () => await SaveAsync(),
-                () => !IsReadOnly && !IsBusy);
-
-            CancelCommand = new Command(
-                async () => await CancelAsync(),
-                () => !IsBusy);
-        }
 
         public TipoAnalisisSueloRequest Item
         {
@@ -33,18 +53,27 @@ namespace CONATRADEC.ViewModels
             set
             {
                 item =
-                    value ?? new TipoAnalisisSueloRequest();
+                    value ??
+                    new TipoAnalisisSueloRequest();
 
                 Nombre =
-                    item.NombreTipoAnalisisSuelo
-                    ?? string.Empty;
+                    item.NombreTipoAnalisisSuelo ??
+                    string.Empty;
 
                 Descripcion =
-                    item.DescripcionTipoAnalisisSuelo
-                    ?? string.Empty;
+                    item.DescripcionTipoAnalisisSuelo ??
+                    string.Empty;
+
+                nombreOriginal =
+                    Nombre.Trim();
+
+                descripcionOriginal =
+                    Descripcion.Trim();
 
                 LimpiarErrores();
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(CodigoInterno));
+                OnPropertyChanged(nameof(MostrarCodigoInterno));
             }
         }
 
@@ -53,12 +82,20 @@ namespace CONATRADEC.ViewModels
             get => mode;
             set
             {
-                mode = value;
+                if (mode == value)
+                    return;
+
+                mode =
+                    value;
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
-                OnPropertyChanged(nameof(IsEditable));
+                OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(ShowSaveButton));
+                OnPropertyChanged(nameof(MostrarBotonCancelar));
                 OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(Subtitulo));
+
                 RefrescarComandos();
             }
         }
@@ -68,7 +105,16 @@ namespace CONATRADEC.ViewModels
             get => nombre;
             set
             {
-                nombre = value ?? string.Empty;
+                string nuevoValor =
+                    (value ?? string.Empty)
+                        .ReplaceLineEndings(" ");
+
+                if (nombre == nuevoValor)
+                    return;
+
+                nombre =
+                    nuevoValor;
+
                 OnPropertyChanged();
 
                 if (!string.IsNullOrWhiteSpace(nombre))
@@ -81,11 +127,24 @@ namespace CONATRADEC.ViewModels
             get => descripcion;
             set
             {
-                descripcion = value ?? string.Empty;
+                string nuevoValor =
+                    value ??
+                    string.Empty;
+
+                if (descripcion == nuevoValor)
+                    return;
+
+                descripcion =
+                    nuevoValor;
+
                 OnPropertyChanged();
 
-                if (!string.IsNullOrWhiteSpace(descripcion))
-                    ErrorDescripcion = string.Empty;
+                if (!string.IsNullOrWhiteSpace(descripcion) &&
+                    descripcion.Length <= 200)
+                {
+                    ErrorDescripcion =
+                        string.Empty;
+                }
             }
         }
 
@@ -97,14 +156,17 @@ namespace CONATRADEC.ViewModels
                 if (errorNombre == value)
                     return;
 
-                errorNombre = value;
+                errorNombre =
+                    value;
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneErrorNombre));
             }
         }
 
         public bool TieneErrorNombre =>
-            !string.IsNullOrWhiteSpace(ErrorNombre);
+            !string.IsNullOrWhiteSpace(
+                ErrorNombre);
 
         public string ErrorDescripcion
         {
@@ -114,122 +176,205 @@ namespace CONATRADEC.ViewModels
                 if (errorDescripcion == value)
                     return;
 
-                errorDescripcion = value;
+                errorDescripcion =
+                    value;
+
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(TieneErrorDescripcion));
+                OnPropertyChanged(
+                    nameof(TieneErrorDescripcion));
             }
         }
 
         public bool TieneErrorDescripcion =>
-            !string.IsNullOrWhiteSpace(ErrorDescripcion);
+            !string.IsNullOrWhiteSpace(
+                ErrorDescripcion);
 
         public bool IsReadOnly =>
-            Mode == FormMode.FormModeSelect.View;
+            Mode ==
+            FormMode.FormModeSelect.View;
 
-        public bool IsEditable => !IsReadOnly;
+        public bool CanSave =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create =>
+                    CanAdd,
 
-        public bool ShowSaveButton => !IsReadOnly;
+                FormMode.FormModeSelect.Edit =>
+                    CanEdit,
+
+                _ =>
+                    false
+            };
+
+        public bool ShowSaveButton =>
+            CanSave;
+
+        public bool MostrarBotonCancelar =>
+            !IsReadOnly;
+
+        public string CodigoInterno =>
+            Item.CodigoTipoAnalisisSuelo;
+
+        public bool MostrarCodigoInterno =>
+            !string.IsNullOrWhiteSpace(
+                CodigoInterno);
 
         public string Title =>
             Mode switch
             {
                 FormMode.FormModeSelect.Create =>
                     "Crear tipo de análisis de suelo",
+
                 FormMode.FormModeSelect.Edit =>
                     "Editar tipo de análisis de suelo",
+
+                FormMode.FormModeSelect.View =>
+                    "Detalles del tipo de análisis de suelo",
+
                 _ =>
-                    "Detalle del tipo de análisis de suelo"
+                    "Tipo de análisis de suelo"
             };
 
-        private bool HasChanges() =>
-            !string.Equals(
-                Nombre.Trim(),
-                Item.NombreTipoAnalisisSuelo?.Trim()
-                    ?? string.Empty,
-                StringComparison.Ordinal) ||
-            !string.Equals(
-                Descripcion.Trim(),
-                Item.DescripcionTipoAnalisisSuelo?.Trim()
-                    ?? string.Empty,
-                StringComparison.Ordinal);
-
-        private async Task CancelAsync()
-        {
-            if (!IsReadOnly && HasChanges())
+        public string Subtitulo =>
+            Mode switch
             {
-                bool confirm =
-                    await ConfirmarSalidaSinGuardarAsync();
+                FormMode.FormModeSelect.Create =>
+                    "Registre una modalidad de análisis disponible para el procesamiento de resultados.",
 
-                if (!confirm)
-                    return;
+                FormMode.FormModeSelect.Edit =>
+                    "Actualice la información del tipo de análisis seleccionado.",
+
+                FormMode.FormModeSelect.View =>
+                    "Consulte la información registrada.",
+
+                _ =>
+                    string.Empty
+            };
+
+        public void ActualizarPermisos()
+        {
+            LoadPagePermissions(
+                "tipoAnalisisSueloPage");
+
+            OnPropertyChanged(nameof(CanSave));
+            OnPropertyChanged(nameof(ShowSaveButton));
+
+            RefrescarComandos();
+        }
+
+        public void CancelarOperaciones()
+        {
+            try
+            {
+                guardadoCts?.Cancel();
             }
-
-            await GoToAsyncParameters(
-                AppRoutes.TiposAnalisisSuelo);
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         private async Task SaveAsync()
         {
-            if (IsReadOnly || IsBusy)
+            if (!CanSave ||
+                IsBusy)
+            {
                 return;
+            }
 
             if (!ValidarCampos())
             {
                 await MostrarAdvertenciaAsync(
                     "Revise los campos marcados antes de continuar.");
+
                 return;
             }
 
-            if (!HasChanges())
+            if (!await ValidarInternetAsync())
+                return;
+
+            if (Mode ==
+                    FormMode.FormModeSelect.Edit &&
+                !HayCambios())
             {
                 await MostrarInformacionAsync(
                     "No hay cambios para guardar.");
+
                 return;
             }
 
-            bool confirm =
-                Mode == FormMode.FormModeSelect.Create
+            bool confirmar =
+                Mode ==
+                FormMode.FormModeSelect.Create
                     ? await ConfirmarGuardadoAsync(
                         "el tipo de análisis de suelo")
                     : await ConfirmarActualizacionAsync(
                         "el tipo de análisis de suelo");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
 
-            Item.NombreTipoAnalisisSuelo =
-                Nombre.Trim();
+            guardadoCts?.Cancel();
+            guardadoCts?.Dispose();
 
-            Item.DescripcionTipoAnalisisSuelo =
-                Descripcion.Trim();
+            guardadoCts =
+                new CancellationTokenSource();
 
             try
             {
                 IsBusy = true;
                 RefrescarComandos();
 
-                ApiResult<bool> result =
-                    Mode == FormMode.FormModeSelect.Create
-                        ? await apiService.CreateAsync(Item)
-                        : await apiService.UpdateAsync(Item);
+                Item.NombreTipoAnalisisSuelo =
+                    Nombre
+                        .ReplaceLineEndings(" ")
+                        .Trim()
+                        .ToUpperInvariant();
 
-                if (!result.Success)
+                Item.DescripcionTipoAnalisisSuelo =
+                    Descripcion
+                        .ReplaceLineEndings(" ")
+                        .Trim();
+
+                ApiResult<bool> resultado =
+                    Mode ==
+                    FormMode.FormModeSelect.Create
+                        ? await apiService
+                            .CreateAsync(
+                                Item,
+                                guardadoCts.Token)
+                        : await apiService
+                            .UpdateAsync(
+                                Item,
+                                guardadoCts.Token);
+
+                if (!resultado.Success ||
+                    resultado.Data != true)
                 {
-                    await MostrarErrorAsync(result.Message);
+                    await MostrarErrorAsync(
+                        resultado.Message);
+
                     return;
                 }
 
-                await GoToAsyncParameters(
-                    AppRoutes.TiposAnalisisSuelo);
+                TipoAnalisisSueloListadoEstadoService
+                    .MarcarCambio();
 
-                await MostrarExitoAsync(result.Message);
+                await RegresarAlListadoAsync();
+
+                await MostrarExitoAsync(
+                    string.IsNullOrWhiteSpace(
+                        resultado.Message)
+                            ? "Tipo de análisis de suelo guardado correctamente."
+                            : resultado.Message);
+            }
+            catch (OperationCanceledException)
+            {
+                // La página se cerró durante el guardado.
             }
             catch (Exception ex)
             {
                 await MostrarErrorInesperadoAsync(
-                    Mode == FormMode.FormModeSelect.Create
-                        ? "guardar el tipo de análisis de suelo"
-                        : "actualizar el tipo de análisis de suelo",
+                    "guardar el tipo de análisis de suelo",
                     ex);
             }
             finally
@@ -239,23 +384,58 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private async Task CancelAsync()
+        {
+            if (IsBusy)
+                return;
+
+            if (!IsReadOnly &&
+                HayCambios())
+            {
+                bool confirmar =
+                    await ConfirmarSalidaSinGuardarAsync();
+
+                if (!confirmar)
+                    return;
+            }
+
+            await RegresarAlListadoAsync();
+        }
+
         private bool ValidarCampos()
         {
             LimpiarErrores();
 
-            Nombre = Nombre.Trim();
-            Descripcion = Descripcion.Trim();
+            Nombre =
+                Nombre
+                    .ReplaceLineEndings(" ")
+                    .Trim();
 
-            if (string.IsNullOrWhiteSpace(Nombre))
+            Descripcion =
+                Descripcion.Trim();
+
+            if (string.IsNullOrWhiteSpace(
+                    Nombre))
             {
                 ErrorNombre =
                     "Ingrese el nombre del tipo de análisis.";
             }
+            else if (Nombre.Length > 100)
+            {
+                ErrorNombre =
+                    "El nombre no puede superar 100 caracteres.";
+            }
 
-            if (string.IsNullOrWhiteSpace(Descripcion))
+            if (string.IsNullOrWhiteSpace(
+                    Descripcion))
             {
                 ErrorDescripcion =
                     "Ingrese la descripción del tipo de análisis.";
+            }
+            else if (Descripcion.Length > 200)
+            {
+                ErrorDescripcion =
+                    "La descripción no puede superar 200 caracteres.";
             }
 
             return
@@ -263,10 +443,48 @@ namespace CONATRADEC.ViewModels
                 !TieneErrorDescripcion;
         }
 
+        private bool HayCambios()
+        {
+            string nombreActual =
+                Nombre
+                    .ReplaceLineEndings(" ")
+                    .Trim();
+
+            string descripcionActual =
+                Descripcion.Trim();
+
+            if (Mode ==
+                FormMode.FormModeSelect.Create)
+            {
+                return
+                    !string.IsNullOrWhiteSpace(
+                        nombreActual) ||
+                    !string.IsNullOrWhiteSpace(
+                        descripcionActual);
+            }
+
+            return
+                !string.Equals(
+                    nombreActual,
+                    nombreOriginal,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(
+                    descripcionActual,
+                    descripcionOriginal,
+                    StringComparison.Ordinal);
+        }
+
+        private Task RegresarAlListadoAsync() =>
+            GoToAsyncParameters(
+                AppRoutes.TiposAnalisisSuelo);
+
         private void LimpiarErrores()
         {
-            ErrorNombre = string.Empty;
-            ErrorDescripcion = string.Empty;
+            ErrorNombre =
+                string.Empty;
+
+            ErrorDescripcion =
+                string.Empty;
         }
 
         private void RefrescarComandos()
