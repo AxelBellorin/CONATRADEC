@@ -1,127 +1,219 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
+    x:Class="CONATRADEC.Views.tipoCultivoFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="CONATRADEC.Views.tipoCultivoFormPage"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="Transparent">
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
     <Grid
-        RowDefinitions="Auto,*"
-        Padding="10">
+        Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
 
-        <Grid
-            Grid.Row="0"
-            ColumnDefinitions="*,Auto"
-            Margin="4,12,4,8">
+        <ScrollView
+            HorizontalOptions="Fill"
+            HorizontalScrollBarVisibility="Never">
 
-            <Label
-                Text="{Binding Title}"
-                FontSize="24"
-                FontFamily="MontserratBold"
-                TextColor="{StaticResource color_Verde}"
-                VerticalOptions="Center" />
+            <!--
+                El ancho se ajusta desde el code-behind según la ventana.
+                Evita formularios demasiado angostos en Windows.
+            -->
+            <VerticalStackLayout
+                x:Name="FormularioContainer"
+                MaximumWidthRequest="1100"
+                HorizontalOptions="Center"
+                Spacing="18">
 
-            <ActivityIndicator
-                Grid.Column="1"
-                IsRunning="{Binding IsBusy}"
-                IsVisible="{Binding IsBusy}"
-                Color="{StaticResource color_Naranja}"
-                VerticalOptions="Center" />
+                <!-- Encabezado -->
+                <Grid
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="12">
 
-        </Grid>
+                    <VerticalStackLayout Spacing="4">
 
-        <ScrollView Grid.Row="1">
+                        <Label
+                            Text="{Binding Title}"
+                            FontSize="{OnPlatform WinUI=30, Default=26}"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
 
-            <VerticalStackLayout Spacing="15">
+                        <Label
+                            Text="{Binding Subtitulo}"
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
 
+                    <ActivityIndicator
+                        Grid.Column="1"
+                        IsRunning="{Binding IsBusy}"
+                        IsVisible="{Binding IsBusy}"
+                        Color="{StaticResource color_Naranja}"
+                        VerticalOptions="Center" />
+                </Grid>
+
+                <!-- Información -->
                 <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
+                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
 
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorNombre}"
-                            Value="True">
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-                        </DataTrigger>
-                    </Border.Triggers>
+                    <VerticalStackLayout Spacing="17">
 
-                    <VerticalStackLayout Spacing="5">
+                        <VerticalStackLayout Spacing="3">
 
-                        <Label
-                            Text="Nombre del tipo de cultivo"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}" />
+                            <Label
+                                Text="Información general"
+                                FontSize="19"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
 
-                        <Entry
-                            Text="{Binding Nombre}"
-                            Placeholder="Ejemplo: CAFÉ"
-                            Style="{StaticResource EntryStyle}"
-                            IsReadOnly="{Binding IsReadOnly}" />
+                            <Label
+                                Text="Este cultivo estará disponible para análisis de suelo y parámetros nutricionales."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
 
-                        <Label
-                            Text="{Binding ErrorNombre}"
-                            IsVisible="{Binding TieneErrorNombre}"
-                            Style="{StaticResource ValidationMessageStyle}" />
+                        <!-- Nombre -->
+                        <VerticalStackLayout Spacing="6">
 
+                            <Label
+                                Text="Nombre del tipo de cultivo"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorNombre}"
+                                        Value="True">
+
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Entry
+                                    Placeholder="Ejemplo: CAFÉ"
+                                    Text="{Binding Nombre}"
+                                    MaxLength="80"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent" />
+                            </Border>
+
+                            <Label
+                                Text="{Binding ErrorNombre}"
+                                IsVisible="{Binding TieneErrorNombre}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
+
+                        <!-- Descripción -->
+                        <VerticalStackLayout Spacing="6">
+
+                            <Label
+                                Text="Descripción"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorDescripcion}"
+                                        Value="True">
+
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Editor
+                                    Placeholder="Descripción breve del cultivo"
+                                    Text="{Binding Descripcion}"
+                                    MaxLength="150"
+                                    MinimumHeightRequest="120"
+                                    AutoSize="TextChanges"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent" />
+                            </Border>
+
+                            <Label
+                                Text="Máximo 150 caracteres."
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="{Binding ErrorDescripcion}"
+                                IsVisible="{Binding TieneErrorDescripcion}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
-
                 </Border>
 
-                <Border Style="{StaticResource BorderStyle}">
-
-                    <VerticalStackLayout Spacing="5">
-
-                        <Label
-                            Text="Descripción"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}" />
-
-                        <Editor
-                            Text="{Binding Descripcion}"
-                            Placeholder="Descripción del cultivo"
-                            AutoSize="TextChanges"
-                            MinimumHeightRequest="100"
-                            IsReadOnly="{Binding IsReadOnly}" />
-
-                    </VerticalStackLayout>
-
-                </Border>
-
+                <!-- Acciones -->
                 <Grid
                     ColumnDefinitions="*,*"
-                    Margin="6,4">
+                    ColumnSpacing="12"
+                    Margin="0,2,0,16">
 
                     <Button
                         Grid.Column="0"
                         Text="Guardar"
-                        Style="{StaticResource UpdateButton}"
-                        Command="{Binding SaveCommand}"
                         IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
-                        Margin="4" />
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource UpdateButton}" />
 
                     <Button
                         Grid.Column="1"
                         Text="Cancelar"
-                        Style="{StaticResource CancelButton}"
-                        Command="{Binding CancelCommand}"
+                        IsVisible="{Binding MostrarBotonCancelar}"
                         IsEnabled="{Binding NotIsBusy}"
-                        Margin="4" />
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource CancelButton}" />
 
+                    <Button
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Text="Regresar"
+                        IsVisible="{Binding IsReadOnly}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource CancelButton}" />
                 </Grid>
-
             </VerticalStackLayout>
-
         </ScrollView>
-
     </Grid>
-
 </ContentPage>

@@ -1,6 +1,6 @@
-﻿using CONATRADEC.Models;
-using CONATRADEC.Services;
+using CONATRADEC.Models;
 using CONATRADEC.ViewModels;
+using Microsoft.Maui.Devices;
 using static CONATRADEC.Models.FormMode;
 
 namespace CONATRADEC.Views
@@ -9,35 +9,87 @@ namespace CONATRADEC.Views
     [QueryProperty(nameof(Item), "Item")]
     public partial class tipoCultivoFormPage : ContentPage
     {
-        private readonly TipoCultivoFormViewModel viewModel = new();
-
-        public FormModeSelect Mode { set => viewModel.Mode = value; }
-        public TipoCultivoRequest Item { set => viewModel.Item = value; }
+        private readonly TipoCultivoFormViewModel
+            viewModel = new();
 
         public tipoCultivoFormPage()
         {
             InitializeComponent();
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
+
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
+            BindingContext =
+                viewModel;
         }
 
-        protected override async void OnAppearing()
+        public FormModeSelect Mode
+        {
+            set =>
+                viewModel.Mode =
+                    value;
+        }
+
+        public TipoCultivoRequest Item
+        {
+            set =>
+                viewModel.Item =
+                    value ??
+                    new TipoCultivoRequest();
+        }
+
+        protected override void OnAppearing()
         {
             base.OnAppearing();
-            viewModel.LoadPagePermissions("tipoCultivoPage");
 
-            bool denied = !viewModel.CanView
-                || (viewModel.Mode == FormModeSelect.Create && !viewModel.CanAdd)
-                || (viewModel.Mode == FormModeSelect.Edit && !viewModel.CanEdit);
+            viewModel.ActualizarPermisos();
+            AjustarAnchoFormulario(Width);
+        }
 
-            if (denied)
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarOperaciones();
+
+            base.OnDisappearing();
+        }
+
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
+        {
+            base.OnSizeAllocated(
+                width,
+                height);
+
+            AjustarAnchoFormulario(
+                width);
+        }
+
+        private void AjustarAnchoFormulario(
+            double anchoPagina)
+        {
+            if (FormularioContainer == null ||
+                anchoPagina <= 0)
             {
-                await DisplayAlert("Permiso denegado", "No tiene permisos para realizar esta operación.", "Aceptar");
-                await Shell.Current.GoToAsync(AppRoutes.TiposCultivo);
                 return;
             }
 
+            double margenHorizontal =
+                DeviceInfo.Platform ==
+                DevicePlatform.WinUI
+                    ? 72
+                    : 32;
 
+            double anchoDisponible =
+                Math.Max(
+                    280,
+                    anchoPagina -
+                    margenHorizontal);
+
+            FormularioContainer.WidthRequest =
+                Math.Min(
+                    anchoDisponible,
+                    1100);
         }
     }
 }

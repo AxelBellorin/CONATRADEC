@@ -1,40 +1,75 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 
 namespace CONATRADEC.ViewModels
 {
-    public class TipoCultivoFormViewModel : GlobalService
+    public sealed class TipoCultivoFormViewModel : GlobalService
     {
-        private readonly TipoCultivoApiService apiService = new();
+        private readonly TipoCultivoApiService apiService;
+        private CancellationTokenSource? guardadoCts;
+
         private TipoCultivoRequest item = new();
         private FormMode.FormModeSelect mode;
         private string nombre = string.Empty;
         private string descripcion = string.Empty;
+        private string nombreOriginal = string.Empty;
+        private string descripcionOriginal = string.Empty;
         private string errorNombre = string.Empty;
+        private string errorDescripcion = string.Empty;
+
+        public TipoCultivoFormViewModel()
+            : this(new TipoCultivoApiService())
+        {
+        }
+
+        public TipoCultivoFormViewModel(
+            TipoCultivoApiService apiService)
+        {
+            this.apiService =
+                apiService
+                ?? throw new ArgumentNullException(
+                    nameof(apiService));
+
+            SaveCommand =
+                new Command(
+                    async () => await SaveAsync(),
+                    () =>
+                        CanSave &&
+                        !IsBusy);
+
+            CancelCommand =
+                new Command(
+                    async () => await CancelAsync(),
+                    () =>
+                        !IsBusy);
+        }
 
         public Command SaveCommand { get; }
         public Command CancelCommand { get; }
-
-        public TipoCultivoFormViewModel()
-        {
-            SaveCommand = new Command(
-                async () => await SaveAsync(),
-                () => !IsReadOnly && !IsBusy);
-
-            CancelCommand = new Command(
-                async () => await CancelAsync(),
-                () => !IsBusy);
-        }
 
         public TipoCultivoRequest Item
         {
             get => item;
             set
             {
-                item = value ?? new TipoCultivoRequest();
-                Nombre = item.NombreTipoCultivo ?? string.Empty;
+                item =
+                    value ??
+                    new TipoCultivoRequest();
+
+                Nombre =
+                    item.NombreTipoCultivo ??
+                    string.Empty;
+
                 Descripcion =
-                    item.DescripcionTipoCultivo ?? string.Empty;
+                    item.DescripcionTipoCultivo ??
+                    string.Empty;
+
+                nombreOriginal =
+                    Nombre.Trim();
+
+                descripcionOriginal =
+                    Descripcion.Trim();
+
                 LimpiarErrores();
                 OnPropertyChanged();
             }
@@ -45,12 +80,20 @@ namespace CONATRADEC.ViewModels
             get => mode;
             set
             {
-                mode = value;
+                if (mode == value)
+                    return;
+
+                mode =
+                    value;
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
-                OnPropertyChanged(nameof(IsEditable));
+                OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(ShowSaveButton));
+                OnPropertyChanged(nameof(MostrarBotonCancelar));
                 OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(Subtitulo));
+
                 RefrescarComandos();
             }
         }
@@ -60,7 +103,16 @@ namespace CONATRADEC.ViewModels
             get => nombre;
             set
             {
-                nombre = value ?? string.Empty;
+                string nuevoValor =
+                    (value ?? string.Empty)
+                        .ReplaceLineEndings(" ");
+
+                if (nombre == nuevoValor)
+                    return;
+
+                nombre =
+                    nuevoValor;
+
                 OnPropertyChanged();
 
                 if (!string.IsNullOrWhiteSpace(nombre))
@@ -73,8 +125,20 @@ namespace CONATRADEC.ViewModels
             get => descripcion;
             set
             {
-                descripcion = value ?? string.Empty;
+                string nuevoValor =
+                    value ??
+                    string.Empty;
+
+                if (descripcion == nuevoValor)
+                    return;
+
+                descripcion =
+                    nuevoValor;
+
                 OnPropertyChanged();
+
+                if (descripcion.Length <= 150)
+                    ErrorDescripcion = string.Empty;
             }
         }
 
@@ -86,119 +150,218 @@ namespace CONATRADEC.ViewModels
                 if (errorNombre == value)
                     return;
 
-                errorNombre = value;
+                errorNombre =
+                    value;
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneErrorNombre));
             }
         }
 
         public bool TieneErrorNombre =>
-            !string.IsNullOrWhiteSpace(ErrorNombre);
+            !string.IsNullOrWhiteSpace(
+                ErrorNombre);
+
+        public string ErrorDescripcion
+        {
+            get => errorDescripcion;
+            private set
+            {
+                if (errorDescripcion == value)
+                    return;
+
+                errorDescripcion =
+                    value;
+
+                OnPropertyChanged();
+                OnPropertyChanged(
+                    nameof(TieneErrorDescripcion));
+            }
+        }
+
+        public bool TieneErrorDescripcion =>
+            !string.IsNullOrWhiteSpace(
+                ErrorDescripcion);
 
         public bool IsReadOnly =>
-            Mode == FormMode.FormModeSelect.View;
+            Mode ==
+            FormMode.FormModeSelect.View;
 
-        public bool IsEditable => !IsReadOnly;
+        public bool CanSave =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create =>
+                    CanAdd,
 
-        public bool ShowSaveButton => !IsReadOnly;
+                FormMode.FormModeSelect.Edit =>
+                    CanEdit,
+
+                _ =>
+                    false
+            };
+
+        public bool ShowSaveButton =>
+            CanSave;
+
+        public bool MostrarBotonCancelar =>
+            !IsReadOnly;
 
         public string Title =>
             Mode switch
             {
                 FormMode.FormModeSelect.Create =>
                     "Crear tipo de cultivo",
+
                 FormMode.FormModeSelect.Edit =>
                     "Editar tipo de cultivo",
+
+                FormMode.FormModeSelect.View =>
+                    "Detalles del tipo de cultivo",
+
                 _ =>
-                    "Detalle del tipo de cultivo"
+                    "Tipo de cultivo"
             };
 
-        private bool HasChanges() =>
-            !string.Equals(
-                Nombre.Trim(),
-                Item.NombreTipoCultivo?.Trim() ?? string.Empty,
-                StringComparison.Ordinal) ||
-            !string.Equals(
-                Descripcion.Trim(),
-                Item.DescripcionTipoCultivo?.Trim()
-                    ?? string.Empty,
-                StringComparison.Ordinal);
-
-        private async Task CancelAsync()
-        {
-            if (!IsReadOnly && HasChanges())
+        public string Subtitulo =>
+            Mode switch
             {
-                bool confirm =
-                    await ConfirmarSalidaSinGuardarAsync();
+                FormMode.FormModeSelect.Create =>
+                    "Registre un cultivo disponible para análisis y parámetros nutricionales.",
 
-                if (!confirm)
-                    return;
+                FormMode.FormModeSelect.Edit =>
+                    "Actualice la información del cultivo seleccionado.",
+
+                FormMode.FormModeSelect.View =>
+                    "Consulte la información registrada.",
+
+                _ =>
+                    string.Empty
+            };
+
+        public void ActualizarPermisos()
+        {
+            LoadPagePermissions(
+                "tipoCultivoPage");
+
+            OnPropertyChanged(nameof(CanSave));
+            OnPropertyChanged(nameof(ShowSaveButton));
+
+            RefrescarComandos();
+        }
+
+        public void CancelarOperaciones()
+        {
+            try
+            {
+                guardadoCts?.Cancel();
             }
-
-            await GoToAsyncParameters(
-                AppRoutes.TiposCultivo);
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         private async Task SaveAsync()
         {
-            if (IsReadOnly || IsBusy)
+            if (!CanSave ||
+                IsBusy)
+            {
                 return;
+            }
 
             if (!ValidarCampos())
             {
                 await MostrarAdvertenciaAsync(
                     "Revise los campos marcados antes de continuar.");
+
                 return;
             }
 
-            if (!HasChanges())
+            if (!await ValidarInternetAsync())
+                return;
+
+            if (Mode ==
+                    FormMode.FormModeSelect.Edit &&
+                !HayCambios())
             {
                 await MostrarInformacionAsync(
                     "No hay cambios para guardar.");
+
                 return;
             }
 
-            bool confirm =
-                Mode == FormMode.FormModeSelect.Create
+            bool confirmar =
+                Mode ==
+                FormMode.FormModeSelect.Create
                     ? await ConfirmarGuardadoAsync(
                         "el tipo de cultivo")
                     : await ConfirmarActualizacionAsync(
                         "el tipo de cultivo");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
 
-            Item.NombreTipoCultivo = Nombre.Trim();
-            Item.DescripcionTipoCultivo =
-                Descripcion.Trim();
+            guardadoCts?.Cancel();
+            guardadoCts?.Dispose();
+
+            guardadoCts =
+                new CancellationTokenSource();
 
             try
             {
                 IsBusy = true;
                 RefrescarComandos();
 
-                ApiResult<bool> result =
-                    Mode == FormMode.FormModeSelect.Create
-                        ? await apiService.CreateAsync(Item)
-                        : await apiService.UpdateAsync(Item);
+                Item.NombreTipoCultivo =
+                    Nombre
+                        .ReplaceLineEndings(" ")
+                        .Trim()
+                        .ToUpperInvariant();
 
-                if (!result.Success)
+                Item.DescripcionTipoCultivo =
+                    Descripcion
+                        .ReplaceLineEndings(" ")
+                        .Trim();
+
+                ApiResult<bool> resultado =
+                    Mode ==
+                    FormMode.FormModeSelect.Create
+                        ? await apiService
+                            .CreateAsync(
+                                Item,
+                                guardadoCts.Token)
+                        : await apiService
+                            .UpdateAsync(
+                                Item,
+                                guardadoCts.Token);
+
+                if (!resultado.Success ||
+                    resultado.Data != true)
                 {
-                    await MostrarErrorAsync(result.Message);
+                    await MostrarErrorAsync(
+                        resultado.Message);
+
                     return;
                 }
 
-                await GoToAsyncParameters(
-                    AppRoutes.TiposCultivo);
+                TipoCultivoListadoEstadoService
+                    .MarcarCambio();
 
-                await MostrarExitoAsync(result.Message);
+                await RegresarAlListadoAsync();
+
+                await MostrarExitoAsync(
+                    string.IsNullOrWhiteSpace(
+                        resultado.Message)
+                            ? "Tipo de cultivo guardado correctamente."
+                            : resultado.Message);
+            }
+            catch (OperationCanceledException)
+            {
+                // La página se cerró durante el guardado.
             }
             catch (Exception ex)
             {
                 await MostrarErrorInesperadoAsync(
-                    Mode == FormMode.FormModeSelect.Create
-                        ? "guardar el tipo de cultivo"
-                        : "actualizar el tipo de cultivo",
+                    "guardar el tipo de cultivo",
                     ex);
             }
             finally
@@ -208,23 +371,101 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private async Task CancelAsync()
+        {
+            if (IsBusy)
+                return;
+
+            if (!IsReadOnly &&
+                HayCambios())
+            {
+                bool confirmar =
+                    await ConfirmarSalidaSinGuardarAsync();
+
+                if (!confirmar)
+                    return;
+            }
+
+            await RegresarAlListadoAsync();
+        }
+
         private bool ValidarCampos()
         {
             LimpiarErrores();
-            Nombre = Nombre.Trim();
 
-            if (string.IsNullOrWhiteSpace(Nombre))
+            Nombre =
+                Nombre
+                    .ReplaceLineEndings(" ")
+                    .Trim();
+
+            Descripcion =
+                Descripcion.Trim();
+
+            if (string.IsNullOrWhiteSpace(
+                    Nombre))
             {
                 ErrorNombre =
                     "Ingrese el nombre del tipo de cultivo.";
             }
+            else if (Nombre.Length > 80)
+            {
+                ErrorNombre =
+                    "El nombre no puede superar 80 caracteres.";
+            }
 
-            return !TieneErrorNombre;
+            if (Descripcion.Length > 150)
+            {
+                ErrorDescripcion =
+                    "La descripción no puede superar 150 caracteres.";
+            }
+
+            return
+                !TieneErrorNombre &&
+                !TieneErrorDescripcion;
         }
+
+        private bool HayCambios()
+        {
+            string nombreActual =
+                Nombre
+                    .ReplaceLineEndings(" ")
+                    .Trim();
+
+            string descripcionActual =
+                Descripcion.Trim();
+
+            if (Mode ==
+                FormMode.FormModeSelect.Create)
+            {
+                return
+                    !string.IsNullOrWhiteSpace(
+                        nombreActual) ||
+                    !string.IsNullOrWhiteSpace(
+                        descripcionActual);
+            }
+
+            return
+                !string.Equals(
+                    nombreActual,
+                    nombreOriginal,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(
+                    descripcionActual,
+                    descripcionOriginal,
+                    StringComparison.Ordinal);
+        }
+
+        private Task RegresarAlListadoAsync() =>
+            GoToAsyncParameters(
+                AppRoutes.TiposCultivo);
 
         private void LimpiarErrores()
         {
-            ErrorNombre = string.Empty;
+            ErrorNombre =
+                string.Empty;
+
+            ErrorDescripcion =
+                string.Empty;
         }
 
         private void RefrescarComandos()

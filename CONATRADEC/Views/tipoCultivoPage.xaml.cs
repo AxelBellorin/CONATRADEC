@@ -1,32 +1,81 @@
-using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
     public partial class tipoCultivoPage : ContentPage
     {
-        private readonly TipoCultivoViewModel viewModel = new();
+        private readonly TipoCultivoViewModel
+            viewModel = new();
+
+        private int cantidadColumnasActual;
 
         public tipoCultivoPage()
         {
             InitializeComponent();
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
+
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
+            BindingContext =
+                viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            viewModel.LoadPagePermissions("tipoCultivoPage");
 
-            if (!viewModel.CanView)
+            viewModel.ActualizarPermisos();
+            AjustarCantidadColumnas(Width);
+
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+
+            base.OnDisappearing();
+        }
+
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
+        {
+            base.OnSizeAllocated(
+                width,
+                height);
+
+            AjustarCantidadColumnas(
+                width);
+        }
+
+        private void AjustarCantidadColumnas(
+            double width)
+        {
+            if (width <= 0 ||
+                TiposCultivoGridLayout == null)
             {
-                await DisplayAlert("Permiso denegado", "No tiene permisos para ver tipos de cultivo.", "Aceptar");
-                await Shell.Current.GoToAsync(AppRoutes.Principal);
                 return;
             }
 
-            await viewModel.LoadAsync(true);
+            int nuevasColumnas =
+                width >= 1280
+                    ? 3
+                    : width >= 760
+                        ? 2
+                        : 1;
+
+            if (cantidadColumnasActual ==
+                nuevasColumnas)
+            {
+                return;
+            }
+
+            cantidadColumnasActual =
+                nuevasColumnas;
+
+            TiposCultivoGridLayout.Span =
+                nuevasColumnas;
         }
     }
 }

@@ -1,25 +1,43 @@
 namespace CONATRADEC.Models
 {
-    public class TipoCultivoResponse
+    public sealed class TipoCultivoResponse
     {
         public int TipoCultivoId { get; set; }
 
         public string? NombreTipoCultivo { get; set; }
 
-        // Se conserva por compatibilidad con las pantallas de análisis
-        // que anteriormente recibían el nombre en la propiedad "tipoCultivo".
+        /*
+         * Se conserva por compatibilidad con las pantallas de análisis
+         * que anteriormente recibían el nombre en esta propiedad.
+         */
         public string? TipoCultivo { get; set; }
 
         public string? DescripcionTipoCultivo { get; set; }
 
         public bool Activo { get; set; }
 
-        // Propiedad utilizada por los Picker existentes del proyecto.
-        // Prioriza TipoCultivo cuando la API antigua lo devuelve y, en caso
-        // contrario, usa NombreTipoCultivo del nuevo CRUD de configuración.
+        public int CantidadRangosActivos { get; set; }
+
+        public int CantidadAnalisis { get; set; }
+
         public string NombreMostrar =>
             !string.IsNullOrWhiteSpace(TipoCultivo)
                 ? TipoCultivo.Trim()
                 : NombreTipoCultivo?.Trim() ?? string.Empty;
+
+        public string DescripcionMostrar =>
+            string.IsNullOrWhiteSpace(DescripcionTipoCultivo)
+                ? "Sin descripción registrada."
+                : DescripcionTipoCultivo.Trim();
+
+        public string ResumenRangos =>
+            CantidadRangosActivos == 1
+                ? "1 rango nutricional"
+                : $"{CantidadRangosActivos} rangos nutricionales";
+
+        public string ResumenAnalisis =>
+            CantidadAnalisis == 1
+                ? "1 análisis asociado"
+                : $"{CantidadAnalisis} análisis asociados";
     }
 }
