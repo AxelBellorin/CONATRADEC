@@ -2,18 +2,22 @@ using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
     public sealed class PublicacionesAdminViewModel : GlobalService
     {
         private readonly PublicacionApiService apiService = new();
+
         private CategoriaPublicacionResponse? categoriaSeleccionada;
         private string estadoSeleccionado = "TODOS";
         private string textoBusqueda = string.Empty;
         private string mensaje = string.Empty;
         private bool isRefreshing;
         private bool cargandoMas;
+        private bool navegando;
+        private bool ejecutandoOperacion;
         private bool cargado;
         private bool ultimaCargaExitosa;
         private long versionAplicada = -1;
@@ -42,50 +46,96 @@ namespace CONATRADEC.ViewModels
                 PublicacionListadoResponse>();
 
             BuscarCommand = new Command(
-                async () => await CargarAsync(true),
-                () => !IsBusy && CanAdministrar);
+                async () => await EjecutarComandoSeguroAsync(
+                    () => CargarAsync(reiniciar: true),
+                    "buscar publicaciones"),
+                () => !IsBusy && !Navegando && CanAdministrar);
 
             LimpiarFiltrosCommand = new Command(
-                async () => await LimpiarFiltrosAsync(),
-                () => !IsBusy && CanAdministrar);
+                async () => await EjecutarComandoSeguroAsync(
+                    LimpiarFiltrosAsync,
+                    "limpiar los filtros de publicaciones"),
+                () => !IsBusy && !Navegando && CanAdministrar);
 
             RefrescarCommand = new Command(
-                async () => await RefrescarAsync(),
-                () => !IsBusy && CanAdministrar);
+                async () => await EjecutarComandoSeguroAsync(
+                    RefrescarAsync,
+                    "actualizar las publicaciones"),
+                () => !IsBusy && !Navegando && CanAdministrar);
 
             CargarMasCommand = new Command(
-                async () => await CargarMasAsync(),
-                () => !IsBusy && !CargandoMas &&
-                      PuedeCargarMas && CanAdministrar);
+                async () => await EjecutarComandoSeguroAsync(
+                    CargarMasAsync,
+                    "cargar más publicaciones"),
+                () =>
+                    !IsBusy &&
+                    !CargandoMas &&
+                    !Navegando &&
+                    PuedeCargarMas &&
+                    CanAdministrar);
 
+            /*
+             * Los comandos de navegación pueden ejecutarse aunque exista una
+             * carga en curso. La carga se cancela antes de cambiar de página.
+             */
             NuevaCommand = new Command(
-                async () => await NuevaAsync(),
-                () => !IsBusy && CanAdd);
+                async () => await EjecutarComandoSeguroAsync(
+                    NuevaAsync,
+                    "abrir una nueva publicación"),
+                () => !Navegando && !EjecutandoOperacion && CanAdd);
 
             EditarCommand =
                 new Command<PublicacionListadoResponse>(
-                    async item => await EditarAsync(item),
-                    item => !IsBusy && CanEdit && item != null);
+                    async item => await EjecutarComandoSeguroAsync(
+                        () => EditarAsync(item),
+                        "editar la publicación"),
+                    item =>
+                        item != null &&
+                        !Navegando &&
+                        !EjecutandoOperacion &&
+                        CanEdit);
 
             CambiarEstadoCommand =
                 new Command<PublicacionListadoResponse>(
-                    async item => await CambiarEstadoAsync(item),
-                    item => !IsBusy && CanEdit && item != null);
+                    async item => await EjecutarComandoSeguroAsync(
+                        () => CambiarEstadoAsync(item),
+                        "cambiar el estado de la publicación"),
+                    item =>
+                        item != null &&
+                        !IsBusy &&
+                        !Navegando &&
+                        !EjecutandoOperacion &&
+                        CanEdit);
 
             CambiarDestacadaCommand =
                 new Command<PublicacionListadoResponse>(
-                    async item => await CambiarDestacadaAsync(item),
-                    item => !IsBusy && CanEdit && item != null);
+                    async item => await EjecutarComandoSeguroAsync(
+                        () => CambiarDestacadaAsync(item),
+                        "actualizar el destacado de la publicación"),
+                    item =>
+                        item != null &&
+                        !IsBusy &&
+                        !Navegando &&
+                        !EjecutandoOperacion &&
+                        CanEdit);
 
             EliminarCommand =
                 new Command<PublicacionListadoResponse>(
-                    async item => await EliminarAsync(item),
-                    item => !IsBusy && CanDelete && item != null);
+                    async item => await EjecutarComandoSeguroAsync(
+                        () => EliminarAsync(item),
+                        "eliminar la publicación"),
+                    item =>
+                        item != null &&
+                        !IsBusy &&
+                        !Navegando &&
+                        !EjecutandoOperacion &&
+                        CanDelete);
 
             RegresarCommand = new Command(
-                async () => await GoToAsyncParameters(
-                    AppRoutes.Regresar),
-                () => !IsBusy);
+                async () => await EjecutarComandoSeguroAsync(
+                    RegresarAsync,
+                    "regresar al centro de noticias"),
+                () => !Navegando && !EjecutandoOperacion);
         }
 
         public ObservableCollection<CategoriaPublicacionResponse>
@@ -114,14 +164,14 @@ namespace CONATRADEC.ViewModels
             get => estadoSeleccionado;
             set
             {
-                string nuevo = string.IsNullOrWhiteSpace(value)
+                string nuevoValor = string.IsNullOrWhiteSpace(value)
                     ? "TODOS"
                     : value;
 
-                if (estadoSeleccionado == nuevo)
+                if (estadoSeleccionado == nuevoValor)
                     return;
 
-                estadoSeleccionado = nuevo;
+                estadoSeleccionado = nuevoValor;
                 OnPropertyChanged();
             }
         }
@@ -131,7 +181,12 @@ namespace CONATRADEC.ViewModels
             get => textoBusqueda;
             set
             {
-                textoBusqueda = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (textoBusqueda == nuevoValor)
+                    return;
+
+                textoBusqueda = nuevoValor;
                 OnPropertyChanged();
             }
         }
@@ -155,7 +210,12 @@ namespace CONATRADEC.ViewModels
             get => mensaje;
             private set
             {
-                mensaje = value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
+
+                if (mensaje == nuevoValor)
+                    return;
+
+                mensaje = nuevoValor;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneMensaje));
             }
@@ -188,13 +248,44 @@ namespace CONATRADEC.ViewModels
                 cargandoMas = value;
                 OnPropertyChanged();
                 ActualizarComandos();
+                NotificarLista();
             }
         }
 
-        public bool TienePublicaciones => Publicaciones.Count > 0;
+        public bool Navegando
+        {
+            get => navegando;
+            private set
+            {
+                if (navegando == value)
+                    return;
+
+                navegando = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        private bool EjecutandoOperacion
+        {
+            get => ejecutandoOperacion;
+            set
+            {
+                if (ejecutandoOperacion == value)
+                    return;
+
+                ejecutandoOperacion = value;
+                ActualizarComandos();
+            }
+        }
+
+        public bool TienePublicaciones =>
+            Publicaciones.Count > 0;
 
         public bool MostrarVacio =>
-            cargado && !TienePublicaciones && !IsBusy;
+            cargado &&
+            !TienePublicaciones &&
+            !IsBusy;
 
         public bool PuedeCargarMas =>
             paginaActual < totalPaginas;
@@ -233,7 +324,7 @@ namespace CONATRADEC.ViewModels
 
         public async Task InicializarAsync()
         {
-            if (!CanAdministrar || IsBusy)
+            if (!CanAdministrar || IsBusy || Navegando)
                 return;
 
             bool hayCambios =
@@ -247,6 +338,7 @@ namespace CONATRADEC.ViewModels
                 categoriasCargadas = false;
 
             await CargarInicialAsync();
+
             if (ultimaCargaExitosa)
             {
                 versionAplicada =
@@ -256,7 +348,7 @@ namespace CONATRADEC.ViewModels
 
         public async Task CargarAsync(bool reiniciar)
         {
-            if (!CanAdministrar)
+            if (!CanAdministrar || Navegando)
                 return;
 
             if (reiniciar && IsBusy)
@@ -269,7 +361,7 @@ namespace CONATRADEC.ViewModels
             }
 
             CancellationTokenSource source =
-                PrepararCarga(reiniciar);
+                PrepararCarga();
 
             try
             {
@@ -297,8 +389,11 @@ namespace CONATRADEC.ViewModels
                         ObtenerTamanoPagina(),
                         source.Token);
 
-                if (source.IsCancellationRequested)
+                if (source.IsCancellationRequested ||
+                    !EsCargaActual(source))
+                {
                     return;
+                }
 
                 if (!result.Success || result.Data == null)
                 {
@@ -308,15 +403,22 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                AplicarPagina(result.Data, reiniciar);
+                AplicarPagina(
+                    result.Data,
+                    reiniciar);
             }
             catch (OperationCanceledException)
             {
-                // La navegación o una nueva consulta canceló la anterior.
+                // Cancelación normal al navegar o reemplazar la consulta.
+            }
+            catch (ObjectDisposedException)
+            {
+                // El stream se cerró porque la página cambió.
             }
             catch (Exception ex)
             {
-                if (!source.IsCancellationRequested)
+                if (!source.IsCancellationRequested &&
+                    EsCargaActual(source))
                 {
                     Mensaje =
                         "No fue posible cargar las publicaciones.";
@@ -328,14 +430,17 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                if (reiniciar)
+                if (EsCargaActual(source))
                 {
-                    IsBusy = false;
-                    IsRefreshing = false;
-                }
-                else
-                {
-                    CargandoMas = false;
+                    if (reiniciar)
+                    {
+                        IsBusy = false;
+                        IsRefreshing = false;
+                    }
+                    else
+                    {
+                        CargandoMas = false;
+                    }
                 }
 
                 LiberarCarga(source);
@@ -344,15 +449,30 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        /// <summary>
+        /// Cancela la petición activa sin disponer su token inmediatamente.
+        /// La tarea que creó el token será responsable de disponerlo.
+        /// </summary>
         public void CancelarCarga()
         {
-            cargaCancellationTokenSource?.Cancel();
+            CancellationTokenSource? source =
+                Interlocked.Exchange(
+                    ref cargaCancellationTokenSource,
+                    null);
+
+            CancelarSeguro(source);
+
+            if (!EjecutandoOperacion)
+                IsBusy = false;
+
+            IsRefreshing = false;
+            CargandoMas = false;
         }
 
         private async Task CargarInicialAsync()
         {
             CancellationTokenSource source =
-                PrepararCarga(true);
+                PrepararCarga();
 
             try
             {
@@ -381,8 +501,11 @@ namespace CONATRADEC.ViewModels
                     categoriasTask,
                     publicacionesTask);
 
-                if (source.IsCancellationRequested)
+                if (source.IsCancellationRequested ||
+                    !EsCargaActual(source))
+                {
                     return;
+                }
 
                 ApiResult<List<CategoriaPublicacionResponse>>
                     categoriasResult = await categoriasTask;
@@ -395,7 +518,9 @@ namespace CONATRADEC.ViewModels
                     if (!categoriasResult.Success ||
                         categoriasResult.Data == null)
                     {
-                        Mensaje = categoriasResult.Message;
+                        if (!EsMensajeCancelacion(categoriasResult.Message))
+                            Mensaje = categoriasResult.Message;
+
                         return;
                     }
 
@@ -405,7 +530,9 @@ namespace CONATRADEC.ViewModels
                 if (!publicacionesResult.Success ||
                     publicacionesResult.Data == null)
                 {
-                    Mensaje = publicacionesResult.Message;
+                    if (!EsMensajeCancelacion(publicacionesResult.Message))
+                        Mensaje = publicacionesResult.Message;
+
                     return;
                 }
 
@@ -415,11 +542,30 @@ namespace CONATRADEC.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Se canceló al salir.
+                // Cancelación normal al salir de la página.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Cierre esperado del stream durante navegación rápida.
+            }
+            catch (Exception ex)
+            {
+                if (!source.IsCancellationRequested &&
+                    EsCargaActual(source))
+                {
+                    Mensaje =
+                        "No fue posible cargar las publicaciones.";
+
+                    await MostrarErrorInesperadoAsync(
+                        "cargar las publicaciones",
+                        ex);
+                }
             }
             finally
             {
-                IsBusy = false;
+                if (EsCargaActual(source))
+                    IsBusy = false;
+
                 LiberarCarga(source);
                 ActualizarComandos();
                 NotificarLista();
@@ -429,6 +575,9 @@ namespace CONATRADEC.ViewModels
         private void AplicarCategorias(
             IEnumerable<CategoriaPublicacionResponse> items)
         {
+            int? seleccionAnterior =
+                CategoriaSeleccionada?.CategoriaPublicacionId;
+
             Categorias.Clear();
             Categorias.Add(
                 CategoriaPublicacionResponse.Todas());
@@ -439,8 +588,10 @@ namespace CONATRADEC.ViewModels
                 Categorias.Add(categoria);
             }
 
-            CategoriaSeleccionada ??=
-                Categorias.FirstOrDefault();
+            CategoriaSeleccionada =
+                Categorias.FirstOrDefault(x =>
+                    x.CategoriaPublicacionId == seleccionAnterior)
+                ?? Categorias.FirstOrDefault();
 
             categoriasCargadas = true;
         }
@@ -478,6 +629,7 @@ namespace CONATRADEC.ViewModels
             ultimaCargaExitosa = true;
             versionAplicada =
                 PublicacionListadoEstadoService.VersionActual;
+
             NotificarLista();
         }
 
@@ -497,47 +649,64 @@ namespace CONATRADEC.ViewModels
                 ? 16
                 : 8;
 
-        private CancellationTokenSource PrepararCarga(
-            bool cancelarAnterior)
+        private CancellationTokenSource PrepararCarga()
         {
-            if (cancelarAnterior)
-            {
-                cargaCancellationTokenSource?.Cancel();
-                cargaCancellationTokenSource?.Dispose();
-                cargaCancellationTokenSource = null;
-            }
-
             var source = new CancellationTokenSource();
-            cargaCancellationTokenSource = source;
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref cargaCancellationTokenSource,
+                    source);
+
+            CancelarSeguro(anterior);
             return source;
         }
+
+        private bool EsCargaActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref cargaCancellationTokenSource),
+                source);
 
         private void LiberarCarga(
             CancellationTokenSource source)
         {
-            if (!ReferenceEquals(
-                    cargaCancellationTokenSource,
-                    source))
-            {
-                source.Dispose();
-                return;
-            }
+            Interlocked.CompareExchange(
+                ref cargaCancellationTokenSource,
+                null,
+                source);
 
-            cargaCancellationTokenSource.Dispose();
-            cargaCancellationTokenSource = null;
+            source.Dispose();
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // La tarea propietaria terminó y dispuso el token primero.
+            }
         }
 
         private async Task LimpiarFiltrosAsync()
         {
             textoBusqueda = string.Empty;
             estadoSeleccionado = "TODOS";
-            categoriaSeleccionada = Categorias.FirstOrDefault();
+            categoriaSeleccionada =
+                Categorias.FirstOrDefault();
 
             OnPropertyChanged(nameof(TextoBusqueda));
             OnPropertyChanged(nameof(EstadoSeleccionado));
             OnPropertyChanged(nameof(CategoriaSeleccionada));
 
-            await CargarAsync(true);
+            await CargarAsync(reiniciar: true);
         }
 
         private async Task RefrescarAsync()
@@ -545,7 +714,7 @@ namespace CONATRADEC.ViewModels
             try
             {
                 IsRefreshing = true;
-                await CargarAsync(true);
+                await CargarAsync(reiniciar: true);
             }
             finally
             {
@@ -553,17 +722,15 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CargarMasAsync()
-        {
-            await CargarAsync(false);
-        }
+        private Task CargarMasAsync() =>
+            CargarAsync(reiniciar: false);
 
         private async Task NuevaAsync()
         {
-            if (!CanAdd || IsBusy)
+            if (!CanAdd || Navegando || EjecutandoOperacion)
                 return;
 
-            await GoToAsyncParameters(
+            await NavegarSeguroAsync(
                 AppRoutes.PublicacionFormulario,
                 new Dictionary<string, object>
                 {
@@ -574,10 +741,10 @@ namespace CONATRADEC.ViewModels
         private async Task EditarAsync(
             PublicacionListadoResponse? item)
         {
-            if (!CanEdit || item == null || IsBusy)
+            if (!CanEdit || item == null || Navegando || EjecutandoOperacion)
                 return;
 
-            await GoToAsyncParameters(
+            await NavegarSeguroAsync(
                 AppRoutes.PublicacionFormulario,
                 new Dictionary<string, object>
                 {
@@ -585,10 +752,37 @@ namespace CONATRADEC.ViewModels
                 });
         }
 
+        private Task RegresarAsync() =>
+            NavegarSeguroAsync(AppRoutes.Regresar);
+
+        private async Task NavegarSeguroAsync(
+            string ruta,
+            IDictionary<string, object>? parametros = null)
+        {
+            if (Navegando)
+                return;
+
+            Navegando = true;
+
+            try
+            {
+                CancelarCarga();
+                await Task.Yield();
+
+                await GoToAsyncParameters(
+                    ruta,
+                    parametros);
+            }
+            finally
+            {
+                Navegando = false;
+            }
+        }
+
         private async Task CambiarEstadoAsync(
             PublicacionListadoResponse? item)
         {
-            if (!CanEdit || item == null || IsBusy)
+            if (!CanEdit || item == null || IsBusy || Navegando || EjecutandoOperacion)
                 return;
 
             string nuevoEstado = string.Equals(
@@ -617,6 +811,7 @@ namespace CONATRADEC.ViewModels
 
             try
             {
+                EjecutandoOperacion = true;
                 IsBusy = true;
 
                 ApiResult<bool> result =
@@ -637,22 +832,24 @@ namespace CONATRADEC.ViewModels
             finally
             {
                 IsBusy = false;
+                EjecutandoOperacion = false;
             }
 
             if (actualizado)
-                await CargarAsync(true);
+                await CargarAsync(reiniciar: true);
         }
 
         private async Task CambiarDestacadaAsync(
             PublicacionListadoResponse? item)
         {
-            if (!CanEdit || item == null || IsBusy)
+            if (!CanEdit || item == null || IsBusy || Navegando || EjecutandoOperacion)
                 return;
 
             bool actualizado = false;
 
             try
             {
+                EjecutandoOperacion = true;
                 IsBusy = true;
 
                 ApiResult<bool> result =
@@ -673,16 +870,17 @@ namespace CONATRADEC.ViewModels
             finally
             {
                 IsBusy = false;
+                EjecutandoOperacion = false;
             }
 
             if (actualizado)
-                await CargarAsync(true);
+                await CargarAsync(reiniciar: true);
         }
 
         private async Task EliminarAsync(
             PublicacionListadoResponse? item)
         {
-            if (!CanDelete || item == null || IsBusy)
+            if (!CanDelete || item == null || IsBusy || Navegando || EjecutandoOperacion)
                 return;
 
             bool confirmar = await ConfirmarEliminacionAsync(
@@ -693,6 +891,7 @@ namespace CONATRADEC.ViewModels
 
             try
             {
+                EjecutandoOperacion = true;
                 IsBusy = true;
 
                 ApiResult<bool> result =
@@ -706,14 +905,43 @@ namespace CONATRADEC.ViewModels
                 }
 
                 Publicaciones.Remove(item);
-                totalRegistros = Math.Max(0, totalRegistros - 1);
+                totalRegistros = Math.Max(
+                    0,
+                    totalRegistros - 1);
+
                 PublicacionListadoEstadoService.MarcarActualizacion();
                 NotificarLista();
+
                 await MostrarExitoAsync(result.Message);
             }
             finally
             {
                 IsBusy = false;
+                EjecutandoOperacion = false;
+            }
+        }
+
+        private async Task EjecutarComandoSeguroAsync(
+            Func<Task> accion,
+            string operacion)
+        {
+            try
+            {
+                await accion();
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancelación esperada por navegación o nueva consulta.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Cierre esperado del stream o token durante navegación rápida.
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(
+                    operacion,
+                    ex);
             }
         }
 
