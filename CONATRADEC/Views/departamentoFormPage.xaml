@@ -1,111 +1,207 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
+    x:Class="CONATRADEC.Views.departamentoFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="CONATRADEC.Views.departamentoFormPage"
     Shell.NavBarIsVisible="False"
-    Background="Transparent">
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid
+        Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
 
-        <Grid
-            Grid.Row="0"
-            ColumnDefinitions="*,Auto"
-            Margin="10,20,20,0">
-
-            <Label
-                Text="{Binding Title}"
-                TextColor="{StaticResource color_Verde}"
-                FontSize="24"
-                FontFamily="MontserratBold"
-                FontAttributes="Bold"
-                HorizontalOptions="Start"
-                VerticalOptions="Center" />
-
-            <ActivityIndicator
-                Grid.Column="1"
-                IsRunning="{Binding IsBusy}"
-                IsVisible="{Binding IsBusy}"
-                Color="{StaticResource color_Naranja}"
-                VerticalOptions="Center" />
-
-        </Grid>
-
-        <ScrollView Grid.Row="1">
-
+        <ScrollView>
             <VerticalStackLayout
-                Padding="10"
-                Spacing="15">
+                MaximumWidthRequest="920"
+                HorizontalOptions="Center"
+                Spacing="18">
 
-                <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
+                <!-- Encabezado -->
+                <Grid
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="12">
 
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorNombreDepartamento}"
-                            Value="True">
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <VerticalStackLayout Spacing="5">
+                    <VerticalStackLayout Spacing="4">
 
                         <Label
-                            Text="Nombre del departamento"
-                            FontAttributes="Bold"
+                            Text="{Binding Title}"
+                            FontSize="{OnPlatform WinUI=30, Default=26}"
                             FontFamily="MontserratBold"
-                            FontSize="14"
-                            TextColor="{StaticResource color_Negro}" />
-
-                        <Entry
-                            Placeholder="Ingrese el nombre del departamento"
-                            Style="{StaticResource EntryStyle}"
-                            Text="{Binding NombreDepartamento}"
-                            IsReadOnly="{Binding IsEntryReadOnly}" />
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
 
                         <Label
-                            Text="{Binding ErrorNombreDepartamento}"
-                            IsVisible="{Binding TieneErrorNombreDepartamento}"
-                            Style="{StaticResource ValidationMessageStyle}" />
-
+                            Text="{Binding Subtitulo}"
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
 
+                    <ActivityIndicator
+                        Grid.Column="1"
+                        IsRunning="{Binding IsBusy}"
+                        IsVisible="{Binding IsBusy}"
+                        Color="{StaticResource color_Naranja}"
+                        VerticalOptions="Center" />
+                </Grid>
+
+                <!-- País asociado -->
+                <Border
+                    Padding="16"
+                    BackgroundColor="#F7F1EC"
+                    Stroke="#E7D8CC"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16">
+
+                    <Grid
+                        ColumnDefinitions="Auto,*,Auto"
+                        ColumnSpacing="12">
+
+                        <Border
+                            WidthRequest="48"
+                            HeightRequest="48"
+                            Padding="10"
+                            BackgroundColor="White"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 13">
+
+                            <Image
+                                Source="iconcountry.png"
+                                Aspect="AspectFit" />
+                        </Border>
+
+                        <VerticalStackLayout
+                            Grid.Column="1"
+                            Spacing="2"
+                            VerticalOptions="Center">
+
+                            <Label
+                                Text="País asociado"
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="{Binding NombrePais}"
+                                FontSize="16"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+                        </VerticalStackLayout>
+
+                        <Border
+                            Grid.Column="2"
+                            IsVisible="{Binding MostrarCodigoPais}"
+                            Padding="10,6"
+                            VerticalOptions="Center"
+                            BackgroundColor="White"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 10">
+
+                            <Label
+                                Text="{Binding CodigoPais}"
+                                FontSize="12"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+                        </Border>
+                    </Grid>
                 </Border>
 
+                <!-- Información del departamento -->
+                <Border
+                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
+
+                    <VerticalStackLayout Spacing="16">
+
+                        <VerticalStackLayout Spacing="3">
+
+                            <Label
+                                Text="Información general"
+                                FontSize="19"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Text="El departamento permanecerá asociado al país mostrado arriba."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+
+                            <Label
+                                Text="Nombre del departamento"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorNombreDepartamento}"
+                                        Value="True">
+
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Entry
+                                    Placeholder="Ejemplo: Managua"
+                                    Text="{Binding NombreDepartamento}"
+                                    MaxLength="80"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent" />
+                            </Border>
+
+                            <Label
+                                Text="{Binding ErrorNombreDepartamento}"
+                                IsVisible="{Binding TieneErrorNombreDepartamento}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Acciones -->
                 <Grid
                     ColumnDefinitions="*,*"
-                    Margin="10,0,10,20">
+                    ColumnSpacing="12"
+                    Margin="0,2,0,16">
 
                     <Button
                         Grid.Column="0"
                         Text="Guardar"
-                        Style="{StaticResource UpdateButton}"
-                        Command="{Binding SaveCommand}"
-                        IsVisible="{Binding CanSave}"
+                        IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
-                        Margin="10,0" />
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource UpdateButton}" />
 
                     <Button
                         Grid.Column="1"
                         Text="Cancelar"
-                        Style="{StaticResource CancelButton}"
-                        Command="{Binding CancelCommand}"
                         IsEnabled="{Binding NotIsBusy}"
-                        Margin="10,0" />
-
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource CancelButton}" />
                 </Grid>
-
             </VerticalStackLayout>
-
         </ScrollView>
-
     </Grid>
-
 </ContentPage>

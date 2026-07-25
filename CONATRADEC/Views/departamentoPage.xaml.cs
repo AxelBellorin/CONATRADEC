@@ -1,91 +1,125 @@
-﻿using CONATRADEC.Models;
-using CONATRADEC.Services;
+using CONATRADEC.Models;
 using CONATRADEC.ViewModels;
 
-namespace CONATRADEC.Views;
-
-[QueryProperty(nameof(Pais), "Pais")]
-[QueryProperty(nameof(TitlePage), "TitlePage")]
-public partial class departamentoPage : ContentPage
+namespace CONATRADEC.Views
 {
-    private readonly DepartamentoViewModel viewModel = new();
-
-    private bool paginaVisible;
-    private bool permisosCargados;
-
-    public string TitlePage
+    [QueryProperty(nameof(Pais), "Pais")]
+    [QueryProperty(nameof(TitlePage), "TitlePage")]
+    public partial class departamentoPage : ContentPage
     {
-        set => viewModel.TitlePage = value;
-    }
+        private readonly DepartamentoViewModel
+            viewModel = new();
 
-    public PaisRequest Pais
-    {
-        set
+        private bool paginaVisible;
+        private bool permisosCargados;
+        private int cantidadColumnasActual;
+
+        public departamentoPage()
         {
-            viewModel.PaisRequest =
-                value ?? new PaisRequest();
+            InitializeComponent();
 
-            // Shell puede aplicar QueryProperty después de OnAppearing.
-            // Si la página ya está visible, cargamos apenas llegue el PaisId.
-            if (paginaVisible && permisosCargados)
-                _ = IntentarCargarDepartamentosAsync(true);
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
+            BindingContext = viewModel;
         }
-    }
 
-    public departamentoPage()
-    {
-        Shell.Current.FlyoutBehavior =
-            FlyoutBehavior.Disabled;
+        public string TitlePage
+        {
+            set =>
+                viewModel.TitlePage =
+                    value;
+        }
 
-        InitializeComponent();
-        BindingContext = viewModel;
-    }
+        public PaisRequest Pais
+        {
+            set
+            {
+                viewModel.PaisRequest =
+                    value ??
+                    new PaisRequest();
 
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
+                if (paginaVisible &&
+                    permisosCargados)
+                {
+                    _ = IntentarInicializarAsync();
+                }
+            }
+        }
 
-        paginaVisible = true;
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
 
-        if (!PermissionService.Instance.HasRead(
-                "departamentoPage"))
+            paginaVisible = true;
+
+            viewModel.ActualizarPermisos();
+            permisosCargados = true;
+
+            AjustarCantidadColumnas(Width);
+
+            await IntentarInicializarAsync();
+        }
+
+        protected override void OnDisappearing()
         {
             paginaVisible = false;
 
-            await GlobalService.MostrarToastAsync(
-                "No tiene permiso para ver departamentos.");
+            viewModel.CancelarCarga();
 
-            await Shell.Current.GoToAsync("//MainPage");
-            return;
+            base.OnDisappearing();
         }
 
-        viewModel.LoadPagePermissions(
-            "departamentoPage");
-
-        permisosCargados = true;
-
-        // Si el parámetro ya fue aplicado, carga ahora.
-        // Si todavía no llegó, el setter Pais realizará la carga después.
-        await IntentarCargarDepartamentosAsync(true);
-    }
-
-    protected override void OnDisappearing()
-    {
-        paginaVisible = false;
-        base.OnDisappearing();
-    }
-
-    private async Task IntentarCargarDepartamentosAsync(
-        bool mostrarIndicadorCarga)
-    {
-        if (!paginaVisible ||
-            !permisosCargados ||
-            viewModel.PaisRequest.PaisId <= 0)
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
         {
-            return;
+            base.OnSizeAllocated(
+                width,
+                height);
+
+            AjustarCantidadColumnas(width);
         }
 
-        await viewModel.LoadDepartamento(
-            mostrarIndicadorCarga);
+        private async Task IntentarInicializarAsync()
+        {
+            if (!paginaVisible ||
+                !permisosCargados ||
+                !viewModel.PaisValido)
+            {
+                return;
+            }
+
+            await viewModel.InicializarAsync();
+        }
+
+        private void AjustarCantidadColumnas(
+            double width)
+        {
+            if (width <= 0 ||
+                DepartamentosGridLayout == null)
+            {
+                return;
+            }
+
+            int nuevasColumnas =
+                width >= 1280
+                    ? 3
+                    : width >= 760
+                        ? 2
+                        : 1;
+
+            if (cantidadColumnasActual ==
+                nuevasColumnas)
+            {
+                return;
+            }
+
+            cantidadColumnasActual =
+                nuevasColumnas;
+
+            DepartamentosGridLayout.Span =
+                nuevasColumnas;
+        }
     }
 }

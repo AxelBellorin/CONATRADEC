@@ -1,34 +1,61 @@
 using CONATRADEC.Models;
 using CONATRADEC.ViewModels;
 
-namespace CONATRADEC.Views;
-
-[QueryProperty(nameof(Mode), "Mode")]
-[QueryProperty(nameof(Pais), "Pais")]
-[QueryProperty(nameof(Departamento), "Departamento")]
-public partial class departamentoFormPage : ContentPage
+namespace CONATRADEC.Views
 {
-    private readonly DepartamentoFormViewModel viewModel = new();
-
-    public FormMode.FormModeSelect Mode
+    [QueryProperty(nameof(Mode), "Mode")]
+    [QueryProperty(nameof(Pais), "Pais")]
+    [QueryProperty(nameof(Departamento), "Departamento")]
+    public partial class departamentoFormPage : ContentPage
     {
-        set => viewModel.Mode = value;
-    }
+        private readonly DepartamentoFormViewModel
+            viewModel = new();
 
-    public PaisRequest Pais
-    {
-        set => viewModel.PaisRequest = value;
-    }
+        public departamentoFormPage()
+        {
+            InitializeComponent();
 
-    public DepartamentoRequest Departamento
-    {
-        set => viewModel.Departamento = value;
-    }
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
 
-    public departamentoFormPage()
-    {
-        Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-        BindingContext = viewModel;
-        InitializeComponent();
+            BindingContext = viewModel;
+        }
+
+        public FormMode.FormModeSelect Mode
+        {
+            set =>
+                viewModel.Mode =
+                    value;
+        }
+
+        public PaisRequest Pais
+        {
+            set =>
+                viewModel.PaisRequest =
+                    value ??
+                    new PaisRequest();
+        }
+
+        public DepartamentoRequest Departamento
+        {
+            set =>
+                viewModel.Departamento =
+                    value ??
+                    new DepartamentoRequest();
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+            viewModel.ActualizarPermisos();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+
+            viewModel.CancelarOperaciones();
+        }
     }
 }

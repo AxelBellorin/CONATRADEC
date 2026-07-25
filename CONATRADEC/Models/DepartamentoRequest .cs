@@ -1,81 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
-// Espacio de nombres donde se agrupan todos los modelos del proyecto CONATRADEC.
 namespace CONATRADEC.Models
 {
-    // ===============================================================
-    // Clase: DepartamentoRequest
-    // Descripción:
-    //   Representa la estructura de un objeto de solicitud (Request)
-    //   utilizado para enviar o recibir información relacionada con la
-    //   entidad "Departamento" hacia/desde la API.
-    //   Se usa comúnmente en las operaciones CRUD (Crear, Editar, Eliminar).
-    // ===============================================================
-    public class DepartamentoRequest
+    public sealed class DepartamentoRequest
     {
-        // ===========================================================
-        // =============== CAMPOS PRIVADOS DE LA CLASE ===============
-        // ===========================================================
+        [JsonIgnore]
+        public int? DepartamentoId { get; set; }
 
-        // Campo que almacena el identificador único del departamento.
-        // Se declara como nullable (int?) para permitir valores nulos
-        // cuando el registro aún no ha sido creado en la base de datos.
-        private int? departamentoId;
+        public string NombreDepartamento { get; set; } =
+            string.Empty;
 
-        // Campo que almacena el nombre del departamento (ejemplo: "Matagalpa", "León").
-        private string? nombreDepartamento;
+        public int? PaisId { get; set; }
 
-        // Campo que almacena el identificador del país al que pertenece el departamento.
-        private int? paisId;
-
-
-        // ===========================================================
-        // ============= PROPIEDADES PÚBLICAS CON ENCAPSULAMIENTO ====
-        // ===========================================================
-
-        // Propiedad pública para acceder o modificar el ID del departamento.
-        public int? DepartamentoId
+        public DepartamentoRequest()
         {
-            get => departamentoId;
-            set => departamentoId = value;
         }
 
-        // Propiedad pública para acceder o modificar el nombre del departamento.
-        public string? NombreDepartamento
+        public DepartamentoRequest(
+            DepartamentoResponse departamento)
         {
-            get => nombreDepartamento;
-            set => nombreDepartamento = value;
-        }
+            ArgumentNullException.ThrowIfNull(departamento);
 
-        // Propiedad pública para acceder o modificar el país relacionado.
-        public int? PaisId
-        {
-            get => paisId;
-            set => paisId = value;
-        }
+            DepartamentoId =
+                departamento.DepartamentoId;
 
+            NombreDepartamento =
+                departamento.NombreDepartamento ??
+                string.Empty;
 
-        // ===========================================================
-        // ================ CONSTRUCTORES DE LA CLASE ================
-        // ===========================================================
-
-        // Constructor vacío.
-        // Permite crear una instancia sin inicializar los valores (por ejemplo, al crear un nuevo registro).
-        public DepartamentoRequest() { }
-
-        // Constructor que inicializa una nueva instancia de DepartamentoRequest
-        // tomando como base un objeto de tipo DepartamentoResponse.
-        // Esto facilita la conversión entre el modelo de respuesta de la API
-        // y el modelo de solicitud, útil para operaciones de actualización.
-        public DepartamentoRequest(DepartamentoResponse departamentoRP)
-        {
-            DepartamentoId = departamentoRP.DepartamentoId;
-            NombreDepartamento = departamentoRP.NombreDepartamento;
-            PaisId = departamentoRP.PaisId;
+            PaisId =
+                departamento.PaisId;
         }
     }
 }

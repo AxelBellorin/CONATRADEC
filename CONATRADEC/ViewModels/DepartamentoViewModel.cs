@@ -1,63 +1,33 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
 using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
-    public class DepartamentoViewModel : GlobalService
+    public sealed class DepartamentoViewModel : GlobalService
     {
+        private readonly DepartamentoApiService departamentoApiService;
+
+        private CancellationTokenSource? cargaCts;
+
         private PaisRequest paisRequest = new();
         private string titlePage = string.Empty;
-        private ObservableCollection<DepartamentoResponse> list = new();
-        private readonly DepartamentoApiService departamentoApiService;
-        private bool eliminandoDepartamento;
-        private long versionCargaDepartamentos;
+        private string textoBusqueda = string.Empty;
+        private string mensaje = string.Empty;
 
-        public ObservableCollection<DepartamentoResponse> List
-        {
-            get => list;
-            set
-            {
-                if (ReferenceEquals(list, value))
-                    return;
+        private bool isRefreshing;
+        private bool cargandoMas;
+        private bool navegando;
+        private bool pantallaCargada;
+        private bool forzarRecargaAlAparecer;
 
-                list = value ?? new ObservableCollection<DepartamentoResponse>();
-                OnPropertyChanged();
-            }
-        }
-
-        public PaisRequest PaisRequest
-        {
-            get => paisRequest;
-            set
-            {
-                paisRequest = value ?? new PaisRequest();
-                OnPropertyChanged();
-
-                // La página puede reutilizar el mismo ViewModel al navegar.
-                // Invalidamos cualquier consulta anterior y limpiamos de inmediato
-                // los departamentos del país previamente visualizado.
-                Interlocked.Increment(ref versionCargaDepartamentos);
-                List = new ObservableCollection<DepartamentoResponse>();
-            }
-        }
-
-        public string TitlePage
-        {
-            get => titlePage;
-            set
-            {
-                titlePage = value ?? string.Empty;
-                OnPropertyChanged();
-            }
-        }
-
-        public Command ReturnCommand { get; }
-        public Command AddCommand { get; }
-        public Command EditCommand { get; }
-        public Command DeleteCommand { get; }
-        public Command ViewCommand { get; }
+        private int paginaActual;
+        private int totalPaginas = 1;
+        private int totalRegistros;
+        private int paisCargadoId;
+        private int versionAplicada = -1;
 
         public DepartamentoViewModel()
             : this(new DepartamentoApiService())
@@ -67,261 +37,892 @@ namespace CONATRADEC.ViewModels
         public DepartamentoViewModel(
             DepartamentoApiService departamentoApiService)
         {
-            this.departamentoApiService = departamentoApiService
-                ?? throw new ArgumentNullException(nameof(departamentoApiService));
+            this.departamentoApiService =
+                departamentoApiService
+                ?? throw new ArgumentNullException(
+                    nameof(departamentoApiService));
 
             ReturnCommand = new Command(
-                async () => await GoToAsyncParameters("//PaisPage"));
+                async () => await EjecutarSeguroAsync(
+                    RegresarAPaisesAsync,
+                    "regresar a países"),
+                () => !IsBusy && !Navegando);
 
             AddCommand = new Command(
-                async () => await OnAddAsync());
+                async () => await EjecutarSeguroAsync(
+                    OnAddAsync,
+                    "abrir el formulario de departamento"),
+                () =>
+                    CanAdd &&
+                    PaisValido &&
+                    !IsBusy &&
+                    !Navegando);
 
-            EditCommand = new Command<DepartamentoResponse>(
-                async departamento => await OnEditAsync(departamento));
+            EditCommand =
+                new Command<DepartamentoResponse>(
+                    async departamento =>
+                        await EjecutarSeguroAsync(
+                            () => OnEditAsync(departamento),
+                            "editar el departamento"),
+                    departamento =>
+                        departamento != null &&
+                        CanEdit &&
+                        !IsBusy &&
+                        !Navegando);
 
-            DeleteCommand = new Command<DepartamentoResponse>(
-                async departamento => await OnDeleteAsync(departamento));
+            DeleteCommand =
+                new Command<DepartamentoResponse>(
+                    async departamento =>
+                        await EjecutarSeguroAsync(
+                            () => OnDeleteAsync(departamento),
+                            "eliminar el departamento"),
+                    departamento =>
+                        departamento != null &&
+                        CanDelete &&
+                        !IsBusy &&
+                        !Navegando);
 
-            ViewCommand = new Command<DepartamentoResponse>(
-                async departamento => await OnViewAsync(departamento));
+            ViewCommand =
+                new Command<DepartamentoResponse>(
+                    async departamento =>
+                        await EjecutarSeguroAsync(
+                            () => OnViewAsync(departamento),
+                            "consultar los municipios"),
+                    departamento =>
+                        departamento != null &&
+                        CanView &&
+                        !IsBusy &&
+                        !Navegando);
+
+            BuscarCommand = new Command(
+                async () => await EjecutarSeguroAsync(
+                    () => CargarAsync(reiniciar: true),
+                    "buscar departamentos"),
+                () =>
+                    CanView &&
+                    PaisValido &&
+                    !IsBusy &&
+                    !Navegando);
+
+            LimpiarFiltrosCommand = new Command(
+                async () => await EjecutarSeguroAsync(
+                    LimpiarFiltrosAsync,
+                    "limpiar la búsqueda"),
+                () =>
+                    CanView &&
+                    PaisValido &&
+                    !IsBusy &&
+                    !Navegando);
+
+            RefrescarCommand = new Command(
+                async () => await EjecutarSeguroAsync(
+                    RefrescarAsync,
+                    "actualizar los departamentos"),
+                () =>
+                    CanView &&
+                    PaisValido &&
+                    !IsBusy &&
+                    !Navegando);
+
+            CargarMasCommand = new Command(
+                async () => await EjecutarSeguroAsync(
+                    () => CargarAsync(reiniciar: false),
+                    "cargar más departamentos"),
+                () =>
+                    CanView &&
+                    PaisValido &&
+                    !IsBusy &&
+                    !CargandoMas &&
+                    !Navegando &&
+                    PuedeCargarMas);
         }
 
-        public async Task LoadDepartamento(bool mostrarIndicadorCarga)
+        public ObservableCollection<DepartamentoResponse>
+            List { get; } = new();
+
+        public Command ReturnCommand { get; }
+        public Command AddCommand { get; }
+        public Command<DepartamentoResponse> EditCommand { get; }
+        public Command<DepartamentoResponse> DeleteCommand { get; }
+        public Command<DepartamentoResponse> ViewCommand { get; }
+        public Command BuscarCommand { get; }
+        public Command LimpiarFiltrosCommand { get; }
+        public Command RefrescarCommand { get; }
+        public Command CargarMasCommand { get; }
+
+        public PaisRequest PaisRequest
         {
-            if (!CanView)
+            get => paisRequest;
+            set
             {
-                List = new ObservableCollection<DepartamentoResponse>();
+                PaisRequest nuevoValor =
+                    value ?? new PaisRequest();
 
-                await MostrarToastAsync(
-                    "No tiene permisos para ver departamentos.");
+                int idAnterior =
+                    paisRequest.PaisId;
+
+                paisRequest = nuevoValor;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(NombrePais));
+                OnPropertyChanged(nameof(CodigoPais));
+                OnPropertyChanged(nameof(MostrarCodigoPais));
+                OnPropertyChanged(nameof(PaisValido));
+                OnPropertyChanged(nameof(TitlePage));
+
+                if (idAnterior != paisRequest.PaisId)
+                {
+                    CancelarCarga();
+                    ReiniciarEstado();
+                }
+
+                ActualizarComandos();
+            }
+        }
+
+        public string TitlePage
+        {
+            get => string.IsNullOrWhiteSpace(titlePage)
+                ? $"Departamentos de {NombrePais}"
+                : titlePage;
+
+            set
+            {
+                titlePage = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
+        public string NombrePais =>
+            string.IsNullOrWhiteSpace(
+                PaisRequest.NombrePais)
+                    ? "País seleccionado"
+                    : PaisRequest.NombrePais;
+
+        public string CodigoPais =>
+            PaisRequest.CodigoISOPais ??
+            string.Empty;
+
+        public bool MostrarCodigoPais =>
+            !string.IsNullOrWhiteSpace(CodigoPais);
+
+        public bool PaisValido =>
+            PaisRequest.PaisId > 0;
+
+        public string TextoBusqueda
+        {
+            get => textoBusqueda;
+            set
+            {
+                string nuevoValor =
+                    value ?? string.Empty;
+
+                if (textoBusqueda == nuevoValor)
+                    return;
+
+                textoBusqueda = nuevoValor;
+                OnPropertyChanged();
+            }
+        }
+
+        public string Mensaje
+        {
+            get => mensaje;
+            private set
+            {
+                string nuevoValor =
+                    value ?? string.Empty;
+
+                if (mensaje == nuevoValor)
+                    return;
+
+                mensaje = nuevoValor;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneMensaje));
+            }
+        }
+
+        public bool TieneMensaje =>
+            !string.IsNullOrWhiteSpace(Mensaje);
+
+        public bool IsRefreshing
+        {
+            get => isRefreshing;
+            set
+            {
+                if (isRefreshing == value)
+                    return;
+
+                isRefreshing = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public bool CargandoMas
+        {
+            get => cargandoMas;
+            private set
+            {
+                if (cargandoMas == value)
+                    return;
+
+                cargandoMas = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+                NotificarEstadoLista();
+            }
+        }
+
+        public bool Navegando
+        {
+            get => navegando;
+            private set
+            {
+                if (navegando == value)
+                    return;
+
+                navegando = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public int TotalRegistros
+        {
+            get => totalRegistros;
+            private set
+            {
+                if (totalRegistros == value)
+                    return;
+
+                totalRegistros = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ResumenResultados));
+            }
+        }
+
+        public string ResumenResultados =>
+            TotalRegistros == 1
+                ? "1 departamento encontrado"
+                : $"{TotalRegistros} departamentos encontrados";
+
+        public bool PuedeCargarMas =>
+            paginaActual < totalPaginas;
+
+        public bool MostrarVacio =>
+            CanView &&
+            PaisValido &&
+            pantallaCargada &&
+            !IsBusy &&
+            !CargandoMas &&
+            List.Count == 0 &&
+            !TieneMensaje;
+
+        public bool MostrarFinLista =>
+            CanView &&
+            pantallaCargada &&
+            List.Count > 0 &&
+            !PuedeCargarMas &&
+            !IsBusy &&
+            !CargandoMas;
+
+        public bool MostrarAccesoDenegado =>
+            !CanView;
+
+        public void ActualizarPermisos()
+        {
+            LoadPagePermissions(
+                "departamentoPage");
+
+            OnPropertyChanged(
+                nameof(MostrarAccesoDenegado));
+
+            NotificarEstadoLista();
+            ActualizarComandos();
+        }
+
+        public async Task InicializarAsync()
+        {
+            if (!CanView ||
+                !PaisValido ||
+                Navegando)
+            {
                 return;
             }
 
-            int paisId = PaisRequest.PaisId;
+            int paisId =
+                PaisRequest.PaisId;
 
-            if (paisId <= 0)
+            int versionActual =
+                DepartamentoListadoEstadoService
+                    .ObtenerVersion(paisId);
+
+            bool debeRecargar =
+                !pantallaCargada ||
+                paisCargadoId != paisId ||
+                versionAplicada != versionActual ||
+                forzarRecargaAlAparecer;
+
+            if (!debeRecargar)
+                return;
+
+            forzarRecargaAlAparecer = false;
+
+            await CargarAsync(
+                reiniciar: true);
+        }
+
+        public async Task CargarAsync(
+            bool reiniciar)
+        {
+            if (!CanView ||
+                !PaisValido ||
+                Navegando)
             {
-                // Shell todavía puede estar aplicando QueryProperty.
-                // La página volverá a intentar la carga cuando llegue el PaisId.
-                List = new ObservableCollection<DepartamentoResponse>();
                 return;
             }
 
-            // Cada carga recibe una versión. Si el usuario cambia de país antes
-            // de que la solicitud termine, la respuesta anterior se descarta.
-            long versionActual =
-                Interlocked.Increment(ref versionCargaDepartamentos);
+            if (reiniciar && IsBusy)
+                return;
 
-            if (mostrarIndicadorCarga)
-                IsBusy = true;
+            if (!reiniciar &&
+                (CargandoMas ||
+                 !PuedeCargarMas))
+            {
+                return;
+            }
+
+            int paisId =
+                PaisRequest.PaisId;
+
+            CancellationTokenSource source =
+                PrepararNuevaCarga();
 
             try
             {
-                var resultado = await departamentoApiService
-                    .GetDepartamentosResultAsync(paisId);
-
-                if (!EsCargaActual(versionActual, paisId))
-                    return;
-
-                if (!resultado.Success)
+                if (reiniciar)
                 {
-                    List = new ObservableCollection<DepartamentoResponse>();
+                    IsBusy = true;
+                    Mensaje = string.Empty;
+                }
+                else
+                {
+                    CargandoMas = true;
+                }
 
-                    await MostrarToastAsync(resultado.Message);
+                int paginaSolicitada =
+                    reiniciar
+                        ? 1
+                        : paginaActual + 1;
+
+                ApiResult<DepartamentoPaginaResponse>
+                    resultado =
+                        await departamentoApiService
+                            .BuscarDepartamentosAsync(
+                                paisId,
+                                TextoBusqueda,
+                                paginaSolicitada,
+                                ObtenerTamanoPagina(),
+                                source.Token);
+
+                if (source.IsCancellationRequested ||
+                    !EsCargaActual(source) ||
+                    PaisRequest.PaisId != paisId)
+                {
                     return;
                 }
 
-                List = new ObservableCollection<DepartamentoResponse>(
-                    (resultado.Data ??
-                     new ObservableCollection<DepartamentoResponse>())
-                    .OrderBy(
-                        departamento =>
-                            departamento.NombreDepartamento ??
-                            string.Empty));
-
-                if (List.Count == 0)
+                if (!resultado.Success ||
+                    resultado.Data == null)
                 {
-                    string nombrePais =
-                        string.IsNullOrWhiteSpace(PaisRequest.NombrePais)
-                            ? "seleccionado"
-                            : PaisRequest.NombrePais;
+                    if (!EsMensajeCancelacion(
+                            resultado.Message))
+                    {
+                        Mensaje =
+                            resultado.Message;
+                    }
 
-                    await MostrarInformacionAsync(
-                        $"El país '{nombrePais}' todavía no tiene departamentos registrados.");
+                    return;
                 }
+
+                AplicarPagina(
+                    resultado.Data,
+                    reiniciar);
+
+                pantallaCargada = true;
+                paisCargadoId = paisId;
+
+                versionAplicada =
+                    DepartamentoListadoEstadoService
+                        .ObtenerVersion(paisId);
             }
-            catch
+            catch (OperationCanceledException)
             {
-                if (!EsCargaActual(versionActual, paisId))
-                    return;
+                // Cancelación normal al cambiar de país o navegar.
+            }
+            catch (ObjectDisposedException)
+            {
+                // La solicitud terminó mientras la página se cerraba.
+            }
+            catch (Exception ex)
+            {
+                if (!source.IsCancellationRequested &&
+                    EsCargaActual(source))
+                {
+                    Mensaje =
+                        "No fue posible cargar los departamentos.";
 
-                List = new ObservableCollection<DepartamentoResponse>();
-
-                await MostrarToastAsync(
-                    "Ocurrió un error inesperado al cargar los departamentos.");
+                    await MostrarErrorInesperadoAsync(
+                        "cargar los departamentos",
+                        ex);
+                }
             }
             finally
             {
-                // Una solicitud anterior no puede apagar el indicador de una
-                // solicitud más reciente.
-                if (mostrarIndicadorCarga &&
-                    EsCargaActual(versionActual, paisId))
+                if (EsCargaActual(source))
                 {
-                    IsBusy = false;
+                    if (reiniciar)
+                    {
+                        IsBusy = false;
+                        IsRefreshing = false;
+                    }
+                    else
+                    {
+                        CargandoMas = false;
+                    }
                 }
+
+                LiberarCarga(source);
+                ActualizarComandos();
+                NotificarEstadoLista();
             }
         }
 
-        private bool EsCargaActual(
-            long version,
-            int paisId)
+        public void CancelarCarga()
         {
-            return Volatile.Read(ref versionCargaDepartamentos) == version &&
-                   PaisRequest.PaisId == paisId;
+            CancellationTokenSource? source =
+                Interlocked.Exchange(
+                    ref cargaCts,
+                    null);
+
+            CancelarSeguro(source);
+
+            IsBusy = false;
+            IsRefreshing = false;
+            CargandoMas = false;
         }
 
-        private async Task OnAddAsync()
+        private void AplicarPagina(
+            DepartamentoPaginaResponse pagina,
+            bool reiniciar)
         {
-            if (!CanAdd)
+            if (reiniciar)
+                List.Clear();
+
+            HashSet<int> idsActuales =
+                List
+                    .Where(item =>
+                        item.DepartamentoId.HasValue)
+                    .Select(item =>
+                        item.DepartamentoId!.Value)
+                    .ToHashSet();
+
+            foreach (DepartamentoResponse departamento
+                     in pagina.Items)
             {
-                await MostrarToastAsync("No tiene permisos para agregar.");
-                return;
+                if (!departamento.DepartamentoId.HasValue)
+                    continue;
+
+                if (idsActuales.Add(
+                        departamento.DepartamentoId.Value))
+                {
+                    List.Add(departamento);
+                }
             }
 
-            if (IsBusy)
-                return;
+            paginaActual =
+                Math.Max(
+                    1,
+                    pagina.PaginaActual);
 
-            var parameters = new Dictionary<string, object>
+            totalPaginas =
+                Math.Max(
+                    1,
+                    pagina.TotalPaginas);
+
+            TotalRegistros =
+                Math.Max(
+                    0,
+                    pagina.TotalRegistros);
+
+            Mensaje = string.Empty;
+
+            OnPropertyChanged(
+                nameof(PuedeCargarMas));
+
+            NotificarEstadoLista();
+        }
+
+        private async Task LimpiarFiltrosAsync()
+        {
+            TextoBusqueda = string.Empty;
+
+            await CargarAsync(
+                reiniciar: true);
+        }
+
+        private async Task RefrescarAsync()
+        {
+            IsRefreshing = true;
+
+            try
             {
-                { "Mode", FormMode.FormModeSelect.Create },
-                { "Pais", PaisRequest },
-                {
-                    "Departamento",
-                    new DepartamentoRequest(new DepartamentoResponse())
-                }
-            };
+                await CargarAsync(
+                    reiniciar: true);
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
+        }
 
-            await GoToAsyncParameters(
+        private Task RegresarAPaisesAsync() =>
+            NavegarAsync(
+                AppRoutes.Paises);
+
+        private Task OnAddAsync()
+        {
+            if (!CanAdd ||
+                !PaisValido)
+            {
+                return Task.CompletedTask;
+            }
+
+            forzarRecargaAlAparecer = true;
+
+            return NavegarAsync(
                 "//DepartamentoFormPage",
-                parameters);
+                new Dictionary<string, object>
+                {
+                    {
+                        "Mode",
+                        FormMode.FormModeSelect.Create
+                    },
+                    {
+                        "Pais",
+                        PaisRequest
+                    },
+                    {
+                        "Departamento",
+                        new DepartamentoRequest
+                        {
+                            PaisId =
+                                PaisRequest.PaisId
+                        }
+                    }
+                });
         }
 
-        private async Task OnEditAsync(
+        private Task OnEditAsync(
             DepartamentoResponse? departamento)
         {
-            if (!CanEdit)
+            if (!CanEdit ||
+                departamento == null)
             {
-                await MostrarToastAsync("No tiene permisos para editar.");
-                return;
+                return Task.CompletedTask;
             }
 
-            if (IsBusy || departamento == null)
-                return;
+            forzarRecargaAlAparecer = true;
 
-            var parameters = new Dictionary<string, object>
-            {
-                { "Pais", PaisRequest },
-                { "Mode", FormMode.FormModeSelect.Edit },
-                {
-                    "Departamento",
-                    new DepartamentoRequest(departamento)
-                }
-            };
-
-            await GoToAsyncParameters(
+            return NavegarAsync(
                 "//DepartamentoFormPage",
-                parameters);
+                new Dictionary<string, object>
+                {
+                    {
+                        "Mode",
+                        FormMode.FormModeSelect.Edit
+                    },
+                    {
+                        "Pais",
+                        PaisRequest
+                    },
+                    {
+                        "Departamento",
+                        new DepartamentoRequest(
+                            departamento)
+                    }
+                });
         }
 
-        private async Task OnViewAsync(
+        private Task OnViewAsync(
             DepartamentoResponse? departamento)
         {
-            if (!CanView)
+            if (!CanView ||
+                departamento == null)
             {
-                await MostrarToastAsync(
-                    "No tiene permisos para ver detalles.");
-                return;
+                return Task.CompletedTask;
             }
 
-            if (IsBusy || departamento == null)
-                return;
+            /*
+             * Al regresar desde Municipios se realiza una única recarga
+             * para actualizar el conteo de municipios de las tarjetas.
+             */
+            forzarRecargaAlAparecer = true;
 
-            var parameters = new Dictionary<string, object>
-            {
-                { "Pais", PaisRequest },
-                {
-                    "Departamento",
-                    new DepartamentoRequest(departamento)
-                },
-                {
-                    "TitlePage",
-                    $"Municipios de {departamento.NombreDepartamento} - {PaisRequest.NombrePais}"
-                }
-            };
-
-            await GoToAsyncParameters(
+            return NavegarAsync(
                 "//MunicipioPage",
-                parameters);
+                new Dictionary<string, object>
+                {
+                    {
+                        "Pais",
+                        PaisRequest
+                    },
+                    {
+                        "Departamento",
+                        new DepartamentoRequest(
+                            departamento)
+                    },
+                    {
+                        "TitlePage",
+                        $"Municipios de {departamento.NombreDepartamento} - {NombrePais}"
+                    }
+                });
         }
 
         private async Task OnDeleteAsync(
             DepartamentoResponse? departamento)
         {
-            if (!CanDelete)
-            {
-                await MostrarToastAsync("No tiene permisos para eliminar.");
-                return;
-            }
-
-            if (IsBusy ||
-                eliminandoDepartamento ||
-                departamento == null)
+            if (!CanDelete ||
+                departamento == null ||
+                IsBusy)
             {
                 return;
             }
 
             bool confirmar =
-                await App.Current.MainPage.DisplayAlert(
-                    "Eliminar departamento",
-                    $"¿Desea eliminar el departamento '{departamento.NombreDepartamento}'?",
-                    "Sí",
-                    "No");
+                await Application.Current!
+                    .MainPage!
+                    .DisplayAlert(
+                        "Eliminar departamento",
+                        $"¿Desea eliminar el departamento '{departamento.NombreDepartamento}'?",
+                        "Eliminar",
+                        "Cancelar");
 
             if (!confirmar)
                 return;
 
-            eliminandoDepartamento = true;
-            IsBusy = true;
-
             try
             {
-                var resultado = await departamentoApiService
-                    .DeleteDepartamentoResultAsync(
-                        new DepartamentoRequest(departamento));
+                IsBusy = true;
+                ActualizarComandos();
+
+                var request =
+                    new DepartamentoRequest(
+                        departamento)
+                    {
+                        PaisId =
+                            PaisRequest.PaisId
+                    };
+
+                ApiResult<bool> resultado =
+                    await departamentoApiService
+                        .DeleteDepartamentoResultAsync(
+                            request);
 
                 if (!resultado.Success)
                 {
-                    await MostrarToastAsync(resultado.Message);
+                    await MostrarToastAsync(
+                        resultado.Message);
+
                     return;
                 }
 
                 List.Remove(departamento);
 
+                TotalRegistros =
+                    Math.Max(
+                        0,
+                        TotalRegistros - 1);
+
+                versionAplicada =
+                    DepartamentoListadoEstadoService
+                        .MarcarCambio(
+                            PaisRequest.PaisId);
+
+                /*
+                 * La tarjeta del país muestra la cantidad de departamentos.
+                 * Se marca País para que actualice su conteo al regresar.
+                 */
+                PaisListadoEstadoService.MarcarCambio();
+
                 await MostrarToastAsync(
-                    string.IsNullOrWhiteSpace(resultado.Message)
-                        ? "Departamento eliminado correctamente."
-                        : resultado.Message);
-            }
-            catch
-            {
-                await MostrarToastAsync(
-                    "Ocurrió un error inesperado al eliminar el departamento.");
+                    string.IsNullOrWhiteSpace(
+                        resultado.Message)
+                            ? "Departamento eliminado correctamente."
+                            : resultado.Message);
             }
             finally
             {
-                eliminandoDepartamento = false;
                 IsBusy = false;
+                ActualizarComandos();
+                NotificarEstadoLista();
             }
         }
+
+        private async Task NavegarAsync(
+            string ruta,
+            IDictionary<string, object>? parametros = null)
+        {
+            if (Navegando)
+                return;
+
+            Navegando = true;
+
+            try
+            {
+                CancelarCarga();
+
+                if (parametros == null)
+                {
+                    await GoToAsyncParameters(
+                        ruta);
+                }
+                else
+                {
+                    await GoToAsyncParameters(
+                        ruta,
+                        parametros);
+                }
+            }
+            finally
+            {
+                Navegando = false;
+            }
+        }
+
+        private async Task EjecutarSeguroAsync(
+            Func<Task> accion,
+            string descripcion)
+        {
+            try
+            {
+                await accion();
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(
+                    descripcion,
+                    ex);
+            }
+        }
+
+        private void ReiniciarEstado()
+        {
+            List.Clear();
+
+            pantallaCargada = false;
+            forzarRecargaAlAparecer = false;
+
+            paginaActual = 0;
+            totalPaginas = 1;
+            paisCargadoId = 0;
+            versionAplicada = -1;
+
+            TotalRegistros = 0;
+            Mensaje = string.Empty;
+
+            NotificarEstadoLista();
+        }
+
+        private void ActualizarComandos()
+        {
+            ReturnCommand.ChangeCanExecute();
+            AddCommand.ChangeCanExecute();
+            EditCommand.ChangeCanExecute();
+            DeleteCommand.ChangeCanExecute();
+            ViewCommand.ChangeCanExecute();
+            BuscarCommand.ChangeCanExecute();
+            LimpiarFiltrosCommand.ChangeCanExecute();
+            RefrescarCommand.ChangeCanExecute();
+            CargarMasCommand.ChangeCanExecute();
+        }
+
+        private void NotificarEstadoLista()
+        {
+            OnPropertyChanged(
+                nameof(MostrarVacio));
+
+            OnPropertyChanged(
+                nameof(MostrarFinLista));
+
+            OnPropertyChanged(
+                nameof(PuedeCargarMas));
+
+            OnPropertyChanged(
+                nameof(ResumenResultados));
+        }
+
+        private static int ObtenerTamanoPagina() =>
+            DeviceInfo.Platform ==
+            DevicePlatform.WinUI
+                ? 40
+                : 20;
+
+        private CancellationTokenSource
+            PrepararNuevaCarga()
+        {
+            var source =
+                new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref cargaCts,
+                    source);
+
+            CancelarSeguro(anterior);
+
+            return source;
+        }
+
+        private bool EsCargaActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(
+                    ref cargaCts),
+                source);
+
+        private void LiberarCarga(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref cargaCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // La solicitud ya había terminado.
+            }
+        }
+
+        private static bool EsMensajeCancelacion(
+            string? valor) =>
+            !string.IsNullOrWhiteSpace(valor) &&
+            valor.Contains(
+                "cancel",
+                StringComparison.OrdinalIgnoreCase);
     }
 }
