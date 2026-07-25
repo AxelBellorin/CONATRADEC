@@ -1,49 +1,158 @@
-namespace CONATRADEC.Views;
-using static CONATRADEC.Models.FormMode;
 using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
-using CONATRADEC.Services;  
+using Microsoft.Maui.Devices;
+using static CONATRADEC.Models.FormMode;
 
-[QueryProperty(nameof(Mode), "Mode")]
-[QueryProperty(nameof(User), "User")]
-public partial class userFormPage : ContentPage
+namespace CONATRADEC.Views
 {
-    private UserFormViewModel viewModel = new UserFormViewModel();
+    [QueryProperty(nameof(Mode), "Mode")]
+    [QueryProperty(nameof(User), "User")]
+    public partial class userFormPage : ContentPage
+    {
+        private readonly UserFormViewModel viewModel = new();
 
-    public FormModeSelect Mode
-    {
-        set => viewModel.Mode = value;
-    }
-
-    public UserRequest User
-    {
-        set => viewModel.User = value;
-    }
-    public userFormPage()
-    {
-        try
+        public FormModeSelect Mode
         {
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
-            BindingContext = viewModel;
+            set => viewModel.Mode = value;
+        }
+
+        public UserRequest User
+        {
+            set => viewModel.User =
+                value ?? new UserRequest();
+        }
+
+        public userFormPage()
+        {
             InitializeComponent();
+            BindingContext = viewModel;
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
-    }
 
-    protected override async void OnAppearing()
-    {
-        try
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
-            if (BindingContext is UserFormViewModel vm)
-                await vm.InicializarAsync();
+
+            viewModel.LoadPagePermissions("userPage");
+
+            bool denegado =
+                !viewModel.CanView ||
+                (viewModel.Mode == FormModeSelect.Create &&
+                 !viewModel.CanAdd) ||
+                (viewModel.Mode == FormModeSelect.Edit &&
+                 !viewModel.CanEdit);
+
+            if (denegado)
+            {
+                await DisplayAlert(
+                    "Permiso denegado",
+                    "No tiene permisos para realizar esta operación.",
+                    "Aceptar");
+
+                await Shell.Current.GoToAsync(AppRoutes.Usuarios);
+                return;
+            }
+
+            AjustarDiseno(Width);
+            await viewModel.InicializarAsync();
         }
-        catch (Exception ex)
+
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
         {
-            _ = GlobalService.MostrarToastAsync("Error" + ex.Message);
+            base.OnSizeAllocated(width, height);
+            AjustarDiseno(width);
+        }
+
+        private void AjustarDiseno(double ancho)
+        {
+            if (ancho <= 0 ||
+                FormularioContainer == null)
+            {
+                return;
+            }
+
+            double margen =
+                DeviceInfo.Platform == DevicePlatform.WinUI
+                    ? 72
+                    : 32;
+
+            FormularioContainer.WidthRequest =
+                Math.Min(
+                    Math.Max(280, ancho - margen),
+                    1100);
+
+            bool amplio = ancho >= 820;
+
+            AjustarGrid(
+                AccesoGrid,
+                new[]
+                {
+                    UsuarioSection,
+                    ClaveSection,
+                    NombreSection,
+                    IdentificacionSection
+                },
+                amplio,
+                2);
+
+            AjustarGrid(
+                ContactoGrid,
+                new[]
+                {
+                    CorreoSection,
+                    TelefonoSection,
+                    FechaSection,
+                    RolSection
+                },
+                amplio,
+                2);
+
+            AjustarGrid(
+                UbicacionGrid,
+                new[]
+                {
+                    PaisSection,
+                    DepartamentoSection,
+                    MunicipioSection
+                },
+                amplio,
+                3);
+        }
+
+        private static void AjustarGrid(
+            Grid grid,
+            IReadOnlyList<View> secciones,
+            bool amplio,
+            int columnasAmplias)
+        {
+            grid.ColumnDefinitions.Clear();
+            grid.RowDefinitions.Clear();
+
+            int columnas = amplio ? columnasAmplias : 1;
+            int filas =
+                (int)Math.Ceiling(
+                    secciones.Count / (double)columnas);
+
+            for (int i = 0; i < columnas; i++)
+            {
+                grid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Star));
+            }
+
+            for (int i = 0; i < filas; i++)
+            {
+                grid.RowDefinitions.Add(
+                    new RowDefinition(GridLength.Auto));
+            }
+
+            for (int i = 0; i < secciones.Count; i++)
+            {
+                Grid.SetRow(secciones[i], i / columnas);
+                Grid.SetColumn(secciones[i], i % columnas);
+            }
         }
     }
 }

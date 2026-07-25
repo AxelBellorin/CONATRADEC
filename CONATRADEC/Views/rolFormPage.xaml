@@ -1,142 +1,178 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
+    x:Class="CONATRADEC.Views.rolFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="CONATRADEC.Views.rolFormPage"
-    Title="Formulario de rol"
     Shell.NavBarIsVisible="False"
-    Background="Transparent">
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <Grid
-        RowDefinitions="Auto,*"
-        BackgroundColor="Transparent">
+    <Grid Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
 
-        <Grid
-            Grid.Row="0"
-            ColumnDefinitions="*,Auto"
-            Margin="10,20,20,0">
-
-            <Label
-                Grid.Column="0"
-                Text="{Binding Title}"
-                TextColor="{StaticResource color_Verde}"
-                FontSize="24"
-                FontFamily="MontserratBold"
-                FontAttributes="Bold"
-                HorizontalOptions="Start"
-                VerticalOptions="Center" />
-
-            <ActivityIndicator
-                Grid.Column="1"
-                IsRunning="{Binding IsBusy}"
-                IsVisible="{Binding IsBusy}"
-                Color="{StaticResource color_Naranja}"
-                VerticalOptions="Center" />
-
-        </Grid>
-
-        <ScrollView Grid.Row="1">
+        <ScrollView HorizontalScrollBarVisibility="Never">
 
             <VerticalStackLayout
-                Padding="10"
-                Spacing="15">
+                x:Name="FormularioContainer"
+                MaximumWidthRequest="1100"
+                HorizontalOptions="Center"
+                Spacing="18">
 
-                <!-- NOMBRE DEL ROL -->
-                <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
 
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorNombreRol}"
-                            Value="True">
-
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <VerticalStackLayout Spacing="5">
+                    <VerticalStackLayout Spacing="4">
 
                         <Label
-                            Text="Nombre del rol"
+                            Text="{Binding Title}"
+                            FontSize="{OnPlatform WinUI=30, Default=26}"
                             FontFamily="MontserratBold"
                             FontAttributes="Bold"
-                            FontSize="17"
-                            TextColor="{StaticResource color_Negro}" />
-
-                        <Entry
-                            Placeholder="Ingrese el nombre del rol"
-                            Style="{StaticResource EntryStyle}"
-                            Text="{Binding NombreRol}"
-                            IsReadOnly="{Binding IsReadOnly}" />
+                            TextColor="{StaticResource color_Verde}" />
 
                         <Label
-                            Text="{Binding ErrorNombreRol}"
-                            IsVisible="{Binding TieneErrorNombreRol}"
-                            Style="{StaticResource ValidationMessageStyle}" />
-
+                            Text="Defina el nombre y propósito del perfil que será utilizado por los usuarios."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
 
-                </Border>
+                    <ActivityIndicator
+                        Grid.Column="1"
+                        IsRunning="{Binding IsBusy}"
+                        IsVisible="{Binding IsBusy}"
+                        Color="{StaticResource color_Naranja}"
+                        VerticalOptions="Center" />
+                </Grid>
 
-                <!-- DESCRIPCIÓN DEL ROL -->
                 <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
+                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeShape="RoundRectangle 18">
 
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorDescripcionRol}"
-                            Value="True">
+                    <VerticalStackLayout Spacing="17">
 
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
+                        <VerticalStackLayout Spacing="3">
 
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
+                            <Label
+                                Text="Información del rol"
+                                FontSize="19"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
 
-                        </DataTrigger>
-                    </Border.Triggers>
+                            <Label
+                                Text="Los permisos se administran posteriormente desde la matriz de permisos."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
 
-                    <VerticalStackLayout Spacing="5">
+                        <VerticalStackLayout Spacing="6">
 
-                        <Label
-                            Text="Descripción"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            FontSize="17"
-                            TextColor="{StaticResource color_Negro}" />
+                            <Label
+                                Text="Nombre del rol"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
 
-                        <Editor
-                            Placeholder="Ingrese la descripción del rol"
-                            Text="{Binding DescripcionRol}"
-                            IsReadOnly="{Binding IsReadOnly}"
-                            AutoSize="TextChanges"
-                            MinimumHeightRequest="80"
-                            TextColor="{StaticResource color_Negro}" />
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
 
-                        <Label
-                            Text="{Binding ErrorDescripcionRol}"
-                            IsVisible="{Binding TieneErrorDescripcionRol}"
-                            Style="{StaticResource ValidationMessageStyle}" />
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorNombreRol}"
+                                        Value="True">
 
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Entry
+                                    Placeholder="Ejemplo: SUPERVISOR"
+                                    Text="{Binding NombreRol}"
+                                    MaxLength="50"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent" />
+                            </Border>
+
+                            <Label
+                                Text="{Binding ErrorNombreRol}"
+                                IsVisible="{Binding TieneErrorNombreRol}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+
+                            <Label
+                                Text="Descripción"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorDescripcionRol}"
+                                        Value="True">
+
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Editor
+                                    Placeholder="Descripción del rol"
+                                    Text="{Binding DescripcionRol}"
+                                    MaxLength="500"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="130"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </Border>
+
+                            <Label
+                                Text="Máximo 500 caracteres."
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="{Binding ErrorDescripcionRol}"
+                                IsVisible="{Binding TieneErrorDescripcionRol}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
-
                 </Border>
 
                 <Grid
                     ColumnDefinitions="*,*"
-                    Margin="10,0,10,20">
+                    ColumnSpacing="12"
+                    Margin="0,2,0,16">
 
                     <Button
                         Grid.Column="0"
@@ -144,23 +180,26 @@
                         Style="{StaticResource UpdateButton}"
                         IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding SaveCommand}"
-                        Margin="10,0,10,0" />
+                        Command="{Binding SaveCommand}" />
 
                     <Button
                         Grid.Column="1"
                         Text="Cancelar"
                         Style="{StaticResource CancelButton}"
+                        IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding CancelCommand}"
-                        Margin="10,0,10,0" />
+                        Command="{Binding CancelCommand}" />
 
+                    <Button
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Text="Regresar"
+                        Style="{StaticResource CancelButton}"
+                        IsVisible="{Binding IsReadOnly}"
+                        IsEnabled="{Binding NotIsBusy}"
+                        Command="{Binding CancelCommand}" />
                 </Grid>
-
             </VerticalStackLayout>
-
         </ScrollView>
-
     </Grid>
-
 </ContentPage>

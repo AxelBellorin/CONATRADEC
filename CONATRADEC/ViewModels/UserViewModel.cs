@@ -1,196 +1,480 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
-    public class UserViewModel : GlobalService
+    public sealed class UserViewModel : GlobalService
     {
-        private ObservableCollection<UserResponse> usersList = new();
-        private readonly UserApiService userApiService;
-        private bool cargandoUsuarios;
-        private bool eliminandoUsuario;
+        private readonly AdministracionConsultaApiService
+            consultaApiService = new();
 
+        private readonly UserApiService
+            userApiService = new();
+
+        private CancellationTokenSource? cargaCts;
+
+        private string textoBusqueda = string.Empty;
+        private string mensaje = string.Empty;
+        private bool isRefreshing;
+        private bool cargandoMas;
+        private bool navegando;
+        private bool pantallaCargada;
+        private int paginaActual;
+        private int totalPaginas = 1;
+        private int totalRegistros;
+
+        public ObservableCollection<UserResponse>
+            UsersList { get; } = new();
+
+        public Command RegresarConfiguracionCommand { get; }
         public Command AddUserCommand { get; }
-        public Command EditUserCommand { get; }
-        public Command DeleteUserCommand { get; }
-        public Command ViewUserCommand { get; }
+        public Command<UserResponse> EditUserCommand { get; }
+        public Command<UserResponse> DeleteUserCommand { get; }
+        public Command<UserResponse> ViewUserCommand { get; }
+        public Command BuscarCommand { get; }
+        public Command LimpiarFiltrosCommand { get; }
+        public Command RefrescarCommand { get; }
+        public Command CargarMasCommand { get; }
 
-        public ObservableCollection<UserResponse> UsersList
+        public UserViewModel()
         {
-            get => usersList;
+            RegresarConfiguracionCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => NavegarAsync(AppRoutes.Configuracion),
+                        "regresar a configuración"),
+                    () => !IsBusy && !Navegando);
+
+            AddUserCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        OnAddUserAsync,
+                        "abrir el formulario de usuario"),
+                    () => CanAdd && !IsBusy && !Navegando);
+
+            EditUserCommand =
+                new Command<UserResponse>(
+                    async user => await EjecutarSeguroAsync(
+                        () => OnEditUserAsync(user),
+                        "editar el usuario"),
+                    user =>
+                        user != null &&
+                        CanEdit &&
+                        !IsBusy &&
+                        !Navegando);
+
+            DeleteUserCommand =
+                new Command<UserResponse>(
+                    async user => await EjecutarSeguroAsync(
+                        () => OnDeleteUserAsync(user),
+                        "eliminar el usuario"),
+                    user =>
+                        user != null &&
+                        CanDelete &&
+                        !IsBusy &&
+                        !Navegando);
+
+            ViewUserCommand =
+                new Command<UserResponse>(
+                    async user => await EjecutarSeguroAsync(
+                        () => OnViewUserAsync(user),
+                        "consultar el usuario"),
+                    user =>
+                        user != null &&
+                        CanView &&
+                        !IsBusy &&
+                        !Navegando);
+
+            BuscarCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => CargarAsync(true),
+                        "buscar usuarios"),
+                    () => CanView && !Navegando);
+
+            LimpiarFiltrosCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        LimpiarFiltrosAsync,
+                        "limpiar la búsqueda"),
+                    () => CanView && !Navegando);
+
+            RefrescarCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        RefrescarAsync,
+                        "actualizar los usuarios"),
+                    () => CanView && !Navegando);
+
+            CargarMasCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => CargarAsync(false),
+                        "cargar más usuarios"),
+                    () =>
+                        CanView &&
+                        !IsBusy &&
+                        !CargandoMas &&
+                        !Navegando &&
+                        PuedeCargarMas);
+        }
+
+        public string TextoBusqueda
+        {
+            get => textoBusqueda;
             set
             {
-                if (ReferenceEquals(usersList, value))
+                string nuevo = value ?? string.Empty;
+
+                if (textoBusqueda == nuevo)
                     return;
 
-                usersList = value;
+                textoBusqueda = nuevo;
                 OnPropertyChanged();
             }
         }
 
-        public UserViewModel()
-            : this(new UserApiService())
+        public string Mensaje
         {
-        }
-
-        public UserViewModel(UserApiService userApiService)
-        {
-            this.userApiService = userApiService
-                ?? throw new ArgumentNullException(nameof(userApiService));
-
-            AddUserCommand = new Command(
-                async () => await OnAddUserAsync());
-
-            EditUserCommand = new Command<UserResponse>(
-                async user => await OnEditUserAsync(user));
-
-            DeleteUserCommand = new Command<UserResponse>(
-                async user => await OnDeleteUserAsync(user));
-
-            ViewUserCommand = new Command<UserResponse>(
-                async user => await OnViewUserAsync(user));
-        }
-
-        public async Task LoadUsers(bool mostrarIndicadorCarga)
-        {
-            if (!CanView)
+            get => mensaje;
+            private set
             {
-                await MostrarToastAsync(
-                    "No tiene permisos para ver usuarios.");
+                string nuevo = value ?? string.Empty;
+
+                if (mensaje == nuevo)
+                    return;
+
+                mensaje = nuevo;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneMensaje));
+            }
+        }
+
+        public bool TieneMensaje =>
+            !string.IsNullOrWhiteSpace(Mensaje);
+
+        public bool IsRefreshing
+        {
+            get => isRefreshing;
+            set
+            {
+                if (isRefreshing == value)
+                    return;
+
+                isRefreshing = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public bool CargandoMas
+        {
+            get => cargandoMas;
+            private set
+            {
+                if (cargandoMas == value)
+                    return;
+
+                cargandoMas = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+                NotificarEstado();
+            }
+        }
+
+        public bool Navegando
+        {
+            get => navegando;
+            private set
+            {
+                if (navegando == value)
+                    return;
+
+                navegando = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public int TotalRegistros
+        {
+            get => totalRegistros;
+            private set
+            {
+                if (totalRegistros == value)
+                    return;
+
+                totalRegistros = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ResumenResultados));
+            }
+        }
+
+        public string ResumenResultados =>
+            TotalRegistros == 1
+                ? "1 usuario encontrado"
+                : $"{TotalRegistros} usuarios encontrados";
+
+        public bool PuedeCargarMas =>
+            paginaActual < totalPaginas;
+
+        public bool MostrarVacio =>
+            CanView &&
+            pantallaCargada &&
+            !IsBusy &&
+            !CargandoMas &&
+            UsersList.Count == 0 &&
+            !TieneMensaje;
+
+        public bool MostrarFinLista =>
+            CanView &&
+            pantallaCargada &&
+            UsersList.Count > 0 &&
+            !PuedeCargarMas &&
+            !IsBusy &&
+            !CargandoMas;
+
+        public bool MostrarAccesoDenegado =>
+            !CanView;
+
+        public void ActualizarPermisos()
+        {
+            LoadPagePermissions("userPage");
+            OnPropertyChanged(nameof(MostrarAccesoDenegado));
+            ActualizarComandos();
+            NotificarEstado();
+        }
+
+        public Task InicializarAsync() =>
+            CargarAsync(true);
+
+        // Compatibilidad con el code-behind anterior.
+        public Task LoadUsers(bool mostrarIndicadorCarga) =>
+            CargarAsync(true);
+
+        public async Task CargarAsync(bool reiniciar)
+        {
+            if (!CanView || Navegando)
+                return;
+
+            if (!reiniciar &&
+                (CargandoMas || !PuedeCargarMas))
+            {
                 return;
             }
 
-            if (cargandoUsuarios)
-                return;
-
-            cargandoUsuarios = true;
-
-            if (mostrarIndicadorCarga)
-                IsBusy = true;
+            CancellationTokenSource source =
+                PrepararNuevaCarga();
 
             try
             {
-                var resultado = await userApiService.GetUsersResultAsync();
-
-                if (!resultado.Success)
+                if (reiniciar)
                 {
-                    await MostrarToastAsync(resultado.Message);
+                    IsBusy = true;
+                    Mensaje = string.Empty;
+                }
+                else
+                {
+                    CargandoMas = true;
+                }
+
+                int paginaSolicitada =
+                    reiniciar
+                        ? 1
+                        : paginaActual + 1;
+
+                ApiResult<UsuarioAdministracionPaginaResponse> resultado =
+                    await consultaApiService.BuscarUsuariosAsync(
+                        TextoBusqueda,
+                        paginaSolicitada,
+                        ObtenerTamanoPagina(),
+                        source.Token);
+
+                if (source.IsCancellationRequested ||
+                    !EsCargaActual(source))
+                {
                     return;
                 }
 
-                UsersList = new ObservableCollection<UserResponse>(
-                    (resultado.Data ?? new ObservableCollection<UserResponse>())
-                    .OrderBy(x => x.NombreCompletoUsuario ?? string.Empty));
+                if (!resultado.Success ||
+                    resultado.Data == null)
+                {
+                    if (!EsCancelacion(resultado.Message))
+                        Mensaje = resultado.Message;
 
-                if (UsersList.Count == 0)
-                    await MostrarToastAsync("No se encontraron usuarios.");
+                    return;
+                }
+
+                AplicarPagina(resultado.Data, reiniciar);
+                pantallaCargada = true;
             }
-            catch
+            catch (OperationCanceledException)
             {
-                await MostrarToastAsync(
-                    "Ocurrió un error inesperado al cargar los usuarios.");
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (Exception ex)
+            {
+                if (!source.IsCancellationRequested &&
+                    EsCargaActual(source))
+                {
+                    Mensaje = "No fue posible cargar los usuarios.";
+
+                    await MostrarErrorInesperadoAsync(
+                        "cargar los usuarios",
+                        ex);
+                }
             }
             finally
             {
-                cargandoUsuarios = false;
+                if (EsCargaActual(source))
+                {
+                    if (reiniciar)
+                    {
+                        IsBusy = false;
+                        IsRefreshing = false;
+                    }
+                    else
+                    {
+                        CargandoMas = false;
+                    }
+                }
 
-                if (mostrarIndicadorCarga)
-                    IsBusy = false;
+                LiberarCarga(source);
+                ActualizarComandos();
+                NotificarEstado();
             }
         }
 
-        private async Task OnAddUserAsync()
+        public void CancelarCarga()
         {
-            if (!CanAdd)
-            {
-                await MostrarToastAsync(
-                    "No tiene permisos para agregar usuarios.");
-                return;
-            }
+            CancellationTokenSource? source =
+                Interlocked.Exchange(ref cargaCts, null);
 
-            if (IsBusy)
-                return;
+            CancelarSeguro(source);
 
-            var parameters = new Dictionary<string, object>
-            {
-                { "Mode", FormMode.FormModeSelect.Create },
-                { "User", new UserRequest(new UserResponse()) }
-            };
-
-            await GoToAsyncParameters("//UserFormPage", parameters);
+            IsBusy = false;
+            IsRefreshing = false;
+            CargandoMas = false;
         }
 
-        private async Task OnEditUserAsync(UserResponse? user)
+        private void AplicarPagina(
+            UsuarioAdministracionPaginaResponse pagina,
+            bool reiniciar)
         {
-            if (!CanEdit)
+            if (reiniciar)
+                UsersList.Clear();
+
+            HashSet<int> ids =
+                UsersList
+                    .Where(item => item.UsuarioId is > 0)
+                    .Select(item => item.UsuarioId!.Value)
+                    .ToHashSet();
+
+            foreach (UserResponse item in pagina.Items)
             {
-                await MostrarToastAsync(
-                    "No tiene permisos para editar usuarios.");
-                return;
+                if (item.UsuarioId is not > 0)
+                    continue;
+
+                if (ids.Add(item.UsuarioId.Value))
+                    UsersList.Add(item);
             }
 
-            if (IsBusy || user == null)
-                return;
+            paginaActual = Math.Max(1, pagina.PaginaActual);
+            totalPaginas = Math.Max(1, pagina.TotalPaginas);
+            TotalRegistros = Math.Max(0, pagina.TotalRegistros);
+            Mensaje = string.Empty;
 
-            var parameters = new Dictionary<string, object>
-            {
-                { "Mode", FormMode.FormModeSelect.Edit },
-                { "User", new UserRequest(user) }
-            };
-
-            await GoToAsyncParameters("//UserFormPage", parameters);
+            OnPropertyChanged(nameof(PuedeCargarMas));
+            NotificarEstado();
         }
 
-        private async Task OnViewUserAsync(UserResponse? user)
+        private async Task LimpiarFiltrosAsync()
         {
-            if (!CanView)
+            TextoBusqueda = string.Empty;
+            await CargarAsync(true);
+        }
+
+        private async Task RefrescarAsync()
+        {
+            IsRefreshing = true;
+
+            try
             {
-                await MostrarToastAsync(
-                    "No tiene permisos para ver detalles.");
-                return;
+                await CargarAsync(true);
             }
-
-            if (IsBusy || user == null)
-                return;
-
-            var parameters = new Dictionary<string, object>
+            finally
             {
-                { "Mode", FormMode.FormModeSelect.View },
-                { "User", new UserRequest(user) }
-            };
+                IsRefreshing = false;
+            }
+        }
 
-            await GoToAsyncParameters("//UserFormPage", parameters);
+        private Task OnAddUserAsync() =>
+            NavegarAsync(
+                "//UserFormPage",
+                new Dictionary<string, object>
+                {
+                    ["Mode"] = FormMode.FormModeSelect.Create,
+                    ["User"] = new UserRequest(new UserResponse())
+                });
+
+        private Task OnEditUserAsync(UserResponse? user)
+        {
+            if (user == null)
+                return Task.CompletedTask;
+
+            return NavegarAsync(
+                "//UserFormPage",
+                new Dictionary<string, object>
+                {
+                    ["Mode"] = FormMode.FormModeSelect.Edit,
+                    ["User"] = new UserRequest(user)
+                });
+        }
+
+        private Task OnViewUserAsync(UserResponse? user)
+        {
+            if (user == null)
+                return Task.CompletedTask;
+
+            return NavegarAsync(
+                "//UserFormPage",
+                new Dictionary<string, object>
+                {
+                    ["Mode"] = FormMode.FormModeSelect.View,
+                    ["User"] = new UserRequest(user)
+                });
         }
 
         private async Task OnDeleteUserAsync(UserResponse? user)
         {
-            if (!CanDelete)
-            {
-                await MostrarToastAsync(
-                    "No tiene permisos para eliminar usuarios.");
-                return;
-            }
-
-            if (IsBusy || eliminandoUsuario || user == null)
+            if (user == null || IsBusy)
                 return;
 
-            bool confirmar = await App.Current.MainPage.DisplayAlert(
-                "Eliminar usuario",
-                $"¿Desea eliminar a '{user.NombreCompletoUsuario}'?",
-                "Sí",
-                "No");
+            bool confirmar =
+                await Application.Current!
+                    .MainPage!
+                    .DisplayAlert(
+                        "Eliminar usuario",
+                        $"¿Desea desactivar a '{user.NombreMostrar}'?",
+                        "Eliminar",
+                        "Cancelar");
 
             if (!confirmar)
                 return;
 
-            eliminandoUsuario = true;
-            IsBusy = true;
-
             try
             {
-                var resultado = await userApiService.DeleteUserResultAsync(
-                    new UserRequest(user));
+                IsBusy = true;
+                ActualizarComandos();
+
+                ApiResult<bool> resultado =
+                    await userApiService.DeleteUserResultAsync(
+                        new UserRequest(user));
 
                 if (!resultado.Success)
                 {
@@ -199,21 +483,133 @@ namespace CONATRADEC.ViewModels
                 }
 
                 UsersList.Remove(user);
+                TotalRegistros = Math.Max(0, TotalRegistros - 1);
+
                 await MostrarToastAsync(
                     string.IsNullOrWhiteSpace(resultado.Message)
-                        ? "Usuario eliminado correctamente."
+                        ? "Usuario desactivado correctamente."
                         : resultado.Message);
-            }
-            catch
-            {
-                await MostrarToastAsync(
-                    "Ocurrió un error inesperado al eliminar el usuario.");
             }
             finally
             {
-                eliminandoUsuario = false;
                 IsBusy = false;
+                ActualizarComandos();
+                NotificarEstado();
             }
         }
+
+        private async Task NavegarAsync(
+            string ruta,
+            IDictionary<string, object>? parametros = null)
+        {
+            if (Navegando)
+                return;
+
+            Navegando = true;
+
+            try
+            {
+                CancelarCarga();
+
+                if (parametros == null)
+                    await GoToAsyncParameters(ruta);
+                else
+                    await GoToAsyncParameters(ruta, parametros);
+            }
+            finally
+            {
+                Navegando = false;
+            }
+        }
+
+        private async Task EjecutarSeguroAsync(
+            Func<Task> accion,
+            string descripcion)
+        {
+            try
+            {
+                await accion();
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(descripcion, ex);
+            }
+        }
+
+        private void ActualizarComandos()
+        {
+            RegresarConfiguracionCommand.ChangeCanExecute();
+            AddUserCommand.ChangeCanExecute();
+            EditUserCommand.ChangeCanExecute();
+            DeleteUserCommand.ChangeCanExecute();
+            ViewUserCommand.ChangeCanExecute();
+            BuscarCommand.ChangeCanExecute();
+            LimpiarFiltrosCommand.ChangeCanExecute();
+            RefrescarCommand.ChangeCanExecute();
+            CargarMasCommand.ChangeCanExecute();
+        }
+
+        private void NotificarEstado()
+        {
+            OnPropertyChanged(nameof(MostrarVacio));
+            OnPropertyChanged(nameof(MostrarFinLista));
+            OnPropertyChanged(nameof(PuedeCargarMas));
+            OnPropertyChanged(nameof(ResumenResultados));
+        }
+
+        private static int ObtenerTamanoPagina() =>
+            DeviceInfo.Platform == DevicePlatform.WinUI
+                ? 40
+                : 20;
+
+        private CancellationTokenSource PrepararNuevaCarga()
+        {
+            var source = new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref cargaCts, source);
+
+            CancelarSeguro(anterior);
+
+            return source;
+        }
+
+        private bool EsCargaActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref cargaCts),
+                source);
+
+        private void LiberarCarga(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref cargaCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        private static bool EsCancelacion(string? valor) =>
+            !string.IsNullOrWhiteSpace(valor) &&
+            valor.Contains(
+                "cancel",
+                StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -1,16 +1,12 @@
 using CONATRADEC.Models;
-using System.Collections.ObjectModel;
 
 namespace CONATRADEC.Services
 {
-    /// <summary>
-    /// Servicio encargado de consultar y guardar la matriz de permisos.
-    /// Reutiliza el HttpClient compartido de la aplicación y devuelve
-    /// resultados detallados mediante ApiResult.
-    /// </summary>
-    public class MatrizPermisosApiService
+    public sealed class MatrizPermisosApiService
     {
         private readonly HttpClient httpClient;
+        private readonly AdministracionConsultaApiService
+            consultaApiService;
 
         public MatrizPermisosApiService()
             : this(ApiClientService.Client)
@@ -19,52 +15,78 @@ namespace CONATRADEC.Services
 
         public MatrizPermisosApiService(HttpClient httpClient)
         {
-            this.httpClient = httpClient
+            this.httpClient =
+                httpClient
                 ?? throw new ArgumentNullException(nameof(httpClient));
+
+            consultaApiService =
+                new AdministracionConsultaApiService(httpClient);
         }
 
-        public Task<ApiResult<ObservableCollection<MatrizPermisosResponse>>> GetMatrizByRolResultAsync(
-            RolRequest rolRequest,
-            CancellationToken cancellationToken = default)
-        {
-            ArgumentNullException.ThrowIfNull(rolRequest);
+        public Task<ApiResult<MatrizPermisosResponse>>
+            GetMatrizByRolIdResultAsync(
+                int rolId,
+                CancellationToken cancellationToken = default) =>
+            consultaApiService.ObtenerPermisosRolAsync(
+                rolId,
+                cancellationToken);
 
-            if (string.IsNullOrWhiteSpace(rolRequest.NombreRol))
+        // Compatibilidad con llamadas anteriores.
+        public async Task<ApiResult<
+            System.Collections.ObjectModel.ObservableCollection<
+                MatrizPermisosResponse>>>
+            GetMatrizByRolResultAsync(
+                RolRequest rolRequest,
+                CancellationToken cancellationToken = default)
+        {
+            if (rolRequest?.RolId is not > 0)
             {
-                return Task.FromResult(
-                    ApiResult<ObservableCollection<MatrizPermisosResponse>>.Fail(
-                        "Debe seleccionar un rol válido para consultar sus permisos."));
+                return ApiResult<
+                    System.Collections.ObjectModel.ObservableCollection<
+                        MatrizPermisosResponse>>
+                    .Fail("Debe seleccionar un rol válido.");
             }
 
-            string nombreRolCodificado = Uri.EscapeDataString(
-                rolRequest.NombreRol.Trim());
+            ApiResult<MatrizPermisosResponse> resultado =
+                await GetMatrizByRolIdResultAsync(
+                    rolRequest.RolId.Value,
+                    cancellationToken);
 
-            string ruta =
-                $"api/rol-interfaz/matriz-por-rol-nombre?nombreRol={nombreRolCodificado}";
+            if (!resultado.Success || resultado.Data == null)
+            {
+                return ApiResult<
+                    System.Collections.ObjectModel.ObservableCollection<
+                        MatrizPermisosResponse>>
+                    .Fail(
+                        resultado.Message,
+                        resultado.StatusCode);
+            }
 
-            return ApiServiceHelper.GetCollectionAsync<MatrizPermisosResponse>(
-                httpClient,
-                ruta,
-                "la matriz de permisos",
-                cancellationToken);
+            return ApiResult<
+                System.Collections.ObjectModel.ObservableCollection<
+                    MatrizPermisosResponse>>
+                .Ok(new(
+                    new[]
+                    {
+                        resultado.Data
+                    }));
         }
 
         public Task<ApiResult<bool>> GuardarMatrizResultAsync(
-            MatrizPermisosRequest matrizPermisosRequest,
+            MatrizPermisosRequest request,
             CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(matrizPermisosRequest);
+            ArgumentNullException.ThrowIfNull(request);
 
-            if (matrizPermisosRequest.Rol is null ||
-                string.IsNullOrWhiteSpace(matrizPermisosRequest.Rol.NombreRol))
+            if (request.Rol?.RolId is not > 0)
             {
                 return Task.FromResult(
                     ApiResult<bool>.Fail(
-                        "No se recibió un rol válido para guardar la matriz de permisos."));
+                        "No se recibió un rol válido."));
             }
 
-            if (matrizPermisosRequest.Interfaz is null ||
-                matrizPermisosRequest.Interfaz.Count == 0)
+            if (request.Interfaz == null ||
+                request.Interfaz.Count == 0)
             {
                 return Task.FromResult(
                     ApiResult<bool>.Fail(
@@ -75,29 +97,20 @@ namespace CONATRADEC.Services
                 httpClient,
                 HttpMethod.Put,
                 "api/rol-permisos/actualizar-interfaz",
-                matrizPermisosRequest,
+                request,
                 "guardar la matriz de permisos",
                 "Permisos guardados correctamente.",
                 cancellationToken);
         }
 
-        // Métodos anteriores conservados para no romper llamadas existentes.
-        public async Task<ObservableCollection<MatrizPermisosResponse>> GetMatrizByRolAsync(
-            RolRequest rolRequest)
-        {
-            var result = await GetMatrizByRolResultAsync(rolRequest);
-
-            return result.Data
-                ?? new ObservableCollection<MatrizPermisosResponse>();
-        }
-
         public async Task<bool> GuardarMatrizAsync(
-            MatrizPermisosRequest matrizPermisosRequest)
+            MatrizPermisosRequest request)
         {
-            var result = await GuardarMatrizResultAsync(
-                matrizPermisosRequest);
+            ApiResult<bool> resultado =
+                await GuardarMatrizResultAsync(request);
 
-            return result.Success && result.Data == true;
+            return resultado.Success &&
+                   resultado.Data == true;
         }
     }
 }

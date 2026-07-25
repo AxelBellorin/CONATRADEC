@@ -1,192 +1,486 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
-    public class RolViewModel : GlobalService
+    public sealed class RolViewModel : GlobalService
     {
-        private readonly RolApiService rolApiService;
-        private ObservableCollection<RolResponse> list = new();
-        private bool cargandoRoles;
-        private bool eliminandoRol;
+        private readonly AdministracionConsultaApiService
+            consultaApiService = new();
 
-        public ObservableCollection<RolResponse> List
+        private readonly RolApiService
+            rolApiService = new();
+
+        private CancellationTokenSource? cargaCts;
+
+        private string textoBusqueda = string.Empty;
+        private string mensaje = string.Empty;
+        private bool isRefreshing;
+        private bool cargandoMas;
+        private bool navegando;
+        private bool pantallaCargada;
+        private int paginaActual;
+        private int totalPaginas = 1;
+        private int totalRegistros;
+
+        public ObservableCollection<RolResponse>
+            List { get; } = new();
+
+        public Command RegresarConfiguracionCommand { get; }
+        public Command AddCommand { get; }
+        public Command<RolResponse> EditCommand { get; }
+        public Command<RolResponse> DeleteCommand { get; }
+        public Command<RolResponse> ViewCommand { get; }
+        public Command BuscarCommand { get; }
+        public Command LimpiarFiltrosCommand { get; }
+        public Command RefrescarCommand { get; }
+        public Command CargarMasCommand { get; }
+
+        public RolViewModel()
         {
-            get => list;
+            RegresarConfiguracionCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => NavegarAsync(AppRoutes.Configuracion),
+                        "regresar a configuración"),
+                    () => !IsBusy && !Navegando);
+
+            AddCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        OnAddAsync,
+                        "abrir el formulario de rol"),
+                    () => CanAdd && !IsBusy && !Navegando);
+
+            EditCommand =
+                new Command<RolResponse>(
+                    async rol => await EjecutarSeguroAsync(
+                        () => OnEditAsync(rol),
+                        "editar el rol"),
+                    rol =>
+                        rol != null &&
+                        CanEdit &&
+                        !IsBusy &&
+                        !Navegando);
+
+            DeleteCommand =
+                new Command<RolResponse>(
+                    async rol => await EjecutarSeguroAsync(
+                        () => OnDeleteAsync(rol),
+                        "eliminar el rol"),
+                    rol =>
+                        rol != null &&
+                        CanDelete &&
+                        !IsBusy &&
+                        !Navegando);
+
+            ViewCommand =
+                new Command<RolResponse>(
+                    async rol => await EjecutarSeguroAsync(
+                        () => OnViewAsync(rol),
+                        "consultar el rol"),
+                    rol =>
+                        rol != null &&
+                        CanView &&
+                        !IsBusy &&
+                        !Navegando);
+
+            BuscarCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => CargarAsync(true),
+                        "buscar roles"),
+                    () => CanView && !Navegando);
+
+            LimpiarFiltrosCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        LimpiarFiltrosAsync,
+                        "limpiar la búsqueda"),
+                    () => CanView && !Navegando);
+
+            RefrescarCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        RefrescarAsync,
+                        "actualizar los roles"),
+                    () => CanView && !Navegando);
+
+            CargarMasCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => CargarAsync(false),
+                        "cargar más roles"),
+                    () =>
+                        CanView &&
+                        !IsBusy &&
+                        !CargandoMas &&
+                        !Navegando &&
+                        PuedeCargarMas);
+        }
+
+        public string TextoBusqueda
+        {
+            get => textoBusqueda;
             set
             {
-                if (ReferenceEquals(list, value))
+                string nuevo = value ?? string.Empty;
+
+                if (textoBusqueda == nuevo)
                     return;
 
-                list = value;
+                textoBusqueda = nuevo;
                 OnPropertyChanged();
             }
         }
 
-        public Command AddCommand { get; }
-        public Command EditCommand { get; }
-        public Command DeleteCommand { get; }
-        public Command ViewCommand { get; }
-
-        public RolViewModel()
-            : this(new RolApiService())
+        public string Mensaje
         {
-        }
-
-        public RolViewModel(RolApiService rolApiService)
-        {
-            this.rolApiService = rolApiService
-                ?? throw new ArgumentNullException(nameof(rolApiService));
-
-            AddCommand = new Command(
-                async () => await OnAddAsync());
-
-            EditCommand = new Command<RolResponse>(
-                async rol => await OnEditAsync(rol));
-
-            DeleteCommand = new Command<RolResponse>(
-                async rol => await OnDeleteAsync(rol));
-
-            ViewCommand = new Command<RolResponse>(
-                async rol => await OnViewAsync(rol));
-        }
-
-        public async Task LoadRol(bool mostrarIndicadorCarga)
-        {
-            if (!CanView)
+            get => mensaje;
+            private set
             {
-                await MostrarToastAsync(
-                    "No tiene permisos para ver roles.");
+                string nuevo = value ?? string.Empty;
+
+                if (mensaje == nuevo)
+                    return;
+
+                mensaje = nuevo;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneMensaje));
+            }
+        }
+
+        public bool TieneMensaje =>
+            !string.IsNullOrWhiteSpace(Mensaje);
+
+        public bool IsRefreshing
+        {
+            get => isRefreshing;
+            set
+            {
+                if (isRefreshing == value)
+                    return;
+
+                isRefreshing = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public bool CargandoMas
+        {
+            get => cargandoMas;
+            private set
+            {
+                if (cargandoMas == value)
+                    return;
+
+                cargandoMas = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+                NotificarEstado();
+            }
+        }
+
+        public bool Navegando
+        {
+            get => navegando;
+            private set
+            {
+                if (navegando == value)
+                    return;
+
+                navegando = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public int TotalRegistros
+        {
+            get => totalRegistros;
+            private set
+            {
+                if (totalRegistros == value)
+                    return;
+
+                totalRegistros = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ResumenResultados));
+            }
+        }
+
+        public string ResumenResultados =>
+            TotalRegistros == 1
+                ? "1 rol encontrado"
+                : $"{TotalRegistros} roles encontrados";
+
+        public bool PuedeCargarMas =>
+            paginaActual < totalPaginas;
+
+        public bool MostrarVacio =>
+            CanView &&
+            pantallaCargada &&
+            !IsBusy &&
+            !CargandoMas &&
+            List.Count == 0 &&
+            !TieneMensaje;
+
+        public bool MostrarFinLista =>
+            CanView &&
+            pantallaCargada &&
+            List.Count > 0 &&
+            !PuedeCargarMas &&
+            !IsBusy &&
+            !CargandoMas;
+
+        public bool MostrarAccesoDenegado =>
+            !CanView;
+
+        public void ActualizarPermisos()
+        {
+            LoadPagePermissions("rolPage");
+            OnPropertyChanged(nameof(MostrarAccesoDenegado));
+            ActualizarComandos();
+            NotificarEstado();
+        }
+
+        public Task InicializarAsync() =>
+            CargarAsync(true);
+
+        public Task LoadRol(bool mostrarIndicadorCarga) =>
+            CargarAsync(true);
+
+        public async Task CargarAsync(bool reiniciar)
+        {
+            if (!CanView || Navegando)
+                return;
+
+            if (!reiniciar &&
+                (CargandoMas || !PuedeCargarMas))
+            {
                 return;
             }
 
-            if (cargandoRoles)
-                return;
-
-            cargandoRoles = true;
-
-            if (mostrarIndicadorCarga)
-                IsBusy = true;
+            CancellationTokenSource source =
+                PrepararNuevaCarga();
 
             try
             {
-                var resultado = await rolApiService.GetRolResultAsync();
-
-                if (!resultado.Success)
+                if (reiniciar)
                 {
-                    await MostrarToastAsync(resultado.Message);
+                    IsBusy = true;
+                    Mensaje = string.Empty;
+                }
+                else
+                {
+                    CargandoMas = true;
+                }
+
+                int paginaSolicitada =
+                    reiniciar
+                        ? 1
+                        : paginaActual + 1;
+
+                ApiResult<RolAdministracionPaginaResponse> resultado =
+                    await consultaApiService.BuscarRolesAsync(
+                        TextoBusqueda,
+                        paginaSolicitada,
+                        ObtenerTamanoPagina(),
+                        source.Token);
+
+                if (source.IsCancellationRequested ||
+                    !EsCargaActual(source))
+                {
                     return;
                 }
 
-                List = new ObservableCollection<RolResponse>(
-                    (resultado.Data ?? new ObservableCollection<RolResponse>())
-                    .OrderBy(x => x.NombreRol ?? string.Empty));
+                if (!resultado.Success ||
+                    resultado.Data == null)
+                {
+                    if (!EsCancelacion(resultado.Message))
+                        Mensaje = resultado.Message;
 
-                if (List.Count == 0)
-                    await MostrarToastAsync("No se encontraron roles.");
+                    return;
+                }
+
+                AplicarPagina(resultado.Data, reiniciar);
+                pantallaCargada = true;
             }
-            catch
+            catch (OperationCanceledException)
             {
-                await MostrarToastAsync(
-                    "Ocurrió un error inesperado al cargar los roles.");
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (Exception ex)
+            {
+                if (!source.IsCancellationRequested &&
+                    EsCargaActual(source))
+                {
+                    Mensaje = "No fue posible cargar los roles.";
+
+                    await MostrarErrorInesperadoAsync(
+                        "cargar los roles",
+                        ex);
+                }
             }
             finally
             {
-                cargandoRoles = false;
+                if (EsCargaActual(source))
+                {
+                    if (reiniciar)
+                    {
+                        IsBusy = false;
+                        IsRefreshing = false;
+                    }
+                    else
+                    {
+                        CargandoMas = false;
+                    }
+                }
 
-                if (mostrarIndicadorCarga)
-                    IsBusy = false;
+                LiberarCarga(source);
+                ActualizarComandos();
+                NotificarEstado();
             }
         }
 
-        private async Task OnAddAsync()
+        public void CancelarCarga()
         {
-            if (!CanAdd)
-            {
-                await MostrarToastAsync("No tiene permisos para agregar.");
-                return;
-            }
+            CancellationTokenSource? source =
+                Interlocked.Exchange(ref cargaCts, null);
 
-            if (IsBusy)
-                return;
+            CancelarSeguro(source);
 
-            var parameters = new Dictionary<string, object>
-            {
-                { "Mode", FormMode.FormModeSelect.Create },
-                { "Rol", new RolRequest(new RolResponse()) }
-            };
-
-            await GoToAsyncParameters("//RolFormPage", parameters);
+            IsBusy = false;
+            IsRefreshing = false;
+            CargandoMas = false;
         }
 
-        private async Task OnEditAsync(RolResponse? rol)
+        private void AplicarPagina(
+            RolAdministracionPaginaResponse pagina,
+            bool reiniciar)
         {
-            if (!CanEdit)
+            if (reiniciar)
+                List.Clear();
+
+            HashSet<int> ids =
+                List
+                    .Where(item => item.RolId is > 0)
+                    .Select(item => item.RolId!.Value)
+                    .ToHashSet();
+
+            foreach (RolResponse item in pagina.Items)
             {
-                await MostrarToastAsync("No tiene permisos para editar.");
-                return;
+                if (item.RolId is not > 0)
+                    continue;
+
+                if (ids.Add(item.RolId.Value))
+                    List.Add(item);
             }
 
-            if (IsBusy || rol == null)
-                return;
+            paginaActual = Math.Max(1, pagina.PaginaActual);
+            totalPaginas = Math.Max(1, pagina.TotalPaginas);
+            TotalRegistros = Math.Max(0, pagina.TotalRegistros);
+            Mensaje = string.Empty;
 
-            var parameters = new Dictionary<string, object>
-            {
-                { "Mode", FormMode.FormModeSelect.Edit },
-                { "Rol", new RolRequest(rol) }
-            };
-
-            await GoToAsyncParameters("//RolFormPage", parameters);
+            OnPropertyChanged(nameof(PuedeCargarMas));
+            NotificarEstado();
         }
 
-        private async Task OnViewAsync(RolResponse? rol)
+        private async Task LimpiarFiltrosAsync()
         {
-            if (!CanView)
+            TextoBusqueda = string.Empty;
+            await CargarAsync(true);
+        }
+
+        private async Task RefrescarAsync()
+        {
+            IsRefreshing = true;
+
+            try
             {
-                await MostrarToastAsync("No tiene permisos para ver.");
-                return;
+                await CargarAsync(true);
             }
-
-            if (IsBusy || rol == null)
-                return;
-
-            var parameters = new Dictionary<string, object>
+            finally
             {
-                { "Mode", FormMode.FormModeSelect.View },
-                { "Rol", new RolRequest(rol) }
-            };
+                IsRefreshing = false;
+            }
+        }
 
-            await GoToAsyncParameters("//RolFormPage", parameters);
+        private Task OnAddAsync() =>
+            NavegarAsync(
+                "//RolFormPage",
+                new Dictionary<string, object>
+                {
+                    ["Mode"] = FormMode.FormModeSelect.Create,
+                    ["Rol"] = new RolRequest(new RolResponse())
+                });
+
+        private Task OnEditAsync(RolResponse? rol)
+        {
+            if (rol == null)
+                return Task.CompletedTask;
+
+            return NavegarAsync(
+                "//RolFormPage",
+                new Dictionary<string, object>
+                {
+                    ["Mode"] = FormMode.FormModeSelect.Edit,
+                    ["Rol"] = new RolRequest(rol)
+                });
+        }
+
+        private Task OnViewAsync(RolResponse? rol)
+        {
+            if (rol == null)
+                return Task.CompletedTask;
+
+            return NavegarAsync(
+                "//RolFormPage",
+                new Dictionary<string, object>
+                {
+                    ["Mode"] = FormMode.FormModeSelect.View,
+                    ["Rol"] = new RolRequest(rol)
+                });
         }
 
         private async Task OnDeleteAsync(RolResponse? rol)
         {
-            if (!CanDelete)
-            {
-                await MostrarToastAsync("No tiene permisos para eliminar.");
-                return;
-            }
-
-            if (IsBusy || eliminandoRol || rol == null)
+            if (rol == null || IsBusy)
                 return;
 
-            bool confirmar = await App.Current.MainPage.DisplayAlert(
-                "Eliminar rol",
-                $"¿Desea eliminar el rol '{rol.NombreRol}'?",
-                "Sí",
-                "No");
+            string dependencias =
+                rol.CantidadUsuarios > 0 ||
+                rol.CantidadInterfaces > 0
+                    ? "\n\nEl servidor protegerá las relaciones existentes."
+                    : string.Empty;
+
+            bool confirmar =
+                await Application.Current!
+                    .MainPage!
+                    .DisplayAlert(
+                        "Eliminar rol",
+                        $"¿Desea eliminar el rol '{rol.NombreMostrar}'?" +
+                        dependencias,
+                        "Eliminar",
+                        "Cancelar");
 
             if (!confirmar)
                 return;
 
-            eliminandoRol = true;
-            IsBusy = true;
-
             try
             {
-                var resultado = await rolApiService.DeleteRolResultAsync(
-                    new RolRequest(rol));
+                IsBusy = true;
+                ActualizarComandos();
+
+                ApiResult<bool> resultado =
+                    await rolApiService.DeleteRolResultAsync(
+                        new RolRequest(rol));
 
                 if (!resultado.Success)
                 {
@@ -195,21 +489,133 @@ namespace CONATRADEC.ViewModels
                 }
 
                 List.Remove(rol);
+                TotalRegistros = Math.Max(0, TotalRegistros - 1);
+
                 await MostrarToastAsync(
                     string.IsNullOrWhiteSpace(resultado.Message)
-                        ? "Rol eliminado correctamente."
+                        ? "Rol desactivado correctamente."
                         : resultado.Message);
-            }
-            catch
-            {
-                await MostrarToastAsync(
-                    "Ocurrió un error inesperado al eliminar el rol.");
             }
             finally
             {
-                eliminandoRol = false;
                 IsBusy = false;
+                ActualizarComandos();
+                NotificarEstado();
             }
         }
+
+        private async Task NavegarAsync(
+            string ruta,
+            IDictionary<string, object>? parametros = null)
+        {
+            if (Navegando)
+                return;
+
+            Navegando = true;
+
+            try
+            {
+                CancelarCarga();
+
+                if (parametros == null)
+                    await GoToAsyncParameters(ruta);
+                else
+                    await GoToAsyncParameters(ruta, parametros);
+            }
+            finally
+            {
+                Navegando = false;
+            }
+        }
+
+        private async Task EjecutarSeguroAsync(
+            Func<Task> accion,
+            string descripcion)
+        {
+            try
+            {
+                await accion();
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(descripcion, ex);
+            }
+        }
+
+        private void ActualizarComandos()
+        {
+            RegresarConfiguracionCommand.ChangeCanExecute();
+            AddCommand.ChangeCanExecute();
+            EditCommand.ChangeCanExecute();
+            DeleteCommand.ChangeCanExecute();
+            ViewCommand.ChangeCanExecute();
+            BuscarCommand.ChangeCanExecute();
+            LimpiarFiltrosCommand.ChangeCanExecute();
+            RefrescarCommand.ChangeCanExecute();
+            CargarMasCommand.ChangeCanExecute();
+        }
+
+        private void NotificarEstado()
+        {
+            OnPropertyChanged(nameof(MostrarVacio));
+            OnPropertyChanged(nameof(MostrarFinLista));
+            OnPropertyChanged(nameof(PuedeCargarMas));
+            OnPropertyChanged(nameof(ResumenResultados));
+        }
+
+        private static int ObtenerTamanoPagina() =>
+            DeviceInfo.Platform == DevicePlatform.WinUI
+                ? 40
+                : 20;
+
+        private CancellationTokenSource PrepararNuevaCarga()
+        {
+            var source = new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref cargaCts, source);
+
+            CancelarSeguro(anterior);
+
+            return source;
+        }
+
+        private bool EsCargaActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref cargaCts),
+                source);
+
+        private void LiberarCarga(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref cargaCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        private static bool EsCancelacion(string? valor) =>
+            !string.IsNullOrWhiteSpace(valor) &&
+            valor.Contains(
+                "cancel",
+                StringComparison.OrdinalIgnoreCase);
     }
 }
