@@ -1,6 +1,7 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
+using Microsoft.Maui.Devices;
 using static CONATRADEC.Models.FormMode;
 
 namespace CONATRADEC.Views
@@ -10,9 +11,8 @@ namespace CONATRADEC.Views
     public partial class rangoNutrienteCategoriaFormPage :
         ContentPage
     {
-        private readonly
-            RangoNutrienteCategoriaFormViewModel viewModel =
-                new();
+        private readonly RangoNutrienteCategoriaFormViewModel
+            viewModel = new();
 
         public FormModeSelect Mode
         {
@@ -21,7 +21,8 @@ namespace CONATRADEC.Views
 
         public TipoCultivoRequest Item
         {
-            set => viewModel.Item = value;
+            set => viewModel.Item =
+                value ?? new TipoCultivoRequest();
         }
 
         public rangoNutrienteCategoriaFormPage()
@@ -43,23 +44,55 @@ namespace CONATRADEC.Views
 
             bool denied =
                 !viewModel.CanView ||
-                (viewModel.Mode ==
-                    FormModeSelect.Create &&
+                (viewModel.Mode == FormModeSelect.Create &&
                  !viewModel.CanAdd) ||
-                (viewModel.Mode ==
-                    FormModeSelect.Edit &&
+                (viewModel.Mode == FormModeSelect.Edit &&
                  !viewModel.CanEdit);
 
-            if (!denied)
+            if (denied)
+            {
+                await DisplayAlert(
+                    "Permiso denegado",
+                    "No tiene permisos para administrar tipos de cultivo.",
+                    "Aceptar");
+
+                await Shell.Current.GoToAsync(
+                    AppRoutes.RangosNutrientes);
+
                 return;
+            }
 
-            await DisplayAlert(
-                "Permiso denegado",
-                "No tiene permisos para administrar tipos de cultivo.",
-                "Aceptar");
+            AjustarAnchoFormulario(Width);
+        }
 
-            await Shell.Current.GoToAsync(
-                AppRoutes.RangosNutrientes);
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
+        {
+            base.OnSizeAllocated(width, height);
+            AjustarAnchoFormulario(width);
+        }
+
+        private void AjustarAnchoFormulario(double anchoPagina)
+        {
+            if (FormularioContainer == null ||
+                anchoPagina <= 0)
+            {
+                return;
+            }
+
+            double margenHorizontal =
+                DeviceInfo.Platform == DevicePlatform.WinUI
+                    ? 72
+                    : 32;
+
+            double anchoDisponible =
+                Math.Max(
+                    280,
+                    anchoPagina - margenHorizontal);
+
+            FormularioContainer.WidthRequest =
+                Math.Min(anchoDisponible, 1100);
         }
     }
 }

@@ -1,56 +1,59 @@
-﻿namespace CONATRADEC.Models
+using System.Globalization;
+
+namespace CONATRADEC.Models
 {
-    public class RangoNutrienteResponse
+    public sealed class RangoNutrienteResponse
     {
         public int ParametroRangoNutrienteCultivoId { get; set; }
+
         public int TipoCultivoId { get; set; }
+
         public string? NombreTipoCultivo { get; set; }
+
         public int ElementoQuimicosId { get; set; }
+
         public string? NombreElementoQuimico { get; set; }
+
         public string? SimboloElementoQuimico { get; set; }
+
         public decimal ValorMinimo { get; set; }
+
         public decimal ValorMaximo { get; set; }
+
         public string? UnidadBase { get; set; }
+
         public string? DescripcionParametro { get; set; }
+
         public bool Activo { get; set; }
-
-        private string SimboloLimpio =>
-            (SimboloElementoQuimico ?? string.Empty)
-                .Trim();
-
-        private string NombreElementoLimpio =>
-            (NombreElementoQuimico ?? string.Empty)
-                .Trim();
-
-        private string UnidadBaseLimpia =>
-            (UnidadBase ?? string.Empty)
-                .Trim();
 
         public string ElementoTexto
         {
             get
             {
-                if (string.IsNullOrWhiteSpace(
-                        SimboloLimpio))
-                {
-                    return NombreElementoLimpio;
-                }
+                string simbolo =
+                    (SimboloElementoQuimico ?? string.Empty).Trim();
 
-                if (string.IsNullOrWhiteSpace(
-                        NombreElementoLimpio))
-                {
-                    return SimboloLimpio;
-                }
+                string nombre =
+                    (NombreElementoQuimico ?? string.Empty).Trim();
 
-                return
-                    $"{SimboloLimpio} - " +
-                    $"{NombreElementoLimpio}";
+                if (string.IsNullOrWhiteSpace(simbolo))
+                    return nombre;
+
+                if (string.IsNullOrWhiteSpace(nombre))
+                    return simbolo;
+
+                return $"{simbolo} - {nombre}";
             }
         }
 
         public string RangoTexto =>
-            $"{ValorMinimo:0.##} - " +
-            $"{ValorMaximo:0.##} " +
-            $"{UnidadBaseLimpia}";
+            $"{ValorMinimo.ToString("N2", CultureInfo.CurrentCulture)} - " +
+            $"{ValorMaximo.ToString("N2", CultureInfo.CurrentCulture)} " +
+            $"{(UnidadBase ?? string.Empty).Trim()}";
+
+        public string DescripcionMostrar =>
+            string.IsNullOrWhiteSpace(DescripcionParametro)
+                ? "Sin descripción registrada."
+                : DescripcionParametro.Trim();
     }
 }

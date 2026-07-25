@@ -1,291 +1,377 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
+    x:Class="CONATRADEC.Views.rangoNutrienteFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="CONATRADEC.Views.rangoNutrienteFormPage"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="Transparent">
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
     <Grid
-        RowDefinitions="Auto,*"
-        Padding="10">
+        Padding="{OnPlatform WinUI='28,24,28,30', Default='16,18,16,24'}">
 
-        <Grid
-            Grid.Row="0"
-            ColumnDefinitions="*,Auto"
-            Margin="4,12,4,8">
+        <ScrollView
+            HorizontalOptions="Fill"
+            HorizontalScrollBarVisibility="Never">
 
-            <Label
-                Text="{Binding Title}"
-                FontSize="24"
-                FontFamily="MontserratBold"
-                TextColor="{StaticResource color_Verde}"
-                VerticalOptions="Center" />
-
-            <ActivityIndicator
-                Grid.Column="1"
-                IsRunning="{Binding IsBusy}"
-                IsVisible="{Binding IsBusy}"
-                Color="{StaticResource color_Naranja}"
-                VerticalOptions="Center" />
-
-        </Grid>
-
-        <ScrollView Grid.Row="1">
-
-            <VerticalStackLayout Spacing="15">
-
-                <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
-
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorTipoCultivo}"
-                            Value="True">
-
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <VerticalStackLayout Spacing="5">
-
-                        <Label
-                            Text="Tipo de cultivo"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}" />
-
-                        <Label
-                            Text="{Binding TipoCultivoNombre}"
-                            FontSize="17"
-                            FontFamily="MontserratMedium"
-                            TextColor="{StaticResource color_Verde}"
-                            Padding="6,8" />
-
-                        <Label
-                            Text="{Binding ErrorTipoCultivo}"
-                            IsVisible="{Binding TieneErrorTipoCultivo}"
-                            Style="{StaticResource ValidationMessageStyle}" />
-
-                    </VerticalStackLayout>
-
-                </Border>
-
-                <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
-
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorElemento}"
-                            Value="True">
-
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <VerticalStackLayout Spacing="5">
-
-                        <Label
-                            Text="Elemento químico"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}" />
-
-                        <Picker
-                            ItemsSource="{Binding Elementos}"
-                            SelectedItem="{Binding ElementoSeleccionado}"
-                            ItemDisplayBinding="{Binding Texto}"
-                            Title="Seleccione un elemento"
-                            IsEnabled="{Binding IsEditable}" />
-
-                        <Label
-                            Text="{Binding ErrorElemento}"
-                            IsVisible="{Binding TieneErrorElemento}"
-                            Style="{StaticResource ValidationMessageStyle}" />
-
-                    </VerticalStackLayout>
-
-                </Border>
+            <VerticalStackLayout
+                x:Name="FormularioContainer"
+                MaximumWidthRequest="1100"
+                HorizontalOptions="Center"
+                Spacing="18">
 
                 <Grid
-                    ColumnDefinitions="*,*"
-                    ColumnSpacing="10">
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="12">
 
-                    <Border
-                        Grid.Column="0"
-                        Style="{StaticResource ValidationFieldContainerStyle}">
+                    <VerticalStackLayout Spacing="4">
 
-                        <Border.Triggers>
-                            <DataTrigger
-                                TargetType="Border"
-                                Binding="{Binding TieneErrorMinimo}"
-                                Value="True">
+                        <Label
+                            Text="{Binding Title}"
+                            FontSize="{OnPlatform WinUI=30, Default=26}"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            TextColor="{StaticResource color_Verde}" />
 
-                                <Setter
-                                    Property="Stroke"
-                                    Value="{StaticResource RedDelete}" />
+                        <Label
+                            Text="{Binding Subtitulo}"
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
 
-                                <Setter
-                                    Property="StrokeThickness"
-                                    Value="2" />
-
-                            </DataTrigger>
-                        </Border.Triggers>
-
-                        <VerticalStackLayout Spacing="5">
-
-                            <Label
-                                Text="Valor mínimo"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Entry
-                                Text="{Binding MinimoTexto}"
-                                Keyboard="Numeric"
-                                Style="{StaticResource EntryStyle}"
-                                IsReadOnly="{Binding IsReadOnly}" />
-
-                            <Label
-                                Text="{Binding ErrorMinimo}"
-                                IsVisible="{Binding TieneErrorMinimo}"
-                                Style="{StaticResource ValidationMessageStyle}" />
-
-                        </VerticalStackLayout>
-
-                    </Border>
-
-                    <Border
+                    <ActivityIndicator
                         Grid.Column="1"
-                        Style="{StaticResource ValidationFieldContainerStyle}">
-
-                        <Border.Triggers>
-                            <DataTrigger
-                                TargetType="Border"
-                                Binding="{Binding TieneErrorMaximo}"
-                                Value="True">
-
-                                <Setter
-                                    Property="Stroke"
-                                    Value="{StaticResource RedDelete}" />
-
-                                <Setter
-                                    Property="StrokeThickness"
-                                    Value="2" />
-
-                            </DataTrigger>
-                        </Border.Triggers>
-
-                        <VerticalStackLayout Spacing="5">
-
-                            <Label
-                                Text="Valor máximo"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Entry
-                                Text="{Binding MaximoTexto}"
-                                Keyboard="Numeric"
-                                Style="{StaticResource EntryStyle}"
-                                IsReadOnly="{Binding IsReadOnly}" />
-
-                            <Label
-                                Text="{Binding ErrorMaximo}"
-                                IsVisible="{Binding TieneErrorMaximo}"
-                                Style="{StaticResource ValidationMessageStyle}" />
-
-                        </VerticalStackLayout>
-
-                    </Border>
-
+                        IsRunning="{Binding IsBusy}"
+                        IsVisible="{Binding IsBusy}"
+                        Color="{StaticResource color_Naranja}"
+                        VerticalOptions="Center" />
                 </Grid>
 
                 <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
+                    Padding="{OnPlatform WinUI='22', Default='16'}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
 
-                    <VerticalStackLayout Spacing="5">
+                    <VerticalStackLayout Spacing="17">
+
+                        <VerticalStackLayout Spacing="3">
+
+                            <Label
+                                Text="Información del rango"
+                                FontSize="19"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Text="Cada cultivo puede tener un único rango activo por elemento químico."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <Grid
+                            x:Name="DatosReferenciaGrid"
+                            ColumnDefinitions="*"
+                            RowDefinitions="Auto,Auto"
+                            ColumnSpacing="14"
+                            RowSpacing="14">
+
+                            <VerticalStackLayout
+                                x:Name="CultivoSection"
+                                Grid.Row="0"
+                                Spacing="6">
+
+                                <Label
+                                    Text="Tipo de cultivo"
+                                    FontSize="13"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="12"
+                                    BackgroundColor="#EEF5F2"
+                                    Stroke="#DDE7E3"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 11">
+
+                                    <Label
+                                        Text="{Binding TipoCultivoNombre}"
+                                        FontSize="15"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+                                </Border>
+
+                                <Label
+                                    Text="{Binding ErrorTipoCultivo}"
+                                    IsVisible="{Binding TieneErrorTipoCultivo}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource RedDelete}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout
+                                x:Name="ElementoSection"
+                                Grid.Row="1"
+                                Spacing="6">
+
+                                <Label
+                                    Text="Elemento químico"
+                                    FontSize="13"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="3"
+                                    BackgroundColor="#FAFBFA"
+                                    Stroke="#D1D5DB"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 11">
+
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding TieneErrorElemento}"
+                                            Value="True">
+
+                                            <Setter
+                                                Property="Stroke"
+                                                Value="{StaticResource RedDelete}" />
+
+                                            <Setter
+                                                Property="StrokeThickness"
+                                                Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+
+                                    <Picker
+                                        ItemsSource="{Binding Elementos}"
+                                        SelectedItem="{Binding ElementoSeleccionado}"
+                                        ItemDisplayBinding="{Binding Texto}"
+                                        Title="Seleccione un elemento"
+                                        IsEnabled="{Binding IsEditable}"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{StaticResource color_Negro}"
+                                        TitleColor="{StaticResource color_GrisOscuro}" />
+                                </Border>
+
+                                <Label
+                                    Text="{Binding ErrorElemento}"
+                                    IsVisible="{Binding TieneErrorElemento}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource RedDelete}" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Grid
+                            x:Name="ValoresGrid"
+                            ColumnDefinitions="*"
+                            RowDefinitions="Auto,Auto"
+                            ColumnSpacing="14"
+                            RowSpacing="14">
+
+                            <VerticalStackLayout
+                                x:Name="MinimoSection"
+                                Grid.Row="0"
+                                Spacing="6">
+
+                                <Label
+                                    Text="Valor mínimo"
+                                    FontSize="13"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="3"
+                                    BackgroundColor="#FAFBFA"
+                                    Stroke="#D1D5DB"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 11">
+
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding TieneErrorMinimo}"
+                                            Value="True">
+
+                                            <Setter
+                                                Property="Stroke"
+                                                Value="{StaticResource RedDelete}" />
+
+                                            <Setter
+                                                Property="StrokeThickness"
+                                                Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+
+                                    <Entry
+                                        Text="{Binding MinimoTexto}"
+                                        Placeholder="Ejemplo: 10.50"
+                                        Keyboard="Numeric"
+                                        MaxLength="12"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        BackgroundColor="Transparent" />
+                                </Border>
+
+                                <Label
+                                    Text="{Binding ErrorMinimo}"
+                                    IsVisible="{Binding TieneErrorMinimo}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource RedDelete}" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout
+                                x:Name="MaximoSection"
+                                Grid.Row="1"
+                                Spacing="6">
+
+                                <Label
+                                    Text="Valor máximo"
+                                    FontSize="13"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Border
+                                    Padding="3"
+                                    BackgroundColor="#FAFBFA"
+                                    Stroke="#D1D5DB"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 11">
+
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding TieneErrorMaximo}"
+                                            Value="True">
+
+                                            <Setter
+                                                Property="Stroke"
+                                                Value="{StaticResource RedDelete}" />
+
+                                            <Setter
+                                                Property="StrokeThickness"
+                                                Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+
+                                    <Entry
+                                        Text="{Binding MaximoTexto}"
+                                        Placeholder="Ejemplo: 25.00"
+                                        Keyboard="Numeric"
+                                        MaxLength="12"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        BackgroundColor="Transparent" />
+                                </Border>
+
+                                <Label
+                                    Text="{Binding ErrorMaximo}"
+                                    IsVisible="{Binding TieneErrorMaximo}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource RedDelete}" />
+                            </VerticalStackLayout>
+                        </Grid>
 
                         <Label
-                            Text="Unidad base"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}" />
+                            Text="Los valores admiten un máximo de dos decimales y el máximo debe ser mayor que el mínimo."
+                            FontSize="11"
+                            TextColor="{StaticResource color_GrisOscuro}" />
 
-                        <Label
-                            Text="{Binding UnidadBaseDescripcion}"
-                            FontSize="16"
-                            FontFamily="MontserratMedium"
-                            TextColor="{StaticResource color_Verde}"
-                            Padding="6,8" />
+                        <VerticalStackLayout Spacing="6">
 
-                        <Label
-                            Text="La unidad es fija para todos los rangos."
-                            FontSize="12"
-                            TextColor="{StaticResource color_Gris}" />
+                            <Label
+                                Text="Unidad base"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
 
+                            <Border
+                                Padding="12"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Label
+                                    Text="{Binding UnidadBaseDescripcion}"
+                                    FontSize="14"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}" />
+                            </Border>
+
+                            <Label
+                                Text="La interfaz trabaja en lb/Mz. La compatibilidad histórica de la base de datos se conserva internamente."
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+
+                            <Label
+                                Text="Descripción"
+                                FontSize="13"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Border
+                                Padding="3"
+                                BackgroundColor="#FAFBFA"
+                                Stroke="#D1D5DB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorDescripcion}"
+                                        Value="True">
+
+                                        <Setter
+                                            Property="Stroke"
+                                            Value="{StaticResource RedDelete}" />
+
+                                        <Setter
+                                            Property="StrokeThickness"
+                                            Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Editor
+                                    Text="{Binding Descripcion}"
+                                    Placeholder="Descripción del rango nutricional"
+                                    MaxLength="150"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="120"
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </Border>
+
+                            <Label
+                                Text="Máximo 150 caracteres."
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="{Binding ErrorDescripcion}"
+                                IsVisible="{Binding TieneErrorDescripcion}"
+                                FontSize="12"
+                                TextColor="{StaticResource RedDelete}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
-
-                </Border>
-
-                <Border
-                    Style="{StaticResource ValidationFieldContainerStyle}">
-
-                    <Border.Triggers>
-                        <DataTrigger
-                            TargetType="Border"
-                            Binding="{Binding TieneErrorDescripcion}"
-                            Value="True">
-
-                            <Setter
-                                Property="Stroke"
-                                Value="{StaticResource RedDelete}" />
-
-                            <Setter
-                                Property="StrokeThickness"
-                                Value="2" />
-
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <VerticalStackLayout Spacing="5">
-
-                        <Label
-                            Text="Descripción"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}" />
-
-                        <Editor
-                            Text="{Binding Descripcion}"
-                            Placeholder="Descripción del rango de aporte"
-                            AutoSize="TextChanges"
-                            MinimumHeightRequest="100"
-                            IsReadOnly="{Binding IsReadOnly}" />
-
-                        <Label
-                            Text="{Binding ErrorDescripcion}"
-                            IsVisible="{Binding TieneErrorDescripcion}"
-                            Style="{StaticResource ValidationMessageStyle}" />
-
-                    </VerticalStackLayout>
-
                 </Border>
 
                 <Grid
                     ColumnDefinitions="*,*"
-                    Margin="6,4">
+                    ColumnSpacing="12"
+                    Margin="0,2,0,16">
 
                     <Button
                         Grid.Column="0"
@@ -293,23 +379,26 @@
                         Style="{StaticResource UpdateButton}"
                         Command="{Binding SaveCommand}"
                         IsVisible="{Binding ShowSaveButton}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Margin="4" />
+                        IsEnabled="{Binding NotIsBusy}" />
 
                     <Button
                         Grid.Column="1"
                         Text="Cancelar"
                         Style="{StaticResource CancelButton}"
                         Command="{Binding CancelCommand}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Margin="4" />
+                        IsVisible="{Binding IsEditable}"
+                        IsEnabled="{Binding NotIsBusy}" />
 
+                    <Button
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Text="Regresar"
+                        Style="{StaticResource CancelButton}"
+                        Command="{Binding CancelCommand}"
+                        IsVisible="{Binding IsReadOnly}"
+                        IsEnabled="{Binding NotIsBusy}" />
                 </Grid>
-
             </VerticalStackLayout>
-
         </ScrollView>
-
     </Grid>
-
 </ContentPage>

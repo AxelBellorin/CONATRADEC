@@ -1,32 +1,68 @@
-using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
     public partial class rangoNutrientePage : ContentPage
     {
-        private readonly RangoNutrienteViewModel viewModel = new();
+        private readonly RangoNutrienteViewModel
+            viewModel = new();
+
+        private int cantidadColumnasActual;
 
         public rangoNutrientePage()
         {
             InitializeComponent();
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
             BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            viewModel.LoadPagePermissions("rangoNutrientePage");
 
-            if (!viewModel.CanView)
+            viewModel.ActualizarPermisos();
+            AjustarCantidadColumnas(Width);
+
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+            base.OnDisappearing();
+        }
+
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
+        {
+            base.OnSizeAllocated(width, height);
+            AjustarCantidadColumnas(width);
+        }
+
+        private void AjustarCantidadColumnas(double width)
+        {
+            if (width <= 0 ||
+                CultivosGridLayout == null)
             {
-                await DisplayAlert("Permiso denegado", "No tiene permisos para ver rangos nutricionales.", "Aceptar");
-                await Shell.Current.GoToAsync(AppRoutes.Principal);
                 return;
             }
 
-            await viewModel.LoadAsync(true);
+            int nuevasColumnas =
+                width >= 1280
+                    ? 3
+                    : width >= 760
+                        ? 2
+                        : 1;
+
+            if (cantidadColumnasActual == nuevasColumnas)
+                return;
+
+            cantidadColumnasActual = nuevasColumnas;
+            CultivosGridLayout.Span = nuevasColumnas;
         }
     }
 }

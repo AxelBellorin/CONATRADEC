@@ -1,8 +1,6 @@
-﻿using System;
-
 namespace CONATRADEC.Models
 {
-    public class RangoNutrienteCategoriaItem
+    public sealed class RangoNutrienteCategoriaItem
     {
         public int TipoCultivoId { get; set; }
 
@@ -16,20 +14,22 @@ namespace CONATRADEC.Models
 
         public string AportesTexto =>
             CantidadAportes == 1
-                ? "1 rango de aporte"
-                : $"{CantidadAportes} rangos de aporte";
+                ? "1 rango nutricional"
+                : $"{CantidadAportes} rangos nutricionales";
 
-        public TipoCultivoResponse ToTipoCultivoResponse()
-        {
-            return new TipoCultivoResponse
+        public string DescripcionMostrar =>
+            string.IsNullOrWhiteSpace(DescripcionCategoria)
+                ? "Sin descripción registrada."
+                : DescripcionCategoria.Trim();
+
+        public TipoCultivoResponse ToTipoCultivoResponse() =>
+            new()
             {
                 TipoCultivoId = TipoCultivoId,
                 NombreTipoCultivo = NombreCategoria,
                 TipoCultivo = NombreCategoria,
-                DescripcionTipoCultivo =
-                    DescripcionCategoria,
+                DescripcionTipoCultivo = DescripcionCategoria,
                 Activo = true
             };
-        }
     }
 }

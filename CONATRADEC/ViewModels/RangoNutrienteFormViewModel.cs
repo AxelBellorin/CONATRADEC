@@ -1,11 +1,11 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
+using System.Globalization;
 
 namespace CONATRADEC.ViewModels
 {
-    public class RangoNutrienteFormViewModel :
-        GlobalService
+    public sealed class RangoNutrienteFormViewModel : GlobalService
     {
         public const string UnidadBaseFija =
             "lb/Mz";
@@ -13,45 +13,27 @@ namespace CONATRADEC.ViewModels
         private readonly RangoNutrienteApiService
             apiService = new();
 
-        private readonly ElementoQuimicoApiService
-            elementoApiService = new();
+        private readonly RangoNutrienteConsultaApiService
+            consultaApiService = new();
+
+        private CancellationTokenSource? operacionCts;
 
         private RangoNutrienteRequest item = new();
-
         private FormMode.FormModeSelect mode;
-
-        private RangoNutrienteCategoriaItem?
-            categoria;
-
-        private ElementoQuimicoSelectorItem?
-            elementoSeleccionado;
-
+        private RangoNutrienteCategoriaItem? categoria;
+        private ElementoQuimicoSelectorItem? elementoSeleccionado;
         private string minimoTexto = string.Empty;
         private string maximoTexto = string.Empty;
         private string descripcion = string.Empty;
+        private string errorTipoCultivo = string.Empty;
+        private string errorElemento = string.Empty;
+        private string errorMinimo = string.Empty;
+        private string errorMaximo = string.Empty;
+        private string errorDescripcion = string.Empty;
+        private bool inicializando;
 
-        private bool loading;
-
-        private string errorTipoCultivo =
-            string.Empty;
-
-        private string errorElemento =
-            string.Empty;
-
-        private string errorMinimo =
-            string.Empty;
-
-        private string errorMaximo =
-            string.Empty;
-
-        private string errorDescripcion =
-            string.Empty;
-
-        public ObservableCollection<
-            ElementoQuimicoSelectorItem> Elementos
-        {
-            get;
-        } = new();
+        public ObservableCollection<ElementoQuimicoSelectorItem>
+            Elementos { get; } = new();
 
         public Command SaveCommand { get; }
         public Command CancelCommand { get; }
@@ -74,37 +56,27 @@ namespace CONATRADEC.ViewModels
             get => item;
             private set
             {
-                item =
-                    value ??
-                    new RangoNutrienteRequest();
+                item = value ?? new RangoNutrienteRequest();
 
                 if (Categoria != null)
-                {
-                    item.TipoCultivoId =
-                        Categoria.TipoCultivoId;
-                }
+                    item.TipoCultivoId = Categoria.TipoCultivoId;
 
-                item.UnidadBase =
-                    UnidadBaseFija;
+                item.UnidadBase = UnidadBaseFija;
 
                 MinimoTexto =
                     item.ParametroRangoNutrienteCultivoId > 0
-                        ? NumeroFormularioHelper.ToText(
-                            item.ValorMinimo)
+                        ? FormatearDosDecimales(item.ValorMinimo)
                         : string.Empty;
 
                 MaximoTexto =
-                    item.ValorMaximo > 0
-                        ? NumeroFormularioHelper.ToText(
-                            item.ValorMaximo)
+                    item.ParametroRangoNutrienteCultivoId > 0
+                        ? FormatearDosDecimales(item.ValorMaximo)
                         : string.Empty;
 
                 Descripcion =
-                    item.DescripcionParametro ??
-                    string.Empty;
+                    item.DescripcionParametro ?? string.Empty;
 
                 ElementoSeleccionado = null;
-
                 LimpiarErrores();
                 OnPropertyChanged();
             }
@@ -115,6 +87,9 @@ namespace CONATRADEC.ViewModels
             get => mode;
             private set
             {
+                if (mode == value)
+                    return;
+
                 mode = value;
 
                 OnPropertyChanged();
@@ -122,13 +97,13 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(IsEditable));
                 OnPropertyChanged(nameof(ShowSaveButton));
                 OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(Subtitulo));
 
                 RefrescarComandos();
             }
         }
 
-        public RangoNutrienteCategoriaItem?
-            Categoria
+        public RangoNutrienteCategoriaItem? Categoria
         {
             get => categoria;
             private set
@@ -136,22 +111,16 @@ namespace CONATRADEC.ViewModels
                 categoria = value;
 
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TipoCultivoNombre));
-                OnPropertyChanged(
-                    nameof(TieneTipoCultivoValido));
+                OnPropertyChanged(nameof(TipoCultivoNombre));
+                OnPropertyChanged(nameof(TieneTipoCultivoValido));
 
                 if (categoria != null)
-                {
-                    ErrorTipoCultivo =
-                        string.Empty;
-                }
+                    ErrorTipoCultivo = string.Empty;
             }
         }
 
         public string TipoCultivoNombre =>
-            Categoria?.NombreCategoria ??
-            string.Empty;
+            Categoria?.NombreCategoria ?? string.Empty;
 
         public bool TieneTipoCultivoValido =>
             Categoria != null &&
@@ -163,8 +132,7 @@ namespace CONATRADEC.ViewModels
         public string UnidadBaseDescripcion =>
             "lb/Mz (libras por manzana)";
 
-        public ElementoQuimicoSelectorItem?
-            ElementoSeleccionado
+        public ElementoQuimicoSelectorItem? ElementoSeleccionado
         {
             get => elementoSeleccionado;
             set
@@ -173,10 +141,7 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged();
 
                 if (elementoSeleccionado != null)
-                {
-                    ErrorElemento =
-                        string.Empty;
-                }
+                    ErrorElemento = string.Empty;
             }
         }
 
@@ -185,19 +150,15 @@ namespace CONATRADEC.ViewModels
             get => minimoTexto;
             set
             {
-                minimoTexto =
-                    value ?? string.Empty;
-
+                minimoTexto = value ?? string.Empty;
                 OnPropertyChanged();
 
-                if (NumeroFormularioHelper
-                        .TryParseDecimal(
-                            minimoTexto,
-                            out decimal minimo) &&
+                if (TryParseDosDecimales(
+                        minimoTexto,
+                        out decimal minimo) &&
                     minimo > 0)
                 {
-                    ErrorMinimo =
-                        string.Empty;
+                    ErrorMinimo = string.Empty;
                 }
             }
         }
@@ -207,19 +168,15 @@ namespace CONATRADEC.ViewModels
             get => maximoTexto;
             set
             {
-                maximoTexto =
-                    value ?? string.Empty;
-
+                maximoTexto = value ?? string.Empty;
                 OnPropertyChanged();
 
-                if (NumeroFormularioHelper
-                        .TryParseDecimal(
-                            maximoTexto,
-                            out decimal maximo) &&
+                if (TryParseDosDecimales(
+                        maximoTexto,
+                        out decimal maximo) &&
                     maximo > 0)
                 {
-                    ErrorMaximo =
-                        string.Empty;
+                    ErrorMaximo = string.Empty;
                 }
             }
         }
@@ -229,16 +186,13 @@ namespace CONATRADEC.ViewModels
             get => descripcion;
             set
             {
-                descripcion =
-                    value ?? string.Empty;
-
+                descripcion = value ?? string.Empty;
                 OnPropertyChanged();
 
-                if (!string.IsNullOrWhiteSpace(
-                        descripcion))
+                if (!string.IsNullOrWhiteSpace(descripcion) &&
+                    descripcion.Trim().Length <= 150)
                 {
-                    ErrorDescripcion =
-                        string.Empty;
+                    ErrorDescripcion = string.Empty;
                 }
             }
         }
@@ -252,16 +206,13 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 errorTipoCultivo = value;
-
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TieneErrorTipoCultivo));
+                OnPropertyChanged(nameof(TieneErrorTipoCultivo));
             }
         }
 
         public bool TieneErrorTipoCultivo =>
-            !string.IsNullOrWhiteSpace(
-                ErrorTipoCultivo);
+            !string.IsNullOrWhiteSpace(ErrorTipoCultivo);
 
         public string ErrorElemento
         {
@@ -272,16 +223,13 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 errorElemento = value;
-
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TieneErrorElemento));
+                OnPropertyChanged(nameof(TieneErrorElemento));
             }
         }
 
         public bool TieneErrorElemento =>
-            !string.IsNullOrWhiteSpace(
-                ErrorElemento);
+            !string.IsNullOrWhiteSpace(ErrorElemento);
 
         public string ErrorMinimo
         {
@@ -292,16 +240,13 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 errorMinimo = value;
-
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TieneErrorMinimo));
+                OnPropertyChanged(nameof(TieneErrorMinimo));
             }
         }
 
         public bool TieneErrorMinimo =>
-            !string.IsNullOrWhiteSpace(
-                ErrorMinimo);
+            !string.IsNullOrWhiteSpace(ErrorMinimo);
 
         public string ErrorMaximo
         {
@@ -312,16 +257,13 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 errorMaximo = value;
-
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TieneErrorMaximo));
+                OnPropertyChanged(nameof(TieneErrorMaximo));
             }
         }
 
         public bool TieneErrorMaximo =>
-            !string.IsNullOrWhiteSpace(
-                ErrorMaximo);
+            !string.IsNullOrWhiteSpace(ErrorMaximo);
 
         public string ErrorDescripcion
         {
@@ -332,20 +274,16 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 errorDescripcion = value;
-
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TieneErrorDescripcion));
+                OnPropertyChanged(nameof(TieneErrorDescripcion));
             }
         }
 
         public bool TieneErrorDescripcion =>
-            !string.IsNullOrWhiteSpace(
-                ErrorDescripcion);
+            !string.IsNullOrWhiteSpace(ErrorDescripcion);
 
         public bool IsReadOnly =>
-            Mode ==
-            FormMode.FormModeSelect.View;
+            Mode == FormMode.FormModeSelect.View;
 
         public bool IsEditable =>
             !IsReadOnly;
@@ -357,167 +295,118 @@ namespace CONATRADEC.ViewModels
             Mode switch
             {
                 FormMode.FormModeSelect.Create =>
-                    "Crear rango de aporte",
-
+                    "Crear rango nutricional",
                 FormMode.FormModeSelect.Edit =>
-                    "Editar rango de aporte",
-
+                    "Editar rango nutricional",
                 _ =>
-                    "Detalle del rango de aporte"
+                    "Detalle del rango nutricional"
+            };
+
+        public string Subtitulo =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create =>
+                    "Defina el intervalo utilizado para evaluar el elemento.",
+                FormMode.FormModeSelect.Edit =>
+                    "Actualice el intervalo del elemento seleccionado.",
+                _ =>
+                    "Consulte la configuración del intervalo."
             };
 
         public void PrepararNavegacion(
             FormMode.FormModeSelect nuevoModo,
-            RangoNutrienteCategoriaItem
-                tipoCultivo,
+            RangoNutrienteCategoriaItem tipoCultivo,
             RangoNutrienteRequest nuevoItem)
         {
             Mode = nuevoModo;
             Categoria = tipoCultivo;
-            Item =
-                nuevoItem ??
-                new RangoNutrienteRequest();
+            Item = nuevoItem ?? new RangoNutrienteRequest();
 
-            Item.TipoCultivoId =
-                tipoCultivo.TipoCultivoId;
-
-            Item.UnidadBase =
-                UnidadBaseFija;
+            Item.TipoCultivoId = tipoCultivo.TipoCultivoId;
+            Item.UnidadBase = UnidadBaseFija;
         }
 
         public async Task InitializeAsync()
         {
-            if (loading ||
+            if (inicializando ||
                 !TieneTipoCultivoValido)
             {
                 return;
             }
 
-            loading = true;
-            IsBusy = true;
-            RefrescarComandos();
+            inicializando = true;
+
+            operacionCts?.Cancel();
+            operacionCts?.Dispose();
+            operacionCts = new CancellationTokenSource();
 
             try
             {
-                Task<ApiResult<ObservableCollection<
-                    ElementoQuimicoResponse>>>
-                    elementosTask =
-                        elementoApiService
-                            .GetElementoQuimicoResultAsync();
+                IsBusy = true;
+                RefrescarComandos();
 
-                Task<ApiResult<ObservableCollection<
-                    RangoNutrienteResponse>>>
-                    rangosTask =
-                        apiService.GetAsync();
+                ApiResult<List<ElementoQuimicoSelectorItem>> resultado =
+                    await consultaApiService
+                        .ObtenerElementosDisponiblesAsync(
+                            Categoria!.TipoCultivoId,
+                            Item.ParametroRangoNutrienteCultivoId,
+                            operacionCts.Token);
 
-                await Task.WhenAll(
-                    elementosTask,
-                    rangosTask);
-
-                ApiResult<ObservableCollection<
-                    ElementoQuimicoResponse>>
-                    elementos =
-                        await elementosTask;
-
-                if (!elementos.Success)
+                if (!resultado.Success ||
+                    resultado.Data == null)
                 {
-                    await MostrarErrorAsync(
-                        elementos.Message);
+                    await MostrarErrorAsync(resultado.Message);
                     return;
                 }
-
-                ApiResult<ObservableCollection<
-                    RangoNutrienteResponse>>
-                    rangos =
-                        await rangosTask;
-
-                if (!rangos.Success)
-                {
-                    await MostrarErrorAsync(
-                        rangos.Message);
-                    return;
-                }
-
-                int elementoActualId =
-                    Item.ElementoQuimicosId;
-
-                int parametroActualId =
-                    Item
-                        .ParametroRangoNutrienteCultivoId;
-
-                HashSet<int> elementosOcupados =
-                    (rangos.Data ??
-                     new ObservableCollection<
-                         RangoNutrienteResponse>())
-                    .Where(x =>
-                        x.Activo &&
-                        x.TipoCultivoId ==
-                            Categoria!.TipoCultivoId &&
-                        x.ParametroRangoNutrienteCultivoId !=
-                            parametroActualId)
-                    .Select(x =>
-                        x.ElementoQuimicosId)
-                    .Where(id => id > 0)
-                    .ToHashSet();
-
-                IEnumerable<
-                    ElementoQuimicoResponse>
-                    elementosDisponibles =
-                        (elementos.Data ??
-                         new ObservableCollection<
-                             ElementoQuimicoResponse>())
-                        .Where(x =>
-                        {
-                            int id =
-                                x.ElementoQuimicosId ??
-                                0;
-
-                            return
-                                id > 0 &&
-                                (!elementosOcupados.Contains(id) ||
-                                 id == elementoActualId);
-                        })
-                        .OrderBy(x =>
-                            x.NombreElementoQuimico ??
-                            string.Empty);
 
                 Elementos.Clear();
 
-                foreach (ElementoQuimicoResponse
-                         elemento in
-                         elementosDisponibles)
+                foreach (ElementoQuimicoSelectorItem elemento
+                         in resultado.Data)
                 {
-                    Elementos.Add(
-                        ElementoQuimicoSelectorItem
-                            .FromResponse(elemento));
+                    Elementos.Add(elemento);
                 }
 
                 ElementoSeleccionado =
-                    elementoActualId > 0
-                        ? Elementos.FirstOrDefault(x =>
-                            x.ElementoQuimicosId ==
-                            elementoActualId)
+                    Item.ElementoQuimicosId > 0
+                        ? Elementos.FirstOrDefault(elemento =>
+                            elemento.ElementoQuimicosId ==
+                                Item.ElementoQuimicosId)
                         : null;
 
-                if (Mode ==
-                        FormMode.FormModeSelect.Create &&
+                if (Mode == FormMode.FormModeSelect.Create &&
                     Elementos.Count == 0)
                 {
                     await MostrarInformacionAsync(
-                        "Todos los elementos químicos activos ya tienen un rango configurado para este tipo de cultivo.");
+                        "Todos los elementos químicos activos ya tienen " +
+                        "un rango configurado para este cultivo.");
                 }
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
                 await MostrarErrorInesperadoAsync(
-                    "cargar los elementos disponibles para el tipo de cultivo",
+                    "cargar los elementos disponibles",
                     ex);
             }
             finally
             {
-                loading = false;
+                inicializando = false;
                 IsBusy = false;
                 RefrescarComandos();
+            }
+        }
+
+        public void CancelarOperaciones()
+        {
+            try
+            {
+                operacionCts?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
             }
         }
 
@@ -542,38 +431,35 @@ namespace CONATRADEC.ViewModels
                     "Seleccione un elemento químico.";
             }
 
-            if (!NumeroFormularioHelper
-                    .TryParseDecimal(
-                        MinimoTexto,
-                        out minimo) ||
+            if (!TryParseDosDecimales(MinimoTexto, out minimo) ||
                 minimo <= 0)
             {
                 ErrorMinimo =
-                    "El valor mínimo debe ser mayor que cero.";
+                    "Ingrese un mínimo mayor que cero con máximo dos decimales.";
             }
 
-            if (!NumeroFormularioHelper
-                    .TryParseDecimal(
-                        MaximoTexto,
-                        out maximo))
+            if (!TryParseDosDecimales(MaximoTexto, out maximo))
             {
                 ErrorMaximo =
-                    "Ingrese un valor máximo válido.";
+                    "Ingrese un máximo válido con máximo dos decimales.";
             }
             else if (maximo <= minimo)
             {
                 ErrorMaximo =
-                    "El valor máximo debe ser mayor que el valor mínimo.";
+                    "El máximo debe ser mayor que el mínimo.";
             }
 
-            Descripcion =
-                Descripcion.Trim();
+            Descripcion = Descripcion.Trim();
 
-            if (string.IsNullOrWhiteSpace(
-                    Descripcion))
+            if (string.IsNullOrWhiteSpace(Descripcion))
             {
                 ErrorDescripcion =
                     "Ingrese la descripción del rango.";
+            }
+            else if (Descripcion.Length > 150)
+            {
+                ErrorDescripcion =
+                    "La descripción no puede superar 150 caracteres.";
             }
 
             return
@@ -587,58 +473,42 @@ namespace CONATRADEC.ViewModels
         private bool HasChanges(
             decimal minimo,
             decimal maximo) =>
-            (Categoria?.TipoCultivoId ??
-             0) != Item.TipoCultivoId ||
-            (ElementoSeleccionado?
-                .ElementoQuimicosId ??
-             0) != Item.ElementoQuimicosId ||
-            minimo != Item.ValorMinimo ||
-            maximo != Item.ValorMaximo ||
+            (Categoria?.TipoCultivoId ?? 0) != Item.TipoCultivoId ||
+            (ElementoSeleccionado?.ElementoQuimicosId ?? 0) !=
+                Item.ElementoQuimicosId ||
+            Math.Round(minimo, 2) != Math.Round(Item.ValorMinimo, 2) ||
+            Math.Round(maximo, 2) != Math.Round(Item.ValorMaximo, 2) ||
             !string.Equals(
                 UnidadBaseFija,
-                Item.UnidadBase?.Trim() ??
-                string.Empty,
+                Item.UnidadBase?.Trim() ?? string.Empty,
                 StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(
                 Descripcion.Trim(),
-                Item.DescripcionParametro?.Trim() ??
-                string.Empty,
+                Item.DescripcionParametro?.Trim() ?? string.Empty,
                 StringComparison.Ordinal);
 
         private bool TieneCambiosPendientes()
         {
-            if (Mode ==
-                FormMode.FormModeSelect.Create)
+            if (Mode == FormMode.FormModeSelect.Create)
             {
                 return
                     ElementoSeleccionado != null ||
-                    !string.IsNullOrWhiteSpace(
-                        MaximoTexto) ||
-                    !string.IsNullOrWhiteSpace(
-                        Descripcion);
+                    !string.IsNullOrWhiteSpace(MinimoTexto) ||
+                    !string.IsNullOrWhiteSpace(MaximoTexto) ||
+                    !string.IsNullOrWhiteSpace(Descripcion);
             }
 
-            bool minimoValido =
-                NumeroFormularioHelper
-                    .TryParseDecimal(
-                        MinimoTexto,
-                        out decimal minimo);
-
-            bool maximoValido =
-                NumeroFormularioHelper
-                    .TryParseDecimal(
-                        MaximoTexto,
-                        out decimal maximo);
-
-            if (!minimoValido ||
-                !maximoValido)
+            if (!TryParseDosDecimales(
+                    MinimoTexto,
+                    out decimal minimo) ||
+                !TryParseDosDecimales(
+                    MaximoTexto,
+                    out decimal maximo))
             {
                 return true;
             }
 
-            return HasChanges(
-                minimo,
-                maximo);
+            return HasChanges(minimo, maximo);
         }
 
         private async Task CancelAsync()
@@ -646,10 +516,10 @@ namespace CONATRADEC.ViewModels
             if (!IsReadOnly &&
                 TieneCambiosPendientes())
             {
-                bool confirm =
+                bool confirmar =
                     await ConfirmarSalidaSinGuardarAsync();
 
-                if (!confirm)
+                if (!confirmar)
                     return;
             }
 
@@ -667,78 +537,95 @@ namespace CONATRADEC.ViewModels
             {
                 await MostrarAdvertenciaAsync(
                     "Revise los campos marcados antes de continuar.");
+
                 return;
             }
 
-            if (!HasChanges(
-                    minimo,
-                    maximo))
+            minimo = Math.Round(minimo, 2);
+            maximo = Math.Round(maximo, 2);
+
+            if (!HasChanges(minimo, maximo))
             {
                 await MostrarInformacionAsync(
                     "No hay cambios para guardar.");
+
                 return;
             }
 
-            bool confirm =
-                Mode ==
-                    FormMode.FormModeSelect.Create
-                    ? await ConfirmarGuardadoAsync(
-                        "el rango de aporte")
-                    : await ConfirmarActualizacionAsync(
-                        "el rango de aporte");
+            /*
+             * Si el usuario no cambió visualmente el intervalo,
+             * se conserva el valor original de cuatro decimales.
+             * Así una edición únicamente descriptiva no altera
+             * la precisión histórica almacenada.
+             */
+            decimal minimoEnviar =
+                Math.Round(Item.ValorMinimo, 2) == minimo
+                    ? Item.ValorMinimo
+                    : minimo;
 
-            if (!confirm)
+            decimal maximoEnviar =
+                Math.Round(Item.ValorMaximo, 2) == maximo
+                    ? Item.ValorMaximo
+                    : maximo;
+
+            bool confirmar =
+                Mode == FormMode.FormModeSelect.Create
+                    ? await ConfirmarGuardadoAsync(
+                        "el rango nutricional")
+                    : await ConfirmarActualizacionAsync(
+                        "el rango nutricional");
+
+            if (!confirmar)
                 return;
 
             Item.TipoCultivoId =
                 Categoria!.TipoCultivoId;
 
             Item.ElementoQuimicosId =
-                ElementoSeleccionado!
-                    .ElementoQuimicosId;
+                ElementoSeleccionado!.ElementoQuimicosId;
 
-            Item.ValorMinimo =
-                minimo;
+            Item.ValorMinimo = minimoEnviar;
+            Item.ValorMaximo = maximoEnviar;
+            Item.UnidadBase = UnidadBaseFija;
+            Item.DescripcionParametro = Descripcion.Trim();
 
-            Item.ValorMaximo =
-                maximo;
-
-            Item.UnidadBase =
-                UnidadBaseFija;
-
-            Item.DescripcionParametro =
-                Descripcion.Trim();
+            operacionCts?.Cancel();
+            operacionCts?.Dispose();
+            operacionCts = new CancellationTokenSource();
 
             try
             {
                 IsBusy = true;
                 RefrescarComandos();
 
-                ApiResult<bool> result =
-                    Mode ==
-                        FormMode.FormModeSelect.Create
-                        ? await apiService.CreateAsync(Item)
-                        : await apiService.UpdateAsync(Item);
+                ApiResult<bool> resultado =
+                    Mode == FormMode.FormModeSelect.Create
+                        ? await apiService.CreateAsync(
+                            Item,
+                            operacionCts.Token)
+                        : await apiService.UpdateAsync(
+                            Item,
+                            operacionCts.Token);
 
-                if (!result.Success)
+                if (!resultado.Success)
                 {
-                    await MostrarErrorAsync(
-                        result.Message);
+                    await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
                 await RegresarADetalleAsync();
 
-                await MostrarExitoAsync(
-                    result.Message);
+                await MostrarExitoAsync(resultado.Message);
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
                 await MostrarErrorInesperadoAsync(
-                    Mode ==
-                        FormMode.FormModeSelect.Create
-                        ? "guardar el rango de aporte"
-                        : "actualizar el rango de aporte",
+                    Mode == FormMode.FormModeSelect.Create
+                        ? "guardar el rango nutricional"
+                        : "actualizar el rango nutricional",
                     ex);
             }
             finally
@@ -760,27 +647,52 @@ namespace CONATRADEC.ViewModels
                 AppRoutes.RangoNutrienteDetalle,
                 new Dictionary<string, object>
                 {
-                    ["Categoria"] =
-                        Categoria!
+                    ["Categoria"] = Categoria!
                 });
         }
 
+        private static bool TryParseDosDecimales(
+            string? texto,
+            out decimal valor)
+        {
+            valor = 0;
+
+            if (!NumeroFormularioHelper.TryParseDecimal(
+                    texto,
+                    out valor))
+            {
+                return false;
+            }
+
+            string limpio =
+                (texto ?? string.Empty)
+                    .Trim();
+
+            int separador =
+                Math.Max(
+                    limpio.LastIndexOf('.'),
+                    limpio.LastIndexOf(','));
+
+            if (separador < 0)
+                return true;
+
+            return limpio.Length - separador - 1 <= 2;
+        }
+
+        private static string FormatearDosDecimales(
+            decimal valor) =>
+            Math.Round(valor, 2)
+                .ToString(
+                    "0.00",
+                    CultureInfo.InvariantCulture);
+
         private void LimpiarErrores()
         {
-            ErrorTipoCultivo =
-                string.Empty;
-
-            ErrorElemento =
-                string.Empty;
-
-            ErrorMinimo =
-                string.Empty;
-
-            ErrorMaximo =
-                string.Empty;
-
-            ErrorDescripcion =
-                string.Empty;
+            ErrorTipoCultivo = string.Empty;
+            ErrorElemento = string.Empty;
+            ErrorMinimo = string.Empty;
+            ErrorMaximo = string.Empty;
+            ErrorDescripcion = string.Empty;
         }
 
         private void RefrescarComandos()

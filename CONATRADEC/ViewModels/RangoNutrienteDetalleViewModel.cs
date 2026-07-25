@@ -1,23 +1,135 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
-    public class RangoNutrienteDetalleViewModel :
-        GlobalService
+    public sealed class RangoNutrienteDetalleViewModel : GlobalService
     {
+        private readonly RangoNutrienteConsultaApiService
+            consultaApiService = new();
+
         private readonly RangoNutrienteApiService
             apiService = new();
 
-        private RangoNutrienteCategoriaItem?
-            categoria;
+        private CancellationTokenSource? cargaCts;
 
-        private ObservableCollection<
-            RangoNutrienteResponse> aportes = new();
+        private RangoNutrienteCategoriaItem? categoria;
+        private string textoBusqueda = string.Empty;
+        private string mensaje = string.Empty;
+        private bool isRefreshing;
+        private bool cargandoMas;
+        private bool navegando;
+        private bool pantallaCargada;
+        private int paginaActual;
+        private int totalPaginas = 1;
+        private int totalRegistros;
 
-        private bool loading;
-        private bool deleting;
+        public ObservableCollection<RangoNutrienteResponse>
+            Aportes { get; } = new();
+
+        public Command AddCommand { get; }
+        public Command<RangoNutrienteResponse> EditCommand { get; }
+        public Command<RangoNutrienteResponse> ViewCommand { get; }
+        public Command<RangoNutrienteResponse> DeleteCommand { get; }
+        public Command BackCommand { get; }
+        public Command BuscarCommand { get; }
+        public Command LimpiarFiltrosCommand { get; }
+        public Command RefrescarCommand { get; }
+        public Command CargarMasCommand { get; }
+
+        public RangoNutrienteDetalleViewModel()
+        {
+            AddCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        AddAsync,
+                        "abrir el formulario de rango"),
+                    () =>
+                        Categoria != null &&
+                        CanAdd &&
+                        !IsBusy &&
+                        !Navegando);
+
+            EditCommand =
+                new Command<RangoNutrienteResponse>(
+                    async item => await EjecutarSeguroAsync(
+                        () => OpenAsync(
+                            item,
+                            FormMode.FormModeSelect.Edit),
+                        "editar el rango nutricional"),
+                    item =>
+                        item != null &&
+                        CanEdit &&
+                        !IsBusy &&
+                        !Navegando);
+
+            ViewCommand =
+                new Command<RangoNutrienteResponse>(
+                    async item => await EjecutarSeguroAsync(
+                        () => OpenAsync(
+                            item,
+                            FormMode.FormModeSelect.View),
+                        "consultar el rango nutricional"),
+                    item =>
+                        item != null &&
+                        CanView &&
+                        !IsBusy &&
+                        !Navegando);
+
+            DeleteCommand =
+                new Command<RangoNutrienteResponse>(
+                    async item => await EjecutarSeguroAsync(
+                        () => DeleteAsync(item),
+                        "eliminar el rango nutricional"),
+                    item =>
+                        item != null &&
+                        CanDelete &&
+                        !IsBusy &&
+                        !Navegando);
+
+            BackCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => NavegarAsync(AppRoutes.RangosNutrientes),
+                        "regresar a los cultivos"),
+                    () => !IsBusy && !Navegando);
+
+            BuscarCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => CargarAsync(true),
+                        "buscar rangos nutricionales"),
+                    () => CanView && !Navegando);
+
+            LimpiarFiltrosCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        LimpiarFiltrosAsync,
+                        "limpiar la búsqueda"),
+                    () => CanView && !Navegando);
+
+            RefrescarCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        RefrescarAsync,
+                        "actualizar los rangos"),
+                    () => CanView && !Navegando);
+
+            CargarMasCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        () => CargarAsync(false),
+                        "cargar más rangos"),
+                    () =>
+                        CanView &&
+                        !IsBusy &&
+                        !CargandoMas &&
+                        !Navegando &&
+                        PuedeCargarMas);
+        }
 
         public RangoNutrienteCategoriaItem? Categoria
         {
@@ -25,316 +137,520 @@ namespace CONATRADEC.ViewModels
             set
             {
                 categoria = value;
+
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(NombreCategoria));
-                OnPropertyChanged(
-                    nameof(DescripcionCategoria));
-                OnPropertyChanged(
-                    nameof(Titulo));
-                RefrescarComandos();
+                OnPropertyChanged(nameof(NombreCategoria));
+                OnPropertyChanged(nameof(DescripcionCategoria));
+                OnPropertyChanged(nameof(Titulo));
+                ActualizarComandos();
             }
         }
 
         public string NombreCategoria =>
-            Categoria?.NombreCategoria ??
-            string.Empty;
+            Categoria?.NombreCategoria ?? string.Empty;
 
         public string DescripcionCategoria =>
-            Categoria?.DescripcionCategoria ??
-            string.Empty;
+            string.IsNullOrWhiteSpace(
+                Categoria?.DescripcionCategoria)
+                    ? "Sin descripción registrada."
+                    : Categoria!.DescripcionCategoria.Trim();
 
         public string Titulo =>
-            string.IsNullOrWhiteSpace(
-                NombreCategoria)
-                ? "Rangos de aporte"
-                : $"Aportes de {NombreCategoria}";
+            string.IsNullOrWhiteSpace(NombreCategoria)
+                ? "Rangos nutricionales"
+                : $"Rangos de {NombreCategoria}";
 
-        public ObservableCollection<
-            RangoNutrienteResponse> Aportes
+        public string TextoBusqueda
         {
-            get => aportes;
+            get => textoBusqueda;
+            set
+            {
+                string nuevoValor = value ?? string.Empty;
+
+                if (textoBusqueda == nuevoValor)
+                    return;
+
+                textoBusqueda = nuevoValor;
+                OnPropertyChanged();
+            }
+        }
+
+        public string Mensaje
+        {
+            get => mensaje;
             private set
             {
-                aportes = value;
+                string nuevoValor = value ?? string.Empty;
+
+                if (mensaje == nuevoValor)
+                    return;
+
+                mensaje = nuevoValor;
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(ResumenAportes));
+                OnPropertyChanged(nameof(TieneMensaje));
+            }
+        }
+
+        public bool TieneMensaje =>
+            !string.IsNullOrWhiteSpace(Mensaje);
+
+        public bool IsRefreshing
+        {
+            get => isRefreshing;
+            set
+            {
+                if (isRefreshing == value)
+                    return;
+
+                isRefreshing = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public bool CargandoMas
+        {
+            get => cargandoMas;
+            private set
+            {
+                if (cargandoMas == value)
+                    return;
+
+                cargandoMas = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+                NotificarEstadoLista();
+            }
+        }
+
+        public bool Navegando
+        {
+            get => navegando;
+            private set
+            {
+                if (navegando == value)
+                    return;
+
+                navegando = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public int TotalRegistros
+        {
+            get => totalRegistros;
+            private set
+            {
+                if (totalRegistros == value)
+                    return;
+
+                totalRegistros = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ResumenAportes));
             }
         }
 
         public string ResumenAportes =>
-            Aportes.Count == 1
+            TotalRegistros == 1
                 ? "1 rango configurado"
-                : $"{Aportes.Count} rangos configurados";
+                : $"{TotalRegistros} rangos configurados";
 
-        public Command AddCommand { get; }
+        public bool PuedeCargarMas =>
+            paginaActual < totalPaginas;
 
-        public Command<RangoNutrienteResponse>
-            EditCommand { get; }
+        public bool MostrarVacio =>
+            CanView &&
+            pantallaCargada &&
+            !IsBusy &&
+            !CargandoMas &&
+            Aportes.Count == 0 &&
+            !TieneMensaje;
 
-        public Command<RangoNutrienteResponse>
-            ViewCommand { get; }
+        public bool MostrarFinLista =>
+            CanView &&
+            pantallaCargada &&
+            Aportes.Count > 0 &&
+            !PuedeCargarMas &&
+            !IsBusy &&
+            !CargandoMas;
 
-        public Command<RangoNutrienteResponse>
-            DeleteCommand { get; }
-
-        public Command BackCommand { get; }
-
-        public RangoNutrienteDetalleViewModel()
+        public void ActualizarPermisos()
         {
-            AddCommand =
-                new Command(
-                    async () => await AddAsync(),
-                    () =>
-                        Categoria != null &&
-                        CanAdd &&
-                        !IsBusy);
-
-            EditCommand =
-                new Command<RangoNutrienteResponse>(
-                    async item =>
-                        await OpenAsync(
-                            item,
-                            FormMode.FormModeSelect.Edit),
-                    item =>
-                        item != null &&
-                        CanEdit &&
-                        !IsBusy);
-
-            ViewCommand =
-                new Command<RangoNutrienteResponse>(
-                    async item =>
-                        await OpenAsync(
-                            item,
-                            FormMode.FormModeSelect.View),
-                    item =>
-                        item != null &&
-                        CanView &&
-                        !IsBusy);
-
-            DeleteCommand =
-                new Command<RangoNutrienteResponse>(
-                    async item =>
-                        await DeleteAsync(item),
-                    item =>
-                        item != null &&
-                        CanDelete &&
-                        !IsBusy);
-
-            BackCommand =
-                new Command(
-                    async () =>
-                        await GoToAsyncParameters(
-                            AppRoutes.RangosNutrientes),
-                    () => !IsBusy);
+            LoadPagePermissions("rangoNutrientePage");
+            ActualizarComandos();
+            NotificarEstadoLista();
         }
 
-        public async Task LoadAsync(
-            bool showIndicator)
+        public Task InicializarAsync() =>
+            CargarAsync(true);
+
+        public async Task CargarAsync(bool reiniciar)
         {
             if (!CanView ||
-                loading ||
-                Categoria == null)
+                Categoria == null ||
+                Categoria.TipoCultivoId <= 0 ||
+                Navegando)
             {
                 return;
             }
 
-            loading = true;
+            if (!reiniciar &&
+                (CargandoMas || !PuedeCargarMas))
+            {
+                return;
+            }
 
-            if (showIndicator)
-                IsBusy = true;
-
-            RefrescarComandos();
+            CancellationTokenSource source =
+                PrepararNuevaCarga();
 
             try
             {
-                ApiResult<ObservableCollection<
-                    RangoNutrienteResponse>> result =
-                    await apiService.GetAsync();
-
-                if (!result.Success)
+                if (reiniciar)
                 {
-                    await MostrarToastAsync(
-                        result.Message);
+                    IsBusy = true;
+                    Mensaje = string.Empty;
+                }
+                else
+                {
+                    CargandoMas = true;
+                }
+
+                int paginaSolicitada =
+                    reiniciar
+                        ? 1
+                        : paginaActual + 1;
+
+                ApiResult<RangoNutrientePaginaResponse> resultado =
+                    await consultaApiService.BuscarRangosAsync(
+                        Categoria.TipoCultivoId,
+                        TextoBusqueda,
+                        paginaSolicitada,
+                        ObtenerTamanoPagina(),
+                        source.Token);
+
+                if (source.IsCancellationRequested ||
+                    !EsCargaActual(source))
+                {
                     return;
                 }
 
-                IEnumerable<RangoNutrienteResponse>
-                    datos =
-                        (result.Data ??
-                         new ObservableCollection<
-                             RangoNutrienteResponse>())
-                        .Where(x =>
-                            x.Activo &&
-                            x.TipoCultivoId ==
-                            Categoria.TipoCultivoId)
-                        .OrderBy(x =>
-                            x.NombreElementoQuimico ??
-                            string.Empty);
+                if (!resultado.Success ||
+                    resultado.Data == null)
+                {
+                    if (!EsMensajeCancelacion(resultado.Message))
+                        Mensaje = resultado.Message;
 
-                Aportes =
-                    new ObservableCollection<
-                        RangoNutrienteResponse>(
-                        datos);
+                    return;
+                }
+
+                AplicarPagina(resultado.Data, reiniciar);
+                pantallaCargada = true;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
             }
             catch (Exception ex)
             {
-                await MostrarErrorInesperadoAsync(
-                    "cargar los rangos de aporte",
-                    ex);
+                if (!source.IsCancellationRequested &&
+                    EsCargaActual(source))
+                {
+                    Mensaje =
+                        "No fue posible cargar los rangos nutricionales.";
+
+                    await MostrarErrorInesperadoAsync(
+                        "cargar los rangos nutricionales",
+                        ex);
+                }
             }
             finally
             {
-                loading = false;
+                if (EsCargaActual(source))
+                {
+                    if (reiniciar)
+                    {
+                        IsBusy = false;
+                        IsRefreshing = false;
+                    }
+                    else
+                    {
+                        CargandoMas = false;
+                    }
+                }
 
-                if (showIndicator)
-                    IsBusy = false;
-
-                RefrescarComandos();
+                LiberarCarga(source);
+                ActualizarComandos();
+                NotificarEstadoLista();
             }
         }
 
-        private async Task AddAsync()
+        public void CancelarCarga()
         {
-            if (Categoria == null || IsBusy)
-                return;
+            CancellationTokenSource? source =
+                Interlocked.Exchange(ref cargaCts, null);
 
-            if (!CanAdd)
+            CancelarSeguro(source);
+
+            IsBusy = false;
+            IsRefreshing = false;
+            CargandoMas = false;
+        }
+
+        private void AplicarPagina(
+            RangoNutrientePaginaResponse pagina,
+            bool reiniciar)
+        {
+            if (reiniciar)
+                Aportes.Clear();
+
+            HashSet<int> idsActuales =
+                Aportes
+                    .Select(item =>
+                        item.ParametroRangoNutrienteCultivoId)
+                    .ToHashSet();
+
+            foreach (RangoNutrienteResponse item in pagina.Items)
             {
-                await MostrarToastAsync(
-                    "No tiene permisos para agregar rangos de aporte.");
-                return;
+                if (item.ParametroRangoNutrienteCultivoId <= 0)
+                    continue;
+
+                if (idsActuales.Add(
+                        item.ParametroRangoNutrienteCultivoId))
+                {
+                    Aportes.Add(item);
+                }
             }
 
-            await GoToAsyncParameters(
+            paginaActual = Math.Max(1, pagina.PaginaActual);
+            totalPaginas = Math.Max(1, pagina.TotalPaginas);
+            TotalRegistros = Math.Max(0, pagina.TotalRegistros);
+            Mensaje = string.Empty;
+
+            OnPropertyChanged(nameof(PuedeCargarMas));
+            NotificarEstadoLista();
+        }
+
+        private async Task LimpiarFiltrosAsync()
+        {
+            TextoBusqueda = string.Empty;
+            await CargarAsync(true);
+        }
+
+        private async Task RefrescarAsync()
+        {
+            IsRefreshing = true;
+
+            try
+            {
+                await CargarAsync(true);
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
+        }
+
+        private Task AddAsync()
+        {
+            if (Categoria == null)
+                return Task.CompletedTask;
+
+            return NavegarAsync(
                 AppRoutes.RangoNutrienteFormulario,
                 new Dictionary<string, object>
                 {
-                    ["Mode"] =
-                        FormMode.FormModeSelect.Create,
-
+                    ["Mode"] = FormMode.FormModeSelect.Create,
                     ["Categoria"] = Categoria,
-
-                    ["Item"] =
-                        new RangoNutrienteRequest
-                        {
-                            TipoCultivoId =
-                                Categoria.TipoCultivoId
-                        }
+                    ["Item"] = new RangoNutrienteRequest
+                    {
+                        TipoCultivoId = Categoria.TipoCultivoId
+                    }
                 });
         }
 
-        private async Task OpenAsync(
+        private Task OpenAsync(
             RangoNutrienteResponse? item,
             FormMode.FormModeSelect mode)
         {
-            if (item == null ||
-                Categoria == null ||
-                IsBusy)
-            {
-                return;
-            }
+            if (item == null || Categoria == null)
+                return Task.CompletedTask;
 
-            if (mode ==
-                    FormMode.FormModeSelect.Edit &&
-                !CanEdit)
-            {
-                await MostrarToastAsync(
-                    "No tiene permisos para editar rangos de aporte.");
-                return;
-            }
-
-            await GoToAsyncParameters(
+            return NavegarAsync(
                 AppRoutes.RangoNutrienteFormulario,
                 new Dictionary<string, object>
                 {
                     ["Mode"] = mode,
                     ["Categoria"] = Categoria,
-                    ["Item"] =
-                        new RangoNutrienteRequest(item)
+                    ["Item"] = new RangoNutrienteRequest(item)
                 });
         }
 
         private async Task DeleteAsync(
             RangoNutrienteResponse? item)
         {
-            if (item == null ||
-                IsBusy ||
-                deleting)
-            {
-                return;
-            }
-
-            if (!CanDelete)
-            {
-                await MostrarToastAsync(
-                    "No tiene permisos para eliminar rangos de aporte.");
-                return;
-            }
-
-            Page? page =
-                Application.Current?.MainPage;
-
-            if (page == null)
+            if (item == null || IsBusy)
                 return;
 
-            bool confirm =
-                await page.DisplayAlert(
-                    "Eliminar rango de aporte",
-                    $"¿Desea eliminar el rango " +
-                    $"'{item.ElementoTexto}' de " +
-                    $"'{NombreCategoria}'?",
-                    "Sí",
-                    "No");
+            bool confirmar =
+                await Application.Current!
+                    .MainPage!
+                    .DisplayAlert(
+                        "Eliminar rango nutricional",
+                        $"¿Desea eliminar el rango de " +
+                        $"'{item.ElementoTexto}'?",
+                        "Eliminar",
+                        "Cancelar");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
-
-            deleting = true;
-            IsBusy = true;
-            RefrescarComandos();
 
             try
             {
-                ApiResult<bool> result =
-                    await apiService.DeleteAsync(
-                        item
-                            .ParametroRangoNutrienteCultivoId);
+                IsBusy = true;
+                ActualizarComandos();
 
-                if (!result.Success)
+                ApiResult<bool> resultado =
+                    await apiService.DeleteAsync(
+                        item.ParametroRangoNutrienteCultivoId);
+
+                if (!resultado.Success)
                 {
-                    await MostrarToastAsync(
-                        result.Message);
+                    await MostrarToastAsync(resultado.Message);
                     return;
                 }
 
-                await MostrarToastAsync(
-                    result.Message);
+                Aportes.Remove(item);
+                TotalRegistros =
+                    Math.Max(0, TotalRegistros - 1);
 
-                await LoadAsync(false);
-            }
-            catch (Exception ex)
-            {
-                await MostrarErrorInesperadoAsync(
-                    "eliminar el rango nutricional",
-                    ex);
+                await MostrarToastAsync(
+                    string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "Rango eliminado correctamente."
+                        : resultado.Message);
             }
             finally
             {
-                deleting = false;
                 IsBusy = false;
-                RefrescarComandos();
+                ActualizarComandos();
+                NotificarEstadoLista();
             }
         }
 
-        private void RefrescarComandos()
+        private async Task NavegarAsync(
+            string ruta,
+            IDictionary<string, object>? parametros = null)
+        {
+            if (Navegando)
+                return;
+
+            Navegando = true;
+
+            try
+            {
+                CancelarCarga();
+
+                if (parametros == null)
+                    await GoToAsyncParameters(ruta);
+                else
+                    await GoToAsyncParameters(ruta, parametros);
+            }
+            finally
+            {
+                Navegando = false;
+            }
+        }
+
+        private async Task EjecutarSeguroAsync(
+            Func<Task> accion,
+            string descripcion)
+        {
+            try
+            {
+                await accion();
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(descripcion, ex);
+            }
+        }
+
+        private void ActualizarComandos()
         {
             AddCommand.ChangeCanExecute();
             EditCommand.ChangeCanExecute();
             ViewCommand.ChangeCanExecute();
             DeleteCommand.ChangeCanExecute();
             BackCommand.ChangeCanExecute();
+            BuscarCommand.ChangeCanExecute();
+            LimpiarFiltrosCommand.ChangeCanExecute();
+            RefrescarCommand.ChangeCanExecute();
+            CargarMasCommand.ChangeCanExecute();
         }
+
+        private void NotificarEstadoLista()
+        {
+            OnPropertyChanged(nameof(MostrarVacio));
+            OnPropertyChanged(nameof(MostrarFinLista));
+            OnPropertyChanged(nameof(PuedeCargarMas));
+            OnPropertyChanged(nameof(ResumenAportes));
+        }
+
+        private static int ObtenerTamanoPagina() =>
+            DeviceInfo.Platform == DevicePlatform.WinUI
+                ? 40
+                : 20;
+
+        private CancellationTokenSource PrepararNuevaCarga()
+        {
+            var source = new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref cargaCts, source);
+
+            CancelarSeguro(anterior);
+
+            return source;
+        }
+
+        private bool EsCargaActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref cargaCts),
+                source);
+
+        private void LiberarCarga(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref cargaCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        private static bool EsMensajeCancelacion(string? valor) =>
+            !string.IsNullOrWhiteSpace(valor) &&
+            valor.Contains(
+                "cancel",
+                StringComparison.OrdinalIgnoreCase);
     }
 }

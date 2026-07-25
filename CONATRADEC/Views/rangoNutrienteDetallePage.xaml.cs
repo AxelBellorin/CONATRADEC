@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
@@ -8,11 +8,11 @@ namespace CONATRADEC.Views
         ContentPage,
         IQueryAttributable
     {
-        private readonly
-            RangoNutrienteDetalleViewModel viewModel =
-                new();
+        private readonly RangoNutrienteDetalleViewModel
+            viewModel = new();
 
         private bool parametrosAplicados;
+        private int cantidadColumnasActual;
 
         public rangoNutrienteDetallePage()
         {
@@ -41,14 +41,13 @@ namespace CONATRADEC.Views
         {
             base.OnAppearing();
 
-            viewModel.LoadPagePermissions(
-                "rangoNutrientePage");
+            viewModel.ActualizarPermisos();
 
             if (!viewModel.CanView)
             {
                 await DisplayAlert(
                     "Permiso denegado",
-                    "No tiene permisos para ver los rangos de aporte.",
+                    "No tiene permisos para consultar los rangos nutricionales.",
                     "Aceptar");
 
                 await Shell.Current.GoToAsync(
@@ -56,6 +55,8 @@ namespace CONATRADEC.Views
 
                 return;
             }
+
+            AjustarCantidadColumnas(Width);
 
             for (int intento = 0;
                  intento < 20 &&
@@ -80,7 +81,43 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            await viewModel.LoadAsync(true);
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+            base.OnDisappearing();
+        }
+
+        protected override void OnSizeAllocated(
+            double width,
+            double height)
+        {
+            base.OnSizeAllocated(width, height);
+            AjustarCantidadColumnas(width);
+        }
+
+        private void AjustarCantidadColumnas(double width)
+        {
+            if (width <= 0 ||
+                RangosGridLayout == null)
+            {
+                return;
+            }
+
+            int nuevasColumnas =
+                width >= 1280
+                    ? 3
+                    : width >= 760
+                        ? 2
+                        : 1;
+
+            if (cantidadColumnasActual == nuevasColumnas)
+                return;
+
+            cantidadColumnasActual = nuevasColumnas;
+            RangosGridLayout.Span = nuevasColumnas;
         }
     }
 }
