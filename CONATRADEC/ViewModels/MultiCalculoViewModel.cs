@@ -42,8 +42,8 @@ namespace CONATRADEC.ViewModels
             EnmiendaCalcarea = new EnmiendaCalcareaTabViewModel();
             FertilizacionMixta = new FertilizacionMixtaTabViewModel();
 
-            BalanceFormula.ComplementoFertilizacionMixtaCambiado +=
-                BalanceFormula_ComplementoFertilizacionMixtaCambiado;
+            BalanceFormula.ComplementoFertilizacionMixtaCambiadoAsync =
+                BalanceFormula_ComplementoFertilizacionMixtaCambiadoAsync;
 
             SeleccionarBalanceCommand = new Command(SeleccionarBalance);
             SeleccionarEnmiendaCommand = new Command(SeleccionarEnmienda);
@@ -465,8 +465,7 @@ namespace CONATRADEC.ViewModels
             fertilizacionMixtaInicializada = true;
         }
 
-        private async void BalanceFormula_ComplementoFertilizacionMixtaCambiado(
-            object? sender,
+        private async Task BalanceFormula_ComplementoFertilizacionMixtaCambiadoAsync(
             BalanceFertilizacionMixtaChangedEventArgs e)
         {
             if (e.Activado)

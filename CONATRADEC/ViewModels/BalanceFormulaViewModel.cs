@@ -76,8 +76,15 @@ namespace CONATRADEC.ViewModels
             );
         }
 
-        public event EventHandler<BalanceFertilizacionMixtaChangedEventArgs>?
-            ComplementoFertilizacionMixtaCambiado;
+        /// <summary>
+        /// Callback asincrónico que informa cuando cambia el complemento
+        /// entre balance de fórmula y fertilización mixta.
+        ///
+        /// Se utiliza Func&lt;..., Task&gt; en lugar de EventHandler para evitar
+        /// manejadores async void y permitir esperar la operación correctamente.
+        /// </summary>
+        public Func<BalanceFertilizacionMixtaChangedEventArgs, Task>?
+            ComplementoFertilizacionMixtaCambiadoAsync { get; set; }
 
         public AnalisisSueloCalculoDataResponse? ResultadoCalculo
         {
@@ -924,13 +931,20 @@ namespace CONATRADEC.ViewModels
         private void NotificarCambioComplemento(
             BalanceFertilizacionMixtaContext? contexto)
         {
-            ComplementoFertilizacionMixtaCambiado?.Invoke(
-                this,
-                new BalanceFertilizacionMixtaChangedEventArgs(
+            Func<BalanceFertilizacionMixtaChangedEventArgs, Task>? callback =
+                ComplementoFertilizacionMixtaCambiadoAsync;
+
+            if (callback == null)
+                return;
+
+            BalanceFertilizacionMixtaChangedEventArgs argumentos =
+                new(
                     ComplementarConFertilizacionMixta,
-                    contexto
-                )
-            );
+                    contexto);
+
+            // El cambio puede originarse desde un setter o desde un recálculo.
+            // Se inicia la notificación sin bloquear la interfaz de MAUI.
+            _ = callback(argumentos);
         }
 
         private void ConstruirFilasResultadoDesdeApi(BalanceNutricionalResponse resultadoApi)
