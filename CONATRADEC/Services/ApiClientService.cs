@@ -1,4 +1,4 @@
-﻿using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 using System.Net.Http.Headers;
@@ -33,14 +33,22 @@ namespace CONATRADEC.Services
                     InnerHandler =
                         new AnalisisCalculoLocalHttpHandler
                         {
+                            /*
+                             * Atiende las rutas históricas utilizadas por
+                             * Nuevo análisis para cultivos y unidades.
+                             */
                             InnerHandler =
-                                new CatalogosLocalHttpHandler
+                                new AnalisisCatalogosLocalHttpHandler
                                 {
                                     InnerHandler =
-                                        new ContenidoSincronizacionHandler
+                                        new CatalogosLocalHttpHandler
                                         {
                                             InnerHandler =
-                                                new HttpClientHandler()
+                                                new ContenidoSincronizacionHandler
+                                                {
+                                                    InnerHandler =
+                                                        new HttpClientHandler()
+                                                }
                                         }
                                 }
                         }

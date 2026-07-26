@@ -17,6 +17,13 @@ namespace CONATRADEC.Behaviors
     {
         private static int registrado;
 
+        /*
+         * Evita que dos pulsaciones rápidas intenten abrir dos formularios.
+         * Siempre se libera al terminar o cancelar la navegación.
+         */
+        private static readonly SemaphoreSlim
+            navegacionNuevoAnalisisLock = new(1, 1);
+
         private static readonly BindableProperty
             ConfiguradoProperty =
                 BindableProperty.CreateAttached(
@@ -162,19 +169,83 @@ namespace CONATRADEC.Behaviors
         private static bool ConfigurarPaginaPrincipal(
             ContentPage page)
         {
+            ImageButton? botonNuevo =
+                ObtenerBotonNuevoAnalisis(
+                    page);
+
+            if (botonNuevo == null)
+                return false;
+
+            ConfigurarBotonNuevoAnalisis(
+                page,
+                botonNuevo);
+
+            /*
+             * MainPage puede mantenerse viva dentro de Shell. Al regresar
+             * desde Cancelar, el evento restablece el comando y cualquier
+             * estado de carga perteneciente a la navegación anterior.
+             */
+            page.Appearing -=
+                OnPaginaPrincipalAppearing;
+
+            page.Appearing +=
+                OnPaginaPrincipalAppearing;
+
+            return true;
+        }
+
+        private static void OnPaginaPrincipalAppearing(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is not ContentPage page)
+                return;
+
+            if (page.BindingContext is MainPageViewModel viewModel)
+            {
+                /*
+                 * Cancelar un formulario no debe dejar Inicio bloqueado por
+                 * una consulta anterior ni por un IsBusy residual.
+                 */
+                viewModel.CancelarCarga();
+                viewModel.IsBusy = false;
+                viewModel.PrepararPantalla();
+            }
+
+            ImageButton? botonNuevo =
+                ObtenerBotonNuevoAnalisis(
+                    page);
+
+            if (botonNuevo == null)
+                return;
+
+            ConfigurarBotonNuevoAnalisis(
+                page,
+                botonNuevo);
+        }
+
+        private static ImageButton? ObtenerBotonNuevoAnalisis(
+            ContentPage page)
+        {
             CollectionView? listado =
                 page.FindByName<CollectionView>(
                     "AnalisisCollectionView");
 
-            if (listado?.Header is not View encabezado)
-                return false;
+            return listado?.Header is View encabezado
+                ? BuscarBotonNuevoAnalisis(
+                    encabezado)
+                : null;
+        }
 
-            ImageButton? botonNuevo =
-                BuscarBotonNuevoAnalisis(
-                    encabezado);
-
-            if (botonNuevo == null)
-                return false;
+        private static void ConfigurarBotonNuevoAnalisis(
+            ContentPage page,
+            ImageButton botonNuevo)
+        {
+            /*
+             * Se reemplaza por una instancia nueva al reaparecer Inicio. Esto
+             * evita conservar el estado interno de una ejecución async previa.
+             */
+            botonNuevo.Command = null;
 
             botonNuevo.Command =
                 new Command(
@@ -182,71 +253,94 @@ namespace CONATRADEC.Behaviors
                         await AbrirNuevoAnalisisAsync(
                             page));
 
-            /*
-             * El listado puede estar esperando una respuesta del servidor.
-             * La creación offline no debe depender de esa consulta.
-             */
             botonNuevo.IsEnabled = true;
-
-            return true;
+            botonNuevo.InputTransparent = false;
         }
 
         private static async Task AbrirNuevoAnalisisAsync(
             ContentPage page)
         {
-            if (page.BindingContext is not MainPageViewModel viewModel)
-                return;
+            bool entro;
 
-            if (!viewModel.CanAdd)
+            try
             {
-                await page.DisplayAlert(
-                    "Acceso denegado",
-                    "No tiene permisos para registrar análisis.",
-                    "Aceptar");
+                entro = await navegacionNuevoAnalisisLock
+                    .WaitAsync(
+                        TimeSpan.Zero);
+            }
+            catch
+            {
                 return;
             }
 
-            if (viewModel.IsBusy)
+            if (!entro)
                 return;
 
-            bool trabajarOffline =
-                SesionOfflineService.SesionActualEsOffline ||
-                !EstadoConexionService.Instance.HayInternet;
-
-            if (trabajarOffline)
+            try
             {
-                if (!DatosSinConexionPermisos.TienePermiso)
+                if (page.BindingContext is not MainPageViewModel viewModel)
+                    return;
+
+                /*
+                 * Libera cualquier consulta del listado antes de evaluar el
+                 * botón. Crear un análisis no depende de que el historial haya
+                 * terminado de cargarse.
+                 */
+                viewModel.CancelarCarga();
+                viewModel.IsBusy = false;
+                viewModel.PrepararPantalla();
+
+                if (!viewModel.CanAdd)
                 {
                     await page.DisplayAlert(
-                        "Trabajo sin conexión",
-                        "Su usuario no tiene habilitado el trabajo sin conexión.",
+                        "Acceso denegado",
+                        "No tiene permisos para registrar análisis.",
                         "Aceptar");
                     return;
                 }
 
-                bool motorDisponible =
-                    await MotorCalculoPaqueteService.Instance
-                        .TienePaqueteValidoAsync();
+                bool trabajarOffline =
+                    SesionOfflineService.SesionActualEsOffline ||
+                    !EstadoConexionService.Instance.HayInternet;
 
-                if (!motorDisponible)
+                if (trabajarOffline)
                 {
-                    await page.DisplayAlert(
-                        "Motor no disponible",
-                        "Este dispositivo no tiene un motor de cálculo válido. Conéctese y pulse Actualizar todo.",
-                        "Aceptar");
-                    return;
+                    if (!DatosSinConexionPermisos.TienePermiso)
+                    {
+                        await page.DisplayAlert(
+                            "Trabajo sin conexión",
+                            "Su usuario no tiene habilitado el trabajo sin conexión.",
+                            "Aceptar");
+                        return;
+                    }
+
+                    bool motorDisponible =
+                        await MotorCalculoPaqueteService.Instance
+                            .TienePaqueteValidoAsync();
+
+                    if (!motorDisponible)
+                    {
+                        await page.DisplayAlert(
+                            "Motor no disponible",
+                            "Este dispositivo no tiene un motor de cálculo válido. Conéctese y pulse Actualizar todo.",
+                            "Aceptar");
+                        return;
+                    }
+
+                    await ModoTrabajoAnalisisService.Instance
+                        .PrepararNuevoAnalisisAsync();
                 }
 
-                await ModoTrabajoAnalisisService.Instance
-                    .PrepararNuevoAnalisisAsync();
+                AnalisisEdicionService.Instance.Limpiar();
+
+                await Shell.Current.GoToAsync(
+                    "//NuevoAnalisisFormPage",
+                    false);
             }
-
-            viewModel.CancelarCarga();
-            AnalisisEdicionService.Instance.Limpiar();
-
-            await Shell.Current.GoToAsync(
-                "//NuevoAnalisisFormPage",
-                false);
+            finally
+            {
+                navegacionNuevoAnalisisLock.Release();
+            }
         }
 
         private static ImageButton? BuscarBotonNuevoAnalisis(
