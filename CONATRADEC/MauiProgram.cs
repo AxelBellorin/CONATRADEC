@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Maui;                     // Importa CommunityToolkit para MAUI (Snackbar, Toast, Popup, etc.)
+using CommunityToolkit.Maui;                     // Importa CommunityToolkit para MAUI (Snackbar, Toast, Popup, etc.)
 using CONATRADEC.Behaviors;                      // Comportamientos globales para controles MAUI
 using CONATRADEC.Services;                       // Espacio de nombres de los servicios de la aplicación
 using CONATRADEC.ViewModels;                     // Espacio de nombres de los ViewModels
@@ -79,6 +79,12 @@ namespace CONATRADEC
             // En Windows no cambia la interfaz ni ejecuta el mapper.
             // ==========================================================
             LoginTabletResponsiveMapper.Register();
+
+            // ==========================================================
+            // Evita que el texto informativo del formulario de análisis
+            // se corte en teléfonos con pantalla estrecha.
+            // ==========================================================
+            NuevoAnalisisInfoResponsiveMapper.Register();
 
             // ==========================================================
             // Logging solo en modo DEBUG

@@ -175,6 +175,9 @@ namespace CONATRADEC.Models
 
         [JsonPropertyName("observacion")]
         public string Observacion { get; set; } = string.Empty;
+
+        [JsonPropertyName("incluirCalculosComplementarios")]
+        public bool IncluirCalculosComplementarios { get; set; } = true;
     }
 
     public sealed class GuardarTodoBalanceNutricionalRequest

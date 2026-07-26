@@ -21,7 +21,8 @@
                         Text="{Binding TituloResultado}"
                         TextColor="White"
                         FontSize="22"
-                        FontAttributes="Bold" />
+                        FontAttributes="Bold"
+                        LineBreakMode="WordWrap" />
 
                     <Label
                         Text="Resultado generado desde el cálculo preliminar del análisis de suelo."
@@ -66,7 +67,9 @@
                             LineBreakMode="WordWrap" />
                     </Border>
 
-                    <VerticalStackLayout IsVisible="{Binding TieneObservaciones}" Spacing="8">
+                    <VerticalStackLayout
+                        IsVisible="{Binding TieneObservaciones}"
+                        Spacing="8">
 
                         <Label
                             Text="Observaciones"
@@ -77,6 +80,7 @@
                         <VerticalStackLayout
                             Spacing="0"
                             BindableLayout.ItemsSource="{Binding Observaciones}">
+
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate>
                                     <Border
@@ -95,9 +99,7 @@
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
-
                     </VerticalStackLayout>
-
                 </VerticalStackLayout>
             </Border>
 
@@ -124,36 +126,54 @@
 
                         <VerticalStackLayout Grid.Row="0" Grid.Column="0">
                             <Label Text="Tipo de cultivo" FontSize="12" TextColor="#6B7280" />
-                            <Label Text="{Binding TipoCultivo}" FontSize="15" FontAttributes="Bold" />
+                            <Label
+                                Text="{Binding TipoCultivo}"
+                                FontSize="15"
+                                FontAttributes="Bold"
+                                LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Grid.Row="0" Grid.Column="1">
                             <Label Text="Tipo de análisis" FontSize="12" TextColor="#6B7280" />
-                            <Label Text="{Binding TipoAnalisisSuelo}" FontSize="15" FontAttributes="Bold" />
+                            <Label
+                                Text="{Binding TipoAnalisisSuelo}"
+                                FontSize="15"
+                                FontAttributes="Bold"
+                                LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Grid.Row="1" Grid.Column="0">
                             <Label Text="QQ oro" FontSize="12" TextColor="#6B7280" />
-                            <Label Text="{Binding CantidadQuintalesOro, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" />
+                            <Label
+                                Text="{Binding CantidadQuintalesOro, StringFormat='{0:N2}'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Grid.Row="1" Grid.Column="1">
                             <Label Text="Tamaño finca" FontSize="12" TextColor="#6B7280" />
-                            <Label Text="{Binding TamanoFinca, StringFormat='{0:N2} mz'}" FontSize="15" FontAttributes="Bold" />
+                            <Label
+                                Text="{Binding TamanoFinca, StringFormat='{0:N2} mz'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Grid.Row="2" Grid.Column="0">
                             <Label Text="pH" FontSize="12" TextColor="#6B7280" />
-                            <Label Text="{Binding Ph, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" />
+                            <Label
+                                Text="{Binding Ph, StringFormat='{0:N2}'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Grid.Row="2" Grid.Column="1">
                             <Label Text="Acidez total" FontSize="12" TextColor="#6B7280" />
-                            <Label Text="{Binding AcidezTotal, StringFormat='{0:N2}'}" FontSize="15" FontAttributes="Bold" />
+                            <Label
+                                Text="{Binding AcidezTotal, StringFormat='{0:N2}'}"
+                                FontSize="15"
+                                FontAttributes="Bold" />
                         </VerticalStackLayout>
-
                     </Grid>
-
                 </VerticalStackLayout>
             </Border>
 
@@ -165,6 +185,49 @@
                 TextColor="#3B655B"
                 Margin="0,4,0,0"
                 IsVisible="{Binding TieneElementos}" />
+
+            <!-- Acciones globales para no marcar uno por uno -->
+            <Border
+                IsVisible="{Binding TieneElementos}"
+                BackgroundColor="#EEF5F2"
+                Stroke="#C7DDD6"
+                Padding="12"
+                StrokeShape="RoundRectangle 14">
+
+                <VerticalStackLayout Spacing="10">
+
+                    <Label
+                        Text="{Binding TextoElementosIncluidos}"
+                        FontSize="13"
+                        TextColor="#3B655B"
+                        LineBreakMode="WordWrap" />
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="10">
+
+                        <Button
+                            Grid.Column="0"
+                            Text="Incluir todos"
+                            Command="{Binding IncluirTodosElementosCommand}"
+                            BackgroundColor="#3B655B"
+                            TextColor="White"
+                            CornerRadius="10"
+                            HeightRequest="42"
+                            FontSize="13" />
+
+                        <Button
+                            Grid.Column="1"
+                            Text="Excluir todos"
+                            Command="{Binding ExcluirTodosElementosCommand}"
+                            BackgroundColor="#E5E7EB"
+                            TextColor="#111827"
+                            CornerRadius="10"
+                            HeightRequest="42"
+                            FontSize="13" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
 
             <VerticalStackLayout
                 Spacing="0"
@@ -183,7 +246,9 @@
 
                             <VerticalStackLayout Spacing="10">
 
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                <Grid
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
 
                                     <Border
                                         Grid.Column="0"
@@ -202,12 +267,16 @@
                                             VerticalOptions="Center" />
                                     </Border>
 
-                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2">
+
                                         <Label
                                             Text="{Binding NombreElementoQuimico}"
                                             FontSize="16"
                                             FontAttributes="Bold"
-                                            TextColor="#111827" />
+                                            TextColor="#111827"
+                                            LineBreakMode="WordWrap" />
 
                                         <Label
                                             Text="{Binding SimboloElementoQuimico}"
@@ -226,25 +295,35 @@
                                         VerticalOptions="Center">
 
                                         <Label.Triggers>
-                                            <DataTrigger TargetType="Label" Binding="{Binding Clasificacion}" Value="MUY_BAJO">
+                                            <DataTrigger
+                                                TargetType="Label"
+                                                Binding="{Binding Clasificacion}"
+                                                Value="MUY_BAJO">
                                                 <Setter Property="BackgroundColor" Value="#DC2626" />
                                             </DataTrigger>
 
-                                            <DataTrigger TargetType="Label" Binding="{Binding Clasificacion}" Value="MEDIO_BAJO">
+                                            <DataTrigger
+                                                TargetType="Label"
+                                                Binding="{Binding Clasificacion}"
+                                                Value="MEDIO_BAJO">
                                                 <Setter Property="BackgroundColor" Value="#F59E0B" />
                                             </DataTrigger>
 
-                                            <DataTrigger TargetType="Label" Binding="{Binding Clasificacion}" Value="EXCESIVO">
+                                            <DataTrigger
+                                                TargetType="Label"
+                                                Binding="{Binding Clasificacion}"
+                                                Value="EXCESIVO">
                                                 <Setter Property="BackgroundColor" Value="#7C3AED" />
                                             </DataTrigger>
 
-                                            <DataTrigger TargetType="Label" Binding="{Binding Clasificacion}" Value="ADECUADO">
+                                            <DataTrigger
+                                                TargetType="Label"
+                                                Binding="{Binding Clasificacion}"
+                                                Value="ADECUADO">
                                                 <Setter Property="BackgroundColor" Value="#16A34A" />
                                             </DataTrigger>
                                         </Label.Triggers>
-
                                     </Label>
-
                                 </Grid>
 
                                 <Grid
@@ -255,34 +334,47 @@
 
                                     <VerticalStackLayout Grid.Row="0" Grid.Column="0">
                                         <Label Text="Cantidad en el suelo" FontSize="12" TextColor="#6B7280" />
-                                        <Label Text="{Binding CantidadConvertidaLbMz, StringFormat='{0:N2} lb/mz'}" FontSize="14" FontAttributes="Bold" />
+                                        <Label
+                                            Text="{Binding CantidadConvertidaLbMz, StringFormat='{0:N2} lb/Mz'}"
+                                            FontSize="14"
+                                            FontAttributes="Bold" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout Grid.Row="0" Grid.Column="1">
                                         <Label Text="Requerimiento" FontSize="12" TextColor="#6B7280" />
-                                        <Label Text="{Binding RequerimientoCalculado, StringFormat='{0:N2} lb/mz'}" FontSize="14" FontAttributes="Bold" />
+                                        <Label
+                                            Text="{Binding RequerimientoCalculado, StringFormat='{0:N2} lb/Mz'}"
+                                            FontSize="14"
+                                            FontAttributes="Bold" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout Grid.Row="1" Grid.Column="0">
                                         <Label Text="Rango mínimo" FontSize="12" TextColor="#6B7280" />
-                                        <Label Text="{Binding RangoMinimoLbMz, StringFormat='{0:N2} lb/mz'}" FontSize="14" />
+                                        <Label
+                                            Text="{Binding RangoMinimoLbMz, StringFormat='{0:N2} lb/Mz'}"
+                                            FontSize="14" />
                                     </VerticalStackLayout>
- 
+
                                     <VerticalStackLayout Grid.Row="1" Grid.Column="1">
                                         <Label Text="Rango máximo" FontSize="12" TextColor="#6B7280" />
-                                        <Label Text="{Binding RangoMaximoLbMz, StringFormat='{0:N2} lb/mz'}" FontSize="14" />
+                                        <Label
+                                            Text="{Binding RangoMaximoLbMz, StringFormat='{0:N2} lb/Mz'}"
+                                            FontSize="14" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout Grid.Row="2" Grid.Column="0">
                                         <Label Text="Extracción por QQ" FontSize="12" TextColor="#6B7280" />
-                                        <Label Text="{Binding ExtraccionPorQQOro, StringFormat='{0:N2}'}" FontSize="14" />
+                                        <Label
+                                            Text="{Binding ExtraccionPorQQOro, StringFormat='{0:N2}'}"
+                                            FontSize="14" />
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout Grid.Row="2" Grid.Column="1">
                                         <Label Text="Extracción producción" FontSize="12" TextColor="#6B7280" />
-                                        <Label Text="{Binding ExtraccionPorProduccion, StringFormat='{0:N2}'}" FontSize="14" />
+                                        <Label
+                                            Text="{Binding ExtraccionPorProduccion, StringFormat='{0:N2}'}"
+                                            FontSize="14" />
                                     </VerticalStackLayout>
-
                                 </Grid>
 
                                 <Label
@@ -291,10 +383,43 @@
                                     TextColor="#374151"
                                     LineBreakMode="WordWrap" />
 
+                                <Border
+                                    BackgroundColor="#F9FAFB"
+                                    Stroke="#D1D5DB"
+                                    Padding="10"
+                                    StrokeShape="RoundRectangle 12">
+
+                                    <Grid
+                                        ColumnDefinitions="Auto,*"
+                                        ColumnSpacing="10">
+
+                                        <CheckBox
+                                            Grid.Column="0"
+                                            Color="#3B655B"
+                                            IsChecked="{Binding IncluirEnCalculosComplementarios, Mode=TwoWay}"
+                                            VerticalOptions="Center" />
+
+                                        <VerticalStackLayout
+                                            Grid.Column="1"
+                                            Spacing="2">
+
+                                            <Label
+                                                Text="Incluir en los cálculos complementarios"
+                                                FontSize="13"
+                                                FontAttributes="Bold"
+                                                TextColor="#111827"
+                                                LineBreakMode="WordWrap" />
+
+                                            <Label
+                                                Text="Afecta Balance y Fertilización mixta. El elemento siempre permanece en el requerimiento anual."
+                                                FontSize="12"
+                                                TextColor="#6B7280"
+                                                LineBreakMode="WordWrap" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
                             </VerticalStackLayout>
-
                         </Border>
-
                     </DataTemplate>
                 </BindableLayout.ItemTemplate>
             </VerticalStackLayout>
@@ -316,7 +441,7 @@
                             TextColor="#3B655B" />
 
                         <Label
-                            Text="Seleccione uno o varios cálculos que desea procesar. Estos cálculos no son obligatorios."
+                            Text="Seleccione uno o varios cálculos que desea procesar. Si no selecciona ninguno, se guardará solamente el requerimiento anual."
                             FontSize="14"
                             TextColor="#6B7280"
                             LineBreakMode="WordWrap" />
@@ -330,7 +455,6 @@
                         StrokeShape="RoundRectangle 14">
 
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-
                             <CheckBox
                                 Grid.Column="0"
                                 Color="#3B655B"
@@ -350,7 +474,6 @@
                                     TextColor="#6B7280"
                                     LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
-
                         </Grid>
                     </Border>
 
@@ -362,7 +485,6 @@
                         StrokeShape="RoundRectangle 14">
 
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-
                             <CheckBox
                                 Grid.Column="0"
                                 Color="#9B552C"
@@ -382,7 +504,6 @@
                                     TextColor="#6B7280"
                                     LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
-
                         </Grid>
                     </Border>
 
@@ -394,7 +515,6 @@
                         StrokeShape="RoundRectangle 14">
 
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-
                             <CheckBox
                                 Grid.Column="0"
                                 Color="#F2C94C"
@@ -414,7 +534,6 @@
                                     TextColor="#6B7280"
                                     LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
-
                         </Grid>
                     </Border>
 
@@ -433,7 +552,7 @@
                     </Border>
 
                     <Button
-                        Text="Procesar selección"
+                        Text="{Binding TextoBotonContinuar}"
                         BackgroundColor="#3B655B"
                         TextColor="White"
                         CornerRadius="12"
@@ -447,13 +566,10 @@
                         CornerRadius="12"
                         HeightRequest="45"
                         Command="{Binding VolverCommand}" />
-
                 </VerticalStackLayout>
             </Border>
 
             <BoxView HeightRequest="12" Color="Transparent" />
-
         </VerticalStackLayout>
     </ScrollView>
-
 </ContentPage>

@@ -65,12 +65,12 @@ namespace CONATRADEC.Models
             ConvertirFecha(FechaCreacionAnalisisSuelo);
 
         [JsonIgnore]
-        public string FechaAnalisisTexto => FechaAnalisisValor?.ToString("dd/MM/yyyy") ?? "No disponible";
+        public string FechaAnalisisTexto =>
+            FechaAnalisisValor?.ToString("dd/MM/yyyy") ?? "No disponible";
 
         [JsonIgnore]
         public string FechaRegistroTexto =>
-            FechaRegistroValor?.ToString("dd/MM/yyyy HH:mm") ??
-            "No disponible";
+            FechaRegistroValor?.ToString("dd/MM/yyyy HH:mm") ?? "No disponible";
 
         private static DateTime? ConvertirFecha(string? valor) =>
             DateTime.TryParse(valor, out DateTime fecha) ? fecha : null;
@@ -182,6 +182,9 @@ namespace CONATRADEC.Models
         [JsonPropertyName("observacion")]
         public string? Observacion { get; set; }
 
+        [JsonPropertyName("incluirCalculosComplementarios")]
+        public bool IncluirCalculosComplementarios { get; set; } = true;
+
         [JsonIgnore]
         public string NombreElemento { get; set; } = string.Empty;
 
@@ -204,7 +207,7 @@ namespace CONATRADEC.Models
             string.IsNullOrWhiteSpace(NombreUnidad)
                 ? UnidadMedidaId.HasValue
                     ? $"Unidad #{UnidadMedidaId.Value}"
-                    : "lb/mz"
+                    : "lb/Mz"
                 : NombreUnidad;
     }
 

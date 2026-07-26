@@ -1,5 +1,6 @@
 using CONATRADEC.Models;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -10,34 +11,53 @@ using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
 {
+    /// <summary>
+    /// Servicio central para guardar, editar, listar y eliminar análisis.
+    ///
+    /// Antes de enviar una solicitud:
+    /// 1. Recupera el requerimiento anual completo cuando las pantallas
+    ///    complementarias trabajaron con una lista filtrada.
+    /// 2. Corrige los totales del balance usando sus detalles si la cabecera
+    ///    temporal llegó con mezclaTotalQq o totalLibras en cero.
+    /// </summary>
     public sealed class GuardarTodoApiService
     {
-        private const string EndpointGuardar = "api/guardar-todo";
-        private const string EndpointListado = "api/guardar-todo";
+        private const string EndpointGuardar =
+            "api/guardar-todo";
+
+        private const string EndpointListado =
+            "api/guardar-todo";
 
         private readonly HttpClient httpClient;
 
-        private readonly JsonSerializerOptions jsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.Never
-        };
+        private readonly JsonSerializerOptions
+            jsonOptions = new()
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy =
+                    JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition =
+                    JsonIgnoreCondition.Never
+            };
 
         public GuardarTodoApiService()
             : this(ApiClientService.Client)
         {
         }
 
-        public GuardarTodoApiService(HttpClient httpClient)
+        public GuardarTodoApiService(
+            HttpClient httpClient)
         {
-            this.httpClient = httpClient
-                ?? throw new ArgumentNullException(nameof(httpClient));
+            this.httpClient =
+                httpClient ??
+                throw new ArgumentNullException(
+                    nameof(httpClient));
         }
 
         public Task<GuardarTodoResponse> GuardarAsync(
             GuardarTodoRequest request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken =
+                default)
         {
             return EnviarSolicitudAsync(
                 HttpMethod.Post,
@@ -50,225 +70,297 @@ namespace CONATRADEC.Services
         public Task<GuardarTodoResponse> EditarAsync(
             int analisisSueloCalculoId,
             GuardarTodoRequest request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken =
+                default)
         {
             if (analisisSueloCalculoId <= 0)
             {
-                return Task.FromResult(new GuardarTodoResponse
-                {
-                    Success = false,
-                    Message = "El identificador del cálculo que se debe editar no es válido."
-                });
+                return Task.FromResult(
+                    new GuardarTodoResponse
+                    {
+                        Success = false,
+                        Message =
+                            "El identificador del cálculo que se debe editar no es válido."
+                    });
             }
 
             return EnviarSolicitudAsync(
                 HttpMethod.Put,
-                $"{EndpointGuardar}/editar/{analisisSueloCalculoId}",
+                $"{EndpointGuardar}/editar/" +
+                $"{analisisSueloCalculoId}",
                 request,
                 "actualizar",
                 cancellationToken);
         }
 
-        public async Task<AnalisisGuardadoListaResponse> ListarAsync(
-            CancellationToken cancellationToken = default)
+        public async Task<
+            AnalisisGuardadoListaResponse>
+            ListarAsync(
+                CancellationToken cancellationToken =
+                    default)
         {
             try
             {
-                using HttpResponseMessage response = await httpClient.GetAsync(
-                    EndpointListado,
-                    cancellationToken);
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        EndpointListado,
+                        cancellationToken);
 
-                string jsonResponse = await response.Content.ReadAsStringAsync(
-                    cancellationToken);
+                string jsonResponse =
+                    await response.Content
+                        .ReadAsStringAsync(
+                            cancellationToken);
 
-                AnalisisGuardadoListaResponse? resultado =
-                    await DeserializarSeguroAsync<
-                        AnalisisGuardadoListaResponse>(jsonResponse);
+                AnalisisGuardadoListaResponse?
+                    resultado =
+                        DeserializarSeguro<
+                            AnalisisGuardadoListaResponse>(
+                                jsonResponse);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return new AnalisisGuardadoListaResponse
-                    {
-                        Success = false,
-                        Message = ExtraerMensajeError(
-                            jsonResponse,
-                            $"No fue posible cargar los análisis. Código HTTP {(int)response.StatusCode}.")
-                    };
+                    return new
+                        AnalisisGuardadoListaResponse
+                        {
+                            Success = false,
+                            Message =
+                                ExtraerMensajeError(
+                                    jsonResponse,
+                                    "No fue posible cargar los análisis. " +
+                                    $"Código HTTP {(int)response.StatusCode}.")
+                        };
                 }
 
                 if (resultado == null)
                 {
-                    return new AnalisisGuardadoListaResponse
-                    {
-                        Success = false,
-                        Message = "La API respondió, pero no se pudo interpretar la lista de análisis."
-                    };
+                    return new
+                        AnalisisGuardadoListaResponse
+                        {
+                            Success = false,
+                            Message =
+                                "La API respondió, pero no se pudo interpretar la lista de análisis."
+                        };
                 }
 
                 resultado.Data ??= new();
                 return resultado;
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken
+                    .IsCancellationRequested)
             {
-                return new AnalisisGuardadoListaResponse
-                {
-                    Success = false,
-                    Message = "La carga tardó demasiado. Revise la conexión e intente nuevamente."
-                };
+                return new
+                    AnalisisGuardadoListaResponse
+                    {
+                        Success = false,
+                        Message =
+                            "La carga tardó demasiado. Revise la conexión e intente nuevamente."
+                    };
             }
             catch (HttpRequestException)
             {
-                return new AnalisisGuardadoListaResponse
-                {
-                    Success = false,
-                    Message = "No fue posible conectarse con el servidor para cargar los análisis."
-                };
+                return new
+                    AnalisisGuardadoListaResponse
+                    {
+                        Success = false,
+                        Message =
+                            "No fue posible conectarse con el servidor para cargar los análisis."
+                    };
             }
             catch (Exception ex)
             {
-                return new AnalisisGuardadoListaResponse
-                {
-                    Success = false,
-                    Message = $"Ocurrió un error al cargar los análisis: {ex.Message}"
-                };
+                return new
+                    AnalisisGuardadoListaResponse
+                    {
+                        Success = false,
+                        Message =
+                            "Ocurrió un error al cargar los análisis: " +
+                            ex.Message
+                    };
             }
         }
 
-        public async Task<AnalisisGuardadoDetalleResponse> ObtenerDetalleAsync(
-            int analisisSueloCalculoId,
-            CancellationToken cancellationToken = default)
+        public async Task<
+            AnalisisGuardadoDetalleResponse>
+            ObtenerDetalleAsync(
+                int analisisSueloCalculoId,
+                CancellationToken cancellationToken =
+                    default)
         {
             if (analisisSueloCalculoId <= 0)
             {
-                return new AnalisisGuardadoDetalleResponse
-                {
-                    Success = false,
-                    Message = "El identificador del cálculo no es válido."
-                };
+                return new
+                    AnalisisGuardadoDetalleResponse
+                    {
+                        Success = false,
+                        Message =
+                            "El identificador del cálculo no es válido."
+                    };
             }
 
             try
             {
-                using HttpResponseMessage response = await httpClient.GetAsync(
-                    $"{EndpointGuardar}/listardetalle/{analisisSueloCalculoId}",
-                    cancellationToken);
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        $"{EndpointGuardar}/listardetalle/" +
+                        $"{analisisSueloCalculoId}",
+                        cancellationToken);
 
-                string jsonResponse = await response.Content.ReadAsStringAsync(
-                    cancellationToken);
+                string jsonResponse =
+                    await response.Content
+                        .ReadAsStringAsync(
+                            cancellationToken);
 
-                AnalisisGuardadoDetalleResponse? resultado =
-                    await DeserializarSeguroAsync<
-                        AnalisisGuardadoDetalleResponse>(jsonResponse);
+                AnalisisGuardadoDetalleResponse?
+                    resultado =
+                        DeserializarSeguro<
+                            AnalisisGuardadoDetalleResponse>(
+                                jsonResponse);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return new AnalisisGuardadoDetalleResponse
-                    {
-                        Success = false,
-                        Message = ExtraerMensajeError(
-                            jsonResponse,
-                            $"No fue posible cargar el detalle. Código HTTP {(int)response.StatusCode}.")
-                    };
+                    return new
+                        AnalisisGuardadoDetalleResponse
+                        {
+                            Success = false,
+                            Message =
+                                ExtraerMensajeError(
+                                    jsonResponse,
+                                    "No fue posible cargar el detalle. " +
+                                    $"Código HTTP {(int)response.StatusCode}.")
+                        };
                 }
 
                 if (resultado?.Data == null)
                 {
-                    return new AnalisisGuardadoDetalleResponse
-                    {
-                        Success = false,
-                        Message = "La API respondió, pero no devolvió el detalle del análisis."
-                    };
+                    return new
+                        AnalisisGuardadoDetalleResponse
+                        {
+                            Success = false,
+                            Message =
+                                "La API respondió, pero no devolvió el detalle del análisis."
+                        };
                 }
 
                 return resultado;
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken
+                    .IsCancellationRequested)
             {
-                return new AnalisisGuardadoDetalleResponse
-                {
-                    Success = false,
-                    Message = "La consulta tardó demasiado. Revise la conexión e intente nuevamente."
-                };
+                return new
+                    AnalisisGuardadoDetalleResponse
+                    {
+                        Success = false,
+                        Message =
+                            "La consulta tardó demasiado. Revise la conexión e intente nuevamente."
+                    };
             }
             catch (HttpRequestException)
             {
-                return new AnalisisGuardadoDetalleResponse
-                {
-                    Success = false,
-                    Message = "No fue posible conectarse con el servidor para cargar el detalle."
-                };
+                return new
+                    AnalisisGuardadoDetalleResponse
+                    {
+                        Success = false,
+                        Message =
+                            "No fue posible conectarse con el servidor para cargar el detalle."
+                    };
             }
             catch (Exception ex)
             {
-                return new AnalisisGuardadoDetalleResponse
-                {
-                    Success = false,
-                    Message = $"Ocurrió un error al cargar el detalle: {ex.Message}"
-                };
+                return new
+                    AnalisisGuardadoDetalleResponse
+                    {
+                        Success = false,
+                        Message =
+                            "Ocurrió un error al cargar el detalle: " +
+                            ex.Message
+                    };
             }
         }
 
-        public async Task<EliminarAnalisisResponse> EliminarAsync(
-            int analisisSueloId,
-            CancellationToken cancellationToken = default)
+        public async Task<EliminarAnalisisResponse>
+            EliminarAsync(
+                int analisisSueloId,
+                CancellationToken cancellationToken =
+                    default)
         {
             if (analisisSueloId <= 0)
             {
                 return new EliminarAnalisisResponse
                 {
                     Success = false,
-                    Message = "El identificador del análisis no es válido."
+                    Message =
+                        "El identificador del análisis no es válido."
                 };
             }
 
             try
             {
-                using HttpResponseMessage response = await httpClient.DeleteAsync(
-                    $"{EndpointGuardar}/{analisisSueloId}",
-                    cancellationToken);
+                using HttpResponseMessage response =
+                    await httpClient.DeleteAsync(
+                        $"{EndpointGuardar}/" +
+                        $"{analisisSueloId}",
+                        cancellationToken);
 
-                string jsonResponse = await response.Content.ReadAsStringAsync(
-                    cancellationToken);
+                string jsonResponse =
+                    await response.Content
+                        .ReadAsStringAsync(
+                            cancellationToken);
 
-                EliminarAnalisisResponse? resultado =
-                    await DeserializarSeguroAsync<
-                        EliminarAnalisisResponse>(jsonResponse);
+                EliminarAnalisisResponse?
+                    resultado =
+                        DeserializarSeguro<
+                            EliminarAnalisisResponse>(
+                                jsonResponse);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    string mensajeError = ExtraerMensajeError(
-                        jsonResponse,
-                        $"No fue posible eliminar el análisis. Código HTTP {(int)response.StatusCode}.");
+                    string mensajeError =
+                        ExtraerMensajeError(
+                            jsonResponse,
+                            "No fue posible eliminar el análisis. " +
+                            $"Código HTTP {(int)response.StatusCode}.");
 
                     if (resultado != null)
                     {
                         resultado.Success = false;
 
-                        if (string.IsNullOrWhiteSpace(resultado.Message))
-                            resultado.Message = mensajeError;
+                        if (string.IsNullOrWhiteSpace(
+                                resultado.Message))
+                        {
+                            resultado.Message =
+                                mensajeError;
+                        }
 
                         return resultado;
                     }
 
-                    return new EliminarAnalisisResponse
-                    {
-                        Success = false,
-                        Message = mensajeError
-                    };
+                    return new
+                        EliminarAnalisisResponse
+                        {
+                            Success = false,
+                            Message = mensajeError
+                        };
                 }
 
-                return resultado ?? new EliminarAnalisisResponse
-                {
-                    Success = false,
-                    Message = "La API procesó la eliminación, pero no se pudo interpretar su respuesta."
-                };
+                return resultado ??
+                    new EliminarAnalisisResponse
+                    {
+                        Success = false,
+                        Message =
+                            "La API procesó la eliminación, pero no se pudo interpretar su respuesta."
+                    };
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken
+                    .IsCancellationRequested)
             {
                 return new EliminarAnalisisResponse
                 {
                     Success = false,
-                    Message = "La eliminación tardó demasiado. Revise la conexión e intente nuevamente."
+                    Message =
+                        "La eliminación tardó demasiado. Revise la conexión e intente nuevamente."
                 };
             }
             catch (HttpRequestException)
@@ -276,7 +368,8 @@ namespace CONATRADEC.Services
                 return new EliminarAnalisisResponse
                 {
                     Success = false,
-                    Message = "No fue posible conectarse con el servidor para eliminar el análisis."
+                    Message =
+                        "No fue posible conectarse con el servidor para eliminar el análisis."
                 };
             }
             catch (Exception ex)
@@ -284,65 +377,82 @@ namespace CONATRADEC.Services
                 return new EliminarAnalisisResponse
                 {
                     Success = false,
-                    Message = $"Ocurrió un error al eliminar el análisis: {ex.Message}"
+                    Message =
+                        "Ocurrió un error al eliminar el análisis: " +
+                        ex.Message
                 };
             }
         }
 
-        private async Task<GuardarTodoResponse> EnviarSolicitudAsync(
-            HttpMethod method,
-            string endpoint,
-            GuardarTodoRequest request,
-            string accion,
-            CancellationToken cancellationToken)
+        private async Task<GuardarTodoResponse>
+            EnviarSolicitudAsync(
+                HttpMethod method,
+                string endpoint,
+                GuardarTodoRequest request,
+                string accion,
+                CancellationToken cancellationToken)
         {
             if (request == null)
             {
                 return new GuardarTodoResponse
                 {
                     Success = false,
-                    Message = "No se recibieron los datos que se deben procesar."
+                    Message =
+                        "No se recibieron los datos que se deben procesar."
                 };
             }
 
             try
             {
-                string jsonRequest = await Task.Run(() =>
+                NormalizarAntesDeEnviar(request);
+
+                string jsonRequest =
                     JsonSerializer.Serialize(
                         request,
-                        jsonOptions));
+                        jsonOptions);
 
-                using HttpRequestMessage mensaje = new(method, endpoint)
-                {
-                    Content = new StringContent(
-                        jsonRequest,
-                        Encoding.UTF8,
-                        "application/json")
-                };
+                using HttpRequestMessage mensaje =
+                    new(method, endpoint)
+                    {
+                        Content = new StringContent(
+                            jsonRequest,
+                            Encoding.UTF8,
+                            "application/json")
+                    };
 
-                using HttpResponseMessage response = await httpClient.SendAsync(
-                    mensaje,
-                    cancellationToken);
+                using HttpResponseMessage response =
+                    await httpClient.SendAsync(
+                        mensaje,
+                        cancellationToken);
 
-                string jsonResponse = await response.Content.ReadAsStringAsync(
-                    cancellationToken);
+                string jsonResponse =
+                    await response.Content
+                        .ReadAsStringAsync(
+                            cancellationToken);
 
                 GuardarTodoResponse? resultado =
-                    await DeserializarSeguroAsync<
-                        GuardarTodoResponse>(jsonResponse);
+                    DeserializarSeguro<
+                        GuardarTodoResponse>(
+                            jsonResponse);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    string mensajeError = ExtraerMensajeError(
-                        jsonResponse,
-                        $"No fue posible {accion} el análisis. Código HTTP {(int)response.StatusCode}.");
+                    string mensajeError =
+                        ExtraerMensajeError(
+                            jsonResponse,
+                            $"No fue posible {accion} el análisis. " +
+                            $"Código HTTP {(int)response.StatusCode}.");
 
                     if (resultado != null)
                     {
                         resultado.Success = false;
 
-                        if (string.IsNullOrWhiteSpace(resultado.Message))
-                            resultado.Message = mensajeError;
+                        if (string.IsNullOrWhiteSpace(
+                                resultado.Message))
+                        {
+                            resultado.Message =
+                                mensajeError;
+                        }
 
                         return resultado;
                     }
@@ -354,18 +464,34 @@ namespace CONATRADEC.Services
                     };
                 }
 
-                return resultado ?? new GuardarTodoResponse
+                GuardarTodoResponse respuestaFinal =
+                    resultado ??
+                    new GuardarTodoResponse
+                    {
+                        Success = false,
+                        Message =
+                            "La API procesó la solicitud, pero no se pudo interpretar la respuesta al " +
+                            accion +
+                            "."
+                    };
+
+                if (respuestaFinal.Success)
                 {
-                    Success = false,
-                    Message = $"La API procesó la solicitud, pero no se pudo interpretar la respuesta al {accion}."
-                };
+                    SeleccionElementosComplementariosService
+                        .Limpiar();
+                }
+
+                return respuestaFinal;
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken
+                    .IsCancellationRequested)
             {
                 return new GuardarTodoResponse
                 {
                     Success = false,
-                    Message = "La solicitud tardó demasiado. Revise la conexión e intente nuevamente."
+                    Message =
+                        "La solicitud tardó demasiado. Revise la conexión e intente nuevamente."
                 };
             }
             catch (HttpRequestException)
@@ -373,7 +499,8 @@ namespace CONATRADEC.Services
                 return new GuardarTodoResponse
                 {
                     Success = false,
-                    Message = "No fue posible conectarse con el servidor. Verifique su conexión."
+                    Message =
+                        "No fue posible conectarse con el servidor. Verifique su conexión."
                 };
             }
             catch (Exception ex)
@@ -381,30 +508,159 @@ namespace CONATRADEC.Services
                 return new GuardarTodoResponse
                 {
                     Success = false,
-                    Message = $"Ocurrió un error al {accion} el análisis: {ex.Message}"
+                    Message =
+                        $"Ocurrió un error al {accion} el análisis: " +
+                        ex.Message
                 };
             }
         }
 
-        private Task<T?> DeserializarSeguroAsync<T>(string json)
+        private static void NormalizarAntesDeEnviar(
+            GuardarTodoRequest request)
+        {
+            RestaurarRequerimientoCompleto(request);
+            NormalizarBalance(request.BalanceNutricional);
+        }
+
+        private static void RestaurarRequerimientoCompleto(
+            GuardarTodoRequest request)
+        {
+            AnalisisSueloCalculoDataResponse?
+                completo =
+                    SeleccionElementosComplementariosService
+                        .ObtenerRequerimientoCompleto(
+                            request
+                                .DatosAnalisis
+                                .IdentificadorAnalisisSuelo);
+
+            if (completo?.Elementos == null ||
+                completo.Elementos.Count == 0)
+            {
+                return;
+            }
+
+            request.RequerimientoAnual.Elementos =
+                completo.Elementos
+                    .Where(x =>
+                        x.ElementoQuimicosId is > 0)
+                    .Select(x =>
+                        new
+                            GuardarTodoRequerimientoElementoRequest
+                            {
+                                ElementoQuimicosId =
+                                    x.ElementoQuimicosId!.Value,
+                                SimboloElementoQuimico =
+                                    x.SimboloElementoQuimico?
+                                        .Trim() ??
+                                    string.Empty,
+                                NombreElementoQuimico =
+                                    x.NombreElementoQuimico?
+                                        .Trim() ??
+                                    string.Empty,
+                                CantidadIngresada =
+                                    x.CantidadIngresada ?? 0,
+                                CantidadConvertidaLbMz =
+                                    x.CantidadConvertidaLbMz,
+                                ExtraccionPorQQOro =
+                                    x.ExtraccionPorQQOro,
+                                ExtraccionPorProduccion =
+                                    x.ExtraccionPorProduccion,
+                                RangoMinimo =
+                                    x.RangoMinimo,
+                                RangoMaximo =
+                                    x.RangoMaximo,
+                                RangoMinimoLbMz =
+                                    x.RangoMinimoLbMz,
+                                RangoMaximoLbMz =
+                                    x.RangoMaximoLbMz,
+                                RequerimientoCalculado =
+                                    x.RequerimientoCalculado,
+                                UnidadBase =
+                                    x.UnidadBase?.Trim() ??
+                                    string.Empty,
+                                UnidadMedidaResultadoId =
+                                    x.UnidadMedidaResultadoId,
+                                UnidadResultado =
+                                    string.IsNullOrWhiteSpace(
+                                        x.UnidadResultado)
+                                        ? "lb/Mz"
+                                        : x.UnidadResultado.Trim(),
+                                Clasificacion =
+                                    x.Clasificacion?.Trim() ??
+                                    string.Empty,
+                                Observacion =
+                                    x.Observacion?.Trim() ??
+                                    string.Empty,
+                                IncluirCalculosComplementarios =
+                                    x.IncluirEnCalculosComplementarios
+                            })
+                    .ToList();
+        }
+
+        private static void NormalizarBalance(
+            GuardarTodoBalanceNutricionalRequest?
+                balance)
+        {
+            if (balance?.Resultado == null)
+                return;
+
+            GuardarTodoBalanceResultadoRequest
+                resultado = balance.Resultado;
+
+            List<GuardarTodoBalanceDetalleRequest>
+                detalles =
+                    resultado.Detalle ??
+                    new List<
+                        GuardarTodoBalanceDetalleRequest>();
+
+            if (resultado.TotalLibras <= 0)
+            {
+                resultado.TotalLibras =
+                    detalles.Sum(x => x.Lb);
+            }
+
+            if (resultado.MezclaTotalQq <= 0)
+            {
+                resultado.MezclaTotalQq =
+                    detalles.Sum(x => x.Qq);
+            }
+
+            if (resultado.MezclaTotalQq <= 0 &&
+                resultado.TotalLibras > 0)
+            {
+                /*
+                 * Un quintal equivale a 100 libras.
+                 * Se usa únicamente como recuperación cuando la API de
+                 * cálculo entregó los detalles pero dejó la cabecera en 0.
+                 */
+                resultado.MezclaTotalQq =
+                    resultado.TotalLibras / 100m;
+            }
+
+            if (resultado.MezclaTotalQq <= 0)
+            {
+                throw new InvalidOperationException(
+                    "La mezcla total del balance es igual a cero. Recalcule el balance y verifique las fuentes seleccionadas antes de guardar.");
+            }
+        }
+
+        private T? DeserializarSeguro<T>(
+            string json)
             where T : class
         {
             if (string.IsNullOrWhiteSpace(json))
-                return Task.FromResult<T?>(null);
+                return null;
 
-            return Task.Run<T?>(() =>
+            try
             {
-                try
-                {
-                    return JsonSerializer.Deserialize<T>(
-                        json,
-                        jsonOptions);
-                }
-                catch
-                {
-                    return null;
-                }
-            });
+                return JsonSerializer.Deserialize<T>(
+                    json,
+                    jsonOptions);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static string ExtraerMensajeError(
@@ -416,39 +672,70 @@ namespace CONATRADEC.Services
 
             try
             {
-                using JsonDocument document = JsonDocument.Parse(json);
-                JsonElement root = document.RootElement;
+                using JsonDocument document =
+                    JsonDocument.Parse(json);
 
-                if (TryGetPropertyIgnoreCase(root, "message", out JsonElement message) &&
-                    message.ValueKind == JsonValueKind.String &&
-                    !string.IsNullOrWhiteSpace(message.GetString()))
+                JsonElement root =
+                    document.RootElement;
+
+                if (TryGetPropertyIgnoreCase(
+                        root,
+                        "message",
+                        out JsonElement message) &&
+                    message.ValueKind ==
+                        JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(
+                        message.GetString()))
                 {
                     return message.GetString()!;
                 }
 
-                if (TryGetPropertyIgnoreCase(root, "title", out JsonElement title) &&
-                    title.ValueKind == JsonValueKind.String &&
-                    !string.IsNullOrWhiteSpace(title.GetString()))
+                if (TryGetPropertyIgnoreCase(
+                        root,
+                        "title",
+                        out JsonElement title) &&
+                    title.ValueKind ==
+                        JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(
+                        title.GetString()))
                 {
                     return title.GetString()!;
                 }
 
-                if (TryGetPropertyIgnoreCase(root, "errors", out JsonElement errors) &&
-                    errors.ValueKind == JsonValueKind.Object)
+                if (TryGetPropertyIgnoreCase(
+                        root,
+                        "errors",
+                        out JsonElement errors) &&
+                    errors.ValueKind ==
+                        JsonValueKind.Object)
                 {
-                    foreach (JsonProperty property in errors.EnumerateObject())
+                    foreach (
+                        JsonProperty property
+                        in errors.EnumerateObject())
                     {
-                        if (property.Value.ValueKind != JsonValueKind.Array)
+                        if (property.Value.ValueKind !=
+                            JsonValueKind.Array)
+                        {
                             continue;
+                        }
 
-                        string? firstError = property.Value
-                            .EnumerateArray()
-                            .Where(x => x.ValueKind == JsonValueKind.String)
-                            .Select(x => x.GetString())
-                            .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+                        string? firstError =
+                            property.Value
+                                .EnumerateArray()
+                                .Where(x =>
+                                    x.ValueKind ==
+                                    JsonValueKind.String)
+                                .Select(x =>
+                                    x.GetString())
+                                .FirstOrDefault(x =>
+                                    !string.IsNullOrWhiteSpace(
+                                        x));
 
-                        if (!string.IsNullOrWhiteSpace(firstError))
+                        if (!string.IsNullOrWhiteSpace(
+                                firstError))
+                        {
                             return firstError;
+                        }
                     }
                 }
             }
@@ -464,7 +751,9 @@ namespace CONATRADEC.Services
             string propertyName,
             out JsonElement value)
         {
-            foreach (JsonProperty property in element.EnumerateObject())
+            foreach (
+                JsonProperty property
+                in element.EnumerateObject())
             {
                 if (string.Equals(
                         property.Name,

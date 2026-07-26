@@ -7,63 +7,183 @@ using System.Threading.Tasks;
 
 namespace CONATRADEC.Views
 {
-    public partial class MultiCalculoPage : ContentPage
+    public partial class MultiCalculoPage :
+        ContentPage
     {
+        private const string TabBalanceFormula =
+            "BALANCE_FORMULA";
+
         private readonly MultiCalculoViewModel viewModel =
             new MultiCalculoViewModel();
 
         private BalanceFormulaTabView? balanceView;
         private EnmiendaCalcareaTabView? enmiendaView;
-        private FertilizacionMixtaTabView? fertilizacionView;
+        private FertilizacionMixtaTabView?
+            fertilizacionView;
+
+        /*
+         * Permite distinguir una pestaña Mixta seleccionada
+         * originalmente de otra creada únicamente por activar
+         * "Complementar el balance con fertilización mixta".
+         */
+        private bool estadoInicialMixtaCapturado;
+        private bool mixtaSeleccionadaOriginalmente;
+        private bool mixtaActivadaPorComplemento;
 
         public MultiCalculoPage()
         {
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
+
             InitializeComponent();
+
             BindingContext = viewModel;
 
             viewModel.PropertyChanged +=
                 ViewModel_PropertyChanged;
+
+            viewModel
+                .BalanceFormula
+                .ComplementoFertilizacionMixtaCambiado +=
+                    BalanceFormula_
+                        ComplementoFertilizacionMixtaCambiado;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            viewModel.LoadPagePermissions("ResultadoAnalisisSueloPage");
+            viewModel.LoadPagePermissions(
+                "ResultadoAnalisisSueloPage");
 
             if (!viewModel.CanView)
             {
                 await GlobalService.MostrarToastAsync(
                     "No tiene permisos para ver los cálculos complementarios.");
 
-                await Shell.Current.GoToAsync("//MainPage");
+                await Shell.Current
+                    .GoToAsync("//MainPage");
+
+                return;
+            }
+
+            CapturarSeleccionOriginalMixta();
+
+            /*
+             * MultiCalculoPage es un ShellContent y MAUI conserva
+             * la misma instancia. Al editar otro análisis, durante
+             * unos milisegundos todavía pueden existir los elementos
+             * del balance anterior.
+             *
+             * Se espera a que MultiCalculoViewModel y
+             * BalanceFormulaViewModel hayan recibido el resultado
+             * temporal del análisis actual. Solo entonces se restauran
+             * las fuentes, el resultado y el checkbox guardados.
+             */
+            await EsperarInicializacionActualAsync();
+
+            await RestaurarCalculosEdicionUiService
+                .Instance
+                .RestaurarAsync(viewModel);
+        }
+
+        private void CapturarSeleccionOriginalMixta()
+        {
+            if (estadoInicialMixtaCapturado)
+                return;
+
+            estadoInicialMixtaCapturado = true;
+
+            /*
+             * En un análisis nuevo, MostrarFertilizacionMixta ya
+             * contiene la selección realizada en la pantalla anterior.
+             * Si todavía no existe complemento, esa pestaña fue
+             * seleccionada directamente por el usuario.
+             */
+            mixtaSeleccionadaOriginalmente =
+                viewModel.MostrarFertilizacionMixta &&
+                !viewModel
+                    .BalanceFormula
+                    .ComplementarConFertilizacionMixta;
+
+            mixtaActivadaPorComplemento = false;
+        }
+
+        private async void
+            BalanceFormula_
+                ComplementoFertilizacionMixtaCambiado(
+                    object? sender,
+                    BalanceFertilizacionMixtaChangedEventArgs
+                        e)
+        {
+            if (!estadoInicialMixtaCapturado)
+                CapturarSeleccionOriginalMixta();
+
+            if (e.Activado)
+            {
+                if (!mixtaSeleccionadaOriginalmente)
+                {
+                    mixtaActivadaPorComplemento = true;
+                }
+
                 return;
             }
 
             /*
-             * MultiCalculoPage es un ShellContent y MAUI conserva la misma
-             * instancia. Al editar otro análisis, durante unos milisegundos
-             * todavía pueden existir los elementos del balance anterior.
-             *
-             * Se espera a que MultiCalculoViewModel y BalanceFormulaViewModel
-             * hayan recibido el resultado temporal del análisis actual y que
-             * la carga asíncrona del balance haya terminado. Solo entonces se
-             * restauran las fuentes, el resultado y el checkbox guardados.
+             * Si Mixta fue seleccionada desde la pantalla de cálculos
+             * opcionales, al quitar el complemento debe continuar
+             * disponible como cálculo independiente.
              */
-            await EsperarInicializacionActualAsync();
+            if (mixtaSeleccionadaOriginalmente)
+            {
+                mixtaActivadaPorComplemento = false;
+                return;
+            }
 
-            await RestaurarCalculosEdicionUiService.Instance
-                .RestaurarAsync(viewModel);
-        }
-
-        private async Task EsperarInicializacionActualAsync()
-        {
-            if (!AnalisisEdicionService.Instance.EsModoEdicion)
+            /*
+             * Si apareció únicamente por activar el complemento,
+             * al quitar el check se oculta, se limpia su resultado
+             * temporal y se regresa a Balance si estaba seleccionada.
+             */
+            if (!mixtaActivadaPorComplemento)
                 return;
 
+            mixtaActivadaPorComplemento = false;
+
+            viewModel.MostrarFertilizacionMixta =
+                false;
+
+            if (viewModel.EsFertilizacionSeleccionada)
+            {
+                viewModel.TabSeleccionada =
+                    TabBalanceFormula;
+            }
+
+            await CalculoAnalisisTemporalService
+                .Instance
+                .ReiniciarCalculoAsync(
+                    TipoCalculoTemporal
+                        .FertilizacionMixta,
+                    "Fertilización mixta retirada porque se desactivó el complemento del balance.");
+
+            viewModel.Mensaje =
+                "Se desactivó el complemento. La pestaña Mixta fue retirada porque no había sido seleccionada originalmente.";
+        }
+
+        private async Task
+            EsperarInicializacionActualAsync()
+        {
+            if (!AnalisisEdicionService
+                    .Instance
+                    .EsModoEdicion)
+            {
+                return;
+            }
+
             AnalisisEdicionContexto? contexto =
-                AnalisisEdicionService.Instance.ContextoActual;
+                AnalisisEdicionService
+                    .Instance
+                    .ContextoActual;
 
             if (contexto == null)
                 return;
@@ -74,17 +194,23 @@ namespace CONATRADEC.Views
             {
                 if (!ReferenceEquals(
                         contexto,
-                        AnalisisEdicionService.Instance.ContextoActual))
+                        AnalisisEdicionService
+                            .Instance
+                            .ContextoActual))
                 {
                     return;
                 }
 
-                CalculoAnalisisTemporalState estadoTemporal =
-                    CalculoAnalisisTemporalService.Instance
-                        .ObtenerEstadoActual();
+                CalculoAnalisisTemporalState
+                    estadoTemporal =
+                        CalculoAnalisisTemporalService
+                            .Instance
+                            .ObtenerEstadoActual();
 
-                AnalisisSueloCalculoDataResponse? resultadoActual =
-                    estadoTemporal.ResultadoAnalisisSuelo;
+                AnalisisSueloCalculoDataResponse?
+                    resultadoActual =
+                        estadoTemporal
+                            .ResultadoAnalisisSuelo;
 
                 bool multiCalculoActual =
                     resultadoActual != null &&
@@ -100,23 +226,29 @@ namespace CONATRADEC.Views
                 }
 
                 /*
-                 * Si el análisis guardado no tiene balance, no es necesario
-                 * esperar esa pestaña. La enmienda conserva su propia espera
-                 * mediante CargaEnmiendasFinalizada dentro del restaurador.
+                 * Si el análisis guardado no tiene balance,
+                 * no es necesario esperar esa pestaña.
                  */
                 if (!contexto.TieneBalance ||
-                    !viewModel.MostrarBalanceFormula)
+                    !viewModel
+                        .MostrarBalanceFormula)
                 {
                     return;
                 }
 
                 bool balanceActual =
                     ReferenceEquals(
-                        viewModel.BalanceFormula.ResultadoCalculo,
+                        viewModel
+                            .BalanceFormula
+                            .ResultadoCalculo,
                         resultadoActual) &&
-                    !viewModel.BalanceFormula.IsBusy &&
-                    viewModel.BalanceFormula
-                        .ElementosBalance.Count > 0;
+                    !viewModel
+                        .BalanceFormula
+                        .IsBusy &&
+                    viewModel
+                        .BalanceFormula
+                        .ElementosBalance
+                        .Count > 0;
 
                 if (balanceActual)
                     return;
@@ -130,17 +262,20 @@ namespace CONATRADEC.Views
             PropertyChangedEventArgs e)
         {
             /*
-             * TabSeleccionada también notifica las tres propiedades
-             * Es...Seleccionado. Escuchar las cuatro provocaba cuatro
-             * despachos y hasta cuatro intentos de redibujar la pestaña.
+             * TabSeleccionada también notifica las tres
+             * propiedades Es...Seleccionado. Escuchar las cuatro
+             * provocaba múltiples intentos de redibujar.
              */
-            if (e.PropertyName != nameof(
-                    MultiCalculoViewModel.TabSeleccionada))
+            if (e.PropertyName !=
+                nameof(
+                    MultiCalculoViewModel
+                        .TabSeleccionada))
             {
                 return;
             }
 
-            Dispatcher.Dispatch(ActualizarVistaTab);
+            Dispatcher.Dispatch(
+                ActualizarVistaTab);
         }
 
         private void ActualizarVistaTab()
@@ -149,11 +284,13 @@ namespace CONATRADEC.Views
             {
                 AsegurarVistaBalance();
             }
-            else if (viewModel.EsEnmiendaSeleccionada)
+            else if (
+                viewModel.EsEnmiendaSeleccionada)
             {
                 AsegurarVistaEnmienda();
             }
-            else if (viewModel.EsFertilizacionSeleccionada)
+            else if (
+                viewModel.EsFertilizacionSeleccionada)
             {
                 AsegurarVistaFertilizacion();
             }
@@ -161,19 +298,22 @@ namespace CONATRADEC.Views
             if (balanceView != null)
             {
                 balanceView.IsVisible =
-                    viewModel.EsBalanceSeleccionado;
+                    viewModel
+                        .EsBalanceSeleccionado;
             }
 
             if (enmiendaView != null)
             {
                 enmiendaView.IsVisible =
-                    viewModel.EsEnmiendaSeleccionada;
+                    viewModel
+                        .EsEnmiendaSeleccionada;
             }
 
             if (fertilizacionView != null)
             {
                 fertilizacionView.IsVisible =
-                    viewModel.EsFertilizacionSeleccionada;
+                    viewModel
+                        .EsFertilizacionSeleccionada;
             }
         }
 
@@ -182,13 +322,17 @@ namespace CONATRADEC.Views
             if (balanceView != null)
                 return;
 
-            balanceView = new BalanceFormulaTabView
-            {
-                BindingContext = viewModel.BalanceFormula,
-                IsVisible = false
-            };
+            balanceView =
+                new BalanceFormulaTabView
+                {
+                    BindingContext =
+                        viewModel.BalanceFormula,
+                    IsVisible = false
+                };
 
-            ContenidoTabActual.Children.Add(balanceView);
+            ContenidoTabActual
+                .Children
+                .Add(balanceView);
         }
 
         private void AsegurarVistaEnmienda()
@@ -196,13 +340,17 @@ namespace CONATRADEC.Views
             if (enmiendaView != null)
                 return;
 
-            enmiendaView = new EnmiendaCalcareaTabView
-            {
-                BindingContext = viewModel.EnmiendaCalcarea,
-                IsVisible = false
-            };
+            enmiendaView =
+                new EnmiendaCalcareaTabView
+                {
+                    BindingContext =
+                        viewModel.EnmiendaCalcarea,
+                    IsVisible = false
+                };
 
-            ContenidoTabActual.Children.Add(enmiendaView);
+            ContenidoTabActual
+                .Children
+                .Add(enmiendaView);
         }
 
         private void AsegurarVistaFertilizacion()
@@ -210,13 +358,18 @@ namespace CONATRADEC.Views
             if (fertilizacionView != null)
                 return;
 
-            fertilizacionView = new FertilizacionMixtaTabView
-            {
-                BindingContext = viewModel.FertilizacionMixta,
-                IsVisible = false
-            };
+            fertilizacionView =
+                new FertilizacionMixtaTabView
+                {
+                    BindingContext =
+                        viewModel
+                            .FertilizacionMixta,
+                    IsVisible = false
+                };
 
-            ContenidoTabActual.Children.Add(fertilizacionView);
+            ContenidoTabActual
+                .Children
+                .Add(fertilizacionView);
         }
     }
 }

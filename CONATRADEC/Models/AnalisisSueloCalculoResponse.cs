@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
@@ -44,23 +47,44 @@ namespace CONATRADEC.Models
         public List<string> Observaciones { get; set; } = new();
     }
 
-    public class ElementoResultadoCalculoResponse
+    /// <summary>
+    /// Resultado de un elemento químico expresado finalmente en lb/Mz.
+    ///
+    /// IncluirEnCalculosComplementarios controla únicamente si el elemento
+    /// participa en Balance de fórmula y Fertilización mixta. El elemento
+    /// siempre permanece dentro del requerimiento anual y del historial.
+    /// </summary>
+    public class ElementoResultadoCalculoResponse : INotifyPropertyChanged
     {
         private string? simboloElementoQuimico;
         private string? nombreElementoQuimico;
+        private string? clasificacion;
+
+        private bool incluirEnCalculosComplementarios = true;
+        private bool inclusionDefinidaPorRespuesta;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public int? ElementoQuimicosId { get; set; }
 
         public string? SimboloElementoQuimico
         {
             get => simboloElementoQuimico;
-            set => simboloElementoQuimico = LimpiarTexto(value);
+            set
+            {
+                simboloElementoQuimico = LimpiarTexto(value);
+                OnPropertyChanged();
+            }
         }
 
         public string? NombreElementoQuimico
         {
             get => nombreElementoQuimico;
-            set => nombreElementoQuimico = LimpiarTexto(value);
+            set
+            {
+                nombreElementoQuimico = LimpiarTexto(value);
+                OnPropertyChanged();
+            }
         }
 
         public decimal? CantidadIngresada { get; set; }
@@ -87,9 +111,62 @@ namespace CONATRADEC.Models
 
         public string? UnidadResultado { get; set; }
 
-        public string? Clasificacion { get; set; }
+        public string? Clasificacion
+        {
+            get => clasificacion;
+            set
+            {
+                clasificacion = LimpiarTexto(value);
+
+                /*
+                 * Compatibilidad con respuestas anteriores de la API:
+                 * cuando todavía no venga la bandera persistida, los
+                 * elementos EXCESIVO comienzan excluidos por defecto.
+                 */
+                if (!inclusionDefinidaPorRespuesta)
+                {
+                    incluirEnCalculosComplementarios =
+                        !EsClasificacionExcesiva(clasificacion);
+
+                    OnPropertyChanged(
+                        nameof(IncluirEnCalculosComplementarios));
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(EsExcesivo));
+            }
+        }
 
         public string? Observacion { get; set; }
+
+        [JsonPropertyName("incluirCalculosComplementarios")]
+        public bool IncluirEnCalculosComplementarios
+        {
+            get => incluirEnCalculosComplementarios;
+            set
+            {
+                inclusionDefinidaPorRespuesta = true;
+
+                if (incluirEnCalculosComplementarios == value)
+                    return;
+
+                incluirEnCalculosComplementarios = value;
+                OnPropertyChanged();
+            }
+        }
+
+        [JsonIgnore]
+        public bool EsExcesivo =>
+            EsClasificacionExcesiva(Clasificacion);
+
+        private static bool EsClasificacionExcesiva(
+            string? valor)
+        {
+            return string.Equals(
+                valor?.Trim(),
+                "EXCESIVO",
+                System.StringComparison.OrdinalIgnoreCase);
+        }
 
         private static string? LimpiarTexto(string? valor)
         {
@@ -97,6 +174,14 @@ namespace CONATRADEC.Models
                 return null;
 
             return valor.Trim();
+        }
+
+        private void OnPropertyChanged(
+            [CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(propertyName));
         }
     }
 }
