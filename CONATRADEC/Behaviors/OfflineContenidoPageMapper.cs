@@ -62,8 +62,15 @@ namespace CONATRADEC.Behaviors
                             "NuevoAnalisisFormPage",
                             StringComparison.OrdinalIgnoreCase);
 
+                    bool esPaginaPrincipal =
+                        string.Equals(
+                            page.GetType().Name,
+                            "MainPage",
+                            StringComparison.OrdinalIgnoreCase);
+
                     if (!permiteTrabajoOffline ||
                         (!esNuevoAnalisis &&
+                         !esPaginaPrincipal &&
                          page is not noticiasPage &&
                          page is not albumFotosPage))
                     {
@@ -110,6 +117,15 @@ namespace CONATRADEC.Behaviors
 
             if (string.Equals(
                     page.GetType().Name,
+                    "MainPage",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                configurado =
+                    ConfigurarPaginaPrincipal(
+                        page);
+            }
+            else if (string.Equals(
+                    page.GetType().Name,
                     "NuevoAnalisisFormPage",
                     StringComparison.OrdinalIgnoreCase))
             {
@@ -141,6 +157,148 @@ namespace CONATRADEC.Behaviors
                     ConfiguradoProperty,
                     true);
             }
+        }
+
+        private static bool ConfigurarPaginaPrincipal(
+            ContentPage page)
+        {
+            CollectionView? listado =
+                page.FindByName<CollectionView>(
+                    "AnalisisCollectionView");
+
+            if (listado?.Header is not View encabezado)
+                return false;
+
+            ImageButton? botonNuevo =
+                BuscarBotonNuevoAnalisis(
+                    encabezado);
+
+            if (botonNuevo == null)
+                return false;
+
+            botonNuevo.Command =
+                new Command(
+                    async () =>
+                        await AbrirNuevoAnalisisAsync(
+                            page));
+
+            /*
+             * El listado puede estar esperando una respuesta del servidor.
+             * La creación offline no debe depender de esa consulta.
+             */
+            botonNuevo.IsEnabled = true;
+
+            return true;
+        }
+
+        private static async Task AbrirNuevoAnalisisAsync(
+            ContentPage page)
+        {
+            if (page.BindingContext is not MainPageViewModel viewModel)
+                return;
+
+            if (!viewModel.CanAdd)
+            {
+                await page.DisplayAlert(
+                    "Acceso denegado",
+                    "No tiene permisos para registrar análisis.",
+                    "Aceptar");
+                return;
+            }
+
+            if (viewModel.IsBusy)
+                return;
+
+            bool trabajarOffline =
+                SesionOfflineService.SesionActualEsOffline ||
+                !EstadoConexionService.Instance.HayInternet;
+
+            if (trabajarOffline)
+            {
+                if (!DatosSinConexionPermisos.TienePermiso)
+                {
+                    await page.DisplayAlert(
+                        "Trabajo sin conexión",
+                        "Su usuario no tiene habilitado el trabajo sin conexión.",
+                        "Aceptar");
+                    return;
+                }
+
+                bool motorDisponible =
+                    await MotorCalculoPaqueteService.Instance
+                        .TienePaqueteValidoAsync();
+
+                if (!motorDisponible)
+                {
+                    await page.DisplayAlert(
+                        "Motor no disponible",
+                        "Este dispositivo no tiene un motor de cálculo válido. Conéctese y pulse Actualizar todo.",
+                        "Aceptar");
+                    return;
+                }
+
+                await ModoTrabajoAnalisisService.Instance
+                    .PrepararNuevoAnalisisAsync();
+            }
+
+            viewModel.CancelarCarga();
+            AnalisisEdicionService.Instance.Limpiar();
+
+            await Shell.Current.GoToAsync(
+                "//NuevoAnalisisFormPage",
+                false);
+        }
+
+        private static ImageButton? BuscarBotonNuevoAnalisis(
+            View? view)
+        {
+            if (view is ImageButton imageButton)
+            {
+                if (imageButton.Source is FileImageSource file &&
+                    string.Equals(
+                        file.File,
+                        "iconadd.png",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return imageButton;
+                }
+            }
+
+            if (view is ContentView contentView)
+            {
+                return BuscarBotonNuevoAnalisis(
+                    contentView.Content);
+            }
+
+            if (view is ScrollView scrollView)
+            {
+                return BuscarBotonNuevoAnalisis(
+                    scrollView.Content);
+            }
+
+            if (view is Border border)
+            {
+                return BuscarBotonNuevoAnalisis(
+                    border.Content as View);
+            }
+
+            if (view is Layout layout)
+            {
+                foreach (var child in layout.Children)
+                {
+                    if (child is not View childView)
+                        continue;
+
+                    ImageButton? encontrado =
+                        BuscarBotonNuevoAnalisis(
+                            childView);
+
+                    if (encontrado != null)
+                        return encontrado;
+                }
+            }
+
+            return null;
         }
 
         private static bool ConfigurarNuevoAnalisis(
