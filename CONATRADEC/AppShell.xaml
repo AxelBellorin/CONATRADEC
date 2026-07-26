@@ -28,13 +28,6 @@
         FlyoutItemIsVisible="False"
         ContentTemplate="{DataTemplate views:MainPage}" />
 
-    <!--
-        Inicio, Noticias y Configuración son secciones principales.
-        Álbum se mantiene como ruta dinámica porque su módulo crea una
-        instancia nueva en cada entrada y contiene navegación interna propia.
-    -->
-
-    <!-- Noticias es una sección principal. -->
     <ShellContent
         Title="Noticias"
         Route="noticiasPage"
@@ -46,6 +39,16 @@
         Route="ConfiguracionPage"
         FlyoutItemIsVisible="False"
         ContentTemplate="{DataTemplate views:configuracionPage}" />
+
+    <!--
+        Ruta absoluta independiente. Evita que Datos sin conexión quede apilada
+        dentro de Configuración y que ambas opciones aparezcan seleccionadas.
+    -->
+    <ShellContent
+        Title="DatosSinConexionPage"
+        Route="DatosSinConexionPage"
+        FlyoutItemIsVisible="False"
+        ContentTemplate="{DataTemplate views:datosSinConexionPage}" />
 
     <ShellContent
         Title="UserPage"

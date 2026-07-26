@@ -12,7 +12,6 @@ namespace CONATRADEC.Views
             viewModel = new();
 
         private int cantidadColumnasActual;
-
         private bool paginaVisible;
 
         public configuracionPage()

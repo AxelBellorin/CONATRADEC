@@ -72,11 +72,6 @@ namespace CONATRADEC
 
             // ==========================================================
             // Adapta el login para tabletas Android.
-            //
-            // Se registra aquí y no mediante ModuleInitializer para evitar
-            // acceder a PageHandler antes de que MAUI esté inicializado.
-            //
-            // En Windows no cambia la interfaz ni ejecuta el mapper.
             // ==========================================================
             LoginTabletResponsiveMapper.Register();
 
@@ -85,6 +80,12 @@ namespace CONATRADEC
             // se corte en teléfonos con pantalla estrecha.
             // ==========================================================
             NuevoAnalisisInfoResponsiveMapper.Register();
+
+            // ==========================================================
+            // Agrega el estado de sincronización a Noticias y Álbum sin
+            // modificar sus archivos XAML o code-behind.
+            // ==========================================================
+            OfflineContenidoPageMapper.Register();
 
             // ==========================================================
             // Logging solo en modo DEBUG
@@ -103,19 +104,12 @@ namespace CONATRADEC
                 {
                     wndLifeCycleBuilder.OnWindowCreated(window =>
                     {
-                        // ==================================================
-                        // Fuerza tema claro en la ventana nativa de Windows
-                        // Esto evita que el modo oscuro de Windows cambie
-                        // colores internos de controles WinUI.
-                        // ==================================================
+                        // Fuerza tema claro en la ventana nativa de Windows.
                         if (window.Content is FrameworkElement rootElement)
                         {
                             rootElement.RequestedTheme = ElementTheme.Light;
                         }
 
-                        // ==================================================
-                        // Obtiene el identificador nativo de la ventana
-                        // ==================================================
                         IntPtr nativeWindowHandle =
                             WinRT.Interop.WindowNative.GetWindowHandle(window);
 
@@ -127,19 +121,13 @@ namespace CONATRADEC
                             AppWindow.GetFromWindowId(
                                 win32WindowsId);
 
-                        // ==================================================
-                        // Maximiza la ventana si el modo lo permite
-                        // ==================================================
-                        if (winuiAppWindow.Presenter is OverlappedPresenter p)
+                        if (winuiAppWindow.Presenter
+                            is OverlappedPresenter presenter)
                         {
-                            p.Maximize();
+                            presenter.Maximize();
                         }
                         else
                         {
-                            // ==============================================
-                            // Si no puede maximizarse, se define tamaño manual
-                            // y se centra aproximadamente en pantalla.
-                            // ==============================================
                             const int width = 1200;
                             const int height = 800;
 
@@ -155,9 +143,6 @@ namespace CONATRADEC
             });
 #endif
 
-            // ==========================================================
-            // Retorna la instancia final configurada del aplicativo
-            // ==========================================================
             return builder.Build();
         }
     }

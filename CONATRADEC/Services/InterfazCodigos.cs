@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace CONATRADEC.Services
 {
     /// <summary>
     /// Centraliza los códigos internos y sus nombres visibles.
-    ///
-    /// La validación de permisos siempre utiliza el código interno.
-    /// La interfaz de usuario utiliza únicamente el nombre amigable.
+    /// La autorización siempre utiliza el código interno y la interfaz
+    /// presenta únicamente un nombre amigable.
     /// </summary>
     public static class InterfazCodigos
     {
@@ -33,6 +30,8 @@ namespace CONATRADEC.Services
         public const string CategoriasPublicacion =
             "categoriaPublicacionPage";
         public const string Bitacora = "bitacoraPage";
+        public const string DatosSinConexion =
+            "datosSinConexionPage";
 
         private static readonly IReadOnlyDictionary<string, string>
             NombresAmigables =
@@ -59,7 +58,8 @@ namespace CONATRADEC.Services
                     [Noticias] = "Noticias e intereses",
                     [CategoriasPublicacion] =
                         "Tipos de publicación",
-                    [Bitacora] = "Bitácora del sistema"
+                    [Bitacora] = "Bitácora del sistema",
+                    [DatosSinConexion] = "Datos sin conexión"
                 };
 
         private static readonly IReadOnlyDictionary<string, string>
@@ -69,11 +69,9 @@ namespace CONATRADEC.Services
                 {
                     ["UserFormPage"] = Usuarios,
                     ["RolFormPage"] = Roles,
-
                     ["PaisFormPage"] = Paises,
                     ["DepartamentoFormPage"] = Departamentos,
                     ["MunicipioFormPage"] = Municipios,
-
                     ["ElementoQuimicoFormPage"] =
                         ElementosQuimicos,
                     ["FuenteNutrienteFormPage"] =
@@ -83,7 +81,6 @@ namespace CONATRADEC.Services
                         TiposAnalisisSuelo,
                     ["ExtraccionNutrienteFormPage"] =
                         ExtraccionNutrientes,
-
                     ["RangoNutrienteFormPage"] =
                         RangosNutrientes,
                     ["RangoNutrienteAporteFormulario"] =
@@ -92,25 +89,20 @@ namespace CONATRADEC.Services
                         RangosNutrientes,
                     ["RangoNutrienteCategoriaFormPage"] =
                         RangosNutrientes,
-
                     ["TerrenoFormPage"] = Terrenos,
                     ["MapaSeleccionPage"] = Terrenos,
                     ["FotosTerrenoGaleriaPage"] = Terrenos,
-
                     ["AlbumDetallePage"] = AlbumFotos,
                     ["CategoriaAlbumFormPage"] = AlbumFotos,
                     ["AlbumRegistroFormPage"] = AlbumFotos,
                     ["AlbumFotosAdminPage"] = AlbumFotos,
                     ["AlbumFotoVisorPage"] = AlbumFotos,
-
                     ["NoticiaDetallePage"] = Noticias,
                     ["PublicacionesAdminPage"] = Noticias,
                     ["PublicacionFormPage"] = Noticias,
                     ["CategoriaPublicacionFormPage"] =
                         CategoriasPublicacion,
-
                     ["BitacoraDetallePage"] = Bitacora,
-
                     ["NuevoAnalisisFormPage"] = AnalisisSuelo,
                     ["ResultadoAnalisisSueloPage"] =
                         AnalisisSuelo,
@@ -123,7 +115,9 @@ namespace CONATRADEC.Services
                     ["AnalisisGuardadoDetallePage"] =
                         AnalisisSuelo,
                     ["EditarAnalisisGuardadoPage"] =
-                        AnalisisSuelo
+                        AnalisisSuelo,
+                    ["DatosSinConexionPage"] =
+                        DatosSinConexion
                 };
 
         public static string Normalizar(string? codigo)
@@ -141,15 +135,6 @@ namespace CONATRADEC.Services
                 : valor;
         }
 
-        /// <summary>
-        /// Obtiene el texto que debe mostrarse.
-        ///
-        /// Reglas:
-        /// 1. Usa el valor de la API cuando es realmente amigable.
-        /// 2. Descarta el valor si es igual al código interno.
-        /// 3. Usa el catálogo local.
-        /// 4. Como último recurso convierte PascalCase en texto legible.
-        /// </summary>
         public static string ObtenerNombreAmigable(
             string? codigo,
             string? nombreApi = null)
@@ -217,19 +202,18 @@ namespace CONATRADEC.Services
 
             foreach (string sufijo in sufijos)
             {
-                if (valor.EndsWith(
+                if (!valor.EndsWith(
                         sufijo,
                         StringComparison.OrdinalIgnoreCase))
                 {
-                    valor =
-                        valor[..^sufijo.Length];
-
-                    break;
+                    continue;
                 }
+
+                valor = valor[..^sufijo.Length];
+                break;
             }
 
-            var resultado =
-                new StringBuilder();
+            var resultado = new StringBuilder();
 
             for (int indice = 0;
                  indice < valor.Length;
@@ -255,9 +239,7 @@ namespace CONATRADEC.Services
             }
 
             string texto =
-                resultado
-                    .ToString()
-                    .Trim();
+                resultado.ToString().Trim();
 
             if (string.IsNullOrWhiteSpace(texto))
                 return "Interfaz";

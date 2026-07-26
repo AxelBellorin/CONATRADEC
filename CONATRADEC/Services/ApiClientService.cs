@@ -5,11 +5,6 @@ using System.Net.Http.Headers;
 
 namespace CONATRADEC.Services
 {
-    /// <summary>
-    /// Proporciona una única instancia de HttpClient para los servicios.
-    /// Cada solicitud incluye automáticamente el contexto de la sesión y
-    /// del dispositivo para que la API pueda generar la bitácora.
-    /// </summary>
     public static class ApiClientService
     {
         private static readonly Lazy<HttpClient> lazyClient =
@@ -33,7 +28,23 @@ namespace CONATRADEC.Services
 
             var handler = new ContextoBitacoraHandler
             {
-                InnerHandler = new HttpClientHandler()
+                InnerHandler = new SesionOfflineHandler
+                {
+                    InnerHandler =
+                        new AnalisisCalculoLocalHttpHandler
+                        {
+                            InnerHandler =
+                                new CatalogosLocalHttpHandler
+                                {
+                                    InnerHandler =
+                                        new ContenidoSincronizacionHandler
+                                        {
+                                            InnerHandler =
+                                                new HttpClientHandler()
+                                        }
+                                }
+                        }
+                }
             };
 
             var client = new HttpClient(handler)
@@ -44,7 +55,8 @@ namespace CONATRADEC.Services
 
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
-                new MediaTypeWithQualityHeaderValue("application/json"));
+                new MediaTypeWithQualityHeaderValue(
+                    "application/json"));
 
             return client;
         }

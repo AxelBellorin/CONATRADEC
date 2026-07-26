@@ -3,6 +3,7 @@ using CONATRADEC.ViewModels;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using Microsoft.Maui.ApplicationModel;
 
 namespace CONATRADEC.Services
 {
@@ -200,7 +201,7 @@ namespace CONATRADEC.Services
             }
         }
 
-        private static void AplicarAParametroConstante(
+        private void AplicarAParametroConstante(
             ResultadoAnalisisItemViewModel item,
             ConfiguracionFormularioAnalisisResponse
                 configuracion)
@@ -227,10 +228,12 @@ namespace CONATRADEC.Services
                 configuracion
                     .UnidadesMateriaOrganica
                     .FirstOrDefault(x =>
-                        x.UnidadPredeterminada)?.UnidadMedidaId);
+                        x.UnidadPredeterminada)?.UnidadMedidaId,
+                preservarSeleccionGuardada:
+                    viewModel.EsModoEdicion);
         }
 
-        private static void AplicarAElemento(
+        private void AplicarAElemento(
             ResultadoAnalisisItemViewModel item,
             ConfiguracionFormularioAnalisisResponse
                 configuracion)
@@ -257,23 +260,35 @@ namespace CONATRADEC.Services
             AplicarUnidades(
                 item,
                 elemento.Unidades,
-                elemento.UnidadPredeterminadaId);
+                elemento.UnidadPredeterminadaId,
+                preservarSeleccionGuardada:
+                    viewModel.EsModoEdicion);
         }
 
         private static void LimpiarUnidadesItem(
             ResultadoAnalisisItemViewModel item)
         {
+            /*
+             * Primero se limpia la selección y luego se reemplaza el origen
+             * del Picker. El orden evita que MAUI conserve una selección de
+             * la colección anterior.
+             */
+            item.UnidadSeleccionada =
+                null;
+
             item.UnidadesMedida =
                 new ObservableCollection<
                     UnidadMedidaResponse>();
-
-            item.UnidadSeleccionada =
-                null;
 
             item.OnPropertyChanged(
                 nameof(
                     ResultadoAnalisisItemViewModel
                         .UnidadesMedida));
+
+            item.OnPropertyChanged(
+                nameof(
+                    ResultadoAnalisisItemViewModel
+                        .UnidadSeleccionada));
         }
 
         private static void AplicarUnidades(
@@ -281,14 +296,19 @@ namespace CONATRADEC.Services
             IEnumerable<
                 UnidadConversionConfiguradaResponse>
                     configuraciones,
-            int? unidadPredeterminadaId)
+            int? unidadPredeterminadaId,
+            bool preservarSeleccionGuardada)
         {
             int? unidadSeleccionadaId =
-                item.UnidadSeleccionada?.UnidadMedidaId;
+                preservarSeleccionGuardada
+                    ? item.UnidadSeleccionada?.UnidadMedidaId
+                    : null;
 
             UnidadMedidaResponse?
                 unidadSeleccionadaAnterior =
-                    item.UnidadSeleccionada;
+                    preservarSeleccionGuardada
+                        ? item.UnidadSeleccionada
+                        : null;
 
             List<UnidadMedidaResponse>
                 unidadesPermitidas =
@@ -315,7 +335,7 @@ namespace CONATRADEC.Services
                                 DescripcionUnidadMedida =
                                     x.Observacion,
                                 Activo =
-                                    x.Activo
+                                    true
                             })
                         .GroupBy(x =>
                             x.UnidadMedidaId)
@@ -323,29 +343,42 @@ namespace CONATRADEC.Services
                             x.First())
                         .ToList();
 
+            /*
+             * Si todas las asociaciones están inactivas u ocultas, el Picker
+             * debe quedar vacío. Antes se conservaba el catálogo general y por
+             * eso parecía que Activa y Visible no tenían ningún efecto.
+             */
             if (unidadesPermitidas.Count == 0)
+            {
+                LimpiarUnidadesItem(item);
                 return;
+            }
 
-            /*
-             * Cuando se edita un análisis, la unidad guardada se restaura
-             * antes de que este coordinador filtre la lista. Si continúa
-             * permitida, se conserva exactamente esa selección.
-             */
             UnidadMedidaResponse?
-                nuevaSeleccion =
-                    unidadSeleccionadaId.HasValue
-                        ? unidadesPermitidas
-                            .FirstOrDefault(x =>
-                                x.UnidadMedidaId ==
-                                    unidadSeleccionadaId)
-                        : null;
+                nuevaSeleccion = null;
 
             /*
-             * Respaldo para datos históricos: si una unidad guardada dejó de
-             * estar visible, se mantiene temporalmente dentro del Picker para
-             * no cambiar silenciosamente el análisis al abrirlo para editar.
+             * Únicamente en edición se conserva la unidad realmente guardada.
+             * En un análisis nuevo se ignora la selección antigua y se utiliza
+             * la unidad predeterminada configurada en el backend.
              */
-            if (nuevaSeleccion == null &&
+            if (preservarSeleccionGuardada &&
+                unidadSeleccionadaId.HasValue)
+            {
+                nuevaSeleccion =
+                    unidadesPermitidas
+                        .FirstOrDefault(x =>
+                            x.UnidadMedidaId ==
+                                unidadSeleccionadaId);
+            }
+
+            /*
+             * Respaldo histórico exclusivo para edición. Una unidad inactiva
+             * u oculta puede mostrarse temporalmente si el análisis antiguo la
+             * utilizó, evitando modificar datos históricos al abrirlos.
+             */
+            if (preservarSeleccionGuardada &&
+                nuevaSeleccion == null &&
                 unidadSeleccionadaAnterior?.UnidadMedidaId is > 0 &&
                 !unidadesPermitidas.Any(x =>
                     x.UnidadMedidaId ==
@@ -369,7 +402,7 @@ namespace CONATRADEC.Services
                                 .AbreviaturaUnidadMedida,
                         DescripcionUnidadMedida =
                             "Unidad histórica del análisis. " +
-                            "Ya no está visible en la configuración actual.",
+                            "Ya no está activa o visible en la configuración actual.",
                         Activo = false
                     };
 
@@ -380,6 +413,10 @@ namespace CONATRADEC.Services
                     historica;
             }
 
+            /*
+             * En creación esta es la primera opción evaluada. En edición actúa
+             * como respaldo cuando no existe una unidad histórica guardada.
+             */
             nuevaSeleccion ??=
                 unidadPredeterminadaId.HasValue
                     ? unidadesPermitidas
@@ -388,21 +425,74 @@ namespace CONATRADEC.Services
                                 unidadPredeterminadaId)
                     : null;
 
-            nuevaSeleccion ??=
-                unidadesPermitidas.FirstOrDefault();
+            /*
+             * No se selecciona la primera unidad como respaldo. Cuando no
+             * existe una predeterminada configurada, el Picker debe quedar
+             * vacío para que el usuario seleccione conscientemente.
+             */
+            item.UnidadSeleccionada =
+                null;
 
             item.UnidadesMedida =
                 new ObservableCollection<
                     UnidadMedidaResponse>(
                         unidadesPermitidas);
 
-            item.UnidadSeleccionada =
-                nuevaSeleccion;
-
+            /*
+             * El ItemsSource debe notificarse antes del SelectedItem. Si se
+             * hace al revés, WinUI puede descartar la selección porque el
+             * objeto todavía no forma parte de la colección visible.
+             */
             item.OnPropertyChanged(
                 nameof(
                     ResultadoAnalisisItemViewModel
                         .UnidadesMedida));
+
+            AplicarSeleccionDespuesDeActualizarLista(
+                item,
+                nuevaSeleccion);
+        }
+
+        private static void
+            AplicarSeleccionDespuesDeActualizarLista(
+                ResultadoAnalisisItemViewModel item,
+                UnidadMedidaResponse? seleccion)
+        {
+            /*
+             * La primera asignación resuelve la mayoría de plataformas.
+             * La segunda, enviada a la cola principal, cubre el ciclo de
+             * medición de Picker en WinUI sin introducir esperas fijas.
+             */
+            item.UnidadSeleccionada =
+                seleccion;
+
+            item.OnPropertyChanged(
+                nameof(
+                    ResultadoAnalisisItemViewModel
+                        .UnidadSeleccionada));
+
+            MainThread.BeginInvokeOnMainThread(
+                () =>
+                {
+                    if (seleccion == null)
+                    {
+                        item.UnidadSeleccionada =
+                            null;
+
+                        return;
+                    }
+
+                    UnidadMedidaResponse?
+                        seleccionVigente =
+                            item.UnidadesMedida
+                                .FirstOrDefault(x =>
+                                    x.UnidadMedidaId ==
+                                        seleccion
+                                            .UnidadMedidaId);
+
+                    item.UnidadSeleccionada =
+                        seleccionVigente;
+                });
         }
     }
 }

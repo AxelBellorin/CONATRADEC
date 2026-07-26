@@ -22,6 +22,9 @@ namespace CONATRADEC.ViewModels
         private readonly ConfiguracionUnidadesApiService
             apiService = new();
 
+        private readonly UnidadMedidaApiService
+            unidadMedidaApiService = new();
+
         private readonly List<
             ElementoConfiguracionUnidadesResponse>
             catalogoElementos = new();
@@ -34,6 +37,9 @@ namespace CONATRADEC.ViewModels
             ModoElemento;
 
         private string textoBusquedaElemento =
+            string.Empty;
+
+        private string nombreNuevaUnidad =
             string.Empty;
 
         private ElementoConfiguracionUnidadesResponse?
@@ -97,6 +103,16 @@ namespace CONATRADEC.ViewModels
                         await InicializarAsync(
                             forzarRecarga: true),
                     () => !IsBusy);
+
+            CrearUnidadMedidaCommand =
+                new Command(
+                    async () =>
+                        await CrearNuevaUnidadMedidaAsync(),
+                    () =>
+                        !IsBusy &&
+                        CanEdit &&
+                        !string.IsNullOrWhiteSpace(
+                            NombreNuevaUnidad));
 
             GuardarCommand =
                 new Command(
@@ -175,6 +191,8 @@ namespace CONATRADEC.ViewModels
 
         public Command RecargarCommand { get; }
 
+        public Command CrearUnidadMedidaCommand { get; }
+
         public Command GuardarCommand { get; }
 
         public Command AgregarUnidadCommand { get; }
@@ -237,6 +255,38 @@ namespace CONATRADEC.ViewModels
             EsModoElementos
                 ? "lb/Mz"
                 : "%";
+
+        public string NombreNuevaUnidad
+        {
+            get => nombreNuevaUnidad;
+            set
+            {
+                string nuevoValor =
+                    (value ??
+                     string.Empty)
+                        .TrimStart();
+
+                if (nuevoValor.Length > 50)
+                {
+                    nuevoValor =
+                        nuevoValor[..50];
+                }
+
+                if (nombreNuevaUnidad ==
+                    nuevoValor)
+                {
+                    return;
+                }
+
+                nombreNuevaUnidad =
+                    nuevoValor;
+
+                OnPropertyChanged();
+
+                CrearUnidadMedidaCommand
+                    .ChangeCanExecute();
+            }
+        }
 
         public string TextoBusquedaElemento
         {
@@ -599,6 +649,154 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private async Task CrearNuevaUnidadMedidaAsync()
+        {
+            if (IsBusy ||
+                !CanEdit)
+            {
+                return;
+            }
+
+            string nombre =
+                NombreNuevaUnidad
+                    .Trim();
+
+            if (string.IsNullOrWhiteSpace(
+                    nombre))
+            {
+                await MostrarAdvertenciaAsync(
+                    "Ingrese el nombre de la nueva unidad de medida.");
+
+                return;
+            }
+
+            UnidadMedidaCatalogoConfiguracionResponse?
+                unidadCreada = null;
+
+            try
+            {
+                IsBusy = true;
+                RefrescarComandos();
+
+                Mensaje =
+                    "Creando la nueva unidad de medida...";
+
+                UnidadMedidaApiOperationResult<
+                    UnidadMedidaResponse>
+                    resultado =
+                        await unidadMedidaApiService
+                            .CrearUnidadMedidaDetalladaAsync(
+                                nombre);
+
+                if (!resultado.Success)
+                {
+                    Mensaje =
+                        resultado.Message;
+
+                    await MostrarErrorAsync(
+                        resultado.Message);
+
+                    return;
+                }
+
+                ConfiguracionUnidadesApiService
+                    .InvalidarCache();
+
+                ConfiguracionUnidadesApiResult<
+                    List<
+                        UnidadMedidaCatalogoConfiguracionResponse>>
+                    catalogoResultado =
+                        await apiService
+                            .ListarCatalogoUnidadesAsync(
+                                incluirInactivas: false);
+
+                if (!catalogoResultado.Success ||
+                    catalogoResultado.Data == null)
+                {
+                    Mensaje =
+                        catalogoResultado.Message;
+
+                    await MostrarAdvertenciaAsync(
+                        "La unidad fue creada, pero no fue posible recargar el catálogo. Pulse Recargar.");
+
+                    return;
+                }
+
+                ReemplazarColeccion(
+                    CatalogoUnidades,
+                    catalogoResultado.Data);
+
+                int? unidadCreadaId =
+                    resultado.Data?.UnidadMedidaId;
+
+                unidadCreada =
+                    unidadCreadaId.HasValue
+                        ? CatalogoUnidades
+                            .FirstOrDefault(x =>
+                                x.UnidadMedidaId ==
+                                    unidadCreadaId.Value)
+                        : null;
+
+                unidadCreada ??=
+                    CatalogoUnidades
+                        .FirstOrDefault(x =>
+                            string.Equals(
+                                x.NombreUnidadMedida
+                                    .Trim(),
+                                nombre,
+                                StringComparison
+                                    .OrdinalIgnoreCase));
+
+                NombreNuevaUnidad =
+                    string.Empty;
+
+                Mensaje =
+                    resultado.Message;
+            }
+            catch (Exception ex)
+            {
+                Mensaje =
+                    "No fue posible crear la unidad: " +
+                    ex.Message;
+
+                await MostrarErrorAsync(
+                    Mensaje);
+            }
+            finally
+            {
+                IsBusy = false;
+                RefrescarComandos();
+            }
+
+            if (unidadCreada == null)
+                return;
+
+            /*
+             * Después de crear la unidad base, se agrega al contexto actual
+             * con una conversión LINEAL inicial. El usuario todavía debe
+             * configurar sus factores y pulsar Guardar cambios.
+             */
+            ActualizarUnidadesDisponibles();
+
+            UnidadParaAgregar =
+                UnidadesDisponibles
+                    .FirstOrDefault(x =>
+                        x.UnidadMedidaId ==
+                            unidadCreada
+                                .UnidadMedidaId);
+
+            if (UnidadParaAgregar != null)
+            {
+                AgregarUnidad();
+            }
+
+            Mensaje =
+                $"La unidad {unidadCreada.NombreUnidadMedida} fue creada y agregada. Configure la fórmula y los factores, luego pulse Guardar cambios.";
+
+            await MostrarExitoAsync(
+                "Unidad creada correctamente. Ahora configure su conversión y guarde los cambios.");
+        }
+
         private void SeleccionarModoElementos()
         {
             if (IsBusy)
@@ -711,7 +909,7 @@ namespace CONATRADEC.ViewModels
                 UnidadesConfiguradas.Add(item);
             }
 
-            AsegurarUnaPredeterminada();
+            NormalizarPredeterminadasConfiguradas();
 
             UnidadPruebaSeleccionada =
                 UnidadesConfiguradas
@@ -773,12 +971,6 @@ namespace CONATRADEC.ViewModels
                                 x.Orden)) +
                         10;
 
-            bool predeterminada =
-                !UnidadesConfiguradas.Any(x =>
-                    x.Activo &&
-                    x.VisibleEnFormulario &&
-                    x.UnidadPredeterminada);
-
             ConfiguracionUnidadItemViewModel
                 nueva =
                     ConfiguracionUnidadItemViewModel
@@ -786,7 +978,8 @@ namespace CONATRADEC.ViewModels
                             UnidadParaAgregar,
                             formulasDisponibles,
                             ordenSugerido,
-                            predeterminada);
+                            predeterminada:
+                                false);
 
             ConectarEventosUnidad(nueva);
 
@@ -851,7 +1044,7 @@ namespace CONATRADEC.ViewModels
                         .FirstOrDefault();
             }
 
-            AsegurarUnaPredeterminada();
+            NormalizarPredeterminadasConfiguradas();
             ActualizarUnidadesDisponibles();
             NotificarResumen();
             RefrescarComandos();
@@ -1155,10 +1348,10 @@ namespace CONATRADEC.ViewModels
                         x.VisibleEnFormulario &&
                         x.UnidadPredeterminada);
 
-            if (predeterminadas != 1)
+            if (predeterminadas > 1)
             {
                 error =
-                    "Debe existir exactamente una unidad predeterminada entre las unidades activas y visibles.";
+                    "Solo puede existir una unidad predeterminada entre las unidades activas y visibles.";
 
                 return false;
             }
@@ -1274,36 +1467,49 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private void AsegurarUnaPredeterminada()
+        private void NormalizarPredeterminadasConfiguradas()
         {
-            List<
-                ConfiguracionUnidadItemViewModel>
-                candidatas =
-                    UnidadesConfiguradas
-                        .Where(x =>
-                            x.Activo &&
-                            x.VisibleEnFormulario)
-                        .ToList();
-
-            if (candidatas.Count == 0)
-                return;
-
             ConfiguracionUnidadItemViewModel?
-                actual =
-                    candidatas.FirstOrDefault(x =>
-                        x.UnidadPredeterminada);
-
-            actual ??=
-                candidatas.First();
+                predeterminadaConservada =
+                    null;
 
             foreach (
                 ConfiguracionUnidadItemViewModel item
                 in UnidadesConfiguradas)
             {
+                /*
+                 * Una unidad inactiva u oculta no puede seguir marcada como
+                 * predeterminada.
+                 */
+                if (!item.Activo ||
+                    !item.VisibleEnFormulario)
+                {
+                    if (item.UnidadPredeterminada)
+                    {
+                        item.UnidadPredeterminada =
+                            false;
+                    }
+
+                    continue;
+                }
+
+                if (!item.UnidadPredeterminada)
+                    continue;
+
+                /*
+                 * Se permite cero o una predeterminada. Si por datos antiguos
+                 * llegan varias, se conserva la primera según el orden actual.
+                 */
+                if (predeterminadaConservada == null)
+                {
+                    predeterminadaConservada =
+                        item;
+
+                    continue;
+                }
+
                 item.UnidadPredeterminada =
-                    ReferenceEquals(
-                        item,
-                        actual);
+                    false;
             }
         }
 
@@ -1395,6 +1601,9 @@ namespace CONATRADEC.ViewModels
                 .ChangeCanExecute();
 
             RecargarCommand
+                .ChangeCanExecute();
+
+            CrearUnidadMedidaCommand
                 .ChangeCanExecute();
 
             GuardarCommand

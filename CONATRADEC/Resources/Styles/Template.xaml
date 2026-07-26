@@ -9,9 +9,9 @@
         - Windows con 900 px o más: barra lateral.
         - Windows estrecho, Android e iOS: barra inferior.
 
-        Cada opción se oculta completamente cuando el usuario no tiene permiso
-        de lectura. En la barra inferior FlexLayout redistribuye únicamente las
-        opciones visibles, evitando espacios vacíos.
+        Las opciones normales respetan los permisos del usuario.
+        Datos sin conexión respeta el permiso de lectura asignado al rol y
+        no concede permisos administrativos sobre los catálogos.
     -->
     <ControlTemplate x:Key="FooterTemplate">
 
@@ -20,7 +20,6 @@
             BackgroundColor="{StaticResource color_Blanco}">
 
             <Grid.ColumnDefinitions>
-                <!-- El Behavior cambia esta columna entre 230 y 0. -->
                 <ColumnDefinition Width="0" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
@@ -29,9 +28,7 @@
                 <controls:ResponsiveNavigationLayoutBehavior />
             </Grid.Behaviors>
 
-            <!-- ===================================================== -->
-            <!-- NAVEGACIÓN LATERAL: WINDOWS AMPLIO                    -->
-            <!-- ===================================================== -->
+            <!-- NAVEGACIÓN LATERAL: WINDOWS AMPLIO -->
             <Border
                 AutomationId="DesktopNavigation"
                 Grid.Row="0"
@@ -105,6 +102,13 @@
                             Ruta="//ConfiguracionPage"
                             Seccion="Configuracion" />
 
+                        <controls:AppNavigationMenuItem
+                            Texto="Datos sin conexión"
+                            Icono="iconoffline.png"
+                            Interfaz="datosSinConexionPage"
+                            Ruta="//DatosSinConexionPage"
+                            Seccion="DatosOffline" />
+
                     </VerticalStackLayout>
 
                     <VerticalStackLayout
@@ -155,16 +159,12 @@
                 </Grid>
             </Border>
 
-            <!-- El contenido siempre ocupa la segunda columna. Cuando la
-                 primera columna vale 0 utiliza todo el ancho disponible. -->
             <ContentPresenter
                 Grid.Row="0"
                 Grid.Column="1"
                 BackgroundColor="{StaticResource color_Blanco}" />
 
-            <!-- ===================================================== -->
-            <!-- NAVEGACIÓN INFERIOR: VENTANA ESTRECHA Y MÓVIL         -->
-            <!-- ===================================================== -->
+            <!-- NAVEGACIÓN INFERIOR: VENTANA ESTRECHA Y MÓVIL -->
             <Border
                 AutomationId="CompactNavigation"
                 Grid.Row="1"
@@ -226,6 +226,16 @@
                         GrupoPermisos="Configuracion"
                         Ruta="//ConfiguracionPage"
                         Seccion="Configuracion"
+                        EsMovil="True" />
+
+                    <controls:AppNavigationMenuItem
+                        FlexLayout.Grow="1"
+                        FlexLayout.Basis="0"
+                        Texto="Datos"
+                        Icono="iconoffline.png"
+                        Interfaz="datosSinConexionPage"
+                        Ruta="//DatosSinConexionPage"
+                        Seccion="DatosOffline"
                         EsMovil="True" />
 
                     <VerticalStackLayout

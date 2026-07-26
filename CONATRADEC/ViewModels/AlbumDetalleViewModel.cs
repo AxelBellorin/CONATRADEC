@@ -84,10 +84,29 @@ namespace CONATRADEC.ViewModels
 
             try
             {
+                /*
+                 * Primero se consulta siempre el detalle público activo.
+                 * Esa ruta se almacena en SQLite y contiene también las
+                 * fotografías que necesita el visor offline.
+                 */
                 ApiResult<AlbumDetalleResponse> result =
                     await apiService.GetDetalleAsync(
                         Id,
-                        CanEdit || CanDelete);
+                        incluirInactivos: false);
+
+                /*
+                 * Solo cuando el registro no está disponible públicamente y el
+                 * usuario administra el Álbum se intenta la consulta de
+                 * inactivos. Esa segunda consulta continúa siendo conectada.
+                 */
+                if ((!result.Success || result.Data == null) &&
+                    (CanEdit || CanDelete) &&
+                    EstadoConexionService.Instance.HayInternet)
+                {
+                    result = await apiService.GetDetalleAsync(
+                        Id,
+                        incluirInactivos: true);
+                }
 
                 if (!result.Success || result.Data == null)
                 {
