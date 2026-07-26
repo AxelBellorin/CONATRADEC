@@ -42,11 +42,36 @@ namespace CONATRADEC.Views
             viewModel.PropertyChanged +=
                 ViewModel_PropertyChanged;
 
+            /*
+             * MultiCalculoViewModel ya registra su callback interno para
+             * inicializar y configurar Fertilización mixta.
+             *
+             * Esta página agrega su comportamiento visual sin reemplazar
+             * el callback del ViewModel: primero espera la lógica interna
+             * y después controla si la pestaña Mixta debe permanecer o
+             * desaparecer.
+             */
+            Func<
+                BalanceFertilizacionMixtaChangedEventArgs,
+                Task>? callbackViewModel =
+                    viewModel
+                        .BalanceFormula
+                        .ComplementoFertilizacionMixtaCambiadoAsync;
+
             viewModel
                 .BalanceFormula
-                .ComplementoFertilizacionMixtaCambiado +=
-                    BalanceFormula_
-                        ComplementoFertilizacionMixtaCambiado;
+                .ComplementoFertilizacionMixtaCambiadoAsync =
+                    async argumentos =>
+                    {
+                        if (callbackViewModel != null)
+                        {
+                            await callbackViewModel(
+                                argumentos);
+                        }
+
+                        await ManejarCambioComplementoFertilizacionMixtaAsync(
+                            argumentos);
+                    };
         }
 
         protected override async void OnAppearing()
@@ -109,12 +134,8 @@ namespace CONATRADEC.Views
             mixtaActivadaPorComplemento = false;
         }
 
-        private async void
-            BalanceFormula_
-                ComplementoFertilizacionMixtaCambiado(
-                    object? sender,
-                    BalanceFertilizacionMixtaChangedEventArgs
-                        e)
+        private async Task ManejarCambioComplementoFertilizacionMixtaAsync(
+            BalanceFertilizacionMixtaChangedEventArgs e)
         {
             if (!estadoInicialMixtaCapturado)
                 CapturarSeleccionOriginalMixta();

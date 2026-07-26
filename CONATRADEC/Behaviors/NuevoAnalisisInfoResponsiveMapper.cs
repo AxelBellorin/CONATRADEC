@@ -1,30 +1,39 @@
 using CONATRADEC.Views;
-using Microsoft.Maui;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Handlers;
-using Microsoft.Maui.Devices;
 using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace CONATRADEC.Behaviors
 {
     /// <summary>
     /// Corrige el ancho del texto informativo ubicado antes de los botones
-    /// del formulario de análisis. En teléfonos evita que el mensaje quede
-    /// cortado dentro del HorizontalStackLayout existente.
+    /// del formulario de análisis.
     ///
-    /// No cambia el XAML ni la apariencia validada en Windows y tablet.
+    /// La adaptación se basa en el ancho real disponible y no en
+    /// DeviceInfo.Idiom. Esto permite que funcione correctamente en:
+    ///
+    /// - Android.
+    /// - Teléfonos.
+    /// - Ventanas estrechas de Windows.
+    /// - Modo dividido.
+    /// - Cambios de orientación.
     /// </summary>
-    internal static class
-        NuevoAnalisisInfoResponsiveMapper
+    internal static class NuevoAnalisisInfoResponsiveMapper
     {
         private const string MapperKey =
             "CONATRADEC.NuevoAnalisisInfoResponsive";
 
         private const string InicioMensaje =
             "Al enviar el análisis";
+
+        /*
+         * A partir de este ancho el diseño tiene suficiente espacio para
+         * utilizar la medición natural del Label.
+         */
+        private const double AnchoMaximoModoEstrecho =
+            900d;
 
         private static readonly ConditionalWeakTable<
             NuevoAnalisisFormPage,
@@ -43,12 +52,8 @@ namespace CONATRADEC.Behaviors
                 MapperKey,
                 static (_, view) =>
                 {
-                    if (view
-                        is not NuevoAnalisisFormPage
-                            pagina)
-                    {
+                    if (view is not NuevoAnalisisFormPage pagina)
                         return;
-                    }
 
                     MainThread.BeginInvokeOnMainThread(
                         () => Adjuntar(pagina));
@@ -61,19 +66,22 @@ namespace CONATRADEC.Behaviors
             EstadoPagina estado =
                 Estados.GetValue(
                     pagina,
-                    static actual =>
-                        new EstadoPagina(actual));
+                    static paginaActual =>
+                        new EstadoPagina(paginaActual));
 
             estado.Adjuntar();
         }
 
         private sealed class EstadoPagina
         {
-            private readonly
-                NuevoAnalisisFormPage pagina;
+            private readonly NuevoAnalisisFormPage pagina;
 
             private bool adjuntado;
+
             private Label? mensaje;
+
+            private HorizontalStackLayout?
+                contenedorMensaje;
 
             public EstadoPagina(
                 NuevoAnalisisFormPage pagina)
@@ -90,26 +98,23 @@ namespace CONATRADEC.Behaviors
 
                 pagina.Loaded += Pagina_Loaded;
                 pagina.Appearing += Pagina_Appearing;
-                pagina.SizeChanged +=
-                    Pagina_SizeChanged;
+                pagina.SizeChanged += Pagina_SizeChanged;
 
-                Ajustar();
+                AjustarConRetraso();
             }
 
             private void Pagina_Loaded(
                 object? sender,
                 EventArgs e)
             {
-                Ajustar();
+                AjustarConRetraso();
             }
 
             private void Pagina_Appearing(
                 object? sender,
                 EventArgs e)
             {
-                pagina.Dispatcher.DispatchDelayed(
-                    TimeSpan.FromMilliseconds(80),
-                    Ajustar);
+                AjustarConRetraso();
             }
 
             private void Pagina_SizeChanged(
@@ -119,17 +124,40 @@ namespace CONATRADEC.Behaviors
                 Ajustar();
             }
 
+            private void ContenedorMensaje_SizeChanged(
+                object? sender,
+                EventArgs e)
+            {
+                Ajustar();
+            }
+
+            private void AjustarConRetraso()
+            {
+                pagina.Dispatcher.DispatchDelayed(
+                    TimeSpan.FromMilliseconds(80),
+                    Ajustar);
+
+                pagina.Dispatcher.DispatchDelayed(
+                    TimeSpan.FromMilliseconds(250),
+                    Ajustar);
+            }
+
             private void Ajustar()
             {
-                mensaje ??=
-                    BuscarMensaje(pagina);
+                mensaje ??= BuscarMensaje(pagina);
 
                 if (mensaje == null)
                     return;
 
+                AdjuntarContenedor();
+
                 mensaje.LineBreakMode =
                     LineBreakMode.WordWrap;
 
+                /*
+                 * Se permiten varias líneas para que el mensaje nunca quede
+                 * truncado en ventanas estrechas.
+                 */
                 mensaje.MaxLines = 8;
 
                 mensaje.HorizontalOptions =
@@ -138,47 +166,116 @@ namespace CONATRADEC.Behaviors
                 mensaje.VerticalOptions =
                     LayoutOptions.Center;
 
-                /*
-                 * En pantallas estrechas, HorizontalStackLayout no entrega
-                 * automáticamente al Label el espacio restante. Se calcula
-                 * un ancho seguro descontando márgenes, padding, icono y
-                 * separación. En tablet y Windows se conserva un máximo
-                 * razonable sin modificar el diseño general.
-                 */
                 double anchoPagina =
                     pagina.Width;
 
                 if (anchoPagina <= 0)
                     return;
 
-                /*
-                 * La corrección de ancho se limita a teléfonos.
-                 * Tablet y Windows conservan exactamente la medición
-                 * que ya tenía el diseño validado.
-                 */
-                if (DeviceInfo.Idiom != DeviceIdiom.Phone)
+                if (anchoPagina > AnchoMaximoModoEstrecho)
                 {
-                    mensaje.WidthRequest = -1;
-                    mensaje.MaximumWidthRequest =
-                        double.PositiveInfinity;
+                    RestablecerMedicionNatural();
                     return;
                 }
 
+                double anchoContenedor =
+                    contenedorMensaje?.Width ?? 0;
+
+                /*
+                 * Si el contenedor todavía no terminó de medirse se usa el
+                 * ancho de la página como respaldo. Posteriormente,
+                 * SizeChanged vuelve a ejecutar este cálculo.
+                 */
+                double anchoBase =
+                    anchoContenedor > 0
+                        ? anchoContenedor
+                        : anchoPagina - 36;
+
+                double anchoIcono =
+                    ObtenerAnchoIcono();
+
+                double separacion =
+                    contenedorMensaje?.Spacing ?? 12;
+
                 double anchoDisponible =
                     Math.Max(
-                        180,
-                        anchoPagina - 130);
+                        160,
+                        anchoBase -
+                        anchoIcono -
+                        separacion -
+                        2);
 
+                mensaje.MinimumWidthRequest = 0;
                 mensaje.WidthRequest =
                     anchoDisponible;
 
                 mensaje.MaximumWidthRequest =
                     anchoDisponible;
+
+                mensaje.InvalidateMeasure();
             }
 
-            private static Label?
-                BuscarMensaje(
-                    IVisualTreeElement elemento)
+            private void AdjuntarContenedor()
+            {
+                if (contenedorMensaje != null)
+                    return;
+
+                contenedorMensaje =
+                    mensaje?.Parent as
+                        HorizontalStackLayout;
+
+                if (contenedorMensaje == null)
+                    return;
+
+                contenedorMensaje.SizeChanged +=
+                    ContenedorMensaje_SizeChanged;
+
+                contenedorMensaje.HorizontalOptions =
+                    LayoutOptions.Fill;
+
+                contenedorMensaje.VerticalOptions =
+                    LayoutOptions.Center;
+            }
+
+            private double ObtenerAnchoIcono()
+            {
+                if (contenedorMensaje == null ||
+                    contenedorMensaje.Children.Count == 0)
+                {
+                    return 34;
+                }
+
+                /*
+                 * Layout.Children expone elementos como IView.
+                 * Se convierte de forma segura a View porque necesitamos
+                 * consultar WidthRequest, propiedad propia del control visual.
+                 */
+                if (contenedorMensaje.Children[0] is not View icono)
+                    return 34;
+
+                if (icono.Width > 0)
+                    return icono.Width;
+
+                if (icono.WidthRequest > 0)
+                    return icono.WidthRequest;
+
+                return 34;
+            }
+
+            private void RestablecerMedicionNatural()
+            {
+                if (mensaje == null)
+                    return;
+
+                mensaje.WidthRequest = -1;
+                mensaje.MaximumWidthRequest =
+                    double.PositiveInfinity;
+
+                mensaje.InvalidateMeasure();
+            }
+
+            private static Label? BuscarMensaje(
+                IVisualTreeElement elemento)
             {
                 if (elemento is Label label &&
                     label.Text?
