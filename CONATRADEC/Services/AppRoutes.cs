@@ -5,8 +5,10 @@ namespace CONATRADEC.Services
     public static class AppRoutes
     {
         public const string Login = "//LoginPage";
+        public const string SinPermisos = "//SinPermisosPage";
         public const string Principal = "//MainPage";
         public const string Configuracion = "//ConfiguracionPage";
+        public const string NoticiasPrincipal = "//noticiasPage";
 
         public const string AlbumFotos = nameof(albumFotosPage);
 

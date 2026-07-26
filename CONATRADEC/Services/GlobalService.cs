@@ -173,14 +173,37 @@ namespace CONATRADEC.Services
             if (string.IsNullOrWhiteSpace(route))
                 return;
 
+            string rutaDestino = route;
+
+            /*
+             * LoginViewModel navega históricamente a //MainPage después de
+             * autenticar. Si el usuario no tiene lectura en MainPage, se cambia
+             * la ruta antes de enviarla a Shell y se abre la primera sección
+             * principal que realmente tenga permitida.
+             */
+            if (string.Equals(
+                    route,
+                    AppRoutes.Principal,
+                    StringComparison.OrdinalIgnoreCase) &&
+                !PermissionService.Instance.HasRead(
+                    InterfazCodigos.AnalisisSuelo))
+            {
+                rutaDestino =
+                    NavigationPermissionService
+                        .ObtenerRutaInicialPermitida();
+            }
+
             // Evita navegar mientras el teclado todavía ocupa parte
             // de la pantalla en Android.
             await KeyboardService.HideAsync();
 
             if (parameters == null)
-                await Shell.Current.GoToAsync(route, false);
+                await Shell.Current.GoToAsync(rutaDestino, false);
             else
-                await Shell.Current.GoToAsync(route, false, parameters);
+                await Shell.Current.GoToAsync(
+                    rutaDestino,
+                    false,
+                    parameters);
         }
 
         public bool ValidateNavigation(string interfaz)
@@ -205,18 +228,24 @@ namespace CONATRADEC.Services
                 ? Task.CompletedTask
                 : GoToAsyncParameters(route);
 
-        private Task NavigateWithoutPermissionAsync(
-            string route) =>
-            IsBusy
-                ? Task.CompletedTask
-                : GoToAsyncParameters(route);
-
         private Task GoToMainPage() =>
             NavigateAsync("MainPage", AppRoutes.Principal);
 
-        private Task GoToConfiguracionPage() =>
-            NavigateWithoutPermissionAsync(
-                AppRoutes.Configuracion);
+        private async Task GoToConfiguracionPage()
+        {
+            if (IsBusy)
+                return;
+
+            if (!NavigationPermissionService
+                    .PuedeVerConfiguracion())
+            {
+                await MostrarInformacionAsync(
+                    "No tiene permisos para acceder a Configuración.");
+                return;
+            }
+
+            await GoToAsyncParameters(AppRoutes.Configuracion);
+        }
 
         private Task GoToAlbumFotosPage() =>
             NavigateAsync(

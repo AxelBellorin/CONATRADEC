@@ -12,6 +12,7 @@ namespace CONATRADEC.Views
 
         private int cantidadColumnasActual;
         private bool paginaVisible;
+        private bool redireccionando;
 
         public configuracionPage()
         {
@@ -25,9 +26,35 @@ namespace CONATRADEC.Views
             RegistrarRutas();
         }
 
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            if (!NavigationPermissionService
+                    .PuedeVerConfiguracion())
+            {
+                if (redireccionando)
+                    return;
+
+                redireccionando = true;
+
+                try
+                {
+                    string rutaPermitida =
+                        NavigationPermissionService
+                            .ObtenerRutaInicialPermitida();
+
+                    await Shell.Current.GoToAsync(
+                        rutaPermitida,
+                        false);
+                }
+                finally
+                {
+                    redireccionando = false;
+                }
+
+                return;
+            }
 
             paginaVisible = true;
 

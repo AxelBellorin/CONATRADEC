@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.sinPermisosPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{StaticResource color_Blanco}">
+
+    <Grid>
+        <ContentView
+            ControlTemplate="{StaticResource FooterTemplate}">
+
+            <Grid
+                Padding="{OnPlatform WinUI='28', Default='18'}">
+
+                <Border
+                    MaximumWidthRequest="560"
+                    Padding="{OnPlatform WinUI='34', Default='24'}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#E5E7EB"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
+
+                    <Border.Shadow>
+                        <Shadow
+                            Brush="Black"
+                            Offset="0,4"
+                            Radius="14"
+                            Opacity="0.08" />
+                    </Border.Shadow>
+
+                    <VerticalStackLayout
+                        Spacing="14"
+                        HorizontalOptions="Center">
+
+                        <Image
+                            Source="iconpermission.png"
+                            HeightRequest="72"
+                            WidthRequest="72"
+                            HorizontalOptions="Center" />
+
+                        <Label
+                            Text="No tiene opciones habilitadas"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            FontSize="22"
+                            TextColor="{StaticResource color_Negro}"
+                            HorizontalTextAlignment="Center" />
+
+                        <Label
+                            Text="Su usuario está activo, pero actualmente no tiene permisos de lectura para las secciones principales. Solicite a un administrador que revise su rol y la matriz de permisos."
+                            FontFamily="MontserratMedium"
+                            FontSize="14"
+                            TextColor="{StaticResource color_GrisOscuro}"
+                            HorizontalTextAlignment="Center"
+                            LineBreakMode="WordWrap" />
+
+                        <Border
+                            Margin="0,8,0,0"
+                            Padding="14,11"
+                            BackgroundColor="#EEF5F2"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 12">
+
+                            <Label
+                                Text="Puede cerrar sesión desde el menú lateral o desde la barra inferior."
+                                FontSize="12"
+                                TextColor="{StaticResource color_Verde}"
+                                HorizontalTextAlignment="Center" />
+                        </Border>
+
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </ContentView>
+    </Grid>
+</ContentPage>

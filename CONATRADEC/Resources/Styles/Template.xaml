@@ -9,8 +9,9 @@
         - Windows con 900 px o más: barra lateral.
         - Windows estrecho, Android e iOS: barra inferior.
 
-        El cambio depende únicamente del ancho disponible. No modifica las
-        rutas ni aplica animaciones al contenido de las páginas.
+        Cada opción se oculta completamente cuando el usuario no tiene permiso
+        de lectura. En la barra inferior FlexLayout redistribuye únicamente las
+        opciones visibles, evitando espacios vacíos.
     -->
     <ControlTemplate x:Key="FooterTemplate">
 
@@ -100,6 +101,7 @@
                         <controls:AppNavigationMenuItem
                             Texto="Configuración"
                             Icono="iconsettings.png"
+                            GrupoPermisos="Configuracion"
                             Ruta="//ConfiguracionPage"
                             Seccion="Configuracion" />
 
@@ -181,12 +183,14 @@
                         Opacity="0.10" />
                 </Border.Shadow>
 
-                <Grid
-                    ColumnDefinitions="*,*,*,*,*"
-                    ColumnSpacing="1">
+                <FlexLayout
+                    Direction="Row"
+                    AlignItems="Stretch"
+                    JustifyContent="SpaceBetween">
 
                     <controls:AppNavigationMenuItem
-                        Grid.Column="0"
+                        FlexLayout.Grow="1"
+                        FlexLayout.Basis="0"
                         Texto="Inicio"
                         Icono="iconhome.png"
                         Interfaz="MainPage"
@@ -195,7 +199,8 @@
                         EsMovil="True" />
 
                     <controls:AppNavigationMenuItem
-                        Grid.Column="1"
+                        FlexLayout.Grow="1"
+                        FlexLayout.Basis="0"
                         Texto="Álbum"
                         Icono="iconalbum.png"
                         Interfaz="albumFotosPage"
@@ -204,7 +209,8 @@
                         EsMovil="True" />
 
                     <controls:AppNavigationMenuItem
-                        Grid.Column="2"
+                        FlexLayout.Grow="1"
+                        FlexLayout.Basis="0"
                         Texto="Noticias"
                         Icono="iconnews.png"
                         Interfaz="noticiasPage"
@@ -213,15 +219,18 @@
                         EsMovil="True" />
 
                     <controls:AppNavigationMenuItem
-                        Grid.Column="3"
+                        FlexLayout.Grow="1"
+                        FlexLayout.Basis="0"
                         Texto="Config."
                         Icono="iconsettings.png"
+                        GrupoPermisos="Configuracion"
                         Ruta="//ConfiguracionPage"
                         Seccion="Configuracion"
                         EsMovil="True" />
 
                     <VerticalStackLayout
-                        Grid.Column="4"
+                        FlexLayout.Grow="1"
+                        FlexLayout.Basis="0"
                         HeightRequest="58"
                         MinimumHeightRequest="58"
                         Padding="2,5"
@@ -251,7 +260,7 @@
 
                     </VerticalStackLayout>
 
-                </Grid>
+                </FlexLayout>
             </Border>
 
         </Grid>

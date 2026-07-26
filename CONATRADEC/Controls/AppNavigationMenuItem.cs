@@ -1,5 +1,7 @@
 using CONATRADEC.Services;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls.Shapes;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -8,9 +10,9 @@ namespace CONATRADEC.Controls
     /// <summary>
     /// Opción estable del menú principal.
     ///
-    /// No usa Flyout, animaciones, opacidad ni eventos de navegación globales.
-    /// Mantiene medidas fijas para que seleccionar una opción no desplace las
-    /// demás opciones del menú.
+    /// Oculta completamente la opción cuando el usuario no tiene permiso de
+    /// lectura. También vuelve a evaluar el permiso cuando inicia o cierra
+    /// sesión, sin necesidad de recrear la página.
     /// </summary>
     public sealed class AppNavigationMenuItem : Border
     {
@@ -80,6 +82,8 @@ namespace CONATRADEC.Controls
         private readonly Label desktopLabel;
         private readonly Label mobileLabel;
 
+        private bool suscritoPermisos;
+
         public static readonly BindableProperty TextoProperty =
             BindableProperty.Create(
                 nameof(Texto),
@@ -99,6 +103,14 @@ namespace CONATRADEC.Controls
         public static readonly BindableProperty InterfazProperty =
             BindableProperty.Create(
                 nameof(Interfaz),
+                typeof(string),
+                typeof(AppNavigationMenuItem),
+                string.Empty,
+                propertyChanged: OnPermissionPropertyChanged);
+
+        public static readonly BindableProperty GrupoPermisosProperty =
+            BindableProperty.Create(
+                nameof(GrupoPermisos),
                 typeof(string),
                 typeof(AppNavigationMenuItem),
                 string.Empty,
@@ -143,6 +155,12 @@ namespace CONATRADEC.Controls
         {
             get => (string)GetValue(InterfazProperty);
             set => SetValue(InterfazProperty, value);
+        }
+
+        public string GrupoPermisos
+        {
+            get => (string)GetValue(GrupoPermisosProperty);
+            set => SetValue(GrupoPermisosProperty, value);
         }
 
         public string Ruta
@@ -244,6 +262,20 @@ namespace CONATRADEC.Controls
             UpdateActiveState();
         }
 
+        protected override void OnParentSet()
+        {
+            base.OnParentSet();
+
+            if (Parent == null)
+            {
+                DesuscribirPermisos();
+                return;
+            }
+
+            SuscribirPermisos();
+            ApplyPermission();
+        }
+
         private static Image CreateIcon(double size) =>
             new()
             {
@@ -258,9 +290,44 @@ namespace CONATRADEC.Controls
 
         private void OnLoaded(object? sender, EventArgs e)
         {
+            SuscribirPermisos();
             ApplyPermission();
             UpdateActiveState();
             Dispatcher.Dispatch(UpdateActiveState);
+        }
+
+        private void SuscribirPermisos()
+        {
+            if (suscritoPermisos)
+                return;
+
+            PermissionService.Instance.PermissionsChanged +=
+                OnPermissionsChanged;
+
+            suscritoPermisos = true;
+        }
+
+        private void DesuscribirPermisos()
+        {
+            if (!suscritoPermisos)
+                return;
+
+            PermissionService.Instance.PermissionsChanged -=
+                OnPermissionsChanged;
+
+            suscritoPermisos = false;
+        }
+
+        private void OnPermissionsChanged(
+            object? sender,
+            EventArgs e)
+        {
+            MainThread.BeginInvokeOnMainThread(
+                () =>
+                {
+                    ApplyPermission();
+                    UpdateActiveState();
+                });
         }
 
         private static void OnVisualPropertyChanged(
@@ -319,10 +386,13 @@ namespace CONATRADEC.Controls
 
         private void ApplyPermission()
         {
-            bool visible = string.IsNullOrWhiteSpace(Interfaz) ||
-                           PermissionService.Instance.HasRead(Interfaz);
+            bool visible =
+                NavigationPermissionService.PuedeVerOpcion(
+                    Interfaz,
+                    GrupoPermisos);
 
             IsVisible = visible;
+            IsEnabled = visible;
             InputTransparent = !visible;
         }
 
@@ -352,17 +422,22 @@ namespace CONATRADEC.Controls
 
         private async Task NavigateAsync()
         {
-            if (!IsVisible || InputTransparent ||
+            if (!IsVisible ||
+                InputTransparent ||
                 string.IsNullOrWhiteSpace(Ruta))
             {
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(Interfaz) &&
-                !PermissionService.Instance.HasRead(Interfaz))
+            if (!NavigationPermissionService.PuedeVerOpcion(
+                    Interfaz,
+                    GrupoPermisos))
             {
+                ApplyPermission();
+
                 await GlobalService.MostrarInformacionAsync(
                     "No tiene permisos para acceder a esta sección.");
+
                 return;
             }
 
