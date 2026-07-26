@@ -1,3 +1,5 @@
+using CONATRADEC.Services;
+using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
@@ -83,6 +85,9 @@ namespace CONATRADEC.Behaviors
             private HorizontalStackLayout?
                 contenedorMensaje;
 
+            private ConfiguracionUnidadesFormularioCoordinator?
+                coordinadorUnidades;
+
             public EstadoPagina(
                 NuevoAnalisisFormPage pagina)
             {
@@ -100,6 +105,7 @@ namespace CONATRADEC.Behaviors
                 pagina.Appearing += Pagina_Appearing;
                 pagina.SizeChanged += Pagina_SizeChanged;
 
+                PrepararCoordinadorUnidadesConRetraso();
                 AjustarConRetraso();
             }
 
@@ -107,6 +113,7 @@ namespace CONATRADEC.Behaviors
                 object? sender,
                 EventArgs e)
             {
+                PrepararCoordinadorUnidadesConRetraso();
                 AjustarConRetraso();
             }
 
@@ -114,6 +121,7 @@ namespace CONATRADEC.Behaviors
                 object? sender,
                 EventArgs e)
             {
+                PrepararCoordinadorUnidadesConRetraso();
                 AjustarConRetraso();
             }
 
@@ -129,6 +137,42 @@ namespace CONATRADEC.Behaviors
                 EventArgs e)
             {
                 Ajustar();
+            }
+
+            private void PrepararCoordinadorUnidadesConRetraso()
+            {
+                pagina.Dispatcher.DispatchDelayed(
+                    TimeSpan.FromMilliseconds(40),
+                    PrepararCoordinadorUnidades);
+
+                /*
+                 * La página inicializa catálogos y, en modo edición,
+                 * restaura los valores guardados de forma asincrónica.
+                 * Una segunda aplicación garantiza que la unidad histórica
+                 * quede seleccionada después de terminar ese proceso.
+                 */
+                pagina.Dispatcher.DispatchDelayed(
+                    TimeSpan.FromMilliseconds(450),
+                    PrepararCoordinadorUnidades);
+            }
+
+            private void PrepararCoordinadorUnidades()
+            {
+                if (pagina.BindingContext
+                    is not NuevoAnalisisFormEdicionViewModel
+                        viewModel)
+                {
+                    return;
+                }
+
+                coordinadorUnidades ??=
+                    new ConfiguracionUnidadesFormularioCoordinator(
+                        viewModel);
+
+                coordinadorUnidades.Adjuntar();
+
+                _ = coordinadorUnidades
+                    .CargarYAplicarAsync();
             }
 
             private void AjustarConRetraso()
@@ -278,8 +322,7 @@ namespace CONATRADEC.Behaviors
                 IVisualTreeElement elemento)
             {
                 if (elemento is Label label &&
-                    label.Text?
-                        .TrimStart()
+                    label.Text?.TrimStart()
                         .StartsWith(
                             InicioMensaje,
                             StringComparison

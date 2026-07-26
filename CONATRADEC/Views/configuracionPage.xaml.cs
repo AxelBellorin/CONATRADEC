@@ -3,7 +3,8 @@ using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
-    public partial class configuracionPage : ContentPage
+    public partial class configuracionPage :
+        ContentPage
     {
         private static bool rutasRegistradas;
 
@@ -11,8 +12,8 @@ namespace CONATRADEC.Views
             viewModel = new();
 
         private int cantidadColumnasActual;
+
         private bool paginaVisible;
-        private bool redireccionando;
 
         public configuracionPage()
         {
@@ -21,58 +22,28 @@ namespace CONATRADEC.Views
             Shell.Current.FlyoutBehavior =
                 FlyoutBehavior.Disabled;
 
-            BindingContext = viewModel;
+            BindingContext =
+                viewModel;
 
             RegistrarRutas();
         }
 
-        protected override async void OnAppearing()
+        protected override void OnAppearing()
         {
             base.OnAppearing();
 
-            if (!NavigationPermissionService
-                    .PuedeVerConfiguracion())
-            {
-                if (redireccionando)
-                    return;
-
-                redireccionando = true;
-
-                try
-                {
-                    string rutaPermitida =
-                        NavigationPermissionService
-                            .ObtenerRutaInicialPermitida();
-
-                    await Shell.Current.GoToAsync(
-                        rutaPermitida,
-                        false);
-                }
-                finally
-                {
-                    redireccionando = false;
-                }
-
-                return;
-            }
-
             paginaVisible = true;
 
-            /*
-             * El Span se cambia directamente en el layout.
-             * Ya no reconstruye toda la colección.
-             */
-            AjustarCantidadColumnas(Width);
+            AjustarCantidadColumnas(
+                Width);
 
-            /*
-             * Una sola carga al entrar.
-             */
             viewModel.ActualizarOpciones();
         }
 
         protected override void OnDisappearing()
         {
             paginaVisible = false;
+
             viewModel.CancelarBusqueda();
 
             base.OnDisappearing();
@@ -82,10 +53,15 @@ namespace CONATRADEC.Views
             double width,
             double height)
         {
-            base.OnSizeAllocated(width, height);
+            base.OnSizeAllocated(
+                width,
+                height);
 
             if (paginaVisible)
-                AjustarCantidadColumnas(width);
+            {
+                AjustarCantidadColumnas(
+                    width);
+            }
         }
 
         private void AjustarCantidadColumnas(
@@ -104,11 +80,17 @@ namespace CONATRADEC.Views
                         ? 2
                         : 1;
 
-            if (cantidadColumnasActual == nuevasColumnas)
+            if (cantidadColumnasActual ==
+                nuevasColumnas)
+            {
                 return;
+            }
 
-            cantidadColumnasActual = nuevasColumnas;
-            OpcionesGridLayout.Span = nuevasColumnas;
+            cantidadColumnasActual =
+                nuevasColumnas;
+
+            OpcionesGridLayout.Span =
+                nuevasColumnas;
         }
 
         private static void RegistrarRutas()
@@ -123,6 +105,10 @@ namespace CONATRADEC.Views
             Routing.RegisterRoute(
                 AppRoutes.BitacoraDetalle,
                 typeof(bitacoraDetallePage));
+
+            Routing.RegisterRoute(
+                AppRoutes.ConfiguracionUnidades,
+                typeof(configuracionUnidadesPage));
 
             rutasRegistradas = true;
         }

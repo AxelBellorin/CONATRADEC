@@ -1,0 +1,761 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.configuracionUnidadesPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:vm="clr-namespace:CONATRADEC.ViewModels"
+    x:DataType="vm:ConfiguracionUnidadesViewModel"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+
+        <Grid
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,30'}"
+            RowDefinitions="Auto,*"
+            RowSpacing="14">
+
+            <controls:ResponsiveCatalogHeader
+                Grid.Row="0"
+                Title="Unidades y conversiones"
+                Subtitle="Configure las unidades permitidas, valores predeterminados y fórmulas utilizadas en los análisis de suelo."
+                BackText="← Configuración"
+                BackCommand="{Binding VolverCommand}"
+                PrimaryText="Guardar cambios"
+                PrimaryCommand="{Binding GuardarCommand}"
+                IsPrimaryVisible="{Binding CanEdit}" />
+
+            <ScrollView
+                x:Name="ContenidoScroll"
+                Grid.Row="1"
+                Orientation="Vertical"
+                HorizontalOptions="Fill"
+                HorizontalScrollBarVisibility="Never"
+                VerticalScrollBarVisibility="Default"
+                SizeChanged="ContenidoScroll_SizeChanged">
+
+                <VerticalStackLayout
+                    x:Name="ContenidoPrincipal"
+                    MaximumWidthRequest="1120"
+                    HorizontalOptions="Center"
+                    Spacing="14">
+
+                    <!-- Selector de contexto -->
+                    <Border
+                        HorizontalOptions="Fill"
+                        Padding="{OnIdiom Phone='12', Tablet='14', Desktop='16'}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 15">
+
+                        <VerticalStackLayout Spacing="11">
+
+                            <Label
+                                Text="¿Qué desea configurar?"
+                                FontSize="16"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Grid
+                                ColumnDefinitions="*,*"
+                                ColumnSpacing="10">
+
+                                <Button
+                                    Grid.Column="0"
+                                    Text="Elementos químicos"
+                                    Command="{Binding SeleccionarModoElementosCommand}"
+                                    BackgroundColor="{StaticResource color_Verde}"
+                                    TextColor="White"
+                                    CornerRadius="11"
+                                    FontAttributes="Bold" />
+
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Materia orgánica"
+                                    Command="{Binding SeleccionarModoMateriaOrganicaCommand}"
+                                    BackgroundColor="{StaticResource color_Cafe}"
+                                    TextColor="White"
+                                    CornerRadius="11"
+                                    FontAttributes="Bold" />
+                            </Grid>
+
+                            <Border
+                                Padding="12"
+                                BackgroundColor="#EEF5F2"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 11">
+
+                                <VerticalStackLayout Spacing="3">
+
+                                    <Label
+                                        Text="{Binding TituloContexto}"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Label
+                                        Text="{Binding DescripcionContexto}"
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Selección del elemento -->
+                    <Border
+                        IsVisible="{Binding EsModoElementos}"
+                        Padding="{OnIdiom Phone='12', Tablet='14', Desktop='16'}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 15">
+
+                        <VerticalStackLayout Spacing="10">
+
+                            <Label
+                                Text="Elemento químico"
+                                FontSize="16"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <SearchBar
+                                Placeholder="Buscar por nombre o símbolo"
+                                Text="{Binding TextoBusquedaElemento, Mode=TwoWay}"
+                                BackgroundColor="#F9FAFB"
+                                CancelButtonColor="{StaticResource color_Verde}" />
+
+                            <Border
+                                Padding="10,3"
+                                BackgroundColor="#F9FAFB"
+                                Stroke="#E5E7EB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Picker
+                                    Title="Seleccione un elemento"
+                                    ItemsSource="{Binding ElementosFiltrados}"
+                                    SelectedItem="{Binding ElementoSeleccionado, Mode=TwoWay}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </Border>
+
+                            <Label
+                                Text="{Binding ResumenElementoSeleccionado}"
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Mensaje -->
+                    <Border
+                        HorizontalOptions="Fill"
+                        IsVisible="{Binding TieneMensaje}"
+                        Padding="12"
+                        BackgroundColor="#FFF7E6"
+                        Stroke="#F2C94C"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 12">
+
+                        <Label
+                            Text="{Binding Mensaje}"
+                            FontSize="13"
+                            TextColor="{StaticResource color_Negro}"
+                            LineBreakMode="WordWrap" />
+                    </Border>
+
+                    <!-- Agregar unidad -->
+                    <Border
+                        HorizontalOptions="Fill"
+                        Padding="{OnIdiom Phone='12', Tablet='14', Desktop='16'}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 15">
+
+                        <Grid
+                            RowDefinitions="Auto,Auto,Auto,Auto"
+                            RowSpacing="9">
+
+                            <Label
+                                Grid.Row="0"
+                                Text="Agregar unidad"
+                                FontSize="16"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Label
+                                Grid.Row="1"
+                                Text="Seleccione una unidad del catálogo que todavía no esté asociada a este contexto."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}"
+                                LineBreakMode="WordWrap" />
+
+                            <!--
+                                El selector ocupa una fila completa. Esto evita que
+                                el Picker se mida debajo del botón en Windows y que
+                                ambos controles se superpongan en ventanas estrechas.
+                            -->
+                            <Border
+                                Grid.Row="2"
+                                Padding="9,2"
+                                HorizontalOptions="Fill"
+                                BackgroundColor="#F9FAFB"
+                                Stroke="#E5E7EB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Picker
+                                    Title="Seleccione una unidad"
+                                    ItemsSource="{Binding UnidadesDisponibles}"
+                                    SelectedItem="{Binding UnidadParaAgregar, Mode=TwoWay}"
+                                    HorizontalOptions="Fill"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </Border>
+
+                            <Button
+                                Grid.Row="3"
+                                Text="+ Agregar unidad"
+                                Command="{Binding AgregarUnidadCommand}"
+                                IsVisible="{Binding CanEdit}"
+                                MinimumWidthRequest="150"
+                                HorizontalOptions="End"
+                                Padding="16,11"
+                                BackgroundColor="{StaticResource color_Verde}"
+                                TextColor="White"
+                                FontAttributes="Bold"
+                                CornerRadius="11" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Resumen -->
+                    <Grid
+                        HorizontalOptions="Fill"
+                        ColumnDefinitions="*,Auto"
+                        ColumnSpacing="10">
+
+                        <VerticalStackLayout Spacing="2">
+
+                            <Label
+                                Text="Unidades configuradas"
+                                FontSize="19"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Text="La unidad marcada como predeterminada será seleccionada automáticamente en el formulario."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="10,6"
+                            VerticalOptions="Center"
+                            BackgroundColor="#EEF5F2"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 10">
+
+                            <Label
+                                Text="{Binding ResumenConfiguracion}"
+                                FontSize="11"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Lista editable -->
+                    <VerticalStackLayout
+                        Spacing="12"
+                        BindableLayout.ItemsSource="{Binding UnidadesConfiguradas}">
+
+                        <BindableLayout.EmptyView>
+                            <Border
+                                Padding="22"
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 15">
+
+                                <VerticalStackLayout
+                                    Spacing="6"
+                                    HorizontalOptions="Center">
+
+                                    <Label
+                                        Text="No hay unidades configuradas"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}"
+                                        HorizontalTextAlignment="Center" />
+
+                                    <Label
+                                        Text="Agregue al menos una unidad para continuar."
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </BindableLayout.EmptyView>
+
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ConfiguracionUnidadItemViewModel">
+
+                                <Border
+                                    Padding="{OnIdiom Phone='12', Tablet='15', Desktop='17'}"
+                                    BackgroundColor="White"
+                                    Stroke="#DDE7E3"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 15">
+
+                                    <VerticalStackLayout
+                                        Spacing="12"
+                                        IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.CanEdit}">
+
+                                        <Grid
+                                            ColumnDefinitions="*,Auto"
+                                            ColumnSpacing="10">
+
+                                            <VerticalStackLayout Spacing="2">
+
+                                                <Label
+                                                    Text="{Binding NombreMostrar}"
+                                                    FontSize="17"
+                                                    FontFamily="MontserratBold"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Negro}" />
+
+                                                <HorizontalStackLayout Spacing="8">
+
+                                                    <Label
+                                                        Text="{Binding EstadoTexto}"
+                                                        FontSize="11"
+                                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                    <Label
+                                                        Text="·"
+                                                        FontSize="11"
+                                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                    <Label
+                                                        Text="{Binding EtiquetaPredeterminada}"
+                                                        FontSize="11"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{StaticResource color_Verde}" />
+                                                </HorizontalStackLayout>
+                                            </VerticalStackLayout>
+
+                                            <Button
+                                                Grid.Column="1"
+                                                Text="Quitar"
+                                                IsVisible="{Binding PuedeQuitar}"
+                                                Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.QuitarUnidadCommand}"
+                                                CommandParameter="{Binding .}"
+                                                BackgroundColor="#FEECEC"
+                                                TextColor="#B91C1C"
+                                                CornerRadius="10"
+                                                Padding="13,8"
+                                                FontAttributes="Bold" />
+                                        </Grid>
+
+                                        <Grid
+                                            ColumnDefinitions="*,*,*"
+                                            ColumnSpacing="8">
+
+                                            <VerticalStackLayout
+                                                Grid.Column="0"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Activa"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Switch
+                                                    IsToggled="{Binding Activo, Mode=TwoWay}"
+                                                    OnColor="{StaticResource color_Verde}" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout
+                                                Grid.Column="1"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Visible"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Switch
+                                                    IsToggled="{Binding VisibleEnFormulario, Mode=TwoWay}"
+                                                    OnColor="{StaticResource color_Verde}" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout
+                                                Grid.Column="2"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Predeterminada"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Switch
+                                                    IsEnabled="{Binding PuedeSerPredeterminada}"
+                                                    IsToggled="{Binding UnidadPredeterminada, Mode=TwoWay}"
+                                                    OnColor="{StaticResource color_Naranja}" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+
+                                        <VerticalStackLayout Spacing="5">
+
+                                            <Label
+                                                Text="Fórmula de conversión"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Negro}" />
+
+                                            <Border
+                                                Padding="9,2"
+                                                BackgroundColor="#F9FAFB"
+                                                Stroke="#E5E7EB"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 10">
+
+                                                <Picker
+                                                    Title="Seleccione una fórmula"
+                                                    ItemsSource="{Binding FormulasDisponibles}"
+                                                    SelectedItem="{Binding FormulaSeleccionada, Mode=TwoWay}"
+                                                    BackgroundColor="Transparent"
+                                                    TextColor="{StaticResource color_Negro}" />
+                                            </Border>
+
+                                            <Label
+                                                Text="{Binding DescripcionFormula}"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}"
+                                                LineBreakMode="WordWrap" />
+                                        </VerticalStackLayout>
+
+                                        <FlexLayout
+                                            Direction="Row"
+                                            Wrap="Wrap"
+                                            AlignItems="Start"
+                                            JustifyContent="Start">
+
+                                            <VerticalStackLayout
+                                                WidthRequest="{OnIdiom Phone=145, Tablet=175, Desktop=190}"
+                                                Margin="0,0,10,9"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Factor principal"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Entry
+                                                    Text="{Binding FactorPrincipal, Mode=TwoWay}"
+                                                    Keyboard="Numeric"
+                                                    Placeholder="1"
+                                                    BackgroundColor="#F9FAFB"
+                                                    TextColor="{StaticResource color_Negro}" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout
+                                                WidthRequest="{OnIdiom Phone=145, Tablet=175, Desktop=190}"
+                                                Margin="0,0,10,9"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Factor secundario"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Entry
+                                                    Text="{Binding FactorSecundario, Mode=TwoWay}"
+                                                    Keyboard="Numeric"
+                                                    Placeholder="1"
+                                                    BackgroundColor="#F9FAFB"
+                                                    TextColor="{StaticResource color_Negro}" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout
+                                                WidthRequest="{OnIdiom Phone=145, Tablet=175, Desktop=190}"
+                                                Margin="0,0,10,9"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Factor terciario"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Entry
+                                                    Text="{Binding FactorTerciario, Mode=TwoWay}"
+                                                    Keyboard="Numeric"
+                                                    Placeholder="1"
+                                                    BackgroundColor="#F9FAFB"
+                                                    TextColor="{StaticResource color_Negro}" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout
+                                                WidthRequest="{OnIdiom Phone=145, Tablet=175, Desktop=190}"
+                                                Margin="0,0,10,9"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Divisor"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Entry
+                                                    Text="{Binding Divisor, Mode=TwoWay}"
+                                                    Keyboard="Numeric"
+                                                    Placeholder="1"
+                                                    BackgroundColor="#F9FAFB"
+                                                    TextColor="{StaticResource color_Negro}" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout
+                                                WidthRequest="{OnIdiom Phone=145, Tablet=175, Desktop=190}"
+                                                Margin="0,0,10,9"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Desplazamiento"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Entry
+                                                    Text="{Binding Desplazamiento, Mode=TwoWay}"
+                                                    Keyboard="Numeric"
+                                                    Placeholder="0"
+                                                    BackgroundColor="#F9FAFB"
+                                                    TextColor="{StaticResource color_Negro}" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout
+                                                WidthRequest="{OnIdiom Phone=145, Tablet=175, Desktop=190}"
+                                                Margin="0,0,10,9"
+                                                Spacing="4">
+
+                                                <Label
+                                                    Text="Orden"
+                                                    FontSize="11"
+                                                    TextColor="{StaticResource color_GrisOscuro}" />
+
+                                                <Entry
+                                                    Text="{Binding Orden, Mode=TwoWay}"
+                                                    Keyboard="Numeric"
+                                                    Placeholder="10"
+                                                    BackgroundColor="#F9FAFB"
+                                                    TextColor="{StaticResource color_Negro}" />
+                                            </VerticalStackLayout>
+                                        </FlexLayout>
+
+                                        <VerticalStackLayout Spacing="4">
+
+                                            <Label
+                                                Text="Observación"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                                            <Editor
+                                                Text="{Binding Observacion, Mode=TwoWay}"
+                                                AutoSize="TextChanges"
+                                                MaximumHeightRequest="100"
+                                                Placeholder="Descripción técnica o referencia de la conversión"
+                                                BackgroundColor="#F9FAFB"
+                                                TextColor="{StaticResource color_Negro}" />
+                                        </VerticalStackLayout>
+
+                                        <Border
+                                            IsVisible="{Binding EsUnidadInternaKgHa}"
+                                            Padding="10"
+                                            BackgroundColor="#FFF7E6"
+                                            Stroke="#F2C94C"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 10">
+
+                                            <Label
+                                                Text="kg/ha es una conversión interna requerida para transformar los rangos nutricionales. Puede ocultarse del formulario, pero debe permanecer activa."
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_Negro}"
+                                                LineBreakMode="WordWrap" />
+                                        </Border>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <!-- Prueba de conversión -->
+                    <Border
+                        Padding="{OnIdiom Phone='12', Tablet='15', Desktop='17'}"
+                        BackgroundColor="#F7FBF9"
+                        Stroke="#C8DED6"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 15">
+
+                        <VerticalStackLayout Spacing="10">
+
+                            <Label
+                                Text="Probar conversión"
+                                FontSize="18"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Text="La prueba utiliza la última configuración guardada. Guarde los cambios antes de validar factores nuevos."
+                                FontSize="12"
+                                TextColor="{StaticResource color_GrisOscuro}"
+                                LineBreakMode="WordWrap" />
+
+                            <Border
+                                Padding="9,2"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 10">
+
+                                <Picker
+                                    Title="Unidad para la prueba"
+                                    ItemsSource="{Binding UnidadesConfiguradas}"
+                                    SelectedItem="{Binding UnidadPruebaSeleccionada, Mode=TwoWay}"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+                            </Border>
+
+                            <Grid
+                                ColumnDefinitions="*,*"
+                                ColumnSpacing="10">
+
+                                <VerticalStackLayout
+                                    Grid.Column="0"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Valor reportado"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Entry
+                                        Text="{Binding ValorPrueba, Mode=TwoWay}"
+                                        Keyboard="Numeric"
+                                        Placeholder="Ejemplo: 10"
+                                        BackgroundColor="White"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="1"
+                                    IsVisible="{Binding UnidadPruebaSeleccionada.RequiereMateriaOrganica}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Materia orgánica (%)"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
+
+                                    <Entry
+                                        Text="{Binding MateriaOrganicaPrueba, Mode=TwoWay}"
+                                        Keyboard="Numeric"
+                                        Placeholder="Ejemplo: 3"
+                                        BackgroundColor="White"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <Button
+                                Text="Probar conversión"
+                                Command="{Binding ProbarConversionCommand}"
+                                BackgroundColor="{StaticResource color_Naranja}"
+                                TextColor="White"
+                                FontAttributes="Bold"
+                                CornerRadius="11" />
+
+                            <Border
+                                IsVisible="{Binding TieneResultadoPrueba}"
+                                Padding="12"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 11">
+
+                                <Label
+                                    Text="{Binding ResultadoPrueba}"
+                                    FontSize="13"
+                                    TextColor="{StaticResource color_Negro}"
+                                    LineBreakMode="WordWrap" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="10"
+                        Margin="0,4,0,8">
+
+                        <Button
+                            Grid.Column="0"
+                            Text="Recargar"
+                            Command="{Binding RecargarCommand}"
+                            BackgroundColor="#EEF2F0"
+                            TextColor="{StaticResource color_Verde}"
+                            FontAttributes="Bold"
+                            CornerRadius="11" />
+
+                        <Button
+                            Grid.Column="1"
+                            Text="Guardar cambios"
+                            Command="{Binding GuardarCommand}"
+                            IsVisible="{Binding CanEdit}"
+                            BackgroundColor="{StaticResource color_Verde}"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            CornerRadius="11" />
+                    </Grid>
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <Grid
+                Grid.RowSpan="2"
+                IsVisible="{Binding IsBusy}"
+                InputTransparent="False"
+                BackgroundColor="#66FFFFFF">
+
+                <Border
+                    Padding="22"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 15">
+
+                    <VerticalStackLayout
+                        Spacing="10"
+                        HorizontalOptions="Center">
+
+                        <ActivityIndicator
+                            IsRunning="True"
+                            Color="{StaticResource color_Naranja}" />
+
+                        <Label
+                            Text="Procesando configuración..."
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </Grid>
+    </ContentView>
+</ContentPage>

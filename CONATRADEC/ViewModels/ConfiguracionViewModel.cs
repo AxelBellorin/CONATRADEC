@@ -6,48 +6,66 @@ using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
-    public sealed class ConfiguracionViewModel : GlobalService
+    /// <summary>
+    /// Catálogo optimizado de opciones de configuración.
+    /// Incluye el acceso administrativo a unidades y conversiones.
+    /// </summary>
+    public sealed class ConfiguracionViewModel :
+        GlobalService
     {
-        private readonly IReadOnlyList<ConfiguracionCategoria>
+        private readonly IReadOnlyList<
+            ConfiguracionCategoria>
             catalogoCompleto;
 
-        private CancellationTokenSource? filtroCts;
+        private CancellationTokenSource?
+            filtroCts;
 
-        private IReadOnlyList<ConfiguracionGrupoVisual>
+        private IReadOnlyList<
+            ConfiguracionGrupoVisual>
             gruposVisibles =
-                Array.Empty<ConfiguracionGrupoVisual>();
+                Array.Empty<
+                    ConfiguracionGrupoVisual>();
 
-        private string textoBusqueda = string.Empty;
+        private string textoBusqueda =
+            string.Empty;
+
         private bool navegando;
+
         private int cantidadOpciones;
 
         public ConfiguracionViewModel()
         {
-            catalogoCompleto = CrearCatalogo();
+            catalogoCompleto =
+                CrearCatalogo();
 
             AbrirOpcionCommand =
-                new Command<ConfiguracionOpcion>(
-                    async opcion =>
-                        await AbrirOpcionAsync(opcion),
-                    opcion =>
-                        opcion != null &&
-                        !Navegando);
+                new Command<
+                    ConfiguracionOpcion>(
+                        async opcion =>
+                            await AbrirOpcionAsync(
+                                opcion),
+                        opcion =>
+                            opcion != null &&
+                            !Navegando);
         }
 
-        /// <summary>
-        /// El CollectionView recibe la colección completa mediante una
-        /// única notificación. No se ejecutan Clear/Add por cada tarjeta.
-        /// </summary>
-        public IReadOnlyList<ConfiguracionGrupoVisual>
+        public IReadOnlyList<
+            ConfiguracionGrupoVisual>
             GruposVisibles
         {
             get => gruposVisibles;
             private set
             {
-                if (ReferenceEquals(gruposVisibles, value))
+                if (ReferenceEquals(
+                        gruposVisibles,
+                        value))
+                {
                     return;
+                }
 
-                gruposVisibles = value;
+                gruposVisibles =
+                    value;
+
                 OnPropertyChanged();
             }
         }
@@ -61,12 +79,18 @@ namespace CONATRADEC.ViewModels
             set
             {
                 string nuevoValor =
-                    value ?? string.Empty;
+                    value ??
+                    string.Empty;
 
-                if (textoBusqueda == nuevoValor)
+                if (textoBusqueda ==
+                    nuevoValor)
+                {
                     return;
+                }
 
-                textoBusqueda = nuevoValor;
+                textoBusqueda =
+                    nuevoValor;
+
                 OnPropertyChanged();
 
                 ProgramarFiltro();
@@ -82,9 +106,11 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 navegando = value;
+
                 OnPropertyChanged();
 
-                AbrirOpcionCommand.ChangeCanExecute();
+                AbrirOpcionCommand
+                    .ChangeCanExecute();
             }
         }
 
@@ -96,11 +122,6 @@ namespace CONATRADEC.ViewModels
                 ? "1 opción disponible"
                 : $"{cantidadOpciones} opciones disponibles";
 
-        /// <summary>
-        /// Recarga permisos y búsqueda una sola vez al mostrar la página.
-        /// La cantidad de columnas se controla directamente en el
-        /// GridItemsLayout y ya no reconstruye los datos.
-        /// </summary>
         public void ActualizarOpciones()
         {
             CancelarBusqueda();
@@ -109,54 +130,61 @@ namespace CONATRADEC.ViewModels
 
         public void CancelarBusqueda()
         {
-            CancellationTokenSource? source =
-                Interlocked.Exchange(
-                    ref filtroCts,
-                    null);
+            CancellationTokenSource?
+                source =
+                    Interlocked.Exchange(
+                        ref filtroCts,
+                        null);
 
             CancelarSeguro(source);
         }
 
         private void ProgramarFiltro()
         {
-            var source =
-                new CancellationTokenSource();
+            CancellationTokenSource
+                source = new();
 
-            CancellationTokenSource? anterior =
-                Interlocked.Exchange(
-                    ref filtroCts,
-                    source);
+            CancellationTokenSource?
+                anterior =
+                    Interlocked.Exchange(
+                        ref filtroCts,
+                        source);
 
             CancelarSeguro(anterior);
 
-            _ = AplicarFiltroConEsperaAsync(source);
+            _ = AplicarFiltroConEsperaAsync(
+                source);
         }
 
-        private async Task AplicarFiltroConEsperaAsync(
-            CancellationTokenSource source)
+        private async Task
+            AplicarFiltroConEsperaAsync(
+                CancellationTokenSource source)
         {
             try
             {
                 await Task.Delay(
-                    TimeSpan.FromMilliseconds(250),
+                    TimeSpan.FromMilliseconds(
+                        250),
                     source.Token);
 
-                if (source.IsCancellationRequested ||
+                if (source
+                        .IsCancellationRequested ||
                     !EsFiltroActual(source))
                 {
                     return;
                 }
 
-                await MainThread.InvokeOnMainThreadAsync(
-                    AplicarFiltro);
+                await MainThread
+                    .InvokeOnMainThreadAsync(
+                        AplicarFiltro);
             }
             catch (OperationCanceledException)
             {
-                // Una nueva tecla sustituyó esta búsqueda.
+                // Una nueva tecla sustituyó la búsqueda.
             }
             catch (ObjectDisposedException)
             {
-                // La pantalla se cerró antes de finalizar.
+                // La página se cerró antes de finalizar.
             }
             finally
             {
@@ -174,39 +202,53 @@ namespace CONATRADEC.ViewModels
             string filtro =
                 TextoBusqueda.Trim();
 
-            var grupos =
-                new List<ConfiguracionGrupoVisual>(
+            List<ConfiguracionGrupoVisual>
+                grupos = new(
                     catalogoCompleto.Count);
 
             int totalOpciones = 0;
 
-            foreach (ConfiguracionCategoria categoria
-                     in catalogoCompleto)
+            foreach (
+                ConfiguracionCategoria categoria
+                in catalogoCompleto
+                    .OrderBy(x => x.Orden))
             {
                 bool coincideCategoria =
-                    string.IsNullOrWhiteSpace(filtro) ||
-                    categoria.TextoBusqueda.Contains(
-                        filtro,
-                        StringComparison.OrdinalIgnoreCase);
+                    string.IsNullOrWhiteSpace(
+                        filtro) ||
+                    categoria.TextoBusqueda
+                        .Contains(
+                            filtro,
+                            StringComparison
+                                .OrdinalIgnoreCase);
 
-                var opciones =
-                    new List<ConfiguracionOpcion>(
-                        categoria.Opciones.Count);
+                List<ConfiguracionOpcion>
+                    opciones = new(
+                        categoria
+                            .Opciones
+                            .Count);
 
-                foreach (ConfiguracionOpcion opcion
-                         in categoria.Opciones)
+                foreach (
+                    ConfiguracionOpcion opcion
+                    in categoria.Opciones
+                        .OrderBy(x => x.Orden))
                 {
-                    if (!PermissionService.Instance.HasRead(
-                            opcion.Interfaz))
+                    if (!PermissionService
+                            .Instance
+                            .HasRead(
+                                opcion
+                                    .Interfaz))
                     {
                         continue;
                     }
 
                     bool coincide =
                         coincideCategoria ||
-                        opcion.TextoBusqueda.Contains(
-                            filtro,
-                            StringComparison.OrdinalIgnoreCase);
+                        opcion.TextoBusqueda
+                            .Contains(
+                                filtro,
+                                StringComparison
+                                    .OrdinalIgnoreCase);
 
                     if (coincide)
                         opciones.Add(opcion);
@@ -215,21 +257,23 @@ namespace CONATRADEC.ViewModels
                 if (opciones.Count == 0)
                     continue;
 
-                totalOpciones += opciones.Count;
+                totalOpciones +=
+                    opciones.Count;
 
                 grupos.Add(
-                    new ConfiguracionGrupoVisual(
-                        categoria.Titulo,
-                        categoria.Descripcion,
-                        opciones));
+                    new
+                        ConfiguracionGrupoVisual(
+                            categoria.Titulo,
+                            categoria
+                                .Descripcion,
+                            opciones));
             }
 
-            /*
-             * Una sola asignación evita decenas de eventos
-             * CollectionChanged y mediciones repetidas.
-             */
-            GruposVisibles = grupos;
-            cantidadOpciones = totalOpciones;
+            GruposVisibles =
+                grupos;
+
+            cantidadOpciones =
+                totalOpciones;
 
             OnPropertyChanged(
                 nameof(MostrarSinOpciones));
@@ -241,14 +285,19 @@ namespace CONATRADEC.ViewModels
         private async Task AbrirOpcionAsync(
             ConfiguracionOpcion? opcion)
         {
-            if (opcion == null || Navegando)
+            if (opcion == null ||
+                Navegando)
+            {
                 return;
+            }
 
-            if (!PermissionService.Instance.HasRead(
-                    opcion.Interfaz))
+            if (!PermissionService
+                    .Instance
+                    .HasRead(
+                        opcion.Interfaz))
             {
                 await MostrarAdvertenciaAsync(
-                    $"No tiene permiso para consultar " +
+                    "No tiene permiso para consultar " +
                     $"{opcion.Titulo.ToLowerInvariant()}.");
 
                 ActualizarOpciones();
@@ -267,7 +316,9 @@ namespace CONATRADEC.ViewModels
             catch (Exception ex)
             {
                 await MostrarErrorInesperadoAsync(
-                    $"abrir {opcion.Titulo.ToLowerInvariant()}",
+                    "abrir " +
+                    opcion.Titulo
+                        .ToLowerInvariant(),
                     ex);
             }
             finally
@@ -278,9 +329,10 @@ namespace CONATRADEC.ViewModels
 
         private bool EsFiltroActual(
             CancellationTokenSource source) =>
-            ReferenceEquals(
-                Volatile.Read(ref filtroCts),
-                source);
+                ReferenceEquals(
+                    Volatile.Read(
+                        ref filtroCts),
+                    source);
 
         private static void CancelarSeguro(
             CancellationTokenSource? source)
@@ -298,25 +350,32 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private static IReadOnlyList<ConfiguracionCategoria>
+        private static IReadOnlyList<
+            ConfiguracionCategoria>
             CrearCatalogo()
         {
             Color verdeSuave =
-                Color.FromArgb("#EEF5F2");
+                Color.FromArgb(
+                    "#EEF5F2");
 
             Color cafeSuave =
-                Color.FromArgb("#F7F1EC");
+                Color.FromArgb(
+                    "#F7F1EC");
 
             Color amarilloSuave =
-                Color.FromArgb("#FFF7E6");
+                Color.FromArgb(
+                    "#FFF7E6");
 
             Color azulSuave =
-                Color.FromArgb("#EEF4FF");
+                Color.FromArgb(
+                    "#EEF4FF");
 
             Color grisSuave =
-                Color.FromArgb("#F3F4F6");
+                Color.FromArgb(
+                    "#F3F4F6");
 
-            return new List<ConfiguracionCategoria>
+            return new List<
+                ConfiguracionCategoria>
             {
                 Categoria(
                     "Seguridad y usuarios",
@@ -330,7 +389,6 @@ namespace CONATRADEC.ViewModels
                         AppRoutes.Usuarios,
                         1,
                         verdeSuave),
-
                     Opcion(
                         "Roles",
                         "Definir perfiles de acceso.",
@@ -339,7 +397,6 @@ namespace CONATRADEC.ViewModels
                         AppRoutes.Roles,
                         2,
                         verdeSuave),
-
                     Opcion(
                         "Matriz de permisos",
                         "Asignar acciones disponibles por rol.",
@@ -361,7 +418,6 @@ namespace CONATRADEC.ViewModels
                         AppRoutes.Paises,
                         1,
                         cafeSuave),
-
                     Opcion(
                         "Terrenos",
                         "Registrar y administrar fincas.",
@@ -383,7 +439,6 @@ namespace CONATRADEC.ViewModels
                         AppRoutes.TiposCultivo,
                         1,
                         verdeSuave),
-
                     Opcion(
                         "Tipos de análisis",
                         "Clasificaciones de análisis de suelo.",
@@ -392,7 +447,6 @@ namespace CONATRADEC.ViewModels
                         AppRoutes.TiposAnalisisSuelo,
                         2,
                         verdeSuave),
-
                     Opcion(
                         "Elementos químicos",
                         "Nutrientes y pesos equivalentes.",
@@ -401,7 +455,6 @@ namespace CONATRADEC.ViewModels
                         AppRoutes.ElementosQuimicos,
                         3,
                         verdeSuave),
-
                     Opcion(
                         "Fuentes de nutrientes",
                         "Fertilizantes y fuentes orgánicas.",
@@ -423,7 +476,6 @@ namespace CONATRADEC.ViewModels
                         AppRoutes.ExtraccionNutrientes,
                         1,
                         amarilloSuave),
-
                     Opcion(
                         "Rangos nutricionales",
                         "Niveles mínimos y máximos por cultivo.",
@@ -431,6 +483,14 @@ namespace CONATRADEC.ViewModels
                         "rangoNutrientePage",
                         AppRoutes.RangosNutrientes,
                         2,
+                        amarilloSuave),
+                    Opcion(
+                        "Unidades y conversiones",
+                        "Unidades permitidas, valores predeterminados y fórmulas por elemento.",
+                        "iconsettings.png",
+                        "elementoQuimicoPage",
+                        AppRoutes.ConfiguracionUnidades,
+                        3,
                         amarilloSuave)),
 
                 Categoria(
@@ -461,39 +521,53 @@ namespace CONATRADEC.ViewModels
             };
         }
 
-        private static ConfiguracionCategoria Categoria(
-            string titulo,
-            string descripcion,
-            int orden,
-            params ConfiguracionOpcion[] opciones) =>
-            new()
-            {
-                Titulo = titulo,
-                Descripcion = descripcion,
-                Orden = orden,
-                Opciones =
-                    opciones
-                        .OrderBy(item => item.Orden)
-                        .ToList()
-            };
+        private static ConfiguracionCategoria
+            Categoria(
+                string titulo,
+                string descripcion,
+                int orden,
+                params ConfiguracionOpcion[]
+                    opciones) =>
+                new()
+                {
+                    Titulo =
+                        titulo,
+                    Descripcion =
+                        descripcion,
+                    Orden =
+                        orden,
+                    Opciones =
+                        opciones
+                            .OrderBy(x =>
+                                x.Orden)
+                            .ToList()
+                };
 
-        private static ConfiguracionOpcion Opcion(
-            string titulo,
-            string descripcion,
-            string icono,
-            string interfaz,
-            string ruta,
-            int orden,
-            Color colorFondoIcono) =>
-            new()
-            {
-                Titulo = titulo,
-                Descripcion = descripcion,
-                Icono = icono,
-                Interfaz = interfaz,
-                Ruta = ruta,
-                Orden = orden,
-                ColorFondoIcono = colorFondoIcono
-            };
+        private static ConfiguracionOpcion
+            Opcion(
+                string titulo,
+                string descripcion,
+                string icono,
+                string interfaz,
+                string ruta,
+                int orden,
+                Color colorFondoIcono) =>
+                new()
+                {
+                    Titulo =
+                        titulo,
+                    Descripcion =
+                        descripcion,
+                    Icono =
+                        icono,
+                    Interfaz =
+                        interfaz,
+                    Ruta =
+                        ruta,
+                    Orden =
+                        orden,
+                    ColorFondoIcono =
+                        colorFondoIcono
+                };
     }
 }

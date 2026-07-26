@@ -4,42 +4,85 @@ namespace CONATRADEC.Services
 {
     public static class AppRoutes
     {
-        public const string Login = "//LoginPage";
-        public const string SinPermisos = "//SinPermisosPage";
-        public const string Principal = "//MainPage";
-        public const string Configuracion = "//ConfiguracionPage";
-        public const string NoticiasPrincipal = "//noticiasPage";
+        public const string Login =
+            "//LoginPage";
 
-        public const string AlbumFotos = nameof(albumFotosPage);
+        public const string SinPermisos =
+            "//SinPermisosPage";
 
-        public const string Usuarios = "//UserPage";
-        public const string Roles = "//RolPage";
-        public const string MatrizPermisos = "//MatrizPermisosPage";
-        public const string Paises = "//PaisPage";
-        public const string ElementosQuimicos = "//ElementoQuimicoPage";
-        public const string Terrenos = "//TerrenoPage";
-        public const string FuenteNutriente = "//FuenteNutrientePage";
+        public const string Principal =
+            "//MainPage";
 
-        public const string TiposCultivo = "//TipoCultivoPage";
-        public const string TiposAnalisisSuelo = "//TipoAnalisisSueloPage";
-        public const string ExtraccionNutrientes = "//ExtraccionNutrientePage";
-        public const string RangosNutrientes = "//RangoNutrientePage";
+        public const string Configuracion =
+            "//ConfiguracionPage";
 
-        public const string TerrenoFormulario = "//TerrenoFormPage";
-        public const string FuenteNutrienteFormulario = "//FuenteNutrienteFormPage";
-        public const string TipoCultivoFormulario = "//TipoCultivoFormPage";
-        public const string TipoAnalisisSueloFormulario = "//TipoAnalisisSueloFormPage";
-        public const string ExtraccionNutrienteFormulario = "//ExtraccionNutrienteFormPage";
+        public const string NoticiasPrincipal =
+            "//noticiasPage";
+
+        public const string AlbumFotos =
+            nameof(albumFotosPage);
+
+        public const string Usuarios =
+            "//UserPage";
+
+        public const string Roles =
+            "//RolPage";
+
+        public const string MatrizPermisos =
+            "//MatrizPermisosPage";
+
+        public const string Paises =
+            "//PaisPage";
+
+        public const string ElementosQuimicos =
+            "//ElementoQuimicoPage";
+
+        public const string Terrenos =
+            "//TerrenoPage";
+
+        public const string FuenteNutriente =
+            "//FuenteNutrientePage";
+
+        public const string TiposCultivo =
+            "//TipoCultivoPage";
+
+        public const string TiposAnalisisSuelo =
+            "//TipoAnalisisSueloPage";
+
+        public const string ExtraccionNutrientes =
+            "//ExtraccionNutrientePage";
+
+        public const string RangosNutrientes =
+            "//RangoNutrientePage";
+
+        public const string TerrenoFormulario =
+            "//TerrenoFormPage";
+
+        public const string FuenteNutrienteFormulario =
+            "//FuenteNutrienteFormPage";
+
+        public const string TipoCultivoFormulario =
+            "//TipoCultivoFormPage";
+
+        public const string TipoAnalisisSueloFormulario =
+            "//TipoAnalisisSueloFormPage";
+
+        public const string ExtraccionNutrienteFormulario =
+            "//ExtraccionNutrienteFormPage";
+
         public const string RangoNutrienteFormulario =
             "RangoNutrienteAporteFormulario";
 
         public const string RangoNutrienteDetalle =
             nameof(rangoNutrienteDetallePage);
 
-        public const string RangoNutrienteCategoriaFormulario =
-            nameof(rangoNutrienteCategoriaFormPage);
+        public const string
+            RangoNutrienteCategoriaFormulario =
+                nameof(
+                    rangoNutrienteCategoriaFormPage);
 
-        public const string AlbumDetalle = nameof(albumDetallePage);
+        public const string AlbumDetalle =
+            nameof(albumDetallePage);
 
         public const string CategoriaAlbumFormulario =
             nameof(categoriaAlbumFormPage);
@@ -88,9 +131,16 @@ namespace CONATRADEC.Services
         public const string CategoriasPublicacion =
             nameof(categoriaPublicacionPage);
 
-        public const string CategoriaPublicacionFormulario =
-            nameof(categoriaPublicacionFormPage);
+        public const string
+            CategoriaPublicacionFormulario =
+                nameof(
+                    categoriaPublicacionFormPage);
 
-        public const string Regresar = "..";
+        // Administración de unidades y conversiones.
+        public const string ConfiguracionUnidades =
+            nameof(configuracionUnidadesPage);
+
+        public const string Regresar =
+            "..";
     }
 }
