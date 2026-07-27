@@ -12,11 +12,11 @@ namespace CONATRADEC.Services
          * dispone de certificado SSL. Android debe permitir tráfico HTTP
          * mientras se utilice este servidor.
          */
-        //private const string DevelopmentBaseUrl =
-        //    "http://conatradecnic.runasp.net/";
-
         private const string DevelopmentBaseUrl =
-            "https://localhost:7176/";
+            "https://conatradecnic.runasp.net/";
+
+        //private const string DevelopmentBaseUrl =
+        //    "https://localhost:7176/";
 
         /*
          * PRODUCCIÓN
@@ -27,7 +27,7 @@ namespace CONATRADEC.Services
          *
          * Ejemplo:
          * private const string ProductionBaseUrl =
-         *     "https://api.tudominio.com/";
+         *     "https://conatradecnic.runasp.net/";
          */
 
         public string BaseUrlApi => DevelopmentBaseUrl;

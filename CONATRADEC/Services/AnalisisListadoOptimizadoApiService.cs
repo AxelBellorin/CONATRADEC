@@ -47,8 +47,13 @@ namespace CONATRADEC.Services
              * En una sesión offline se devuelve inmediatamente una lista vacía
              * para no bloquear durante 25 segundos el botón Nuevo análisis.
              */
-            if (SesionOfflineService.SesionActualEsOffline ||
-                !EstadoConexionService.Instance.HayInternet)
+            /*
+             * SesionActualEsOffline indica cómo se autenticó inicialmente el
+             * usuario, no que deba permanecer desconectado toda la sesión.
+             * Cuando la API vuelve a estar disponible, el listado debe poder
+             * consultar nuevamente el servidor.
+             */
+            if (!EstadoConexionService.Instance.HayInternet)
             {
                 return ApiResult<AnalisisListadoPaginadoResponse>.Ok(
                     CrearListadoOfflineVacio(
@@ -187,8 +192,13 @@ namespace CONATRADEC.Services
             ListarUsuariosAsync(
                 CancellationToken cancellationToken = default)
         {
-            if (SesionOfflineService.SesionActualEsOffline ||
-                !EstadoConexionService.Instance.HayInternet)
+            /*
+             * SesionActualEsOffline indica cómo se autenticó inicialmente el
+             * usuario, no que deba permanecer desconectado toda la sesión.
+             * Cuando la API vuelve a estar disponible, el listado debe poder
+             * consultar nuevamente el servidor.
+             */
+            if (!EstadoConexionService.Instance.HayInternet)
             {
                 return ApiResult<List<UsuarioFiltroAnalisis>>.Ok(
                     new List<UsuarioFiltroAnalisis>(),

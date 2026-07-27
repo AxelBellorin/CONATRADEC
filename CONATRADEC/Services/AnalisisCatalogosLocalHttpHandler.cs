@@ -97,9 +97,15 @@ namespace CONATRADEC.Services
 
         private static bool DebeUtilizarMotorLocal()
         {
-            if (SesionOfflineService.SesionActualEsOffline)
-                return true;
-
+            /*
+             * Una sesión puede haberse iniciado offline y recuperar internet
+             * después. El origen del login no debe bloquear permanentemente
+             * las consultas online.
+             *
+             * Se utiliza el paquete local únicamente cuando actualmente no
+             * existe conexión o cuando el usuario eligió expresamente el modo
+             * Sin conexión para este análisis.
+             */
             if (!EstadoConexionService.Instance.HayInternet)
                 return true;
 

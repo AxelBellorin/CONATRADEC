@@ -299,17 +299,25 @@ namespace CONATRADEC.Behaviors
                     return;
                 }
 
-                bool trabajarOffline =
-                    SesionOfflineService.SesionActualEsOffline ||
-                    !EstadoConexionService.Instance.HayInternet;
+                /*
+                 * Connectivity y HayInternet son señales rápidas, pero pueden
+                 * quedar desactualizadas durante algunos segundos después de
+                 * desconectar Wi-Fi, datos o cable.
+                 *
+                 * Antes de iniciar un análisis se realiza una comprobación HTTP
+                 * pequeña contra la API. Esta respuesta es la fuente de verdad
+                 * para decidir el modo inicial.
+                 */
+                bool apiDisponible =
+                    await ComprobarApiAntesDeNuevoAnalisisAsync();
 
-                if (trabajarOffline)
+                if (!apiDisponible)
                 {
                     if (!DatosSinConexionPermisos.TienePermiso)
                     {
                         await page.DisplayAlert(
                             "Trabajo sin conexión",
-                            "Su usuario no tiene habilitado el trabajo sin conexión.",
+                            "La API no está respondiendo y su usuario no tiene habilitado el trabajo sin conexión.",
                             "Aceptar");
                         return;
                     }
@@ -322,11 +330,26 @@ namespace CONATRADEC.Behaviors
                     {
                         await page.DisplayAlert(
                             "Motor no disponible",
-                            "Este dispositivo no tiene un motor de cálculo válido. Conéctese y pulse Actualizar todo.",
+                            "La API no está respondiendo y este dispositivo no tiene un motor de cálculo válido. Conéctese y pulse Actualizar todo.",
                             "Aceptar");
                         return;
                     }
 
+                    /*
+                     * No se usa PrepararNuevoAnalisisAsync porque el indicador
+                     * de red del sistema todavía podría conservar el valor
+                     * anterior. Se fuerza explícitamente el modo local usando
+                     * el resultado real de la comprobación HTTP.
+                     */
+                    await ModoTrabajoAnalisisService.Instance
+                        .CambiarAOfflinePorCaidaAsync();
+                }
+                else
+                {
+                    /*
+                     * La API respondió. Un nuevo análisis inicia en línea,
+                     * aunque la sesión haya comenzado originalmente offline.
+                     */
                     await ModoTrabajoAnalisisService.Instance
                         .PrepararNuevoAnalisisAsync();
                 }
@@ -341,6 +364,55 @@ namespace CONATRADEC.Behaviors
             {
                 navegacionNuevoAnalisisLock.Release();
             }
+        }
+
+        private static async Task<bool>
+            ComprobarApiAntesDeNuevoAnalisisAsync()
+        {
+            /*
+             * Dos segundos y medio son suficientes para una solicitud pequeña.
+             * Evita dejar al técnico esperando el timeout general del HttpClient
+             * cuando la señal acaba de caer.
+             */
+            using var timeout =
+                new CancellationTokenSource(
+                    TimeSpan.FromMilliseconds(2500));
+
+            try
+            {
+                bool disponible =
+                    await EstadoConexionApiService.Instance
+                        .ComprobarAsync(
+                            "noticias",
+                            timeout.Token);
+
+                if (disponible)
+                {
+                    EstadoConexionService.Instance
+                        .ReportarServidorDisponible();
+
+                    return true;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                /*
+                 * El tiempo corto se agotó. Para este nuevo análisis se toma
+                 * como una API no disponible y se continúa localmente.
+                 */
+            }
+            catch
+            {
+                /*
+                 * La comprobación nunca debe impedir que el formulario pueda
+                 * abrirse con el motor descargado.
+                 */
+            }
+
+            EstadoConexionService.Instance
+                .ReportarServidorNoDisponible();
+
+            return false;
         }
 
         private static ImageButton? BuscarBotonNuevoAnalisis(

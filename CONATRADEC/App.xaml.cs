@@ -1,4 +1,5 @@
-﻿using CONATRADEC.Views;
+﻿using CONATRADEC.Services;
+using CONATRADEC.Views;
 
 namespace CONATRADEC
 {
@@ -12,16 +13,32 @@ namespace CONATRADEC
             UserAppTheme = AppTheme.Light;
         }
 
-        protected override Window CreateWindow(IActivationState? activationState)
+        protected override Window CreateWindow(
+            IActivationState? activationState)
         {
+            var shell = new AppShell();
+            var window = new Window(shell);
+
 #if WINDOWS
-            var page = new AppShell();
-            var window = new Window(page);
             window.Title = "ConatraCafé Soil";
-            return window;
-#else
-            return new Window(new AppShell());
 #endif
+
+            DispositivoConexionService.Instance.VincularShell(shell);
+            DispositivoConexionService.Instance.Iniciar();
+
+            // Los eventos de Window funcionan en Android y Windows. El cierre
+            // explícito se reporta cuando el sistema operativo lo permite; si
+            // no lo permite, el servidor aplica la tolerancia de dos minutos.
+            window.Resumed += (_, _) =>
+                _ = DispositivoConexionService.Instance.ReanudarAsync();
+
+            window.Stopped += (_, _) =>
+                _ = DispositivoConexionService.Instance.SuspenderAsync();
+
+            window.Destroying += (_, _) =>
+                _ = DispositivoConexionService.Instance.DetenerAsync();
+
+            return window;
         }
     }
 }
