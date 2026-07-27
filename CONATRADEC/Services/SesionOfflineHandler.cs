@@ -1,13 +1,20 @@
+using CONATRADEC.Models;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 
 namespace CONATRADEC.Services
 {
+    /// <summary>
+    /// Autentica según el modo elegido expresamente en el login.
+    ///
+    /// En línea: llama únicamente a la API y nunca usa fallback local.
+    /// Sin conexión: valida únicamente la credencial local y nunca llama a API.
+    /// </summary>
     public sealed class SesionOfflineHandler : DelegatingHandler
     {
-        private static readonly TimeSpan TiempoMaximoLogin =
-            TimeSpan.FromSeconds(8);
+        private static readonly TimeSpan TiempoMaximoLoginOnline =
+            TimeSpan.FromSeconds(20);
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -15,67 +22,62 @@ namespace CONATRADEC.Services
         {
             if (!EsSolicitudLogin(request))
             {
-                return await base.SendAsync(request, cancellationToken);
+                return await base.SendAsync(
+                    request,
+                    cancellationToken);
             }
 
             CredencialesLogin credenciales =
-                await LeerCredencialesAsync(request, cancellationToken);
+                await LeerCredencialesAsync(
+                    request,
+                    cancellationToken);
+
+            ModoSesion modo =
+                ModoSesionService.Instance.ModoSolicitado;
+
+            if (modo == ModoSesion.SinConexion)
+            {
+                return await CrearRespuestaOfflineAsync(
+                    request,
+                    credenciales);
+            }
 
             using var timeout =
                 CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken);
 
-            timeout.CancelAfter(TiempoMaximoLogin);
+            timeout.CancelAfter(TiempoMaximoLoginOnline);
 
-            try
-            {
-                HttpResponseMessage response =
-                    await base.SendAsync(request, timeout.Token);
+            HttpResponseMessage response =
+                await base.SendAsync(
+                    request,
+                    timeout.Token);
 
-                EstadoConexionService.Instance
-                    .ReportarServidorDisponible();
+            if (!response.IsSuccessStatusCode)
+                return response;
 
-                if (!response.IsSuccessStatusCode)
-                    return response;
+            string json = await response.Content
+                .ReadAsStringAsync(cancellationToken);
 
-                string json = await response.Content.ReadAsStringAsync(
-                    cancellationToken);
+            ReemplazarContenido(response, json);
 
-                ReemplazarContenido(response, json);
-
-                await SesionOfflineService.Instance.GuardarSesionOnlineAsync(
+            await SesionOfflineService.Instance
+                .GuardarSesionOnlineAsync(
                     credenciales.Usuario,
                     credenciales.Clave,
                     json);
 
-                return response;
-            }
-            catch (OperationCanceledException)
-                when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (OperationCanceledException)
-            {
-                return await CrearRespuestaOfflineAsync(
-                    request,
-                    credenciales);
-            }
-            catch (HttpRequestException)
-            {
-                return await CrearRespuestaOfflineAsync(
-                    request,
-                    credenciales);
-            }
-            catch (IOException)
-            {
-                return await CrearRespuestaOfflineAsync(
-                    request,
-                    credenciales);
-            }
+            ModoSesionService.Instance
+                .ConfirmarSesion(ModoSesion.EnLinea);
+
+            EstadoConexionService.Instance
+                .ReportarServidorDisponible();
+
+            return response;
         }
 
-        private static bool EsSolicitudLogin(HttpRequestMessage request)
+        private static bool EsSolicitudLogin(
+            HttpRequestMessage request)
         {
             if (request.Method != HttpMethod.Post)
                 return false;
@@ -90,9 +92,10 @@ namespace CONATRADEC.Services
                 StringComparison.OrdinalIgnoreCase);
         }
 
-        private static async Task<CredencialesLogin> LeerCredencialesAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
+        private static async Task<CredencialesLogin>
+            LeerCredencialesAsync(
+                HttpRequestMessage request,
+                CancellationToken cancellationToken)
         {
             if (request.Content == null)
                 return new CredencialesLogin();
@@ -102,7 +105,6 @@ namespace CONATRADEC.Services
                     cancellationToken);
 
             string json = Encoding.UTF8.GetString(bytes);
-
             var restored = new ByteArrayContent(bytes);
 
             foreach (var header in request.Content.Headers)
@@ -116,7 +118,9 @@ namespace CONATRADEC.Services
 
             try
             {
-                using JsonDocument document = JsonDocument.Parse(json);
+                using JsonDocument document =
+                    JsonDocument.Parse(json);
+
                 JsonElement root = document.RootElement;
 
                 return new CredencialesLogin
@@ -126,6 +130,7 @@ namespace CONATRADEC.Services
                         "UsuarioOEmail",
                         "usuarioOEmail",
                         "NombreUsuario"),
+
                     Clave = ObtenerTexto(
                         root,
                         "Clave",
@@ -144,8 +149,6 @@ namespace CONATRADEC.Services
                 HttpRequestMessage request,
                 CredencialesLogin credenciales)
         {
-            EstadoConexionService.Instance.ReportarServidorNoDisponible();
-
             SesionOfflineResultado resultado =
                 await SesionOfflineService.Instance.ValidarAsync(
                     credenciales.Usuario,
@@ -153,7 +156,11 @@ namespace CONATRADEC.Services
 
             if (resultado.Success)
             {
-                var response = new HttpResponseMessage(HttpStatusCode.OK)
+                ModoSesionService.Instance
+                    .ConfirmarSesion(ModoSesion.SinConexion);
+
+                var response = new HttpResponseMessage(
+                    HttpStatusCode.OK)
                 {
                     RequestMessage = request,
                     Content = new StringContent(
@@ -164,14 +171,15 @@ namespace CONATRADEC.Services
 
                 response.Headers.TryAddWithoutValidation(
                     "X-Sesion-Origen",
-                    "datos-sincronizados");
+                    "local-exclusivo");
 
                 return response;
             }
 
-            HttpStatusCode status = resultado.CredencialesIncorrectas
-                ? HttpStatusCode.Unauthorized
-                : HttpStatusCode.ServiceUnavailable;
+            HttpStatusCode status =
+                resultado.CredencialesIncorrectas
+                    ? HttpStatusCode.Unauthorized
+                    : HttpStatusCode.ServiceUnavailable;
 
             return new HttpResponseMessage(status)
             {

@@ -308,6 +308,32 @@ namespace CONATRADEC.Services
                 .ToList();
         }
 
+        public async Task<AnalisisOfflineResumenCola>
+            ObtenerResumenColaAsync()
+        {
+            List<AnalisisOfflineLocalEntity> items =
+                await ListarPendientesAsync();
+
+            return new AnalisisOfflineResumenCola
+            {
+                Pendientes = items.Count(item =>
+                    item.Estado ==
+                        AnalisisOfflineEstados.Pendiente),
+
+                Sincronizando = items.Count(item =>
+                    item.Estado ==
+                        AnalisisOfflineEstados.Sincronizando),
+
+                ErroresTemporales = items.Count(item =>
+                    item.Estado ==
+                        AnalisisOfflineEstados.Error),
+
+                RequierenRevision = items.Count(item =>
+                    item.Estado ==
+                        AnalisisOfflineEstados.RequiereRevision)
+            };
+        }
+
         public async Task<List<AnalisisGuardadoResumen>>
             ListarResumenPendienteAsync()
         {
@@ -378,8 +404,8 @@ namespace CONATRADEC.Services
                         item.Estado ==
                             AnalisisOfflineEstados
                                 .Sincronizado
-                            ? "Sincronizado con el servidor"
-                            : "Pendiente de sincronización",
+                            ? "Disponible en el dispositivo"
+                            : "Pendiente de envío",
                     NombreTerreno =
                         $"Terreno #{item.TerrenoId}",
                     TipoCultivoId =
@@ -609,9 +635,9 @@ namespace CONATRADEC.Services
                 AnalisisOfflineEstados.Error =>
                     $"{texto} · ERROR DE SINCRONIZACIÓN",
                 AnalisisOfflineEstados.Sincronizando =>
-                    $"{texto} · SINCRONIZANDO",
+                    $"{texto} · PENDIENTE",
                 AnalisisOfflineEstados.Sincronizado =>
-                    $"{texto} · SINCRONIZADO",
+                    texto,
                 _ =>
                     $"{texto} · PENDIENTE"
             };

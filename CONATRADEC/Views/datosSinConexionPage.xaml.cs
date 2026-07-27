@@ -6,8 +6,7 @@ using Microsoft.Maui.Networking;
 
 namespace CONATRADEC.Views
 {
-    public partial class datosSinConexionPage :
-        ContentPage
+    public partial class datosSinConexionPage : ContentPage
     {
         private bool suscrito;
         private bool redireccionando;
@@ -16,13 +15,24 @@ namespace CONATRADEC.Views
         {
             InitializeComponent();
 
-            Shell.Current.FlyoutBehavior =
-                FlyoutBehavior.Disabled;
+            SizeChanged += (_, _) =>
+                AplicarDisenoResponsivo(Width);
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            if (Shell.Current != null)
+            {
+                /*
+                 * Esta página no debe alterar globalmente el menú lateral.
+                 * Se asegura que el Flyout continúe disponible en Windows y
+                 * dispositivos que lo soporten.
+                 */
+                Shell.Current.FlyoutBehavior =
+                    FlyoutBehavior.Flyout;
+            }
 
             if (!DatosSinConexionPermisos.TienePermiso)
             {
@@ -33,20 +43,33 @@ namespace CONATRADEC.Views
             Suscribir();
 
             SincronizacionOfflineGlobalEstado estado =
-                await SincronizacionOfflineGlobalService
-                    .Instance
+                await SincronizacionOfflineGlobalService.Instance
                     .ObtenerEstadoAsync();
 
             ActualizarVista(estado);
-
-            SincronizacionOfflineGlobalService.Instance
-                .VerificarActualizacionesEnSegundoPlano();
+            await ActualizarResumenPendientesAsync();
         }
 
         protected override void OnDisappearing()
         {
             Desuscribir();
             base.OnDisappearing();
+        }
+
+        private async void VolverButton_Clicked(
+            object? sender,
+            EventArgs e)
+        {
+            string ruta =
+                NavigationPermissionService
+                    .ObtenerRutaInicialPermitida();
+
+            if (Shell.Current != null)
+            {
+                await Shell.Current.GoToAsync(
+                    ruta,
+                    false);
+            }
         }
 
         private async void DescargarTodoButton_Clicked(
@@ -59,32 +82,29 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            if (!EstadoConexionService.Instance.HayInternet)
+            if (!ModoSesionService.EsEnLinea)
             {
                 await DisplayAlert(
-                    "Conexión necesaria",
-                    "Conecte el dispositivo a internet para descargar o actualizar todos los datos.",
+                    "Sesión sin conexión",
+                    "Para descargar o actualizar los datos debe cerrar sesión e ingresar en modo En línea.",
                     "Aceptar");
-
                 return;
             }
 
             if (DebeConfirmarDatosMoviles())
             {
-                bool continuar =
-                    await DisplayAlert(
-                        "Uso de datos móviles",
-                        "La descarga puede incluir muchas fotografías. ¿Desea continuar sin una conexión Wi-Fi?",
-                        "Continuar",
-                        "Cancelar");
+                bool continuar = await DisplayAlert(
+                    "Uso de datos móviles",
+                    "La descarga incluye análisis y fotografías. ¿Desea continuar sin Wi-Fi?",
+                    "Continuar",
+                    "Cancelar");
 
                 if (!continuar)
                     return;
             }
 
             ResultadoSincronizacionOfflineGlobal resultado =
-                await SincronizacionOfflineGlobalService
-                    .Instance
+                await SincronizacionOfflineGlobalService.Instance
                     .DescargarOActualizarTodoAsync();
 
             if (!resultado.Success)
@@ -95,7 +115,15 @@ namespace CONATRADEC.Views
                         : "Descarga incompleta",
                     resultado.Message,
                     "Aceptar");
+                return;
             }
+
+            await DisplayAlert(
+                "Dispositivo preparado",
+                resultado.Message,
+                "Aceptar");
+
+            await ActualizarResumenPendientesAsync();
         }
 
         private async Task RedirigirSinPermisoAsync()
@@ -109,7 +137,7 @@ namespace CONATRADEC.Views
             {
                 await DisplayAlert(
                     "Acceso no habilitado",
-                    "Su usuario trabaja únicamente en línea y no tiene habilitados los datos sin conexión.",
+                    "Su usuario no tiene habilitados los datos sin conexión.",
                     "Aceptar");
 
                 string ruta =
@@ -135,8 +163,10 @@ namespace CONATRADEC.Views
                 return;
 
             SincronizacionOfflineGlobalService.Instance
-                .EstadoCambiado +=
-                OnEstadoCambiado;
+                .EstadoCambiado += OnEstadoCambiado;
+
+            AnalisisOfflineSincronizacionService.Instance
+                .ColaCambiada += OnColaCambiada;
 
             suscrito = true;
         }
@@ -147,8 +177,10 @@ namespace CONATRADEC.Views
                 return;
 
             SincronizacionOfflineGlobalService.Instance
-                .EstadoCambiado -=
-                OnEstadoCambiado;
+                .EstadoCambiado -= OnEstadoCambiado;
+
+            AnalisisOfflineSincronizacionService.Instance
+                .ColaCambiada -= OnColaCambiada;
 
             suscrito = false;
         }
@@ -161,27 +193,73 @@ namespace CONATRADEC.Views
                 () => ActualizarVista(e.Estado));
         }
 
+        private void OnColaCambiada(
+            object? sender,
+            EventArgs e)
+        {
+            MainThread.BeginInvokeOnMainThread(
+                async () =>
+                    await ActualizarResumenPendientesAsync());
+        }
+
+        private async Task ActualizarResumenPendientesAsync()
+        {
+            try
+            {
+                AnalisisOfflineResumenCola resumen =
+                    await AnalisisOfflineDatabaseService
+                        .Instance
+                        .ObtenerResumenColaAsync();
+
+                int pendientes =
+                    resumen.TotalPorEnviar;
+
+                PendientesAnalisisLabel.Text =
+                    pendientes.ToString();
+
+                RevisionAnalisisLabel.Text =
+                    resumen.RequierenRevision
+                        .ToString();
+
+                ResumenPendientesBorder.BackgroundColor =
+                    resumen.TieneIncidencias
+                        ? Color.FromArgb("#FFF8E8")
+                        : Color.FromArgb("#F7F9F8");
+
+                ResumenPendientesBorder.Stroke =
+                    new SolidColorBrush(
+                        Color.FromArgb(
+                            resumen.TieneIncidencias
+                                ? "#EBCB78"
+                                : "#DDE7E3"));
+            }
+            catch
+            {
+                PendientesAnalisisLabel.Text = "—";
+                RevisionAnalisisLabel.Text = "—";
+            }
+        }
+
         private void ActualizarVista(
             SincronizacionOfflineGlobalEstado estado)
         {
-            EstadoTituloLabel.Text =
-                estado.Mensaje;
+            ModoSesionLabel.Text = ModoSesionService.EsEnLinea
+                ? "Sesión en línea"
+                : "Sesión sin conexión";
 
-            EstadoDetalleLabel.Text =
-                estado.Detalle;
+            EstadoTituloLabel.Text = estado.Mensaje;
+            EstadoDetalleLabel.Text = estado.Detalle;
 
             ProgresoGlobal.IsVisible =
                 estado.SincronizacionEnCurso;
-
-            ProgresoGlobal.Progress =
-                Math.Clamp(
-                    estado.ProgresoPorcentaje /
-                    100d,
-                    0,
-                    1);
+            ProgresoGlobal.Progress = Math.Clamp(
+                estado.ProgresoPorcentaje / 100d,
+                0,
+                1);
 
             DescargarTodoButton.IsEnabled =
-                !estado.SincronizacionEnCurso;
+                !estado.SincronizacionEnCurso &&
+                ModoSesionService.EsEnLinea;
 
             DescargarTodoButton.Text =
                 estado.SincronizacionEnCurso
@@ -203,6 +281,12 @@ namespace CONATRADEC.Views
                 CatalogosDetalleLabel);
 
             ActualizarModulo(
+                estado.Analisis,
+                AnalisisBorder,
+                AnalisisEstadoLabel,
+                AnalisisDetalleLabel);
+
+            ActualizarModulo(
                 estado.Noticias,
                 NoticiasBorder,
                 NoticiasEstadoLabel,
@@ -215,19 +299,15 @@ namespace CONATRADEC.Views
                 AlbumDetalleLabel);
 
             FechaSincronizacionLabel.Text =
-                estado
-                    .UltimaSincronizacionCompletaUtc?
+                estado.UltimaSincronizacionCompletaUtc?
                     .ToLocalTime()
-                    .ToString(
-                        "dd/MM/yyyy h:mm tt")
+                    .ToString("dd/MM/yyyy h:mm tt")
                 ?? "Todavía no disponible";
 
             TamanoTotalLabel.Text =
-                FormatearTamano(
-                    estado.TamanoTotalBytes);
+                FormatearTamano(estado.TamanoTotalBytes);
 
-            AplicarEstadoPrincipal(
-                estado.Estado);
+            AplicarEstadoPrincipal(estado.Estado);
         }
 
         private static void ActualizarModulo(
@@ -236,15 +316,18 @@ namespace CONATRADEC.Views
             Label estadoLabel,
             Label detalleLabel)
         {
-            estadoLabel.Text =
-                ObtenerEstadoVisible(
-                    modulo.Estado);
+            estadoLabel.Text = modulo.Estado switch
+            {
+                ModuloOfflineEstados.Listo => "Listo",
+                ModuloOfflineEstados.Sincronizando => "Descargando...",
+                ModuloOfflineEstados.NoHabilitado => "No habilitado",
+                ModuloOfflineEstados.Error => "Error",
+                _ => "Pendiente"
+            };
 
-            detalleLabel.Text =
-                string.IsNullOrWhiteSpace(
-                    modulo.Mensaje)
-                    ? "Pendiente."
-                    : modulo.Mensaje;
+            detalleLabel.Text = string.IsNullOrWhiteSpace(modulo.Mensaje)
+                ? "Pendiente."
+                : modulo.Mensaje;
 
             string fondo;
             string borde;
@@ -255,133 +338,142 @@ namespace CONATRADEC.Views
                     fondo = "#EEF8F2";
                     borde = "#B7DDC5";
                     break;
-
                 case ModuloOfflineEstados.Sincronizando:
                     fondo = "#FFF8E8";
                     borde = "#F2D48A";
                     break;
-
-                case ModuloOfflineEstados.NoHabilitado:
-                    fondo = "#F8FAF9";
-                    borde = "#DDE7E3";
-                    break;
-
                 case ModuloOfflineEstados.Error:
                     fondo = "#FFF1F1";
                     borde = "#F2B8B8";
                     break;
-
                 default:
-                    fondo = "White";
+                    fondo = "#FFFFFF";
                     borde = "#DDE7E3";
                     break;
             }
 
-            border.BackgroundColor =
-                Color.FromArgb(fondo);
-
-            border.Stroke =
-                new SolidColorBrush(
-                    Color.FromArgb(borde));
+            border.BackgroundColor = Color.FromArgb(fondo);
+            border.Stroke = new SolidColorBrush(
+                Color.FromArgb(borde));
         }
 
-        private void AplicarEstadoPrincipal(
-            string estado)
+        private void AplicarEstadoPrincipal(string estado)
         {
-            string fondo;
-            string borde;
-
-            switch (estado)
+            string fondo = estado switch
             {
-                case SincronizacionOfflineGlobalEstados.Listo:
-                    fondo = "#EEF8F2";
-                    borde = "#B7DDC5";
-                    break;
+                SincronizacionOfflineGlobalEstados.Listo => "#EEF8F2",
+                SincronizacionOfflineGlobalEstados.Error => "#FFF1F1",
+                SincronizacionOfflineGlobalEstados.Sincronizando => "#FFF8E8",
+                _ => "#F3F7FF"
+            };
 
-                case SincronizacionOfflineGlobalEstados.Sincronizando:
-                case SincronizacionOfflineGlobalEstados
-                    .ActualizacionDisponible:
-                    fondo = "#FFF8E8";
-                    borde = "#F2D48A";
-                    break;
-
-                case SincronizacionOfflineGlobalEstados.ListoConAviso:
-                    fondo = "#FFF8E8";
-                    borde = "#F2D48A";
-                    break;
-
-                case SincronizacionOfflineGlobalEstados.Error:
-                    fondo = "#FFF1F1";
-                    borde = "#F2B8B8";
-                    break;
-
-                default:
-                    fondo = "#F3F7FF";
-                    borde = "#C9D7F2";
-                    break;
-            }
+            string borde = estado switch
+            {
+                SincronizacionOfflineGlobalEstados.Listo => "#B7DDC5",
+                SincronizacionOfflineGlobalEstados.Error => "#F2B8B8",
+                SincronizacionOfflineGlobalEstados.Sincronizando => "#F2D48A",
+                _ => "#C9D7F2"
+            };
 
             EstadoPrincipalBorder.BackgroundColor =
                 Color.FromArgb(fondo);
-
             EstadoPrincipalBorder.Stroke =
-                new SolidColorBrush(
-                    Color.FromArgb(borde));
+                new SolidColorBrush(Color.FromArgb(borde));
         }
 
-        private static string ObtenerEstadoVisible(
-            string estado) =>
-            estado switch
-            {
-                ModuloOfflineEstados.Listo =>
-                    "Listo",
-
-                ModuloOfflineEstados.Sincronizando =>
-                    "Descargando...",
-
-                ModuloOfflineEstados.NoHabilitado =>
-                    "No habilitado",
-
-                ModuloOfflineEstados.Error =>
-                    "Error",
-
-                _ =>
-                    "Pendiente"
-            };
-
-        private static string FormatearTamano(
-            long bytes)
+        private static string FormatearTamano(long bytes)
         {
             if (bytes <= 0)
                 return "0 MB";
 
-            double megabytes =
-                bytes /
-                1024d /
-                1024d;
+            double mb = bytes / 1024d / 1024d;
+            return mb < 1024
+                ? $"{mb:N1} MB"
+                : $"{mb / 1024d:N2} GB";
+        }
 
-            if (megabytes < 1024)
-                return $"{megabytes:N1} MB";
+        private void AplicarDisenoResponsivo(double width)
+        {
+            bool compacto = width > 0 && width < 760;
 
-            return $"{megabytes / 1024d:N2} GB";
+            ModulosGrid.ColumnDefinitions.Clear();
+            ModulosGrid.RowDefinitions.Clear();
+
+            if (compacto)
+            {
+                ModulosGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Star));
+
+                for (int index = 0; index < 5; index++)
+                {
+                    ModulosGrid.RowDefinitions.Add(
+                        new RowDefinition(GridLength.Auto));
+                }
+
+                Grid.SetRow(MotorCalculoBorder, 0);
+                Grid.SetColumn(MotorCalculoBorder, 0);
+                Grid.SetColumnSpan(MotorCalculoBorder, 1);
+
+                Grid.SetRow(CatalogosBorder, 1);
+                Grid.SetColumn(CatalogosBorder, 0);
+                Grid.SetColumnSpan(CatalogosBorder, 1);
+
+                Grid.SetRow(AnalisisBorder, 2);
+                Grid.SetColumn(AnalisisBorder, 0);
+                Grid.SetColumnSpan(AnalisisBorder, 1);
+
+                Grid.SetRow(NoticiasBorder, 3);
+                Grid.SetColumn(NoticiasBorder, 0);
+                Grid.SetColumnSpan(NoticiasBorder, 1);
+
+                Grid.SetRow(AlbumBorder, 4);
+                Grid.SetColumn(AlbumBorder, 0);
+                Grid.SetColumnSpan(AlbumBorder, 1);
+                return;
+            }
+
+            ModulosGrid.ColumnDefinitions.Add(
+                new ColumnDefinition(GridLength.Star));
+            ModulosGrid.ColumnDefinitions.Add(
+                new ColumnDefinition(GridLength.Star));
+
+            for (int index = 0; index < 3; index++)
+            {
+                ModulosGrid.RowDefinitions.Add(
+                    new RowDefinition(GridLength.Auto));
+            }
+
+            Grid.SetRow(MotorCalculoBorder, 0);
+            Grid.SetColumn(MotorCalculoBorder, 0);
+            Grid.SetColumnSpan(MotorCalculoBorder, 1);
+
+            Grid.SetRow(CatalogosBorder, 0);
+            Grid.SetColumn(CatalogosBorder, 1);
+            Grid.SetColumnSpan(CatalogosBorder, 1);
+
+            Grid.SetRow(AnalisisBorder, 1);
+            Grid.SetColumn(AnalisisBorder, 0);
+            Grid.SetColumnSpan(AnalisisBorder, 2);
+
+            Grid.SetRow(NoticiasBorder, 2);
+            Grid.SetColumn(NoticiasBorder, 0);
+            Grid.SetColumnSpan(NoticiasBorder, 1);
+
+            Grid.SetRow(AlbumBorder, 2);
+            Grid.SetColumn(AlbumBorder, 1);
+            Grid.SetColumnSpan(AlbumBorder, 1);
         }
 
         private static bool DebeConfirmarDatosMoviles()
         {
-            if (DeviceInfo.Platform !=
-                    DevicePlatform.Android &&
-                DeviceInfo.Platform !=
-                    DevicePlatform.iOS)
+            if (DeviceInfo.Platform != DevicePlatform.Android &&
+                DeviceInfo.Platform != DevicePlatform.iOS)
             {
                 return false;
             }
 
-            IEnumerable<ConnectionProfile> perfiles =
-                Connectivity.Current
-                    .ConnectionProfiles;
-
-            return !perfiles.Contains(
-                ConnectionProfile.WiFi);
+            return !Connectivity.Current.ConnectionProfiles
+                .Contains(ConnectionProfile.WiFi);
         }
     }
 }

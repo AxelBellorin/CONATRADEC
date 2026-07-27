@@ -45,57 +45,39 @@ namespace CONATRADEC.Models
             "Los datos completos todavía no se han preparado.";
 
         public string Detalle { get; init; } =
-            "Use Descargar todo antes de trabajar sin conexión.";
+            "Inicie una sesión en línea y use Descargar todo.";
 
         public int ProgresoPorcentaje { get; init; }
         public int PasoActual { get; init; }
-        public int TotalPasos { get; init; } = 4;
-
+        public int TotalPasos { get; init; } = 5;
         public bool PreparacionCompleta { get; init; }
+
         public bool SincronizacionEnCurso =>
-            Estado ==
-            SincronizacionOfflineGlobalEstados.Sincronizando;
+            Estado == SincronizacionOfflineGlobalEstados.Sincronizando;
 
-        public DateTime? UltimaSincronizacionCompletaUtc {
-            get;
-            init;
-        }
-
+        public DateTime? UltimaSincronizacionCompletaUtc { get; init; }
         public DateTime? UltimaVerificacionUtc { get; init; }
-
         public long TamanoTotalBytes { get; init; }
 
         public ModuloOfflineResumen MotorCalculo { get; init; } =
-            new()
-            {
-                Nombre = "Motor de cálculo"
-            };
+            new() { Nombre = "Motor de cálculo" };
 
         public ModuloOfflineResumen Catalogos { get; init; } =
-            new()
-            {
-                Nombre = "Catálogos"
-            };
+            new() { Nombre = "Catálogos y terrenos" };
+
+        public ModuloOfflineResumen Analisis { get; init; } =
+            new() { Nombre = "Historial de análisis" };
 
         public ModuloOfflineResumen Noticias { get; init; } =
-            new()
-            {
-                Nombre = "Noticias"
-            };
+            new() { Nombre = "Noticias" };
 
         public ModuloOfflineResumen Album { get; init; } =
-            new()
-            {
-                Nombre = "Álbum de fotos"
-            };
+            new() { Nombre = "Álbum de fotos" };
     }
 
-    public sealed class SincronizacionOfflineGlobalEventArgs :
-        EventArgs
+    public sealed class SincronizacionOfflineGlobalEventArgs : EventArgs
     {
-        public SincronizacionOfflineGlobalEstado Estado {
-            get;
-        }
+        public SincronizacionOfflineGlobalEstado Estado { get; }
 
         public SincronizacionOfflineGlobalEventArgs(
             SincronizacionOfflineGlobalEstado estado)
@@ -124,9 +106,26 @@ namespace CONATRADEC.Models
             new()
             {
                 Success = false,
-                ConservaCopiaAnterior =
-                    conservaCopiaAnterior,
+                ConservaCopiaAnterior = conservaCopiaAnterior,
                 Message = message
             };
+    }
+
+
+    public sealed class AnalisisOfflineResumenCola
+    {
+        public int Pendientes { get; init; }
+        public int Sincronizando { get; init; }
+        public int ErroresTemporales { get; init; }
+        public int RequierenRevision { get; init; }
+
+        public int TotalPorEnviar =>
+            Pendientes +
+            Sincronizando +
+            ErroresTemporales;
+
+        public bool TieneIncidencias =>
+            ErroresTemporales > 0 ||
+            RequierenRevision > 0;
     }
 }

@@ -1,35 +1,45 @@
 using CONATRADEC.Models;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Coordina Catálogos, Noticias y Álbum desde una sola operación.
+    /// Preparación manual del dispositivo.
     ///
-    /// La descarga manual garantiza una revisión completa. Después de
-    /// completarse una vez, el servicio continúa verificando y actualizando en
-    /// segundo plano cuando la aplicación tiene conexión.
+    /// No contiene temporizadores, listeners de red ni verificaciones por
+    /// navegación. Descargar todo es la única operación que actualiza el
+    /// paquete completo.
     /// </summary>
     public sealed class SincronizacionOfflineGlobalService
     {
         private const string EstadoClavePrefijo =
-            "offline.global.estado.";
+            "offline_global_manual_estado_";
 
-        private static readonly TimeSpan
-            IntervaloVerificacionAutomatica =
-                TimeSpan.FromMinutes(2);
+        /*
+         * Esta versión se incrementa cuando cambia el contenido mínimo
+         * obligatorio. Una descarga de una entrega anterior no habilita el
+         * modo offline hasta completar nuevamente Actualizar todo.
+         */
+        private const int VersionPreparacionActual = 2;
+
+        private const string PreparacionCompletaClavePrefijo =
+            "offline_global_preparado_v2_";
+
+        private const string PreparacionFechaClavePrefijo =
+            "offline_global_preparado_fecha_v2_";
+
+        private const string PreparacionPerfilClavePrefijo =
+            "offline_global_preparado_perfil_v2_";
 
         private static readonly Lazy<
             SincronizacionOfflineGlobalService> lazy =
-                new(() =>
-                    new SincronizacionOfflineGlobalService());
+                new(() => new SincronizacionOfflineGlobalService());
 
-        private readonly SemaphoreSlim syncLock =
-            new(1, 1);
-
-        private readonly object taskLock =
-            new();
+        private readonly SemaphoreSlim syncLock = new(1, 1);
 
         private readonly JsonSerializerOptions jsonOptions =
             new(JsonSerializerDefaults.Web)
@@ -37,583 +47,418 @@ namespace CONATRADEC.Services
                 PropertyNameCaseInsensitive = true
             };
 
-        private Task<
-            ResultadoSincronizacionOfflineGlobal>?
-                tareaActual;
+        private SincronizacionOfflineGlobalEstado estado = new();
 
-        private DateTime ultimaSolicitudAutomaticaUtc;
+        public static SincronizacionOfflineGlobalService Instance =>
+            lazy.Value;
 
-        public static
-            SincronizacionOfflineGlobalService Instance =>
-                lazy.Value;
+        public static bool EstaPreparadoParaUsuario(
+            string? usuarioId)
+        {
+            if (string.IsNullOrWhiteSpace(usuarioId) ||
+                usuarioId == "0")
+            {
+                return false;
+            }
+
+            return Preferences.Get(
+                ConstruirClavePreparacion(
+                    usuarioId.Trim()),
+                false);
+        }
+
+        public static bool CoincidePerfilPreparacion(
+            string? usuarioId,
+            bool requiereNoticias,
+            bool requiereAlbum)
+        {
+            if (string.IsNullOrWhiteSpace(usuarioId) ||
+                usuarioId == "0")
+            {
+                return false;
+            }
+
+            string esperado =
+                ConstruirPerfilPermisos(
+                    requiereNoticias,
+                    requiereAlbum);
+
+            string guardado =
+                Preferences.Get(
+                    ConstruirClavePerfilPreparacion(
+                        usuarioId.Trim()),
+                    string.Empty);
+
+            return string.Equals(
+                guardado,
+                esperado,
+                StringComparison.Ordinal);
+        }
+
+        public static DateTime? ObtenerFechaPreparacionUsuario(
+            string? usuarioId)
+        {
+            if (string.IsNullOrWhiteSpace(usuarioId) ||
+                usuarioId == "0")
+            {
+                return null;
+            }
+
+            string value = Preferences.Get(
+                ConstruirClaveFechaPreparacion(
+                    usuarioId.Trim()),
+                string.Empty);
+
+            return DateTime.TryParse(
+                value,
+                out DateTime result)
+                    ? result
+                    : null;
+        }
 
         public event EventHandler<
-            SincronizacionOfflineGlobalEventArgs>?
-                EstadoCambiado;
+            SincronizacionOfflineGlobalEventArgs>? EstadoCambiado;
 
         private SincronizacionOfflineGlobalService()
         {
-            EstadoConexionService.Instance
-                .ConexionPotencialmenteRestablecida +=
-                OnConexionPotencialmenteRestablecida;
+            estado = CargarEstado();
 
-            EstadoConexionService.Instance
-                .EstadoConexionCambiado +=
-                OnEstadoConexionCambiado;
-
-            /*
-             * Mantiene la verificación automática mientras la aplicación está
-             * activa. En Android e iOS el sistema puede suspender el proceso;
-             * al volver a primer plano el mapper solicita otra verificación.
-             */
-            _ = EjecutarCicloAutomaticoAsync();
+            AnalisisHistorialDescargaService.Instance
+                .ProgresoCambiado += OnProgresoAnalisis;
         }
 
-        public async Task<
-            SincronizacionOfflineGlobalEstado>
+        public async Task<SincronizacionOfflineGlobalEstado>
             ObtenerEstadoAsync()
         {
-            SincronizacionOfflineGlobalEstado estado =
-                CargarEstado();
-
-            return await AgregarTamanoActualAsync(
-                estado);
+            estado = CargarEstado();
+            estado = await AgregarTamanoActualAsync(estado);
+            return estado;
         }
 
-        /// <summary>
-        /// Acción del botón global. Recorre completamente los módulos
-        /// habilitados. Las imágenes existentes no se vuelven a descargar si
-        /// ya están guardadas y son válidas.
-        /// </summary>
-        public Task<
-            ResultadoSincronizacionOfflineGlobal>
-            DescargarOActualizarTodoAsync()
+        public async Task<ResultadoSincronizacionOfflineGlobal>
+            DescargarOActualizarTodoAsync(
+                CancellationToken cancellationToken = default)
         {
             if (!DatosSinConexionPermisos.TienePermiso)
             {
-                return Task.FromResult(
-                    ResultadoSincronizacionOfflineGlobal.Fail(
-                        "Su usuario no tiene habilitado el trabajo sin conexión.",
-                        conservaCopiaAnterior: false));
+                return ResultadoSincronizacionOfflineGlobal.Fail(
+                    "Su usuario no tiene habilitados los datos sin conexión.",
+                    conservaCopiaAnterior: estado.PreparacionCompleta);
             }
 
-            lock (taskLock)
+            if (!ModoSesionService.EsEnLinea)
             {
-                if (tareaActual != null &&
-                    !tareaActual.IsCompleted)
-                {
-                    return tareaActual;
-                }
-
-                tareaActual =
-                    EjecutarAsync(
-                        forzarRevisionCompleta: true,
-                        esAutomatico: false,
-                        CancellationToken.None);
-
-                return tareaActual;
-            }
-        }
-
-        /// <summary>
-        /// Se llama al mostrar páginas después del inicio de sesión.
-        ///
-        /// Antes de la primera descarga global, cada módulo mantiene su
-        /// comportamiento normal. Después de completarse una vez, se verifican
-        /// actualizaciones globales sin que el usuario tenga que abrir la
-        /// pantalla Datos sin conexión.
-        /// </summary>
-        public void VerificarActualizacionesEnSegundoPlano()
-        {
-            if (!DatosSinConexionPermisos.TienePermiso)
-                return;
-
-            SincronizacionOfflineGlobalEstado estado =
-                CargarEstado();
-
-            if (!estado.PreparacionCompleta ||
-                !EstadoConexionService.Instance.HayInternet)
-            {
-                return;
+                return ResultadoSincronizacionOfflineGlobal.Fail(
+                    "Descargar todo solamente está disponible durante una sesión en línea.",
+                    conservaCopiaAnterior: estado.PreparacionCompleta);
             }
 
-            DateTime ahora =
-                DateTime.UtcNow;
-
-            if (ahora -
-                ultimaSolicitudAutomaticaUtc <
-                IntervaloVerificacionAutomatica)
-            {
-                return;
-            }
-
-            ultimaSolicitudAutomaticaUtc = ahora;
-
-            lock (taskLock)
-            {
-                if (tareaActual != null &&
-                    !tareaActual.IsCompleted)
-                {
-                    return;
-                }
-
-                tareaActual =
-                    EjecutarAsync(
-                        forzarRevisionCompleta: false,
-                        esAutomatico: true,
-                        CancellationToken.None);
-            }
-        }
-
-        public async Task MarcarActualizacionDisponibleAsync(
-            string detalle)
-        {
-            SincronizacionOfflineGlobalEstado anterior =
-                CargarEstado();
-
-            if (!anterior.PreparacionCompleta)
-                return;
-
-            SincronizacionOfflineGlobalEstado nuevo =
-                CopiarEstado(
-                    anterior,
-                    estado:
-                        SincronizacionOfflineGlobalEstados
-                            .ActualizacionDisponible,
-                    mensaje:
-                        "Hay datos nuevos disponibles",
-                    detalle:
-                        string.IsNullOrWhiteSpace(detalle)
-                            ? "La aplicación actualizará los datos cuando tenga conexión."
-                            : detalle,
-                    progreso:
-                        anterior.ProgresoPorcentaje);
-
-            GuardarYNotificar(nuevo);
-
-            await Task.CompletedTask;
-        }
-
-        private async Task<
-            ResultadoSincronizacionOfflineGlobal>
-            EjecutarAsync(
-                bool forzarRevisionCompleta,
-                bool esAutomatico,
-                CancellationToken cancellationToken)
-        {
-            bool entered =
-                await syncLock.WaitAsync(
-                    TimeSpan.Zero,
-                    cancellationToken);
+            bool entered = await syncLock.WaitAsync(
+                TimeSpan.Zero,
+                cancellationToken);
 
             if (!entered)
             {
                 return ResultadoSincronizacionOfflineGlobal.Fail(
-                    "Ya existe una sincronización global en curso.",
-                    conservaCopiaAnterior: true);
+                    "Ya existe una descarga completa en curso.",
+                    conservaCopiaAnterior: estado.PreparacionCompleta);
             }
 
             SincronizacionOfflineGlobalEstado anterior =
                 CargarEstado();
 
+            const int totalPasos = 5;
+            int paso = 0;
+
+            ModuloOfflineResumen motor = CrearPendiente(
+                "Motor de cálculo");
+            ModuloOfflineResumen catalogos = CrearPendiente(
+                "Catálogos y terrenos");
+            ModuloOfflineResumen analisis = CrearPendiente(
+                "Historial de análisis");
+            ModuloOfflineResumen noticias =
+                PuedeDescargarNoticias()
+                    ? CrearPendiente("Noticias")
+                    : CrearNoHabilitado("Noticias");
+            ModuloOfflineResumen album =
+                PuedeDescargarAlbum()
+                    ? CrearPendiente("Álbum de fotos")
+                    : CrearNoHabilitado("Álbum de fotos");
+
             try
             {
-                if (!DatosSinConexionPermisos.TienePermiso)
-                {
-                    return ResultadoSincronizacionOfflineGlobal.Fail(
-                        "Su usuario no tiene habilitado el trabajo sin conexión.",
-                        conservaCopiaAnterior: false);
-                }
+                /*
+                 * Algunos servicios anteriores consultan esta bandera antes de
+                 * descargar. Se marca disponible porque el modo online ya fue
+                 * seleccionado; la respuesta real de la API sigue siendo la
+                 * validación definitiva.
+                 */
+                EstadoConexionService.Instance
+                    .ReportarServidorDisponible();
 
-                if (!EstadoConexionService.Instance.HayInternet)
-                {
-                    return ResultadoSincronizacionOfflineGlobal.Fail(
-                        anterior.PreparacionCompleta
-                            ? "No hay conexión. Se mantienen los datos sincronizados anteriormente."
-                            : "Se necesita conexión para descargar todos los datos.",
-                        anterior.PreparacionCompleta);
-                }
+                string versionTransaccional =
+                    "preparacion-v" +
+                    VersionPreparacionActual +
+                    "-" +
+                    DateTime.UtcNow.ToString(
+                        "yyyyMMddHHmmssfff") +
+                    "-" +
+                    Guid.NewGuid().ToString("N");
 
-                int totalPasos =
-                    2 +
-                    (PuedeDescargarNoticias() ? 1 : 0) +
-                    (PuedeDescargarAlbum() ? 1 : 0);
+                using IDisposable scope =
+                    DescargaOfflineContext.Iniciar(
+                        versionTransaccional);
 
-                int paso = 0;
+                estado = CrearEstado(
+                    SincronizacionOfflineGlobalEstados.Sincronizando,
+                    "Preparando datos sin conexión",
+                    "Iniciando descarga manual...",
+                    0,
+                    0,
+                    totalPasos,
+                    preparacionCompleta: anterior.PreparacionCompleta,
+                    motor,
+                    catalogos,
+                    analisis,
+                    noticias,
+                    album,
+                    anterior.UltimaSincronizacionCompletaUtc);
+                GuardarYNotificar(estado);
 
-                var motorPendiente =
-                    new ModuloOfflineResumen
-                    {
-                        Nombre = "Motor de cálculo",
-                        Estado =
-                            ModuloOfflineEstados
-                                .Sincronizando,
-                        Mensaje =
-                            "Descargando reglas y parámetros del cálculo."
-                    };
+                /* Envío único de operaciones pendientes al iniciar la tarea. */
+                await AnalisisOfflineSincronizacionService.Instance
+                    .SincronizarAhoraAsync(cancellationToken);
 
-                var catalogosPendiente =
-                    new ModuloOfflineResumen
-                    {
-                        Nombre = "Catálogos",
-                        Estado =
-                            ModuloOfflineEstados
-                                .Sincronizando,
-                        Mensaje =
-                            "Descargando catálogos, terrenos y datos para los cálculos."
-                    };
+                motor = CrearEnCurso(
+                    "Motor de cálculo",
+                    "Descargando reglas, precios y parámetros...");
+                ActualizarPaso(
+                    paso,
+                    totalPasos,
+                    "Descargando motor de cálculo...",
+                    motor,
+                    catalogos,
+                    analisis,
+                    noticias,
+                    album,
+                    anterior);
 
-                ModuloOfflineResumen noticiasInicial =
-                    PuedeDescargarNoticias()
-                        ? new ModuloOfflineResumen
-                        {
-                            Nombre = "Noticias",
-                            Estado =
-                                ModuloOfflineEstados.Pendiente,
-                            Mensaje =
-                                "Pendiente de sincronización."
-                        }
-                        : CrearModuloNoHabilitado(
-                            "Noticias");
-
-                ModuloOfflineResumen albumInicial =
-                    PuedeDescargarAlbum()
-                        ? new ModuloOfflineResumen
-                        {
-                            Nombre = "Álbum de fotos",
-                            Estado =
-                                ModuloOfflineEstados.Pendiente,
-                            Mensaje =
-                                "Pendiente de sincronización."
-                        }
-                        : CrearModuloNoHabilitado(
-                            "Álbum de fotos");
-
-                SincronizacionOfflineGlobalEstado trabajando =
-                    new()
-                    {
-                        Estado =
-                            SincronizacionOfflineGlobalEstados
-                                .Sincronizando,
-                        Mensaje =
-                            esAutomatico
-                                ? "Buscando actualizaciones..."
-                                : "Preparando todos los datos...",
-                        Detalle =
-                            "Puede continuar usando la aplicación mientras finaliza.",
-                        ProgresoPorcentaje = 0,
-                        PasoActual = 0,
-                        TotalPasos = totalPasos,
-                        PreparacionCompleta =
-                            anterior.PreparacionCompleta,
-                        UltimaSincronizacionCompletaUtc =
-                            anterior
-                                .UltimaSincronizacionCompletaUtc,
-                        UltimaVerificacionUtc =
-                            DateTime.UtcNow,
-                        TamanoTotalBytes =
-                            anterior.TamanoTotalBytes,
-                        MotorCalculo =
-                            motorPendiente,
-                        Catalogos =
-                            catalogosPendiente,
-                        Noticias =
-                            noticiasInicial,
-                        Album =
-                            albumInicial
-                    };
-
-                GuardarYNotificar(trabajando);
-
-                ResultadoDescargaMotor motor =
+                ResultadoDescargaMotor motorResult =
                     await MotorCalculoPaqueteService.Instance
                         .DescargarOActualizarAsync(
-                            forzar:
-                                forzarRevisionCompleta,
-                            cancellationToken:
-                                cancellationToken);
+                            forzar: true,
+                            cancellationToken: cancellationToken);
 
-                if (!motor.Success)
-                {
-                    return await CompletarConErrorAsync(
-                        anterior,
-                        trabajando,
-                        "Motor de cálculo",
-                        motor.Message,
-                        esAutomatico);
-                }
+                if (!motorResult.Success)
+                    throw new InvalidOperationException(
+                        motorResult.Message);
 
+                motor = CrearListo(
+                    "Motor de cálculo",
+                    motorResult.Message,
+                    motorResult.TotalRegistros);
                 paso++;
 
-                trabajando =
-                    CopiarEstado(
-                        trabajando,
-                        mensaje:
-                            "Motor de cálculo preparado",
-                        detalle:
-                            "Continuando con catálogos y terrenos.",
-                        progreso:
-                            CalcularProgreso(
-                                paso,
-                                totalPasos),
-                        pasoActual:
-                            paso,
-                        motorCalculo:
-                            new ModuloOfflineResumen
-                            {
-                                Nombre =
-                                    "Motor de cálculo",
-                                Estado =
-                                    ModuloOfflineEstados.Listo,
-                                Mensaje =
-                                    $"Requerimiento anual disponible. Versión {motor.VersionPaquete}.",
-                                Registros =
-                                    motor.TotalRegistros
-                            },
-                        catalogos:
-                            new ModuloOfflineResumen
-                            {
-                                Nombre =
-                                    "Catálogos",
-                                Estado =
-                                    ModuloOfflineEstados
-                                        .Sincronizando,
-                                Mensaje =
-                                    "Descargando catálogos, terrenos y datos para los cálculos."
-                            });
+                catalogos = CrearEnCurso(
+                    "Catálogos y terrenos",
+                    "Descargando catálogos completos...");
+                ActualizarPaso(
+                    paso,
+                    totalPasos,
+                    "Descargando catálogos y terrenos...",
+                    motor,
+                    catalogos,
+                    analisis,
+                    noticias,
+                    album,
+                    anterior);
 
-                GuardarYNotificar(trabajando);
-
-                ResultadoDescargaOffline catalogos =
+                ResultadoDescargaOffline catalogosResult =
                     await PaqueteCatalogosOfflineService.Instance
-                        .DescargarTodoAsync(
-                            forzar:
-                                forzarRevisionCompleta);
+                        .DescargarTodoAsync(forzar: true);
 
-                if (!catalogos.Success)
-                {
-                    return await CompletarConErrorAsync(
-                        anterior,
-                        trabajando,
-                        "Catálogos",
-                        catalogos.Message,
-                        esAutomatico);
-                }
+                if (!catalogosResult.Success)
+                    throw new InvalidOperationException(
+                        catalogosResult.Message);
 
+                catalogos = CrearListo(
+                    "Catálogos y terrenos",
+                    catalogosResult.Message,
+                    catalogosResult.TotalRegistros);
                 paso++;
 
-                trabajando =
-                    CopiarEstado(
-                        trabajando,
-                        mensaje:
-                            "Catálogos preparados",
-                        detalle:
-                            "Continuando con el contenido informativo.",
-                        progreso:
-                            CalcularProgreso(
-                                paso,
-                                totalPasos),
-                        pasoActual:
-                            paso,
-                        catalogos:
-                            new ModuloOfflineResumen
-                            {
-                                Nombre = "Catálogos",
-                                Estado =
-                                    ModuloOfflineEstados.Listo,
-                                Mensaje =
-                                    "Catálogos, terrenos, selectores y datos de cálculo disponibles.",
-                                Registros =
-                                    catalogos.TotalRegistros
-                            });
+                analisis = CrearEnCurso(
+                    "Historial de análisis",
+                    "Descargando encabezados, detalles y reportes...");
+                ActualizarPaso(
+                    paso,
+                    totalPasos,
+                    "Descargando historial de análisis...",
+                    motor,
+                    catalogos,
+                    analisis,
+                    noticias,
+                    album,
+                    anterior);
 
-                GuardarYNotificar(trabajando);
+                AnalisisHistorialDescargaResultado analisisResult =
+                    await AnalisisHistorialDescargaService.Instance
+                        .DescargarTodoAsync(cancellationToken);
+
+                if (!analisisResult.Success)
+                    throw new InvalidOperationException(
+                        analisisResult.Message);
+
+                analisis = CrearListo(
+                    "Historial de análisis",
+                    analisisResult.Message,
+                    analisisResult.TotalAnalisis);
+                paso++;
 
                 if (PuedeDescargarNoticias())
                 {
-                    trabajando =
-                        CopiarEstado(
-                            trabajando,
-                            mensaje:
-                                "Sincronizando noticias...",
-                            detalle:
-                                "Descargando publicaciones, detalles e imágenes.",
-                            noticias:
-                                new ModuloOfflineResumen
-                                {
-                                    Nombre = "Noticias",
-                                    Estado =
-                                        ModuloOfflineEstados
-                                            .Sincronizando,
-                                    Mensaje =
-                                        "Descargando publicaciones e imágenes."
-                                });
+                    noticias = CrearEnCurso(
+                        "Noticias",
+                        "Descargando publicaciones e imágenes...");
+                    ActualizarPaso(
+                        paso,
+                        totalPasos,
+                        "Descargando noticias...",
+                        motor,
+                        catalogos,
+                        analisis,
+                        noticias,
+                        album,
+                        anterior);
 
-                    GuardarYNotificar(trabajando);
-
-                    NoticiasOfflineSyncResult noticias =
+                    NoticiasOfflineSyncResult noticiasResult =
                         await NoticiasOfflineSyncService.Instance
                             .SincronizarSiNecesarioAsync(
-                                forzarRevisionCompleta,
-                                cancellationToken);
+                                forzarDescargaCompleta: true,
+                                cancellationToken: cancellationToken);
 
-                    if (!noticias.Success)
-                    {
-                        return await CompletarConErrorAsync(
-                            anterior,
-                            trabajando,
-                            "Noticias",
-                            noticias.Message,
-                            esAutomatico);
-                    }
+                    if (!noticiasResult.Success)
+                        throw new InvalidOperationException(
+                            noticiasResult.Message);
 
-                    paso++;
-
-                    trabajando =
-                        CopiarEstado(
-                            trabajando,
-                            progreso:
-                                CalcularProgreso(
-                                    paso,
-                                    totalPasos),
-                            pasoActual:
-                                paso,
-                            noticias:
-                                new ModuloOfflineResumen
-                                {
-                                    Nombre = "Noticias",
-                                    Estado =
-                                        ModuloOfflineEstados.Listo,
-                                    Mensaje =
-                                        "Publicaciones, detalles e imágenes disponibles.",
-                                    Registros =
-                                        noticias.TotalPublicaciones
-                                });
-
-                    GuardarYNotificar(trabajando);
+                    noticias = CrearListo(
+                        "Noticias",
+                        noticiasResult.Message,
+                        noticiasResult.TotalPublicaciones);
                 }
+                paso++;
 
                 if (PuedeDescargarAlbum())
                 {
-                    trabajando =
-                        CopiarEstado(
-                            trabajando,
-                            mensaje:
-                                "Sincronizando álbum...",
-                            detalle:
-                                "Descargando categorías, registros y fotografías.",
-                            album:
-                                new ModuloOfflineResumen
-                                {
-                                    Nombre = "Álbum de fotos",
-                                    Estado =
-                                        ModuloOfflineEstados
-                                            .Sincronizando,
-                                    Mensaje =
-                                        "Descargando registros y fotografías."
-                                });
+                    album = CrearEnCurso(
+                        "Álbum de fotos",
+                        "Descargando álbum y fotografías...");
+                    ActualizarPaso(
+                        paso,
+                        totalPasos,
+                        "Descargando álbum de fotos...",
+                        motor,
+                        catalogos,
+                        analisis,
+                        noticias,
+                        album,
+                        anterior);
 
-                    GuardarYNotificar(trabajando);
-
-                    AlbumOfflineSyncResult album =
+                    AlbumOfflineSyncResult albumResult =
                         await AlbumOfflineSyncService.Instance
                             .SincronizarSiNecesarioAsync(
-                                forzarDescargaCompleta:
-                                    forzarRevisionCompleta,
-                                cancellationToken:
-                                    cancellationToken);
+                                forzarDescargaCompleta: true,
+                                cancellationToken: cancellationToken);
 
-                    if (!album.Success)
-                    {
-                        return await CompletarConErrorAsync(
-                            anterior,
-                            trabajando,
-                            "Álbum de fotos",
-                            album.Message,
-                            esAutomatico);
-                    }
+                    if (!albumResult.Success)
+                        throw new InvalidOperationException(
+                            albumResult.Message);
 
-                    paso++;
-
-                    trabajando =
-                        CopiarEstado(
-                            trabajando,
-                            progreso:
-                                CalcularProgreso(
-                                    paso,
-                                    totalPasos),
-                            pasoActual:
-                                paso,
-                            album:
-                                new ModuloOfflineResumen
-                                {
-                                    Nombre = "Álbum de fotos",
-                                    Estado =
-                                        ModuloOfflineEstados.Listo,
-                                    Mensaje =
-                                        "Registros y fotografías disponibles.",
-                                    Registros =
-                                        album.TotalRecords > 0
-                                            ? album.TotalRecords
-                                            : anterior.Album.Registros,
-                                    Imagenes =
-                                        album.TotalPhotos > 0
-                                            ? album.TotalPhotos
-                                            : anterior.Album.Imagenes
-                                });
-
-                    GuardarYNotificar(trabajando);
+                    album = CrearListo(
+                        "Álbum de fotos",
+                        albumResult.Message,
+                        albumResult.TotalRecords,
+                        albumResult.TotalPhotos);
                 }
+                paso++;
 
                 /*
-                 * El límite elimina únicamente archivos huérfanos. Las
-                 * imágenes de las versiones vigentes se conservan para que
-                 * Descargar todo signifique realmente tener todo disponible.
+                 * No se marca el dispositivo como preparado solamente porque
+                 * los servicios devolvieron Success. Se comprueba que SQLite
+                 * contenga las rutas exactas que consumen las pantallas.
                  */
-                await ImagenLocalCacheService
-                    .AplicarLimiteAsync();
+                await ValidarRutasObligatoriasAsync(
+                    cancellationToken);
 
-                DateTime ahora =
-                    DateTime.UtcNow;
+                estado = CrearEstado(
+                    SincronizacionOfflineGlobalEstados.Listo,
+                    "Dispositivo preparado",
+                    "Todos los datos necesarios fueron descargados manualmente.",
+                    100,
+                    totalPasos,
+                    totalPasos,
+                    preparacionCompleta: true,
+                    motor,
+                    catalogos,
+                    analisis,
+                    noticias,
+                    album,
+                    DateTime.UtcNow);
 
-                SincronizacionOfflineGlobalEstado completo =
-                    CopiarEstado(
-                        trabajando,
-                        estado:
-                            SincronizacionOfflineGlobalEstados.Listo,
-                        mensaje:
-                            "Listo para trabajar sin conexión",
-                        detalle:
-                            "Motor, catálogos, terrenos y contenido habilitado están guardados en el dispositivo.",
-                        progreso: 100,
-                        pasoActual:
-                            totalPasos,
-                        preparacionCompleta:
-                            true,
-                        ultimaSincronizacionCompletaUtc:
-                            ahora,
-                        ultimaVerificacionUtc:
-                            ahora);
+                estado = await AgregarTamanoActualAsync(estado);
+                GuardarYNotificar(estado);
 
-                completo =
-                    await AgregarTamanoActualAsync(
-                        completo);
+                string usuarioPreparado =
+                    ObtenerUsuarioId();
 
-                GuardarYNotificar(completo);
+                Preferences.Set(
+                    ConstruirClavePreparacion(
+                        usuarioPreparado),
+                    true);
+
+                Preferences.Set(
+                    ConstruirClaveFechaPreparacion(
+                        usuarioPreparado),
+                    DateTime.UtcNow.ToString("O"));
+
+                Preferences.Set(
+                    ConstruirClavePerfilPreparacion(
+                        usuarioPreparado),
+                    ConstruirPerfilPermisos(
+                        PuedeDescargarNoticias(),
+                        PuedeDescargarAlbum()));
 
                 return ResultadoSincronizacionOfflineGlobal.Ok(
-                    esAutomatico
-                        ? "Los datos fueron verificados y actualizados."
-                        : "Todos los datos necesarios fueron preparados.");
+                    "El dispositivo quedó preparado para trabajar sin conexión.");
+            }
+            catch (OperationCanceledException)
+            {
+                estado = await CrearEstadoErrorAsync(
+                    anterior,
+                    "La descarga fue cancelada. Se conserva la copia anterior.",
+                    motor,
+                    catalogos,
+                    analisis,
+                    noticias,
+                    album,
+                    totalPasos);
+                throw;
             }
             catch (Exception ex)
             {
-                return await CompletarConErrorAsync(
+                estado = await CrearEstadoErrorAsync(
                     anterior,
-                    CargarEstado(),
-                    "Sincronización",
                     ex.Message,
-                    esAutomatico);
+                    motor,
+                    catalogos,
+                    analisis,
+                    noticias,
+                    album,
+                    totalPasos);
+
+                return ResultadoSincronizacionOfflineGlobal.Fail(
+                    estado.Detalle,
+                    anterior.PreparacionCompleta);
             }
             finally
             {
@@ -621,142 +466,146 @@ namespace CONATRADEC.Services
             }
         }
 
-        private async Task<
-            ResultadoSincronizacionOfflineGlobal>
-            CompletarConErrorAsync(
-                SincronizacionOfflineGlobalEstado anterior,
-                SincronizacionOfflineGlobalEstado actual,
-                string modulo,
-                string mensajeError,
-                bool esAutomatico)
+        /// <summary>
+        /// Se conserva para compatibilidad con código anterior. No ejecuta
+        /// ninguna verificación ni solicitud.
+        /// </summary>
+        public void VerificarActualizacionesEnSegundoPlano()
         {
-            bool conserva =
-                anterior.PreparacionCompleta;
+        }
 
-            ModuloOfflineResumen motorCalculo =
-                actual.MotorCalculo;
+        public Task MarcarActualizacionDisponibleAsync(
+            string mensaje)
+        {
+            SincronizacionOfflineGlobalEstado actual = CargarEstado();
 
-            ModuloOfflineResumen catalogos =
-                actual.Catalogos;
+            if (!actual.PreparacionCompleta)
+                return Task.CompletedTask;
 
-            ModuloOfflineResumen noticias =
-                actual.Noticias;
-
-            ModuloOfflineResumen album =
-                actual.Album;
-
-            var moduloError =
-                new ModuloOfflineResumen
-                {
-                    Nombre = modulo,
-                    Estado =
-                        ModuloOfflineEstados.Error,
-                    Mensaje =
-                        string.IsNullOrWhiteSpace(
-                            mensajeError)
-                            ? "No fue posible completar la operación."
-                            : mensajeError
-                };
-
-            if (modulo.Equals(
-                    "Motor de cálculo",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                motorCalculo = moduloError;
-            }
-            else if (modulo.Equals(
-                    "Catálogos",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                catalogos = moduloError;
-            }
-            else if (modulo.Equals(
-                         "Noticias",
-                         StringComparison.OrdinalIgnoreCase))
-            {
-                noticias = moduloError;
-            }
-            else if (modulo.Equals(
-                         "Álbum de fotos",
-                         StringComparison.OrdinalIgnoreCase))
-            {
-                album = moduloError;
-            }
-
-            SincronizacionOfflineGlobalEstado estado =
-                CopiarEstado(
-                    actual,
-                    estado:
-                        conserva
-                            ? SincronizacionOfflineGlobalEstados
-                                .ListoConAviso
-                            : SincronizacionOfflineGlobalEstados.Error,
-                    mensaje:
-                        conserva
-                            ? "Se conserva la última copia completa"
-                            : "No se completó la descarga",
-                    detalle:
-                        $"{modulo}: " +
-                        (string.IsNullOrWhiteSpace(
-                            mensajeError)
-                            ? "No fue posible completar la operación."
-                            : mensajeError),
-                    preparacionCompleta:
-                        conserva,
-                    ultimaSincronizacionCompletaUtc:
-                        anterior
-                            .UltimaSincronizacionCompletaUtc,
-                    ultimaVerificacionUtc:
-                        DateTime.UtcNow,
-                    motorCalculo:
-                        motorCalculo,
-                    catalogos:
-                        catalogos,
-                    noticias:
-                        noticias,
-                    album:
-                        album);
-
-            estado =
-                await AgregarTamanoActualAsync(
-                    estado);
+            estado = CopiarEstado(
+                actual,
+                estado:
+                    SincronizacionOfflineGlobalEstados
+                        .ActualizacionDisponible,
+                mensaje: "Hay cambios para descargar",
+                detalle: string.IsNullOrWhiteSpace(mensaje)
+                    ? "Use Actualizar todo cuando lo considere necesario."
+                    : mensaje,
+                ultimaVerificacionUtc: DateTime.UtcNow);
 
             GuardarYNotificar(estado);
-
-            return ResultadoSincronizacionOfflineGlobal.Fail(
-                estado.Detalle,
-                conserva);
+            return Task.CompletedTask;
         }
 
-        private static int CalcularProgreso(
-            int paso,
-            int totalPasos)
+        private void OnProgresoAnalisis(
+            object? sender,
+            AnalisisHistorialDescargaProgreso e)
         {
-            if (totalPasos <= 0)
-                return 0;
+            if (!estado.SincronizacionEnCurso)
+                return;
 
-            return Math.Clamp(
+            int baseProgress = 40;
+            int tramo = 20;
+            int progress = baseProgress +
                 (int)Math.Round(
-                    paso * 100d /
-                    totalPasos),
-                0,
-                100);
+                    tramo * e.Porcentaje / 100d);
+
+            estado = CopiarEstado(
+                estado,
+                detalle: e.Mensaje,
+                progreso: progress,
+                analisis: new ModuloOfflineResumen
+                {
+                    Nombre = "Historial de análisis",
+                    Estado = ModuloOfflineEstados.Sincronizando,
+                    Mensaje = e.Mensaje,
+                    Registros = e.Procesados
+                });
+
+            GuardarYNotificar(estado);
         }
 
-        private async Task<
-            SincronizacionOfflineGlobalEstado>
+        private void ActualizarPaso(
+            int paso,
+            int totalPasos,
+            string detalle,
+            ModuloOfflineResumen motor,
+            ModuloOfflineResumen catalogos,
+            ModuloOfflineResumen analisis,
+            ModuloOfflineResumen noticias,
+            ModuloOfflineResumen album,
+            SincronizacionOfflineGlobalEstado anterior)
+        {
+            estado = CrearEstado(
+                SincronizacionOfflineGlobalEstados.Sincronizando,
+                "Preparando datos sin conexión",
+                detalle,
+                CalcularProgreso(paso, totalPasos),
+                paso,
+                totalPasos,
+                anterior.PreparacionCompleta,
+                motor,
+                catalogos,
+                analisis,
+                noticias,
+                album,
+                anterior.UltimaSincronizacionCompletaUtc);
+
+            GuardarYNotificar(estado);
+        }
+
+        private async Task<SincronizacionOfflineGlobalEstado>
+            CrearEstadoErrorAsync(
+                SincronizacionOfflineGlobalEstado anterior,
+                string error,
+                ModuloOfflineResumen motor,
+                ModuloOfflineResumen catalogos,
+                ModuloOfflineResumen analisis,
+                ModuloOfflineResumen noticias,
+                ModuloOfflineResumen album,
+                int totalPasos)
+        {
+            SincronizacionOfflineGlobalEstado result = CrearEstado(
+                SincronizacionOfflineGlobalEstados.Error,
+                anterior.PreparacionCompleta
+                    ? "Se conserva la copia anterior"
+                    : "Descarga incompleta",
+                string.IsNullOrWhiteSpace(error)
+                    ? "No fue posible completar la descarga."
+                    : error,
+                estado.ProgresoPorcentaje,
+                estado.PasoActual,
+                totalPasos,
+                anterior.PreparacionCompleta,
+                motor,
+                catalogos,
+                analisis,
+                noticias,
+                album,
+                anterior.UltimaSincronizacionCompletaUtc);
+
+            result = await AgregarTamanoActualAsync(result);
+            GuardarYNotificar(result);
+            return result;
+        }
+
+        private async Task<SincronizacionOfflineGlobalEstado>
             AgregarTamanoActualAsync(
-                SincronizacionOfflineGlobalEstado estado)
+                SincronizacionOfflineGlobalEstado source)
         {
             long total =
-                ImagenLocalCacheService
-                    .ObtenerTamanoFisicoBytes();
+                ImagenLocalCacheService.ObtenerTamanoFisicoBytes() +
+                MotorCalculoPaqueteService.Instance
+                    .ObtenerTamanoPaqueteBytes() +
+                AnalisisHistorialLocalService.Instance
+                    .ObtenerTamanoBytes() +
+                AnalisisOfflineDatabaseService.Instance
+                    .ObtenerTamanoBytes();
 
             try
             {
                 string path =
-                    ContenidoLocalDatabaseService.Instance
-                        .DatabasePath;
+                    ContenidoLocalDatabaseService.Instance.DatabasePath;
 
                 if (File.Exists(path))
                     total += new FileInfo(path).Length;
@@ -765,16 +614,118 @@ namespace CONATRADEC.Services
             {
             }
 
-            total +=
-                MotorCalculoPaqueteService.Instance
-                    .ObtenerTamanoPaqueteBytes();
-
             await Task.CompletedTask;
 
             return CopiarEstado(
-                estado,
-                tamanoTotalBytes:
-                    total);
+                source,
+                tamanoTotalBytes: total);
+        }
+
+        private static async Task ValidarRutasObligatoriasAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string usuarioId = ObtenerUsuarioId();
+            string version =
+                DescargaOfflineContext.VersionTransaccional;
+
+            if (usuarioId == "0" ||
+                string.IsNullOrWhiteSpace(version))
+            {
+                throw new InvalidOperationException(
+                    "No fue posible identificar el paquete de descarga.");
+            }
+
+            if (PuedeDescargarNoticias())
+            {
+                await ExigirRutaAsync(
+                    usuarioId,
+                    "noticias",
+                    "/api/publicacion/categorias",
+                    version,
+                    cancellationToken);
+
+                foreach (int pageSize in new[] { 12, 6 })
+                {
+                    await ExigirRutaAsync(
+                        usuarioId,
+                        "noticias",
+                        "/api/publicacion/feed" +
+                        "?pagina=1" +
+                        $"&tamanoPagina={pageSize}" +
+                        "&soloDestacadas=false" +
+                        "&soloEventos=false",
+                        version,
+                        cancellationToken);
+                }
+            }
+
+            if (PuedeDescargarAlbum())
+            {
+                int pageSize =
+                    DeviceInfo.Platform ==
+                        DevicePlatform.WinUI
+                        ? 12
+                        : 6;
+
+                await ExigirRutaAsync(
+                    usuarioId,
+                    "album",
+                    "/api/album-botanico/inicio" +
+                    $"?tamanoPagina={pageSize}",
+                    version,
+                    cancellationToken);
+
+                await ExigirRutaAsync(
+                    usuarioId,
+                    "album",
+                    "/api/album-botanico/galeria-paginada" +
+                    "?pagina=1" +
+                    $"&tamanoPagina={pageSize}" +
+                    "&incluirInactivos=false",
+                    version,
+                    cancellationToken);
+            }
+        }
+
+        private static async Task ExigirRutaAsync(
+            string usuarioId,
+            string modulo,
+            string ruta,
+            string version,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            string cacheKey = CalcularHash(
+                $"{usuarioId}|{modulo}|{ruta}");
+
+            ContenidoRespuestaCacheEntity? respuesta =
+                await ContenidoLocalDatabaseService.Instance
+                    .ObtenerRespuestaAsync(cacheKey);
+
+            if (respuesta == null ||
+                !string.Equals(
+                    respuesta.Version,
+                    version,
+                    StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(
+                    respuesta.Json))
+            {
+                throw new InvalidOperationException(
+                    $"La descarga de {modulo} no contiene todas las rutas obligatorias. Se conserva la copia anterior.");
+            }
+        }
+
+        private static string CalcularHash(
+            string value)
+        {
+            byte[] hash = SHA256.HashData(
+                Encoding.UTF8.GetBytes(value));
+
+            return Convert.ToHexString(hash)
+                .ToLowerInvariant();
         }
 
         private static bool PuedeDescargarNoticias() =>
@@ -785,54 +736,163 @@ namespace CONATRADEC.Services
             PermissionService.Instance.HasRead(
                 InterfazCodigos.AlbumFotos);
 
-        private static ModuloOfflineResumen
-            CrearModuloNoHabilitado(
-                string nombre) =>
-                new()
-                {
-                    Nombre = nombre,
-                    Estado =
-                        ModuloOfflineEstados.NoHabilitado,
-                    Mensaje =
-                        "No habilitado para este usuario."
-                };
+        private static ModuloOfflineResumen CrearPendiente(
+            string nombre) =>
+            new()
+            {
+                Nombre = nombre,
+                Estado = ModuloOfflineEstados.Pendiente,
+                Mensaje = "Pendiente."
+            };
+
+        private static ModuloOfflineResumen CrearEnCurso(
+            string nombre,
+            string mensaje) =>
+            new()
+            {
+                Nombre = nombre,
+                Estado = ModuloOfflineEstados.Sincronizando,
+                Mensaje = mensaje
+            };
+
+        private static ModuloOfflineResumen CrearListo(
+            string nombre,
+            string mensaje,
+            int registros,
+            int imagenes = 0) =>
+            new()
+            {
+                Nombre = nombre,
+                Estado = ModuloOfflineEstados.Listo,
+                Mensaje = mensaje,
+                Registros = registros,
+                Imagenes = imagenes
+            };
+
+        private static ModuloOfflineResumen CrearNoHabilitado(
+            string nombre) =>
+            new()
+            {
+                Nombre = nombre,
+                Estado = ModuloOfflineEstados.NoHabilitado,
+                Mensaje = "No habilitado para este usuario."
+            };
+
+        private static int CalcularProgreso(
+            int paso,
+            int totalPasos) =>
+            totalPasos <= 0
+                ? 0
+                : Math.Clamp(
+                    (int)Math.Round(
+                        paso * 100d / totalPasos),
+                    0,
+                    100);
+
+        private static SincronizacionOfflineGlobalEstado CrearEstado(
+            string estado,
+            string mensaje,
+            string detalle,
+            int progreso,
+            int paso,
+            int totalPasos,
+            bool preparacionCompleta,
+            ModuloOfflineResumen motor,
+            ModuloOfflineResumen catalogos,
+            ModuloOfflineResumen analisis,
+            ModuloOfflineResumen noticias,
+            ModuloOfflineResumen album,
+            DateTime? ultimaCompleta) =>
+            new()
+            {
+                Estado = estado,
+                Mensaje = mensaje,
+                Detalle = detalle,
+                ProgresoPorcentaje = progreso,
+                PasoActual = paso,
+                TotalPasos = totalPasos,
+                PreparacionCompleta = preparacionCompleta,
+                UltimaSincronizacionCompletaUtc = ultimaCompleta,
+                UltimaVerificacionUtc = DateTime.UtcNow,
+                MotorCalculo = motor,
+                Catalogos = catalogos,
+                Analisis = analisis,
+                Noticias = noticias,
+                Album = album
+            };
+
+        private static SincronizacionOfflineGlobalEstado CopiarEstado(
+            SincronizacionOfflineGlobalEstado origen,
+            string? estado = null,
+            string? mensaje = null,
+            string? detalle = null,
+            int? progreso = null,
+            int? pasoActual = null,
+            int? totalPasos = null,
+            bool? preparacionCompleta = null,
+            DateTime? ultimaSincronizacionCompletaUtc = null,
+            DateTime? ultimaVerificacionUtc = null,
+            long? tamanoTotalBytes = null,
+            ModuloOfflineResumen? motorCalculo = null,
+            ModuloOfflineResumen? catalogos = null,
+            ModuloOfflineResumen? analisis = null,
+            ModuloOfflineResumen? noticias = null,
+            ModuloOfflineResumen? album = null) =>
+            new()
+            {
+                Estado = estado ?? origen.Estado,
+                Mensaje = mensaje ?? origen.Mensaje,
+                Detalle = detalle ?? origen.Detalle,
+                ProgresoPorcentaje =
+                    progreso ?? origen.ProgresoPorcentaje,
+                PasoActual = pasoActual ?? origen.PasoActual,
+                TotalPasos = totalPasos ?? origen.TotalPasos,
+                PreparacionCompleta =
+                    preparacionCompleta ?? origen.PreparacionCompleta,
+                UltimaSincronizacionCompletaUtc =
+                    ultimaSincronizacionCompletaUtc ??
+                    origen.UltimaSincronizacionCompletaUtc,
+                UltimaVerificacionUtc =
+                    ultimaVerificacionUtc ??
+                    origen.UltimaVerificacionUtc,
+                TamanoTotalBytes =
+                    tamanoTotalBytes ?? origen.TamanoTotalBytes,
+                MotorCalculo = motorCalculo ?? origen.MotorCalculo,
+                Catalogos = catalogos ?? origen.Catalogos,
+                Analisis = analisis ?? origen.Analisis,
+                Noticias = noticias ?? origen.Noticias,
+                Album = album ?? origen.Album
+            };
 
         private void GuardarYNotificar(
-            SincronizacionOfflineGlobalEstado estado)
+            SincronizacionOfflineGlobalEstado value)
         {
-            string usuarioId =
-                ObtenerUsuarioId();
+            estado = value;
+            string usuarioId = ObtenerUsuarioId();
 
             if (usuarioId != "0")
             {
                 Preferences.Set(
-                    ConstruirClaveEstado(
-                        usuarioId),
+                    ConstruirClaveEstado(usuarioId),
                     JsonSerializer.Serialize(
-                        estado,
+                        value,
                         jsonOptions));
             }
 
             EstadoCambiado?.Invoke(
                 this,
-                new SincronizacionOfflineGlobalEventArgs(
-                    estado));
+                new SincronizacionOfflineGlobalEventArgs(value));
         }
 
-        private SincronizacionOfflineGlobalEstado
-            CargarEstado()
+        private SincronizacionOfflineGlobalEstado CargarEstado()
         {
-            string usuarioId =
-                ObtenerUsuarioId();
-
+            string usuarioId = ObtenerUsuarioId();
             if (usuarioId == "0")
                 return new SincronizacionOfflineGlobalEstado();
 
-            string json =
-                Preferences.Get(
-                    ConstruirClaveEstado(
-                        usuarioId),
-                    string.Empty);
+            string json = Preferences.Get(
+                ConstruirClaveEstado(usuarioId),
+                string.Empty);
 
             if (string.IsNullOrWhiteSpace(json))
                 return new SincronizacionOfflineGlobalEstado();
@@ -843,8 +903,7 @@ namespace CONATRADEC.Services
                            SincronizacionOfflineGlobalEstado>(
                            json,
                            jsonOptions)
-                       ??
-                       new SincronizacionOfflineGlobalEstado();
+                       ?? new SincronizacionOfflineGlobalEstado();
             }
             catch
             {
@@ -852,133 +911,40 @@ namespace CONATRADEC.Services
             }
         }
 
-        private static SincronizacionOfflineGlobalEstado
-            CopiarEstado(
-                SincronizacionOfflineGlobalEstado origen,
-                string? estado = null,
-                string? mensaje = null,
-                string? detalle = null,
-                int? progreso = null,
-                int? pasoActual = null,
-                int? totalPasos = null,
-                bool? preparacionCompleta = null,
-                DateTime?
-                    ultimaSincronizacionCompletaUtc =
-                        null,
-                DateTime? ultimaVerificacionUtc =
-                    null,
-                long? tamanoTotalBytes = null,
-                ModuloOfflineResumen? motorCalculo =
-                    null,
-                ModuloOfflineResumen? catalogos =
-                    null,
-                ModuloOfflineResumen? noticias =
-                    null,
-                ModuloOfflineResumen? album =
-                    null) =>
-                new()
-                {
-                    Estado =
-                        estado ??
-                        origen.Estado,
-                    Mensaje =
-                        mensaje ??
-                        origen.Mensaje,
-                    Detalle =
-                        detalle ??
-                        origen.Detalle,
-                    ProgresoPorcentaje =
-                        progreso ??
-                        origen.ProgresoPorcentaje,
-                    PasoActual =
-                        pasoActual ??
-                        origen.PasoActual,
-                    TotalPasos =
-                        totalPasos ??
-                        origen.TotalPasos,
-                    PreparacionCompleta =
-                        preparacionCompleta ??
-                        origen.PreparacionCompleta,
-                    UltimaSincronizacionCompletaUtc =
-                        ultimaSincronizacionCompletaUtc ??
-                        origen
-                            .UltimaSincronizacionCompletaUtc,
-                    UltimaVerificacionUtc =
-                        ultimaVerificacionUtc ??
-                        origen.UltimaVerificacionUtc,
-                    TamanoTotalBytes =
-                        tamanoTotalBytes ??
-                        origen.TamanoTotalBytes,
-                    MotorCalculo =
-                        motorCalculo ??
-                        origen.MotorCalculo,
-                    Catalogos =
-                        catalogos ??
-                        origen.Catalogos,
-                    Noticias =
-                        noticias ??
-                        origen.Noticias,
-                    Album =
-                        album ??
-                        origen.Album
-                };
-
         private static string ObtenerUsuarioId()
         {
-            string usuarioId =
-                Preferences.Get(
-                    SessionKeys.KeyUserId,
-                    string.Empty);
+            string value = Preferences.Get(
+                SessionKeys.KeyUserId,
+                "0");
 
-            return string.IsNullOrWhiteSpace(
-                    usuarioId)
+            return string.IsNullOrWhiteSpace(value)
                 ? "0"
-                : usuarioId;
+                : value.Trim();
         }
 
         private static string ConstruirClaveEstado(
             string usuarioId) =>
-            EstadoClavePrefijo +
+            EstadoClavePrefijo + usuarioId;
+
+        private static string ConstruirClavePreparacion(
+            string usuarioId) =>
+            PreparacionCompletaClavePrefijo +
             usuarioId;
 
-        private async Task EjecutarCicloAutomaticoAsync()
-        {
-            try
-            {
-                using var timer =
-                    new PeriodicTimer(
-                        IntervaloVerificacionAutomatica);
+        private static string ConstruirClaveFechaPreparacion(
+            string usuarioId) =>
+            PreparacionFechaClavePrefijo +
+            usuarioId;
 
-                while (await timer.WaitForNextTickAsync())
-                {
-                    VerificarActualizacionesEnSegundoPlano();
-                }
-            }
-            catch
-            {
-                /*
-                 * Un error del ciclo no debe afectar la aplicación. Las
-                 * verificaciones por navegación y reconexión siguen activas.
-                 */
-            }
-        }
+        private static string ConstruirClavePerfilPreparacion(
+            string usuarioId) =>
+            PreparacionPerfilClavePrefijo +
+            usuarioId;
 
-        private void OnConexionPotencialmenteRestablecida()
-        {
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(
-                    TimeSpan.FromSeconds(2));
-
-                VerificarActualizacionesEnSegundoPlano();
-            });
-        }
-
-        private void OnEstadoConexionCambiado(
-            bool conectado)
-        {
-            if (conectado)
-                VerificarActualizacionesEnSegundoPlano();
-        }
+        private static string ConstruirPerfilPermisos(
+            bool noticias,
+            bool album) =>
+            $"N:{(noticias ? 1 : 0)}|" +
+            $"A:{(album ? 1 : 0)}";
     }
 }

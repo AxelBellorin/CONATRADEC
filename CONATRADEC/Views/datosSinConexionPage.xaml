@@ -1,359 +1,281 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.datosSinConexionPage"
-    x:Name="DatosSinConexionRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    Title="Datos sin conexión"
+    BackgroundColor="#FFF7FF">
 
-    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
-
+    <Grid RowDefinitions="Auto,*">
         <Grid
-            Padding="{OnIdiom Phone='14,12,14,18', Tablet='18,16,18,22', Desktop='26,22,26,30'}"
-            RowDefinitions="Auto,*"
-            RowSpacing="14">
+            Grid.Row="0"
+            Padding="20,16"
+            ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="12"
+            BackgroundColor="White">
+
+            <Button
+                Grid.Column="0"
+                Text="←"
+                Clicked="VolverButton_Clicked"
+                WidthRequest="48"
+                HeightRequest="48"
+                Padding="0"
+                CornerRadius="14"
+                FontSize="22"
+                BackgroundColor="#F3F5F4"
+                TextColor="#263238"
+                SemanticProperties.Description="Volver a la interfaz principal" />
 
             <VerticalStackLayout
-                Grid.Row="0"
-                Spacing="3">
-
+                Grid.Column="1"
+                Spacing="2"
+                VerticalOptions="Center">
                 <Label
-                    Text="Datos sin conexión"
-                    FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
+                    Text="Preparar datos sin conexión"
                     FontFamily="MontserratBold"
                     FontAttributes="Bold"
-                    TextColor="{StaticResource color_Verde}" />
-
+                    FontSize="25"
+                    TextColor="#3B655B" />
                 <Label
-                    Text="Prepare y mantenga actualizada la información necesaria antes de salir a una zona sin señal."
-                    FontSize="{OnIdiom Phone=12, Tablet=13, Desktop=13}"
-                    TextColor="{StaticResource color_GrisOscuro}"
-                    LineBreakMode="WordWrap" />
-
+                    Text="Descarga manual y completa del contenido autorizado"
+                    FontSize="12"
+                    TextColor="#5F6368" />
             </VerticalStackLayout>
 
-            <ScrollView
-                Grid.Row="1"
-                VerticalScrollBarVisibility="Default">
+            <Border
+                Grid.Column="2"
+                Padding="10,6"
+                BackgroundColor="#EEF5F2"
+                Stroke="#B7D3C8"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 10">
+                <Label
+                    x:Name="ModoSesionLabel"
+                    Text="Sesión en línea"
+                    FontFamily="MontserratBold"
+                    FontAttributes="Bold"
+                    FontSize="11"
+                    TextColor="#3B655B" />
+            </Border>
+        </Grid>
 
-                <VerticalStackLayout
-                    Spacing="14"
-                    Padding="0,0,0,18">
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout
+                Padding="20"
+                Spacing="14"
+                MaximumWidthRequest="1050">
 
-                    <Border
-                        x:Name="EstadoPrincipalBorder"
-                        Padding="{OnIdiom Phone='14', Tablet='16', Desktop='18'}"
-                        BackgroundColor="#F3F7FF"
-                        Stroke="#C9D7F2"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 16">
+                <Border
+                    x:Name="EstadoPrincipalBorder"
+                    Padding="16"
+                    BackgroundColor="#F3F7FF"
+                    Stroke="#C9D7F2"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="7">
+                        <Label
+                            x:Name="EstadoTituloLabel"
+                            Text="Los datos todavía no están preparados"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            FontSize="16"
+                            TextColor="#263238" />
+                        <Label
+                            x:Name="EstadoDetalleLabel"
+                            Text="Use Descargar todo durante una sesión en línea."
+                            FontSize="11"
+                            LineBreakMode="WordWrap"
+                            TextColor="#546E7A" />
+                        <ProgressBar
+                            x:Name="ProgresoGlobal"
+                            IsVisible="False"
+                            Progress="0"
+                            ProgressColor="#3B655B" />
+                    </VerticalStackLayout>
+                </Border>
 
-                        <Grid
-                            ColumnDefinitions="Auto,*"
-                            RowDefinitions="Auto,Auto,Auto"
-                            ColumnSpacing="12"
-                            RowSpacing="7">
+                <Border
+                    Padding="14"
+                    BackgroundColor="#FFF8E8"
+                    Stroke="#EBCB78"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Label
+                            Text="ⓘ"
+                            FontSize="22"
+                            TextColor="#9B552C" />
+                        <Label
+                            Grid.Column="1"
+                            Text="No se realizan actualizaciones automáticas. En una sesión sin conexión la aplicación no consulta ni reintenta conectar con la API."
+                            FontSize="11"
+                            LineBreakMode="WordWrap"
+                            TextColor="#6B4D32" />
+                    </Grid>
+                </Border>
 
-                            <Border
-                                Grid.RowSpan="3"
-                                WidthRequest="46"
-                                HeightRequest="46"
-                                Padding="9"
-                                BackgroundColor="#EEF5F2"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 14"
-                                VerticalOptions="Start">
-
-                                <Image
-                                    Source="iconoffline.png"
-                                    Aspect="AspectFit" />
-
-                            </Border>
-
-                            <Label
-                                x:Name="EstadoTituloLabel"
-                                Grid.Column="1"
-                                Text="Datos todavía no preparados"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                FontSize="{OnIdiom Phone=15, Tablet=16, Desktop=17}"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Label
-                                x:Name="EstadoDetalleLabel"
-                                Grid.Row="1"
-                                Grid.Column="1"
-                                Text="Use Descargar todo para preparar el dispositivo."
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}"
-                                LineBreakMode="WordWrap" />
-
-                            <ProgressBar
-                                x:Name="ProgresoGlobal"
-                                Grid.Row="2"
-                                Grid.Column="1"
-                                HeightRequest="7"
-                                Progress="0"
-                                IsVisible="False"
-                                ProgressColor="{StaticResource color_Verde}" />
-
-                        </Grid>
-                    </Border>
+                <Grid
+                    x:Name="ModulosGrid"
+                    ColumnDefinitions="*,*"
+                    RowDefinitions="Auto,Auto,Auto"
+                    ColumnSpacing="12"
+                    RowSpacing="12">
 
                     <Border
                         x:Name="MotorCalculoBorder"
+                        Grid.Row="0"
+                        Grid.Column="0"
                         Padding="14"
                         BackgroundColor="White"
                         Stroke="#DDE7E3"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 15">
+                        StrokeShape="RoundRectangle 13">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Motor de cálculo" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
+                            <Label x:Name="MotorCalculoEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
+                            <Label x:Name="MotorCalculoDetalleLabel" Text="Reglas, precios y parámetros." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
 
-                        <Grid
-                            ColumnDefinitions="Auto,*"
-                            ColumnSpacing="12">
+                    <Border
+                        x:Name="CatalogosBorder"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Padding="14"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 13">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Catálogos y terrenos" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
+                            <Label x:Name="CatalogosEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
+                            <Label x:Name="CatalogosDetalleLabel" Text="Datos necesarios para formularios y cálculos." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
 
-                            <Border
-                                WidthRequest="42"
-                                HeightRequest="42"
-                                Padding="8"
-                                BackgroundColor="#EEF5F2"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 12">
-
-                                <Image
-                                    Source="iconoffline.png"
-                                    Aspect="AspectFit" />
-                            </Border>
-
-                            <VerticalStackLayout
-                                Grid.Column="1"
-                                Spacing="4">
-
-                                <Label
-                                    Text="Motor de cálculo"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    FontSize="15"
-                                    TextColor="{StaticResource color_Verde}" />
-
-                                <Label
-                                    x:Name="MotorCalculoEstadoLabel"
-                                    Text="Pendiente"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-
-                                <Label
-                                    x:Name="MotorCalculoDetalleLabel"
-                                    Text="Reglas, conversiones y parámetros para calcular sin conexión."
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}"
-                                    LineBreakMode="WordWrap" />
+                    <Border
+                        x:Name="AnalisisBorder"
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Padding="14"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 13">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Historial completo de análisis" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
+                                <Label x:Name="AnalisisEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
+                                <Label x:Name="AnalisisDetalleLabel" Text="Encabezados, detalles, edición y datos para PDF/Excel." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="▤" FontSize="30" TextColor="#9B552C" VerticalOptions="Center" />
                         </Grid>
                     </Border>
 
+                    <Border
+                        x:Name="NoticiasBorder"
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Padding="14"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 13">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Noticias" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
+                            <Label x:Name="NoticiasEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
+                            <Label x:Name="NoticiasDetalleLabel" Text="Publicaciones, categorías e imágenes." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        x:Name="AlbumBorder"
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Padding="14"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 13">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Álbum de fotos" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
+                            <Label x:Name="AlbumEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
+                            <Label x:Name="AlbumDetalleLabel" Text="Galerías, detalles y fotografías." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Border Padding="12" BackgroundColor="White" Stroke="#E2E8E5" StrokeShape="RoundRectangle 12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Última descarga completa" FontSize="9" TextColor="#60736B" />
+                            <Label x:Name="FechaSincronizacionLabel" Text="Todavía no disponible" FontAttributes="Bold" FontSize="11" TextColor="#263238" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="1" Padding="12" BackgroundColor="White" Stroke="#E2E8E5" StrokeShape="RoundRectangle 12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Espacio utilizado" FontSize="9" TextColor="#60736B" />
+                            <Label x:Name="TamanoTotalLabel" Text="0 MB" FontAttributes="Bold" FontSize="11" TextColor="#263238" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Border
+                    x:Name="ResumenPendientesBorder"
+                    Padding="14"
+                    BackgroundColor="#F7F9F8"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 13">
                     <Grid
-                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*', Desktop='*,*,*'}"
-                        RowDefinitions="{OnIdiom Phone='Auto,Auto,Auto', Tablet='Auto,Auto', Desktop='Auto'}"
-                        ColumnSpacing="12"
-                        RowSpacing="12">
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="3">
+                            <Label
+                                Text="Análisis pendientes de enviar"
+                                FontSize="10"
+                                TextColor="#60736B" />
+                            <Label
+                                x:Name="PendientesAnalisisLabel"
+                                Text="0"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                TextColor="#3B655B" />
+                        </VerticalStackLayout>
 
-                        <Border
-                            x:Name="CatalogosBorder"
-                            Grid.Row="0"
-                            Grid.Column="0"
-                            Padding="14"
-                            BackgroundColor="White"
-                            Stroke="#DDE7E3"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 15">
-
-                            <VerticalStackLayout Spacing="5">
-
-                                <Label
-                                    Text="Catálogos y terrenos"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    FontSize="15"
-                                    TextColor="{StaticResource color_Verde}" />
-
-                                <Label
-                                    x:Name="CatalogosEstadoLabel"
-                                    Text="Pendiente"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-
-                                <Label
-                                    x:Name="CatalogosDetalleLabel"
-                                    Text="Países, municipios, elementos, unidades, fuentes y rangos."
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}"
-                                    LineBreakMode="WordWrap" />
-
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <Border
-                            x:Name="NoticiasBorder"
-                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                            Padding="14"
-                            BackgroundColor="White"
-                            Stroke="#DDE7E3"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 15">
-
-                            <VerticalStackLayout Spacing="5">
-
-                                <Label
-                                    Text="Noticias"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    FontSize="15"
-                                    TextColor="{StaticResource color_Verde}" />
-
-                                <Label
-                                    x:Name="NoticiasEstadoLabel"
-                                    Text="Pendiente"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-
-                                <Label
-                                    x:Name="NoticiasDetalleLabel"
-                                    Text="Publicaciones vigentes, detalles e imágenes."
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}"
-                                    LineBreakMode="WordWrap" />
-
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <Border
-                            x:Name="AlbumBorder"
-                            Grid.Row="{OnIdiom Phone=2, Tablet=1, Desktop=0}"
-                            Grid.Column="{OnIdiom Phone=0, Tablet=0, Desktop=2}"
-                            Grid.ColumnSpan="{OnIdiom Phone=1, Tablet=2, Desktop=1}"
-                            Padding="14"
-                            BackgroundColor="White"
-                            Stroke="#DDE7E3"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 15">
-
-                            <VerticalStackLayout Spacing="5">
-
-                                <Label
-                                    Text="Álbum de fotos"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    FontSize="15"
-                                    TextColor="{StaticResource color_Verde}" />
-
-                                <Label
-                                    x:Name="AlbumEstadoLabel"
-                                    Text="Pendiente"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-
-                                <Label
-                                    x:Name="AlbumDetalleLabel"
-                                    Text="Categorías, registros, detalles y fotografías."
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}"
-                                    LineBreakMode="WordWrap" />
-
-                            </VerticalStackLayout>
-                        </Border>
-
+                        <VerticalStackLayout
+                            Grid.Column="1"
+                            Spacing="3">
+                            <Label
+                                Text="Requieren revisión"
+                                FontSize="10"
+                                TextColor="#60736B" />
+                            <Label
+                                x:Name="RevisionAnalisisLabel"
+                                Text="0"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                TextColor="#9B552C" />
+                        </VerticalStackLayout>
                     </Grid>
+                </Border>
 
-                    <Border
-                        Padding="14"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 15">
+                <Button
+                    x:Name="DescargarTodoButton"
+                    Text="Descargar todo"
+                    Clicked="DescargarTodoButton_Clicked"
+                    HeightRequest="52"
+                    CornerRadius="14"
+                    FontFamily="MontserratBold"
+                    FontAttributes="Bold"
+                    BackgroundColor="#3B655B"
+                    TextColor="White" />
 
-                        <Grid
-                            ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*', Desktop='*,*'}"
-                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Tablet='Auto', Desktop='Auto'}"
-                            ColumnSpacing="16"
-                            RowSpacing="10">
-
-                            <VerticalStackLayout
-                                Grid.Row="0"
-                                Grid.Column="0"
-                                Spacing="3">
-
-                                <Label
-                                    Text="Última preparación completa"
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-
-                                <Label
-                                    x:Name="FechaSincronizacionLabel"
-                                    Text="Todavía no disponible"
-                                    FontFamily="MontserratBold"
-                                    FontSize="13"
-                                    TextColor="{StaticResource color_Negro}" />
-
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout
-                                Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                                Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                                Spacing="3">
-
-                                <Label
-                                    Text="Espacio utilizado"
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-
-                                <Label
-                                    x:Name="TamanoTotalLabel"
-                                    Text="0 MB"
-                                    FontFamily="MontserratBold"
-                                    FontSize="13"
-                                    TextColor="{StaticResource color_Negro}" />
-
-                            </VerticalStackLayout>
-
-                        </Grid>
-                    </Border>
-
-                    <Border
-                        Padding="14"
-                        BackgroundColor="#FFF8E8"
-                        Stroke="#F2D48A"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 15">
-
-                        <Label
-                            Text="Después de la primera descarga completa, la aplicación seguirá verificando y actualizando los datos automáticamente cuando tenga conexión. Este botón es una comprobación adicional antes de salir al campo."
-                            FontSize="11"
-                            TextColor="#7A5200"
-                            LineBreakMode="WordWrap" />
-
-                    </Border>
-
-                    <Button
-                        x:Name="DescargarTodoButton"
-                        Text="Descargar todo"
-                        HeightRequest="50"
-                        CornerRadius="13"
-                        FontFamily="MontserratBold"
-                        FontAttributes="Bold"
-                        FontSize="14"
-                        BackgroundColor="{StaticResource color_Verde}"
-                        TextColor="White"
-                        Clicked="DescargarTodoButton_Clicked" />
-
-                </VerticalStackLayout>
-            </ScrollView>
-        </Grid>
-    </ContentView>
+                <Label
+                    Text="La copia anterior solo se reemplaza cuando la nueva descarga finaliza correctamente."
+                    HorizontalTextAlignment="Center"
+                    FontSize="9"
+                    TextColor="#78908A" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
 </ContentPage>

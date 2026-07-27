@@ -5,10 +5,16 @@ using System.Text.Json;
 
 namespace CONATRADEC.Services
 {
+    /// <summary>
+    /// El listado respeta estrictamente el modo global de la sesión.
+    ///
+    /// En línea: consulta siempre la API y guarda una copia silenciosa.
+    /// Sin conexión: consulta únicamente historial SQLite y operaciones locales.
+    /// </summary>
     public sealed class AnalisisListadoOptimizadoApiService
     {
         private static readonly TimeSpan TiempoMaximoListado =
-            TimeSpan.FromSeconds(8);
+            TimeSpan.FromSeconds(20);
 
         private readonly HttpClient httpClient;
 
@@ -42,31 +48,24 @@ namespace CONATRADEC.Services
                 int tamanoPagina,
                 CancellationToken cancellationToken = default)
         {
-            /*
-             * Los análisis calculados localmente forman parte del listado aun
-             * sin conexión. No se espera el timeout de la API.
-             *
-             * SesionActualEsOffline indica cómo se autenticó el usuario, no que
-             * deba permanecer desconectado toda la sesión.
-             */
-            if (!EstadoConexionService.Instance.HayInternet)
+            if (ModoSesionService.EsOffline)
             {
                 List<AnalisisGuardadoResumen> locales =
-                    await ObtenerLocalesFiltradosAsync(
+                    await ObtenerTodoLocalFiltradoAsync(
+                        soloPropios,
                         usuarioId,
                         buscar,
                         fechaDesde,
-                        fechaHasta,
-                        incluirSincronizados: false);
+                        fechaHasta);
 
                 return ApiResult<AnalisisListadoPaginadoResponse>.Ok(
-                    CrearListadoOffline(
+                    CrearListadoLocal(
                         locales,
                         pagina,
                         tamanoPagina),
                     locales.Count == 0
-                        ? "Sin conexión. No hay análisis locales pendientes."
-                        : "Sin conexión. Se muestran los análisis guardados en este dispositivo.");
+                        ? "No existen análisis descargados para los filtros seleccionados."
+                        : "Mostrando análisis almacenados en este dispositivo.");
             }
 
             var query = new List<string>
@@ -87,47 +86,36 @@ namespace CONATRADEC.Services
             }
 
             if (fechaDesde.HasValue)
-            {
-                query.Add(
-                    $"fechaDesde={fechaDesde.Value:yyyy-MM-dd}");
-            }
+                query.Add($"fechaDesde={fechaDesde.Value:yyyy-MM-dd}");
 
             if (fechaHasta.HasValue)
-            {
-                query.Add(
-                    $"fechaHasta={fechaHasta.Value:yyyy-MM-dd}");
-            }
+                query.Add($"fechaHasta={fechaHasta.Value:yyyy-MM-dd}");
 
             string route =
                 "api/analisis-listado/paginado?" +
                 string.Join("&", query);
 
             using var timeoutSource =
-                new CancellationTokenSource(
-                    TiempoMaximoListado);
+                new CancellationTokenSource(TiempoMaximoListado);
 
             using var linkedSource =
-                CancellationTokenSource
-                    .CreateLinkedTokenSource(
-                        cancellationToken,
-                        timeoutSource.Token);
+                CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    timeoutSource.Token);
 
             try
             {
                 using HttpResponseMessage response =
                     await httpClient.GetAsync(
                         route,
-                        HttpCompletionOption
-                            .ResponseHeadersRead,
+                        HttpCompletionOption.ResponseHeadersRead,
                         linkedSource.Token);
+
+                string contenido = await response.Content
+                    .ReadAsStringAsync(linkedSource.Token);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    string contenido =
-                        await response.Content
-                            .ReadAsStringAsync(
-                                linkedSource.Token);
-
                     return ApiResult<
                         AnalisisListadoPaginadoResponse>.Fail(
                             ApiErrorMessageParser.Parse(
@@ -137,14 +125,11 @@ namespace CONATRADEC.Services
                             (int)response.StatusCode);
                 }
 
-                ApiEnvelope<AnalisisListadoPaginadoResponse>?
-                    envelope =
-                        await response.Content
-                            .ReadFromJsonAsync<
-                                ApiEnvelope<
-                                    AnalisisListadoPaginadoResponse>>(
-                                JsonOptions,
-                                linkedSource.Token);
+                ApiEnvelope<AnalisisListadoPaginadoResponse>? envelope =
+                    JsonSerializer.Deserialize<
+                        ApiEnvelope<AnalisisListadoPaginadoResponse>>(
+                        contenido,
+                        JsonOptions);
 
                 if (envelope?.Success != true ||
                     envelope.Data == null)
@@ -155,51 +140,38 @@ namespace CONATRADEC.Services
                             "El servidor no devolvió el listado esperado.");
                 }
 
-                AnalisisListadoPaginadoResponse data =
-                    envelope.Data;
+                AnalisisListadoPaginadoResponse data = envelope.Data;
+
+                GuardarResumenesSilenciosamente(
+                    data.Items ?? new());
 
                 /*
-                 * Solo la primera página incorpora las operaciones pendientes
-                 * del dispositivo. Se muestran antes que los registros del
-                 * servidor y se identifican por su estado en el título.
+                 * Mientras una creación local todavía no llegó al servidor se
+                 * conserva visible. No se muestra el proceso técnico de envío.
                  */
                 if (Math.Max(1, pagina) == 1)
                 {
-                    List<AnalisisGuardadoResumen> locales =
-                        await ObtenerLocalesFiltradosAsync(
-                            usuarioId,
-                            buscar,
-                            fechaDesde,
-                            fechaHasta,
-                            incluirSincronizados: false);
+                    List<AnalisisGuardadoResumen> pendientes =
+                        await AnalisisOfflineDatabaseService.Instance
+                            .ListarResumenPendienteAsync();
 
-                    if (locales.Count > 0)
+                    if (pendientes.Count > 0)
                     {
-                        List<AnalisisGuardadoResumen> combinados =
-                            locales
-                                .Concat(data.Items)
-                                .GroupBy(item =>
-                                    item.AnalisisSueloCalculoId)
-                                .Select(group =>
-                                    group.First())
-                                .ToList();
+                        data.Items = pendientes
+                            .Concat(data.Items)
+                            .GroupBy(item =>
+                                item.AnalisisSueloCalculoId)
+                            .Select(group => group.First())
+                            .ToList();
 
-                        data.Items = combinados;
-                        data.TotalRegistros +=
-                            locales.Count;
-
-                        data.TotalPaginas =
-                            Math.Max(
-                                1,
-                                (int)Math.Ceiling(
-                                    data.TotalRegistros /
-                                    (double)Math.Max(
-                                        1,
-                                        data.TamanoPagina)));
-
+                        data.TotalRegistros += pendientes.Count;
+                        data.TotalPaginas = Math.Max(
+                            1,
+                            (int)Math.Ceiling(
+                                data.TotalRegistros /
+                                (double)Math.Max(1, data.TamanoPagina)));
                         data.TieneMas =
-                            data.Pagina <
-                            data.TotalPaginas;
+                            data.Pagina < data.TotalPaginas;
                     }
                 }
 
@@ -212,17 +184,9 @@ namespace CONATRADEC.Services
                 when (timeoutSource.IsCancellationRequested &&
                       !cancellationToken.IsCancellationRequested)
             {
-                EstadoConexionService.Instance
-                    .ReportarServidorNoDisponible();
-
-                return await CrearResultadoLocalPorFalloAsync(
-                    usuarioId,
-                    buscar,
-                    fechaDesde,
-                    fechaHasta,
-                    pagina,
-                    tamanoPagina,
-                    "La API no respondió. Se muestran los análisis guardados en este dispositivo.");
+                return ApiResult<
+                    AnalisisListadoPaginadoResponse>.Fail(
+                        "La API tardó demasiado en responder. La sesión permanece en línea.");
             }
             catch (OperationCanceledException)
             {
@@ -232,17 +196,9 @@ namespace CONATRADEC.Services
             }
             catch (HttpRequestException)
             {
-                EstadoConexionService.Instance
-                    .ReportarServidorNoDisponible();
-
-                return await CrearResultadoLocalPorFalloAsync(
-                    usuarioId,
-                    buscar,
-                    fechaDesde,
-                    fechaHasta,
-                    pagina,
-                    tamanoPagina,
-                    "No fue posible conectar con la API. Se muestran los análisis locales.");
+                return ApiResult<
+                    AnalisisListadoPaginadoResponse>.Fail(
+                        "No fue posible conectarse con la API. La sesión permanece en línea.");
             }
             catch (JsonException)
             {
@@ -262,45 +218,61 @@ namespace CONATRADEC.Services
             ListarUsuariosAsync(
                 CancellationToken cancellationToken = default)
         {
-            /*
-             * SesionActualEsOffline indica cómo se autenticó inicialmente el
-             * usuario, no que deba permanecer desconectado toda la sesión.
-             * Cuando la API vuelve a estar disponible, el listado debe poder
-             * consultar nuevamente el servidor.
-             */
-            if (!EstadoConexionService.Instance.HayInternet)
+            if (ModoSesionService.EsOffline)
             {
-                return ApiResult<List<UsuarioFiltroAnalisis>>.Ok(
-                    new List<UsuarioFiltroAnalisis>(),
-                    "El filtro de usuarios requiere conexión.");
+                string json =
+                    await AnalisisHistorialLocalService.Instance
+                        .ObtenerUsuariosFiltroJsonAsync();
+
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    return ApiResult<List<UsuarioFiltroAnalisis>>.Ok(
+                        new List<UsuarioFiltroAnalisis>(),
+                        "No hay filtros de usuario descargados.");
+                }
+
+                try
+                {
+                    ApiEnvelope<List<UsuarioFiltroAnalisis>>? envelope =
+                        JsonSerializer.Deserialize<
+                            ApiEnvelope<List<UsuarioFiltroAnalisis>>>(
+                            json,
+                            JsonOptions);
+
+                    return ApiResult<List<UsuarioFiltroAnalisis>>.Ok(
+                        envelope?.Data ??
+                        new List<UsuarioFiltroAnalisis>(),
+                        "Filtros cargados desde el dispositivo.");
+                }
+                catch
+                {
+                    return ApiResult<List<UsuarioFiltroAnalisis>>.Ok(
+                        new List<UsuarioFiltroAnalisis>(),
+                        "La copia local de filtros no es válida.");
+                }
             }
 
             using var timeoutSource =
-                new CancellationTokenSource(
-                    TiempoMaximoListado);
+                new CancellationTokenSource(TiempoMaximoListado);
 
             using var linkedSource =
-                CancellationTokenSource
-                    .CreateLinkedTokenSource(
-                        cancellationToken,
-                        timeoutSource.Token);
+                CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    timeoutSource.Token);
 
             try
             {
                 using HttpResponseMessage response =
                     await httpClient.GetAsync(
                         "api/analisis-listado/usuarios",
-                        HttpCompletionOption
-                            .ResponseHeadersRead,
+                        HttpCompletionOption.ResponseHeadersRead,
                         linkedSource.Token);
+
+                string contenido = await response.Content
+                    .ReadAsStringAsync(linkedSource.Token);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    string contenido =
-                        await response.Content
-                            .ReadAsStringAsync(
-                                linkedSource.Token);
-
                     return ApiResult<
                         List<UsuarioFiltroAnalisis>>.Fail(
                             ApiErrorMessageParser.Parse(
@@ -310,14 +282,11 @@ namespace CONATRADEC.Services
                             (int)response.StatusCode);
                 }
 
-                ApiEnvelope<List<UsuarioFiltroAnalisis>>?
-                    envelope =
-                        await response.Content
-                            .ReadFromJsonAsync<
-                                ApiEnvelope<
-                                    List<UsuarioFiltroAnalisis>>>(
-                                JsonOptions,
-                                linkedSource.Token);
+                ApiEnvelope<List<UsuarioFiltroAnalisis>>? envelope =
+                    JsonSerializer.Deserialize<
+                        ApiEnvelope<List<UsuarioFiltroAnalisis>>>(
+                        contenido,
+                        JsonOptions);
 
                 if (envelope?.Success != true ||
                     envelope.Data == null)
@@ -328,103 +297,134 @@ namespace CONATRADEC.Services
                             "El servidor no devolvió los usuarios esperados.");
                 }
 
-                return ApiResult<
-                    List<UsuarioFiltroAnalisis>>.Ok(
-                        envelope.Data,
-                        envelope.Message);
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await AnalisisHistorialLocalService.Instance
+                            .GuardarUsuariosFiltroConsultadosAsync(
+                                contenido);
+                    }
+                    catch
+                    {
+                    }
+                });
+
+                return ApiResult<List<UsuarioFiltroAnalisis>>.Ok(
+                    envelope.Data,
+                    envelope.Message);
             }
             catch (OperationCanceledException)
                 when (timeoutSource.IsCancellationRequested &&
                       !cancellationToken.IsCancellationRequested)
             {
-                return ApiResult<
-                    List<UsuarioFiltroAnalisis>>.Fail(
-                        "La carga de usuarios tardó demasiado.");
+                return ApiResult<List<UsuarioFiltroAnalisis>>.Fail(
+                    "La carga de usuarios tardó demasiado.");
             }
             catch (OperationCanceledException)
             {
-                return ApiResult<
-                    List<UsuarioFiltroAnalisis>>.Fail(
-                        "La operación fue cancelada.");
+                return ApiResult<List<UsuarioFiltroAnalisis>>.Fail(
+                    "La operación fue cancelada.");
             }
             catch
             {
-                return ApiResult<
-                    List<UsuarioFiltroAnalisis>>.Fail(
-                        "No fue posible cargar los usuarios del filtro.");
+                return ApiResult<List<UsuarioFiltroAnalisis>>.Fail(
+                    "No fue posible cargar los usuarios del filtro.");
             }
         }
 
-        private static async Task<ApiResult<
-            AnalisisListadoPaginadoResponse>>
-            CrearResultadoLocalPorFalloAsync(
-                int? usuarioId,
-                string? buscar,
-                DateTime? fechaDesde,
-                DateTime? fechaHasta,
-                int pagina,
-                int tamanoPagina,
-                string mensaje)
+        private static void GuardarResumenesSilenciosamente(
+            IEnumerable<AnalisisGuardadoResumen> items)
         {
-            List<AnalisisGuardadoResumen> locales =
-                await ObtenerLocalesFiltradosAsync(
-                    usuarioId,
-                    buscar,
-                    fechaDesde,
-                    fechaHasta,
-                    incluirSincronizados: false);
+            List<AnalisisGuardadoResumen> copia = items.ToList();
+            if (copia.Count == 0)
+                return;
 
-            return ApiResult<
-                AnalisisListadoPaginadoResponse>.Ok(
-                    CrearListadoOffline(
-                        locales,
-                        pagina,
-                        tamanoPagina),
-                    mensaje);
+            _ = Task.Run(async () =>
+            {
+                foreach (AnalisisGuardadoResumen item in copia)
+                {
+                    try
+                    {
+                        await AnalisisHistorialLocalService.Instance
+                            .GuardarResumenConsultadoAsync(item);
+                    }
+                    catch
+                    {
+                    }
+                }
+            });
         }
 
-        private static async Task<List<
-            AnalisisGuardadoResumen>>
-            ObtenerLocalesFiltradosAsync(
+        private static async Task<List<AnalisisGuardadoResumen>>
+            ObtenerTodoLocalFiltradoAsync(
+                bool soloPropios,
                 int? usuarioId,
                 string? buscar,
                 DateTime? fechaDesde,
-                DateTime? fechaHasta,
-                bool incluirSincronizados)
+                DateTime? fechaHasta)
         {
-            List<AnalisisGuardadoResumen> items =
-                incluirSincronizados
-                    ? await AnalisisOfflineDatabaseService
-                        .Instance
-                        .ListarResumenLocalAsync()
-                    : await AnalisisOfflineDatabaseService
-                        .Instance
-                        .ListarResumenPendienteAsync();
+            List<AnalisisGuardadoResumen> historial =
+                await AnalisisHistorialLocalService.Instance
+                    .ListarAsync();
 
-            int usuarioActual =
-                int.TryParse(
-                    Preferences.Get(
-                        SessionKeys.KeyUserId,
-                        "0"),
-                    out int parsed)
-                        ? parsed
-                        : 0;
+            List<AnalisisGuardadoResumen> pendientes =
+                await AnalisisOfflineDatabaseService.Instance
+                    .ListarResumenPendienteAsync();
 
+            List<AnalisisGuardadoResumen> operacionesLocales =
+                await AnalisisOfflineDatabaseService.Instance
+                    .ListarResumenLocalAsync();
+
+            await AnalisisReporteLocalEnrichmentService
+                .EnriquecerResumenesAsync(
+                    pendientes.Concat(operacionesLocales));
+
+            HashSet<int> idsPendientes = pendientes
+                .Select(item => item.AnalisisSueloCalculoId)
+                .ToHashSet();
+
+            IEnumerable<AnalisisGuardadoResumen> sincronizadosLocales =
+                operacionesLocales.Where(item =>
+                    !idsPendientes.Contains(
+                        item.AnalisisSueloCalculoId));
+
+            /*
+             * Prioridad: pendiente local, historial descargado y por último
+             * copia local de una operación ya enviada. El identificador evita
+             * duplicarla cuando Descargar todo ya obtuvo el registro servidor.
+             */
             IEnumerable<AnalisisGuardadoResumen> query =
-                items;
+                pendientes
+                    .Concat(historial)
+                    .Concat(sincronizadosLocales)
+                    .GroupBy(ClaveLogica)
+                    .Select(group => group.First());
 
-            if (usuarioId.HasValue &&
-                usuarioId.Value > 0 &&
-                usuarioId.Value != usuarioActual)
+            int usuarioActual = int.TryParse(
+                Preferences.Get(
+                    SessionKeys.KeyUserId,
+                    "0"),
+                out int parsed)
+                    ? parsed
+                    : 0;
+
+            if (soloPropios)
             {
-                return new List<
-                    AnalisisGuardadoResumen>();
+                query = query.Where(item =>
+                    !item.UsuarioId.HasValue ||
+                    item.UsuarioId.Value == usuarioActual);
+            }
+
+            if (usuarioId.HasValue && usuarioId.Value > 0)
+            {
+                query = query.Where(item =>
+                    item.UsuarioId == usuarioId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(buscar))
             {
-                string termino =
-                    buscar.Trim().ToUpperInvariant();
+                string termino = buscar.Trim();
 
                 query = query.Where(item =>
                     item.TextoBusqueda.Contains(
@@ -434,100 +434,92 @@ namespace CONATRADEC.Services
 
             if (fechaDesde.HasValue)
             {
-                DateTime desde =
-                    fechaDesde.Value.Date;
-
+                DateTime desde = fechaDesde.Value.Date;
                 query = query.Where(item =>
-                    (item.FechaRegistroValor ??
-                     item.FechaCalculoValor ??
-                     DateTime.MinValue).Date >=
-                    desde);
+                    ObtenerFecha(item).Date >= desde);
             }
 
             if (fechaHasta.HasValue)
             {
-                DateTime hasta =
-                    fechaHasta.Value.Date;
-
+                DateTime hasta = fechaHasta.Value.Date;
                 query = query.Where(item =>
-                    (item.FechaRegistroValor ??
-                     item.FechaCalculoValor ??
-                     DateTime.MinValue).Date <=
-                    hasta);
+                    ObtenerFecha(item).Date <= hasta);
             }
 
             return query
-                .OrderByDescending(item =>
-                    item.FechaRegistroValor ??
-                    item.FechaCalculoValor)
+                .OrderByDescending(ObtenerFecha)
                 .ToList();
         }
 
+        private static string ClaveLogica(
+            AnalisisGuardadoResumen item)
+        {
+            string identificador =
+                item.IdentificadorAnalisisSuelo ??
+                string.Empty;
+
+            int separador = identificador.IndexOf(
+                " · ",
+                StringComparison.Ordinal);
+
+            if (separador >= 0)
+                identificador = identificador[..separador];
+
+            identificador = identificador
+                .Trim()
+                .ToUpperInvariant();
+
+            return string.IsNullOrWhiteSpace(identificador)
+                ? "ID:" + item.AnalisisSueloCalculoId
+                : "COD:" + identificador;
+        }
+
+        private static DateTime ObtenerFecha(
+            AnalisisGuardadoResumen item) =>
+            item.FechaRegistroValor ??
+            item.FechaCalculoValor ??
+            item.FechaAnalisisValor ??
+            DateTime.MinValue;
+
         private static AnalisisListadoPaginadoResponse
-            CrearListadoOffline(
+            CrearListadoLocal(
                 List<AnalisisGuardadoResumen> items,
                 int pagina,
                 int tamanoPagina)
         {
-            string rol =
-                Preferences.Get(
-                    SessionKeys.KeyRolNombre,
-                    string.Empty);
+            int page = Math.Max(1, pagina);
+            int pageSize = Math.Clamp(tamanoPagina, 4, 30);
+            int totalPages = Math.Max(
+                1,
+                (int)Math.Ceiling(
+                    items.Count / (double)pageSize));
 
-            bool esAdministrador =
-                !string.IsNullOrWhiteSpace(rol) &&
-                rol.Contains(
-                    "ADMIN",
-                    StringComparison.OrdinalIgnoreCase);
-
-            int page =
-                Math.Max(1, pagina);
-
-            int pageSize =
-                Math.Clamp(
-                    tamanoPagina,
-                    4,
-                    30);
-
-            int totalPaginas =
-                Math.Max(
-                    1,
-                    (int)Math.Ceiling(
-                        items.Count /
-                        (double)pageSize));
-
-            List<AnalisisGuardadoResumen> paginaItems =
-                items
-                    .Skip(
-                        (page - 1) *
-                        pageSize)
-                    .Take(pageSize)
-                    .ToList();
+            string rol = Preferences.Get(
+                SessionKeys.KeyRolNombre,
+                string.Empty);
 
             return new AnalisisListadoPaginadoResponse
             {
                 Pagina = page,
                 TamanoPagina = pageSize,
-                TotalRegistros =
-                    items.Count,
-                TotalPaginas =
-                    totalPaginas,
-                TieneMas =
-                    page < totalPaginas,
-                EsAdministrador =
-                    esAdministrador,
-                Items =
-                    paginaItems,
-                Usuarios =
-                    new List<UsuarioFiltroAnalisis>()
+                TotalRegistros = items.Count,
+                TotalPaginas = totalPages,
+                TieneMas = page < totalPages,
+                EsAdministrador = rol.Contains(
+                    "ADMIN",
+                    StringComparison.OrdinalIgnoreCase),
+                Items = items
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList(),
+                Usuarios = new List<UsuarioFiltroAnalisis>()
             };
         }
 
         private sealed class ApiEnvelope<T>
         {
             public bool Success { get; set; }
-            public string Message { get; set; } =
-                string.Empty;
+            public string? Message { get; set; }
             public T? Data { get; set; }
         }
     }

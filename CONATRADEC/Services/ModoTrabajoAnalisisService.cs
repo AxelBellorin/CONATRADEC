@@ -3,11 +3,9 @@ using CONATRADEC.Models;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Mantiene el modo elegido para el análisis que está en curso.
-    ///
-    /// Una vez que el análisis cambia automáticamente a modo local por pérdida
-    /// de conexión, no vuelve a modo en línea hasta que el usuario lo seleccione
-    /// expresamente o comience un nuevo análisis.
+    /// Adaptador de compatibilidad para las pantallas que todavía consultan el
+    /// antiguo modo por análisis. El valor ahora proviene exclusivamente del
+    /// modo global confirmado en el login y nunca cambia por pérdida de señal.
     /// </summary>
     public sealed class ModoTrabajoAnalisisService
     {
@@ -16,17 +14,8 @@ namespace CONATRADEC.Services
 
         private readonly SemaphoreSlim stateLock = new(1, 1);
 
-        private string versionPaqueteActual =
-            string.Empty;
-
         private ModoTrabajoAnalisisEstado estado =
-            new()
-            {
-                Modo = ModoTrabajoAnalisis.EnLinea,
-                InternetDisponible = true,
-                PaqueteLocalDisponible = false,
-                Mensaje = "Seleccione el modo de trabajo del análisis."
-            };
+            CrearEstadoInicial();
 
         public static ModoTrabajoAnalisisService Instance =>
             lazy.Value;
@@ -36,267 +25,91 @@ namespace CONATRADEC.Services
 
         private ModoTrabajoAnalisisService()
         {
+            ModoSesionService.Instance.ModoCambiado +=
+                (_, _) => _ = ActualizarDisponibilidadAsync();
         }
 
-        public ModoTrabajoAnalisisEstado EstadoActual =>
-            estado;
+        public ModoTrabajoAnalisisEstado EstadoActual => estado;
 
-        public async Task<ModoTrabajoAnalisisEstado>
+        public Task<ModoTrabajoAnalisisEstado>
             PrepararNuevoAnalisisAsync(
-                CancellationToken cancellationToken = default)
-        {
-            await stateLock.WaitAsync(cancellationToken);
+                CancellationToken cancellationToken = default) =>
+            RefrescarAsync(cancellationToken);
 
-            try
-            {
-                bool internet =
-                    EstadoConexionService.Instance.HayInternet;
-
-                bool localDisponible =
-                    DatosSinConexionPermisos.TienePermiso &&
-                    await MotorCalculoPaqueteService.Instance
-                        .TienePaqueteValidoAsync(
-                            cancellationToken);
-
-                versionPaqueteActual =
-                    localDisponible
-                        ? (
-                            await MotorCalculoPaqueteService
-                                .Instance
-                                .ObtenerPaqueteActivoAsync(
-                                    cancellationToken)
-                          )?.VersionPaquete ??
-                          string.Empty
-                        : string.Empty;
-
-                ModoTrabajoAnalisis modo =
-                    !internet &&
-                    localDisponible
-                        ? ModoTrabajoAnalisis.SinConexion
-                        : ModoTrabajoAnalisis.EnLinea;
-
-                estado =
-                    CrearEstado(
-                        modo,
-                        internet,
-                        localDisponible,
-                        cambioAutomatico:
-                            !internet &&
-                            localDisponible);
-
-                Notificar();
-                return estado;
-            }
-            finally
-            {
-                stateLock.Release();
-            }
-        }
-
-        public async Task<ModoTrabajoAnalisisEstado>
+        public Task<ModoTrabajoAnalisisEstado>
             SeleccionarModoAsync(
                 ModoTrabajoAnalisis modo,
-                CancellationToken cancellationToken = default)
-        {
-            await stateLock.WaitAsync(cancellationToken);
+                CancellationToken cancellationToken = default) =>
+            RefrescarAsync(cancellationToken);
 
-            try
-            {
-                bool internet =
-                    EstadoConexionService.Instance.HayInternet;
-
-                bool localDisponible =
-                    DatosSinConexionPermisos.TienePermiso &&
-                    await MotorCalculoPaqueteService.Instance
-                        .TienePaqueteValidoAsync(
-                            cancellationToken);
-
-                versionPaqueteActual =
-                    localDisponible
-                        ? (
-                            await MotorCalculoPaqueteService
-                                .Instance
-                                .ObtenerPaqueteActivoAsync(
-                                    cancellationToken)
-                          )?.VersionPaquete ??
-                          string.Empty
-                        : string.Empty;
-
-                if (modo == ModoTrabajoAnalisis.SinConexion &&
-                    !localDisponible)
-                {
-                    estado =
-                        CrearEstado(
-                            ModoTrabajoAnalisis.EnLinea,
-                            internet,
-                            localDisponible,
-                            cambioAutomatico: false,
-                            mensajePersonalizado:
-                                "No existe un motor local válido. Use Descargar todo con conexión.");
-
-                    Notificar();
-                    return estado;
-                }
-
-                if (modo == ModoTrabajoAnalisis.EnLinea &&
-                    !internet)
-                {
-                    if (localDisponible)
-                    {
-                        estado =
-                            CrearEstado(
-                                ModoTrabajoAnalisis.SinConexion,
-                                internet,
-                                localDisponible,
-                                cambioAutomatico: true);
-                    }
-                    else
-                    {
-                        estado =
-                            CrearEstado(
-                                ModoTrabajoAnalisis.EnLinea,
-                                internet,
-                                localDisponible,
-                                cambioAutomatico: false,
-                                mensajePersonalizado:
-                                    "No hay conexión y este dispositivo no tiene un motor local válido.");
-                    }
-
-                    Notificar();
-                    return estado;
-                }
-
-                estado =
-                    CrearEstado(
-                        modo,
-                        internet,
-                        localDisponible,
-                        cambioAutomatico: false);
-
-                Notificar();
-                return estado;
-            }
-            finally
-            {
-                stateLock.Release();
-            }
-        }
-
-        public async Task<ModoTrabajoAnalisisEstado>
+        public Task<ModoTrabajoAnalisisEstado>
             AsegurarModoDisponibleAsync(
-                CancellationToken cancellationToken = default)
-        {
-            bool internet =
-                EstadoConexionService.Instance.HayInternet;
+                CancellationToken cancellationToken = default) =>
+            RefrescarAsync(cancellationToken);
 
-            if (internet)
-            {
-                await ActualizarDisponibilidadAsync(
-                    cancellationToken);
-
-                return estado;
-            }
-
-            return await CambiarAOfflinePorCaidaAsync(
-                cancellationToken);
-        }
-
-        public async Task<ModoTrabajoAnalisisEstado>
+        /// <summary>
+        /// Se conserva por compatibilidad. Ya no cambia el modo global.
+        /// </summary>
+        public Task<ModoTrabajoAnalisisEstado>
             CambiarAOfflinePorCaidaAsync(
-                CancellationToken cancellationToken = default)
-        {
-            await stateLock.WaitAsync(cancellationToken);
-
-            try
-            {
-                bool localDisponible =
-                    DatosSinConexionPermisos.TienePermiso &&
-                    await MotorCalculoPaqueteService.Instance
-                        .TienePaqueteValidoAsync(
-                            cancellationToken);
-
-                versionPaqueteActual =
-                    localDisponible
-                        ? (
-                            await MotorCalculoPaqueteService
-                                .Instance
-                                .ObtenerPaqueteActivoAsync(
-                                    cancellationToken)
-                          )?.VersionPaquete ??
-                          string.Empty
-                        : string.Empty;
-
-                estado =
-                    localDisponible
-                        ? CrearEstado(
-                            ModoTrabajoAnalisis.SinConexion,
-                            internet: false,
-                            localDisponible: true,
-                            cambioAutomatico: true)
-                        : CrearEstado(
-                            estado.Modo,
-                            internet: false,
-                            localDisponible: false,
-                            cambioAutomatico: false,
-                            mensajePersonalizado:
-                                "Se perdió la conexión y no existe un motor local válido. El formulario puede conservarse, pero no puede calcularse.");
-
-                Notificar();
-                return estado;
-            }
-            finally
-            {
-                stateLock.Release();
-            }
-        }
+                CancellationToken cancellationToken = default) =>
+            RefrescarAsync(cancellationToken);
 
         public async Task ActualizarDisponibilidadAsync(
             CancellationToken cancellationToken = default)
         {
+            await RefrescarAsync(cancellationToken);
+        }
+
+        private async Task<ModoTrabajoAnalisisEstado> RefrescarAsync(
+            CancellationToken cancellationToken)
+        {
             await stateLock.WaitAsync(cancellationToken);
 
             try
             {
-                bool internet =
-                    EstadoConexionService.Instance.HayInternet;
-
-                bool localDisponible =
+                bool paqueteDisponible =
                     DatosSinConexionPermisos.TienePermiso &&
                     await MotorCalculoPaqueteService.Instance
                         .TienePaqueteValidoAsync(
                             cancellationToken);
 
-                versionPaqueteActual =
-                    localDisponible
-                        ? (
-                            await MotorCalculoPaqueteService
-                                .Instance
-                                .ObtenerPaqueteActivoAsync(
-                                    cancellationToken)
-                          )?.VersionPaquete ??
-                          string.Empty
-                        : string.Empty;
+                MotorCalculoPaquete? paquete =
+                    paqueteDisponible
+                        ? await MotorCalculoPaqueteService.Instance
+                            .ObtenerPaqueteActivoAsync(
+                                cancellationToken)
+                        : null;
 
-                ModoTrabajoAnalisis modo =
-                    estado.Modo;
+                bool offline = ModoSesionService.EsOffline;
 
-                if (!internet &&
-                    localDisponible)
+                estado = new ModoTrabajoAnalisisEstado
                 {
-                    modo =
-                        ModoTrabajoAnalisis.SinConexion;
-                }
+                    Modo = offline
+                        ? ModoTrabajoAnalisis.SinConexion
+                        : ModoTrabajoAnalisis.EnLinea,
 
-                estado =
-                    CrearEstado(
-                        modo,
-                        internet,
-                        localDisponible,
-                        cambioAutomatico:
-                            !internet &&
-                            localDisponible);
+                    /*
+                     * La propiedad histórica representa aquí disponibilidad
+                     * lógica del servidor, no conectividad física.
+                     */
+                    InternetDisponible = !offline,
+                    PaqueteLocalDisponible = paqueteDisponible,
+                    VersionPaquete =
+                        paquete?.VersionPaquete ?? string.Empty,
+                    CambioAutomatico = false,
+                    Mensaje = offline
+                        ? paqueteDisponible
+                            ? "La sesión utiliza exclusivamente el motor y los datos descargados."
+                            : "La sesión está sin conexión, pero falta descargar un motor válido."
+                        : "La sesión utiliza exclusivamente la API."
+                };
 
-                Notificar();
+                EstadoCambiado?.Invoke(
+                    this,
+                    new ModoTrabajoAnalisisEventArgs(estado));
+
+                return estado;
             }
             finally
             {
@@ -304,80 +117,23 @@ namespace CONATRADEC.Services
             }
         }
 
-        private ModoTrabajoAnalisisEstado CrearEstado(
-            ModoTrabajoAnalisis modo,
-            bool internet,
-            bool localDisponible,
-            bool cambioAutomatico,
-            string? mensajePersonalizado = null)
+        private static ModoTrabajoAnalisisEstado
+            CrearEstadoInicial()
         {
-            string version =
-                versionPaqueteActual;
-
-            string mensaje =
-                mensajePersonalizado ??
-                CrearMensaje(
-                    modo,
-                    internet,
-                    localDisponible,
-                    version,
-                    cambioAutomatico);
+            bool offline = ModoSesionService.EsOffline;
 
             return new ModoTrabajoAnalisisEstado
             {
-                Modo = modo,
-                InternetDisponible = internet,
-                PaqueteLocalDisponible =
-                    localDisponible,
-                VersionPaquete = version,
-                Mensaje = mensaje,
-                CambioAutomatico =
-                    cambioAutomatico
+                Modo = offline
+                    ? ModoTrabajoAnalisis.SinConexion
+                    : ModoTrabajoAnalisis.EnLinea,
+                InternetDisponible = !offline,
+                PaqueteLocalDisponible = false,
+                CambioAutomatico = false,
+                Mensaje = offline
+                    ? "Sesión sin conexión."
+                    : "Sesión en línea."
             };
-        }
-
-        private static string CrearMensaje(
-            ModoTrabajoAnalisis modo,
-            bool internet,
-            bool localDisponible,
-            string version,
-            bool cambioAutomatico)
-        {
-            if (modo ==
-                ModoTrabajoAnalisis.SinConexion)
-            {
-                string prefijo =
-                    cambioAutomatico
-                        ? "Se activó automáticamente el modo sin conexión."
-                        : "El análisis utilizará únicamente los datos descargados.";
-
-                return string.IsNullOrWhiteSpace(version)
-                    ? prefijo
-                    : $"{prefijo} Motor: {version}.";
-            }
-
-            if (!internet)
-            {
-                return
-                    "No hay conexión disponible. Descargue el motor antes de trabajar fuera de línea.";
-            }
-
-            if (localDisponible)
-            {
-                return
-                    "El análisis se calculará en el servidor. Si se pierde la señal, podrá continuar con el motor local.";
-            }
-
-            return
-                "El análisis se calculará en el servidor. Este dispositivo todavía no tiene respaldo local.";
-        }
-
-        private void Notificar()
-        {
-            EstadoCambiado?.Invoke(
-                this,
-                new ModoTrabajoAnalisisEventArgs(
-                    estado));
         }
     }
 }

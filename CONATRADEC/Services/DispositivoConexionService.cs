@@ -11,10 +11,12 @@ using System.Text.Json;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Mantiene el estado de conexión de esta instalación ante la API.
-    /// Reporta un latido cada 45 segundos mientras existe una sesión iniciada.
-    /// La ubicación aproximada se actualiza como máximo cada 15 minutos y solo
-    /// cuando el usuario concede permiso mientras la aplicación está en uso.
+    /// Reporta la instalación al portal administrativo únicamente durante una
+    /// sesión global En línea.
+    ///
+    /// Al confirmar una sesión Sin conexión se cancela completamente el ciclo:
+    /// no hay temporizador, GPS, comprobaciones de red, latidos ni intentos de
+    /// desconexión contra la API.
     /// </summary>
     public sealed class DispositivoConexionService
     {
@@ -30,9 +32,6 @@ namespace CONATRADEC.Services
         private static readonly TimeSpan IntervaloUbicacion =
             TimeSpan.FromMinutes(15);
 
-        private static readonly TimeSpan AntiguedadUbicacionCache =
-            TimeSpan.FromMinutes(30);
-
         private static readonly TimeSpan TiempoMaximoPeticion =
             TimeSpan.FromSeconds(10);
 
@@ -42,24 +41,24 @@ namespace CONATRADEC.Services
         private static readonly Lazy<DispositivoConexionService> lazy =
             new(() => new DispositivoConexionService());
 
-        private static readonly JsonSerializerOptions jsonOptions =
+        private static readonly JsonSerializerOptions JsonOptions =
             new(JsonSerializerDefaults.Web);
 
-        private readonly SemaphoreSlim bloqueo = new(1, 1);
+        private readonly SemaphoreSlim operationLock = new(1, 1);
+        private readonly object cycleLock = new();
         private readonly HttpClient httpClient;
 
-        private CancellationTokenSource? cicloCancellationTokenSource;
-        private Task? tareaCiclo;
-        private Shell? shellVinculado;
-        private string sesionId = Guid.NewGuid().ToString("N");
-        private int? ultimoUsuarioReportado;
-        private bool conexionReportada;
-        private bool segundoPlano;
-        private bool iniciado;
-        private bool permisoSolicitadoEnEstaEjecucion;
-        private DateTime proximaActualizacionUbicacionUtc = DateTime.MinValue;
-        private UbicacionSnapshot ubicacionActual =
-            UbicacionSnapshot.NoReportada();
+        private CancellationTokenSource? cycleCancellation;
+        private Task? cycleTask;
+        private Shell? linkedShell;
+        private string sessionId = Guid.NewGuid().ToString("N");
+        private int? lastReportedUserId;
+        private bool connectionReported;
+        private bool background;
+        private bool started;
+        private bool locationPermissionRequestedThisRun;
+        private DateTime nextLocationUtc = DateTime.MinValue;
+        private LocationSnapshot location = LocationSnapshot.Empty();
 
         public static DispositivoConexionService Instance => lazy.Value;
 
@@ -83,138 +82,154 @@ namespace CONATRADEC.Services
             };
         }
 
-        /// <summary>
-        /// Vincula el servicio a Shell para detectar inmediatamente el login,
-        /// el cierre de sesión y los cambios de página.
-        /// </summary>
         public void VincularShell(Shell shell)
         {
             ArgumentNullException.ThrowIfNull(shell);
 
-            if (ReferenceEquals(shellVinculado, shell))
+            if (ReferenceEquals(linkedShell, shell))
                 return;
 
-            if (shellVinculado != null)
-                shellVinculado.Navigated -= Shell_Navigated;
+            if (linkedShell != null)
+                linkedShell.Navigated -= Shell_Navigated;
 
-            shellVinculado = shell;
-            shellVinculado.Navigated += Shell_Navigated;
+            linkedShell = shell;
+            linkedShell.Navigated += Shell_Navigated;
         }
 
         public void Iniciar()
         {
-            if (iniciado)
+            if (started)
                 return;
 
-            iniciado = true;
-            segundoPlano = false;
+            started = true;
+            background = false;
 
-            Connectivity.Current.ConnectivityChanged +=
-                Connectivity_ConnectivityChanged;
+            ModoSesionService.Instance.ModoCambiado +=
+                OnSessionModeChanged;
 
-            cicloCancellationTokenSource =
-                new CancellationTokenSource();
-
-            tareaCiclo = EjecutarCicloAsync(
-                cicloCancellationTokenSource.Token);
-
-            _ = ActualizarEstadoActualAsync();
+            /*
+             * La aplicación inicia mostrando el login. El ciclo no se crea
+             * hasta que el usuario autentica una sesión En línea.
+             */
+            ApplyCurrentMode();
         }
 
         public async Task ReanudarAsync()
         {
-            segundoPlano = false;
-            ForzarActualizacionUbicacion();
-            CrearNuevaSesionLocal();
+            background = false;
+            CreateNewLocalSession();
+
+            if (!CanUseServer())
+                return;
+
+            StartCycleIfNeeded();
             await ActualizarEstadoActualAsync();
         }
 
         public async Task SuspenderAsync()
         {
-            segundoPlano = true;
-            await MarcarDesconexionAsync("Aplicación en segundo plano");
-            CrearNuevaSesionLocal();
+            background = true;
+
+            if (CanUseServer())
+            {
+                await MarcarDesconexionAsync(
+                    "Aplicación en segundo plano");
+            }
+
+            StopCycle();
+            CreateNewLocalSession();
         }
 
         public async Task DetenerAsync()
         {
-            segundoPlano = true;
+            background = true;
 
-            cicloCancellationTokenSource?.Cancel();
-            await MarcarDesconexionAsync("Aplicación cerrada");
+            if (CanUseServer())
+            {
+                await MarcarDesconexionAsync(
+                    "Aplicación cerrada");
+            }
 
-            Connectivity.Current.ConnectivityChanged -=
-                Connectivity_ConnectivityChanged;
+            StopCycle();
 
-            if (shellVinculado != null)
-                shellVinculado.Navigated -= Shell_Navigated;
+            if (linkedShell != null)
+                linkedShell.Navigated -= Shell_Navigated;
+
+            ModoSesionService.Instance.ModoCambiado -=
+                OnSessionModeChanged;
+
+            Task? pending;
+            lock (cycleLock)
+                pending = cycleTask;
 
             try
             {
-                if (tareaCiclo != null)
-                    await tareaCiclo;
+                if (pending != null)
+                    await pending;
             }
             catch (OperationCanceledException)
             {
             }
             finally
             {
-                cicloCancellationTokenSource?.Dispose();
-                cicloCancellationTokenSource = null;
-                tareaCiclo = null;
-                iniciado = false;
+                lock (cycleLock)
+                {
+                    cycleCancellation?.Dispose();
+                    cycleCancellation = null;
+                    cycleTask = null;
+                }
+
+                started = false;
             }
         }
 
         public async Task ActualizarEstadoActualAsync()
         {
-            if (!await bloqueo.WaitAsync(0))
+            if (!CanUseServer() || background)
+                return;
+
+            if (!await operationLock.WaitAsync(0))
                 return;
 
             try
             {
-                if (segundoPlano)
-                    return;
+                int? userId = GetVisibleUserId();
 
-                (int? usuarioId, bool sesionVisible) =
-                    await ObtenerSesionVisibleAsync();
-
-                if (!usuarioId.HasValue || !sesionVisible)
+                if (!userId.HasValue)
                 {
-                    if (conexionReportada)
+                    if (connectionReported)
                     {
-                        await EnviarDesconexionAsync(
+                        await SendDisconnectAsync(
                             "Sesión cerrada o pantalla de acceso");
                     }
 
-                    ultimoUsuarioReportado = null;
-                    conexionReportada = false;
+                    lastReportedUserId = null;
+                    connectionReported = false;
                     return;
                 }
 
-                if (ultimoUsuarioReportado.HasValue &&
-                    ultimoUsuarioReportado.Value != usuarioId.Value)
+                if (lastReportedUserId.HasValue &&
+                    lastReportedUserId.Value != userId.Value)
                 {
-                    await EnviarDesconexionAsync(
+                    await SendDisconnectAsync(
                         "Cambio de usuario en la instalación");
 
-                    ForzarActualizacionUbicacion();
-                    CrearNuevaSesionLocal();
+                    CreateNewLocalSession();
+                    nextLocationUtc = DateTime.MinValue;
                 }
 
-                if (!PuedeIntentarConexion())
+                if (!CanUseServer())
                     return;
 
-                string paginaActual = await ObtenerPaginaActualAsync();
-                UbicacionSnapshot ubicacion =
-                    await ObtenerUbicacionAproximadaAsync();
+                LocationSnapshot currentLocation =
+                    await GetApproximateLocationAsync();
 
-                var request = new ReportarDispositivoConexionRequest
+                var payload = new ReportarDispositivoConexionRequest
                 {
-                    InstalacionId = ObtenerInstalacionId(),
-                    SesionId = sesionId,
-                    UsuarioId = usuarioId.Value,
-                    Plataforma = ObtenerPlataforma(),
+                    InstalacionId = GetInstallationId(),
+                    SesionId = sessionId,
+                    UsuarioId = userId.Value,
+                    Plataforma = GetPlatform(),
                     TipoDispositivo =
                         DeviceInfo.Current.Idiom.ToString(),
                     Fabricante =
@@ -222,7 +237,7 @@ namespace CONATRADEC.Services
                     Modelo = DeviceInfo.Current.Model ?? string.Empty,
                     NombreDispositivo =
                         DeviceInfo.Current.Name ?? string.Empty,
-                    SistemaOperativo = ObtenerPlataforma(),
+                    SistemaOperativo = GetPlatform(),
                     VersionSistema =
                         DeviceInfo.Current.VersionString ?? string.Empty,
                     VersionApp =
@@ -230,16 +245,16 @@ namespace CONATRADEC.Services
                     BuildApp =
                         AppInfo.Current.BuildString ?? string.Empty,
                     Idioma = CultureInfo.CurrentUICulture.Name,
-                    TipoConexion = ObtenerTipoConexion(),
-                    PaginaActual = paginaActual,
-                    Latitud = ubicacion.Latitud,
-                    Longitud = ubicacion.Longitud,
-                    PrecisionMetros = ubicacion.PrecisionMetros,
-                    FechaUbicacionUtc = ubicacion.FechaUbicacionUtc,
-                    OrigenUbicacion = ubicacion.OrigenUbicacion,
+                    TipoConexion = GetConnectionType(),
+                    PaginaActual = GetCurrentPage(),
+                    Latitud = currentLocation.Latitude,
+                    Longitud = currentLocation.Longitude,
+                    PrecisionMetros = currentLocation.AccuracyMeters,
+                    FechaUbicacionUtc = currentLocation.DateUtc,
+                    OrigenUbicacion = currentLocation.Source,
                     EstadoPermisoUbicacion =
-                        ubicacion.EstadoPermisoUbicacion,
-                    UbicacionSimulada = ubicacion.UbicacionSimulada
+                        currentLocation.PermissionStatus,
+                    UbicacionSimulada = currentLocation.IsMock
                 };
 
                 using var timeout = new CancellationTokenSource(
@@ -248,89 +263,221 @@ namespace CONATRADEC.Services
                 using HttpResponseMessage response =
                     await httpClient.PostAsJsonAsync(
                         "conectividad/dispositivos/reportar",
-                        request,
-                        jsonOptions,
+                        payload,
+                        JsonOptions,
                         timeout.Token);
 
                 if (!response.IsSuccessStatusCode)
                     return;
 
-                ultimoUsuarioReportado = usuarioId.Value;
-                conexionReportada = true;
+                lastReportedUserId = userId.Value;
+                connectionReported = true;
             }
             catch (OperationCanceledException)
             {
-                // El siguiente latido volverá a intentarlo.
             }
             catch (HttpRequestException)
             {
-                // El proceso es silencioso y no interrumpe el uso de la app.
             }
             catch
             {
-                // Un fallo de telemetría nunca debe cerrar ni bloquear la app.
+                /* La telemetría nunca debe afectar el uso de la app. */
             }
             finally
             {
-                bloqueo.Release();
+                operationLock.Release();
             }
         }
 
-        private async Task<UbicacionSnapshot>
-            ObtenerUbicacionAproximadaAsync()
+        private void OnSessionModeChanged(
+            object? sender,
+            ModoSesionEventArgs e)
         {
-#if ANDROID || WINDOWS
-            DateTime ahoraUtc = DateTime.UtcNow;
+            ApplyCurrentMode();
+        }
 
-            if (ahoraUtc < proximaActualizacionUbicacionUtc)
-                return ubicacionActual;
+        private void ApplyCurrentMode()
+        {
+            if (!CanUseServer())
+            {
+                /*
+                 * Una sesión offline no informa desconexión al servidor porque
+                 * hacerlo sería precisamente una solicitud de red.
+                 */
+                StopCycle();
+                connectionReported = false;
+                lastReportedUserId = null;
+                return;
+            }
 
-            // Incluso cuando falla o se deniega, espera antes de reintentar.
-            proximaActualizacionUbicacionUtc =
-                ahoraUtc.Add(IntervaloUbicacion);
+            if (background)
+                return;
+
+            StartCycleIfNeeded();
+            _ = ActualizarEstadoActualAsync();
+        }
+
+        private void StartCycleIfNeeded()
+        {
+            if (!CanUseServer() || background)
+                return;
+
+            lock (cycleLock)
+            {
+                if (cycleTask != null && !cycleTask.IsCompleted)
+                    return;
+
+                cycleCancellation?.Dispose();
+                cycleCancellation = new CancellationTokenSource();
+                cycleTask = RunCycleAsync(cycleCancellation.Token);
+            }
+        }
+
+        private void StopCycle()
+        {
+            lock (cycleLock)
+            {
+                cycleCancellation?.Cancel();
+            }
+        }
+
+        private async Task RunCycleAsync(
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var timer = new PeriodicTimer(IntervaloLatido);
+
+                while (await timer.WaitForNextTickAsync(
+                    cancellationToken))
+                {
+                    if (!CanUseServer() || background)
+                        break;
+
+                    await ActualizarEstadoActualAsync();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                lock (cycleLock)
+                {
+                    /*
+                     * Solamente limpia el ciclo que finalizó. Un ciclo nuevo
+                     * creado después de un cambio de sesión no se cancela aquí.
+                     */
+                    if (cycleCancellation?.Token == cancellationToken)
+                    {
+                        cycleCancellation.Dispose();
+                        cycleCancellation = null;
+                        cycleTask = null;
+                    }
+                }
+            }
+        }
+
+        private async void Shell_Navigated(
+            object? sender,
+            ShellNavigatedEventArgs e)
+        {
+            if (!CanUseServer() || background)
+                return;
+
+            await ActualizarEstadoActualAsync();
+        }
+
+        private async Task MarcarDesconexionAsync(string reason)
+        {
+            if (!CanUseServer() || !connectionReported)
+                return;
+
+            await SendDisconnectAsync(reason);
+            connectionReported = false;
+            lastReportedUserId = null;
+        }
+
+        private async Task SendDisconnectAsync(string reason)
+        {
+            if (!CanUseServer())
+                return;
 
             try
             {
-                PermissionStatus permiso =
-                    await Permissions
-                        .CheckStatusAsync<
-                            Permissions.LocationWhenInUse>();
+                var payload = new DesconectarDispositivoConexionRequest
+                {
+                    InstalacionId = GetInstallationId(),
+                    SesionId = sessionId,
+                    Motivo = reason
+                };
 
-                bool permisoSolicitadoAnteriormente = Preferences.Get(
+                using var timeout = new CancellationTokenSource(
+                    TiempoMaximoPeticion);
+
+                using HttpResponseMessage response =
+                    await httpClient.PostAsJsonAsync(
+                        "conectividad/dispositivos/desconectar",
+                        payload,
+                        JsonOptions,
+                        timeout.Token);
+            }
+            catch
+            {
+            }
+        }
+
+        private async Task<LocationSnapshot>
+            GetApproximateLocationAsync()
+        {
+            if (!CanUseServer())
+                return LocationSnapshot.Empty();
+
+#if ANDROID || WINDOWS
+            DateTime now = DateTime.UtcNow;
+            if (now < nextLocationUtc)
+                return location;
+
+            nextLocationUtc = now.Add(IntervaloUbicacion);
+
+            try
+            {
+                PermissionStatus permission =
+                    await Permissions.CheckStatusAsync<
+                        Permissions.LocationWhenInUse>();
+
+                bool requestedBefore = Preferences.Get(
                     KeyPermisoUbicacionSolicitado,
                     false);
 
-                bool estadoRequiereSolicitud =
-                    permiso == PermissionStatus.Unknown ||
-                    permiso == PermissionStatus.Denied;
-
-                bool debeSolicitarPermiso =
-                    estadoRequiereSolicitud &&
-                    !permisoSolicitadoEnEstaEjecucion &&
-                    !permisoSolicitadoAnteriormente;
-
-                if (debeSolicitarPermiso)
+                if ((permission == PermissionStatus.Unknown ||
+                     permission == PermissionStatus.Denied) &&
+                    !locationPermissionRequestedThisRun &&
+                    !requestedBefore)
                 {
-                    permisoSolicitadoEnEstaEjecucion = true;
+                    locationPermissionRequestedThisRun = true;
                     Preferences.Set(
                         KeyPermisoUbicacionSolicitado,
                         true);
-                    permiso = await SolicitarPermisoUbicacionAsync();
+
+                    permission = await Permissions.RequestAsync<
+                        Permissions.LocationWhenInUse>();
                 }
 
-                if (permiso != PermissionStatus.Granted)
+                if (permission != PermissionStatus.Granted)
                 {
-                    ubicacionActual = UbicacionSnapshot.SinCoordenadas(
-                        MapearEstadoPermiso(permiso));
-
-                    return ubicacionActual;
+                    location = LocationSnapshot.WithoutCoordinates(
+                        permission.ToString().ToUpperInvariant());
+                    return location;
                 }
 
-                Location? location =
+                Location? value =
                     await Geolocation.Default
                         .GetLastKnownLocationAsync();
 
-                if (!EsUbicacionReciente(location, ahoraUtc))
+                if (value == null ||
+                    DateTime.UtcNow - value.Timestamp.UtcDateTime >
+                    TimeSpan.FromMinutes(30))
                 {
                     var request = new GeolocationRequest(
                         GeolocationAccuracy.Low,
@@ -340,323 +487,146 @@ namespace CONATRADEC.Services
                         new CancellationTokenSource(
                             TiempoMaximoUbicacion);
 
-                    location = await Geolocation.Default.GetLocationAsync(
+                    value = await Geolocation.Default.GetLocationAsync(
                         request,
                         timeout.Token);
                 }
 
-                if (location == null)
+                if (value == null)
                 {
-                    ubicacionActual = UbicacionSnapshot.SinCoordenadas(
+                    location = LocationSnapshot.WithoutCoordinates(
                         "NO_DISPONIBLE");
-
-                    return ubicacionActual;
+                    return location;
                 }
 
-                DateTime fechaUbicacionUtc =
-                    location.Timestamp == default
-                        ? ahoraUtc
-                        : location.Timestamp.UtcDateTime;
-
-                if (fechaUbicacionUtc > ahoraUtc.AddMinutes(5))
-                    fechaUbicacionUtc = ahoraUtc;
-
-                double precision = location.Accuracy.HasValue
-                    ? Math.Max(100d, location.Accuracy.Value)
-                    : 1000d;
-
-                // Tres decimales evitan mostrar una posición excesivamente
-                // precisa: una milésima de grado equivale aproximadamente a 100 metros.
-                ubicacionActual = new UbicacionSnapshot
+                location = new LocationSnapshot
                 {
-                    Latitud = Math.Round(
-                        location.Latitude,
-                        3,
-                        MidpointRounding.AwayFromZero),
-                    Longitud = Math.Round(
-                        location.Longitude,
-                        3,
-                        MidpointRounding.AwayFromZero),
-                    PrecisionMetros = Math.Round(
-                        precision,
-                        0,
-                        MidpointRounding.AwayFromZero),
-                    FechaUbicacionUtc = fechaUbicacionUtc,
-                    OrigenUbicacion = "DISPOSITIVO",
-                    EstadoPermisoUbicacion =
-                        "CONCEDIDO_APROXIMADO",
-                    UbicacionSimulada = location.IsFromMockProvider
+                    Latitude = Math.Round(value.Latitude, 3),
+                    Longitude = Math.Round(value.Longitude, 3),
+                    AccuracyMeters = Math.Round(
+                        Math.Max(100d, value.Accuracy ?? 1000d),
+                        0),
+                    DateUtc = value.Timestamp.UtcDateTime,
+                    Source = "DISPOSITIVO",
+                    PermissionStatus = "CONCEDIDO_APROXIMADO",
+                    IsMock = value.IsFromMockProvider
                 };
 
-                return ubicacionActual;
-            }
-            catch (FeatureNotSupportedException)
-            {
-                ubicacionActual = UbicacionSnapshot.SinCoordenadas(
-                    "NO_SOPORTADA");
-            }
-            catch (FeatureNotEnabledException)
-            {
-                ubicacionActual = UbicacionSnapshot.SinCoordenadas(
-                    "SERVICIO_DESACTIVADO");
-            }
-            catch (PermissionException)
-            {
-                ubicacionActual = UbicacionSnapshot.SinCoordenadas(
-                    "DENEGADO");
-            }
-            catch (OperationCanceledException)
-            {
-                ubicacionActual = UbicacionSnapshot.SinCoordenadas(
-                    "TIEMPO_AGOTADO");
+                return location;
             }
             catch
             {
-                ubicacionActual = UbicacionSnapshot.SinCoordenadas(
+                location = LocationSnapshot.WithoutCoordinates(
                     "NO_DISPONIBLE");
+                return location;
             }
-
-            return ubicacionActual;
 #else
-            ubicacionActual = UbicacionSnapshot.SinCoordenadas("NO_APLICA");
-            return ubicacionActual;
+            return LocationSnapshot.WithoutCoordinates("NO_APLICA");
 #endif
         }
 
-#if ANDROID || WINDOWS
-        private static Task<PermissionStatus>
-            SolicitarPermisoUbicacionAsync()
+        private static bool CanUseServer() =>
+            ModoSesionService.Instance.SesionConfirmada &&
+            ModoSesionService.EsEnLinea;
+
+        private static int? GetVisibleUserId()
         {
-            return MainThread.InvokeOnMainThreadAsync(
-                () => Permissions.RequestAsync<
-                    Permissions.LocationWhenInUse>());
-        }
+            string route = Shell.Current?
+                .CurrentState?
+                .Location?
+                .OriginalString ?? string.Empty;
 
-        private static bool EsUbicacionReciente(
-            Location? location,
-            DateTime ahoraUtc)
-        {
-            if (location == null)
-                return false;
-
-            DateTime fechaUtc = location.Timestamp == default
-                ? DateTime.MinValue
-                : location.Timestamp.UtcDateTime;
-
-            return fechaUtc >=
-                ahoraUtc.Subtract(AntiguedadUbicacionCache);
-        }
-
-        private static string MapearEstadoPermiso(
-            PermissionStatus permiso)
-        {
-            return permiso switch
+            if (route.Contains(
+                    "login",
+                    StringComparison.OrdinalIgnoreCase))
             {
-                PermissionStatus.Denied => "DENEGADO",
-                PermissionStatus.Disabled => "DESACTIVADO",
-                PermissionStatus.Restricted => "RESTRINGIDO",
-                PermissionStatus.Limited => "LIMITADO",
-                PermissionStatus.Granted => "CONCEDIDO",
-                _ => "NO_SOLICITADO"
-            };
-        }
-#endif
-
-        private async Task MarcarDesconexionAsync(string motivo)
-        {
-            await bloqueo.WaitAsync();
-
-            try
-            {
-                if (!conexionReportada)
-                    return;
-
-                await EnviarDesconexionAsync(motivo);
-            }
-            finally
-            {
-                conexionReportada = false;
-                ultimoUsuarioReportado = null;
-                bloqueo.Release();
-            }
-        }
-
-        private async Task EnviarDesconexionAsync(string motivo)
-        {
-            if (!PuedeIntentarConexion())
-                return;
-
-            try
-            {
-                var request = new DesconectarDispositivoConexionRequest
-                {
-                    InstalacionId = ObtenerInstalacionId(),
-                    SesionId = sesionId,
-                    Motivo = motivo
-                };
-
-                using var timeout = new CancellationTokenSource(
-                    TiempoMaximoPeticion);
-
-                using HttpResponseMessage response =
-                    await httpClient.PostAsJsonAsync(
-                        "conectividad/dispositivos/desconectar",
-                        request,
-                        jsonOptions,
-                        timeout.Token);
-            }
-            catch
-            {
-                // Al vencer la tolerancia, la API lo marcará desconectado.
-            }
-        }
-
-        private async Task EjecutarCicloAsync(
-            CancellationToken cancellationToken)
-        {
-            using var timer = new PeriodicTimer(IntervaloLatido);
-
-            while (await timer.WaitForNextTickAsync(cancellationToken))
-            {
-                if (!segundoPlano)
-                    await ActualizarEstadoActualAsync();
-            }
-        }
-
-        private async void Shell_Navigated(
-            object? sender,
-            ShellNavigatedEventArgs e)
-        {
-            await ActualizarEstadoActualAsync();
-        }
-
-        private async void Connectivity_ConnectivityChanged(
-            object? sender,
-            ConnectivityChangedEventArgs e)
-        {
-            if (e.NetworkAccess != NetworkAccess.None)
-                await ActualizarEstadoActualAsync();
-        }
-
-        private async Task<(int? UsuarioId, bool SesionVisible)>
-            ObtenerSesionVisibleAsync()
-        {
-            string usuarioIdTexto = Preferences.Get(
-                SessionKeys.KeyUserId,
-                string.Empty);
-
-            if (!int.TryParse(usuarioIdTexto, out int usuarioId) ||
-                usuarioId <= 0)
-            {
-                return (null, false);
+                return null;
             }
 
-            string pagina = await ObtenerPaginaActualAsync();
-
-            if (string.IsNullOrWhiteSpace(pagina))
-                return (usuarioId, false);
-
-            bool esPantallaLogin = pagina.Contains(
-                "login",
-                StringComparison.OrdinalIgnoreCase);
-
-            return (usuarioId, !esPantallaLogin);
+            return int.TryParse(
+                Preferences.Get(
+                    SessionKeys.KeyUserId,
+                    string.Empty),
+                out int userId) &&
+                userId > 0
+                    ? userId
+                    : null;
         }
 
-        private async Task<string> ObtenerPaginaActualAsync()
+        private static string GetCurrentPage() =>
+            Shell.Current?
+                .CurrentState?
+                .Location?
+                .OriginalString ?? string.Empty;
+
+        private static string GetInstallationId()
         {
-            try
-            {
-                return await MainThread.InvokeOnMainThreadAsync(() =>
-                    shellVinculado?
-                        .CurrentState?
-                        .Location?
-                        .OriginalString ?? string.Empty);
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
-
-        private static bool PuedeIntentarConexion()
-        {
-            return Connectivity.Current.NetworkAccess !=
-                NetworkAccess.None;
-        }
-
-        private static string ObtenerPlataforma()
-        {
-            string plataforma =
-                DeviceInfo.Current.Platform.ToString();
-
-            return plataforma.Equals(
-                "WinUI",
-                StringComparison.OrdinalIgnoreCase)
-                    ? "Windows"
-                    : plataforma;
-        }
-
-        private static string ObtenerTipoConexion()
-        {
-            IEnumerable<string> perfiles =
-                Connectivity.Current.ConnectionProfiles
-                    .Select(x => x.ToString())
-                    .Distinct(StringComparer.OrdinalIgnoreCase);
-
-            return string.Join(", ", perfiles);
-        }
-
-        private static string ObtenerInstalacionId()
-        {
-            string valor = Preferences.Get(
+            string value = Preferences.Get(
                 KeyInstalacionId,
                 string.Empty);
 
-            if (Guid.TryParse(valor, out Guid guid))
-                return guid.ToString("N");
+            if (!string.IsNullOrWhiteSpace(value))
+                return value;
 
-            string nuevo = Guid.NewGuid().ToString("N");
-            Preferences.Set(KeyInstalacionId, nuevo);
-            return nuevo;
+            value = Guid.NewGuid().ToString("N");
+            Preferences.Set(KeyInstalacionId, value);
+            return value;
         }
 
-        private void CrearNuevaSesionLocal()
-        {
-            sesionId = Guid.NewGuid().ToString("N");
-            conexionReportada = false;
-            ultimoUsuarioReportado = null;
-        }
+        private static string GetPlatform() =>
+            $"{DeviceInfo.Current.Platform} " +
+            $"{DeviceInfo.Current.VersionString}";
 
-        private void ForzarActualizacionUbicacion()
+        private static string GetConnectionType()
         {
-            proximaActualizacionUbicacionUtc = DateTime.MinValue;
-        }
-
-        private sealed class UbicacionSnapshot
-        {
-            public double? Latitud { get; init; }
-            public double? Longitud { get; init; }
-            public double? PrecisionMetros { get; init; }
-            public DateTime? FechaUbicacionUtc { get; init; }
-            public string OrigenUbicacion { get; init; } = string.Empty;
-            public string EstadoPermisoUbicacion { get; init; } =
-                string.Empty;
-            public bool? UbicacionSimulada { get; init; }
-
-            public static UbicacionSnapshot NoReportada()
+            if (Connectivity.Current.NetworkAccess ==
+                NetworkAccess.None)
             {
-                return SinCoordenadas("NO_REPORTADO");
+                return "SIN_CONEXION";
             }
 
-            public static UbicacionSnapshot SinCoordenadas(string estado)
-            {
-                return new UbicacionSnapshot
+            IEnumerable<ConnectionProfile> profiles =
+                Connectivity.Current.ConnectionProfiles;
+
+            if (profiles.Contains(ConnectionProfile.WiFi))
+                return "WIFI";
+
+            if (profiles.Contains(ConnectionProfile.Cellular))
+                return "DATOS_MOVILES";
+
+            if (profiles.Contains(ConnectionProfile.Ethernet))
+                return "ETHERNET";
+
+            return "OTRA";
+        }
+
+        private void CreateNewLocalSession()
+        {
+            sessionId = Guid.NewGuid().ToString("N");
+            connectionReported = false;
+            lastReportedUserId = null;
+        }
+
+        private sealed class LocationSnapshot
+        {
+            public double? Latitude { get; init; }
+            public double? Longitude { get; init; }
+            public double? AccuracyMeters { get; init; }
+            public DateTime? DateUtc { get; init; }
+            public string Source { get; init; } = string.Empty;
+            public string PermissionStatus { get; init; } = string.Empty;
+            public bool? IsMock { get; init; }
+
+            public static LocationSnapshot Empty() =>
+                WithoutCoordinates("NO_REPORTADA");
+
+            public static LocationSnapshot WithoutCoordinates(
+                string status) =>
+                new()
                 {
-                    EstadoPermisoUbicacion = estado,
-                    OrigenUbicacion = "DISPOSITIVO"
+                    Source = "NO_REPORTADA",
+                    PermissionStatus = status
                 };
-            }
         }
     }
 }

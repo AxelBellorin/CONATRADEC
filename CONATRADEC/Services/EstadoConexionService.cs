@@ -3,11 +3,12 @@ using Microsoft.Maui.Networking;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Mantiene el último resultado REAL de comunicación con la API.
+    /// Mantiene el último resultado real de comunicación con la API.
     ///
-    /// Connectivity.Current se conserva solamente como señal inicial del
-    /// sistema. Una vez realizada una comprobación contra la API, ese resultado
-    /// prevalece hasta la siguiente comprobación.
+    /// En una sesión offline informa siempre que el servidor no está
+    /// disponible y descarta los eventos de reconexión del sistema. Esto evita
+    /// que componentes heredados inicien verificaciones o reintentos mientras
+    /// el técnico permanece horas en una zona sin cobertura.
     /// </summary>
     public sealed class EstadoConexionService
     {
@@ -22,17 +23,15 @@ namespace CONATRADEC.Services
         public static EstadoConexionService Instance => lazy.Value;
 
         public event Action<bool>? EstadoConexionCambiado;
-
-        /// <summary>
-        /// Solicita una comprobación real cuando el sistema detecta que
-        /// reapareció una interfaz de red.
-        /// </summary>
         public event Action? ConexionPotencialmenteRestablecida;
 
         public bool HayInternet
         {
             get
             {
+                if (ModoSesionService.EsOffline)
+                    return false;
+
                 lock (syncRoot)
                 {
                     if (servidorDisponible.HasValue)
@@ -48,6 +47,9 @@ namespace CONATRADEC.Services
         {
             get
             {
+                if (ModoSesionService.EsOffline)
+                    return false;
+
                 lock (syncRoot)
                     return servidorDisponible;
             }
@@ -68,22 +70,36 @@ namespace CONATRADEC.Services
                 OnConnectivityChanged;
         }
 
-        /// <summary>
-        /// Cualquier respuesta HTTP demuestra que la API es accesible, incluso
-        /// si la operación funcional devuelve 401, 403, 404 o 500.
-        /// </summary>
-        public void ReportarServidorDisponible() =>
-            ActualizarResultadoServidor(disponible: true);
+        public void ReportarServidorDisponible()
+        {
+            if (ModoSesionService.EsOffline)
+            {
+                ActualizarResultadoServidor(
+                    disponible: false,
+                    notificar: false);
+                return;
+            }
 
-        /// <summary>
-        /// Se utiliza únicamente ante fallos reales de transporte, DNS,
-        /// conexión rechazada o timeout.
-        /// </summary>
+            ActualizarResultadoServidor(
+                disponible: true,
+                notificar: true);
+        }
+
         public void ReportarServidorNoDisponible() =>
-            ActualizarResultadoServidor(disponible: false);
+            ActualizarResultadoServidor(
+                disponible: false,
+                notificar: true);
 
         public void MarcarComoPendienteDeVerificacion()
         {
+            if (ModoSesionService.EsOffline)
+            {
+                ActualizarResultadoServidor(
+                    disponible: false,
+                    notificar: false);
+                return;
+            }
+
             lock (syncRoot)
             {
                 servidorDisponible = null;
@@ -91,13 +107,15 @@ namespace CONATRADEC.Services
             }
         }
 
-        private void ActualizarResultadoServidor(bool disponible)
+        private void ActualizarResultadoServidor(
+            bool disponible,
+            bool notificar)
         {
-            bool notificar;
+            bool cambio;
 
             lock (syncRoot)
             {
-                notificar =
+                cambio =
                     !servidorDisponible.HasValue ||
                     servidorDisponible.Value != disponible;
 
@@ -105,7 +123,7 @@ namespace CONATRADEC.Services
                 ultimaComprobacionUtc = DateTime.UtcNow;
             }
 
-            if (notificar)
+            if (notificar && cambio)
                 EstadoConexionCambiado?.Invoke(disponible);
         }
 
@@ -113,16 +131,24 @@ namespace CONATRADEC.Services
             object? sender,
             ConnectivityChangedEventArgs e)
         {
+            if (ModoSesionService.EsOffline)
+            {
+                /*
+                 * El modo fue elegido en el login. Recuperar Wi-Fi no modifica
+                 * la sesión ni dispara verificaciones contra la API.
+                 */
+                ActualizarResultadoServidor(
+                    disponible: false,
+                    notificar: false);
+                return;
+            }
+
             if (e.NetworkAccess == NetworkAccess.None)
             {
                 ReportarServidorNoDisponible();
                 return;
             }
 
-            /*
-             * Tener Wi-Fi o cable no garantiza acceso a la API. El estado queda
-             * pendiente hasta ejecutar la comprobación HTTP.
-             */
             MarcarComoPendienteDeVerificacion();
             ConexionPotencialmenteRestablecida?.Invoke();
         }

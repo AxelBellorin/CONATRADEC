@@ -6,8 +6,9 @@ using System.Text;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Guarda imágenes en AppDataDirectory, registra sus referencias y
-    /// elimina archivos que ya no pertenecen a una versión vigente.
+    /// Guarda imágenes en AppDataDirectory y resuelve sus rutas locales.
+    /// En una sesión offline nunca devuelve una URL remota si el archivo no
+    /// existe, evitando que ImageSource intente abrir sockets por su cuenta.
     /// </summary>
     public static class ImagenLocalCacheService
     {
@@ -27,7 +28,11 @@ namespace CONATRADEC.Services
             string path = ObtenerRutaMiniatura(url);
 
             if (!ArchivoValido(path))
-                return url;
+            {
+                return ModoSesionService.EsOffline
+                    ? string.Empty
+                    : url;
+            }
 
             MarcarUsoFisico(path);
             return path;
@@ -41,7 +46,11 @@ namespace CONATRADEC.Services
             string path = ObtenerRutaOriginal(url);
 
             if (!ArchivoValido(path))
-                return url;
+            {
+                return ModoSesionService.EsOffline
+                    ? string.Empty
+                    : url;
+            }
 
             MarcarUsoFisico(path);
             return path;
@@ -66,8 +75,11 @@ namespace CONATRADEC.Services
                     .GetExtension(uri.AbsolutePath)
                     .ToLowerInvariant();
 
-                if (candidate is ".jpg" or ".jpeg" or ".png" or ".webp")
+                if (candidate is
+                    ".jpg" or ".jpeg" or ".png" or ".webp")
+                {
                     extension = candidate;
+                }
             }
 
             return ObtenerRuta(
@@ -84,7 +96,6 @@ namespace CONATRADEC.Services
             ArgumentNullException.ThrowIfNull(source);
 
             string? directory = Path.GetDirectoryName(destination);
-
             if (!string.IsNullOrWhiteSpace(directory))
                 Directory.CreateDirectory(directory);
 
@@ -232,8 +243,7 @@ namespace CONATRADEC.Services
                 return;
             }
 
-            long total = archivos.Sum(x => x.Length);
-
+            long total = archivos.Sum(item => item.Length);
             if (total <= limiteBytes)
                 return;
 
@@ -244,13 +254,6 @@ namespace CONATRADEC.Services
                 if (total <= objetivo)
                     break;
 
-                /*
-                 * Nunca se elimina una imagen todavía referenciada por la
-                 * versión vigente. De esta forma, Descargar todo conserva
-                 * realmente el contenido actual aunque supere el límite
-                 * orientativo. El límite se utiliza para limpiar archivos
-                 * huérfanos y temporales antiguos.
-                 */
                 int referencias =
                     await ContenidoLocalDatabaseService.Instance
                         .ContarReferenciasImagenAsync(
@@ -335,10 +338,16 @@ namespace CONATRADEC.Services
         {
             try
             {
-                DateTime ultimoUso = File.GetLastWriteTimeUtc(path);
+                DateTime ultimoUso =
+                    File.GetLastWriteTimeUtc(path);
 
-                if (DateTime.UtcNow - ultimoUso > TimeSpan.FromHours(12))
-                    File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
+                if (DateTime.UtcNow - ultimoUso >
+                    TimeSpan.FromHours(12))
+                {
+                    File.SetLastWriteTimeUtc(
+                        path,
+                        DateTime.UtcNow);
+                }
             }
             catch
             {

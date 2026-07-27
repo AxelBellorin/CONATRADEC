@@ -22,45 +22,62 @@ namespace CONATRADEC.Services
                     out Uri? baseAddress))
             {
                 throw new InvalidOperationException(
-                    $"La URL configurada para la API no es válida: " +
+                    "La URL configurada para la API no es válida: " +
                     urlApiService.BaseUrlApi);
             }
 
+            /*
+             * Orden importante:
+             * 1. Login decide el modo sin usar fallback.
+             * 2. Routing pone catálogos en bypass durante sesiones online.
+             * 3. Historial guarda/lee detalles y reportes.
+             * 4. Cálculos y guardado local solo actúan en modo offline.
+             * 5. La barrera final impide cualquier salida física de red offline.
+             */
             var handler = new ContextoBitacoraHandler
             {
                 InnerHandler = new SesionOfflineHandler
                 {
-                    InnerHandler =
-                        new AnalisisOfflineGuardarHttpHandler
+                    InnerHandler = new ModoSesionRoutingHandler
+                    {
+                        InnerHandler = new RespuestaLocalGeneralHttpHandler
                         {
                             InnerHandler =
-                                new AnalisisCalculoLocalHttpHandler
+                                new AnalisisHistorialCacheHttpHandler
                                 {
                                     InnerHandler =
-                                        new AnalisisComplementariosLocalHttpHandler
+                                        new AnalisisOfflineGuardarHttpHandler
                                         {
-                                            /*
-                                             * Atiende las rutas históricas
-                                             * utilizadas por Nuevo análisis
-                                             * para cultivos y unidades.
-                                             */
                                             InnerHandler =
-                                                new AnalisisCatalogosLocalHttpHandler
+                                                new AnalisisCalculoLocalHttpHandler
                                                 {
                                                     InnerHandler =
-                                                        new CatalogosLocalHttpHandler
+                                                        new AnalisisComplementariosLocalHttpHandler
                                                         {
                                                             InnerHandler =
-                                                                new ContenidoSincronizacionHandler
+                                                                new AnalisisCatalogosLocalHttpHandler
                                                                 {
                                                                     InnerHandler =
-                                                                        new HttpClientHandler()
+                                                                        new CatalogosLocalHttpHandler
+                                                                        {
+                                                                            InnerHandler =
+                                                                                new ContenidoSincronizacionHandler
+                                                                                {
+                                                                                    InnerHandler =
+                                                                                        new ModoSesionHttpHandler
+                                                                                        {
+                                                                                            InnerHandler =
+                                                                                                new HttpClientHandler()
+                                                                                        }
+                                                                                }
+                                                                        }
                                                                 }
                                                         }
                                                 }
                                         }
                                 }
                         }
+                    }
                 }
             };
 
@@ -75,37 +92,16 @@ namespace CONATRADEC.Services
                 new MediaTypeWithQualityHeaderValue(
                     "application/json"));
 
-            /*
-             * Iniciar no realiza solicitudes en este punto. Únicamente deja
-             * registrada la cola para detectar una futura reconexión.
-             */
-            AnalisisOfflineSincronizacionService.Instance
-                .Iniciar();
-
             return client;
         }
 
-        private sealed class ContextoBitacoraHandler : DelegatingHandler
+        private sealed class ContextoBitacoraHandler :
+            DelegatingHandler
         {
             protected override async Task<HttpResponseMessage> SendAsync(
                 HttpRequestMessage request,
                 CancellationToken cancellationToken)
             {
-                /*
-                 * En este punto el HttpClient ya terminó de construirse. Es
-                 * seguro iniciar la cola sin provocar acceso recursivo al Lazy.
-                 */
-                AnalisisOfflineSincronizacionService.Instance
-                    .Iniciar();
-
-                /*
-                 * Iniciar es idempotente. La solicitud adicional permite que
-                 * una cola creada en una sesión anterior se procese apenas el
-                 * usuario autenticado vuelva a realizar una operación online.
-                 */
-                AnalisisOfflineSincronizacionService.Instance
-                    .SolicitarSincronizacion();
-
                 AgregarEncabezado(
                     request,
                     "X-Usuario-Id",
@@ -151,6 +147,21 @@ namespace CONATRADEC.Services
                     "X-Version-App",
                     AppInfo.Current.VersionString ??
                     string.Empty);
+
+                AgregarEncabezado(
+                    request,
+                    "X-Modo-Sesion",
+                    ModoSesionService.Instance
+                        .ModoActual
+                        .ToString());
+
+                /*
+                 * Solo la primera solicitud autenticada de una sesión online
+                 * activa el envío silencioso de pendientes. El propio servicio
+                 * impide ejecuciones repetidas y no usa temporizador.
+                 */
+                AnalisisOfflineSincronizacionService.Instance
+                    .SolicitarUnaVezPorSesionOnline();
 
                 HttpResponseMessage response =
                     await base.SendAsync(
@@ -205,11 +216,9 @@ namespace CONATRADEC.Services
                 string fabricante =
                     DeviceInfo.Current.Manufacturer ??
                     string.Empty;
-
                 string modelo =
                     DeviceInfo.Current.Model ??
                     string.Empty;
-
                 string nombre =
                     DeviceInfo.Current.Name ??
                     string.Empty;

@@ -6,14 +6,8 @@ using System.Text.Json;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Intercepta únicamente el cálculo inicial del análisis de suelo.
-    ///
-    /// - En modo En línea conserva la petición normal a la API.
-    /// - En modo Sin conexión responde con el motor local.
-    /// - Si el análisis inició en línea y la señal cae, cambia a local cuando
-    ///   existe un paquete válido.
-    ///
-    /// No intercepta operaciones administrativas ni el guardado definitivo.
+    /// Cálculo inicial del análisis según el modo global de la sesión.
+    /// No existe cambio automático ni fallback entre API y motor local.
     /// </summary>
     public sealed class AnalisisCalculoLocalHttpHandler :
         DelegatingHandler
@@ -31,127 +25,37 @@ namespace CONATRADEC.Services
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            if (!EsCalculoAnalisis(request) ||
-                !DatosSinConexionPermisos.TienePermiso)
+            if (!EsCalculoAnalisis(request))
             {
                 return await base.SendAsync(
                     request,
                     cancellationToken);
             }
 
-            string cuerpo =
-                request.Content == null
-                    ? string.Empty
-                    : await request.Content.ReadAsStringAsync(
-                        cancellationToken);
-
-            ModoTrabajoAnalisisEstado modo =
-                ModoTrabajoAnalisisService
-                    .Instance
-                    .EstadoActual;
-
-            if (modo.Modo ==
-                ModoTrabajoAnalisis.SinConexion)
+            if (ModoSesionService.EsEnLinea)
             {
-                return await CrearRespuestaLocalAsync(
+                return await base.SendAsync(
                     request,
-                    cuerpo,
                     cancellationToken);
             }
 
-            if (!EstadoConexionService.Instance.HayInternet)
+            if (!DatosSinConexionPermisos.TienePermiso)
             {
-                ModoTrabajoAnalisisEstado cambiado =
-                    await ModoTrabajoAnalisisService
-                        .Instance
-                        .CambiarAOfflinePorCaidaAsync(
-                            cancellationToken);
-
-                if (cambiado.Modo ==
-                        ModoTrabajoAnalisis.SinConexion &&
-                    cambiado.PaqueteLocalDisponible)
-                {
-                    return await CrearRespuestaLocalAsync(
-                        request,
-                        cuerpo,
-                        cancellationToken);
-                }
-            }
-
-            try
-            {
-                HttpResponseMessage response =
-                    await base.SendAsync(
-                        request,
-                        cancellationToken);
-
-                if (!DebeCambiarALocal(
-                        response.StatusCode))
-                {
-                    return response;
-                }
-
-                ModoTrabajoAnalisisEstado cambiado =
-                    await ModoTrabajoAnalisisService
-                        .Instance
-                        .CambiarAOfflinePorCaidaAsync(
-                            cancellationToken);
-
-                if (cambiado.Modo !=
-                        ModoTrabajoAnalisis.SinConexion ||
-                    !cambiado.PaqueteLocalDisponible)
-                {
-                    return response;
-                }
-
-                response.Dispose();
-
-                return await CrearRespuestaLocalAsync(
+                return CrearError(
                     request,
-                    cuerpo,
+                    HttpStatusCode.Forbidden,
+                    "Su usuario no tiene habilitado el cálculo sin conexión.");
+            }
+
+            string cuerpo = request.Content == null
+                ? string.Empty
+                : await request.Content.ReadAsStringAsync(
                     cancellationToken);
-            }
-            catch (HttpRequestException)
-            {
-                ModoTrabajoAnalisisEstado cambiado =
-                    await ModoTrabajoAnalisisService
-                        .Instance
-                        .CambiarAOfflinePorCaidaAsync(
-                            cancellationToken);
 
-                if (cambiado.Modo ==
-                        ModoTrabajoAnalisis.SinConexion &&
-                    cambiado.PaqueteLocalDisponible)
-                {
-                    return await CrearRespuestaLocalAsync(
-                        request,
-                        cuerpo,
-                        cancellationToken);
-                }
-
-                throw;
-            }
-            catch (TaskCanceledException)
-                when (!cancellationToken.IsCancellationRequested)
-            {
-                ModoTrabajoAnalisisEstado cambiado =
-                    await ModoTrabajoAnalisisService
-                        .Instance
-                        .CambiarAOfflinePorCaidaAsync(
-                            cancellationToken);
-
-                if (cambiado.Modo ==
-                        ModoTrabajoAnalisis.SinConexion &&
-                    cambiado.PaqueteLocalDisponible)
-                {
-                    return await CrearRespuestaLocalAsync(
-                        request,
-                        cuerpo,
-                        cancellationToken);
-                }
-
-                throw;
-            }
+            return await CrearRespuestaLocalAsync(
+                request,
+                cuerpo,
+                cancellationToken);
         }
 
         private static bool EsCalculoAnalisis(
@@ -160,31 +64,20 @@ namespace CONATRADEC.Services
             if (request.Method != HttpMethod.Post)
                 return false;
 
-            Uri? uri =
-                request.RequestUri;
-
-            string path =
-                uri == null
-                    ? string.Empty
-                    : uri.IsAbsoluteUri
-                        ? uri.AbsolutePath
-                        : "/" +
-                          uri.OriginalString
-                              .TrimStart('/');
+            Uri? uri = request.RequestUri;
+            string path = uri == null
+                ? string.Empty
+                : uri.IsAbsoluteUri
+                    ? uri.AbsolutePath
+                    : "/" + uri.OriginalString
+                        .Split('?')[0]
+                        .TrimStart('/');
 
             return string.Equals(
                 path,
                 RutaCalcular,
                 StringComparison.OrdinalIgnoreCase);
         }
-
-        private static bool DebeCambiarALocal(
-            HttpStatusCode statusCode) =>
-            statusCode is
-                HttpStatusCode.RequestTimeout or
-                HttpStatusCode.BadGateway or
-                HttpStatusCode.ServiceUnavailable or
-                HttpStatusCode.GatewayTimeout;
 
         private static async Task<HttpResponseMessage>
             CrearRespuestaLocalAsync(
@@ -196,11 +89,10 @@ namespace CONATRADEC.Services
 
             try
             {
-                solicitud =
-                    JsonSerializer.Deserialize<
-                        AnalisisSueloCalcularRequest>(
-                        cuerpo,
-                        JsonOptions);
+                solicitud = JsonSerializer.Deserialize<
+                    AnalisisSueloCalcularRequest>(
+                    cuerpo,
+                    JsonOptions);
             }
             catch (JsonException)
             {
@@ -220,22 +112,19 @@ namespace CONATRADEC.Services
                             solicitud,
                             cancellationToken);
 
-            string json =
-                JsonSerializer.Serialize(
-                    resultado,
-                    JsonOptions);
+            string json = JsonSerializer.Serialize(
+                resultado,
+                JsonOptions);
 
-            var response =
-                new HttpResponseMessage(
-                    HttpStatusCode.OK)
-                {
-                    RequestMessage = request,
-                    Content =
-                        new StringContent(
-                            json,
-                            Encoding.UTF8,
-                            "application/json")
-                };
+            var response = new HttpResponseMessage(
+                HttpStatusCode.OK)
+            {
+                RequestMessage = request,
+                Content = new StringContent(
+                    json,
+                    Encoding.UTF8,
+                    "application/json")
+            };
 
             response.Headers.TryAddWithoutValidation(
                 "X-CONATRADEC-Calculo-Origen",
@@ -243,5 +132,22 @@ namespace CONATRADEC.Services
 
             return response;
         }
+
+        private static HttpResponseMessage CrearError(
+            HttpRequestMessage request,
+            HttpStatusCode status,
+            string message) =>
+            new(status)
+            {
+                RequestMessage = request,
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new
+                    {
+                        success = false,
+                        message
+                    }),
+                    Encoding.UTF8,
+                    "application/json")
+            };
     }
 }

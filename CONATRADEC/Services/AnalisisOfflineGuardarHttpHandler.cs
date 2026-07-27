@@ -39,24 +39,21 @@ namespace CONATRADEC.Services
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            string path =
-                ObtenerPath(request);
+            string path = ObtenerPath(request);
 
             if (request.Method == HttpMethod.Delete &&
                 path.StartsWith(
                     RutaGuardar + "/",
                     StringComparison.OrdinalIgnoreCase))
             {
-                int id =
-                    ObtenerUltimoEntero(path);
+                int idEliminar = ObtenerUltimoEntero(path);
 
                 if (AnalisisOfflineDatabaseService
-                    .EsIdLocal(id))
+                    .EsIdLocal(idEliminar))
                 {
                     bool eliminado =
-                        await AnalisisOfflineDatabaseService
-                            .Instance
-                            .EliminarLocalAsync(id);
+                        await AnalisisOfflineDatabaseService.Instance
+                            .EliminarLocalAsync(idEliminar);
 
                     return eliminado
                         ? CrearJson(
@@ -66,10 +63,8 @@ namespace CONATRADEC.Services
                                 success = true,
                                 message =
                                     "El análisis pendiente fue eliminado de este dispositivo.",
-                                analisisSueloId =
-                                    id,
-                                calculosDesactivados =
-                                    0
+                                analisisSueloId = idEliminar,
+                                calculosDesactivados = 0
                             })
                         : CrearError(
                             request,
@@ -107,8 +102,36 @@ namespace CONATRADEC.Services
                     RutaEditarPrefijo,
                     StringComparison.OrdinalIgnoreCase);
 
-            if ((!esGuardar && !esEditar) ||
-                !DatosSinConexionPermisos.TienePermiso)
+            if (!esGuardar && !esEditar)
+            {
+                return await base.SendAsync(
+                    request,
+                    cancellationToken);
+            }
+
+            if (!DatosSinConexionPermisos.TienePermiso &&
+                ModoSesionService.EsOffline)
+            {
+                return CrearError(
+                    request,
+                    HttpStatusCode.Forbidden,
+                    "Su usuario no tiene habilitado el guardado sin conexión.");
+            }
+
+            int idEdicion = esEditar
+                ? ObtenerUltimoEntero(path)
+                : 0;
+
+            bool esEdicionLocal =
+                AnalisisOfflineDatabaseService
+                    .EsIdLocal(idEdicion);
+
+            /*
+             * Online guarda siempre en la API. La única excepción es editar
+             * una operación que todavía no posee ID de servidor.
+             */
+            if (ModoSesionService.EsEnLinea &&
+                !esEdicionLocal)
             {
                 return await base.SendAsync(
                     request,
@@ -121,92 +144,7 @@ namespace CONATRADEC.Services
                     : await request.Content.ReadAsByteArrayAsync(
                         cancellationToken);
 
-            RestaurarContenido(
-                request,
-                contenido);
-
-            if (DebeGuardarLocal())
-            {
-                return await GuardarLocalAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-
-            try
-            {
-                HttpResponseMessage response =
-                    await base.SendAsync(
-                        request,
-                        cancellationToken);
-
-                if (!EsFalloInfraestructura(
-                        response.StatusCode))
-                {
-                    return response;
-                }
-
-                response.Dispose();
-
-                await ModoTrabajoAnalisisService.Instance
-                    .CambiarAOfflinePorCaidaAsync(
-                        cancellationToken);
-
-                return await GuardarLocalAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-            catch (HttpRequestException)
-            {
-                return await GuardarFallbackAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-            catch (IOException)
-            {
-                return await GuardarFallbackAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-            catch (TaskCanceledException)
-                when (!cancellationToken.IsCancellationRequested)
-            {
-                return await GuardarFallbackAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-        }
-
-        private static bool DebeGuardarLocal() =>
-            !EstadoConexionService.Instance.HayInternet ||
-            ModoTrabajoAnalisisService
-                .Instance
-                .EstadoActual
-                .Modo ==
-                ModoTrabajoAnalisis.SinConexion;
-
-        private static async Task<HttpResponseMessage>
-            GuardarFallbackAsync(
-                HttpRequestMessage request,
-                string path,
-                byte[] contenido,
-                CancellationToken cancellationToken)
-        {
-            EstadoConexionService.Instance
-                .ReportarServidorNoDisponible();
-
-            await ModoTrabajoAnalisisService.Instance
-                .CambiarAOfflinePorCaidaAsync(
-                    cancellationToken);
+            RestaurarContenido(request, contenido);
 
             return await GuardarLocalAsync(
                 request,
@@ -316,16 +254,12 @@ namespace CONATRADEC.Services
             AnalisisListadoEstadoService
                 .MarcarActualizacionPendiente();
 
-            AnalisisOfflineSincronizacionService
-                .Instance
-                .SolicitarSincronizacion();
-
             object respuesta =
                 new
                 {
                     success = true,
                     message =
-                        "El análisis fue calculado y guardado en este dispositivo. Se sincronizará automáticamente cuando la API esté disponible.",
+                        "El análisis fue calculado y guardado en este dispositivo. Se enviará al iniciar una próxima sesión en línea.",
                     data = new
                     {
                         analisisSueloId =
@@ -452,10 +386,19 @@ namespace CONATRADEC.Services
                     "No fue posible reconstruir el reporte local.");
             }
 
+            AnalisisGuardadoResumen resumenReporte =
+                await AnalisisReporteLocalEnrichmentService
+                    .CrearResumenAsync(
+                        local.TerrenoId,
+                        idReporteLocal,
+                        idReporteLocal,
+                        local.IdentificadorAnalisis);
+
             AnalisisReporte reporte =
                 AnalisisReporteMapper
                     .DesdeSolicitudGuardada(
-                        solicitud);
+                        solicitud,
+                        resumenReporte);
 
             reporte.AnalisisSueloCalculoId =
                 idReporteLocal;

@@ -4,11 +4,11 @@ using Microsoft.Maui.Storage;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Descarga todas las publicaciones activas, categorías, combinaciones de
-    /// filtros y detalles necesarios para consultar Noticias sin conexión.
+    /// Descarga Noticias con las rutas exactas utilizadas por Windows y móvil.
     ///
-    /// Las respuestas pasan por ContenidoSincronizacionHandler, que guarda
-    /// los datos y las imágenes asociadas en el dispositivo.
+    /// La descarga manual usa la versión transaccional de
+    /// DescargaOfflineContext. Todas las páginas, categorías, filtros, detalles
+    /// e imágenes permanecen dentro del mismo paquete.
     /// </summary>
     public sealed class NoticiasOfflineSyncService
     {
@@ -38,8 +38,7 @@ namespace CONATRADEC.Services
         public async Task<NoticiasOfflineSyncResult>
             SincronizarSiNecesarioAsync(
                 bool forzarDescargaCompleta,
-                CancellationToken cancellationToken =
-                    default)
+                CancellationToken cancellationToken = default)
         {
             bool entered =
                 await syncLock.WaitAsync(
@@ -49,7 +48,7 @@ namespace CONATRADEC.Services
             if (!entered)
             {
                 return NoticiasOfflineSyncResult.Fail(
-                    "Ya existe una sincronización de noticias en curso.");
+                    "Ya existe una descarga de noticias en curso.");
             }
 
             try
@@ -57,8 +56,7 @@ namespace CONATRADEC.Services
                 ContenidoSincronizacionRuntime
                     .Invalidar(Modulo);
 
-                ApiResult<
-                    List<CategoriaPublicacionResponse>>
+                ApiResult<List<CategoriaPublicacionResponse>>
                     categoriasResultado =
                         await apiService.GetCategoriasAsync(
                             cancellationToken);
@@ -71,92 +69,36 @@ namespace CONATRADEC.Services
                         "No fue posible descargar las categorías de noticias.");
                 }
 
-                ApiResult<PublicacionPaginadaResponse>
-                    primeraPagina =
-                        await apiService.GetFeedAsync(
-                            categoriaId: null,
-                            buscar: null,
-                            soloDestacadas: false,
-                            soloEventos: false,
-                            pagina: 1,
-                            tamanoPagina: 30,
-                            cancellationToken);
-
-                if (!primeraPagina.Success ||
-                    primeraPagina.Data == null)
-                {
-                    return Fallar(
-                        primeraPagina.Message,
-                        "No fue posible comprobar las noticias disponibles.");
-                }
-
                 string usuarioId =
                     ObtenerUsuarioId();
 
-                ContenidoModuloEstadoEntity? estado =
+                ContenidoModuloEstadoEntity? estadoAnterior =
                     await ContenidoLocalDatabaseService.Instance
                         .ObtenerEstadoAsync(
                             $"{usuarioId}|{Modulo}");
 
-                string version =
-                    !string.IsNullOrWhiteSpace(
-                        estado?.VersionServidor)
-                        ? estado!.VersionServidor
-                        : estado?.Version ??
-                          string.Empty;
-
-                if (string.IsNullOrWhiteSpace(version))
-                {
-                    return Fallar(
-                        "No se pudo confirmar la versión de noticias.",
-                        "Se conservará la copia anterior.");
-                }
-
                 if (!forzarDescargaCompleta &&
+                    estadoAnterior != null &&
                     EstaVersionCompleta(
                         usuarioId,
-                        version))
+                        estadoAnterior.Version))
                 {
-                    DateTime? ultima =
-                        estado?
-                            .UltimaSincronizacionExitosaUtc;
-
-                    ContenidoEstadoService.Instance.Actualizar(
-                        Modulo,
-                        EstadoConexionService.Instance.HayInternet
-                            ? TipoEstadoSincronizacionContenido.Local
-                            : TipoEstadoSincronizacionContenido
-                                .SinConexionLocal,
-                        EstadoConexionService.Instance.HayInternet
-                            ? "Conectado · usando datos sincronizados"
-                            : "Sin conexión · usando datos sincronizados",
-                        "Datos sincronizados anteriormente · " +
-                        ContenidoEstadoService
-                            .ConstruirDetalleFecha(
-                                ultima),
-                        version,
-                        ultima);
-
                     return NoticiasOfflineSyncResult.Ok(
-                        primeraPagina.Data.TotalRegistros,
+                        0,
                         categoriasResultado.Data.Count,
-                        "Las noticias sincronizadas continúan vigentes.");
+                        "La copia completa de noticias continúa disponible.");
                 }
 
                 ContenidoEstadoService.Instance.Actualizar(
                     Modulo,
                     TipoEstadoSincronizacionContenido.Verificando,
-                    "Sincronizando noticias completas...",
-                    "Descargando categorías, publicaciones e imágenes.");
+                    "Descargando noticias completas...",
+                    "Preparando páginas de Windows y móvil.");
 
                 var publicaciones =
                     new Dictionary<
                         int,
                         PublicacionListadoResponse>();
-
-                AgregarPublicaciones(
-                    publicaciones,
-                    primeraPagina.Data.Items);
 
                 List<int?> categorias =
                     new()
@@ -166,10 +108,10 @@ namespace CONATRADEC.Services
 
                 categorias.AddRange(
                     categoriasResultado.Data
-                        .Where(x =>
-                            x.CategoriaPublicacionId > 0)
-                        .Select(x =>
-                            (int?)x.CategoriaPublicacionId));
+                        .Where(item =>
+                            item.CategoriaPublicacionId > 0)
+                        .Select(item =>
+                            (int?)item.CategoriaPublicacionId));
 
                 (bool Destacadas, bool Eventos)[] filtros =
                 {
@@ -179,54 +121,61 @@ namespace CONATRADEC.Services
                     (true, true)
                 };
 
+                /*
+                 * NoticiasViewModel solicita 12 elementos en Windows y 6 en
+                 * Android/iOS. Se descargan ambos tamaños para que la misma
+                 * lógica de caché responda exactamente a la pantalla.
+                 */
+                int[] tamanosPagina =
+                {
+                    12,
+                    6
+                };
+
                 int totalCombinaciones =
                     categorias.Count *
-                    filtros.Length;
+                    filtros.Length *
+                    tamanosPagina.Length;
 
                 int combinacionActual = 0;
 
-                foreach (int? categoriaId in categorias)
+                foreach (int tamanoPagina
+                         in tamanosPagina)
                 {
-                    foreach (
-                        (bool destacadas, bool eventos)
-                        in filtros)
+                    foreach (int? categoriaId
+                             in categorias)
                     {
-                        cancellationToken
-                            .ThrowIfCancellationRequested();
-
-                        combinacionActual++;
-
-                        string categoriaTexto =
-                            categoriaId.HasValue
-                                ? categoriasResultado.Data
-                                    .FirstOrDefault(x =>
-                                        x.CategoriaPublicacionId ==
-                                        categoriaId.Value)?
-                                    .Nombre ??
-                                  "Categoría"
-                                : "Todas";
-
-                        ContenidoEstadoService.Instance.Actualizar(
-                            Modulo,
-                            TipoEstadoSincronizacionContenido.Verificando,
-                            "Descargando publicaciones...",
-                            $"{combinacionActual} de " +
-                            $"{totalCombinaciones}: " +
-                            categoriaTexto);
-
-                        ResultadoPaginas resultado =
-                            await DescargarPaginasAsync(
-                                categoriaId,
-                                destacadas,
-                                eventos,
-                                publicaciones,
-                                cancellationToken);
-
-                        if (!resultado.Success)
+                        foreach (
+                            (bool destacadas, bool eventos)
+                            in filtros)
                         {
-                            return Fallar(
-                                resultado.Message,
-                                "No fue posible descargar todas las publicaciones.");
+                            cancellationToken
+                                .ThrowIfCancellationRequested();
+
+                            combinacionActual++;
+
+                            ContenidoEstadoService.Instance.Actualizar(
+                                Modulo,
+                                TipoEstadoSincronizacionContenido.Verificando,
+                                "Descargando publicaciones...",
+                                $"{combinacionActual} de " +
+                                $"{totalCombinaciones}");
+
+                            ResultadoPaginas resultado =
+                                await DescargarPaginasAsync(
+                                    categoriaId,
+                                    destacadas,
+                                    eventos,
+                                    tamanoPagina,
+                                    publicaciones,
+                                    cancellationToken);
+
+                            if (!resultado.Success)
+                            {
+                                return Fallar(
+                                    resultado.Message,
+                                    "No fue posible descargar todas las páginas de noticias.");
+                            }
                         }
                     }
                 }
@@ -234,8 +183,8 @@ namespace CONATRADEC.Services
                 List<PublicacionListadoResponse>
                     publicacionesActivas =
                         publicaciones.Values
-                            .OrderBy(x =>
-                                x.PublicacionId)
+                            .OrderBy(item =>
+                                item.PublicacionId)
                             .ToList();
 
                 int detalleActual = 0;
@@ -273,6 +222,25 @@ namespace CONATRADEC.Services
                     }
                 }
 
+                ContenidoModuloEstadoEntity? estado =
+                    await ContenidoLocalDatabaseService.Instance
+                        .ObtenerEstadoAsync(
+                            $"{usuarioId}|{Modulo}");
+
+                string version =
+                    DescargaOfflineContext.Activa
+                        ? DescargaOfflineContext
+                            .VersionTransaccional
+                        : estado?.Version ??
+                          string.Empty;
+
+                if (string.IsNullOrWhiteSpace(version))
+                {
+                    return Fallar(
+                        "No se pudo identificar la versión transaccional de noticias.",
+                        "Se conserva la copia anterior.");
+                }
+
                 await ContenidoLocalDatabaseService.Instance
                     .EliminarRespuestasVersionAnteriorAsync(
                         usuarioId,
@@ -292,30 +260,24 @@ namespace CONATRADEC.Services
                 DateTime ahora =
                     DateTime.UtcNow;
 
-                EstadoConexionService.Instance
-                    .ReportarServidorDisponible();
-
                 ContenidoEstadoService.Instance.Actualizar(
                     Modulo,
                     TipoEstadoSincronizacionContenido.Servidor,
-                    "Conectado · datos del servidor",
-                    "Datos guardados en el dispositivo actualizados · " +
-                    $"{publicacionesActivas.Count} publicaciones · " +
-                    ContenidoEstadoService
-                        .ConstruirDetalleFecha(
-                            ahora),
+                    "Noticias preparadas",
+                    $"{publicacionesActivas.Count} publicaciones " +
+                    "guardadas para Windows y móvil.",
                     version,
                     ahora);
 
                 return NoticiasOfflineSyncResult.Ok(
                     publicacionesActivas.Count,
                     categoriasResultado.Data.Count,
-                    "Las noticias fueron sincronizadas correctamente.");
+                    "Las noticias fueron descargadas completamente.");
             }
             catch (OperationCanceledException)
             {
                 return NoticiasOfflineSyncResult.Fail(
-                    "La sincronización de noticias fue cancelada.");
+                    "La descarga de noticias fue cancelada.");
             }
             catch (Exception ex)
             {
@@ -350,6 +312,7 @@ namespace CONATRADEC.Services
                 int? categoriaId,
                 bool soloDestacadas,
                 bool soloEventos,
+                int tamanoPagina,
                 IDictionary<
                     int,
                     PublicacionListadoResponse>
@@ -369,7 +332,7 @@ namespace CONATRADEC.Services
                             soloDestacadas,
                             soloEventos,
                             pagina,
-                            tamanoPagina: 30,
+                            tamanoPagina,
                             cancellationToken);
 
                 if (!resultado.Success ||
@@ -432,13 +395,8 @@ namespace CONATRADEC.Services
 
             ContenidoEstadoService.Instance.Actualizar(
                 Modulo,
-                EstadoConexionService.Instance.HayInternet
-                    ? TipoEstadoSincronizacionContenido.Error
-                    : TipoEstadoSincronizacionContenido
-                        .SinConexionLocal,
-                EstadoConexionService.Instance.HayInternet
-                    ? "No se completó la sincronización"
-                    : "Sin conexión · usando datos sincronizados",
+                TipoEstadoSincronizacionContenido.Error,
+                "No se completó la descarga de noticias",
                 respaldo);
 
             return NoticiasOfflineSyncResult.Fail(
@@ -460,28 +418,33 @@ namespace CONATRADEC.Services
 
         private static bool EstaVersionCompleta(
             string usuarioId,
-            string version) =>
-                string.Equals(
-                    Preferences.Get(
-                        ConstruirClaveVersionCompleta(
-                            usuarioId),
-                        string.Empty),
-                    version,
-                    StringComparison.Ordinal);
+            string version)
+        {
+            if (string.IsNullOrWhiteSpace(version))
+                return false;
+
+            return string.Equals(
+                Preferences.Get(
+                    ConstruirClaveVersionCompleta(
+                        usuarioId),
+                    string.Empty),
+                version,
+                StringComparison.Ordinal);
+        }
 
         private static void MarcarVersionCompleta(
             string usuarioId,
             string version) =>
-                Preferences.Set(
-                    ConstruirClaveVersionCompleta(
-                        usuarioId),
-                    version);
+            Preferences.Set(
+                ConstruirClaveVersionCompleta(
+                    usuarioId),
+                version);
 
         private static string
             ConstruirClaveVersionCompleta(
                 string usuarioId) =>
-                ClaveVersionCompletaPrefijo +
-                usuarioId;
+            ClaveVersionCompletaPrefijo +
+            usuarioId;
 
         private sealed class ResultadoPaginas
         {
@@ -500,8 +463,11 @@ namespace CONATRADEC.Services
                 new()
                 {
                     Success = false,
-                    Message = message ??
-                              string.Empty
+                    Message =
+                        string.IsNullOrWhiteSpace(
+                            message)
+                            ? "No fue posible descargar las páginas."
+                            : message
                 };
         }
     }

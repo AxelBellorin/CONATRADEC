@@ -50,12 +50,29 @@ namespace CONATRADEC.Services
                 EsRutaCatalogo(path) ||
                 EsRutaCalculo(path);
 
-            if (!esRutaLocal ||
-                !DatosSinConexionPermisos.TienePermiso)
+            if (!esRutaLocal)
             {
                 return await base.SendAsync(
                     request,
                     cancellationToken);
+            }
+
+            /*
+             * El modo online no consulta la copia local ni aplica fallback.
+             */
+            if (ModoSesionService.EsEnLinea)
+            {
+                return await base.SendAsync(
+                    request,
+                    cancellationToken);
+            }
+
+            if (!DatosSinConexionPermisos.TienePermiso)
+            {
+                return CrearError(
+                    request,
+                    HttpStatusCode.Forbidden,
+                    "Su usuario no tiene habilitados los cálculos sin conexión.");
             }
 
             byte[] contenido =
@@ -67,106 +84,6 @@ namespace CONATRADEC.Services
             RestaurarContenido(
                 request,
                 contenido);
-
-            if (DebeTrabajarLocal())
-            {
-                return await CrearRespuestaLocalAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-
-            try
-            {
-                HttpResponseMessage response =
-                    await base.SendAsync(
-                        request,
-                        cancellationToken);
-
-                if (!EsFalloInfraestructura(
-                        response.StatusCode))
-                {
-                    return response;
-                }
-
-                MotorCalculoPaquete? paquete =
-                    await MotorCalculoPaqueteService.Instance
-                        .ObtenerPaqueteActivoAsync(
-                            cancellationToken);
-
-                if (paquete == null)
-                    return response;
-
-                response.Dispose();
-
-                await ModoTrabajoAnalisisService.Instance
-                    .CambiarAOfflinePorCaidaAsync(
-                        cancellationToken);
-
-                return await CrearRespuestaLocalAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-            catch (HttpRequestException)
-            {
-                return await CrearFallbackAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-            catch (TaskCanceledException)
-                when (!cancellationToken.IsCancellationRequested)
-            {
-                return await CrearFallbackAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-            catch (IOException)
-            {
-                return await CrearFallbackAsync(
-                    request,
-                    path,
-                    contenido,
-                    cancellationToken);
-            }
-        }
-
-        private static bool DebeTrabajarLocal() =>
-            !EstadoConexionService.Instance.HayInternet ||
-            ModoTrabajoAnalisisService
-                .Instance
-                .EstadoActual
-                .Modo ==
-                ModoTrabajoAnalisis.SinConexion;
-
-        private static async Task<HttpResponseMessage>
-            CrearFallbackAsync(
-                HttpRequestMessage request,
-                string path,
-                byte[] contenido,
-                CancellationToken cancellationToken)
-        {
-            MotorCalculoPaquete? paquete =
-                await MotorCalculoPaqueteService.Instance
-                    .ObtenerPaqueteActivoAsync(
-                        cancellationToken);
-
-            if (paquete == null)
-                throw new HttpRequestException(
-                    "La API no responde y no existe un motor local válido.");
-
-            EstadoConexionService.Instance
-                .ReportarServidorNoDisponible();
-
-            await ModoTrabajoAnalisisService.Instance
-                .CambiarAOfflinePorCaidaAsync(
-                    cancellationToken);
 
             return await CrearRespuestaLocalAsync(
                 request,

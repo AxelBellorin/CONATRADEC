@@ -137,10 +137,10 @@ namespace CONATRADEC.Services
                     "Su usuario no tiene habilitado el trabajo sin conexión.");
             }
 
-            if (!EstadoConexionService.Instance.HayInternet)
+            if (!ModoSesionService.EsEnLinea)
             {
                 return ResultadoDescargaMotor.Fail(
-                    "Se necesita conexión para descargar el motor de cálculo.");
+                    "El motor solamente puede descargarse durante una sesión en línea.");
             }
 
             await syncLock.WaitAsync(cancellationToken);
