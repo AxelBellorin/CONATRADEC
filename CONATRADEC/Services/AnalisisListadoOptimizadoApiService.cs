@@ -8,7 +8,7 @@ namespace CONATRADEC.Services
     public sealed class AnalisisListadoOptimizadoApiService
     {
         private static readonly TimeSpan TiempoMaximoListado =
-            TimeSpan.FromSeconds(25);
+            TimeSpan.FromSeconds(8);
 
         private readonly HttpClient httpClient;
 
@@ -43,23 +43,30 @@ namespace CONATRADEC.Services
                 CancellationToken cancellationToken = default)
         {
             /*
-             * El listado histórico todavía no forma parte del paquete local.
-             * En una sesión offline se devuelve inmediatamente una lista vacía
-             * para no bloquear durante 25 segundos el botón Nuevo análisis.
-             */
-            /*
-             * SesionActualEsOffline indica cómo se autenticó inicialmente el
-             * usuario, no que deba permanecer desconectado toda la sesión.
-             * Cuando la API vuelve a estar disponible, el listado debe poder
-             * consultar nuevamente el servidor.
+             * Los análisis calculados localmente forman parte del listado aun
+             * sin conexión. No se espera el timeout de la API.
+             *
+             * SesionActualEsOffline indica cómo se autenticó el usuario, no que
+             * deba permanecer desconectado toda la sesión.
              */
             if (!EstadoConexionService.Instance.HayInternet)
             {
+                List<AnalisisGuardadoResumen> locales =
+                    await ObtenerLocalesFiltradosAsync(
+                        usuarioId,
+                        buscar,
+                        fechaDesde,
+                        fechaHasta,
+                        incluirSincronizados: false);
+
                 return ApiResult<AnalisisListadoPaginadoResponse>.Ok(
-                    CrearListadoOfflineVacio(
+                    CrearListadoOffline(
+                        locales,
                         pagina,
                         tamanoPagina),
-                    "Sin conexión. Puede crear un nuevo análisis con el motor descargado.");
+                    locales.Count == 0
+                        ? "Sin conexión. No hay análisis locales pendientes."
+                        : "Sin conexión. Se muestran los análisis guardados en este dispositivo.");
             }
 
             var query = new List<string>
@@ -148,19 +155,74 @@ namespace CONATRADEC.Services
                             "El servidor no devolvió el listado esperado.");
                 }
 
+                AnalisisListadoPaginadoResponse data =
+                    envelope.Data;
+
+                /*
+                 * Solo la primera página incorpora las operaciones pendientes
+                 * del dispositivo. Se muestran antes que los registros del
+                 * servidor y se identifican por su estado en el título.
+                 */
+                if (Math.Max(1, pagina) == 1)
+                {
+                    List<AnalisisGuardadoResumen> locales =
+                        await ObtenerLocalesFiltradosAsync(
+                            usuarioId,
+                            buscar,
+                            fechaDesde,
+                            fechaHasta,
+                            incluirSincronizados: false);
+
+                    if (locales.Count > 0)
+                    {
+                        List<AnalisisGuardadoResumen> combinados =
+                            locales
+                                .Concat(data.Items)
+                                .GroupBy(item =>
+                                    item.AnalisisSueloCalculoId)
+                                .Select(group =>
+                                    group.First())
+                                .ToList();
+
+                        data.Items = combinados;
+                        data.TotalRegistros +=
+                            locales.Count;
+
+                        data.TotalPaginas =
+                            Math.Max(
+                                1,
+                                (int)Math.Ceiling(
+                                    data.TotalRegistros /
+                                    (double)Math.Max(
+                                        1,
+                                        data.TamanoPagina)));
+
+                        data.TieneMas =
+                            data.Pagina <
+                            data.TotalPaginas;
+                    }
+                }
+
                 return ApiResult<
                     AnalisisListadoPaginadoResponse>.Ok(
-                        envelope.Data,
+                        data,
                         envelope.Message);
             }
             catch (OperationCanceledException)
                 when (timeoutSource.IsCancellationRequested &&
                       !cancellationToken.IsCancellationRequested)
             {
-                return ApiResult<
-                    AnalisisListadoPaginadoResponse>.Fail(
-                        "La consulta tardó demasiado y fue cancelada. " +
-                        "Presione Actualizar lista para intentarlo nuevamente.");
+                EstadoConexionService.Instance
+                    .ReportarServidorNoDisponible();
+
+                return await CrearResultadoLocalPorFalloAsync(
+                    usuarioId,
+                    buscar,
+                    fechaDesde,
+                    fechaHasta,
+                    pagina,
+                    tamanoPagina,
+                    "La API no respondió. Se muestran los análisis guardados en este dispositivo.");
             }
             catch (OperationCanceledException)
             {
@@ -170,9 +232,17 @@ namespace CONATRADEC.Services
             }
             catch (HttpRequestException)
             {
-                return ApiResult<
-                    AnalisisListadoPaginadoResponse>.Fail(
-                        "No fue posible conectarse con el servidor.");
+                EstadoConexionService.Instance
+                    .ReportarServidorNoDisponible();
+
+                return await CrearResultadoLocalPorFalloAsync(
+                    usuarioId,
+                    buscar,
+                    fechaDesde,
+                    fechaHasta,
+                    pagina,
+                    tamanoPagina,
+                    "No fue posible conectar con la API. Se muestran los análisis locales.");
             }
             catch (JsonException)
             {
@@ -285,8 +355,117 @@ namespace CONATRADEC.Services
             }
         }
 
+        private static async Task<ApiResult<
+            AnalisisListadoPaginadoResponse>>
+            CrearResultadoLocalPorFalloAsync(
+                int? usuarioId,
+                string? buscar,
+                DateTime? fechaDesde,
+                DateTime? fechaHasta,
+                int pagina,
+                int tamanoPagina,
+                string mensaje)
+        {
+            List<AnalisisGuardadoResumen> locales =
+                await ObtenerLocalesFiltradosAsync(
+                    usuarioId,
+                    buscar,
+                    fechaDesde,
+                    fechaHasta,
+                    incluirSincronizados: false);
+
+            return ApiResult<
+                AnalisisListadoPaginadoResponse>.Ok(
+                    CrearListadoOffline(
+                        locales,
+                        pagina,
+                        tamanoPagina),
+                    mensaje);
+        }
+
+        private static async Task<List<
+            AnalisisGuardadoResumen>>
+            ObtenerLocalesFiltradosAsync(
+                int? usuarioId,
+                string? buscar,
+                DateTime? fechaDesde,
+                DateTime? fechaHasta,
+                bool incluirSincronizados)
+        {
+            List<AnalisisGuardadoResumen> items =
+                incluirSincronizados
+                    ? await AnalisisOfflineDatabaseService
+                        .Instance
+                        .ListarResumenLocalAsync()
+                    : await AnalisisOfflineDatabaseService
+                        .Instance
+                        .ListarResumenPendienteAsync();
+
+            int usuarioActual =
+                int.TryParse(
+                    Preferences.Get(
+                        SessionKeys.KeyUserId,
+                        "0"),
+                    out int parsed)
+                        ? parsed
+                        : 0;
+
+            IEnumerable<AnalisisGuardadoResumen> query =
+                items;
+
+            if (usuarioId.HasValue &&
+                usuarioId.Value > 0 &&
+                usuarioId.Value != usuarioActual)
+            {
+                return new List<
+                    AnalisisGuardadoResumen>();
+            }
+
+            if (!string.IsNullOrWhiteSpace(buscar))
+            {
+                string termino =
+                    buscar.Trim().ToUpperInvariant();
+
+                query = query.Where(item =>
+                    item.TextoBusqueda.Contains(
+                        termino,
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (fechaDesde.HasValue)
+            {
+                DateTime desde =
+                    fechaDesde.Value.Date;
+
+                query = query.Where(item =>
+                    (item.FechaRegistroValor ??
+                     item.FechaCalculoValor ??
+                     DateTime.MinValue).Date >=
+                    desde);
+            }
+
+            if (fechaHasta.HasValue)
+            {
+                DateTime hasta =
+                    fechaHasta.Value.Date;
+
+                query = query.Where(item =>
+                    (item.FechaRegistroValor ??
+                     item.FechaCalculoValor ??
+                     DateTime.MinValue).Date <=
+                    hasta);
+            }
+
+            return query
+                .OrderByDescending(item =>
+                    item.FechaRegistroValor ??
+                    item.FechaCalculoValor)
+                .ToList();
+        }
+
         private static AnalisisListadoPaginadoResponse
-            CrearListadoOfflineVacio(
+            CrearListadoOffline(
+                List<AnalisisGuardadoResumen> items,
                 int pagina,
                 int tamanoPagina)
         {
@@ -301,17 +480,46 @@ namespace CONATRADEC.Services
                     "ADMIN",
                     StringComparison.OrdinalIgnoreCase);
 
+            int page =
+                Math.Max(1, pagina);
+
+            int pageSize =
+                Math.Clamp(
+                    tamanoPagina,
+                    4,
+                    30);
+
+            int totalPaginas =
+                Math.Max(
+                    1,
+                    (int)Math.Ceiling(
+                        items.Count /
+                        (double)pageSize));
+
+            List<AnalisisGuardadoResumen> paginaItems =
+                items
+                    .Skip(
+                        (page - 1) *
+                        pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
             return new AnalisisListadoPaginadoResponse
             {
-                Pagina = Math.Max(1, pagina),
-                TamanoPagina =
-                    Math.Clamp(tamanoPagina, 4, 30),
-                TotalRegistros = 0,
-                TotalPaginas = 1,
-                TieneMas = false,
-                EsAdministrador = esAdministrador,
-                Items = new List<AnalisisGuardadoResumen>(),
-                Usuarios = new List<UsuarioFiltroAnalisis>()
+                Pagina = page,
+                TamanoPagina = pageSize,
+                TotalRegistros =
+                    items.Count,
+                TotalPaginas =
+                    totalPaginas,
+                TieneMas =
+                    page < totalPaginas,
+                EsAdministrador =
+                    esAdministrador,
+                Items =
+                    paginaItems,
+                Usuarios =
+                    new List<UsuarioFiltroAnalisis>()
             };
         }
 

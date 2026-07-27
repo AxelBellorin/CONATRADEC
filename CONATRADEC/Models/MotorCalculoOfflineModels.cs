@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace CONATRADEC.Models
 {
     public enum ModoTrabajoAnalisis
@@ -37,6 +35,9 @@ namespace CONATRADEC.Models
         public bool EnmiendaCalcarea { get; set; }
         public bool BalanceFormula { get; set; }
         public bool FertilizacionMixta { get; set; }
+        public bool GuardadoLocal { get; set; }
+        public bool Sincronizacion { get; set; }
+        public bool ReportePdfLocal { get; set; }
     }
 
     public sealed class MotorCalculoContenido
@@ -61,6 +62,18 @@ namespace CONATRADEC.Models
 
         public List<MotorRangoCultivo>
             RangosCultivo { get; set; } = new();
+
+        public List<MotorFuenteNutriente>
+            FuentesNutrientes { get; set; } = new();
+
+        public List<MotorFuenteAporte>
+            AportesFuentes { get; set; } = new();
+
+        public List<MotorParametroEnmienda>
+            ParametrosEnmiendaCalcarea { get; set; } = new();
+
+        public List<int>
+            FuentesFertilizacionMixtaIds { get; set; } = new();
     }
 
     public sealed class MotorTipoCultivo
@@ -130,6 +143,39 @@ namespace CONATRADEC.Models
         public decimal ValorMinimo { get; set; }
         public decimal ValorMaximo { get; set; }
         public string UnidadBase { get; set; } = string.Empty;
+        public bool Activo { get; set; }
+    }
+
+    public sealed class MotorFuenteNutriente
+    {
+        public int FuenteNutrientesId { get; set; }
+        public string NombreNutriente { get; set; } = string.Empty;
+        public string DescripcionNutriente { get; set; } = string.Empty;
+        public decimal PrecioNutriente { get; set; }
+        public bool HabilitadaEnmiendaCalcarea { get; set; }
+        public bool HabilitadaFertilizacionMixta { get; set; }
+        public bool Activo { get; set; }
+    }
+
+    public sealed class MotorFuenteAporte
+    {
+        public int FuenteNutrienteElementoQuimicoId { get; set; }
+        public int FuenteNutrientesId { get; set; }
+        public int ElementoQuimicosId { get; set; }
+        public decimal CantidadAporte { get; set; }
+        public bool Activo { get; set; }
+    }
+
+    public sealed class MotorParametroEnmienda
+    {
+        public int ParametroEnmiendaCalcareaId { get; set; }
+        public int FuenteNutrientesId { get; set; }
+        public decimal SaturacionBasesDeseada { get; set; }
+        public decimal Prnt { get; set; }
+        public decimal FactorTonHaALbHa { get; set; }
+        public decimal FactorHaAMz { get; set; }
+        public decimal FactorTonHaAKgHa { get; set; }
+        public string DescripcionParametro { get; set; } = string.Empty;
         public bool Activo { get; set; }
     }
 

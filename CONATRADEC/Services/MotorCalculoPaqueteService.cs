@@ -15,7 +15,7 @@ namespace CONATRADEC.Services
     /// </summary>
     public sealed class MotorCalculoPaqueteService
     {
-        private const int VersionEsquemaSoportada = 1;
+        private const int VersionEsquemaSoportada = 2;
 
         private static readonly Lazy<MotorCalculoPaqueteService> lazy =
             new(() => new MotorCalculoPaqueteService());
@@ -339,10 +339,16 @@ namespace CONATRADEC.Services
                 return false;
             }
 
-            if (paquete.Modulos?.RequerimientoAnual != true)
+            if (paquete.Modulos?.RequerimientoAnual != true ||
+                paquete.Modulos.EnmiendaCalcarea != true ||
+                paquete.Modulos.BalanceFormula != true ||
+                paquete.Modulos.FertilizacionMixta != true ||
+                paquete.Modulos.GuardadoLocal != true ||
+                paquete.Modulos.Sincronizacion != true ||
+                paquete.Modulos.ReportePdfLocal != true)
             {
                 mensaje =
-                    "El paquete no contiene el módulo de requerimiento anual.";
+                    "El paquete no contiene todos los módulos necesarios para trabajar sin conexión.";
                 return false;
             }
 
@@ -361,6 +367,28 @@ namespace CONATRADEC.Services
             {
                 mensaje =
                     "El paquete no contiene todas las reglas de conversión.";
+                return false;
+            }
+
+            if (paquete.Contenido.FuentesNutrientes.Count == 0 ||
+                paquete.Contenido.AportesFuentes.Count == 0)
+            {
+                mensaje =
+                    "El paquete no contiene las fuentes, precios y composiciones requeridas.";
+                return false;
+            }
+
+            if (paquete.Contenido.ParametrosEnmiendaCalcarea.Count == 0)
+            {
+                mensaje =
+                    "El paquete no contiene parámetros de enmienda calcárea.";
+                return false;
+            }
+
+            if (paquete.Contenido.FuentesFertilizacionMixtaIds.Count == 0)
+            {
+                mensaje =
+                    "El paquete no contiene fuentes habilitadas para fertilización mixta.";
                 return false;
             }
 
@@ -404,7 +432,11 @@ namespace CONATRADEC.Services
                 contenido.ConversionesElementos.Count +
                 contenido.ConversionesMateriaOrganica.Count +
                 contenido.ParametrosExtraccion.Count +
-                contenido.RangosCultivo.Count;
+                contenido.RangosCultivo.Count +
+                contenido.FuentesNutrientes.Count +
+                contenido.AportesFuentes.Count +
+                contenido.ParametrosEnmiendaCalcarea.Count +
+                contenido.FuentesFertilizacionMixtaIds.Count;
         }
 
         private static string ObtenerUsuarioId()

@@ -31,23 +31,32 @@ namespace CONATRADEC.Services
                 InnerHandler = new SesionOfflineHandler
                 {
                     InnerHandler =
-                        new AnalisisCalculoLocalHttpHandler
+                        new AnalisisOfflineGuardarHttpHandler
                         {
-                            /*
-                             * Atiende las rutas históricas utilizadas por
-                             * Nuevo análisis para cultivos y unidades.
-                             */
                             InnerHandler =
-                                new AnalisisCatalogosLocalHttpHandler
+                                new AnalisisCalculoLocalHttpHandler
                                 {
                                     InnerHandler =
-                                        new CatalogosLocalHttpHandler
+                                        new AnalisisComplementariosLocalHttpHandler
                                         {
+                                            /*
+                                             * Atiende las rutas históricas
+                                             * utilizadas por Nuevo análisis
+                                             * para cultivos y unidades.
+                                             */
                                             InnerHandler =
-                                                new ContenidoSincronizacionHandler
+                                                new AnalisisCatalogosLocalHttpHandler
                                                 {
                                                     InnerHandler =
-                                                        new HttpClientHandler()
+                                                        new CatalogosLocalHttpHandler
+                                                        {
+                                                            InnerHandler =
+                                                                new ContenidoSincronizacionHandler
+                                                                {
+                                                                    InnerHandler =
+                                                                        new HttpClientHandler()
+                                                                }
+                                                        }
                                                 }
                                         }
                                 }
@@ -66,6 +75,13 @@ namespace CONATRADEC.Services
                 new MediaTypeWithQualityHeaderValue(
                     "application/json"));
 
+            /*
+             * Iniciar no realiza solicitudes en este punto. Únicamente deja
+             * registrada la cola para detectar una futura reconexión.
+             */
+            AnalisisOfflineSincronizacionService.Instance
+                .Iniciar();
+
             return client;
         }
 
@@ -75,6 +91,21 @@ namespace CONATRADEC.Services
                 HttpRequestMessage request,
                 CancellationToken cancellationToken)
             {
+                /*
+                 * En este punto el HttpClient ya terminó de construirse. Es
+                 * seguro iniciar la cola sin provocar acceso recursivo al Lazy.
+                 */
+                AnalisisOfflineSincronizacionService.Instance
+                    .Iniciar();
+
+                /*
+                 * Iniciar es idempotente. La solicitud adicional permite que
+                 * una cola creada en una sesión anterior se procese apenas el
+                 * usuario autenticado vuelva a realizar una operación online.
+                 */
+                AnalisisOfflineSincronizacionService.Instance
+                    .SolicitarSincronizacion();
+
                 AgregarEncabezado(
                     request,
                     "X-Usuario-Id",
