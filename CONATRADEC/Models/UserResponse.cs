@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
@@ -47,22 +47,31 @@ namespace CONATRADEC.Models
                 ? "Sin identificación"
                 : IdentificacionUsuario.Trim();
 
+        public bool EsAdministradorProtegido =>
+            string.Equals(
+                RolNombre?.Trim(),
+                "Administrador",
+                StringComparison.OrdinalIgnoreCase);
+
+        public bool PuedeDesactivar => !EsAdministradorProtegido;
+
         public string Iniciales
         {
             get
             {
                 string texto = NombreMostrar;
-                string[] partes = texto
-                    .Split(
-                        ' ',
-                        StringSplitOptions.RemoveEmptyEntries);
+                string[] partes = texto.Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries);
 
                 if (partes.Length == 0)
                     return "US";
 
                 if (partes.Length == 1)
+                {
                     return partes[0][..Math.Min(2, partes[0].Length)]
                         .ToUpperInvariant();
+                }
 
                 return string.Concat(
                     partes[0][0],

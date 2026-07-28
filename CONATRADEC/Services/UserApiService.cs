@@ -1,7 +1,7 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
+using Microsoft.Maui.Storage;
 using System.Collections.ObjectModel;
 using System.Net.Http.Headers;
-using Microsoft.Maui.Storage;
 
 namespace CONATRADEC.Services
 {
@@ -20,8 +20,9 @@ namespace CONATRADEC.Services
                 ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public Task<ApiResult<ObservableCollection<UserResponse>>> GetUsersResultAsync(
-            CancellationToken cancellationToken = default)
+        public Task<ApiResult<ObservableCollection<UserResponse>>>
+            GetUsersResultAsync(
+                CancellationToken cancellationToken = default)
         {
             return ApiServiceHelper.GetCollectionAsync<UserResponse>(
                 httpClient,
@@ -36,7 +37,9 @@ namespace CONATRADEC.Services
         {
             ArgumentNullException.ThrowIfNull(userRequest);
 
-            return ApiServiceHelper.SendAndReadAsync<UserRequest, UserRequest>(
+            return ApiServiceHelper.SendAndReadAsync<
+                UserRequest,
+                UserRequest>(
                 httpClient,
                 HttpMethod.Post,
                 "api/usuarios/crear",
@@ -52,14 +55,17 @@ namespace CONATRADEC.Services
         {
             ArgumentNullException.ThrowIfNull(userRequest);
 
-            if (!userRequest.UsuarioId.HasValue || userRequest.UsuarioId.Value <= 0)
+            if (!userRequest.UsuarioId.HasValue ||
+                userRequest.UsuarioId.Value <= 0)
             {
                 return Task.FromResult(
                     ApiResult<UserRequest>.Fail(
                         "No se recibió un identificador de usuario válido."));
             }
 
-            return ApiServiceHelper.SendAndReadAsync<UserRequest, UserRequest>(
+            return ApiServiceHelper.SendAndReadAsync<
+                UserRequest,
+                UserRequest>(
                 httpClient,
                 HttpMethod.Put,
                 $"api/usuarios/actualizar/{userRequest.UsuarioId.Value}",
@@ -74,6 +80,13 @@ namespace CONATRADEC.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(user);
+
+            if (EsAdministrador(user.RolNombre))
+            {
+                return Task.FromResult(
+                    ApiResult<bool>.Fail(
+                        "El usuario administrador es un registro protegido y no puede desactivarse."));
+            }
 
             if (!user.UsuarioId.HasValue || user.UsuarioId.Value <= 0)
             {
@@ -98,7 +111,10 @@ namespace CONATRADEC.Services
             CancellationToken cancellationToken = default)
         {
             if (!usuarioId.HasValue || usuarioId.Value <= 0)
-                return ApiResult<bool>.Fail("El identificador del usuario no es válido.");
+            {
+                return ApiResult<bool>.Fail(
+                    "El identificador del usuario no es válido.");
+            }
 
             if (imagenSeleccionada == null)
                 return ApiResult<bool>.Fail("No se seleccionó una imagen.");
@@ -115,7 +131,9 @@ namespace CONATRADEC.Services
 
             try
             {
-                await using var stream = await imagenSeleccionada.OpenReadAsync();
+                await using var stream =
+                    await imagenSeleccionada.OpenReadAsync();
+
                 using var content = new MultipartFormDataContent();
                 using var streamContent = new StreamContent(stream);
 
@@ -171,10 +189,6 @@ namespace CONATRADEC.Services
             }
         }
 
-        // =========================================================
-        // MÉTODOS ANTERIORES CONSERVADOS PARA LOS FORMULARIOS
-        // =========================================================
-
         public async Task<ObservableCollection<UserResponse>> GetUsersAsync()
         {
             var result = await GetUsersResultAsync();
@@ -212,5 +226,11 @@ namespace CONATRADEC.Services
             if (!result.Success)
                 await GlobalService.MostrarToastAsync(result.Message);
         }
+
+        private static bool EsAdministrador(string? nombreRol) =>
+            string.Equals(
+                nombreRol?.Trim(),
+                "Administrador",
+                StringComparison.OrdinalIgnoreCase);
     }
 }

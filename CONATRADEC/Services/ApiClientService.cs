@@ -1,6 +1,7 @@
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
+using System.Net;
 using System.Net.Http.Headers;
 
 namespace CONATRADEC.Services
@@ -26,14 +27,6 @@ namespace CONATRADEC.Services
                     urlApiService.BaseUrlApi);
             }
 
-            /*
-             * Orden importante:
-             * 1. Login decide el modo sin usar fallback.
-             * 2. Routing pone catálogos en bypass durante sesiones online.
-             * 3. Historial guarda/lee detalles y reportes.
-             * 4. Cálculos y guardado local solo actúan en modo offline.
-             * 5. La barrera final impide cualquier salida física de red offline.
-             */
             var handler = new ContextoBitacoraHandler
             {
                 InnerHandler = new SesionOfflineHandler
@@ -95,8 +88,7 @@ namespace CONATRADEC.Services
             return client;
         }
 
-        private sealed class ContextoBitacoraHandler :
-            DelegatingHandler
+        private sealed class ContextoBitacoraHandler : DelegatingHandler
         {
             protected override async Task<HttpResponseMessage> SendAsync(
                 HttpRequestMessage request,
@@ -108,6 +100,18 @@ namespace CONATRADEC.Services
                     Preferences.Get(
                         SessionKeys.KeyUserId,
                         string.Empty));
+
+                int versionSesion = Preferences.Get(
+                    SessionKeys.KeySessionVersion,
+                    0);
+
+                if (versionSesion > 0)
+                {
+                    AgregarEncabezado(
+                        request,
+                        "X-Version-Sesion",
+                        versionSesion.ToString());
+                }
 
                 AgregarEncabezado(
                     request,
@@ -155,11 +159,6 @@ namespace CONATRADEC.Services
                         .ModoActual
                         .ToString());
 
-                /*
-                 * Solo la primera solicitud autenticada de una sesión online
-                 * activa el envío silencioso de pendientes. El propio servicio
-                 * impide ejecuciones repetidas y no usa temporizador.
-                 */
                 AnalisisOfflineSincronizacionService.Instance
                     .SolicitarUnaVezPorSesionOnline();
 
@@ -168,10 +167,19 @@ namespace CONATRADEC.Services
                         request,
                         cancellationToken);
 
+                bool invalidadaPorEncabezado =
+                    response.Headers.TryGetValues(
+                        "X-Sesion-Invalidada",
+                        out IEnumerable<string>? valores) &&
+                    valores.Any(value =>
+                        value.Equals(
+                            "true",
+                            StringComparison.OrdinalIgnoreCase));
+
+                string content = string.Empty;
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    string content;
-
                     try
                     {
                         content = await response.Content
@@ -192,6 +200,18 @@ namespace CONATRADEC.Services
                     ApiErrorContext.Set(
                         message,
                         (int)response.StatusCode);
+                }
+
+                bool invalidadaPorRespuesta =
+                    response.StatusCode == HttpStatusCode.Unauthorized &&
+                    content.Contains(
+                        "SESSION_INVALIDATED",
+                        StringComparison.OrdinalIgnoreCase);
+
+                if (invalidadaPorEncabezado || invalidadaPorRespuesta)
+                {
+                    SessionValidationService.Instance
+                        .NotificarSesionInvalidada();
                 }
 
                 return response;
@@ -216,9 +236,11 @@ namespace CONATRADEC.Services
                 string fabricante =
                     DeviceInfo.Current.Manufacturer ??
                     string.Empty;
+
                 string modelo =
                     DeviceInfo.Current.Model ??
                     string.Empty;
+
                 string nombre =
                     DeviceInfo.Current.Name ??
                     string.Empty;

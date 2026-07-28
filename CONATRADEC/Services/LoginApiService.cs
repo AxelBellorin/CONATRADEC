@@ -1,4 +1,5 @@
 using CONATRADEC.Models;
+using Microsoft.Maui.Storage;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -11,19 +12,11 @@ namespace CONATRADEC.Services
     {
         private readonly HttpClient httpClient;
 
-        /// <summary>
-        /// Mantiene compatibilidad con el LoginViewModel actual.
-        /// Utiliza el HttpClient compartido de la aplicación.
-        /// </summary>
         public LoginApiService()
             : this(ApiClientService.Client)
         {
         }
 
-        /// <summary>
-        /// Permite suministrar un HttpClient desde pruebas o desde
-        /// inyección de dependencias en una etapa posterior.
-        /// </summary>
         public LoginApiService(HttpClient httpClient)
         {
             this.httpClient = httpClient
@@ -36,10 +29,11 @@ namespace CONATRADEC.Services
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            using HttpResponseMessage response = await httpClient.PostAsJsonAsync(
-                "api/auth/login",
-                request,
-                cancellationToken);
+            using HttpResponseMessage response =
+                await httpClient.PostAsJsonAsync(
+                    "api/auth/login",
+                    request,
+                    cancellationToken);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -49,8 +43,9 @@ namespace CONATRADEC.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                string contenidoError = await response.Content.ReadAsStringAsync(
-                    cancellationToken);
+                string contenidoError =
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
 
                 throw new HttpRequestException(
                     $"La API respondió con el código " +
@@ -69,6 +64,19 @@ namespace CONATRADEC.Services
                 throw new InvalidOperationException(
                     "La API respondió correctamente, pero no devolvió " +
                     "los datos del usuario.");
+            }
+
+            if (loginResponse.UsuarioId is > 0)
+            {
+                Preferences.Set(
+                    SessionKeys.KeyUserId,
+                    loginResponse.UsuarioId.Value.ToString());
+
+                Preferences.Set(
+                    SessionKeys.KeySessionVersion,
+                    Math.Max(1, loginResponse.VersionSesion));
+
+                SessionValidationService.Instance.Iniciar();
             }
 
             return loginResponse;

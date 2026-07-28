@@ -1,4 +1,4 @@
-﻿namespace CONATRADEC.Services
+namespace CONATRADEC.Services
 {
     public static class SessionKeys
     {
@@ -8,5 +8,6 @@
         public const string KeyUrlImagenUsuario = "UrlImagenUsuario";
         public const string KeyRolId = "RolId";
         public const string KeyRolNombre = "RolNombre";
+        public const string KeySessionVersion = "VersionSesion";
     }
 }

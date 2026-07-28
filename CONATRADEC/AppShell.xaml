@@ -16,6 +16,16 @@
         FlyoutItemIsVisible="False"
         ContentTemplate="{DataTemplate views:loginPage}" />
 
+    <!--
+        Pantalla utilizada cuando el usuario está activo, pero su rol no tiene
+        permiso de lectura para ninguna sección principal de la aplicación.
+    -->
+    <ShellContent
+        Title="SinPermisosPage"
+        Route="SinPermisosPage"
+        FlyoutItemIsVisible="False"
+        ContentTemplate="{DataTemplate views:sinPermisosPage}" />
+
     <ShellContent
         Title="MatrizPermisosPage"
         Route="MatrizPermisosPage"

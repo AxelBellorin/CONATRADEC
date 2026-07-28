@@ -80,11 +80,16 @@
                                 <Label Text="Contraseña" FontAttributes="Bold" />
 
                                 <Grid ColumnDefinitions="*,Auto">
+                                    <!--
+                                        No se fuerza el teclado de contraseña porque Android
+                                        mantenía el texto oculto aun después de tocar
+                                        el botón del ojo. IsPassword controla por sí
+                                        solo la visibilidad.
+                                    -->
                                     <Entry
                                         Text="{Binding ClaveUsuario}"
                                         Placeholder="{Binding PasswordPlaceholder}"
                                         IsPassword="{Binding IsPasswordHidden}"
-                                        Keyboard="Password"
                                         BackgroundColor="#FAFBFA" />
 
                                     <ImageButton
@@ -168,7 +173,6 @@
                                 x:Name="TelefonoSection"
                                 Grid.Row="1"
                                 Spacing="6">
-
                                 <Label Text="Teléfono" FontAttributes="Bold" />
                                 <Entry
                                     Text="{Binding TelefonoUsuario}"
@@ -183,7 +187,6 @@
                                 x:Name="FechaSection"
                                 Grid.Row="2"
                                 Spacing="6">
-
                                 <Label Text="Fecha de nacimiento" FontAttributes="Bold" />
                                 <DatePicker
                                     Date="{Binding FechaNacimientoDate}"
@@ -197,7 +200,6 @@
                                 x:Name="RolSection"
                                 Grid.Row="3"
                                 Spacing="6">
-
                                 <Label Text="Rol" FontAttributes="Bold" />
                                 <Picker
                                     Title="Seleccione un rol"
@@ -218,7 +220,6 @@
                     StrokeShape="RoundRectangle 18">
 
                     <VerticalStackLayout Spacing="16">
-
                         <Label
                             Text="Ubicación"
                             FontSize="19"
@@ -247,7 +248,6 @@
                                 x:Name="DepartamentoSection"
                                 Grid.Row="1"
                                 Spacing="6">
-
                                 <Label Text="Departamento" FontAttributes="Bold" />
                                 <Picker
                                     Title="Seleccione un departamento"
@@ -261,7 +261,6 @@
                                 x:Name="MunicipioSection"
                                 Grid.Row="2"
                                 Spacing="6">
-
                                 <Label Text="Municipio" FontAttributes="Bold" />
                                 <Picker
                                     Title="Seleccione un municipio"
@@ -281,7 +280,6 @@
                     StrokeShape="RoundRectangle 18">
 
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-
                         <VerticalStackLayout Spacing="5">
                             <Label
                                 Text="Imagen de perfil"
@@ -305,7 +303,6 @@
                             BackgroundColor="#EEF5F2"
                             Stroke="#DDE7E3"
                             StrokeShape="RoundRectangle 18">
-
                             <Image
                                 Source="{Binding ImagenPreview}"
                                 Aspect="AspectFill" />

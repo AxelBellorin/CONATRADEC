@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Services;
+using CONATRADEC.Services;
 using CONATRADEC.Views;
 
 namespace CONATRADEC
@@ -9,7 +9,7 @@ namespace CONATRADEC
         {
             InitializeComponent();
 
-            // Fuerza la app a usar tema claro aunque el sistema esté en modo oscuro
+            // Fuerza la app a usar tema claro aunque el sistema esté en modo oscuro.
             UserAppTheme = AppTheme.Light;
         }
 
@@ -26,17 +26,31 @@ namespace CONATRADEC
             DispositivoConexionService.Instance.VincularShell(shell);
             DispositivoConexionService.Instance.Iniciar();
 
-            // Los eventos de Window funcionan en Android y Windows. El cierre
-            // explícito se reporta cuando el sistema operativo lo permite; si
-            // no lo permite, el servidor aplica la tolerancia de dos minutos.
+            /*
+             * La validación debe arrancar también al abrir una sesión que ya
+             * estaba guardada. Antes solo comenzaba al hacer un login nuevo,
+             * por eso una sesión anterior podía conservar permisos viejos.
+             */
+            window.Created += (_, _) =>
+                SessionValidationService.Instance.Iniciar();
+
             window.Resumed += (_, _) =>
+            {
+                SessionValidationService.Instance.Iniciar();
                 _ = DispositivoConexionService.Instance.ReanudarAsync();
+            };
 
             window.Stopped += (_, _) =>
+            {
+                SessionValidationService.Instance.Detener();
                 _ = DispositivoConexionService.Instance.SuspenderAsync();
+            };
 
             window.Destroying += (_, _) =>
+            {
+                SessionValidationService.Instance.Detener();
                 _ = DispositivoConexionService.Instance.DetenerAsync();
+            };
 
             return window;
         }
