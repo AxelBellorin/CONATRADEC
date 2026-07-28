@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.ActualizacionAplicacionPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{OnPlatform WinUI='#F5F7F6', Default={StaticResource color_Blanco}}">
+
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout
+                Padding="{OnIdiom Phone='18,22,18,24', Tablet='32,28,32,30', Desktop='60,34,60,36'}"
+                Spacing="18"
+                MaximumWidthRequest="850"
+                HorizontalOptions="Center">
+
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="3">
+                        <Label
+                            Text="Actualización disponible"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            FontSize="{OnIdiom Phone=25, Tablet=29, Desktop=32}"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Descargue e instale la versión más reciente de ConatraCafé Soil."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <Button
+                        Grid.Column="1"
+                        Text="Cerrar"
+                        Clicked="Volver_Clicked"
+                        IsVisible="{Binding PuedeCerrar}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource color_Verde}" />
+                </Grid>
+
+                <Border
+                    Padding="{OnIdiom Phone=18, Tablet=22, Desktop=26}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 20">
+
+                    <VerticalStackLayout Spacing="16">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                            <Border
+                                WidthRequest="62"
+                                HeightRequest="62"
+                                Padding="13"
+                                BackgroundColor="#EEF5F2"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 17">
+                                <Label
+                                    Text="↻"
+                                    FontSize="31"
+                                    HorizontalTextAlignment="Center"
+                                    VerticalTextAlignment="Center"
+                                    TextColor="{StaticResource color_Verde}" />
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label
+                                    Text="{Binding NuevaVersionTitulo}"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    FontSize="21"
+                                    TextColor="{StaticResource color_Negro}" />
+                                <Label
+                                    Text="{Binding ResumenVersion}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Border
+                            IsVisible="{Binding EsObligatoria}"
+                            Padding="12"
+                            BackgroundColor="#FFF4E5"
+                            Stroke="#FFB74D"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 12">
+                            <Label
+                                Text="Esta actualización es obligatoria para continuar utilizando la aplicación."
+                                FontAttributes="Bold"
+                                FontSize="12"
+                                TextColor="#8A4B00" />
+                        </Border>
+
+                        <Grid
+                            ColumnDefinitions="*,*"
+                            ColumnSpacing="10"
+                            RowDefinitions="Auto,Auto"
+                            RowSpacing="10">
+
+                            <Border Padding="12" BackgroundColor="#F7F9F8" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Versión instalada" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                    <Label Text="{Binding VersionInstalada}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Column="1" Padding="12" BackgroundColor="#F7F9F8" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Nueva versión" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                    <Label Text="{Binding VersionNueva}" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Row="1" Padding="12" BackgroundColor="#F7F9F8" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Plataforma" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                    <Label Text="{Binding PlataformaVisible}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Row="1" Grid.Column="1" Padding="12" BackgroundColor="#F7F9F8" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Tamaño" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                    <Label Text="{Binding TamanoVisible}" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label
+                                Text="Novedades"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="16"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Label
+                                Text="{Binding NotasVersion}"
+                                FontSize="13"
+                                LineBreakMode="WordWrap"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout
+                            IsVisible="{Binding MostrandoProgreso}"
+                            Spacing="7">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label
+                                    Text="Descargando actualización..."
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="{Binding PorcentajeTexto}"
+                                    FontAttributes="Bold"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_Verde}" />
+                            </Grid>
+                            <ProgressBar
+                                Progress="{Binding ProgresoDescarga}"
+                                ProgressColor="{StaticResource color_Verde}" />
+                        </VerticalStackLayout>
+
+                        <Label
+                            Text="{Binding MensajeEstado}"
+                            IsVisible="{Binding TieneMensajeEstado}"
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Border
+            Grid.Row="1"
+            Padding="{OnIdiom Phone='16,12,16,18', Tablet='24,14,24,20', Desktop='40,16,40,22'}"
+            BackgroundColor="White"
+            Stroke="#DDE7E3"
+            StrokeThickness="1">
+            <Button
+                Text="{Binding TextoBotonPrincipal}"
+                Command="{Binding DescargarEInstalarCommand}"
+                IsEnabled="{Binding PuedeEjecutar}"
+                MaximumWidthRequest="700"
+                HeightRequest="52"
+                CornerRadius="14"
+                FontFamily="MontserratBold"
+                FontAttributes="Bold"
+                BackgroundColor="{StaticResource color_Verde}"
+                TextColor="White" />
+        </Border>
+    </Grid>
+</ContentPage>

@@ -140,6 +140,10 @@ namespace CONATRADEC.Services
         public const string ConfiguracionUnidades =
             nameof(configuracionUnidadesPage);
 
+        // Descarga e instalación de nuevas versiones de la aplicación.
+        public const string ActualizacionAplicacion =
+            nameof(ActualizacionAplicacionPage);
+
         public const string Regresar =
             "..";
     }

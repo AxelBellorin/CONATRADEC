@@ -13,10 +13,15 @@
 		<ApplicationTitle>ConatraCafé Soil</ApplicationTitle>
 		<ApplicationId>com.conatradec.conatradec</ApplicationId>
 
-		<ApplicationDisplayVersion>1.0.1</ApplicationDisplayVersion>
-		<ApplicationVersion>2</ApplicationVersion>
+		<!-- Primera versión que incorpora el actualizador interno. -->
+		<ApplicationDisplayVersion>1.0.2</ApplicationDisplayVersion>
+		<ApplicationVersion>3</ApplicationVersion>
 
-		<WindowsPackageType>None</WindowsPackageType>
+		<!--
+			Debug continúa sin empaquetar. Release genera MSIX para que Windows
+			pueda reconocer cada archivo como actualización de la misma app.
+		-->
+		<WindowsPackageType Condition="'$(Configuration)'=='Debug'">None</WindowsPackageType>
 
 		<!-- Compatibilidad con teléfonos físicos y emuladores Android. -->
 		<RuntimeIdentifiers
@@ -122,6 +127,9 @@
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Resources\Styles\Template.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\ActualizacionAplicacionPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\AnalisisGuardadoDetallePage.xaml">

@@ -28,7 +28,7 @@ namespace CONATRADEC.Services
         {
             Detener();
 
-            if (!TryGetUsuarioId(out _))
+            if (!TryGetUsuarioId(out int usuarioId))
                 return;
 
             int version = Preferences.Get(
@@ -36,13 +36,19 @@ namespace CONATRADEC.Services
                 0);
 
             /*
-             * Una sesión creada antes de esta mejora no posee versión.
-             * No se debe inventar una versión local porque conservaría la
-             * matriz antigua. Se obliga a iniciar sesión nuevamente.
+             * Una sesión creada antes de implementar el control de versión
+             * puede conservar el UsuarioId, pero no tener VersionSesion.
+             *
+             * Ese caso no significa que el administrador haya cambiado el rol
+             * o los permisos en este momento. Se limpia la sesión antigua y se
+             * vuelve al login sin mostrar la advertencia de permisos cambiados.
+             *
+             * La advertencia solamente se mostrará cuando la API responda de
+             * forma explícita que una sesión activa fue invalidada.
              */
             if (version <= 0)
             {
-                _ = InvalidarSesionAsync();
+                _ = LimpiarSesionIncompletaAsync(usuarioId);
                 return;
             }
 
@@ -125,6 +131,38 @@ namespace CONATRADEC.Services
             }
         }
 
+        /// <summary>
+        /// Limpia silenciosamente una sesión local antigua o incompleta.
+        /// No debe mostrar el mensaje de cambio de rol/permisos porque todavía
+        /// no existe una respuesta de invalidación proveniente de la API.
+        /// </summary>
+        private async Task LimpiarSesionIncompletaAsync(
+            int usuarioIdEsperado)
+        {
+            if (!TryGetUsuarioId(out int usuarioIdActual) ||
+                usuarioIdActual != usuarioIdEsperado)
+            {
+                return;
+            }
+
+            Detener();
+            LimpiarDatosLocales();
+
+            PermissionService.Instance.Load(
+                new List<UserPermissionDTO>());
+
+            await MainThread.InvokeOnMainThreadAsync(
+                async () =>
+                {
+                    if (Shell.Current != null)
+                    {
+                        await Shell.Current.GoToAsync(
+                            AppRoutes.Login,
+                            false);
+                    }
+                });
+        }
+
         private async Task InvalidarSesionAsync()
         {
             if (Interlocked.Exchange(ref invalidando, 1) == 1)
@@ -132,6 +170,13 @@ namespace CONATRADEC.Services
 
             try
             {
+                /*
+                 * Si ya no existe un usuario activo, no hay una sesión vigente
+                 * que invalidar ni debe mostrarse una advertencia atrasada.
+                 */
+                if (!TryGetUsuarioId(out _))
+                    return;
+
                 Detener();
                 LimpiarDatosLocales();
 

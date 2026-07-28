@@ -1,9 +1,12 @@
-﻿using CONATRADEC.Services;
+﻿using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CONATRADEC
@@ -12,6 +15,9 @@ namespace CONATRADEC
     {
         private bool preparandoNuevoAnalisis;
         private bool corrigiendoFlyoutNativo;
+        private bool actualizacionComprobadaEnSesion;
+        private bool esperandoComprobacionDespuesLogin = true;
+        private int comprobacionActualizacionEnCurso;
 
         public AppShell()
         {
@@ -62,6 +68,11 @@ namespace CONATRADEC
             Routing.RegisterRoute(
                 AppRoutes.CategoriaPublicacionFormulario,
                 typeof(categoriaPublicacionFormPage));
+
+            // Descarga e instalación de actualizaciones Android y Windows.
+            Routing.RegisterRoute(
+                AppRoutes.ActualizacionAplicacion,
+                typeof(ActualizacionAplicacionPage));
 
             // Pantallas secundarias.
             Routing.RegisterRoute(
@@ -127,13 +138,14 @@ namespace CONATRADEC
 
             /*
              * Después de cada navegación se agrega una flecha fija a todos
-             * los formularios. Esto evita que el usuario tenga que desplazarse
-             * hasta el final para encontrar Cancelar o Regresar.
+             * los formularios. El mismo evento detecta exclusivamente la
+             * navegación que ocurre después de un inicio de sesión exitoso y
+             * comprueba la versión sin bloquear el ingreso a la aplicación.
              */
             Navigated += AppShell_Navigated;
         }
 
-        private void AppShell_Navigated(
+        private async void AppShell_Navigated(
             object? sender,
             ShellNavigatedEventArgs e)
         {
@@ -141,7 +153,164 @@ namespace CONATRADEC
 
             FormNavigationHeaderService
                 .AsegurarEnPaginaActual();
+
+            await ComprobarActualizacionDespuesDelLoginAsync(e);
         }
+
+        /// <summary>
+        /// Consulta una sola vez por sesión, únicamente después de pasar desde
+        /// LoginPage hacia una pantalla autenticada. La navegación ya terminó,
+        /// por lo que esta operación no retrasa ni bloquea el inicio de sesión.
+        /// </summary>
+        private async Task ComprobarActualizacionDespuesDelLoginAsync(
+            ShellNavigatedEventArgs e)
+        {
+            string rutaActual =
+                e.Current?.Location?.OriginalString ??
+                string.Empty;
+
+            /*
+             * Al cerrar sesión se prepara la próxima comprobación. No se hace
+             * ninguna llamada HTTP mientras se muestra el login.
+             */
+            if (EsRutaLogin(rutaActual))
+            {
+                actualizacionComprobadaEnSesion = false;
+                esperandoComprobacionDespuesLogin = true;
+                Interlocked.Exchange(
+                    ref comprobacionActualizacionEnCurso,
+                    0);
+                return;
+            }
+
+            bool acabaDeIniciarSesion =
+                esperandoComprobacionDespuesLogin;
+
+            esperandoComprobacionDespuesLogin = false;
+
+            if (!acabaDeIniciarSesion ||
+                actualizacionComprobadaEnSesion ||
+                !ModoSesionService.EsEnLinea ||
+                !ActualizacionAplicacionService.Instance
+                    .PlataformaCompatible)
+            {
+                return;
+            }
+
+            if (Interlocked.Exchange(
+                    ref comprobacionActualizacionEnCurso,
+                    1) == 1)
+            {
+                return;
+            }
+
+            /*
+             * Se marca antes de consultar para impedir llamadas duplicadas si
+             * MAUI dispara otra navegación mientras la API está respondiendo.
+             */
+            actualizacionComprobadaEnSesion = true;
+
+            try
+            {
+                // Primero permite que MainPage termine de dibujarse.
+                await Task.Delay(650);
+
+                if (!ModoSesionService.EsEnLinea ||
+                    EsRutaLogin(ObtenerRutaActual()))
+                {
+                    return;
+                }
+
+                using var timeoutCts =
+                    new CancellationTokenSource(
+                        TimeSpan.FromSeconds(12));
+
+                ActualizacionDisponible? actualizacion =
+                    await ActualizacionAplicacionService
+                        .Instance
+                        .ComprobarActualizacionAsync(
+                            timeoutCts.Token);
+
+                if (actualizacion is null ||
+                    EsRutaLogin(ObtenerRutaActual()))
+                {
+                    return;
+                }
+
+                bool abrirActualizador;
+
+                if (actualizacion.Obligatoria)
+                {
+                    await DisplayAlert(
+                        "Actualización obligatoria",
+                        "Debe instalar ConatraCafé Soil " +
+                        $"{actualizacion.VersionNombre} para continuar.",
+                        "Actualizar ahora");
+
+                    abrirActualizador = true;
+                }
+                else
+                {
+                    abrirActualizador = await DisplayAlert(
+                        "Nueva versión disponible",
+                        "ConatraCafé Soil " +
+                        $"{actualizacion.VersionNombre} está disponible. " +
+                        "¿Desea descargarla ahora?",
+                        "Actualizar",
+                        "Más tarde");
+                }
+
+                if (!abrirActualizador ||
+                    EsRutaLogin(ObtenerRutaActual()))
+                {
+                    return;
+                }
+
+                await GoToAsync(
+                    AppRoutes.ActualizacionAplicacion,
+                    false,
+                    new Dictionary<string, object>
+                    {
+                        ["Actualizacion"] = actualizacion
+                    });
+            }
+            catch (OperationCanceledException)
+            {
+                /*
+                 * Una respuesta lenta no afecta el uso de la aplicación y no
+                 * muestra mensajes innecesarios al usuario.
+                 */
+                Debug.WriteLine(
+                    "La comprobación de actualizaciones superó el tiempo permitido.");
+            }
+            catch (Exception ex)
+            {
+                /*
+                 * La actualización es una comprobación auxiliar. Una falla de
+                 * red o del servidor nunca debe impedir el inicio de sesión.
+                 */
+                Debug.WriteLine(
+                    $"No fue posible comprobar actualizaciones: {ex}");
+            }
+            finally
+            {
+                Interlocked.Exchange(
+                    ref comprobacionActualizacionEnCurso,
+                    0);
+            }
+        }
+
+        private static bool EsRutaLogin(string? ruta) =>
+            !string.IsNullOrWhiteSpace(ruta) &&
+            ruta.Contains(
+                "LoginPage",
+                StringComparison.OrdinalIgnoreCase);
+
+        private string ObtenerRutaActual() =>
+            CurrentState?
+                .Location?
+                .OriginalString ??
+            string.Empty;
 
         private void AppShell_PropertyChanged(
             object? sender,

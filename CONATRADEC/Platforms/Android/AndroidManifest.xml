@@ -9,6 +9,20 @@
 		android:label="ConatraCafé Soil"
 		android:usesCleartextTraffic="true"
 		android:networkSecurityConfig="@xml/network_security_config">
+
+		<!--
+			Comparte únicamente los APK descargados en la carpeta de caché
+			actualizaciones con el instalador oficial de Android.
+		-->
+		<provider
+			android:name="androidx.core.content.FileProvider"
+			android:authorities="${applicationId}.fileprovider"
+			android:exported="false"
+			android:grantUriPermissions="true">
+			<meta-data
+				android:name="android.support.FILE_PROVIDER_PATHS"
+				android:resource="@xml/update_file_paths" />
+		</provider>
 	</application>
 
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -17,6 +31,9 @@
 	<uses-permission android:name="android.permission.USE_FINGERPRINT" />
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+	<!-- Permite abrir el instalador para APK descargados fuera de Play Store. -->
+	<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
 	<!-- La ubicación es opcional; la app puede instalarse sin GPS. -->
 	<uses-feature
