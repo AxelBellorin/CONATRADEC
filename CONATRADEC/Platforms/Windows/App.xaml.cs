@@ -3,6 +3,7 @@
 
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using System.Runtime.InteropServices;
 
 namespace CONATRADEC.WinUI
 {
@@ -12,15 +13,23 @@ namespace CONATRADEC.WinUI
     public partial class App : MauiWinUIApplication
     {
         /// <summary>
-        /// Initializes the singleton application object.  This is the first line of authored code
+        /// Initializes the singleton application object. This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
         public App()
         {
-            this.InitializeComponent();
+            InitializeComponent();
+
+            /*
+             * Captura las excepciones que llegan al dispatcher principal de WinUI.
+             * Solamente se marcarán como controladas las COMException producidas
+             * durante el cierre de la ventana.
+             */
+            UnhandledException += App_UnhandledException;
         }
 
-        protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+        protected override MauiApp CreateMauiApp() =>
+            MauiProgram.CreateMauiApp();
 
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
@@ -37,9 +46,45 @@ namespace CONATRADEC.WinUI
             }
             catch
             {
-                // En caso extremo, ignorar la falla
+                // En caso extremo, ignorar la falla al maximizar la ventana.
             }
         }
-    }
 
+        /// <summary>
+        /// Evita que Visual Studio detenga la depuración cuando un control
+        /// WinUI ya fue liberado como parte del cierre normal de la aplicación.
+        /// No oculta excepciones COM mientras la aplicación continúa activa.
+        /// </summary>
+        private void App_UnhandledException(
+            object sender,
+            Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+        {
+            if (!global::CONATRADEC.App.IsWindowClosing)
+                return;
+
+            if (!ContainsComException(e.Exception))
+                return;
+
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Recorre la excepción y sus excepciones internas para determinar
+        /// si el origen fue una COMException de WinUI.
+        /// </summary>
+        private static bool ContainsComException(Exception? exception)
+        {
+            Exception? currentException = exception;
+
+            while (currentException is not null)
+            {
+                if (currentException is COMException)
+                    return true;
+
+                currentException = currentException.InnerException;
+            }
+
+            return false;
+        }
+    }
 }

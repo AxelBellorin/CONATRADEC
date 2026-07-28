@@ -1,7 +1,8 @@
-using CONATRADEC.Services;
+﻿using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
@@ -10,10 +11,24 @@ namespace CONATRADEC
     public partial class AppShell : Shell
     {
         private bool preparandoNuevoAnalisis;
+        private bool corrigiendoFlyoutNativo;
 
         public AppShell()
         {
             InitializeComponent();
+
+            /*
+             * CONATRADEC utiliza sus propios botones y menús de navegación.
+             * El Flyout nativo de Shell no contiene opciones visibles, por lo
+             * que debe permanecer desactivado para evitar el panel celeste vacío.
+             */
+            ConfigurarFlyoutNativo();
+
+            /*
+             * Algunas páginas antiguas intentan cambiar Shell.Current.FlyoutBehavior.
+             * Este evento evita que el Flyout nativo vuelva a habilitarse.
+             */
+            PropertyChanged += AppShell_PropertyChanged;
 
             // Inicio, Noticias y Configuración están declarados como
             // ShellContent. Álbum conserva una ruta dinámica para crear una
@@ -38,7 +53,6 @@ namespace CONATRADEC
             Routing.RegisterRoute(
                 AppRoutes.PublicacionFormulario,
                 typeof(publicacionFormPage));
-
 
             // Catálogo de tipos de publicación.
             Routing.RegisterRoute(
@@ -110,12 +124,82 @@ namespace CONATRADEC
              * explícitamente el formulario y el cálculo temporal anterior.
              */
             Navigating += AppShell_Navigating;
+
+            /*
+             * Después de cada navegación se agrega una flecha fija a todos
+             * los formularios. Esto evita que el usuario tenga que desplazarse
+             * hasta el final para encontrar Cancelar o Regresar.
+             */
+            Navigated += AppShell_Navigated;
+        }
+
+        private void AppShell_Navigated(
+            object? sender,
+            ShellNavigatedEventArgs e)
+        {
+            ConfigurarFlyoutNativo();
+
+            FormNavigationHeaderService
+                .AsegurarEnPaginaActual();
+        }
+
+        private void AppShell_PropertyChanged(
+            object? sender,
+            PropertyChangedEventArgs e)
+        {
+            if (corrigiendoFlyoutNativo ||
+                !string.Equals(
+                    e.PropertyName,
+                    nameof(FlyoutBehavior),
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (FlyoutBehavior ==
+                Microsoft.Maui.FlyoutBehavior.Disabled)
+            {
+                return;
+            }
+
+            corrigiendoFlyoutNativo = true;
+
+            try
+            {
+                ConfigurarFlyoutNativo();
+            }
+            finally
+            {
+                corrigiendoFlyoutNativo = false;
+            }
+        }
+
+        private void ConfigurarFlyoutNativo()
+        {
+            /*
+             * Cierra primero el panel por si ya fue abierto mediante un gesto.
+             */
+            if (FlyoutIsPresented)
+                FlyoutIsPresented = false;
+
+            if (FlyoutBehavior !=
+                Microsoft.Maui.FlyoutBehavior.Disabled)
+            {
+                FlyoutBehavior =
+                    Microsoft.Maui.FlyoutBehavior.Disabled;
+            }
         }
 
         private async void AppShell_Navigating(
             object? sender,
             ShellNavigatingEventArgs e)
         {
+            /*
+             * Se vuelve a comprobar en cada navegación para impedir que una
+             * página deje habilitado el panel lateral vacío.
+             */
+            ConfigurarFlyoutNativo();
+
             if (preparandoNuevoAnalisis ||
                 !EsNavegacionHaciaNuevoAnalisis(e))
             {
@@ -220,6 +304,10 @@ namespace CONATRADEC
             return null;
         }
 
+        /// <summary>
+        /// Respaldo de MAUI para impedir la navegación con el botón o gesto
+        /// nativo de retroceso de Android.
+        /// </summary>
         protected override bool OnBackButtonPressed()
         {
 #if ANDROID

@@ -1,4 +1,4 @@
-using Android.App;
+﻿using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
@@ -11,6 +11,8 @@ using Plugin.Fingerprint;
 // Alias explícitos para evitar ambigüedad con Microsoft.Maui.Graphics.
 using AndroidColor = Android.Graphics.Color;
 using AndroidRect = Android.Graphics.Rect;
+using AndroidBackCallback =
+    AndroidX.Activity.OnBackPressedCallback;
 
 namespace CONATRADEC
 {
@@ -27,10 +29,27 @@ namespace CONATRADEC
             ConfigChanges.Density)]
     public class MainActivity : MauiAppCompatActivity
     {
+        private AndroidBackCallback?
+            bloquearRetrocesoCallback;
+
         protected override void OnCreate(
             Bundle? savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+
+            /*
+             * Android moderno puede procesar el botón y el gesto de retroceso
+             * directamente mediante OnBackPressedDispatcher, sin pasar siempre
+             * por Shell.OnBackButtonPressed.
+             *
+             * Este callback consume globalmente el retroceso para que la
+             * navegación se realice únicamente mediante los botones de la app.
+             */
+            bloquearRetrocesoCallback =
+                new BloquearRetrocesoCallback();
+
+            OnBackPressedDispatcher.AddCallback(
+                bloquearRetrocesoCallback);
 
             // Color de la barra de estado.
             Window?.SetStatusBarColor(
@@ -68,6 +87,15 @@ namespace CONATRADEC
                     () => this);
         }
 
+        protected override void OnDestroy()
+        {
+            bloquearRetrocesoCallback?.Remove();
+            bloquearRetrocesoCallback?.Dispose();
+            bloquearRetrocesoCallback = null;
+
+            base.OnDestroy();
+        }
+
         /// <summary>
         /// Detecta globalmente cuando el usuario toca fuera del campo
         /// de texto, campo numérico, campo decimal o Editor activo.
@@ -102,6 +130,28 @@ namespace CONATRADEC
 
             return base.DispatchTouchEvent(
                 motionEvent);
+        }
+
+        /// <summary>
+        /// Consume el botón físico, el botón de la barra de navegación y el
+        /// gesto predictivo de retroceso de Android.
+        /// </summary>
+        private sealed class BloquearRetrocesoCallback
+            : AndroidBackCallback
+        {
+            public BloquearRetrocesoCallback()
+                : base(true)
+            {
+            }
+
+            public override void HandleOnBackPressed()
+            {
+                /*
+                 * Intencionalmente vacío.
+                 * No se llama al comportamiento base porque eso permitiría
+                 * regresar, cerrar la página o salir de la aplicación.
+                 */
+            }
         }
     }
 }

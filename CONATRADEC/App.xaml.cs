@@ -5,6 +5,13 @@ namespace CONATRADEC
 {
     public partial class App : Application
     {
+        /// <summary>
+        /// Indica que la ventana dejó de estar activa o está siendo destruida.
+        /// En Windows se utiliza para ignorar únicamente las excepciones COM
+        /// producidas por controles WinUI que ya fueron liberados durante el cierre.
+        /// </summary>
+        public static bool IsWindowClosing { get; private set; }
+
         public App()
         {
             InitializeComponent();
@@ -32,22 +39,40 @@ namespace CONATRADEC
              * por eso una sesión anterior podía conservar permisos viejos.
              */
             window.Created += (_, _) =>
+            {
+                IsWindowClosing = false;
                 SessionValidationService.Instance.Iniciar();
+            };
 
             window.Resumed += (_, _) =>
             {
+                IsWindowClosing = false;
+
                 SessionValidationService.Instance.Iniciar();
                 _ = DispositivoConexionService.Instance.ReanudarAsync();
             };
 
             window.Stopped += (_, _) =>
             {
+                /*
+                 * Se establece antes de detener los servicios. En Windows,
+                 * los controles Entry pueden ejecutar Unfocused mientras la
+                 * ventana nativa ya está comenzando a cerrarse.
+                 */
+                IsWindowClosing = true;
+
                 SessionValidationService.Instance.Detener();
                 _ = DispositivoConexionService.Instance.SuspenderAsync();
             };
 
             window.Destroying += (_, _) =>
             {
+                /*
+                 * Se mantiene activa la bandera durante toda la destrucción
+                 * de los controles nativos de WinUI.
+                 */
+                IsWindowClosing = true;
+
                 SessionValidationService.Instance.Detener();
                 _ = DispositivoConexionService.Instance.DetenerAsync();
             };
