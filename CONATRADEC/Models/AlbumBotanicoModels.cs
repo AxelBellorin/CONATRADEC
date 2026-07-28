@@ -1,4 +1,4 @@
-using CONATRADEC.Services;
+﻿using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
 using System.ComponentModel;
@@ -345,6 +345,39 @@ namespace CONATRADEC.Models
                 480,
                 68);
             set => fotoUrlOriginal = value;
+        }
+
+        /// <summary>
+        /// Ruta segura utilizada por el visor de pantalla completa.
+        ///
+        /// Primero intenta utilizar la fotografía original descargada.
+        /// Si no está disponible, utiliza la miniatura local para evitar
+        /// que el visor muestre solamente el fondo negro.
+        /// </summary>
+        [JsonIgnore]
+        public string FotoVisorUrl
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(fotoUrlOriginal))
+                    return string.Empty;
+
+                string original =
+                    ImagenLocalCacheService.ResolverOriginal(
+                        fotoUrlOriginal);
+
+                if (!string.IsNullOrWhiteSpace(original))
+                    return original;
+
+                string? miniatura =
+                    AlbumMiniaturaUrlHelper.Crear(
+                        fotoUrlOriginal,
+                        720,
+                        480,
+                        68);
+
+                return miniatura ?? string.Empty;
+            }
         }
 
         [JsonIgnore]

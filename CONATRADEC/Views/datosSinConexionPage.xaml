@@ -74,19 +74,47 @@
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 14">
                     <VerticalStackLayout Spacing="7">
-                        <Label
-                            x:Name="EstadoTituloLabel"
-                            Text="Los datos todavía no están preparados"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            FontSize="16"
-                            TextColor="#263238" />
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <ActivityIndicator
+                                x:Name="ComprobacionActivityIndicator"
+                                IsVisible="False"
+                                IsRunning="False"
+                                WidthRequest="24"
+                                HeightRequest="24"
+                                Color="#3B655B"
+                                VerticalOptions="Center" />
+
+                            <Label
+                                x:Name="EstadoTituloLabel"
+                                Grid.Column="1"
+                                Text="Los datos todavía no están preparados"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="16"
+                                TextColor="#263238"
+                                VerticalOptions="Center" />
+                        </Grid>
+
                         <Label
                             x:Name="EstadoDetalleLabel"
                             Text="Use Descargar todo durante una sesión en línea."
                             FontSize="11"
                             LineBreakMode="WordWrap"
                             TextColor="#546E7A" />
+
+                        <Button
+                            x:Name="ComprobarActualizacionesButton"
+                            Text="Comprobar nuevamente"
+                            Clicked="ComprobarActualizacionesButton_Clicked"
+                            IsVisible="False"
+                            HorizontalOptions="Start"
+                            HeightRequest="38"
+                            Padding="14,0"
+                            CornerRadius="10"
+                            FontSize="11"
+                            BackgroundColor="#EEF5F2"
+                            TextColor="#3B655B" />
+
                         <ProgressBar
                             x:Name="ProgresoGlobal"
                             IsVisible="False"
@@ -108,7 +136,7 @@
                             TextColor="#9B552C" />
                         <Label
                             Grid.Column="1"
-                            Text="No se realizan actualizaciones automáticas. En una sesión sin conexión la aplicación no consulta ni reintenta conectar con la API."
+                            Text="Al visitar esta página durante una sesión en línea, se comprueba si existen actualizaciones disponibles. La descarga continúa siendo manual y durante una sesión sin conexión no se consulta la API."
                             FontSize="11"
                             LineBreakMode="WordWrap"
                             TextColor="#6B4D32" />
@@ -146,9 +174,9 @@
                         Stroke="#DDE7E3"
                         StrokeShape="RoundRectangle 13">
                         <VerticalStackLayout Spacing="4">
-                            <Label Text="Catálogos y terrenos" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
+                            <Label Text="Interfaces y terrenos" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
                             <Label x:Name="CatalogosEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
-                            <Label x:Name="CatalogosDetalleLabel" Text="Datos necesarios para formularios y cálculos." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
+                            <Label x:Name="CatalogosDetalleLabel" Text="Se indicarán las interfaces específicas que tengan cambios." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
                     </Border>
 

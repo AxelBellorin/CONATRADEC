@@ -10,6 +10,8 @@ namespace CONATRADEC.Views
     {
         private bool suscrito;
         private bool redireccionando;
+        private CancellationTokenSource? comprobacionCts;
+        private SincronizacionOfflineGlobalEstado estadoActual = new();
 
         public datosSinConexionPage()
         {
@@ -48,10 +50,12 @@ namespace CONATRADEC.Views
 
             ActualizarVista(estado);
             await ActualizarResumenPendientesAsync();
+            await ComprobarActualizacionesAlEntrarAsync();
         }
 
         protected override void OnDisappearing()
         {
+            CancelarComprobacion();
             Desuscribir();
             base.OnDisappearing();
         }
@@ -70,6 +74,14 @@ namespace CONATRADEC.Views
                     ruta,
                     false);
             }
+        }
+
+
+        private async void ComprobarActualizacionesButton_Clicked(
+            object? sender,
+            EventArgs e)
+        {
+            await ComprobarActualizacionesAlEntrarAsync();
         }
 
         private async void DescargarTodoButton_Clicked(
@@ -124,6 +136,7 @@ namespace CONATRADEC.Views
                 "Aceptar");
 
             await ActualizarResumenPendientesAsync();
+            await ComprobarActualizacionesAlEntrarAsync();
         }
 
         private async Task RedirigirSinPermisoAsync()
@@ -202,6 +215,331 @@ namespace CONATRADEC.Views
                     await ActualizarResumenPendientesAsync());
         }
 
+        private async Task ComprobarActualizacionesAlEntrarAsync()
+        {
+            CancelarComprobacion();
+
+            if (!ModoSesionService.EsEnLinea)
+            {
+                ComprobacionActivityIndicator.IsRunning = false;
+                ComprobacionActivityIndicator.IsVisible = false;
+                ComprobarActualizacionesButton.IsVisible = false;
+
+                EstadoTituloLabel.Text = "Trabajando sin conexión";
+                EstadoDetalleLabel.Text =
+                    estadoActual.PreparacionCompleta
+                        ? "Se utiliza la última copia descargada. Inicie una sesión en línea para comprobar cambios del servidor."
+                        : "Este dispositivo no tiene una descarga completa válida.";
+
+                DescargarTodoButton.IsEnabled = false;
+                AplicarEstadoPrincipal(
+                    estadoActual.PreparacionCompleta
+                        ? SincronizacionOfflineGlobalEstados.Listo
+                        : SincronizacionOfflineGlobalEstados.SinPreparar);
+                return;
+            }
+
+            if (estadoActual.SincronizacionEnCurso)
+                return;
+
+            var source = new CancellationTokenSource();
+            comprobacionCts = source;
+            CancellationToken token = source.Token;
+
+            MostrarComprobando();
+
+            try
+            {
+                /*
+                 * Los análisis del usuario se envían primero. De esa manera el
+                 * manifiesto ya refleja los registros que acaban de subir.
+                 */
+                await AnalisisOfflineSincronizacionService.Instance
+                    .SincronizarAhoraAsync(token);
+
+                ResultadoComprobacionOffline resultado =
+                    await SincronizacionOfflineManifiestoService.Instance
+                        .ComprobarAsync(token);
+
+                if (token.IsCancellationRequested)
+                    return;
+
+                AplicarComprobacion(resultado);
+                await ActualizarResumenPendientesAsync();
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancelación esperada al abandonar la página.
+            }
+            finally
+            {
+                bool esComprobacionActual =
+                    ReferenceEquals(comprobacionCts, source);
+
+                if (esComprobacionActual)
+                    comprobacionCts = null;
+
+                source.Dispose();
+
+                if (esComprobacionActual)
+                {
+                    ComprobacionActivityIndicator.IsRunning = false;
+                    ComprobacionActivityIndicator.IsVisible = false;
+                }
+            }
+        }
+
+        private void MostrarComprobando()
+        {
+            ComprobacionActivityIndicator.IsVisible = true;
+            ComprobacionActivityIndicator.IsRunning = true;
+            ComprobarActualizacionesButton.IsVisible = false;
+
+            EstadoTituloLabel.Text = "Comprobando actualizaciones...";
+            EstadoDetalleLabel.Text =
+                "Comparando la copia del dispositivo con las versiones del servidor.";
+
+            EstadoPrincipalBorder.BackgroundColor =
+                Color.FromArgb("#F3F7FF");
+            EstadoPrincipalBorder.Stroke =
+                new SolidColorBrush(Color.FromArgb("#C9D7F2"));
+
+            DescargarTodoButton.IsEnabled = false;
+        }
+
+        private void AplicarComprobacion(
+            ResultadoComprobacionOffline resultado)
+        {
+            ActualizarVista(estadoActual);
+
+            ComprobacionActivityIndicator.IsRunning = false;
+            ComprobacionActivityIndicator.IsVisible = false;
+
+            if (!resultado.Success)
+            {
+                EstadoTituloLabel.Text =
+                    "No fue posible comprobar actualizaciones";
+                EstadoDetalleLabel.Text =
+                    resultado.Message +
+                    " La copia descargada anteriormente continúa disponible.";
+                ComprobarActualizacionesButton.IsVisible = true;
+                DescargarTodoButton.IsEnabled =
+                    ModoSesionService.EsEnLinea &&
+                    !estadoActual.SincronizacionEnCurso;
+
+                EstadoPrincipalBorder.BackgroundColor =
+                    Color.FromArgb("#FFF8E8");
+                EstadoPrincipalBorder.Stroke =
+                    new SolidColorBrush(Color.FromArgb("#EBCB78"));
+                return;
+            }
+
+            ComprobarActualizacionesButton.IsVisible = false;
+
+            if (resultado.RequiereDescargaInicial)
+            {
+                EstadoTituloLabel.Text =
+                    "El dispositivo necesita una descarga inicial";
+                EstadoDetalleLabel.Text = resultado.Message;
+                DescargarTodoButton.Text = "Descargar todo";
+                DescargarTodoButton.IsEnabled = true;
+                AplicarEstadoPrincipal(
+                    SincronizacionOfflineGlobalEstados.SinPreparar);
+                MarcarModulosPendientes(resultado);
+                return;
+            }
+
+            if (resultado.HayActualizaciones)
+            {
+                EstadoTituloLabel.Text =
+                    "Hay actualizaciones disponibles";
+                EstadoDetalleLabel.Text = resultado.Message;
+                DescargarTodoButton.Text =
+                    "Descargar actualizaciones";
+                DescargarTodoButton.IsEnabled = true;
+
+                EstadoPrincipalBorder.BackgroundColor =
+                    Color.FromArgb("#FFF8E8");
+                EstadoPrincipalBorder.Stroke =
+                    new SolidColorBrush(Color.FromArgb("#EBCB78"));
+
+                MarcarModulosPendientes(resultado);
+                return;
+            }
+
+            EstadoTituloLabel.Text =
+                "El dispositivo está actualizado";
+            EstadoDetalleLabel.Text =
+                "No se encontraron cambios en el servidor. Comprobado " +
+                (resultado.FechaComprobacionUtc?
+                    .ToLocalTime()
+                    .ToString("dd/MM/yyyy h:mm tt") ??
+                 "ahora") + ".";
+
+            DescargarTodoButton.Text =
+                estadoActual.PreparacionCompleta
+                    ? "Volver a descargar todo"
+                    : "Descargar todo";
+            DescargarTodoButton.IsEnabled = true;
+            AplicarEstadoPrincipal(
+                SincronizacionOfflineGlobalEstados.Listo);
+        }
+
+        private void MarcarModulosPendientes(
+            ResultadoComprobacionOffline resultado)
+        {
+            List<SincronizacionOfflineModuloComparacion>
+                interfacesPendientes = resultado.ModulosPendientes
+                    .Where(EsModuloInterfazOCatalogo)
+                    .OrderBy(x => x.Nombre)
+                    .ToList();
+
+            foreach (
+                SincronizacionOfflineModuloComparacion modulo
+                in resultado.ModulosPendientes
+                    .Where(x => !EsModuloInterfazOCatalogo(x)))
+            {
+                switch (modulo.Codigo.ToLowerInvariant())
+                {
+                    case "motor":
+                        MarcarModuloActualizacion(
+                            MotorCalculoBorder,
+                            MotorCalculoEstadoLabel,
+                            MotorCalculoDetalleLabel,
+                            modulo);
+                        break;
+                    case "analisis":
+                        MarcarModuloActualizacion(
+                            AnalisisBorder,
+                            AnalisisEstadoLabel,
+                            AnalisisDetalleLabel,
+                            modulo);
+                        break;
+                    case "noticias":
+                        MarcarModuloActualizacion(
+                            NoticiasBorder,
+                            NoticiasEstadoLabel,
+                            NoticiasDetalleLabel,
+                            modulo);
+                        break;
+                    case "album":
+                        MarcarModuloActualizacion(
+                            AlbumBorder,
+                            AlbumEstadoLabel,
+                            AlbumDetalleLabel,
+                            modulo);
+                        break;
+                }
+            }
+
+            if (interfacesPendientes.Count > 0)
+            {
+                MarcarInterfacesActualizacion(
+                    interfacesPendientes);
+            }
+        }
+
+        private static bool EsModuloInterfazOCatalogo(
+            SincronizacionOfflineModuloComparacion modulo)
+        {
+            string codigo = modulo.Codigo.Trim();
+
+            return string.Equals(
+                       codigo,
+                       "catalogos",
+                       StringComparison.OrdinalIgnoreCase) ||
+                   codigo.StartsWith(
+                       "catalogo-",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void MarcarInterfacesActualizacion(
+            IReadOnlyList<SincronizacionOfflineModuloComparacion>
+                interfaces)
+        {
+            List<string> nombres = interfaces
+                .Select(x => x.Nombre)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            CatalogosEstadoLabel.Text = nombres.Count == 1
+                ? "1 interfaz con actualización"
+                : $"{nombres.Count} interfaces con actualizaciones";
+
+            CatalogosDetalleLabel.Text = nombres.Count switch
+            {
+                0 => "Se detectaron cambios en los datos maestros.",
+                1 => $"Se actualizará: {nombres[0]}.",
+                _ =>
+                    "Se actualizarán: " +
+                    FormatearListaNatural(nombres) +
+                    "."
+            };
+
+            CatalogosBorder.BackgroundColor =
+                Color.FromArgb("#FFF8E8");
+            CatalogosBorder.Stroke =
+                new SolidColorBrush(
+                    Color.FromArgb("#EBCB78"));
+        }
+
+        private static string FormatearListaNatural(
+            IReadOnlyList<string> elementos)
+        {
+            if (elementos.Count == 0)
+                return string.Empty;
+
+            if (elementos.Count == 1)
+                return elementos[0];
+
+            if (elementos.Count == 2)
+                return elementos[0] + " y " + elementos[1];
+
+            return string.Join(
+                       ", ",
+                       elementos.Take(elementos.Count - 1)) +
+                   " y " +
+                   elementos[^1];
+        }
+
+        private static void MarcarModuloActualizacion(
+            Border border,
+            Label estadoLabel,
+            Label detalleLabel,
+            SincronizacionOfflineModuloComparacion modulo)
+        {
+            estadoLabel.Text = "Actualización disponible";
+            detalleLabel.Text =
+                modulo.TotalRegistrosServidor > 0
+                    ? $"El servidor contiene {modulo.TotalRegistrosServidor:N0} registros en este módulo."
+                    : "La versión del servidor cambió.";
+
+            border.BackgroundColor = Color.FromArgb("#FFF8E8");
+            border.Stroke = new SolidColorBrush(
+                Color.FromArgb("#EBCB78"));
+        }
+
+        private void CancelarComprobacion()
+        {
+            CancellationTokenSource? source =
+                Interlocked.Exchange(
+                    ref comprobacionCts,
+                    null);
+
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // La comprobación terminó mientras se cancelaba.
+            }
+        }
+
         private async Task ActualizarResumenPendientesAsync()
         {
             try
@@ -243,12 +581,21 @@ namespace CONATRADEC.Views
         private void ActualizarVista(
             SincronizacionOfflineGlobalEstado estado)
         {
+            estadoActual = estado;
+
             ModoSesionLabel.Text = ModoSesionService.EsEnLinea
                 ? "Sesión en línea"
                 : "Sesión sin conexión";
 
             EstadoTituloLabel.Text = estado.Mensaje;
             EstadoDetalleLabel.Text = estado.Detalle;
+
+            if (estado.SincronizacionEnCurso)
+            {
+                ComprobacionActivityIndicator.IsRunning = false;
+                ComprobacionActivityIndicator.IsVisible = false;
+                ComprobarActualizacionesButton.IsVisible = false;
+            }
 
             ProgresoGlobal.IsVisible =
                 estado.SincronizacionEnCurso;

@@ -428,6 +428,22 @@ namespace CONATRADEC.Services
                         PuedeDescargarNoticias(),
                         PuedeDescargarAlbum()));
 
+                /*
+                 * Se guarda la versión exacta que acaba de descargarse. Si la
+                 * comprobación ligera falla, la descarga continúa siendo válida
+                 * y se volverá a consultar al entrar nuevamente a la página.
+                 */
+                try
+                {
+                    await SincronizacionOfflineManifiestoService.Instance
+                        .RegistrarDescargaActualAsync(
+                            cancellationToken);
+                }
+                catch
+                {
+                    /* El manifiesto nunca invalida una descarga ya completada. */
+                }
+
                 return ResultadoSincronizacionOfflineGlobal.Ok(
                     "El dispositivo quedó preparado para trabajar sin conexión.");
             }

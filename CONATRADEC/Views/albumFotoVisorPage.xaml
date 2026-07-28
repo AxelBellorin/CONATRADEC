@@ -71,12 +71,12 @@
                             Padding="{OnPlatform WinUI='34,20', Default='8,12'}">
 
                             <!--
-                                Solamente el visor solicita la fotografía
-                                original. Las tarjetas del álbum utilizan
-                                miniaturas para reducir memoria y descarga.
+                                El visor utiliza primero la fotografía original.
+                                Si el original no está disponible localmente,
+                                utiliza la miniatura descargada como respaldo.
                             -->
                             <Image
-                                Source="{Binding FotoOriginalUrl}"
+                                Source="{Binding FotoVisorUrl}"
                                 Aspect="AspectFit"
                                 HorizontalOptions="Fill"
                                 VerticalOptions="Fill" />
