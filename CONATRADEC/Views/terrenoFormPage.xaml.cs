@@ -1,5 +1,6 @@
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.Controls;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -19,12 +20,23 @@ namespace CONATRADEC.Views
         private bool actualizandoNumero;
         private bool actualizandoCoordenadasTexto;
 
+
         public terrenoFormPage()
         {
             InitializeComponent();
 
-            viewModel = new TerrenoFormViewModel();
+            // Usa el controlador seguro de fotografías sin cambiar la lógica
+            // existente de guardado, edición, GPS o selección de ubicación.
+            viewModel = new TerrenoFormFotosSegurasViewModel();
             BindingContext = viewModel;
+
+            /*
+             * El formato de la identificación se aplica cuando el usuario
+             * abandona el campo. Así no se modifica el Text ni la selección
+             * mientras WinUI está procesando una pulsación.
+             */
+            IdentificacionEntry.Unfocused +=
+                IdentificacionEntry_Unfocused;
 
             viewModel.RefrescarMapaAction = (lat, lon) =>
             {
@@ -143,8 +155,8 @@ namespace CONATRADEC.Views
             EventArgs e)
         {
             string cedula =
-                IdentificacionEntry.Text?.Trim().ToUpperInvariant()
-                ?? string.Empty;
+                FormatearCedula(
+                    IdentificacionEntry.Text);
 
             if (!CedulaRegex.IsMatch(cedula))
             {
@@ -157,7 +169,14 @@ namespace CONATRADEC.Views
                 return;
             }
 
+            /*
+             * La operación de guardado utiliza siempre el valor normalizado,
+             * aunque Windows no haya podido refrescar visualmente el Entry.
+             */
             viewModel.IdentificacionPropietarioTerreno = cedula;
+
+            ActualizarIdentificacionVisual(
+                cedula);
 
             if (viewModel.SaveCommand.CanExecute(null))
                 viewModel.SaveCommand.Execute(null);
@@ -167,14 +186,52 @@ namespace CONATRADEC.Views
             object sender,
             TextChangedEventArgs e)
         {
-            if (actualizandoCedula || sender is not Entry entry)
+            if (actualizandoCedula)
                 return;
 
-            string textoFormateado = FormatearCedula(e.NewTextValue);
+            /*
+             * No se modifica Entry.Text ni CursorPosition aquí.
+             *
+             * En Windows, TextChanged se ejecuta mientras el TextBox nativo de
+             * WinUI todavía procesa la pulsación. Cambiar el texto y la selección
+             * dentro de ese mismo evento puede terminar en una COMException.
+             *
+             * Durante la escritura únicamente sincronizamos el valor con el
+             * ViewModel. El formato se aplica al abandonar el campo o al guardar.
+             */
+            viewModel.IdentificacionPropietarioTerreno =
+                e.NewTextValue ?? string.Empty;
+        }
+
+        private void IdentificacionEntry_Unfocused(
+            object? sender,
+            FocusEventArgs e)
+        {
+            string cedulaFormateada =
+                FormatearCedula(
+                    IdentificacionEntry.Text);
+
+            viewModel.IdentificacionPropietarioTerreno =
+                cedulaFormateada;
+
+            ActualizarIdentificacionVisual(
+                cedulaFormateada);
+        }
+
+        /// <summary>
+        /// Actualiza el texto de la identificación fuera de TextChanged.
+        /// No modifica CursorPosition ni SelectionLength.
+        /// </summary>
+        private void ActualizarIdentificacionVisual(
+            string valor)
+        {
+            string textoActual =
+                IdentificacionEntry.Text ??
+                string.Empty;
 
             if (string.Equals(
-                    entry.Text,
-                    textoFormateado,
+                    textoActual,
+                    valor,
                     StringComparison.Ordinal))
             {
                 return;
@@ -184,8 +241,18 @@ namespace CONATRADEC.Views
 
             try
             {
-                entry.Text = textoFormateado;
-                entry.CursorPosition = textoFormateado.Length;
+                IdentificacionEntry.Text =
+                    valor;
+            }
+            catch (Exception ex)
+            {
+                /*
+                 * La identificación ya se actualizó en el ViewModel.
+                 * Un fallo visual del control nativo no debe cerrar la app.
+                 */
+                Debug.WriteLine(
+                    "No fue posible actualizar visualmente " +
+                    $"la identificación: {ex}");
             }
             finally
             {

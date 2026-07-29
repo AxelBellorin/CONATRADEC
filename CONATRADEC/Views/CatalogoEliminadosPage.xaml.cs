@@ -28,6 +28,20 @@ namespace CONATRADEC.Views
             }
         }
 
+        /// <summary>
+        /// Esta pantalla se abre como una ventana modal.
+        /// En Android el botón físico y el gesto de retroceso se consumen
+        /// para que únicamente los botones de la aplicación puedan cerrarla.
+        /// </summary>
+        protected override bool OnBackButtonPressed()
+        {
+#if ANDROID
+            return true;
+#else
+            return base.OnBackButtonPressed();
+#endif
+        }
+
         protected override void OnSizeAllocated(
             double width,
             double height)

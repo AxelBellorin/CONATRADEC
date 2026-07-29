@@ -94,261 +94,269 @@
 
                         <!-- Búsqueda y clasificación -->
                         <Border
-                    Padding="{OnIdiom Phone='11', Tablet='14,12', Desktop='16,14'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 16">
+                            Padding="{OnIdiom Phone='11', Tablet='14,12', Desktop='16,14'}"
+                            BackgroundColor="White"
+                            Stroke="#DDE7E3"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 16">
 
-                    <Grid
-                        RowDefinitions="Auto,Auto,Auto"
-                        RowSpacing="10">
+                            <Grid
+                                RowDefinitions="Auto,Auto,Auto"
+                                RowSpacing="10">
 
-                        <SearchBar
-                            Grid.Row="0"
-                            Placeholder="Buscar por nombre o descripción"
-                            Text="{Binding TextoBusqueda}"
-                            SearchCommand="{Binding BuscarCommand}"
-                            BackgroundColor="#F8FAF9"
-                            CancelButtonColor="{StaticResource color_Verde}" />
+                                <SearchBar
+                                    Grid.Row="0"
+                                    Placeholder="Buscar por nombre o descripción"
+                                    Text="{Binding TextoBusqueda}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    BackgroundColor="#F8FAF9"
+                                    CancelButtonColor="{StaticResource color_Verde}" />
 
-                        <Grid
-                            Grid.Row="1"
-                            ColumnDefinitions="Auto,*"
-                            ColumnSpacing="12">
+                                <Grid
+                                    Grid.Row="1"
+                                    ColumnDefinitions="Auto,*"
+                                    ColumnSpacing="12">
 
-                            <Label
-                                Text="Clasificación"
-                                FontSize="12"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                VerticalOptions="Center"
-                                TextColor="{StaticResource color_Negro}" />
+                                    <Label
+                                        Text="Clasificación"
+                                        FontSize="12"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        VerticalOptions="Center"
+                                        TextColor="{StaticResource color_Negro}" />
 
-                            <Picker
-                                Grid.Column="1"
-                                Title="Seleccione una clasificación"
-                                ItemsSource="{Binding FiltrosCategoria}"
-                                ItemDisplayBinding="{Binding Nombre}"
-                                SelectedItem="{Binding FiltroCategoriaSeleccionada}"
-                                BackgroundColor="#F8FAF9"
-                                TextColor="{StaticResource color_Negro}"
-                                TitleColor="{StaticResource color_GrisOscuro}" />
-                        </Grid>
+                                    <Picker
+                                        Grid.Column="1"
+                                        Title="Seleccione una clasificación"
+                                        ItemsSource="{Binding FiltrosCategoria}"
+                                        ItemDisplayBinding="{Binding Nombre}"
+                                        SelectedItem="{Binding FiltroCategoriaSeleccionada}"
+                                        BackgroundColor="#F8FAF9"
+                                        TextColor="{StaticResource color_Negro}"
+                                        TitleColor="{StaticResource color_GrisOscuro}" />
+                                </Grid>
 
-                        <Grid
-                            x:Name="FuenteFiltroAccionesGrid"
-                            Grid.Row="2"
-                            ColumnDefinitions="*,Auto,Auto"
-                            ColumnSpacing="10"
-                            RowSpacing="8">
+                                <Grid
+                                    x:Name="FuenteFiltroAccionesGrid"
+                                    Grid.Row="2"
+                                    ColumnDefinitions="*,Auto,Auto"
+                                    ColumnSpacing="10"
+                                    RowSpacing="8">
 
-                            <Label
-                                Text="{Binding ResumenResultados}"
-                                VerticalOptions="Center"
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                                    <Label
+                                        Text="{Binding ResumenResultados}"
+                                        VerticalOptions="Center"
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_GrisOscuro}" />
 
-                            <Button
-                                Grid.Column="1"
-                                Text="Buscar"
-                                Padding="16,9"
-                                Command="{Binding BuscarCommand}"
-                                BackgroundColor="{StaticResource color_Verde}"
-                                TextColor="White"
-                                CornerRadius="10" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Buscar"
+                                        Padding="16,9"
+                                        Command="{Binding BuscarCommand}"
+                                        BackgroundColor="{StaticResource color_Verde}"
+                                        TextColor="White"
+                                        CornerRadius="10" />
 
-                            <Button
-                                Grid.Column="2"
-                                Text="Limpiar"
-                                Padding="16,9"
-                                Command="{Binding LimpiarFiltrosCommand}"
-                                BackgroundColor="#EEF2F0"
-                                TextColor="{StaticResource color_Verde}"
-                                CornerRadius="10" />
-                        </Grid>
-                    </Grid>
-                </Border>
+                                    <Button
+                                        Grid.Column="2"
+                                        Text="Limpiar"
+                                        Padding="16,9"
+                                        Command="{Binding LimpiarFiltrosCommand}"
+                                        BackgroundColor="#EEF2F0"
+                                        TextColor="{StaticResource color_Verde}"
+                                        CornerRadius="10" />
+                                </Grid>
+                            </Grid>
+                        </Border>
 
                         <!-- Composición cargada bajo demanda -->
                         <Border
-                    IsVisible="{Binding MostrarSeccionTablaComposicion}"
-                    Padding="14"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 16">
+                            IsVisible="{Binding MostrarSeccionTablaComposicion}"
+                            Padding="14"
+                            BackgroundColor="White"
+                            Stroke="#DDE7E3"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 16">
 
-                    <VerticalStackLayout Spacing="10">
+                            <VerticalStackLayout Spacing="10">
 
-                        <Grid
-                            ColumnDefinitions="*,Auto"
-                            ColumnSpacing="12">
+                                <Grid
+                                    ColumnDefinitions="*,Auto"
+                                    ColumnSpacing="12">
 
-                            <VerticalStackLayout Spacing="2">
-
-                                <Label
-                                    Text="Matriz de composición"
-                                    FontSize="17"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Verde}" />
-
-                                <Label
-                                    Text="Se carga únicamente al solicitarla para mantener rápida la pantalla."
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-                            </VerticalStackLayout>
-
-                            <Button
-                                Grid.Column="1"
-                                Text="{Binding TextoBotonTablaComposicion}"
-                                Padding="14,8"
-                                Command="{Binding ToggleTablaComposicionCommand}"
-                                BackgroundColor="#EEF5F2"
-                                TextColor="{StaticResource color_Verde}"
-                                CornerRadius="10" />
-                        </Grid>
-
-                        <ActivityIndicator
-                            IsRunning="{Binding CargandoComposicion}"
-                            IsVisible="{Binding CargandoComposicion}"
-                            Color="{StaticResource color_Naranja}" />
-
-                        <Label
-                            Text="{Binding MensajeComposicion}"
-                            IsVisible="{Binding TieneMensajeComposicion}"
-                            FontSize="12"
-                            TextColor="{StaticResource RedDelete}" />
-
-                        <Label
-                            Text="No hay fuentes con aportes químicos para los filtros seleccionados."
-                            IsVisible="{Binding MostrarMensajeTablaVacia}"
-                            FontSize="12"
-                            TextColor="{StaticResource color_GrisOscuro}" />
-
-                        <ScrollView
-                            Orientation="Horizontal"
-                            IsVisible="{Binding MostrarTablaConDatos}"
-                            MaximumHeightRequest="265">
-
-                            <VerticalStackLayout Spacing="0">
-
-                                <!-- Encabezado -->
-                                <HorizontalStackLayout Spacing="0">
-
-                                    <Border
-                                        WidthRequest="240"
-                                        Padding="9"
-                                        BackgroundColor="{StaticResource color_Verde}"
-                                        Stroke="#DDE7E3"
-                                        StrokeThickness="0.5">
+                                    <VerticalStackLayout Spacing="2">
 
                                         <Label
-                                            Text="Fuente"
-                                            TextColor="White"
-                                            FontAttributes="Bold" />
-                                    </Border>
+                                            Text="Matriz de composición"
+                                            FontSize="17"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Verde}" />
 
-                                    <HorizontalStackLayout
-                                        BindableLayout.ItemsSource="{Binding ElementosTabla}"
-                                        Spacing="0">
+                                        <Label
+                                            Text="Se carga únicamente al solicitarla para mantener rápida la pantalla."
+                                            FontSize="11"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
 
-                                        <BindableLayout.ItemTemplate>
-                                            <DataTemplate>
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="{Binding TextoBotonTablaComposicion}"
+                                        Padding="14,8"
+                                        Command="{Binding ToggleTablaComposicionCommand}"
+                                        BackgroundColor="#EEF5F2"
+                                        TextColor="{StaticResource color_Verde}"
+                                        CornerRadius="10" />
+                                </Grid>
 
-                                                <Border
-                                                    WidthRequest="76"
-                                                    Padding="9"
-                                                    BackgroundColor="{StaticResource color_Verde}"
-                                                    Stroke="#DDE7E3"
-                                                    StrokeThickness="0.5">
+                                <ActivityIndicator
+                                    IsRunning="{Binding CargandoComposicion}"
+                                    IsVisible="{Binding CargandoComposicion}"
+                                    Color="{StaticResource color_Naranja}" />
 
-                                                    <Label
-                                                        Text="{Binding .}"
-                                                        TextColor="White"
-                                                        FontAttributes="Bold"
-                                                        HorizontalTextAlignment="Center" />
-                                                </Border>
-                                            </DataTemplate>
-                                        </BindableLayout.ItemTemplate>
-                                    </HorizontalStackLayout>
-                                </HorizontalStackLayout>
+                                <Label
+                                    Text="{Binding MensajeComposicion}"
+                                    IsVisible="{Binding TieneMensajeComposicion}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource RedDelete}" />
+
+                                <Label
+                                    Text="No hay fuentes con aportes químicos para los filtros seleccionados."
+                                    IsVisible="{Binding MostrarMensajeTablaVacia}"
+                                    FontSize="12"
+                                    TextColor="{StaticResource color_GrisOscuro}" />
 
                                 <!--
-                                    Filas de la matriz.
-                                    El desplazamiento vertical lo administra
-                                    el panel superior para evitar scrolls anidados.
+                                    El scroll interno administra solamente el
+                                    desplazamiento horizontal.
+
+                                    No se limita su altura: todas las filas forman
+                                    parte del contenido del ScrollView superior,
+                                    que administra el desplazamiento vertical.
                                 -->
-                                <VerticalStackLayout
-                                    BindableLayout.ItemsSource="{Binding TablaComposicion}"
-                                    Spacing="0">
+                                <ScrollView
+                                    Orientation="Horizontal"
+                                    IsVisible="{Binding MostrarTablaConDatos}"
+                                    VerticalOptions="Start">
 
-                                        <BindableLayout.ItemTemplate>
-                                            <DataTemplate>
+                                    <VerticalStackLayout Spacing="0">
 
-                                                <HorizontalStackLayout Spacing="0">
+                                        <!-- Encabezado -->
+                                        <HorizontalStackLayout Spacing="0">
 
-                                                    <Border
-                                                        WidthRequest="240"
-                                                        Padding="9"
-                                                        BackgroundColor="White"
-                                                        Stroke="#E5E7EB"
-                                                        StrokeThickness="0.5">
+                                            <Border
+                                                WidthRequest="240"
+                                                Padding="9"
+                                                BackgroundColor="{StaticResource color_Verde}"
+                                                Stroke="#DDE7E3"
+                                                StrokeThickness="0.5">
 
-                                                        <Label
-                                                            Text="{Binding Fuente}"
-                                                            FontSize="12"
-                                                            TextColor="{StaticResource color_Negro}"
-                                                            LineBreakMode="TailTruncation" />
-                                                    </Border>
+                                                <Label
+                                                    Text="Fuente"
+                                                    TextColor="White"
+                                                    FontAttributes="Bold" />
+                                            </Border>
 
-                                                    <HorizontalStackLayout
-                                                        BindableLayout.ItemsSource="{Binding Celdas}"
-                                                        Spacing="0">
+                                            <HorizontalStackLayout
+                                                BindableLayout.ItemsSource="{Binding ElementosTabla}"
+                                                Spacing="0">
 
-                                                        <BindableLayout.ItemTemplate>
-                                                            <DataTemplate>
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate>
 
-                                                                <Border
-                                                                    WidthRequest="76"
-                                                                    Padding="9"
-                                                                    BackgroundColor="White"
-                                                                    Stroke="#E5E7EB"
-                                                                    StrokeThickness="0.5">
+                                                        <Border
+                                                            WidthRequest="76"
+                                                            Padding="9"
+                                                            BackgroundColor="{StaticResource color_Verde}"
+                                                            Stroke="#DDE7E3"
+                                                            StrokeThickness="0.5">
 
-                                                                    <Label
-                                                                        Text="{Binding Texto}"
-                                                                        FontSize="12"
-                                                                        TextColor="{StaticResource color_Negro}"
-                                                                        HorizontalTextAlignment="Center" />
-                                                                </Border>
-                                                            </DataTemplate>
-                                                        </BindableLayout.ItemTemplate>
+                                                            <Label
+                                                                Text="{Binding .}"
+                                                                TextColor="White"
+                                                                FontAttributes="Bold"
+                                                                HorizontalTextAlignment="Center" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </HorizontalStackLayout>
+                                        </HorizontalStackLayout>
+
+                                        <!--
+                                            Filas de la matriz.
+                                            El desplazamiento vertical lo administra
+                                            el panel superior para evitar scrolls anidados.
+                                        -->
+                                        <VerticalStackLayout
+                                            BindableLayout.ItemsSource="{Binding TablaComposicion}"
+                                            Spacing="0">
+
+                                            <BindableLayout.ItemTemplate>
+                                                <DataTemplate>
+
+                                                    <HorizontalStackLayout Spacing="0">
+
+                                                        <Border
+                                                            WidthRequest="240"
+                                                            Padding="9"
+                                                            BackgroundColor="White"
+                                                            Stroke="#E5E7EB"
+                                                            StrokeThickness="0.5">
+
+                                                            <Label
+                                                                Text="{Binding Fuente}"
+                                                                FontSize="12"
+                                                                TextColor="{StaticResource color_Negro}"
+                                                                LineBreakMode="TailTruncation" />
+                                                        </Border>
+
+                                                        <HorizontalStackLayout
+                                                            BindableLayout.ItemsSource="{Binding Celdas}"
+                                                            Spacing="0">
+
+                                                            <BindableLayout.ItemTemplate>
+                                                                <DataTemplate>
+
+                                                                    <Border
+                                                                        WidthRequest="76"
+                                                                        Padding="9"
+                                                                        BackgroundColor="White"
+                                                                        Stroke="#E5E7EB"
+                                                                        StrokeThickness="0.5">
+
+                                                                        <Label
+                                                                            Text="{Binding Texto}"
+                                                                            FontSize="12"
+                                                                            TextColor="{StaticResource color_Negro}"
+                                                                            HorizontalTextAlignment="Center" />
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </BindableLayout.ItemTemplate>
+                                                        </HorizontalStackLayout>
                                                     </HorizontalStackLayout>
-                                                </HorizontalStackLayout>
-                                            </DataTemplate>
-                                        </BindableLayout.ItemTemplate>
-                                </VerticalStackLayout>
+                                                </DataTemplate>
+                                            </BindableLayout.ItemTemplate>
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </ScrollView>
                             </VerticalStackLayout>
-                        </ScrollView>
-                    </VerticalStackLayout>
-                </Border>
+                        </Border>
 
                         <!-- Mensaje del listado -->
                         <Border
-                    IsVisible="{Binding TieneMensaje}"
-                    Padding="12"
-                    BackgroundColor="#FFF7E6"
-                    Stroke="#F2C94C"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 12">
+                            IsVisible="{Binding TieneMensaje}"
+                            Padding="12"
+                            BackgroundColor="#FFF7E6"
+                            Stroke="#F2C94C"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 12">
 
-                    <Label
-                        Text="{Binding Mensaje}"
-                        FontSize="13"
-                        TextColor="{StaticResource color_Negro}" />
-                </Border>
+                            <Label
+                                Text="{Binding Mensaje}"
+                                FontSize="13"
+                                TextColor="{StaticResource color_Negro}" />
+                        </Border>
 
                     </VerticalStackLayout>
                 </ScrollView>

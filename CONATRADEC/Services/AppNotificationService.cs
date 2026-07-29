@@ -12,8 +12,8 @@ namespace CONATRADEC.Services
     ///
     /// Reglas:
     /// - Success: operaciones completadas correctamente.
-    /// - Error: fallos de API, servidor u operaciones.
-    /// - Warning: validaciones generales, conexión o datos incompletos.
+    /// - Error: fallos de API, validaciones que impiden guardar y operaciones rechazadas.
+    /// - Warning: conexión, operaciones parciales o estados que requieren atención.
     /// - Information: permisos, estados y mensajes informativos.
     /// </summary>
     public static class AppNotificationService
@@ -259,6 +259,10 @@ namespace CONATRADEC.Services
                 message?.Trim().ToLowerInvariant() ??
                 string.Empty;
 
+            /*
+             * Una operación parcialmente completada continúa siendo advertencia.
+             * Ejemplo: el usuario fue creado, pero la imagen no pudo guardarse.
+             */
             if (value.Contains("pero") &&
                 (value.Contains("guardad") ||
                  value.Contains("cread") ||
@@ -268,33 +272,29 @@ namespace CONATRADEC.Services
                 return AppMessageType.Warning;
             }
 
-            if (value.StartsWith("éxito") ||
-                value.StartsWith("exito") ||
-                value.Contains("correctamente") ||
-                value.Contains("completada con éxito") ||
-                value.Contains("completado con éxito") ||
-                Regex.IsMatch(
-                    value,
-                    @"\b(creado|creada|guardado|guardada|actualizado|actualizada|eliminado|eliminada|registrado|registrada)\b",
-                    RegexOptions.IgnoreCase) ||
-                value.Contains("se guardó") ||
-                value.Contains("se actualizó") ||
-                value.Contains("se eliminó"))
-            {
-                return AppMessageType.Success;
-            }
-
+            /*
+             * Los problemas de conexión y la ausencia de cambios se mantienen
+             * en naranja porque no representan una validación rechazada.
+             */
             if (value.Contains("sin conexión") ||
                 value.Contains("no hay conexión") ||
                 value.Contains("verifique su red") ||
-                value.Contains("seleccione") ||
-                value.Contains("ingrese") ||
-                value.Contains("debe ") ||
-                value.Contains("revise ") ||
-                value.Contains("faltan ") ||
                 value.Contains("no hay cambios"))
             {
                 return AppMessageType.Warning;
+            }
+
+            /*
+             * Las validaciones que impiden guardar se evalúan antes que los
+             * mensajes exitosos. Así, una respuesta como:
+             *
+             * "Ya existe un registro igual, pero está eliminado"
+             *
+             * no se interpreta como éxito solamente por contener "eliminado".
+             */
+            if (LooksLikeBlockingValidation(value))
+            {
+                return AppMessageType.Error;
             }
 
             if (value.StartsWith("error") ||
@@ -302,19 +302,104 @@ namespace CONATRADEC.Services
                 value.Contains("no se pudo") ||
                 value.Contains("error inesperado") ||
                 value.Contains("servidor presentó") ||
+                value.Contains("servidor presento") ||
                 value.Contains("intente nuevamente"))
             {
                 return AppMessageType.Error;
             }
 
+            if (value.StartsWith("éxito") ||
+                value.StartsWith("exito") ||
+                value.Contains("correctamente") ||
+                value.Contains("completada con éxito") ||
+                value.Contains("completado con éxito") ||
+                Regex.IsMatch(
+                    value,
+                    @"\b(creado|creada|guardado|guardada|actualizado|actualizada|eliminado|eliminada|registrado|registrada|reactivado|reactivada)\b",
+                    RegexOptions.IgnoreCase) ||
+                value.Contains("se guardó") ||
+                value.Contains("se guardo") ||
+                value.Contains("se actualizó") ||
+                value.Contains("se actualizo") ||
+                value.Contains("se eliminó") ||
+                value.Contains("se elimino") ||
+                value.Contains("se reactivó") ||
+                value.Contains("se reactivo"))
+            {
+                return AppMessageType.Success;
+            }
+
             if (value.Contains("permiso") ||
                 value.Contains("sesión") ||
-                value.Contains("información"))
+                value.Contains("sesion") ||
+                value.Contains("información") ||
+                value.Contains("informacion"))
             {
                 return AppMessageType.Information;
             }
 
             return AppMessageType.Information;
+        }
+
+        /// <summary>
+        /// Detecta mensajes que indican que la operación fue rechazada y que,
+        /// por tanto, los datos no fueron guardados.
+        /// </summary>
+        private static bool LooksLikeBlockingValidation(
+            string value)
+        {
+            return
+                value.Contains("ya existe") ||
+                value.Contains("ya se encuentra registrad") ||
+                value.Contains("ya está registrad") ||
+                value.Contains("ya esta registrad") ||
+                value.Contains("registro duplicad") ||
+                value.Contains("dato duplicad") ||
+                value.Contains("está duplicad") ||
+                value.Contains("esta duplicad") ||
+                value.Contains("mismos datos") ||
+                value.Contains("mismo nombre") ||
+                value.Contains("mismo código") ||
+                value.Contains("mismo codigo") ||
+                value.Contains("no se guardó") ||
+                value.Contains("no se guardo") ||
+                value.Contains("no fue guardad") ||
+                value.Contains("no se registró") ||
+                value.Contains("no se registro") ||
+                value.Contains("no fue registrad") ||
+                value.Contains("no se recibieron") ||
+                value.Contains("no es válido") ||
+                value.Contains("no es valido") ||
+                value.Contains("no es válida") ||
+                value.Contains("no es valida") ||
+                value.Contains("no existe") ||
+                value.Contains("no se puede") ||
+                value.Contains("no puede") ||
+                value.Contains("está inactivo") ||
+                value.Contains("esta inactivo") ||
+                value.Contains("está inactiva") ||
+                value.Contains("esta inactiva") ||
+                value.Contains("está desactivado") ||
+                value.Contains("esta desactivado") ||
+                value.Contains("está desactivada") ||
+                value.Contains("esta desactivada") ||
+                value.Contains("seleccione") ||
+                value.Contains("ingrese") ||
+                value.Contains("debe ") ||
+                value.Contains("revise ") ||
+                value.Contains("faltan ") ||
+                value.Contains("obligatorio") ||
+                value.Contains("obligatoria") ||
+                value.Contains("requerido") ||
+                value.Contains("requerida") ||
+                value.Contains("inválido") ||
+                value.Contains("invalido") ||
+                value.Contains("inválida") ||
+                value.Contains("invalida") ||
+                value.Contains("fuera de rango") ||
+                value.Contains("no coincide") ||
+                value.Contains("no cumplen") ||
+                value.Contains("no cumple");
         }
 
         private static bool LooksLikeTechnicalException(

@@ -27,9 +27,13 @@ namespace CONATRADEC.Services
         public const string CategoriaPublicacion = "categoria-publicacion";
         public const string CategoriaAlbum = "categoria-album";
 
-        private static readonly IReadOnlyDictionary<string, CatalogoEliminadoConfiguracion>
+        private static readonly IReadOnlyDictionary<
+            string,
+            CatalogoEliminadoConfiguracion>
             Configuraciones =
-                new Dictionary<string, CatalogoEliminadoConfiguracion>(
+                new Dictionary<
+                    string,
+                    CatalogoEliminadoConfiguracion>(
                     StringComparer.OrdinalIgnoreCase)
                 {
                     [Pais] = new(
@@ -139,7 +143,8 @@ namespace CONATRADEC.Services
                     ["api/Rol/crearRol"] = Rol,
                     ["api/elemento-quimico/crear"] = ElementoQuimico,
                     ["api/configuracion/tipos-cultivo"] = TipoCultivo,
-                    ["api/configuracion/tipos-analisis-suelo"] = TipoAnalisis,
+                    ["api/configuracion/tipos-analisis-suelo"] =
+                        TipoAnalisis,
                     ["api/configuracion/extraccion-nutrientes"] =
                         ExtraccionNutriente,
                     ["api/configuracion/rangos-nutrientes"] =
@@ -170,6 +175,38 @@ namespace CONATRADEC.Services
             out CatalogoEliminadoConfiguracion configuracion)
         {
             string valor = Normalizar(titulo);
+
+            /*
+             * La pantalla principal "Rangos nutricionales" no muestra rangos
+             * individuales: muestra tarjetas de tipos de cultivo.
+             *
+             * Por eso, el botón Eliminados de esa pantalla debe abrir
+             * "Tipos de cultivo eliminados". El botón rojo de sus tarjetas
+             * también desactiva un TipoCultivo, no un rango individual.
+             */
+            if (string.Equals(
+                    valor,
+                    "rangos nutricionales",
+                    StringComparison.Ordinal))
+            {
+                return TryGet(
+                    TipoCultivo,
+                    out configuracion);
+            }
+
+            /*
+             * En la pantalla de detalle el título es "Rangos de <cultivo>".
+             * Allí sí se administran ParametroRangoNutrienteCultivo y el
+             * botón Eliminados debe consultar los rangos individuales.
+             */
+            if (valor.StartsWith(
+                    "rangos de ",
+                    StringComparison.Ordinal))
+            {
+                return TryGet(
+                    RangoNutriente,
+                    out configuracion);
+            }
 
             string? codigo =
                 valor.Contains("departamento")
