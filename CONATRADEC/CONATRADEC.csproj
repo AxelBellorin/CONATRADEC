@@ -14,8 +14,8 @@
 		<ApplicationId>com.conatradec.conatradec</ApplicationId>
 
 		<!-- Primera versión que incorpora el actualizador interno. -->
-		<ApplicationDisplayVersion>1.0.2</ApplicationDisplayVersion>
-		<ApplicationVersion>3</ApplicationVersion>
+		<ApplicationDisplayVersion>1.0.4</ApplicationDisplayVersion>
+		<ApplicationVersion>5</ApplicationVersion>
 
 		<!--
 			Debug continúa sin empaquetar. Release genera MSIX para que Windows
@@ -24,8 +24,7 @@
 		<WindowsPackageType Condition="'$(Configuration)'=='Debug'">None</WindowsPackageType>
 
 		<!-- Compatibilidad con teléfonos físicos y emuladores Android. -->
-		<RuntimeIdentifiers
-			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
+		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
@@ -57,15 +56,10 @@
 
 	<ItemGroup>
 		<!-- Icono principal de la aplicación. -->
-		<MauiIcon
-			Include="Resources\AppIcon\appicon.png"
-			BaseSize="512,512" />
+		<MauiIcon Include="Resources\AppIcon\appicon.png" BaseSize="512,512" />
 
 		<!-- Pantalla inicial nativa. -->
-		<MauiSplashScreen
-			Include="Resources\Splash\splash.png"
-			Color="#3B655B"
-			BaseSize="512,512" />
+		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#3B655B" BaseSize="512,512" />
 
 		<MauiImage Include="Resources\Images\*" />
 		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
@@ -243,6 +237,10 @@
 		<MauiXaml Update="Views\UserProfilePage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Properties\PublishProfiles\" />
 	</ItemGroup>
 
 </Project>

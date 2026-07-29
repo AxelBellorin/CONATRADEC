@@ -1,6 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Descargas HTTP de respaldo guardadas en FileSystem.CacheDirectory. -->
     <cache-path
-        name="actualizaciones"
+        name="actualizaciones_cache"
         path="actualizaciones/" />
+
+    <!-- APK administrados por DownloadManager en la carpeta de la aplicación. -->
+    <external-files-path
+        name="actualizaciones_externas"
+        path="Download/actualizaciones/" />
 </paths>

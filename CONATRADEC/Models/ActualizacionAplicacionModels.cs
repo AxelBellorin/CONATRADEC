@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
@@ -72,7 +72,8 @@ namespace CONATRADEC.Models
             double valor = Math.Max(0, bytes);
             int indice = 0;
 
-            while (valor >= 1024 && indice < unidades.Length - 1)
+            while (valor >= 1024 &&
+                   indice < unidades.Length - 1)
             {
                 valor /= 1024;
                 indice++;
@@ -82,6 +83,33 @@ namespace CONATRADEC.Models
                 ? $"{valor:0} {unidades[indice]}"
                 : $"{valor:0.##} {unidades[indice]}";
         }
+    }
+
+    /// <summary>
+    /// Estado visible de una descarga administrada por Android, Windows
+    /// o por el cliente HTTP de respaldo.
+    /// </summary>
+    public sealed class ProgresoDescargaActualizacion
+    {
+        public long BytesDescargados { get; init; }
+
+        public long TotalBytes { get; init; }
+
+        public double BytesPorSegundo { get; init; }
+
+        public TimeSpan? TiempoRestante { get; init; }
+
+        public string Estado { get; init; } = "Preparando";
+
+        public bool EnSegundoPlano { get; init; }
+
+        public double Porcentaje =>
+            TotalBytes <= 0
+                ? 0
+                : Math.Clamp(
+                    BytesDescargados * 100d / TotalBytes,
+                    0,
+                    100);
     }
 
     public sealed record ResultadoInstalacionActualizacion(
