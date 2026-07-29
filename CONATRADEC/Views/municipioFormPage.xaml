@@ -7,9 +7,34 @@
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
     <Grid
-        Padding="{OnIdiom Phone='14,16,14,22', Tablet='22,20,22,26', Desktop='28,24,28,30'}">
+        RowDefinitions="Auto,*"
+        Padding="{OnIdiom Phone='14,12,14,22', Tablet='22,14,22,26', Desktop='28,16,28,30'}">
 
-        <ScrollView>
+        <!--
+            Flecha exclusiva del formulario Municipio.
+            Usa directamente el mismo CancelCommand del botón inferior.
+        -->
+        <Button
+            Grid.Row="0"
+            Text="←"
+            WidthRequest="48"
+            HeightRequest="48"
+            MinimumWidthRequest="48"
+            MinimumHeightRequest="48"
+            Padding="0"
+            Margin="0,0,0,2"
+            CornerRadius="14"
+            FontSize="23"
+            FontAttributes="Bold"
+            BackgroundColor="#F3F5F4"
+            TextColor="#263238"
+            HorizontalOptions="Start"
+            VerticalOptions="Center"
+            Command="{Binding CancelCommand}"
+            AutomationId="BotonRegresarMunicipio"
+            SemanticProperties.Description="Regresar al listado de municipios" />
+
+        <ScrollView Grid.Row="1">
             <VerticalStackLayout
                 MaximumWidthRequest="920"
                 HorizontalOptions="Center"
