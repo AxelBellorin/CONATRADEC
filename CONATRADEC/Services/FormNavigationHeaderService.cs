@@ -7,11 +7,11 @@ using System.Windows.Input;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Agrega una flecha fija de regreso en la parte superior de todos los
+    /// Agrega una flecha fija de regreso en la parte superior de los
     /// formularios de CONATRADEC.
     ///
-    /// La flecha utiliza el mismo comando de cancelación/regreso que ya posee
-    /// cada ViewModel, por lo que no duplica ni cambia la lógica existente.
+    /// Municipio utiliza una flecha propia enlazada directamente a
+    /// CancelCommand, por lo que se excluye del encabezado global.
     /// </summary>
     public static class FormNavigationHeaderService
     {
@@ -29,8 +29,8 @@ namespace CONATRADEC.Services
             ];
 
         /// <summary>
-        /// Busca la página actualmente visible y agrega el encabezado cuando
-        /// corresponde a un formulario.
+        /// Busca la página actualmente visible y agrega o corrige el encabezado
+        /// de navegación cuando corresponde.
         /// </summary>
         public static void AsegurarEnPaginaActual()
         {
@@ -50,6 +50,20 @@ namespace CONATRADEC.Services
         private static void AsegurarEnPagina(
             ContentPage pagina)
         {
+            /*
+             * Municipio posee su propia flecha en el XAML.
+             *
+             * ShellContent conserva la instancia de la página. Por eso, si la
+             * página ya había sido envuelta anteriormente por este servicio,
+             * no basta con excluirla: también debemos retirar el encabezado
+             * global que quedó montado en memoria.
+             */
+            if (EsFormularioMunicipio(pagina))
+            {
+                QuitarEncabezadoGlobalSiExiste(pagina);
+                return;
+            }
+
             if (!EsFormulario(pagina))
                 return;
 
@@ -119,6 +133,43 @@ namespace CONATRADEC.Services
                 contenidoOriginal);
 
             pagina.Content = contenedor;
+        }
+
+        /// <summary>
+        /// Retira exclusivamente el contenedor creado por este servicio.
+        /// No modifica el contenido original ni las demás páginas.
+        /// </summary>
+        private static void QuitarEncabezadoGlobalSiExiste(
+            ContentPage pagina)
+        {
+            if (pagina.Content is not Grid contenedor ||
+                !string.Equals(
+                    contenedor.StyleId,
+                    MarcaContenedor,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            View? contenidoOriginal =
+                contenedor.Children
+                    .OfType<View>()
+                    .FirstOrDefault(
+                        vista =>
+                            Grid.GetRow(vista) == 1);
+
+            if (contenidoOriginal == null)
+                return;
+
+            /*
+             * Primero se separa del contenedor anterior para que MAUI permita
+             * asignarlo nuevamente como contenido principal de la página.
+             */
+            contenedor.Children.Remove(
+                contenidoOriginal);
+
+            pagina.Content =
+                contenidoOriginal;
         }
 
         private static void Pagina_Loaded(
@@ -291,6 +342,15 @@ namespace CONATRADEC.Services
                        contexto)
                    is bool ocupado &&
                    ocupado;
+        }
+
+        private static bool EsFormularioMunicipio(
+            ContentPage pagina)
+        {
+            return string.Equals(
+                pagina.GetType().Name,
+                "municipioFormPage",
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool EsFormulario(
