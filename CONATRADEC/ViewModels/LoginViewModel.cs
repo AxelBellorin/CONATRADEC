@@ -1,10 +1,14 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.Views;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+
+#if !WINDOWS
 using Plugin.Fingerprint;
 using Plugin.Fingerprint.Abstractions;
+#endif
+
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -425,7 +429,9 @@ namespace CONATRADEC.ViewModels
                         await SecureStorage.GetAsync(KeyPass);
 
                     if (!string.IsNullOrWhiteSpace(savedPassword))
+                    {
                         Password = savedPassword;
+                    }
                 }
 
                 useBiometrics =
@@ -434,12 +440,21 @@ namespace CONATRADEC.ViewModels
                 requirePasswordRelogin =
                     Preferences.Get(KeyRequireRelogin, false);
 
-                OnPropertyChanged(nameof(UseBiometrics));
-                OnPropertyChanged(nameof(RequirePasswordRelogin));
-
+#if WINDOWS
+                /*
+                 * Plugin.Fingerprint no se incluye en la compilación de Windows.
+                 * El acceso permanece disponible mediante usuario y contraseña.
+                 */
+                useBiometrics = false;
+                CanUseBiometrics = false;
+#else
                 CanUseBiometrics =
                     await CrossFingerprint.Current
                         .IsAvailableAsync(true);
+#endif
+
+                OnPropertyChanged(nameof(UseBiometrics));
+                OnPropertyChanged(nameof(RequirePasswordRelogin));
             }
             catch
             {
@@ -454,6 +469,17 @@ namespace CONATRADEC.ViewModels
 
         private async Task TryBiometricLoginAsync()
         {
+#if WINDOWS
+            /*
+             * La autenticación biométrica se mantiene únicamente
+             * en las compilaciones móviles.
+             */
+            CanUseBiometrics = false;
+            ActualizarEstadoBiometrico();
+
+            await Task.CompletedTask;
+            return;
+#else
             if (RequirePasswordRelogin || IsBusy)
                 return;
 
@@ -507,13 +533,14 @@ namespace CONATRADEC.ViewModels
 
                 await LoginAsync();
             }
-            catch (Exception)
+            catch
             {
                 loginViaBiometric = false;
 
                 _ = MostrarToastAsync(
                     "No fue posible completar la autenticación biométrica.");
             }
+#endif
         }
 
         private void ActualizarEstadoBiometrico()

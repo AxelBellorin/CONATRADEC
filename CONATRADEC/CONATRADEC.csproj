@@ -14,14 +14,24 @@
 		<ApplicationId>com.conatradec.conatradec</ApplicationId>
 
 		<!-- Primera versión que incorpora el actualizador interno. -->
-		<ApplicationDisplayVersion>1.0.6</ApplicationDisplayVersion>
-		<ApplicationVersion>7</ApplicationVersion>
+		<ApplicationDisplayVersion>1.0.7</ApplicationDisplayVersion>
+		<ApplicationVersion>8</ApplicationVersion>
 
 		<!--
 			Debug continúa sin empaquetar. Release genera MSIX para que Windows
 			pueda reconocer cada archivo como actualización de la misma app.
 		-->
 		<WindowsPackageType Condition="'$(Configuration)'=='Debug'">None</WindowsPackageType>
+		<WindowsPackageType Condition="'$(Configuration)'=='Release'">MSIX</WindowsPackageType>
+
+
+		<!--
+			La aplicación no utiliza funciones que dependan de los paquetes
+			Main/Singleton del Windows App SDK. Se mantiene deshabilitado el
+			Deployment Manager automático porque en este proyecto provocaba
+			REGDB_E_CLASSNOTREG antes de cargar App.xaml.cs.
+		-->
+		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
 
 		<!-- Compatibilidad con teléfonos físicos y emuladores Android. -->
 		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
@@ -69,10 +79,56 @@
 		<!-- Pantalla inicial nativa. -->
 		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#3B655B" BaseSize="512,512" />
 
-		<MauiImage Include="Resources\Images\*" />
-		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
+		<!--
+			En Android, iOS y MacCatalyst las imágenes continúan siendo procesadas
+			por .NET MAUI mediante MauiImage.
+		-->
+		<MauiImage
+			Include="Resources\Images\**\*"
+			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'" />
+
+		<MauiImage
+			Update="Resources\Images\dotnet_bot.png"
+			Resize="True"
+			BaseSize="300,185"
+			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'" />
 		<MauiFont Include="Resources\Fonts\*" />
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<!--
+		En Windows se copian las imágenes directamente a la raíz del paquete.
+		Así las referencias como Source="iconuser.png" y
+		Source="mascota_cafe_conatradec.png" se resuelven sin depender
+		del procesador de imágenes de MAUI.
+	-->
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+		<Content
+			Include="Resources\Images\**\*.png"
+			TargetPath="%(Filename)%(Extension)"
+			CopyToOutputDirectory="PreserveNewest"
+			CopyToPublishDirectory="PreserveNewest" />
+
+		<Content
+			Include="Resources\Images\**\*.jpg"
+			TargetPath="%(Filename)%(Extension)"
+			CopyToOutputDirectory="PreserveNewest"
+			CopyToPublishDirectory="PreserveNewest" />
+
+		<Content
+			Include="Resources\Images\**\*.jpeg"
+			TargetPath="%(Filename)%(Extension)"
+			CopyToOutputDirectory="PreserveNewest"
+			CopyToPublishDirectory="PreserveNewest" />
+
+		<Content
+			Include="Resources\Images\**\*.gif"
+			TargetPath="%(Filename)%(Extension)"
+			CopyToOutputDirectory="PreserveNewest"
+			CopyToPublishDirectory="PreserveNewest" />
+
+		<!-- Los SVG siguen siendo procesados por MAUI y se consumen como .png. -->
+		<MauiImage Include="Resources\Images\**\*.svg" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -81,8 +137,16 @@
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
 		<PackageReference Include="Microsoft.Maui.Controls.Maps" Version="8.0.100" />
-		<PackageReference Include="Plugin.Fingerprint" Version="3.0.0-beta.1" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.11.285" />
+	</ItemGroup>
+
+	<!--
+		Plugin.Fingerprint se conserva para Android, iOS y MacCatalyst,
+		pero no se incluye en Windows para evitar cargar su implementación
+		WinRT/UWP durante el inicio de la aplicación.
+	-->
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'">
+		<PackageReference Include="Plugin.Fingerprint" Version="3.0.0-beta.1" />
 	</ItemGroup>
 
 	<ItemGroup>
