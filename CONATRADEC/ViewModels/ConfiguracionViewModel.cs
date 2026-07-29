@@ -8,7 +8,8 @@ namespace CONATRADEC.ViewModels
 {
     /// <summary>
     /// Catálogo optimizado de opciones de configuración.
-    /// Incluye el acceso administrativo a unidades y conversiones.
+    /// Incluye el acceso administrativo a unidades, conversiones y al centro
+    /// de actualizaciones de la aplicación.
     /// </summary>
     public sealed class ConfiguracionViewModel :
         GlobalService
@@ -517,7 +518,20 @@ namespace CONATRADEC.ViewModels
                         "bitacoraPage",
                         AppRoutes.Bitacora,
                         1,
-                        grisSuave))
+                        grisSuave)),
+
+                Categoria(
+                    "Sistema y aplicación",
+                    "Versiones, mantenimiento y herramientas del dispositivo.",
+                    7,
+                    Opcion( 
+                        "Actualizaciones",
+                        "Buscar, descargar e instalar nuevas versiones de ConatraCafé Soil.",
+                        "iconappupdate.png",
+                        InterfazCodigos.Actualizaciones,
+                        AppRoutes.ActualizacionAplicacion,
+                        1,
+                        azulSuave))
             };
         }
 

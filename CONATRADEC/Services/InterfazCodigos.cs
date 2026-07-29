@@ -33,6 +33,10 @@ namespace CONATRADEC.Services
         public const string DatosSinConexion =
             "datosSinConexionPage";
 
+        // Permiso de lectura para abrir el centro de actualizaciones en la app.
+        public const string Actualizaciones =
+            "ActualizacionAplicacionPage";
+
         private static readonly IReadOnlyDictionary<string, string>
             NombresAmigables =
                 new Dictionary<string, string>(
@@ -59,7 +63,8 @@ namespace CONATRADEC.Services
                     [CategoriasPublicacion] =
                         "Tipos de publicación",
                     [Bitacora] = "Bitácora del sistema",
-                    [DatosSinConexion] = "Datos sin conexión"
+                    [DatosSinConexion] = "Datos sin conexión",
+                    [Actualizaciones] = "Actualizaciones de la aplicación"
                 };
 
         private static readonly IReadOnlyDictionary<string, string>
@@ -117,7 +122,9 @@ namespace CONATRADEC.Services
                     ["EditarAnalisisGuardadoPage"] =
                         AnalisisSuelo,
                     ["DatosSinConexionPage"] =
-                        DatosSinConexion
+                        DatosSinConexion,
+                    ["ActualizacionesPage"] =
+                        Actualizaciones
                 };
 
         public static string Normalizar(string? codigo)

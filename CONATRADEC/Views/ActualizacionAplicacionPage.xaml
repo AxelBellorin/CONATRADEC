@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.ActualizacionAplicacionPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -9,36 +9,160 @@
     <Grid RowDefinitions="*,Auto">
         <ScrollView Grid.Row="0">
             <VerticalStackLayout
-                Padding="{OnIdiom Phone='18,22,18,24', Tablet='32,28,32,30', Desktop='60,34,60,36'}"
-                Spacing="18"
-                MaximumWidthRequest="850"
+                Padding="{OnIdiom Phone='16,20,16,24', Tablet='30,28,30,32', Desktop='54,32,54,38'}"
+                Spacing="16"
+                MaximumWidthRequest="900"
                 HorizontalOptions="Center">
 
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <!-- Encabezado permanente del centro de actualizaciones. -->
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                     <VerticalStackLayout Spacing="3">
                         <Label
-                            Text="Actualización disponible"
+                            Text="Centro de actualizaciones"
                             FontFamily="MontserratBold"
                             FontAttributes="Bold"
-                            FontSize="{OnIdiom Phone=25, Tablet=29, Desktop=32}"
+                            FontSize="{OnIdiom Phone=24, Tablet=29, Desktop=32}"
                             TextColor="{StaticResource color_Verde}" />
 
                         <Label
-                            Text="Descargue e instale la versión más reciente de ConatraCafé Soil."
+                            Text="Busque, descargue e instale nuevas versiones de ConatraCafé Soil."
                             FontSize="13"
+                            LineBreakMode="WordWrap"
                             TextColor="{StaticResource color_GrisOscuro}" />
                     </VerticalStackLayout>
 
                     <Button
                         Grid.Column="1"
+                        Text="Buscar"
+                        Clicked="BuscarActualizaciones_Clicked"
+                        IsEnabled="{Binding PuedeBuscar}"
+                        IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}"
+                        Padding="13,8"
+                        BackgroundColor="#EEF5F2"
+                        TextColor="{StaticResource color_Verde}" />
+
+                    <Button
+                        Grid.Column="2"
                         Text="Cerrar"
                         Clicked="Volver_Clicked"
                         IsVisible="{Binding PuedeCerrar}"
+                        Padding="12,8"
                         BackgroundColor="Transparent"
                         TextColor="{StaticResource color_Verde}" />
                 </Grid>
 
+                <!-- Estado general: sin comprobar, buscando o actualizado. -->
                 <Border
+                    IsVisible="{Binding NoTieneActualizacion}"
+                    Padding="{OnIdiom Phone=18, Tablet=22, Desktop=24}"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18">
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                        <Border
+                            WidthRequest="58"
+                            HeightRequest="58"
+                            Padding="12"
+                            BackgroundColor="#EEF5F2"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 16">
+
+                            <Label
+                                Text="✓"
+                                FontSize="28"
+                                HorizontalTextAlignment="Center"
+                                VerticalTextAlignment="Center"
+                                TextColor="{StaticResource color_Verde}" />
+                        </Border>
+
+                        <VerticalStackLayout
+                            Grid.Column="1"
+                            Spacing="5"
+                            VerticalOptions="Center">
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label
+                                    Text="{Binding TituloEstadoGeneral}"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    FontSize="19"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <ActivityIndicator
+                                    Grid.Column="1"
+                                    IsRunning="{Binding Consultando}"
+                                    IsVisible="{Binding Consultando}"
+                                    Color="{StaticResource color_Naranja}" />
+                            </Grid>
+
+                            <Label
+                                Text="{Binding DescripcionEstadoGeneral}"
+                                FontSize="12"
+                                LineBreakMode="WordWrap"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Text="{Binding UltimaComprobacionTexto}"
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <!-- Versión actualmente instalada. -->
+                <Border
+                    Padding="16"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16">
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="10"
+                        RowDefinitions="Auto,Auto"
+                        RowSpacing="10">
+
+                        <VerticalStackLayout Spacing="2">
+                            <Label
+                                Text="Versión instalada"
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                            <Label
+                                Text="{Binding VersionInstalada}"
+                                FontAttributes="Bold"
+                                FontSize="15"
+                                TextColor="{StaticResource color_Negro}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout
+                            Grid.Column="1"
+                            Spacing="2">
+                            <Label
+                                Text="Plataforma"
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                            <Label
+                                Text="{Binding PlataformaVisible}"
+                                FontAttributes="Bold"
+                                FontSize="15"
+                                TextColor="{StaticResource color_Negro}" />
+                        </VerticalStackLayout>
+
+                        <Label
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            Text="{Binding UltimaComprobacionTexto}"
+                            FontSize="11"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </Grid>
+                </Border>
+
+                <!-- Información de la nueva versión. -->
+                <Border
+                    IsVisible="{Binding TieneActualizacion}"
                     Padding="{OnIdiom Phone=18, Tablet=22, Desktop=26}"
                     BackgroundColor="White"
                     Stroke="#DDE7E3"
@@ -54,6 +178,7 @@
                                 BackgroundColor="#EEF5F2"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 17">
+
                                 <Label
                                     Text="↻"
                                     FontSize="31"
@@ -66,12 +191,14 @@
                                 Grid.Column="1"
                                 Spacing="2"
                                 VerticalOptions="Center">
+
                                 <Label
                                     Text="{Binding NuevaVersionTitulo}"
                                     FontFamily="MontserratBold"
                                     FontAttributes="Bold"
                                     FontSize="21"
                                     TextColor="{StaticResource color_Negro}" />
+
                                 <Label
                                     Text="{Binding ResumenVersion}"
                                     FontSize="12"
@@ -86,10 +213,12 @@
                             Stroke="#FFB74D"
                             StrokeThickness="1"
                             StrokeShape="RoundRectangle 12">
+
                             <Label
                                 Text="Esta actualización es obligatoria para continuar utilizando la aplicación."
                                 FontAttributes="Bold"
                                 FontSize="12"
+                                LineBreakMode="WordWrap"
                                 TextColor="#8A4B00" />
                         </Border>
 
@@ -104,6 +233,7 @@
                                 BackgroundColor="#F7F9F8"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 12">
+
                                 <VerticalStackLayout Spacing="2">
                                     <Label
                                         Text="Versión instalada"
@@ -122,6 +252,7 @@
                                 BackgroundColor="#F7F9F8"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 12">
+
                                 <VerticalStackLayout Spacing="2">
                                     <Label
                                         Text="Nueva versión"
@@ -140,6 +271,7 @@
                                 BackgroundColor="#F7F9F8"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 12">
+
                                 <VerticalStackLayout Spacing="2">
                                     <Label
                                         Text="Plataforma"
@@ -159,6 +291,7 @@
                                 BackgroundColor="#F7F9F8"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 12">
+
                                 <VerticalStackLayout Spacing="2">
                                     <Label
                                         Text="Tamaño"
@@ -188,77 +321,126 @@
                         </VerticalStackLayout>
 
                         <Border
-                            IsVisible="{Binding MostrandoProgreso}"
-                            Padding="14"
-                            BackgroundColor="#F1F7F4"
-                            Stroke="#BFD8D0"
+                            IsVisible="{Binding TieneArchivoDescargado}"
+                            Padding="13"
+                            BackgroundColor="#ECFDF3"
+                            Stroke="#A6D7B8"
                             StrokeThickness="1"
-                            StrokeShape="RoundRectangle 14">
+                            StrokeShape="RoundRectangle 13">
 
-                            <VerticalStackLayout Spacing="9">
-                                <Grid ColumnDefinitions="*,Auto">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <Label
+                                    Text="✓"
+                                    FontAttributes="Bold"
+                                    FontSize="20"
+                                    TextColor="#16794B" />
+
+                                <VerticalStackLayout
+                                    Grid.Column="1"
+                                    Spacing="2">
                                     <Label
-                                        Text="{Binding EstadoDescarga}"
+                                        Text="Archivo listo para instalar"
                                         FontAttributes="Bold"
                                         FontSize="12"
-                                        TextColor="{StaticResource color_Verde}" />
-
+                                        TextColor="#16643B" />
                                     <Label
-                                        Grid.Column="1"
-                                        Text="{Binding PorcentajeTexto}"
-                                        FontAttributes="Bold"
-                                        FontSize="12"
-                                        TextColor="{StaticResource color_Verde}" />
-                                </Grid>
-
-                                <ProgressBar
-                                    Progress="{Binding ProgresoDescarga}"
-                                    ProgressColor="{StaticResource color_Verde}" />
-
-                                <Grid
-                                    ColumnDefinitions="*,Auto"
-                                    ColumnSpacing="12">
-                                    <Label
-                                        Text="{Binding DetalleDescarga}"
+                                        Text="No se descargará nuevamente. Puede abrir el instalador con el botón inferior."
                                         FontSize="11"
-                                        TextColor="{StaticResource color_GrisOscuro}" />
-
-                                    <Label
-                                        Grid.Column="1"
-                                        Text="{Binding VelocidadTexto}"
-                                        FontSize="11"
-                                        TextColor="{StaticResource color_GrisOscuro}" />
-                                </Grid>
-
-                                <Label
-                                    Text="{Binding TiempoRestanteTexto}"
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-
-                                <Label
-                                    Text="Puede minimizar la aplicación. Android o Windows continuará la transferencia y la app retomará el progreso al volver."
-                                    FontSize="11"
-                                    LineBreakMode="WordWrap"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-
-                                <Button
-                                    Text="Cancelar descarga"
-                                    Clicked="CancelarDescarga_Clicked"
-                                    IsVisible="{Binding PuedeCancelarDescarga}"
-                                    HorizontalOptions="Start"
-                                    BackgroundColor="#FFF1F2"
-                                    TextColor="#B42318" />
-                            </VerticalStackLayout>
+                                        LineBreakMode="WordWrap"
+                                        TextColor="#356B50" />
+                                </VerticalStackLayout>
+                            </Grid>
                         </Border>
-
-                        <Label
-                            Text="{Binding MensajeEstado}"
-                            IsVisible="{Binding TieneMensajeEstado}"
-                            FontSize="12"
-                            LineBreakMode="WordWrap"
-                            TextColor="{StaticResource color_GrisOscuro}" />
                     </VerticalStackLayout>
                 </Border>
+
+                <!-- Progreso global y recuperable. -->
+                <Border
+                    IsVisible="{Binding MostrandoProgreso}"
+                    Padding="15"
+                    BackgroundColor="#F1F7F4"
+                    Stroke="#BFD8D0"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14">
+
+                    <VerticalStackLayout Spacing="9">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label
+                                Text="{Binding EstadoDescarga}"
+                                FontAttributes="Bold"
+                                FontSize="12"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding PorcentajeTexto}"
+                                FontAttributes="Bold"
+                                FontSize="12"
+                                TextColor="{StaticResource color_Verde}" />
+                        </Grid>
+
+                        <ProgressBar
+                            Progress="{Binding ProgresoDescarga}"
+                            ProgressColor="{StaticResource color_Verde}" />
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Label
+                                Text="{Binding DetalleDescarga}"
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding VelocidadTexto}"
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </Grid>
+
+                        <Label
+                            Text="{Binding TiempoRestanteTexto}"
+                            FontSize="11"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                        <Label
+                            Text="Puede cambiar de pantalla o minimizar la aplicación. La descarga continuará y este progreso se recuperará al volver."
+                            FontSize="11"
+                            LineBreakMode="WordWrap"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                        <Button
+                            Text="Cancelar descarga"
+                            Clicked="CancelarDescarga_Clicked"
+                            IsVisible="{Binding PuedeCancelarDescarga}"
+                            HorizontalOptions="Start"
+                            Padding="12,8"
+                            BackgroundColor="#FFF1F2"
+                            TextColor="#B42318" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Mensaje persistente del proceso. -->
+                <Border
+                    IsVisible="{Binding TieneMensajeEstado}"
+                    Padding="13"
+                    BackgroundColor="#F8FAF9"
+                    Stroke="#E1E8E5"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12">
+
+                    <Label
+                        Text="{Binding MensajeEstado}"
+                        FontSize="12"
+                        LineBreakMode="WordWrap"
+                        TextColor="{StaticResource color_GrisOscuro}" />
+                </Border>
+
+                <Button
+                    Text="Buscar actualizaciones"
+                    Clicked="BuscarActualizaciones_Clicked"
+                    IsEnabled="{Binding PuedeBuscar}"
+                    IsVisible="{OnIdiom Phone=True, Tablet=False, Desktop=False}"
+                    BackgroundColor="#EEF5F2"
+                    TextColor="{StaticResource color_Verde}" />
             </VerticalStackLayout>
         </ScrollView>
 
@@ -271,9 +453,9 @@
 
             <Button
                 Text="{Binding TextoBotonPrincipal}"
-                Clicked="DescargarEInstalar_Clicked"
-                IsEnabled="{Binding PuedeEjecutar}"
-                MaximumWidthRequest="700"
+                Clicked="AccionPrincipal_Clicked"
+                IsEnabled="{Binding PuedeEjecutarPrincipal}"
+                MaximumWidthRequest="720"
                 HeightRequest="52"
                 CornerRadius="14"
                 FontFamily="MontserratBold"
