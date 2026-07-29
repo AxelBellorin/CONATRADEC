@@ -103,7 +103,7 @@
                             Seccion="Configuracion" />
 
                         <controls:AppNavigationMenuItem
-                            Texto="Datos sin conexión"
+                            Texto="Sin conexión"
                             Icono="iconoffline.png"
                             Interfaz="datosSinConexionPage"
                             Ruta="//DatosSinConexionPage"
@@ -170,7 +170,7 @@
                 Grid.Row="1"
                 Grid.Column="1"
                 IsVisible="True"
-                Padding="5,8,5,10"
+                Padding="3,6,3,10"
                 BackgroundColor="{StaticResource color_Blanco}"
                 Stroke="#E5E7EB"
                 StrokeThickness="1">
@@ -187,6 +187,15 @@
                     Direction="Row"
                     AlignItems="Stretch"
                     JustifyContent="SpaceBetween">
+
+                    <!--
+                        Ajusta únicamente la presentación de la barra móvil:
+                        aumenta el alto, reserva espacio para las etiquetas y
+                        permite que "Sin conexión" utilice dos líneas.
+                    -->
+                    <FlexLayout.Behaviors>
+                        <controls:MobileNavigationBarBehavior />
+                    </FlexLayout.Behaviors>
 
                     <controls:AppNavigationMenuItem
                         FlexLayout.Grow="1"
@@ -231,7 +240,7 @@
                     <controls:AppNavigationMenuItem
                         FlexLayout.Grow="1"
                         FlexLayout.Basis="0"
-                        Texto="Datos"
+                        Texto="Sin conexión"
                         Icono="iconoffline.png"
                         Interfaz="datosSinConexionPage"
                         Ruta="//DatosSinConexionPage"
@@ -241,10 +250,10 @@
                     <VerticalStackLayout
                         FlexLayout.Grow="1"
                         FlexLayout.Basis="0"
-                        HeightRequest="58"
-                        MinimumHeightRequest="58"
-                        Padding="2,5"
-                        Spacing="4"
+                        HeightRequest="68"
+                        MinimumHeightRequest="68"
+                        Padding="2,6,2,5"
+                        Spacing="2"
                         BackgroundColor="Transparent"
                         HorizontalOptions="Fill"
                         VerticalOptions="Center">
@@ -256,18 +265,25 @@
 
                         <Image
                             Source="iconloginout.png"
-                            HeightRequest="26"
-                            WidthRequest="26"
-                            HorizontalOptions="Center" />
+                            HeightRequest="24"
+                            WidthRequest="24"
+                            MinimumHeightRequest="24"
+                            MinimumWidthRequest="24"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
 
                         <Label
                             Text="Salir"
-                            FontSize="11"
+                            FontSize="11.5"
                             FontFamily="MontserratMedium"
                             TextColor="{StaticResource RedDelete}"
+                            MaxLines="2"
+                            LineBreakMode="WordWrap"
+                            LineHeight="0.95"
+                            MinimumHeightRequest="28"
+                            VerticalTextAlignment="Center"
                             HorizontalTextAlignment="Center"
                             HorizontalOptions="Fill" />
-
                     </VerticalStackLayout>
 
                 </FlexLayout>
