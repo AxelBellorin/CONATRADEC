@@ -27,6 +27,10 @@ namespace CONATRADEC.Services
     /// <summary>
     /// Consulta, descarga y valida las versiones publicadas.
     ///
+    /// La comprobación de versiones utiliza el cliente centralizado de la
+    /// aplicación para enviar la sesión activa. El backend devuelve una URL
+    /// temporal protegida que incluye el permiso necesario para descargar.
+    ///
     /// Android utiliza DownloadManager para que la transferencia continúe al
     /// minimizar la aplicación, cambiar de pantalla o perder temporalmente la
     /// conexión.
@@ -75,7 +79,22 @@ namespace CONATRADEC.Services
             instancia =
                 new(() => new ActualizacionAplicacionService());
 
+        /*
+         * Cliente sin los manejadores internos de la aplicación.
+         *
+         * Se utiliza exclusivamente para transferir el instalador porque
+         * Android DownloadManager y Windows BackgroundDownloader reciben una
+         * URL temporal que ya contiene su autorización.
+         */
         private readonly HttpClient httpClient;
+
+        /*
+         * Cliente centralizado de CONATRADEC.
+         *
+         * Agrega automáticamente X-Usuario-Id, X-Version-Sesion,
+         * X-Dispositivo, X-Plataforma y los demás datos de contexto.
+         */
+        private readonly HttpClient apiClient;
 
         private readonly JsonSerializerOptions jsonOptions =
             new(JsonSerializerDefaults.Web);
@@ -103,11 +122,19 @@ namespace CONATRADEC.Services
                     BaseAddress = uri,
                     Timeout = Timeout.InfiniteTimeSpan
                 };
+
+            apiClient =
+                ApiClientService.Client;
         }
 
         public bool PlataformaCompatible =>
             ObtenerPlataforma() is not null;
 
+        /// <summary>
+        /// Comprueba la versión mediante el endpoint autenticado. Este endpoint
+        /// genera la URL temporal que luego utiliza el administrador de
+        /// descargas del sistema operativo.
+        /// </summary>
         public async Task<ActualizacionDisponible?>
             ComprobarActualizacionAsync(
                 CancellationToken cancellationToken = default)
@@ -126,42 +153,19 @@ namespace CONATRADEC.Services
                     PreferenciaCanal,
                     CanalPredeterminado);
 
-            string ruta =
-                "api/actualizaciones/comprobar" +
-                $"?plataforma={Uri.EscapeDataString(plataforma)}" +
-                $"&versionCodigo={versionCodigo}" +
-                $"&canal={Uri.EscapeDataString(canal)}";
-
-            using HttpResponseMessage response =
-                await httpClient.GetAsync(
-                    ruta,
-                    cancellationToken);
-
-            string contenido =
-                await response.Content.ReadAsStringAsync(
-                    cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException(
-                    ExtraerMensaje(contenido),
-                    null,
-                    response.StatusCode);
-            }
-
-            RespuestaComprobacionActualizacion? resultado =
-                JsonSerializer.Deserialize<
-                    RespuestaComprobacionActualizacion>(
-                        contenido,
-                        jsonOptions);
-
-            return resultado?.ActualizacionDisponible == true
-                ? resultado.Data
-                : null;
+            return await ConsultarActualizacionProtegidaAsync(
+                plataforma,
+                versionCodigo,
+                canal,
+                cancellationToken);
         }
 
         /// <summary>
         /// Inicia o recupera una transferencia administrada por el sistema.
+        ///
+        /// Antes de comenzar se solicita un permiso temporal nuevo. Así una
+        /// actualización encontrada anteriormente no falla con 401 porque su
+        /// autorización haya vencido mientras la aplicación permanecía abierta.
         /// </summary>
         public async Task<string> DescargarEnSegundoPlanoAsync(
             ActualizacionDisponible actualizacion,
@@ -170,12 +174,17 @@ namespace CONATRADEC.Services
         {
             ArgumentNullException.ThrowIfNull(actualizacion);
 
+            ActualizacionDisponible autorizada =
+                await RenovarPermisoDescargaAsync(
+                    actualizacion,
+                    cancellationToken);
+
             Uri url =
-                ResolverUrlDescarga(actualizacion);
+                ResolverUrlDescarga(autorizada);
 
 #if ANDROID
             return await DescargarAndroidAsync(
-                actualizacion,
+                autorizada,
                 url,
                 progreso,
                 cancellationToken);
@@ -183,21 +192,21 @@ namespace CONATRADEC.Services
             if (TieneIdentidadPaqueteWindows())
             {
                 return await DescargarWindowsAsync(
-                    actualizacion,
+                    autorizada,
                     url,
                     progreso,
                     cancellationToken);
             }
 
             return await DescargarHttpAsync(
-                actualizacion,
+                autorizada,
                 url,
                 progreso,
                 cancellationToken,
                 enSegundoPlano: false);
 #else
             return await DescargarHttpAsync(
-                actualizacion,
+                autorizada,
                 url,
                 progreso,
                 cancellationToken,
@@ -226,6 +235,99 @@ namespace CONATRADEC.Services
                 actualizacion,
                 adaptador,
                 cancellationToken);
+        }
+
+        /// <summary>
+        /// Consulta el endpoint protegido que valida la sesión y el permiso de
+        /// lectura de ActualizacionAplicacionPage.
+        /// </summary>
+        private async Task<ActualizacionDisponible?>
+            ConsultarActualizacionProtegidaAsync(
+                string plataforma,
+                long versionCodigo,
+                string canal,
+                CancellationToken cancellationToken)
+        {
+            string ruta =
+                "api/actualizaciones/aplicacion/comprobar" +
+                $"?plataforma={Uri.EscapeDataString(plataforma)}" +
+                $"&versionCodigo={versionCodigo}" +
+                $"&canal={Uri.EscapeDataString(canal)}";
+
+            using HttpResponseMessage response =
+                await apiClient.GetAsync(
+                    ruta,
+                    cancellationToken);
+
+            string contenido =
+                await response.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    ExtraerMensaje(contenido),
+                    null,
+                    response.StatusCode);
+            }
+
+            RespuestaComprobacionActualizacion? resultado =
+                JsonSerializer.Deserialize<
+                    RespuestaComprobacionActualizacion>(
+                        contenido,
+                        jsonOptions);
+
+            return resultado?.ActualizacionDisponible == true
+                ? resultado.Data
+                : null;
+        }
+
+        /// <summary>
+        /// Obtiene una URL protegida nueva inmediatamente antes de iniciar una
+        /// descarga. El permiso emitido por el backend tiene vigencia limitada.
+        /// </summary>
+        private async Task<ActualizacionDisponible>
+            RenovarPermisoDescargaAsync(
+                ActualizacionDisponible actualizacion,
+                CancellationToken cancellationToken)
+        {
+            string plataforma =
+                string.IsNullOrWhiteSpace(
+                    actualizacion.Plataforma)
+                    ? ObtenerPlataforma() ??
+                      throw new InvalidOperationException(
+                          "La plataforma actual no admite actualizaciones.")
+                    : actualizacion.Plataforma;
+
+            string canal =
+                string.IsNullOrWhiteSpace(
+                    actualizacion.Canal)
+                    ? Preferences.Get(
+                        PreferenciaCanal,
+                        CanalPredeterminado)
+                    : actualizacion.Canal;
+
+            ActualizacionDisponible? renovada =
+                await ConsultarActualizacionProtegidaAsync(
+                    plataforma,
+                    ObtenerVersionCodigoInstalada(),
+                    canal,
+                    cancellationToken);
+
+            if (renovada is null)
+            {
+                throw new InvalidOperationException(
+                    "La actualización ya no está disponible o la aplicación ya se encuentra actualizada.");
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    renovada.UrlDescarga))
+            {
+                throw new InvalidOperationException(
+                    "La API no proporcionó el permiso temporal para descargar la actualización.");
+            }
+
+            return renovada;
         }
 
 #if ANDROID
@@ -261,7 +363,8 @@ namespace CONATRADEC.Services
                     carpetaBase.AbsolutePath,
                     "actualizaciones");
 
-            Directory.CreateDirectory(carpeta);
+            Directory.CreateDirectory(
+                carpeta);
 
             string nombreArchivo =
                 ObtenerNombreSeguro(
@@ -273,6 +376,10 @@ namespace CONATRADEC.Services
                     carpeta,
                     nombreArchivo);
 
+            /*
+             * Si el archivo completo ya existe, primero se valida. Esto evita
+             * volver a descargar una actualización que ya terminó.
+             */
             if (File.Exists(rutaFinal))
             {
                 try
@@ -288,7 +395,8 @@ namespace CONATRADEC.Services
                 }
                 catch
                 {
-                    EliminarSeguro(rutaFinal);
+                    EliminarSeguro(
+                        rutaFinal);
                 }
             }
 
@@ -302,7 +410,8 @@ namespace CONATRADEC.Services
                     administrador,
                     idDescarga))
             {
-                EliminarSeguro(rutaFinal);
+                EliminarSeguro(
+                    rutaFinal);
 
                 var solicitud =
                     new AndroidDownloadManager.Request(
@@ -318,8 +427,11 @@ namespace CONATRADEC.Services
                 solicitud.SetMimeType(
                     actualizacion.TipoContenido);
 
-                solicitud.SetAllowedOverMetered(true);
-                solicitud.SetAllowedOverRoaming(false);
+                solicitud.SetAllowedOverMetered(
+                    true);
+
+                solicitud.SetAllowedOverRoaming(
+                    false);
 
                 solicitud.SetNotificationVisibility(
                     AndroidDownloadVisibility
@@ -449,24 +561,25 @@ namespace CONATRADEC.Services
             }
             catch (OperationCanceledException)
             {
-                try
-                {
-                    administrador.Remove(
-                        idDescarga);
-                }
-                catch
-                {
-                }
+                EliminarDescargaAndroidSeguro(
+                    administrador,
+                    idDescarga);
 
                 LimpiarPreferenciasAndroid();
-                EliminarSeguro(rutaFinal);
+                EliminarSeguro(
+                    rutaFinal);
 
                 throw;
             }
             catch
             {
+                EliminarDescargaAndroidSeguro(
+                    administrador,
+                    idDescarga);
+
                 LimpiarPreferenciasAndroid();
-                EliminarSeguro(rutaFinal);
+                EliminarSeguro(
+                    rutaFinal);
 
                 throw;
             }
@@ -635,6 +748,24 @@ namespace CONATRADEC.Services
             };
         }
 
+        private static void EliminarDescargaAndroidSeguro(
+            AndroidDownloadManager administrador,
+            long idDescarga)
+        {
+            if (idDescarga <= 0)
+                return;
+
+            try
+            {
+                administrador.Remove(
+                    idDescarga);
+            }
+            catch
+            {
+                // Android puede haber eliminado previamente la transferencia.
+            }
+        }
+
         private static void LimpiarPreferenciasAndroid()
         {
             Preferences.Remove(
@@ -674,11 +805,6 @@ namespace CONATRADEC.Services
                     actualizacion.NombreArchivo,
                     actualizacion.Plataforma);
 
-            IStorageFile archivo =
-                await carpeta.CreateFileAsync(
-                    nombreArchivo,
-                    CreationCollisionOption.OpenIfExists);
-
             DownloadOperation? operacion =
                 await BuscarDescargaWindowsAsync(
                     actualizacion);
@@ -686,8 +812,15 @@ namespace CONATRADEC.Services
             bool esNueva =
                 operacion is null;
 
+            IStorageFile archivo;
+
             if (operacion is null)
             {
+                archivo =
+                    await carpeta.CreateFileAsync(
+                        nombreArchivo,
+                        CreationCollisionOption.ReplaceExisting);
+
                 var descargador =
                     new BackgroundDownloader
                     {
@@ -835,6 +968,14 @@ namespace CONATRADEC.Services
             catch
             {
                 LimpiarPreferenciasWindows();
+
+                try
+                {
+                    await archivo.DeleteAsync();
+                }
+                catch
+                {
+                }
 
                 throw;
             }
@@ -1180,8 +1321,9 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Usa el ID y la BaseAddress conocida por la aplicación. Así la
-        /// descarga no depende de una URL absoluta construida por un proxy.
+        /// Conserva completa la URL emitida por el backend. No se reconstruye a
+        /// partir del ID porque eso eliminaría el parámetro "permiso" y causaría
+        /// nuevamente el error HTTP 401.
         /// </summary>
         private Uri ResolverUrlDescarga(
             ActualizacionDisponible actualizacion)
@@ -1192,17 +1334,19 @@ namespace CONATRADEC.Services
                     "No se encontró la dirección base de la API.");
             }
 
-            if (actualizacion.ActualizacionAplicacionId > 0)
+            string urlDescarga =
+                actualizacion.UrlDescarga?.Trim() ??
+                string.Empty;
+
+            if (string.IsNullOrWhiteSpace(
+                    urlDescarga))
             {
-                return new Uri(
-                    httpClient.BaseAddress,
-                    "api/actualizaciones/descargar/" +
-                    actualizacion
-                        .ActualizacionAplicacionId);
+                throw new InvalidOperationException(
+                    "La API no proporcionó una dirección autorizada para descargar la actualización.");
             }
 
             if (Uri.TryCreate(
-                    actualizacion.UrlDescarga,
+                    urlDescarga,
                     UriKind.Absolute,
                     out Uri? absoluta))
             {
@@ -1211,9 +1355,7 @@ namespace CONATRADEC.Services
 
             return new Uri(
                 httpClient.BaseAddress,
-                actualizacion
-                    .UrlDescarga
-                    .TrimStart('/'));
+                urlDescarga.TrimStart('/'));
         }
 
         private static string ObtenerNombreSeguro(
