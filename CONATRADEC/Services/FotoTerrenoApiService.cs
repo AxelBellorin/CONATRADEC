@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -27,9 +27,10 @@ namespace CONATRADEC.Services
         // MÉTODOS CON RESULTADO DETALLADO
         // =========================================================
 
-        public async Task<ApiResult<List<FotoTerrenoResponse>>> GetFotosPorTerrenoResultAsync(
-            int terrenoId,
-            CancellationToken cancellationToken = default)
+        public async Task<ApiResult<List<FotoTerrenoResponse>>>
+            GetFotosPorTerrenoResultAsync(
+                int terrenoId,
+                CancellationToken cancellationToken = default)
         {
             if (terrenoId <= 0)
             {
@@ -45,15 +46,29 @@ namespace CONATRADEC.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    /*
+                     * Las fotografías todavía no forman parte del paquete
+                     * general descargado. Su ausencia no debe cerrar ni marcar
+                     * como fallida la visualización del terreno.
+                     */
+                    if (OfflineReadResponseService
+                        .EsLecturaSinDatosLocales(response))
+                    {
+                        return ApiResult<List<FotoTerrenoResponse>>.Ok(
+                            new List<FotoTerrenoResponse>());
+                    }
+
                     return ApiResult<List<FotoTerrenoResponse>>.Fail(
-                        ApiServiceHelper.GetHttpMessage(
-                            response.StatusCode,
-                            "cargar las fotografías del terreno"),
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            "No fue posible cargar las fotografías del terreno.",
+                            cancellationToken),
                         (int)response.StatusCode);
                 }
 
-                var fotos = await response.Content.ReadFromJsonAsync<List<FotoTerrenoResponse>>(
-                    cancellationToken: cancellationToken);
+                var fotos = await response.Content
+                    .ReadFromJsonAsync<List<FotoTerrenoResponse>>(
+                        cancellationToken: cancellationToken);
 
                 return ApiResult<List<FotoTerrenoResponse>>.Ok(
                     fotos ?? new List<FotoTerrenoResponse>());
@@ -150,9 +165,10 @@ namespace CONATRADEC.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     return ApiResult<bool>.Fail(
-                        ApiServiceHelper.GetHttpMessage(
-                            response.StatusCode,
-                            "subir las fotografías del terreno"),
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            "No fue posible subir las fotografías del terreno.",
+                            cancellationToken),
                         (int)response.StatusCode);
                 }
 
@@ -211,7 +227,6 @@ namespace CONATRADEC.Services
                 using var form = new MultipartFormDataContent();
 
                 string nombreArchivo = Path.GetFileName(localPath);
-
                 var fileStream = File.OpenRead(localPath);
                 var streamContent = new StreamContent(fileStream);
 
@@ -229,9 +244,10 @@ namespace CONATRADEC.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     return ApiResult<bool>.Fail(
-                        ApiServiceHelper.GetHttpMessage(
-                            response.StatusCode,
-                            "editar la fotografía"),
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            "No fue posible editar la fotografía.",
+                            cancellationToken),
                         (int)response.StatusCode);
                 }
 
@@ -292,42 +308,63 @@ namespace CONATRADEC.Services
         // MÉTODOS COMPATIBLES CON EL CÓDIGO EXISTENTE
         // =========================================================
 
-        public async Task<List<FotoTerrenoResponse>> GetFotosPorTerrenoAsync(
-            int terrenoId)
+        public async Task<List<FotoTerrenoResponse>>
+            GetFotosPorTerrenoAsync(
+                int terrenoId)
         {
-            var result = await GetFotosPorTerrenoResultAsync(terrenoId);
-            return result.Data ?? new List<FotoTerrenoResponse>();
+            var result =
+                await GetFotosPorTerrenoResultAsync(
+                    terrenoId);
+
+            return result.Data ??
+                   new List<FotoTerrenoResponse>();
         }
 
         public async Task<bool> SubirFotosAsync(
             int terrenoId,
             IEnumerable<FotoTerrenoItem> fotos)
         {
-            var result = await SubirFotosResultAsync(terrenoId, fotos);
-            return result.Success && result.Data == true;
+            var result =
+                await SubirFotosResultAsync(
+                    terrenoId,
+                    fotos);
+
+            return result.Success &&
+                   result.Data == true;
         }
 
         public async Task<bool> EditarFotoAsync(
             int fotoTerrenoId,
             string localPath)
         {
-            var result = await EditarFotoResultAsync(
-                fotoTerrenoId,
-                localPath);
+            var result =
+                await EditarFotoResultAsync(
+                    fotoTerrenoId,
+                    localPath);
 
-            return result.Success && result.Data == true;
+            return result.Success &&
+                   result.Data == true;
         }
 
-        public async Task<bool> EliminarFotoAsync(int fotoTerrenoId)
+        public async Task<bool> EliminarFotoAsync(
+            int fotoTerrenoId)
         {
-            var result = await EliminarFotoResultAsync(fotoTerrenoId);
-            return result.Success && result.Data == true;
+            var result =
+                await EliminarFotoResultAsync(
+                    fotoTerrenoId);
+
+            return result.Success &&
+                   result.Data == true;
         }
 
-        public string ConstruirUrlCompleta(string? urlFotoTerreno)
+        public string ConstruirUrlCompleta(
+            string? urlFotoTerreno)
         {
-            if (string.IsNullOrWhiteSpace(urlFotoTerreno))
+            if (string.IsNullOrWhiteSpace(
+                    urlFotoTerreno))
+            {
                 return string.Empty;
+            }
 
             if (urlFotoTerreno.StartsWith(
                     "http",
@@ -336,13 +373,18 @@ namespace CONATRADEC.Services
                 return urlFotoTerreno;
             }
 
-            return $"{urlApiService.BaseUrlApi.TrimEnd('/')}/{urlFotoTerreno.TrimStart('/')}";
+            return
+                $"{urlApiService.BaseUrlApi.TrimEnd('/')}/" +
+                $"{urlFotoTerreno.TrimStart('/')}";
         }
 
-        private static string ObtenerContentType(string nombreArchivo)
+        private static string ObtenerContentType(
+            string nombreArchivo)
         {
             string extension =
-                Path.GetExtension(nombreArchivo).ToLowerInvariant();
+                Path.GetExtension(
+                    nombreArchivo)
+                    .ToLowerInvariant();
 
             return extension switch
             {

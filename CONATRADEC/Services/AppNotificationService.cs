@@ -65,14 +65,31 @@ namespace CONATRADEC.Services
                 // Reemplaza mensajes genéricos del ViewModel por el motivo
                 // real devuelto por la API, incluso cuando un servicio
                 // antiguo todavía entrega únicamente true/false.
-                message = ApiErrorContext.ResolveForDisplay(message);
+                message =
+                    ApiErrorContext.ResolveForDisplay(
+                        message);
+
+                /*
+                 * Durante una sesión offline la API nunca fue consultada.
+                 * Cuando una lectura auxiliar no existe en la copia local, la
+                 * pantalla continúa con los datos disponibles y no se muestra
+                 * un falso error del servidor.
+                 */
+                if (OfflineReadResponseService
+                    .DebeOmitirNotificacionError(message))
+                {
+                    return;
+                }
             }
 
             string normalizedMessage =
                 NormalizeMessage(message, type);
 
-            if (string.IsNullOrWhiteSpace(normalizedMessage))
+            if (string.IsNullOrWhiteSpace(
+                    normalizedMessage))
+            {
                 return;
+            }
 
             // El Snackbar se muestra después de que Android haya cerrado
             // el teclado y reajustado el área visible.
@@ -85,19 +102,24 @@ namespace CONATRADEC.Services
                 string displayMessage =
                     $"{GetIcon(type)}  {normalizedMessage}";
 
-                var visualOptions = new SnackbarOptions
-                {
-                    BackgroundColor = GetBackgroundColor(type),
-                    TextColor = Colors.White,
-                    ActionButtonTextColor = Colors.White
-                };
+                var visualOptions =
+                    new SnackbarOptions
+                    {
+                        BackgroundColor =
+                            GetBackgroundColor(type),
+                        TextColor =
+                            Colors.White,
+                        ActionButtonTextColor =
+                            Colors.White
+                    };
 
                 TimeSpan duration =
-                    type is AppMessageType.Error or AppMessageType.Warning
-                        ? normalizedMessage.Length > 120
-                            ? TimeSpan.FromSeconds(7)
-                            : TimeSpan.FromSeconds(5)
-                        : TimeSpan.FromSeconds(3);
+                    type is AppMessageType.Error
+                        or AppMessageType.Warning
+                            ? normalizedMessage.Length > 120
+                                ? TimeSpan.FromSeconds(7)
+                                : TimeSpan.FromSeconds(5)
+                            : TimeSpan.FromSeconds(3);
 
                 await MainThread.InvokeOnMainThreadAsync(
                     async () =>
@@ -106,7 +128,8 @@ namespace CONATRADEC.Services
                             .Make(
                                 displayMessage,
                                 duration: duration,
-                                visualOptions: visualOptions)
+                                visualOptions:
+                                    visualOptions)
                             .Show();
                     });
             }
@@ -131,7 +154,8 @@ namespace CONATRADEC.Services
             // el teclado virtual.
             await KeyboardService.HideAsync();
 
-            Page? page = Application.Current?.MainPage;
+            Page? page =
+                Application.Current?.MainPage;
 
             if (page == null)
                 return false;
@@ -168,7 +192,8 @@ namespace CONATRADEC.Services
                 "Eliminar",
                 "Cancelar");
 
-        public static Task<bool> ConfirmDiscardChangesAsync() =>
+        public static Task<bool>
+            ConfirmDiscardChangesAsync() =>
             ConfirmAsync(
                 "Salir sin guardar",
                 "Hay cambios sin guardar. ¿Desea salir y descartarlos?",
@@ -187,7 +212,11 @@ namespace CONATRADEC.Services
                 .Replace("\n", " ")
                 .Trim();
 
-            value = Regex.Replace(value, @"\s+", " ");
+            value =
+                Regex.Replace(
+                    value,
+                    @"\s+",
+                    " ");
 
             // Corrige prefijos usados en mensajes anteriores, incluso cuando
             // fueron concatenados sin espacio: "ErrorNo fue posible...".
@@ -216,15 +245,21 @@ namespace CONATRADEC.Services
                 @"\s+([,.;:!?])",
                 "$1");
 
-            if (LooksLikeTechnicalException(value))
+            if (LooksLikeTechnicalException(
+                    value))
             {
                 value =
                     "Ocurrió un error inesperado. Intente nuevamente.";
             }
 
-            value = value.Trim(' ', '-', ':');
+            value =
+                value.Trim(
+                    ' ',
+                    '-',
+                    ':');
 
-            if (string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(
+                    value))
             {
                 value = type switch
                 {
@@ -253,7 +288,8 @@ namespace CONATRADEC.Services
             return value;
         }
 
-        private static AppMessageType InferType(string? message)
+        private static AppMessageType InferType(
+            string? message)
         {
             string value =
                 message?.Trim().ToLowerInvariant() ??
@@ -286,13 +322,10 @@ namespace CONATRADEC.Services
 
             /*
              * Las validaciones que impiden guardar se evalúan antes que los
-             * mensajes exitosos. Así, una respuesta como:
-             *
-             * "Ya existe un registro igual, pero está eliminado"
-             *
-             * no se interpreta como éxito solamente por contener "eliminado".
+             * mensajes exitosos.
              */
-            if (LooksLikeBlockingValidation(value))
+            if (LooksLikeBlockingValidation(
+                    value))
             {
                 return AppMessageType.Error;
             }
@@ -405,19 +438,23 @@ namespace CONATRADEC.Services
         private static bool LooksLikeTechnicalException(
             string value)
         {
-            string lower = value.ToLowerInvariant();
+            string lower =
+                value.ToLowerInvariant();
 
-            return lower.StartsWith("object reference") ||
-                   lower.StartsWith("value cannot be null") ||
-                   lower.StartsWith("sequence contains") ||
-                   lower.StartsWith("index was outside") ||
-                   lower.StartsWith("nullable object") ||
-                   lower.StartsWith("response status code") ||
-                   lower.StartsWith("the given key") ||
-                   lower.Contains("system.nullreferenceexception") ||
-                   lower.Contains("system.invalidoperationexception") ||
-                   lower.Contains("stack trace") ||
-                   lower.Contains(" at conatradec.");
+            return
+                lower.StartsWith("object reference") ||
+                lower.StartsWith("value cannot be null") ||
+                lower.StartsWith("sequence contains") ||
+                lower.StartsWith("index was outside") ||
+                lower.StartsWith("nullable object") ||
+                lower.StartsWith("response status code") ||
+                lower.StartsWith("the given key") ||
+                lower.Contains(
+                    "system.nullreferenceexception") ||
+                lower.Contains(
+                    "system.invalidoperationexception") ||
+                lower.Contains("stack trace") ||
+                lower.Contains(" at conatradec.");
         }
 
         private static string GetIcon(
@@ -434,10 +471,14 @@ namespace CONATRADEC.Services
             AppMessageType type) =>
             type switch
             {
-                AppMessageType.Success => SuccessBackground,
-                AppMessageType.Error => ErrorBackground,
-                AppMessageType.Warning => WarningBackground,
-                _ => InformationBackground
+                AppMessageType.Success =>
+                    SuccessBackground,
+                AppMessageType.Error =>
+                    ErrorBackground,
+                AppMessageType.Warning =>
+                    WarningBackground,
+                _ =>
+                    InformationBackground
             };
     }
 }

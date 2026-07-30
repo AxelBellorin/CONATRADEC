@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -25,11 +25,21 @@ namespace CONATRADEC.Services
                     cancellationToken);
             }
 
+            bool esOperacionEscritura =
+                request.Method != HttpMethod.Get &&
+                request.Method != HttpMethod.Head &&
+                request.Method != HttpMethod.Options;
+
+            string mensaje =
+                esOperacionEscritura
+                    ? OfflineWriteAccessService.Mensaje
+                    : OfflineReadResponseService
+                        .MensajeSinDatosLocales;
+
             string json = JsonSerializer.Serialize(new
             {
                 success = false,
-                message =
-                    "La sesión está trabajando sin conexión y esta información no existe en la copia local. Inicie una sesión en línea y utilice Descargar todo."
+                message = mensaje
             });
 
             var response = new HttpResponseMessage(
@@ -43,8 +53,10 @@ namespace CONATRADEC.Services
             };
 
             response.Headers.TryAddWithoutValidation(
-                "X-CONATRADEC-Origen",
-                "LOCAL-SIN-DATOS");
+                OfflineReadResponseService.HeaderOrigen,
+                esOperacionEscritura
+                    ? "LOCAL-ESCRITURA-BLOQUEADA"
+                    : OfflineReadResponseService.OrigenSinDatos);
 
             return Task.FromResult(response);
         }

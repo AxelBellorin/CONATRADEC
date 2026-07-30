@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http.Json;
@@ -24,6 +24,20 @@ namespace CONATRADEC.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    /*
+                     * Una colección auxiliar que no existe dentro del paquete
+                     * offline se representa como una colección vacía.
+                     *
+                     * No se utiliza este comportamiento en línea ni para
+                     * operaciones de escritura.
+                     */
+                    if (OfflineReadResponseService
+                        .EsLecturaSinDatosLocales(response))
+                    {
+                        return ApiResult<ObservableCollection<T>>.Ok(
+                            new ObservableCollection<T>());
+                    }
+
                     return ApiResult<ObservableCollection<T>>.Fail(
                         await ReadResponseMessageAsync(
                             response,
@@ -275,6 +289,13 @@ namespace CONATRADEC.Services
                 string fallback,
                 CancellationToken cancellationToken = default)
         {
+            if (OfflineReadResponseService
+                .EsLecturaSinDatosLocales(response))
+            {
+                return OfflineReadResponseService
+                    .MensajeSinDatosLocales;
+            }
+
             string content;
 
             try

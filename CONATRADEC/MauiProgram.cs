@@ -71,6 +71,7 @@ namespace CONATRADEC
             KeyboardDismissBehavior.Register();
             LoginTabletResponsiveMapper.Register();
             NuevoAnalisisInfoResponsiveMapper.Register();
+            DecimalAnalysisEntryMapper.Register();
 
             /*
              * Selector global En línea / Sin conexión

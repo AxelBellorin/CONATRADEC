@@ -58,7 +58,8 @@ namespace CONATRADEC.Models
         public List<AnalisisGuardadoElementoOriginal> ElementosQuimicos { get; set; } = new();
 
         [JsonIgnore]
-        public DateTime? FechaAnalisisValor => ConvertirFecha(FechaAnalisisSuelo);
+        public DateTime? FechaAnalisisValor =>
+            ConvertirFecha(FechaAnalisisSuelo);
 
         [JsonIgnore]
         public DateTime? FechaRegistroValor =>
@@ -66,18 +67,26 @@ namespace CONATRADEC.Models
 
         [JsonIgnore]
         public string FechaAnalisisTexto =>
-            FechaAnalisisValor?.ToString("dd/MM/yyyy") ?? "No disponible";
+            FechaAnalisisValor?.ToString("dd/MM/yyyy") ??
+            "No disponible";
 
         [JsonIgnore]
         public string FechaRegistroTexto =>
-            FechaRegistroValor?.ToString("dd/MM/yyyy HH:mm") ?? "No disponible";
+            FechaRegistroValor?.ToString("dd/MM/yyyy HH:mm") ??
+            "No disponible";
 
         private static DateTime? ConvertirFecha(string? valor) =>
-            DateTime.TryParse(valor, out DateTime fecha) ? fecha : null;
+            DateTime.TryParse(valor, out DateTime fecha)
+                ? fecha
+                : null;
     }
 
     public sealed class AnalisisGuardadoElementoOriginal
     {
+        private string nombreElemento = string.Empty;
+        private string simboloElemento = string.Empty;
+        private string nombreUnidad = string.Empty;
+
         [JsonPropertyName("analisisSueloElementoQuimicoId")]
         public int AnalisisSueloElementoQuimicoId { get; set; }
 
@@ -91,13 +100,25 @@ namespace CONATRADEC.Models
         public decimal CantidadElemento { get; set; }
 
         [JsonIgnore]
-        public string NombreElemento { get; set; } = string.Empty;
+        public string NombreElemento
+        {
+            get => nombreElemento;
+            set => nombreElemento = Limpiar(value);
+        }
 
         [JsonIgnore]
-        public string SimboloElemento { get; set; } = string.Empty;
+        public string SimboloElemento
+        {
+            get => simboloElemento;
+            set => simboloElemento = Limpiar(value);
+        }
 
         [JsonIgnore]
-        public string NombreUnidad { get; set; } = string.Empty;
+        public string NombreUnidad
+        {
+            get => nombreUnidad;
+            set => nombreUnidad = Limpiar(value);
+        }
 
         [JsonIgnore]
         public string ElementoMostrar =>
@@ -112,6 +133,9 @@ namespace CONATRADEC.Models
             string.IsNullOrWhiteSpace(NombreUnidad)
                 ? $"Unidad #{UnidadMedidaId}"
                 : NombreUnidad;
+
+        private static string Limpiar(string? valor) =>
+            valor?.Trim() ?? string.Empty;
     }
 
     public sealed class AnalisisGuardadoRequerimientoAnual
@@ -158,6 +182,10 @@ namespace CONATRADEC.Models
 
     public sealed class AnalisisGuardadoRequerimientoElemento
     {
+        private string nombreElemento = string.Empty;
+        private string simboloElemento = string.Empty;
+        private string nombreUnidad = string.Empty;
+
         [JsonPropertyName("analisisSueloCalculoElementoQuimicoId")]
         public int AnalisisSueloCalculoElementoQuimicoId { get; set; }
 
@@ -186,13 +214,25 @@ namespace CONATRADEC.Models
         public bool IncluirCalculosComplementarios { get; set; } = true;
 
         [JsonIgnore]
-        public string NombreElemento { get; set; } = string.Empty;
+        public string NombreElemento
+        {
+            get => nombreElemento;
+            set => nombreElemento = Limpiar(value);
+        }
 
         [JsonIgnore]
-        public string SimboloElemento { get; set; } = string.Empty;
+        public string SimboloElemento
+        {
+            get => simboloElemento;
+            set => simboloElemento = Limpiar(value);
+        }
 
         [JsonIgnore]
-        public string NombreUnidad { get; set; } = string.Empty;
+        public string NombreUnidad
+        {
+            get => nombreUnidad;
+            set => nombreUnidad = Limpiar(value);
+        }
 
         [JsonIgnore]
         public string ElementoMostrar =>
@@ -209,6 +249,9 @@ namespace CONATRADEC.Models
                     ? $"Unidad #{UnidadMedidaId.Value}"
                     : "lb/Mz"
                 : NombreUnidad;
+
+        private static string Limpiar(string? valor) =>
+            valor?.Trim() ?? string.Empty;
     }
 
     public sealed class AnalisisGuardadoBalanceNutricional
@@ -270,6 +313,9 @@ namespace CONATRADEC.Models
 
     public sealed class AnalisisGuardadoFormulaDetalle
     {
+        private string nombreFuente = string.Empty;
+        private string nombreElemento = string.Empty;
+
         [JsonPropertyName("formulaNutricionalDetalleId")]
         public int FormulaNutricionalDetalleId { get; set; }
 
@@ -301,10 +347,18 @@ namespace CONATRADEC.Models
         public decimal OnzasPorAplicacion { get; set; }
 
         [JsonIgnore]
-        public string NombreFuente { get; set; } = string.Empty;
+        public string NombreFuente
+        {
+            get => nombreFuente;
+            set => nombreFuente = Limpiar(value);
+        }
 
         [JsonIgnore]
-        public string NombreElemento { get; set; } = string.Empty;
+        public string NombreElemento
+        {
+            get => nombreElemento;
+            set => nombreElemento = Limpiar(value);
+        }
 
         [JsonIgnore]
         public string FuenteMostrar =>
@@ -317,6 +371,9 @@ namespace CONATRADEC.Models
             string.IsNullOrWhiteSpace(NombreElemento)
                 ? $"Elemento #{ElementoQuimicosId}"
                 : NombreElemento;
+
+        private static string Limpiar(string? valor) =>
+            valor?.Trim() ?? string.Empty;
     }
 
     public sealed class AnalisisGuardadoFormulaAporte
@@ -336,6 +393,8 @@ namespace CONATRADEC.Models
 
     public sealed class AnalisisGuardadoEnmiendaCalcarea
     {
+        private string nombreFuente = string.Empty;
+
         [JsonPropertyName("enmiendaCalcareaId")]
         public int EnmiendaCalcareaId { get; set; }
 
@@ -409,13 +468,20 @@ namespace CONATRADEC.Models
         public string? FechaCreacion { get; set; }
 
         [JsonIgnore]
-        public string NombreFuente { get; set; } = string.Empty;
+        public string NombreFuente
+        {
+            get => nombreFuente;
+            set => nombreFuente = Limpiar(value);
+        }
 
         [JsonIgnore]
         public string FuenteMostrar =>
             string.IsNullOrWhiteSpace(NombreFuente)
                 ? $"Fuente #{FuenteNutrientesId}"
                 : NombreFuente;
+
+        private static string Limpiar(string? valor) =>
+            valor?.Trim() ?? string.Empty;
     }
 
     public sealed class AnalisisGuardadoFertilizacionMixta
@@ -447,6 +513,8 @@ namespace CONATRADEC.Models
 
     public sealed class AnalisisGuardadoMixtaFuente
     {
+        private string nombreFuente = string.Empty;
+
         [JsonPropertyName("fertilizacionMixtaFuenteId")]
         public int FertilizacionMixtaFuenteId { get; set; }
 
@@ -457,17 +525,26 @@ namespace CONATRADEC.Models
         public decimal CantidadQq { get; set; }
 
         [JsonIgnore]
-        public string NombreFuente { get; set; } = string.Empty;
+        public string NombreFuente
+        {
+            get => nombreFuente;
+            set => nombreFuente = Limpiar(value);
+        }
 
         [JsonIgnore]
         public string FuenteMostrar =>
             string.IsNullOrWhiteSpace(NombreFuente)
                 ? $"Fuente #{FuenteNutrientesId}"
                 : NombreFuente;
+
+        private static string Limpiar(string? valor) =>
+            valor?.Trim() ?? string.Empty;
     }
 
     public sealed class AnalisisGuardadoMixtaDetalle
     {
+        private string nombreElemento = string.Empty;
+
         [JsonPropertyName("fertilizacionMixtaDetalleId")]
         public int FertilizacionMixtaDetalleId { get; set; }
 
@@ -490,7 +567,14 @@ namespace CONATRADEC.Models
         public decimal Sobrante { get; set; }
 
         [JsonIgnore]
-        public string NombreElemento { get; set; } = string.Empty;
+        public string NombreElemento
+        {
+            get => nombreElemento;
+            set => nombreElemento = Limpiar(value);
+        }
+
+        private static string Limpiar(string? valor) =>
+            valor?.Trim() ?? string.Empty;
     }
 
     public sealed class CatalogoElementoAnalisis

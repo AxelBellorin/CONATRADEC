@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -29,6 +29,17 @@ namespace CONATRADEC.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    /*
+                     * Los elementos auxiliares no incluidos en la copia local
+                     * no deben impedir la visualización de un formulario.
+                     */
+                    if (OfflineReadResponseService
+                        .EsLecturaSinDatosLocales(response))
+                    {
+                        return ApiResult<ObservableCollection<T>>.Ok(
+                            new ObservableCollection<T>());
+                    }
+
                     string message =
                         await ApiServiceHelper
                             .ReadResponseMessageAsync(

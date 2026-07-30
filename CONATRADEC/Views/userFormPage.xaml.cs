@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.Devices;
@@ -16,15 +16,31 @@ namespace CONATRADEC.Views
 
         private readonly UserFormViewModel viewModel = new();
 
+        /*
+         * Evita volver a limpiar la fecha si OnAppearing se ejecuta
+         * nuevamente mientras el usuario permanece en el formulario.
+         */
+        private bool fechaNacimientoPreparada;
+        private bool ignorarCambioFechaNacimiento;
+
         public FormModeSelect Mode
         {
-            set => viewModel.Mode = value;
+            set
+            {
+                viewModel.Mode = value;
+                fechaNacimientoPreparada = false;
+            }
         }
 
         public UserRequest User
         {
-            set => viewModel.User =
-                value ?? new UserRequest();
+            set
+            {
+                viewModel.User =
+                    value ?? new UserRequest();
+
+                fechaNacimientoPreparada = false;
+            }
         }
 
         public userFormPage()
@@ -62,6 +78,129 @@ namespace CONATRADEC.Views
 
             AjustarDiseno(Width);
             await viewModel.InicializarAsync();
+
+            PrepararFechaNacimiento();
+        }
+
+        /// <summary>
+        /// En modo Crear deja el campo visualmente vacío y mantiene
+        /// FechaNacimientoUsuario en null hasta que el usuario seleccione
+        /// una fecha. En Editar y Ver muestra la fecha guardada.
+        /// </summary>
+        private void PrepararFechaNacimiento()
+        {
+            if (fechaNacimientoPreparada ||
+                FechaNacimientoPicker == null ||
+                FechaNacimientoTexto == null)
+            {
+                return;
+            }
+
+            /*
+             * El binding del DatePicker puede disparar DateSelected durante
+             * la construcción de la página. Esa notificación no representa
+             * una selección realizada por el usuario.
+             */
+            ignorarCambioFechaNacimiento = true;
+
+            try
+            {
+                if (viewModel.Mode == FormModeSelect.Create)
+                {
+                    /*
+                     * El DatePicker necesita una fecha interna, pero el valor
+                     * enviado a la API se mantiene nulo hasta una selección.
+                     */
+                    viewModel.FechaNacimientoUsuario = null;
+                    FechaNacimientoTexto.Text =
+                        "Seleccione una fecha";
+                    FechaNacimientoTexto.TextColor =
+                        Color.FromArgb("#6B7280");
+                }
+                else if (viewModel.FechaNacimientoUsuario.HasValue)
+                {
+                    DateTime fecha =
+                        viewModel.FechaNacimientoUsuario.Value
+                            .ToDateTime(TimeOnly.MinValue);
+
+                    FechaNacimientoPicker.Date = fecha;
+                    FechaNacimientoTexto.Text =
+                        fecha.ToString("dd/MM/yyyy");
+                    FechaNacimientoTexto.TextColor =
+                        Color.FromArgb("#1F1F1F");
+                }
+                else
+                {
+                    FechaNacimientoTexto.Text =
+                        "Seleccione una fecha";
+                    FechaNacimientoTexto.TextColor =
+                        Color.FromArgb("#6B7280");
+                }
+
+                fechaNacimientoPreparada = true;
+                AjustarAreaInteractivaFecha();
+            }
+            finally
+            {
+                ignorarCambioFechaNacimiento = false;
+            }
+        }
+
+        /// <summary>
+        /// Marca la fecha como seleccionada únicamente después de una
+        /// interacción explícita con el DatePicker.
+        /// </summary>
+        private void FechaNacimientoPicker_DateSelected(
+            object? sender,
+            DateChangedEventArgs e)
+        {
+            if (ignorarCambioFechaNacimiento ||
+                !fechaNacimientoPreparada ||
+                viewModel.IsReadOnly)
+            {
+                return;
+            }
+
+            viewModel.FechaNacimientoUsuario =
+                DateOnly.FromDateTime(e.NewDate);
+
+            FechaNacimientoTexto.Text =
+                e.NewDate.ToString("dd/MM/yyyy");
+
+            FechaNacimientoTexto.TextColor =
+                Color.FromArgb("#1F1F1F");
+        }
+
+        /// <summary>
+        /// En WinUI el control nativo puede conservar su ancho natural.
+        /// Se iguala su área de interacción al campo visible, evitando
+        /// modificar el tamaño cuando el valor no cambió.
+        /// </summary>
+        private void FechaNacimientoField_SizeChanged(
+            object? sender,
+            EventArgs e)
+        {
+            AjustarAreaInteractivaFecha();
+        }
+
+        private void AjustarAreaInteractivaFecha()
+        {
+            if (FechaNacimientoField == null ||
+                FechaNacimientoPicker == null ||
+                FechaNacimientoField.Width <= 0)
+            {
+                return;
+            }
+
+            double ancho = FechaNacimientoField.Width;
+
+            if (Math.Abs(
+                    FechaNacimientoPicker.WidthRequest -
+                    ancho) > 0.5)
+            {
+                FechaNacimientoPicker.WidthRequest =
+                    ancho;
+            }
         }
 
         /// <summary>
