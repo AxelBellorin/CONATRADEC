@@ -1,4 +1,5 @@
 using CONATRADEC.Services;
+using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
@@ -17,7 +18,16 @@ namespace CONATRADEC.Models
         public string? RolNombre { get; set; }
         public string? ProcedenciaNombre { get; set; }
         public bool? EsInterno { get; set; }
+
+        [JsonPropertyName("token")]
         public string? AccessToken { get; set; }
+
+        [JsonPropertyName("expiraTokenUtc")]
+        public DateTime? ExpiraTokenUtc { get; set; }
+
+        [JsonPropertyName("minutosInactividad")]
+        public int MinutosInactividad { get; set; } = 15;
+
         public string? UrlImagenUsuario { get; set; }
 
         /// <summary>

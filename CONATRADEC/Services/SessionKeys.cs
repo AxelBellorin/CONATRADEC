@@ -8,6 +8,9 @@ namespace CONATRADEC.Services
         public const string KeyUrlImagenUsuario = "UrlImagenUsuario";
         public const string KeyRolId = "RolId";
         public const string KeyRolNombre = "RolNombre";
+        public const string KeyAccessToken = "AccessToken";
         public const string KeySessionVersion = "VersionSesion";
+        public const string KeyInactivityMinutes = "MinutosInactividad";
+        public const string KeyLastActivityUtcTicks = "UltimaActividadUtcTicks";
     }
 }

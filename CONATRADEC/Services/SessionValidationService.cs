@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Storage;
 using System.Net;
@@ -6,9 +6,8 @@ using System.Net;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Comprueba periódicamente que el rol y los permisos de la sesión sigan
-    /// vigentes. Los errores de conexión no cierran la sesión: solamente una
-    /// respuesta explícita de invalidación emitida por la API.
+    /// Comprueba periódicamente que el token, el usuario, el rol y los permisos
+    /// continúen vigentes. Una falla de red nunca cierra la sesión.
     /// </summary>
     public sealed class SessionValidationService
     {
@@ -22,11 +21,15 @@ namespace CONATRADEC.Services
         {
         }
 
-        public static SessionValidationService Instance => instancia.Value;
+        public static SessionValidationService Instance =>
+            instancia.Value;
 
         public void Iniciar()
         {
             Detener();
+
+            if (!ModoSesionService.EsEnLinea)
+                return;
 
             if (!TryGetUsuarioId(out int usuarioId))
                 return;
@@ -38,22 +41,20 @@ namespace CONATRADEC.Services
             /*
              * Una sesión creada antes de implementar el control de versión
              * puede conservar el UsuarioId, pero no tener VersionSesion.
-             *
-             * Ese caso no significa que el administrador haya cambiado el rol
-             * o los permisos en este momento. Se limpia la sesión antigua y se
-             * vuelve al login sin mostrar la advertencia de permisos cambiados.
-             *
-             * La advertencia solamente se mostrará cuando la API responda de
-             * forma explícita que una sesión activa fue invalidada.
              */
             if (version <= 0)
             {
-                _ = LimpiarSesionIncompletaAsync(usuarioId);
+                _ = LimpiarSesionIncompletaAsync(
+                    usuarioId);
+
                 return;
             }
 
-            cancellationTokenSource = new CancellationTokenSource();
-            _ = EjecutarAsync(cancellationTokenSource.Token);
+            cancellationTokenSource =
+                new CancellationTokenSource();
+
+            _ = EjecutarAsync(
+                cancellationTokenSource.Token);
         }
 
         public void Detener()
@@ -81,7 +82,36 @@ namespace CONATRADEC.Services
 
         public void NotificarSesionInvalidada()
         {
-            _ = InvalidarSesionAsync();
+            _ = FinalizarSesionAsync(
+                RazonCierreSesion.CambioPermisos);
+        }
+
+        public void NotificarSesionInactiva()
+        {
+            _ = FinalizarSesionAsync(
+                RazonCierreSesion.Inactividad);
+        }
+
+        public void NotificarSesionRechazada(
+            string? contenido)
+        {
+            string value =
+                contenido ??
+                string.Empty;
+
+            RazonCierreSesion razon =
+                value.Contains(
+                    "SESSION_INACTIVITY_TIMEOUT",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? RazonCierreSesion.Inactividad
+                    : value.Contains(
+                            "SESSION_INVALIDATED",
+                            StringComparison.OrdinalIgnoreCase)
+                        ? RazonCierreSesion.CambioPermisos
+                        : RazonCierreSesion.SeguridadVencida;
+
+            _ = FinalizarSesionAsync(
+                razon);
         }
 
         private async Task EjecutarAsync(
@@ -93,9 +123,16 @@ namespace CONATRADEC.Services
 
             try
             {
-                while (await timer.WaitForNextTickAsync(cancellationToken))
+                while (await timer.WaitForNextTickAsync(
+                           cancellationToken))
                 {
                     if (!TryGetUsuarioId(out _))
+                    {
+                        Detener();
+                        return;
+                    }
+
+                    if (!ModoSesionService.EsEnLinea)
                     {
                         Detener();
                         return;
@@ -111,7 +148,10 @@ namespace CONATRADEC.Services
                         if (response.StatusCode ==
                             HttpStatusCode.Unauthorized)
                         {
-                            await InvalidarSesionAsync();
+                            /*
+                             * ApiClientService ya leyó el código de la API y
+                             * notificó el motivo correcto del cierre.
+                             */
                             return;
                         }
                     }
@@ -133,8 +173,6 @@ namespace CONATRADEC.Services
 
         /// <summary>
         /// Limpia silenciosamente una sesión local antigua o incompleta.
-        /// No debe mostrar el mensaje de cambio de rol/permisos porque todavía
-        /// no existe una respuesta de invalidación proveniente de la API.
         /// </summary>
         private async Task LimpiarSesionIncompletaAsync(
             int usuarioIdEsperado)
@@ -146,7 +184,15 @@ namespace CONATRADEC.Services
             }
 
             Detener();
-            LimpiarDatosLocales();
+
+            SesionInactividadService.Instance
+                .Limpiar();
+
+            SessionTokenService.Instance
+                .Limpiar();
+
+            LimpiarDatosLocales(
+                limpiarCredencialesRecordadas: true);
 
             PermissionService.Instance.Load(
                 new List<UserPermissionDTO>());
@@ -163,31 +209,64 @@ namespace CONATRADEC.Services
                 });
         }
 
-        private async Task InvalidarSesionAsync()
+        private async Task FinalizarSesionAsync(
+            RazonCierreSesion razon)
         {
-            if (Interlocked.Exchange(ref invalidando, 1) == 1)
+            if (Interlocked.Exchange(
+                    ref invalidando,
+                    1) == 1)
+            {
                 return;
+            }
 
             try
             {
                 /*
-                 * Si ya no existe un usuario activo, no hay una sesión vigente
-                 * que invalidar ni debe mostrarse una advertencia atrasada.
+                 * Evita mostrar una advertencia atrasada después de que el usuario
+                 * ya cerró sesión manualmente.
                  */
                 if (!TryGetUsuarioId(out _))
                     return;
 
                 Detener();
-                LimpiarDatosLocales();
+
+                SesionInactividadService.Instance
+                    .Limpiar();
+
+                SessionTokenService.Instance
+                    .Limpiar();
+
+                /*
+                 * Los cambios de rol o permisos exigen credenciales reales.
+                 * La inactividad y la expiración conservan "Recordarme" y permiten
+                 * volver a autenticar con contraseña guardada o biometría.
+                 */
+                LimpiarDatosLocales(
+                    limpiarCredencialesRecordadas:
+                        razon ==
+                        RazonCierreSesion.CambioPermisos);
 
                 PermissionService.Instance.Load(
                     new List<UserPermissionDTO>());
+
+                string mensaje =
+                    razon switch
+                    {
+                        RazonCierreSesion.Inactividad =>
+                            "La sesión se cerró por inactividad. Inicie sesión nuevamente.",
+
+                        RazonCierreSesion.SeguridadVencida =>
+                            "La sesión de seguridad venció. Inicie sesión nuevamente.",
+
+                        _ =>
+                            "Su rol o sus permisos cambiaron. Inicie sesión nuevamente."
+                    };
 
                 await MainThread.InvokeOnMainThreadAsync(
                     async () =>
                     {
                         await GlobalService.MostrarToastAsync(
-                            "Su rol o sus permisos cambiaron. Inicie sesión nuevamente.");
+                            mensaje);
 
                         if (Shell.Current != null)
                         {
@@ -199,21 +278,27 @@ namespace CONATRADEC.Services
             }
             finally
             {
-                Interlocked.Exchange(ref invalidando, 0);
+                Interlocked.Exchange(
+                    ref invalidando,
+                    0);
             }
         }
 
-        private static bool TryGetUsuarioId(out int usuarioId)
+        private static bool TryGetUsuarioId(
+            out int usuarioId)
         {
             string texto = Preferences.Get(
                 SessionKeys.KeyUserId,
                 string.Empty);
 
-            return int.TryParse(texto, out usuarioId) &&
+            return int.TryParse(
+                       texto,
+                       out usuarioId) &&
                    usuarioId > 0;
         }
 
-        private static void LimpiarDatosLocales()
+        private static void LimpiarDatosLocales(
+            bool limpiarCredencialesRecordadas)
         {
             Preferences.Remove(SessionKeys.KeyUserId);
             Preferences.Remove(SessionKeys.KeyNombreCompletoUsuario);
@@ -222,13 +307,25 @@ namespace CONATRADEC.Services
             Preferences.Remove(SessionKeys.KeyRolId);
             Preferences.Remove(SessionKeys.KeyRolNombre);
             Preferences.Remove(SessionKeys.KeySessionVersion);
+            Preferences.Remove(SessionKeys.KeyInactivityMinutes);
+            Preferences.Remove(SessionKeys.KeyLastActivityUtcTicks);
+            Preferences.Remove(SessionKeys.KeyAccessToken);
 
-            // Se eliminan las credenciales recordadas para exigir un login real.
+            if (!limpiarCredencialesRecordadas)
+                return;
+
             Preferences.Remove("login.remember");
             Preferences.Remove("login.username");
             Preferences.Remove("login.use_biometrics");
             Preferences.Remove("login.require_pwd_relogin");
             SecureStorage.Remove("login.password");
+        }
+
+        private enum RazonCierreSesion
+        {
+            CambioPermisos,
+            Inactividad,
+            SeguridadVencida
         }
     }
 }

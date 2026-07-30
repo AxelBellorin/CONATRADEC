@@ -2,6 +2,7 @@
 using Microsoft.Maui.Storage;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Net.Http;
 using System.Runtime.CompilerServices;
 
 namespace CONATRADEC.Services
@@ -156,14 +157,71 @@ namespace CONATRADEC.Services
             if (!confirm)
                 return;
 
-            Preferences.Remove(SessionKeys.KeyUserId);
-            Preferences.Remove(SessionKeys.KeyNombreCompletoUsuario);
-            Preferences.Remove(SessionKeys.KeyCorreoUsuario);
-            Preferences.Remove(SessionKeys.KeyUrlImagenUsuario);
+            IsBusy = true;
 
-            PermissionService.Instance.ClearPermissions();
+            try
+            {
+                /*
+                 * Se elimina primero el usuario visible para que el servicio de
+                 * conectividad marque el dispositivo como desconectado mientras
+                 * el JWT todavía continúa disponible.
+                 */
+                Preferences.Remove(SessionKeys.KeyUserId);
 
-            await GoToAsyncParameters(AppRoutes.Login);
+                try
+                {
+                    await DispositivoConexionService.Instance
+                        .ActualizarEstadoActualAsync();
+                }
+                catch
+                {
+                    // La telemetría no debe impedir el cierre de la sesión.
+                }
+
+                try
+                {
+                    if (ModoSesionService.EsEnLinea)
+                    {
+                        using var request =
+                            new HttpRequestMessage(
+                                HttpMethod.Post,
+                                "api/sesion/cerrar");
+
+                        using HttpResponseMessage response =
+                            await ApiClientService.Client.SendAsync(
+                                request);
+                    }
+                }
+                catch
+                {
+                    /*
+                     * Aunque no haya red, se elimina la sesión del dispositivo.
+                     * El backend la cerrará después por inactividad o expiración.
+                     */
+                }
+
+                SessionValidationService.Instance.Detener();
+                SesionInactividadService.Instance.Limpiar();
+                SessionTokenService.Instance.Limpiar();
+
+                Preferences.Remove(SessionKeys.KeyNombreCompletoUsuario);
+                Preferences.Remove(SessionKeys.KeyCorreoUsuario);
+                Preferences.Remove(SessionKeys.KeyUrlImagenUsuario);
+                Preferences.Remove(SessionKeys.KeyRolId);
+                Preferences.Remove(SessionKeys.KeyRolNombre);
+                Preferences.Remove(SessionKeys.KeySessionVersion);
+                Preferences.Remove(SessionKeys.KeyInactivityMinutes);
+                Preferences.Remove(SessionKeys.KeyLastActivityUtcTicks);
+                Preferences.Remove(SessionKeys.KeyAccessToken);
+
+                PermissionService.Instance.ClearPermissions();
+
+                await GoToAsyncParameters(AppRoutes.Login);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         public async Task GoToAsyncParameters(

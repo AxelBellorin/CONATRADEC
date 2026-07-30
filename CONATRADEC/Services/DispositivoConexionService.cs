@@ -5,6 +5,8 @@ using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.Networking;
 using Microsoft.Maui.Storage;
 using System.Globalization;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -261,10 +263,9 @@ namespace CONATRADEC.Services
                     TiempoMaximoPeticion);
 
                 using HttpResponseMessage response =
-                    await httpClient.PostAsJsonAsync(
+                    await PostAutenticadoAsync(
                         "conectividad/dispositivos/reportar",
                         payload,
-                        JsonOptions,
                         timeout.Token);
 
                 if (!response.IsSuccessStatusCode)
@@ -416,15 +417,53 @@ namespace CONATRADEC.Services
                     TiempoMaximoPeticion);
 
                 using HttpResponseMessage response =
-                    await httpClient.PostAsJsonAsync(
+                    await PostAutenticadoAsync(
                         "conectividad/dispositivos/desconectar",
                         payload,
-                        JsonOptions,
                         timeout.Token);
             }
             catch
             {
             }
+        }
+
+        /// <summary>
+        /// Los endpoints livianos de conectividad no utilizan ApiClientService,
+        /// pero deben enviar el mismo JWT que el resto de la aplicación.
+        /// No se envía X-Actividad-Usuario porque un latido automático nunca
+        /// representa interacción humana.
+        /// </summary>
+        private async Task<HttpResponseMessage> PostAutenticadoAsync<T>(
+            string ruta,
+            T payload,
+            CancellationToken cancellationToken)
+        {
+            string? token =
+                await SessionTokenService.Instance.ObtenerAsync();
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return new HttpResponseMessage(
+                    HttpStatusCode.Unauthorized);
+            }
+
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                ruta)
+            {
+                Content = JsonContent.Create(
+                    payload,
+                    options: JsonOptions)
+            };
+
+            request.Headers.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    token);
+
+            return await httpClient.SendAsync(
+                request,
+                cancellationToken);
         }
 
         private async Task<LocationSnapshot>

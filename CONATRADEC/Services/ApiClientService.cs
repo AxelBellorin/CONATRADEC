@@ -94,6 +94,42 @@ namespace CONATRADEC.Services
                 HttpRequestMessage request,
                 CancellationToken cancellationToken)
             {
+                bool esLogin =
+                    EsSolicitudLogin(request);
+
+                long actividadVersionEnviada = 0;
+
+                if (!esLogin &&
+                    ModoSesionService.EsEnLinea)
+                {
+                    string? token =
+                        await SessionTokenService.Instance
+                            .ObtenerAsync();
+
+                    request.Headers.Authorization =
+                        string.IsNullOrWhiteSpace(token)
+                            ? null
+                            : new AuthenticationHeaderValue(
+                                "Bearer",
+                                token);
+
+                    actividadVersionEnviada =
+                        SesionInactividadService.Instance
+                            .ObtenerVersionActividadPendienteServidor();
+
+                    if (actividadVersionEnviada > 0)
+                    {
+                        AgregarEncabezado(
+                            request,
+                            "X-Actividad-Usuario",
+                            "true");
+                    }
+                }
+                else
+                {
+                    request.Headers.Authorization = null;
+                }
+
                 AgregarEncabezado(
                     request,
                     "X-Usuario-Id",
@@ -167,6 +203,18 @@ namespace CONATRADEC.Services
                         request,
                         cancellationToken);
 
+                if (actividadVersionEnviada > 0)
+                {
+                    /*
+                     * Solo se confirma al recibir una respuesta HTTP. Si hubo una
+                     * falla de red, la actividad permanece pendiente y se enviará
+                     * nuevamente en la próxima solicitud.
+                     */
+                    SesionInactividadService.Instance
+                        .ConfirmarActividadEnviada(
+                            actividadVersionEnviada);
+                }
+
                 bool invalidadaPorEncabezado =
                     response.Headers.TryGetValues(
                         "X-Sesion-Invalidada",
@@ -203,18 +251,59 @@ namespace CONATRADEC.Services
                 }
 
                 bool invalidadaPorRespuesta =
-                    response.StatusCode == HttpStatusCode.Unauthorized &&
-                    content.Contains(
-                        "SESSION_INVALIDATED",
-                        StringComparison.OrdinalIgnoreCase);
+                    response.StatusCode ==
+                        HttpStatusCode.Unauthorized &&
+                    ContieneCodigoSesion(
+                        content);
 
-                if (invalidadaPorEncabezado || invalidadaPorRespuesta)
+                if (invalidadaPorEncabezado ||
+                    invalidadaPorRespuesta)
                 {
                     SessionValidationService.Instance
-                        .NotificarSesionInvalidada();
+                        .NotificarSesionRechazada(
+                            content);
                 }
 
                 return response;
+            }
+
+            private static bool EsSolicitudLogin(
+                HttpRequestMessage request)
+            {
+                if (request.Method != HttpMethod.Post)
+                    return false;
+
+                string path =
+                    request.RequestUri?.AbsolutePath ??
+                    request.RequestUri?.OriginalString ??
+                    string.Empty;
+
+                return path.EndsWith(
+                    "/api/auth/login",
+                    StringComparison.OrdinalIgnoreCase);
+            }
+
+            private static bool ContieneCodigoSesion(
+                string content)
+            {
+                if (string.IsNullOrWhiteSpace(content))
+                    return false;
+
+                string[] codigos =
+                [
+                    "SESSION_INVALIDATED",
+                    "SESSION_INACTIVITY_TIMEOUT",
+                    "SESSION_TOKEN_EXPIRED",
+                    "SESSION_NOT_ACTIVE",
+                    "AUTH_TOKEN_REQUIRED",
+                    "AUTH_TOKEN_INVALID"
+                ];
+
+                return codigos.Any(
+                    codigo =>
+                        content.Contains(
+                            codigo,
+                            StringComparison.OrdinalIgnoreCase));
             }
 
             private static void AgregarEncabezado(

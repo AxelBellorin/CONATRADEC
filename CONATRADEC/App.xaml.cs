@@ -1,4 +1,6 @@
+using CONATRADEC.Models;
 using CONATRADEC.Services;
+using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 
 namespace CONATRADEC
@@ -33,23 +35,29 @@ namespace CONATRADEC
             DispositivoConexionService.Instance.VincularShell(shell);
             DispositivoConexionService.Instance.Iniciar();
 
-            /*
-             * La validación debe arrancar también al abrir una sesión que ya
-             * estaba guardada. Antes solo comenzaba al hacer un login nuevo,
-             * por eso una sesión anterior podía conservar permisos viejos.
-             */
             window.Created += (_, _) =>
             {
                 IsWindowClosing = false;
-                SessionValidationService.Instance.Iniciar();
+
+                SessionValidationService.Instance
+                    .Iniciar();
+
+                SesionInactividadService.Instance
+                    .ReanudarSesion();
             };
 
             window.Resumed += (_, _) =>
             {
                 IsWindowClosing = false;
 
-                SessionValidationService.Instance.Iniciar();
-                _ = DispositivoConexionService.Instance.ReanudarAsync();
+                SessionValidationService.Instance
+                    .Iniciar();
+
+                SesionInactividadService.Instance
+                    .ReanudarSesion();
+
+                _ = DispositivoConexionService.Instance
+                    .ReanudarAsync();
             };
 
             window.Stopped += (_, _) =>
@@ -61,20 +69,28 @@ namespace CONATRADEC
                  */
                 IsWindowClosing = true;
 
-                SessionValidationService.Instance.Detener();
-                _ = DispositivoConexionService.Instance.SuspenderAsync();
+                SessionValidationService.Instance
+                    .Detener();
+
+                SesionInactividadService.Instance
+                    .Pausar();
+
+                _ = DispositivoConexionService.Instance
+                    .SuspenderAsync();
             };
 
             window.Destroying += (_, _) =>
             {
-                /*
-                 * Se mantiene activa la bandera durante toda la destrucción
-                 * de los controles nativos de WinUI.
-                 */
                 IsWindowClosing = true;
 
-                SessionValidationService.Instance.Detener();
-                _ = DispositivoConexionService.Instance.DetenerAsync();
+                SessionValidationService.Instance
+                    .Detener();
+
+                SesionInactividadService.Instance
+                    .Pausar();
+
+                _ = DispositivoConexionService.Instance
+                    .DetenerAsync();
             };
 
             return window;

@@ -1,10 +1,12 @@
-﻿using Microsoft.UI.Xaml;
+using CONATRADEC.Services;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-// Alias para evitar la ambigüedad entre System y WinUI.
 using SystemUnhandledExceptionEventArgs =
     System.UnhandledExceptionEventArgs;
 
@@ -19,43 +21,99 @@ namespace CONATRADEC.WinUI
     /// </summary>
     public partial class App : MauiWinUIApplication
     {
+        private UIElement? raizActividad;
+
         public App()
         {
             InitializeComponent();
 
-            /*
-             * Captura excepciones no controladas provenientes
-             * del dispatcher principal de WinUI.
-             */
             UnhandledException += App_UnhandledException;
 
-            /*
-             * Captura errores generales no controlados
-             * provenientes del entorno de .NET.
-             */
             AppDomain.CurrentDomain.UnhandledException +=
                 CurrentDomain_UnhandledException;
 
-            /*
-             * Captura errores de tareas que finalizaron
-             * sin que su excepción fuera observada.
-             */
             TaskScheduler.UnobservedTaskException +=
                 TaskScheduler_UnobservedTaskException;
         }
 
-        /// <summary>
-        /// Crea y configura la aplicación MAUI.
-        /// </summary>
         protected override MauiApp CreateMauiApp()
         {
             return MauiProgram.CreateMauiApp();
         }
 
-        /// <summary>
-        /// Captura excepciones provenientes del dispatcher
-        /// principal de WinUI.
-        /// </summary>
+        protected override void OnLaunched(
+            LaunchActivatedEventArgs args)
+        {
+            base.OnLaunched(args);
+
+            Microsoft.Maui.Controls.Window? mauiWindow =
+                Microsoft.Maui.Controls.Application
+                    .Current?
+                    .Windows
+                    .FirstOrDefault();
+
+            if (mauiWindow == null)
+                return;
+
+            mauiWindow.HandlerChanged +=
+                (_, _) => VincularActividad(mauiWindow);
+
+            VincularActividad(mauiWindow);
+        }
+
+        private void VincularActividad(
+            Microsoft.Maui.Controls.Window mauiWindow)
+        {
+            if (mauiWindow.Handler?.PlatformView
+                    is not Microsoft.UI.Xaml.Window nativeWindow ||
+                nativeWindow.Content is not UIElement nuevaRaiz ||
+                ReferenceEquals(
+                    raizActividad,
+                    nuevaRaiz))
+            {
+                return;
+            }
+
+            if (raizActividad != null)
+            {
+                raizActividad.PointerPressed -=
+                    AlRegistrarActividadPuntero;
+
+                raizActividad.PointerWheelChanged -=
+                    AlRegistrarActividadPuntero;
+
+                raizActividad.KeyDown -=
+                    AlRegistrarActividadTeclado;
+            }
+
+            raizActividad = nuevaRaiz;
+
+            raizActividad.PointerPressed +=
+                AlRegistrarActividadPuntero;
+
+            raizActividad.PointerWheelChanged +=
+                AlRegistrarActividadPuntero;
+
+            raizActividad.KeyDown +=
+                AlRegistrarActividadTeclado;
+        }
+
+        private static void AlRegistrarActividadPuntero(
+            object sender,
+            PointerRoutedEventArgs e)
+        {
+            SesionInactividadService.Instance
+                .RegistrarActividad();
+        }
+
+        private static void AlRegistrarActividadTeclado(
+            object sender,
+            KeyRoutedEventArgs e)
+        {
+            SesionInactividadService.Instance
+                .RegistrarActividad();
+        }
+
         private void App_UnhandledException(
             object sender,
             WinUiUnhandledExceptionEventArgs e)
@@ -64,14 +122,6 @@ namespace CONATRADEC.WinUI
                 "WinUI.UnhandledException",
                 e.Exception);
 
-            /*
-             * Durante el cierre normal algunos controles WinUI
-             * pueden intentar acceder a objetos COM que ya fueron
-             * liberados.
-             *
-             * Solamente se ignoran esas excepciones cuando
-             * la ventana realmente se está cerrando.
-             */
             if (!global::CONATRADEC.App.IsWindowClosing)
                 return;
 
@@ -81,10 +131,6 @@ namespace CONATRADEC.WinUI
             e.Handled = true;
         }
 
-        /// <summary>
-        /// Captura excepciones generales no controladas
-        /// por el entorno de .NET.
-        /// </summary>
         private static void CurrentDomain_UnhandledException(
             object sender,
             SystemUnhandledExceptionEventArgs e)
@@ -98,9 +144,6 @@ namespace CONATRADEC.WinUI
                 $"Finalizando proceso: {e.IsTerminating}");
         }
 
-        /// <summary>
-        /// Captura excepciones de tareas que no fueron observadas.
-        /// </summary>
         private static void TaskScheduler_UnobservedTaskException(
             object? sender,
             UnobservedTaskExceptionEventArgs e)
@@ -109,17 +152,9 @@ namespace CONATRADEC.WinUI
                 "TaskScheduler.UnobservedTaskException",
                 e.Exception);
 
-            /*
-             * Marca la excepción como observada para evitar
-             * que una tarea secundaria afecte la aplicación.
-             */
             e.SetObserved();
         }
 
-        /// <summary>
-        /// Determina si la excepción o alguna excepción interna
-        /// corresponde a una COMException.
-        /// </summary>
         private static bool ContainsComException(
             Exception? exception)
         {
@@ -137,10 +172,6 @@ namespace CONATRADEC.WinUI
             return false;
         }
 
-        /// <summary>
-        /// Guarda la información de una excepción en un archivo
-        /// local para diagnosticar cierres de la aplicación.
-        /// </summary>
         private static void RegistrarExcepcion(
             string origen,
             Exception? exception,
@@ -174,7 +205,8 @@ namespace CONATRADEC.WinUI
                 contenido.AppendLine(
                     $"Origen: {origen}");
 
-                if (!string.IsNullOrWhiteSpace(detalleAdicional))
+                if (!string.IsNullOrWhiteSpace(
+                        detalleAdicional))
                 {
                     contenido.AppendLine(
                         $"Detalle: {detalleAdicional}");

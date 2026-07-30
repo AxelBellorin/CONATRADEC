@@ -1,4 +1,4 @@
-﻿using Android.App;
+using Android.App;
 using Android.Content.PM;
 using Android.OS;
 using Android.Views;
@@ -8,7 +8,6 @@ using CONATRADEC.Services;
 using Microsoft.Maui;
 using Plugin.Fingerprint;
 
-// Alias explícitos para evitar ambigüedad con Microsoft.Maui.Graphics.
 using AndroidColor = Android.Graphics.Color;
 using AndroidRect = Android.Graphics.Rect;
 using AndroidBackCallback =
@@ -37,21 +36,12 @@ namespace CONATRADEC
         {
             base.OnCreate(savedInstanceState);
 
-            /*
-             * Android moderno puede procesar el botón y el gesto de retroceso
-             * directamente mediante OnBackPressedDispatcher, sin pasar siempre
-             * por Shell.OnBackButtonPressed.
-             *
-             * Este callback consume globalmente el retroceso para que la
-             * navegación se realice únicamente mediante los botones de la app.
-             */
             bloquearRetrocesoCallback =
                 new BloquearRetrocesoCallback();
 
             OnBackPressedDispatcher.AddCallback(
                 bloquearRetrocesoCallback);
 
-            // Color de la barra de estado.
             Window?.SetStatusBarColor(
                 AndroidColor.ParseColor("#3B655B"));
 
@@ -66,13 +56,11 @@ namespace CONATRADEC
 
                 if (insets is not null)
                 {
-                    // False = iconos claros.
                     insets.AppearanceLightStatusBars =
                         false;
                 }
             }
 
-            // Mantiene funcionando la autenticación biométrica.
             CrossFingerprint
                 .SetCurrentActivityResolver(
                     () => this);
@@ -97,16 +85,19 @@ namespace CONATRADEC
         }
 
         /// <summary>
-        /// Detecta globalmente cuando el usuario toca fuera del campo
-        /// de texto, campo numérico, campo decimal o Editor activo.
-        ///
-        /// Todos esos controles de MAUI utilizan internamente un
-        /// EditText en Android, por lo que no es necesario modificar
-        /// cada página XAML.
+        /// Registra toques reales y conserva el comportamiento global que oculta
+        /// el teclado al tocar fuera de un Entry o Editor.
         /// </summary>
         public override bool DispatchTouchEvent(
             MotionEvent? motionEvent)
         {
+            if (motionEvent?.Action ==
+                MotionEventActions.Down)
+            {
+                SesionInactividadService.Instance
+                    .RegistrarActividad();
+            }
+
             if (motionEvent?.Action ==
                     MotionEventActions.Down &&
                 CurrentFocus is EditText focusedInput)
@@ -132,10 +123,20 @@ namespace CONATRADEC
                 motionEvent);
         }
 
-        /// <summary>
-        /// Consume el botón físico, el botón de la barra de navegación y el
-        /// gesto predictivo de retroceso de Android.
-        /// </summary>
+        public override bool DispatchKeyEvent(
+            KeyEvent? keyEvent)
+        {
+            if (keyEvent?.Action ==
+                KeyEventActions.Down)
+            {
+                SesionInactividadService.Instance
+                    .RegistrarActividad();
+            }
+
+            return base.DispatchKeyEvent(
+                keyEvent);
+        }
+
         private sealed class BloquearRetrocesoCallback
             : AndroidBackCallback
         {
@@ -148,8 +149,7 @@ namespace CONATRADEC
             {
                 /*
                  * Intencionalmente vacío.
-                 * No se llama al comportamiento base porque eso permitiría
-                 * regresar, cerrar la página o salir de la aplicación.
+                 * La navegación se realiza mediante los botones de la app.
                  */
             }
         }

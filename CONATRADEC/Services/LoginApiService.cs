@@ -66,6 +66,30 @@ namespace CONATRADEC.Services
                     "los datos del usuario.");
             }
 
+            if (ModoSesionService.EsEnLinea)
+            {
+                if (string.IsNullOrWhiteSpace(
+                        loginResponse.AccessToken))
+                {
+                    throw new InvalidOperationException(
+                        "La API no devolvió el token de seguridad. " +
+                        "Publique primero el backend actualizado.");
+                }
+
+                await SessionTokenService.Instance
+                    .GuardarAsync(
+                        loginResponse.AccessToken);
+            }
+            else
+            {
+                /*
+                 * El JSON local puede conservar un token antiguo del último
+                 * login en línea. Una sesión offline nunca debe reutilizarlo.
+                 */
+                SessionTokenService.Instance
+                    .Limpiar();
+            }
+
             if (loginResponse.UsuarioId is > 0)
             {
                 Preferences.Set(
@@ -74,9 +98,34 @@ namespace CONATRADEC.Services
 
                 Preferences.Set(
                     SessionKeys.KeySessionVersion,
-                    Math.Max(1, loginResponse.VersionSesion));
+                    Math.Max(
+                        1,
+                        loginResponse.VersionSesion));
 
-                SessionValidationService.Instance.Iniciar();
+                int minutosInactividad =
+                    Math.Clamp(
+                        loginResponse.MinutosInactividad,
+                        1,
+                        1440);
+
+                Preferences.Set(
+                    SessionKeys.KeyInactivityMinutes,
+                    minutosInactividad);
+
+                SesionInactividadService.Instance
+                    .IniciarNuevaSesion(
+                        minutosInactividad);
+
+                if (ModoSesionService.EsEnLinea)
+                {
+                    SessionValidationService.Instance
+                        .Iniciar();
+                }
+                else
+                {
+                    SessionValidationService.Instance
+                        .Detener();
+                }
             }
 
             return loginResponse;
