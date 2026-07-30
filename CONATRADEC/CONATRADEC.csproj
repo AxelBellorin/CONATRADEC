@@ -14,8 +14,8 @@
 		<ApplicationId>com.conatradec.conatradec</ApplicationId>
 
 		<!-- Primera versión que incorpora el actualizador interno. -->
-		<ApplicationDisplayVersion>1.0.7</ApplicationDisplayVersion>
-		<ApplicationVersion>8</ApplicationVersion>
+		<ApplicationDisplayVersion>1.0.8</ApplicationDisplayVersion>
+		<ApplicationVersion>9</ApplicationVersion>
 
 		<!--
 			Debug continúa sin empaquetar. Release genera MSIX para que Windows
