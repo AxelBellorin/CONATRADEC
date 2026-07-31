@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using System;
@@ -803,18 +803,6 @@ namespace CONATRADEC.ViewModels
 
             OnPropertyChanged(
                 nameof(TextoElementosIncluidos));
-
-            /*
-             * Los comandos se crearon cuando la colección todavía estaba
-             * vacía. Al terminar de cargar los elementos se debe reevaluar
-             * CanExecute; de lo contrario, Incluir todos y Excluir todos
-             * pueden permanecer deshabilitados visualmente.
-             */
-            IncluirTodosElementosCommand
-                .ChangeCanExecute();
-
-            ExcluirTodosElementosCommand
-                .ChangeCanExecute();
         }
 
         private async Task ProcesarSeleccionAsync()
@@ -865,6 +853,8 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            await PrepararEdicionSegunSeleccionElementosAsync();
+
             /*
              * Se conserva el requerimiento anual completo para guardarlo,
              * mientras las pantallas complementarias reciben únicamente
@@ -881,16 +871,6 @@ namespace CONATRADEC.ViewModels
                     SeleccionElementosComplementariosService
                         .CrearResultadoParaCalculosComplementarios(
                             Resultado);
-
-            /*
-             * En edición, Balance y Mixta ya fueron restaurados antes de
-             * llegar a esta pantalla. Se vuelven a preparar utilizando
-             * exactamente la lista filtrada que recibirá MultiCálculo,
-             * sin eliminar el detalle persistido que permite recuperar
-             * fuentes, cantidades y el vínculo entre ambos cálculos.
-             */
-            await PrepararEdicionSegunSeleccionElementosAsync(
-                resultadoParaComplementarios);
 
             Dictionary<string, object>
                 parametros = new()
@@ -945,12 +925,22 @@ namespace CONATRADEC.ViewModels
         }
 
         private async Task
-            PrepararEdicionSegunSeleccionElementosAsync(
-                AnalisisSueloCalculoDataResponse
-                    resultadoParaComplementarios)
+            PrepararEdicionSegunSeleccionElementosAsync()
         {
-            if (!EsModoEdicion ||
-                RequestGuardarAnalisis == null)
+            if (!EsModoEdicion)
+                return;
+
+            HashSet<int> seleccionActual =
+                Elementos
+                    .Where(x =>
+                        x.ElementoQuimicosId.HasValue &&
+                        x.IncluirEnCalculosComplementarios)
+                    .Select(x =>
+                        x.ElementoQuimicosId!.Value)
+                    .ToHashSet();
+
+            if (seleccionActual.SetEquals(
+                    elementosIncluidosInicialmente))
             {
                 return;
             }
@@ -963,59 +953,43 @@ namespace CONATRADEC.ViewModels
             if (contexto == null)
                 return;
 
-            HashSet<int> seleccionActual =
-                Elementos
-                    .Where(x =>
-                        x.ElementoQuimicosId.HasValue &&
-                        x.IncluirEnCalculosComplementarios)
-                    .Select(x =>
-                        x.ElementoQuimicosId!.Value)
-                    .ToHashSet();
-
-            bool seleccionCambio =
-                !seleccionActual.SetEquals(
-                    elementosIncluidosInicialmente);
-
-            int plantas =
-                CantidadPlantas is > 0
-                    ? CantidadPlantas.Value
-                    : contexto.CantidadPlantas;
-
-            bool requerimientoCambio =
-                AnalisisEdicionService
-                    .Instance
-                    .CambioRequerimiento(
-                        RequestGuardarAnalisis);
-
             /*
-             * El detalle persistido nunca se pone en null. Ese detalle es
-             * precisamente el respaldo necesario para recuperar las fuentes
-             * del Balance y las cantidades de Fertilización mixta.
-             *
-             * El servicio reconstruye los cálculos temporales con los
-             * elementos actualmente incluidos. Cuando cambió el análisis o
-             * la selección, recalcula los módulos conservando sus elecciones.
+             * El balance y la fertilización guardados fueron
+             * calculados con otra selección de elementos.
+             * No deben restaurarse como si siguieran vigentes.
              */
-            await AnalisisEdicionService
-                .Instance
-                .RestaurarTemporalAsync(
-                    resultadoParaComplementarios,
-                    RequestGuardarAnalisis,
-                    plantas,
-                    requerimientoCambio ||
-                    seleccionCambio,
-                    incluirBalance:
-                        CalcularBalanceFormula,
-                    incluirEnmienda:
-                        CalcularEnmiendaCalcarea,
-                    incluirMixta:
-                        CalcularFertilizacionMixta);
-
-            if (seleccionCambio)
+            if (contexto.Detalle.BalanceNutricional != null)
             {
-                MensajeSeleccionCalculo =
-                    "La selección de elementos cambió. Se conservarán las fuentes compatibles y los cálculos seleccionados se actualizarán con la nueva selección.";
+                contexto.Detalle.BalanceNutricional =
+                    null;
+
+                await CalculoAnalisisTemporalService
+                    .Instance
+                    .ReiniciarCalculoAsync(
+                        TipoCalculoTemporal
+                            .BalanceFormula,
+                        "La selección de elementos cambió. Debe recalcular el balance.");
             }
+
+            if (contexto.Detalle.FertilizacionMixta != null)
+            {
+                contexto.Detalle.FertilizacionMixta =
+                    null;
+
+                await CalculoAnalisisTemporalService
+                    .Instance
+                    .ReiniciarCalculoAsync(
+                        TipoCalculoTemporal
+                            .FertilizacionMixta,
+                        "La selección de elementos cambió. Debe recalcular la fertilización mixta.");
+            }
+
+            AnalisisEdicionService
+                .Instance
+                .RestauracionUiRealizada = false;
+
+            MensajeSeleccionCalculo =
+                "La selección de elementos cambió. Balance y Fertilización mixta deberán recalcularse antes de actualizar.";
         }
 
         private async Task

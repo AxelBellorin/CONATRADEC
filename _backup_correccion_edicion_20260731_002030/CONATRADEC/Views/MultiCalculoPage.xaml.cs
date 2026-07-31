@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using System;
@@ -29,13 +29,6 @@ namespace CONATRADEC.Views
         private bool estadoInicialMixtaCapturado;
         private bool mixtaSeleccionadaOriginalmente;
         private bool mixtaActivadaPorComplemento;
-
-        private int? analisisCapturadoId;
-        private string identificadorCapturado =
-            string.Empty;
-
-        private AnalisisSueloCalculoDataResponse?
-            resultadoCapturado;
 
         public MultiCalculoPage()
         {
@@ -99,6 +92,8 @@ namespace CONATRADEC.Views
                 return;
             }
 
+            CapturarSeleccionOriginalMixta();
+
             /*
              * MultiCalculoPage es un ShellContent y MAUI conserva
              * la misma instancia. Al editar otro análisis, durante
@@ -112,58 +107,9 @@ namespace CONATRADEC.Views
              */
             await EsperarInicializacionActualAsync();
 
-            /*
-             * ApplyQueryAttributes es async void. Por eso la selección
-             * original de Mixta debe capturarse después de que el ViewModel
-             * haya recibido el análisis y las pestañas seleccionadas.
-             */
-            PrepararCapturaSeleccionOriginalMixta();
-
             await RestaurarCalculosEdicionUiService
                 .Instance
                 .RestaurarAsync(viewModel);
-        }
-
-        private void
-            PrepararCapturaSeleccionOriginalMixta()
-        {
-            int? idActual =
-                viewModel
-                    .AnalisisSueloCalculoIdEdicion;
-
-            string identificadorActual =
-                viewModel
-                    .NombreAnalisisSuelo;
-
-            AnalisisSueloCalculoDataResponse?
-                resultadoActual =
-                    viewModel.ResultadoCalculo;
-
-            bool correspondeMismaNavegacion =
-                estadoInicialMixtaCapturado &&
-                analisisCapturadoId == idActual &&
-                string.Equals(
-                    identificadorCapturado,
-                    identificadorActual,
-                    StringComparison.Ordinal) &&
-                ReferenceEquals(
-                    resultadoCapturado,
-                    resultadoActual);
-
-            if (correspondeMismaNavegacion)
-                return;
-
-            estadoInicialMixtaCapturado = false;
-            mixtaSeleccionadaOriginalmente = false;
-            mixtaActivadaPorComplemento = false;
-
-            analisisCapturadoId = idActual;
-            identificadorCapturado =
-                identificadorActual;
-            resultadoCapturado =
-                resultadoActual;
-
-            CapturarSeleccionOriginalMixta();
         }
 
         private void CapturarSeleccionOriginalMixta()

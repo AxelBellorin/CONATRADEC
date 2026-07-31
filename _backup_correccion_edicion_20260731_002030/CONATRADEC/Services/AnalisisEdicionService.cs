@@ -266,10 +266,7 @@ namespace CONATRADEC.Services
             AnalisisSueloCalculoDataResponse resultado,
             AnalisisSueloGuardarCalculoRequest request,
             int plantas,
-            bool requerimientoCambio,
-            bool incluirBalance = true,
-            bool incluirEnmienda = true,
-            bool incluirMixta = true)
+            bool requerimientoCambio)
         {
             AnalisisEdicionContexto contexto =
                 ContextoActual ??
@@ -282,33 +279,25 @@ namespace CONATRADEC.Services
             await temporal.LimpiarTodoAsync();
             await temporal.IniciarNuevoCalculoAsync(resultado, request);
 
-            if (incluirBalance &&
-                contexto.TieneBalance)
+            if (contexto.TieneBalance)
             {
                 await RestaurarBalanceAsync(
                     contexto,
                     resultado,
                     plantas,
-                    requerimientoCambio ||
-                    CambioBalance(
-                        request,
-                        plantas));
+                    requerimientoCambio || CambioBalance(request, plantas));
             }
 
-            if (incluirEnmienda &&
-                contexto.TieneEnmienda)
+            if (contexto.TieneEnmienda)
             {
                 await RestaurarEnmiendaAsync(
                     contexto,
                     request,
                     plantas,
-                    CambioEnmienda(
-                        request,
-                        plantas));
+                    CambioEnmienda(request, plantas));
             }
 
-            if (incluirMixta &&
-                contexto.TieneMixta)
+            if (contexto.TieneMixta)
             {
                 await RestaurarMixtaAsync(
                     contexto,
@@ -329,28 +318,7 @@ namespace CONATRADEC.Services
                 contexto.Detalle.BalanceNutricional!;
 
             BalanceNutricionalRequest request =
-                ConstruirRequestBalance(
-                    guardado,
-                    resultadoAnual,
-                    plantas);
-
-            /*
-             * Puede ocurrir cuando el usuario dejó seleccionado únicamente
-             * un elemento que no participaba en el Balance guardado.
-             * En ese caso no existe una fuente anterior que restaurar y la
-             * pantalla debe quedar lista para una selección nueva, no fallar.
-             */
-            if (request.Items.Count == 0)
-            {
-                await CalculoAnalisisTemporalService
-                    .Instance
-                    .ReiniciarCalculoAsync(
-                        TipoCalculoTemporal
-                            .BalanceFormula,
-                        "La selección actual no tiene fuentes guardadas. Seleccione una fuente para calcular el balance.");
-
-                return;
-            }
+                ConstruirRequestBalance(guardado, resultadoAnual, plantas);
 
             BalanceNutricionalResponse resultado;
 
@@ -657,32 +625,14 @@ namespace CONATRADEC.Services
 
             Dictionary<int, decimal> requerimientos =
                 resultadoAnual.Elementos
-                    .Where(x =>
-                        x.ElementoQuimicosId.HasValue)
-                    .GroupBy(x =>
-                        x.ElementoQuimicosId!.Value)
+                    .Where(x => x.ElementoQuimicosId.HasValue)
+                    .GroupBy(x => x.ElementoQuimicosId!.Value)
                     .ToDictionary(
                         x => x.Key,
-                        x =>
-                            x.First()
-                                .RequerimientoCalculado ??
-                            0);
+                        x => x.First().RequerimientoCalculado ?? 0);
 
-            HashSet<int> elementosSeleccionados =
-                requerimientos
-                    .Keys
-                    .ToHashSet();
-
-            /*
-             * Solo se restauran fuentes correspondientes a elementos que
-             * continúan incluidos. El resto permanece en el requerimiento
-             * anual completo, pero no participa en Balance ni Mixta.
-             */
-            foreach (
-                AnalisisGuardadoFormulaDetalle detalle
-                in guardado.Detalles.Where(x =>
-                    elementosSeleccionados.Contains(
-                        x.ElementoQuimicosId)))
+            foreach (AnalisisGuardadoFormulaDetalle detalle
+                     in guardado.Detalles)
             {
                 request.Items.Add(
                     new BalanceNutricionalItemRequest

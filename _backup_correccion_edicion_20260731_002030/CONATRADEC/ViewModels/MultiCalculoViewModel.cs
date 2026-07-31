@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using System;
@@ -421,20 +421,10 @@ namespace CONATRADEC.ViewModels
             MostrarFertilizacionMixta =
                 ObtenerBoolQuery(query, "calcularFertilizacionMixta");
 
-            /*
-             * En edición, ResultadoAnalisisSueloViewModel ya reconstruyó
-             * Requerimiento, Balance, Enmienda y Mixta usando la selección
-             * actual. Volver a iniciar aquí el cálculo cambia CalculoKey por
-             * la lista filtrada y puede borrar esas secciones temporales.
-             */
-            if (!EsModoEdicion)
-            {
-                await CalculoAnalisisTemporalService
-                    .Instance
-                    .IniciarNuevoCalculoAsync(
-                        ResultadoCalculo,
-                        RequestGuardarAnalisis);
-            }
+            await CalculoAnalisisTemporalService.Instance
+                .IniciarNuevoCalculoAsync(
+                    ResultadoCalculo,
+                    RequestGuardarAnalisis);
 
             InicializarTabs();
             SeleccionarPrimeraPestanaDisponible();

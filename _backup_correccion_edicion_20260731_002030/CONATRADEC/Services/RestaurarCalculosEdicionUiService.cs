@@ -63,9 +63,7 @@ namespace CONATRADEC.Services
                  * reemplazado durante la navegación, se reconstruye
                  * desde el detalle persistido.
                  */
-                await AsegurarTemporalesGuardadosAsync(
-                    contexto,
-                    viewModel);
+                await AsegurarTemporalesGuardadosAsync(contexto);
 
                 bool debeRestaurarBalance =
                     viewModel.MostrarBalanceFormula &&
@@ -254,21 +252,17 @@ namespace CONATRADEC.Services
 
         private static async Task
             AsegurarTemporalesGuardadosAsync(
-                AnalisisEdicionContexto contexto,
-                MultiCalculoViewModel viewModel)
+                AnalisisEdicionContexto contexto)
         {
             bool balanceFaltante =
-                viewModel.MostrarBalanceFormula &&
                 contexto.TieneBalance &&
                 !TieneBalanceTemporal();
 
             bool enmiendaFaltante =
-                viewModel.MostrarEnmiendaCalcarea &&
                 contexto.TieneEnmienda &&
                 !TieneEnmiendaTemporal();
 
             bool mixtaFaltante =
-                viewModel.MostrarFertilizacionMixta &&
                 contexto.TieneMixta &&
                 !TieneMixtaTemporal();
 
@@ -279,46 +273,13 @@ namespace CONATRADEC.Services
                 return;
             }
 
-            AnalisisSueloCalculoDataResponse
-                resultadoActual =
-                    viewModel.ResultadoCalculo ??
-                    contexto.ResultadoOriginal;
-
-            AnalisisSueloGuardarCalculoRequest
-                requestActual =
-                    viewModel.RequestGuardarAnalisis ??
-                    contexto.RequestActual;
-
-            int plantas =
-                viewModel.CantidadPlantas is > 0
-                    ? viewModel.CantidadPlantas.Value
-                    : contexto.CantidadPlantas;
-
-            bool requerimientoCambio =
-                AnalisisEdicionService
-                    .Instance
-                    .CambioRequerimiento(
-                        requestActual);
-
-            /*
-             * El respaldo debe reconstruirse con el resultado que está
-             * mostrando MultiCálculo. Usar ResultadoOriginal reintroducía
-             * valores anteriores —por ejemplo 506 en lugar de 442.20— y
-             * hacía que la lista de elementos no coincidiera con la UI.
-             */
             await AnalisisEdicionService
                 .Instance
                 .RestaurarTemporalAsync(
-                    resultadoActual,
-                    requestActual,
-                    plantas,
-                    requerimientoCambio,
-                    incluirBalance:
-                        viewModel.MostrarBalanceFormula,
-                    incluirEnmienda:
-                        viewModel.MostrarEnmiendaCalcarea,
-                    incluirMixta:
-                        viewModel.MostrarFertilizacionMixta);
+                    contexto.ResultadoOriginal,
+                    contexto.RequestActual,
+                    contexto.CantidadPlantas,
+                    false);
         }
 
         private static async Task<bool>
