@@ -1,44 +1,36 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using CONATRADEC.Models;
 using CONATRADEC.ViewModels;
+using Microsoft.Maui.ApplicationModel;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
-using Microsoft.Maui.ApplicationModel;
 
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Aplica en el formulario de análisis las unidades permitidas que
-    /// devuelve la API.
-    ///
-    /// Se conecta a las colecciones ya existentes del ViewModel, por lo que
-    /// también procesa elementos agregados, restaurados o cargados durante
-    /// una edición sin duplicar la lógica del formulario.
+    /// Aplica en el formulario de análisis únicamente las unidades permitidas
+    /// por la configuración del backend. También conserva la unidad histórica
+    /// cuando se está editando un análisis anterior.
     /// </summary>
-    public sealed class
-        ConfiguracionUnidadesFormularioCoordinator
+    public sealed class ConfiguracionUnidadesFormularioCoordinator
     {
-        private readonly NuevoAnalisisFormEdicionViewModel
-            viewModel;
+        private readonly NuevoAnalisisFormEdicionViewModel viewModel;
+        private readonly ConfiguracionUnidadesApiService apiService = new();
+        private readonly SemaphoreSlim cargaLock = new(1, 1);
 
-        private readonly ConfiguracionUnidadesApiService
-            apiService = new();
-
-        private readonly SemaphoreSlim cargaLock =
-            new(1, 1);
-
-        private ConfiguracionFormularioAnalisisResponse?
-            configuracion;
-
+        private ConfiguracionFormularioAnalisisResponse? configuracion;
         private bool adjuntado;
 
         public ConfiguracionUnidadesFormularioCoordinator(
             NuevoAnalisisFormEdicionViewModel viewModel)
         {
-            this.viewModel =
-                viewModel ??
-                throw new ArgumentNullException(
-                    nameof(viewModel));
+            this.viewModel = viewModel ??
+                throw new ArgumentNullException(nameof(viewModel));
         }
 
         public void Adjuntar()
@@ -48,53 +40,57 @@ namespace CONATRADEC.Services
 
             adjuntado = true;
 
-            viewModel.ParametrosConstantesAnalisis
-                .CollectionChanged +=
-                    Parametros_CollectionChanged;
+            viewModel.ParametrosConstantesAnalisis.CollectionChanged +=
+                Parametros_CollectionChanged;
 
-            viewModel.ElementosQuimicosAnalisis
-                .CollectionChanged +=
-                    Elementos_CollectionChanged;
+            viewModel.ElementosQuimicosAnalisis.CollectionChanged +=
+                Elementos_CollectionChanged;
 
             AplicarConfiguracionActual();
         }
 
+        /// <summary>
+        /// Libera las suscripciones del ViewModel anterior. Es indispensable
+        /// porque la página crea una instancia nueva al entrar en Nuevo o
+        /// Editar para impedir que se reutilicen valores del formulario previo.
+        /// </summary>
+        public void Desadjuntar()
+        {
+            if (!adjuntado)
+                return;
+
+            viewModel.ParametrosConstantesAnalisis.CollectionChanged -=
+                Parametros_CollectionChanged;
+
+            viewModel.ElementosQuimicosAnalisis.CollectionChanged -=
+                Elementos_CollectionChanged;
+
+            adjuntado = false;
+        }
+
         public async Task CargarYAplicarAsync(
             bool forzarRecarga = false,
-            CancellationToken cancellationToken =
-                default)
+            CancellationToken cancellationToken = default)
         {
-            await cargaLock.WaitAsync(
-                cancellationToken);
+            await cargaLock.WaitAsync(cancellationToken);
 
             try
             {
                 ConfiguracionUnidadesApiResult<
-                    ConfiguracionFormularioAnalisisResponse>
-                    resultado =
-                        await apiService
-                            .ObtenerConfiguracionFormularioAsync(
-                                forzarRecarga,
-                                cancellationToken);
+                    ConfiguracionFormularioAnalisisResponse> resultado =
+                        await apiService.ObtenerConfiguracionFormularioAsync(
+                            forzarRecarga,
+                            cancellationToken);
 
-                if (!resultado.Success ||
-                    resultado.Data == null)
+                if (!resultado.Success || resultado.Data == null)
                 {
                     Debug.WriteLine(
-                        "No se pudo cargar la configuración " +
-                        $"de unidades: {resultado.Message}");
-
-                    /*
-                     * El formulario conserva las unidades cargadas por el
-                     * catálogo anterior. De esta forma una interrupción
-                     * temporal del endpoint no bloquea la captura.
-                     */
+                        "No se pudo cargar la configuración de unidades: " +
+                        resultado.Message);
                     return;
                 }
 
-                configuracion =
-                    resultado.Data;
-
+                configuracion = resultado.Data;
                 AplicarConfiguracionActual();
             }
             catch (OperationCanceledException)
@@ -104,8 +100,8 @@ namespace CONATRADEC.Services
             catch (Exception ex)
             {
                 Debug.WriteLine(
-                    "No se pudo aplicar la configuración " +
-                    $"de unidades al formulario: {ex}");
+                    "No se pudo aplicar la configuración de unidades al " +
+                    $"formulario: {ex}");
             }
             finally
             {
@@ -115,29 +111,21 @@ namespace CONATRADEC.Services
 
         public void AplicarConfiguracionActual()
         {
-            ConfiguracionFormularioAnalisisResponse?
-                actual =
-                    configuracion;
+            ConfiguracionFormularioAnalisisResponse? actual = configuracion;
 
             if (actual == null)
                 return;
 
-            foreach (
-                ResultadoAnalisisItemViewModel item
-                in viewModel.ParametrosConstantesAnalisis)
+            foreach (ResultadoAnalisisItemViewModel item in
+                     viewModel.ParametrosConstantesAnalisis)
             {
-                AplicarAParametroConstante(
-                    item,
-                    actual);
+                AplicarAParametroConstante(item, actual);
             }
 
-            foreach (
-                ResultadoAnalisisItemViewModel item
-                in viewModel.ElementosQuimicosAnalisis)
+            foreach (ResultadoAnalisisItemViewModel item in
+                     viewModel.ElementosQuimicosAnalisis)
             {
-                AplicarAElemento(
-                    item,
-                    actual);
+                AplicarAElemento(item, actual);
             }
         }
 
@@ -157,17 +145,10 @@ namespace CONATRADEC.Services
                 return;
             }
 
-            foreach (
-                object nuevo
-                in e.NewItems)
+            foreach (object nuevo in e.NewItems)
             {
-                if (nuevo is
-                    ResultadoAnalisisItemViewModel item)
-                {
-                    AplicarAParametroConstante(
-                        item,
-                        configuracion);
-                }
+                if (nuevo is ResultadoAnalisisItemViewModel item)
+                    AplicarAParametroConstante(item, configuracion);
             }
         }
 
@@ -187,24 +168,16 @@ namespace CONATRADEC.Services
                 return;
             }
 
-            foreach (
-                object nuevo
-                in e.NewItems)
+            foreach (object nuevo in e.NewItems)
             {
-                if (nuevo is
-                    ResultadoAnalisisItemViewModel item)
-                {
-                    AplicarAElemento(
-                        item,
-                        configuracion);
-                }
+                if (nuevo is ResultadoAnalisisItemViewModel item)
+                    AplicarAElemento(item, configuracion);
             }
         }
 
         private void AplicarAParametroConstante(
             ResultadoAnalisisItemViewModel item,
-            ConfiguracionFormularioAnalisisResponse
-                configuracion)
+            ConfiguracionFormularioAnalisisResponse configuracion)
         {
             if (!string.Equals(
                     item.CodigoParametro,
@@ -214,9 +187,7 @@ namespace CONATRADEC.Services
                 return;
             }
 
-            if (configuracion
-                    .UnidadesMateriaOrganica
-                    .Count == 0)
+            if (configuracion.UnidadesMateriaOrganica.Count == 0)
             {
                 LimpiarUnidadesItem(item);
                 return;
@@ -225,33 +196,25 @@ namespace CONATRADEC.Services
             AplicarUnidades(
                 item,
                 configuracion.UnidadesMateriaOrganica,
-                configuracion
-                    .UnidadesMateriaOrganica
-                    .FirstOrDefault(x =>
-                        x.UnidadPredeterminada)?.UnidadMedidaId,
-                preservarSeleccionGuardada:
-                    viewModel.EsModoEdicion);
+                configuracion.UnidadesMateriaOrganica
+                    .FirstOrDefault(x => x.UnidadPredeterminada)?
+                    .UnidadMedidaId,
+                preservarSeleccionGuardada: viewModel.EsModoEdicion);
         }
 
         private void AplicarAElemento(
             ResultadoAnalisisItemViewModel item,
-            ConfiguracionFormularioAnalisisResponse
-                configuracion)
+            ConfiguracionFormularioAnalisisResponse configuracion)
         {
             if (!item.ElementoQuimicoId.HasValue)
                 return;
 
-            ElementoConfiguracionUnidadesResponse?
-                elemento =
-                    configuracion.Elementos
-                        .FirstOrDefault(x =>
-                            x.ElementoQuimicosId ==
-                                item
-                                    .ElementoQuimicoId
-                                    .Value);
+            ElementoConfiguracionUnidadesResponse? elemento =
+                configuracion.Elementos.FirstOrDefault(x =>
+                    x.ElementoQuimicosId ==
+                    item.ElementoQuimicoId.Value);
 
-            if (elemento == null ||
-                elemento.Unidades.Count == 0)
+            if (elemento == null || elemento.Unidades.Count == 0)
             {
                 LimpiarUnidadesItem(item);
                 return;
@@ -261,41 +224,26 @@ namespace CONATRADEC.Services
                 item,
                 elemento.Unidades,
                 elemento.UnidadPredeterminadaId,
-                preservarSeleccionGuardada:
-                    viewModel.EsModoEdicion);
+                preservarSeleccionGuardada: viewModel.EsModoEdicion);
         }
 
         private static void LimpiarUnidadesItem(
             ResultadoAnalisisItemViewModel item)
         {
-            /*
-             * Primero se limpia la selección y luego se reemplaza el origen
-             * del Picker. El orden evita que MAUI conserve una selección de
-             * la colección anterior.
-             */
-            item.UnidadSeleccionada =
-                null;
-
+            item.UnidadSeleccionada = null;
             item.UnidadesMedida =
-                new ObservableCollection<
-                    UnidadMedidaResponse>();
+                new ObservableCollection<UnidadMedidaResponse>();
 
             item.OnPropertyChanged(
-                nameof(
-                    ResultadoAnalisisItemViewModel
-                        .UnidadesMedida));
+                nameof(ResultadoAnalisisItemViewModel.UnidadesMedida));
 
             item.OnPropertyChanged(
-                nameof(
-                    ResultadoAnalisisItemViewModel
-                        .UnidadSeleccionada));
+                nameof(ResultadoAnalisisItemViewModel.UnidadSeleccionada));
         }
 
         private static void AplicarUnidades(
             ResultadoAnalisisItemViewModel item,
-            IEnumerable<
-                UnidadConversionConfiguradaResponse>
-                    configuraciones,
+            IEnumerable<UnidadConversionConfiguradaResponse> configuraciones,
             int? unidadPredeterminadaId,
             bool preservarSeleccionGuardada)
         {
@@ -304,195 +252,116 @@ namespace CONATRADEC.Services
                     ? item.UnidadSeleccionada?.UnidadMedidaId
                     : null;
 
-            UnidadMedidaResponse?
-                unidadSeleccionadaAnterior =
-                    preservarSeleccionGuardada
-                        ? item.UnidadSeleccionada
-                        : null;
+            UnidadMedidaResponse? unidadSeleccionadaAnterior =
+                preservarSeleccionGuardada
+                    ? item.UnidadSeleccionada
+                    : null;
 
-            List<UnidadMedidaResponse>
-                unidadesPermitidas =
-                    configuraciones
-                        .Where(x =>
-                            x.Activo &&
-                            x.VisibleEnFormulario &&
-                            x.UnidadMedidaId > 0)
-                        .OrderBy(x =>
-                            x.Orden)
-                        .ThenBy(x =>
-                            x.NombreUnidadMedida)
-                        .Select(x =>
-                            new UnidadMedidaResponse
-                            {
-                                UnidadMedidaId =
-                                    x.UnidadMedidaId,
-                                NombreUnidadMedida =
-                                    x.NombreUnidadMedida,
-                                SimboloUnidadMedida =
-                                    null,
-                                AbreviaturaUnidadMedida =
-                                    null,
-                                DescripcionUnidadMedida =
-                                    x.Observacion,
-                                Activo =
-                                    true
-                            })
-                        .GroupBy(x =>
-                            x.UnidadMedidaId)
-                        .Select(x =>
-                            x.First())
-                        .ToList();
+            List<UnidadMedidaResponse> unidadesPermitidas =
+                configuraciones
+                    .Where(x =>
+                        x.Activo &&
+                        x.VisibleEnFormulario &&
+                        x.UnidadMedidaId > 0)
+                    .OrderBy(x => x.Orden)
+                    .ThenBy(x => x.NombreUnidadMedida)
+                    .Select(x => new UnidadMedidaResponse
+                    {
+                        UnidadMedidaId = x.UnidadMedidaId,
+                        NombreUnidadMedida = x.NombreUnidadMedida,
+                        SimboloUnidadMedida = null,
+                        AbreviaturaUnidadMedida = null,
+                        DescripcionUnidadMedida = x.Observacion,
+                        Activo = true
+                    })
+                    .GroupBy(x => x.UnidadMedidaId)
+                    .Select(x => x.First())
+                    .ToList();
 
-            /*
-             * Si todas las asociaciones están inactivas u ocultas, el Picker
-             * debe quedar vacío. Antes se conservaba el catálogo general y por
-             * eso parecía que Activa y Visible no tenían ningún efecto.
-             */
             if (unidadesPermitidas.Count == 0)
             {
                 LimpiarUnidadesItem(item);
                 return;
             }
 
-            UnidadMedidaResponse?
-                nuevaSeleccion = null;
+            UnidadMedidaResponse? nuevaSeleccion = null;
 
-            /*
-             * Únicamente en edición se conserva la unidad realmente guardada.
-             * En un análisis nuevo se ignora la selección antigua y se utiliza
-             * la unidad predeterminada configurada en el backend.
-             */
             if (preservarSeleccionGuardada &&
                 unidadSeleccionadaId.HasValue)
             {
-                nuevaSeleccion =
-                    unidadesPermitidas
-                        .FirstOrDefault(x =>
-                            x.UnidadMedidaId ==
-                                unidadSeleccionadaId);
+                nuevaSeleccion = unidadesPermitidas.FirstOrDefault(x =>
+                    x.UnidadMedidaId == unidadSeleccionadaId);
             }
 
-            /*
-             * Respaldo histórico exclusivo para edición. Una unidad inactiva
-             * u oculta puede mostrarse temporalmente si el análisis antiguo la
-             * utilizó, evitando modificar datos históricos al abrirlos.
-             */
             if (preservarSeleccionGuardada &&
                 nuevaSeleccion == null &&
                 unidadSeleccionadaAnterior?.UnidadMedidaId is > 0 &&
                 !unidadesPermitidas.Any(x =>
                     x.UnidadMedidaId ==
-                        unidadSeleccionadaAnterior
-                            .UnidadMedidaId))
+                    unidadSeleccionadaAnterior.UnidadMedidaId))
             {
-                UnidadMedidaResponse historica =
-                    new()
-                    {
-                        UnidadMedidaId =
-                            unidadSeleccionadaAnterior
-                                .UnidadMedidaId,
-                        NombreUnidadMedida =
-                            unidadSeleccionadaAnterior
-                                .NombreUnidadMedida,
-                        SimboloUnidadMedida =
-                            unidadSeleccionadaAnterior
-                                .SimboloUnidadMedida,
-                        AbreviaturaUnidadMedida =
-                            unidadSeleccionadaAnterior
-                                .AbreviaturaUnidadMedida,
-                        DescripcionUnidadMedida =
-                            "Unidad histórica del análisis. " +
-                            "Ya no está activa o visible en la configuración actual.",
-                        Activo = false
-                    };
+                UnidadMedidaResponse historica = new()
+                {
+                    UnidadMedidaId =
+                        unidadSeleccionadaAnterior.UnidadMedidaId,
+                    NombreUnidadMedida =
+                        unidadSeleccionadaAnterior.NombreUnidadMedida,
+                    SimboloUnidadMedida =
+                        unidadSeleccionadaAnterior.SimboloUnidadMedida,
+                    AbreviaturaUnidadMedida =
+                        unidadSeleccionadaAnterior.AbreviaturaUnidadMedida,
+                    DescripcionUnidadMedida =
+                        "Unidad histórica del análisis. Ya no está activa o " +
+                        "visible en la configuración actual.",
+                    Activo = false
+                };
 
-                unidadesPermitidas.Add(
-                    historica);
-
-                nuevaSeleccion =
-                    historica;
+                unidadesPermitidas.Add(historica);
+                nuevaSeleccion = historica;
             }
 
-            /*
-             * En creación esta es la primera opción evaluada. En edición actúa
-             * como respaldo cuando no existe una unidad histórica guardada.
-             */
             nuevaSeleccion ??=
                 unidadPredeterminadaId.HasValue
-                    ? unidadesPermitidas
-                        .FirstOrDefault(x =>
-                            x.UnidadMedidaId ==
-                                unidadPredeterminadaId)
+                    ? unidadesPermitidas.FirstOrDefault(x =>
+                        x.UnidadMedidaId == unidadPredeterminadaId)
                     : null;
 
-            /*
-             * No se selecciona la primera unidad como respaldo. Cuando no
-             * existe una predeterminada configurada, el Picker debe quedar
-             * vacío para que el usuario seleccione conscientemente.
-             */
-            item.UnidadSeleccionada =
-                null;
-
+            item.UnidadSeleccionada = null;
             item.UnidadesMedida =
-                new ObservableCollection<
-                    UnidadMedidaResponse>(
-                        unidadesPermitidas);
+                new ObservableCollection<UnidadMedidaResponse>(
+                    unidadesPermitidas);
 
-            /*
-             * El ItemsSource debe notificarse antes del SelectedItem. Si se
-             * hace al revés, WinUI puede descartar la selección porque el
-             * objeto todavía no forma parte de la colección visible.
-             */
             item.OnPropertyChanged(
-                nameof(
-                    ResultadoAnalisisItemViewModel
-                        .UnidadesMedida));
+                nameof(ResultadoAnalisisItemViewModel.UnidadesMedida));
 
             AplicarSeleccionDespuesDeActualizarLista(
                 item,
                 nuevaSeleccion);
         }
 
-        private static void
-            AplicarSeleccionDespuesDeActualizarLista(
-                ResultadoAnalisisItemViewModel item,
-                UnidadMedidaResponse? seleccion)
+        private static void AplicarSeleccionDespuesDeActualizarLista(
+            ResultadoAnalisisItemViewModel item,
+            UnidadMedidaResponse? seleccion)
         {
-            /*
-             * La primera asignación resuelve la mayoría de plataformas.
-             * La segunda, enviada a la cola principal, cubre el ciclo de
-             * medición de Picker en WinUI sin introducir esperas fijas.
-             */
-            item.UnidadSeleccionada =
-                seleccion;
+            item.UnidadSeleccionada = seleccion;
 
             item.OnPropertyChanged(
-                nameof(
-                    ResultadoAnalisisItemViewModel
-                        .UnidadSeleccionada));
+                nameof(ResultadoAnalisisItemViewModel.UnidadSeleccionada));
 
-            MainThread.BeginInvokeOnMainThread(
-                () =>
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (seleccion == null)
                 {
-                    if (seleccion == null)
-                    {
-                        item.UnidadSeleccionada =
-                            null;
+                    item.UnidadSeleccionada = null;
+                    return;
+                }
 
-                        return;
-                    }
+                UnidadMedidaResponse? seleccionVigente =
+                    item.UnidadesMedida.FirstOrDefault(x =>
+                        x.UnidadMedidaId == seleccion.UnidadMedidaId);
 
-                    UnidadMedidaResponse?
-                        seleccionVigente =
-                            item.UnidadesMedida
-                                .FirstOrDefault(x =>
-                                    x.UnidadMedidaId ==
-                                        seleccion
-                                            .UnidadMedidaId);
-
-                    item.UnidadSeleccionada =
-                        seleccionVigente;
-                });
+                item.UnidadSeleccionada = seleccionVigente;
+            });
         }
     }
 }

@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 
@@ -21,12 +25,24 @@ namespace CONATRADEC.Services
             if (paquete == null)
                 return new ObservableCollection<TipoCultivoResponse>();
 
+            HashSet<int> cultivosConRangos =
+                paquete.Contenido.RangosCultivo
+                    .Where(x =>
+                        x != null &&
+                        x.Activo &&
+                        x.TipoCultivoId > 0 &&
+                        x.ElementoQuimicosId > 0)
+                    .Select(x => x.TipoCultivoId)
+                    .ToHashSet();
+
             List<TipoCultivoResponse> tipos =
                 paquete.Contenido.TiposCultivo
                     .Where(x =>
                         x != null &&
                         x.Activo &&
-                        x.TipoCultivoId > 0)
+                        x.TipoCultivoId > 0 &&
+                        cultivosConRangos.Contains(
+                            x.TipoCultivoId))
                     .OrderBy(x => x.NombreTipoCultivo)
                     .Select(x => new TipoCultivoResponse
                     {
@@ -61,12 +77,26 @@ namespace CONATRADEC.Services
             if (paquete == null)
                 return new ObservableCollection<UnidadMedidaResponse>();
 
+            HashSet<int> unidadesUsadas =
+                paquete.Contenido.ConversionesElementos
+                    .Where(x => x != null && x.Activo)
+                    .Select(x => x.UnidadMedidaId)
+                    .Concat(
+                        paquete.Contenido
+                            .ConversionesMateriaOrganica
+                            .Where(x => x != null && x.Activo)
+                            .Select(x => x.UnidadMedidaId))
+                    .Where(x => x > 0)
+                    .ToHashSet();
+
             List<UnidadMedidaResponse> unidades =
                 paquete.Contenido.Unidades
                     .Where(x =>
                         x != null &&
                         x.Activo &&
-                        x.UnidadMedidaId > 0)
+                        x.UnidadMedidaId > 0 &&
+                        unidadesUsadas.Contains(
+                            x.UnidadMedidaId))
                     .OrderBy(x => x.NombreUnidadMedida)
                     .Select(x =>
                     {
@@ -101,12 +131,24 @@ namespace CONATRADEC.Services
             if (paquete == null)
                 return new ObservableCollection<ElementoQuimicoResponse>();
 
+            HashSet<int> elementosConUnidad =
+                paquete.Contenido.ConversionesElementos
+                    .Where(x =>
+                        x != null &&
+                        x.Activo &&
+                        x.ElementoQuimicosId > 0 &&
+                        x.UnidadMedidaId > 0)
+                    .Select(x => x.ElementoQuimicosId)
+                    .ToHashSet();
+
             List<ElementoQuimicoResponse> elementos =
                 paquete.Contenido.Elementos
                     .Where(x =>
                         x != null &&
                         x.Activo &&
-                        x.ElementoQuimicosId > 0)
+                        x.ElementoQuimicosId > 0 &&
+                        elementosConUnidad.Contains(
+                            x.ElementoQuimicosId))
                     .OrderBy(x => x.NombreElementoQuimico)
                     .Select(x => new ElementoQuimicoResponse
                     {
@@ -137,6 +179,14 @@ namespace CONATRADEC.Services
             {
                 return null;
             }
+
+            /*
+             * Permite que WinUI y Android dibujen el indicador de carga antes
+             * de leer o deserializar el archivo local.
+             */
+            await Task.Yield();
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             return await MotorCalculoPaqueteService.Instance
                 .ObtenerPaqueteActivoAsync(

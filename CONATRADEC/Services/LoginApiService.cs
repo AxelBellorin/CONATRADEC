@@ -123,6 +123,15 @@ namespace CONATRADEC.Services
                 SincronizacionOfflineEstadoRecuperacionService
                     .RecuperarSiInterrumpida();
 
+                /*
+                 * Comprueba que el motor físico siga siendo compatible con
+                 * esta versión de la aplicación. Si el archivo pertenece a
+                 * un esquema anterior, invalida únicamente la preparación
+                 * global para evitar que la pantalla indique "Listo".
+                 */
+                await MotorCalculoCompatibilidadPreparacionService
+                    .ValidarAsync(cancellationToken);
+
                 int minutosInactividad =
                     Math.Clamp(
                         loginResponse.MinutosInactividad,

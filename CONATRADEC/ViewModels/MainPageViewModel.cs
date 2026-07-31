@@ -501,7 +501,6 @@ namespace CONATRADEC.ViewModels
                 if (reiniciar)
                 {
                     ultimaCargaExitosa = false;
-
                     CargandoListado = true;
                     Mensaje = string.Empty;
                 }
@@ -869,8 +868,26 @@ namespace CONATRADEC.ViewModels
             if (!CanAdd || IsBusy)
                 return;
 
-            AnalisisEdicionService.Instance.Limpiar();
-            await GoToAsyncParameters("//NuevoAnalisisFormPage");
+            try
+            {
+                IsBusy = true;
+                Mensaje = "Preparando un nuevo análisis...";
+
+                await EsperarRenderizadoIndicadorAsync();
+
+                if (!await ValidarDatosOfflineAntesDeAbrirAsync())
+                    return;
+
+                AnalisisEdicionService.Instance.Limpiar();
+                InvalidarCatalogosFormulario();
+
+                Mensaje = string.Empty;
+                await GoToAsyncParameters("//NuevoAnalisisFormPage");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         private async Task VisualizarAsync(
@@ -900,6 +917,15 @@ namespace CONATRADEC.ViewModels
                 IsBusy = true;
                 Mensaje = "Cargando el análisis para edición...";
 
+                /*
+                 * Permite que WinUI y Android dibujen el indicador antes de
+                 * comenzar las lecturas locales y la deserialización.
+                 */
+                await EsperarRenderizadoIndicadorAsync();
+
+                if (!await ValidarDatosOfflineAntesDeAbrirAsync())
+                    return;
+
                 (bool success, string message) =
                     await AnalisisEdicionService.Instance.PrepararAsync(
                         analisis.AnalisisSueloCalculoId,
@@ -924,6 +950,44 @@ namespace CONATRADEC.ViewModels
             {
                 IsBusy = false;
             }
+        }
+
+        private async Task<bool>
+            ValidarDatosOfflineAntesDeAbrirAsync()
+        {
+            if (!ModoSesionService.EsOffline)
+                return true;
+
+            AnalisisOfflineFormularioValidacionResultado resultado =
+                await AnalisisOfflineFormularioValidacionService.Instance
+                    .ValidarAsync();
+
+            if (resultado.Success)
+                return true;
+
+            Mensaje = resultado.Message;
+
+            await Application.Current!.MainPage!.DisplayAlert(
+                "Datos offline incompletos",
+                resultado.Message,
+                "Aceptar");
+
+            return false;
+        }
+
+        private static async Task
+            EsperarRenderizadoIndicadorAsync()
+        {
+            await Task.Yield();
+            await Task.Delay(80);
+        }
+
+        private static void InvalidarCatalogosFormulario()
+        {
+            AnalisisSueloApiService.LimpiarCacheTiposCultivo();
+            UnidadMedidaApiService.InvalidarCache();
+            ElementoQuimicoApiService.InvalidarCache();
+            ConfiguracionUnidadesApiService.InvalidarCache();
         }
 
         private async Task EliminarAsync(
