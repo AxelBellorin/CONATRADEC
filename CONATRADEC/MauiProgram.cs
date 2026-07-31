@@ -80,10 +80,17 @@ namespace CONATRADEC
             ModoSesionLoginMapper.Register();
 
             /*
-             * Conserva únicamente la navegación segura
-             * correspondiente al trabajo sin conexión.
+             * Conserva la navegación segura correspondiente al análisis
+             * y a la preparación de datos sin conexión.
              */
             OfflineContenidoPageMapper.Register();
+
+            /*
+             * Restablece la regla global de escritura offline:
+             * solamente el módulo de análisis puede agregar, editar o eliminar
+             * mientras la sesión fue iniciada en modo Sin conexión.
+             */
+            OfflineCrudPageMapper.Register();
 
 #if DEBUG
             builder.Logging.AddDebug();

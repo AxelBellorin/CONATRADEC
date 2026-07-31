@@ -47,9 +47,20 @@ namespace CONATRADEC.Services
             ObservableCollection<UnidadMedidaResponse>>
             GetUnidadMedidaAsync(
                 bool forzarRecarga = false,
-                CancellationToken cancellationToken =
-                    default)
+                CancellationToken cancellationToken = default)
         {
+            /*
+             * En modo offline el motor ya contiene las unidades necesarias
+             * para el análisis. Se leen directamente para evitar esperas,
+             * errores 503 auxiliares y cachés pertenecientes a otra sesión.
+             */
+            if (ModoSesionService.EsOffline)
+            {
+                return await AnalisisCatalogosOfflineDirectService
+                    .ObtenerUnidadesAsync(
+                        cancellationToken);
+            }
+
             if (!forzarRecarga &&
                 CacheVigente())
             {
@@ -68,27 +79,23 @@ namespace CONATRADEC.Services
                 }
 
                 ObservableCollection<
-                    UnidadMedidaResponse>?
-                    response =
-                        await httpClient
-                            .GetFromJsonAsync<
-                                ObservableCollection<
-                                    UnidadMedidaResponse>>(
-                                        "api/unidad-medida/listar",
-                                        jsonOptions,
-                                        cancellationToken);
+                    UnidadMedidaResponse>? response =
+                    await httpClient
+                        .GetFromJsonAsync<
+                            ObservableCollection<
+                                UnidadMedidaResponse>>(
+                                    "api/unidad-medida/listar",
+                                    jsonOptions,
+                                    cancellationToken);
 
                 cacheFormulario =
                     response?.Where(x =>
                             x != null &&
                             x.Activo != false)
                         .ToList()
-                    ??
-                    new List<
-                        UnidadMedidaResponse>();
+                    ?? new List<UnidadMedidaResponse>();
 
-                cacheCreadoUtc =
-                    DateTime.UtcNow;
+                cacheCreadoUtc = DateTime.UtcNow;
 
                 return CrearColeccionCache();
             }
@@ -115,16 +122,13 @@ namespace CONATRADEC.Services
                 UnidadMedidaResponse>>
             CrearUnidadMedidaDetalladaAsync(
                 string nombreUnidad,
-                CancellationToken cancellationToken =
-                    default)
+                CancellationToken cancellationToken = default)
         {
             string nombre =
-                (nombreUnidad ??
-                 string.Empty)
+                (nombreUnidad ?? string.Empty)
                     .Trim();
 
-            if (string.IsNullOrWhiteSpace(
-                    nombre))
+            if (string.IsNullOrWhiteSpace(nombre))
             {
                 return UnidadMedidaApiOperationResult<
                     UnidadMedidaResponse>
@@ -139,8 +143,7 @@ namespace CONATRADEC.Services
                         "api/unidad-medida/crear",
                         new UnidadMedidaRequest
                         {
-                            NombreUnidadMedida =
-                                nombre,
+                            NombreUnidadMedida = nombre,
                             Activo = true
                         },
                         jsonOptions,
@@ -152,21 +155,18 @@ namespace CONATRADEC.Services
                             cancellationToken);
 
                 string mensaje =
-                    ExtraerMensaje(
-                        contenido);
+                    ExtraerMensaje(contenido);
 
                 UnidadMedidaResponse? data =
-                    ExtraerData<
-                        UnidadMedidaResponse>(
-                            contenido);
+                    ExtraerData<UnidadMedidaResponse>(
+                        contenido);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     return UnidadMedidaApiOperationResult<
                         UnidadMedidaResponse>
                         .Fail(
-                            string.IsNullOrWhiteSpace(
-                                mensaje)
+                            string.IsNullOrWhiteSpace(mensaje)
                                 ? "No fue posible crear la unidad de medida."
                                 : mensaje);
                 }
@@ -177,8 +177,7 @@ namespace CONATRADEC.Services
                     UnidadMedidaResponse>
                     .Ok(
                         data,
-                        string.IsNullOrWhiteSpace(
-                            mensaje)
+                        string.IsNullOrWhiteSpace(mensaje)
                             ? "Unidad de medida creada correctamente."
                             : mensaje);
             }
@@ -207,12 +206,10 @@ namespace CONATRADEC.Services
                 UnidadMedidaRequest unidadMedida)
         {
             UnidadMedidaApiOperationResult<
-                UnidadMedidaResponse>
-                resultado =
-                    await CrearUnidadMedidaDetalladaAsync(
-                        unidadMedida
-                            .NombreUnidadMedida ??
-                        string.Empty);
+                UnidadMedidaResponse> resultado =
+                await CrearUnidadMedidaDetalladaAsync(
+                    unidadMedida.NombreUnidadMedida ??
+                    string.Empty);
 
             return resultado.Success;
         }
@@ -268,18 +265,14 @@ namespace CONATRADEC.Services
 
         private static bool CacheVigente() =>
             cacheFormulario != null &&
-            DateTime.UtcNow -
-                cacheCreadoUtc <
-                DuracionCache;
+            DateTime.UtcNow - cacheCreadoUtc < DuracionCache;
 
-        private static
-            ObservableCollection<
-                UnidadMedidaResponse>
+        private static ObservableCollection<
+            UnidadMedidaResponse>
             CrearColeccionCache() =>
-                new(
-                    cacheFormulario ??
-                    Enumerable.Empty<
-                        UnidadMedidaResponse>());
+            new(
+                cacheFormulario ??
+                Enumerable.Empty<UnidadMedidaResponse>());
 
         private static void LimpiarCache()
         {
@@ -290,17 +283,13 @@ namespace CONATRADEC.Services
         private string ExtraerMensaje(
             string contenido)
         {
-            if (string.IsNullOrWhiteSpace(
-                    contenido))
-            {
+            if (string.IsNullOrWhiteSpace(contenido))
                 return string.Empty;
-            }
 
             try
             {
                 using JsonDocument documento =
-                    JsonDocument.Parse(
-                        contenido);
+                    JsonDocument.Parse(contenido);
 
                 JsonElement raiz =
                     documento.RootElement;
@@ -332,17 +321,13 @@ namespace CONATRADEC.Services
         private T? ExtraerData<T>(
             string contenido)
         {
-            if (string.IsNullOrWhiteSpace(
-                    contenido))
-            {
+            if (string.IsNullOrWhiteSpace(contenido))
                 return default;
-            }
 
             try
             {
                 using JsonDocument documento =
-                    JsonDocument.Parse(
-                        contenido);
+                    JsonDocument.Parse(contenido);
 
                 JsonElement raiz =
                     documento.RootElement;
@@ -383,23 +368,21 @@ namespace CONATRADEC.Services
 
         public T? Data { get; }
 
-        public static
-            UnidadMedidaApiOperationResult<T>
+        public static UnidadMedidaApiOperationResult<T>
             Ok(
                 T? data,
                 string message) =>
-                    new(
-                        true,
-                        message,
-                        data);
+            new(
+                true,
+                message,
+                data);
 
-        public static
-            UnidadMedidaApiOperationResult<T>
+        public static UnidadMedidaApiOperationResult<T>
             Fail(
                 string message) =>
-                    new(
-                        false,
-                        message,
-                        default);
+            new(
+                false,
+                message,
+                default);
     }
 }

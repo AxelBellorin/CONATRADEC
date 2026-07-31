@@ -24,9 +24,12 @@ namespace CONATRADEC.Services
             PropertyNameCaseInsensitive = true
         };
 
-        private static readonly SemaphoreSlim TiposCultivoLock = new(1, 1);
+        private static readonly SemaphoreSlim TiposCultivoLock =
+            new(1, 1);
+
         private static List<TipoCultivoResponse>? tiposCultivoCache;
         private static DateTime tiposCultivoCacheUtc;
+
         private static readonly TimeSpan DuracionCache =
             TimeSpan.FromMinutes(20);
 
@@ -54,13 +57,20 @@ namespace CONATRADEC.Services
                 request);
 
         /// <summary>
-        /// El tipo de cultivo cambia poco. Se mantiene una copia temporal para
-        /// que crear o editar un análisis no repita esta solicitud cada vez que
-        /// se construye una nueva página.
+        /// El tipo de cultivo cambia poco. Durante una sesión en línea se
+        /// conserva una copia temporal. Durante una sesión offline se utiliza
+        /// directamente el motor descargado para evitar esperas y respuestas
+        /// vacías causadas por capas HTTP o cachés de otra sesión.
         /// </summary>
         public async Task<ObservableCollection<TipoCultivoResponse>>
             ListarTiposCultivoAsync()
         {
+            if (ModoSesionService.EsOffline)
+            {
+                return await AnalisisCatalogosOfflineDirectService
+                    .ObtenerTiposCultivoAsync();
+            }
+
             if (CacheTiposCultivoVigente())
                 return CrearColeccionTiposCultivo();
 
@@ -80,7 +90,8 @@ namespace CONATRADEC.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return new ObservableCollection<TipoCultivoResponse>();
+                    return new ObservableCollection<
+                        TipoCultivoResponse>();
                 }
 
                 string jsonRespuesta =
@@ -89,13 +100,16 @@ namespace CONATRADEC.Services
 
                 if (string.IsNullOrWhiteSpace(jsonRespuesta))
                 {
-                    return new ObservableCollection<TipoCultivoResponse>();
+                    return new ObservableCollection<
+                        TipoCultivoResponse>();
                 }
 
                 List<TipoCultivoResponse> items;
                 string jsonTrim = jsonRespuesta.TrimStart();
 
-                if (jsonTrim.StartsWith("[", StringComparison.Ordinal))
+                if (jsonTrim.StartsWith(
+                        "[",
+                        StringComparison.Ordinal))
                 {
                     items = JsonSerializer.Deserialize<
                         List<TipoCultivoResponse>>(
@@ -111,14 +125,15 @@ namespace CONATRADEC.Services
                                 jsonRespuesta,
                                 JsonOptions);
 
-                    items = envelope?.Data ??
-                        new List<TipoCultivoResponse>();
+                    items = envelope?.Data
+                        ?? new List<TipoCultivoResponse>();
                 }
 
                 tiposCultivoCache = items
-                    .Where(x => x != null &&
-                                x.TipoCultivoId is > 0 &&
-                                x.Activo != false)
+                    .Where(x =>
+                        x != null &&
+                        x.TipoCultivoId > 0 &&
+                        x.Activo != false)
                     .ToList();
 
                 tiposCultivoCacheUtc = DateTime.UtcNow;
@@ -206,7 +221,8 @@ namespace CONATRADEC.Services
 
         private static ObservableCollection<TipoCultivoResponse>
             CrearColeccionTiposCultivo() =>
-            new(tiposCultivoCache ??
+            new(
+                tiposCultivoCache ??
                 Enumerable.Empty<TipoCultivoResponse>());
 
         private sealed class ApiListaResponse<T>

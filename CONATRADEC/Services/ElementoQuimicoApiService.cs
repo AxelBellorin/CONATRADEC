@@ -38,13 +38,36 @@ namespace CONATRADEC.Services
         /// Listado completo conservado para análisis, fuentes de nutrientes
         /// y demás formularios que utilizan este catálogo como selector.
         /// </summary>
-        public async Task<ApiResult<ObservableCollection<ElementoQuimicoResponse>>>
+        public async Task<ApiResult<
+            ObservableCollection<ElementoQuimicoResponse>>>
             GetElementoQuimicoResultAsync(
                 CancellationToken cancellationToken = default)
         {
+            /*
+             * En una sesión offline se utiliza directamente el motor local.
+             * Esto evita reutilizar una lista vacía guardada por otra sesión y
+             * reduce el tiempo de apertura de la edición de análisis.
+             */
+            if (ModoSesionService.EsOffline)
+            {
+                ObservableCollection<ElementoQuimicoResponse> locales =
+                    await AnalisisCatalogosOfflineDirectService
+                        .ObtenerElementosAsync(
+                            cancellationToken);
+
+                return locales.Count > 0
+                    ? ApiResult<ObservableCollection<
+                        ElementoQuimicoResponse>>.Ok(locales)
+                    : ApiResult<ObservableCollection<
+                        ElementoQuimicoResponse>>.Fail(
+                            "El motor local no contiene elementos químicos. " +
+                            "Inicie una sesión en línea y utilice Descargar todo.");
+            }
+
             if (CacheVigente())
             {
-                return ApiResult<ObservableCollection<ElementoQuimicoResponse>>
+                return ApiResult<ObservableCollection<
+                    ElementoQuimicoResponse>>
                     .Ok(
                         CrearColeccionCache());
             }
@@ -56,21 +79,20 @@ namespace CONATRADEC.Services
             {
                 if (CacheVigente())
                 {
-                    return ApiResult<
-                        ObservableCollection<ElementoQuimicoResponse>>
+                    return ApiResult<ObservableCollection<
+                        ElementoQuimicoResponse>>
                         .Ok(
                             CrearColeccionCache());
                 }
 
-                ApiResult<
-                    ObservableCollection<ElementoQuimicoResponse>>
-                    result =
-                        await ApiServiceHelper
-                            .GetCollectionAsync<ElementoQuimicoResponse>(
-                                httpClient,
-                                "api/elemento-quimico/listar",
-                                "los elementos químicos",
-                                cancellationToken);
+                ApiResult<ObservableCollection<
+                    ElementoQuimicoResponse>> result =
+                    await ApiServiceHelper
+                        .GetCollectionAsync<ElementoQuimicoResponse>(
+                            httpClient,
+                            "api/elemento-quimico/listar",
+                            "los elementos químicos",
+                            cancellationToken);
 
                 if (!result.Success ||
                     result.Data == null)
@@ -86,11 +108,10 @@ namespace CONATRADEC.Services
                             elemento.NombreElementoQuimico)
                         .ToList();
 
-                cacheCreadoUtc =
-                    DateTime.UtcNow;
+                cacheCreadoUtc = DateTime.UtcNow;
 
-                return ApiResult<
-                    ObservableCollection<ElementoQuimicoResponse>>
+                return ApiResult<ObservableCollection<
+                    ElementoQuimicoResponse>>
                     .Ok(
                         CrearColeccionCache(),
                         result.Message);
@@ -112,16 +133,8 @@ namespace CONATRADEC.Services
                 int tamanoPagina,
                 CancellationToken cancellationToken = default)
         {
-            pagina =
-                Math.Max(
-                    1,
-                    pagina);
-
-            tamanoPagina =
-                Math.Clamp(
-                    tamanoPagina,
-                    5,
-                    100);
+            pagina = Math.Max(1, pagina);
+            tamanoPagina = Math.Clamp(tamanoPagina, 5, 100);
 
             string ruta =
                 "api/elemento-quimico/buscar" +
@@ -157,9 +170,10 @@ namespace CONATRADEC.Services
 
                 ElementoQuimicoPaginaResponse? data =
                     await response.Content
-                        .ReadFromJsonAsync<ElementoQuimicoPaginaResponse>(
-                            cancellationToken:
-                                cancellationToken);
+                        .ReadFromJsonAsync<
+                            ElementoQuimicoPaginaResponse>(
+                                cancellationToken:
+                                    cancellationToken);
 
                 return ApiResult<ElementoQuimicoPaginaResponse>
                     .Ok(
@@ -204,8 +218,7 @@ namespace CONATRADEC.Services
                 ElementoQuimicoRequest elemento,
                 CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(
-                elemento);
+            ArgumentNullException.ThrowIfNull(elemento);
 
             ApiResult<bool> result =
                 await ApiServiceHelper.SendAsync(
@@ -228,8 +241,7 @@ namespace CONATRADEC.Services
                 ElementoQuimicoRequest elemento,
                 CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(
-                elemento);
+            ArgumentNullException.ThrowIfNull(elemento);
 
             if (!elemento.ElementoQuimicosId.HasValue ||
                 elemento.ElementoQuimicosId.Value <= 0)
@@ -259,8 +271,7 @@ namespace CONATRADEC.Services
                 ElementoQuimicoRequest elemento,
                 CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(
-                elemento);
+            ArgumentNullException.ThrowIfNull(elemento);
 
             if (!elemento.ElementoQuimicosId.HasValue ||
                 elemento.ElementoQuimicosId.Value <= 0)
@@ -305,9 +316,8 @@ namespace CONATRADEC.Services
                 await CreateElementoQuimicoResultAsync(
                     elemento);
 
-            return
-                result.Success &&
-                result.Data == true;
+            return result.Success &&
+                   result.Data == true;
         }
 
         public async Task<bool> UpdateElementoQuimicoAsync(
@@ -317,9 +327,8 @@ namespace CONATRADEC.Services
                 await UpdateElementoQuimicoResultAsync(
                     elemento);
 
-            return
-                result.Success &&
-                result.Data == true;
+            return result.Success &&
+                   result.Data == true;
         }
 
         public async Task<bool> DeleteElementoQuimicoAsync(
@@ -329,16 +338,18 @@ namespace CONATRADEC.Services
                 await DeleteElementoQuimicoResultAsync(
                     elemento);
 
-            return
-                result.Success &&
-                result.Data == true;
+            return result.Success &&
+                   result.Data == true;
+        }
+
+        public static void InvalidarCache()
+        {
+            LimpiarCache();
         }
 
         private static bool CacheVigente() =>
             cacheFormulario != null &&
-            DateTime.UtcNow -
-                cacheCreadoUtc <
-                DuracionCache;
+            DateTime.UtcNow - cacheCreadoUtc < DuracionCache;
 
         private static ObservableCollection<ElementoQuimicoResponse>
             CrearColeccionCache() =>
@@ -348,11 +359,8 @@ namespace CONATRADEC.Services
 
         private static void LimpiarCache()
         {
-            cacheFormulario =
-                null;
-
-            cacheCreadoUtc =
-                default;
+            cacheFormulario = null;
+            cacheCreadoUtc = default;
         }
     }
 }

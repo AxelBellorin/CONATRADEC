@@ -32,6 +32,20 @@ namespace CONATRADEC
             window.Title = "ConatraCafé Soil";
 #endif
 
+            /*
+             * Recupera un estado de descarga que haya quedado guardado como
+             * "Sincronizando" después de cerrar la aplicación de forma inesperada.
+             */
+            SincronizacionOfflineEstadoRecuperacionService
+                .RecuperarSiInterrumpida();
+
+            /*
+             * Impide abrir pantallas que necesitan servidor durante una sesión
+             * iniciada expresamente en modo Sin conexión.
+             */
+            ModoOfflineNavigationService.Instance
+                .VincularShell(shell);
+
             DispositivoConexionService.Instance.VincularShell(shell);
             DispositivoConexionService.Instance.Iniciar();
 

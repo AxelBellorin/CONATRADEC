@@ -102,6 +102,27 @@ namespace CONATRADEC.Services
                         1,
                         loginResponse.VersionSesion));
 
+                /*
+                 * Cada inicio de sesión debe invalidar los catálogos estáticos.
+                 * De lo contrario, una lista vacía o antigua de otro modo de
+                 * sesión puede permanecer durante veinte minutos.
+                 */
+                AnalisisSueloApiService
+                    .LimpiarCacheTiposCultivo();
+
+                UnidadMedidaApiService
+                    .InvalidarCache();
+
+                ElementoQuimicoApiService
+                    .InvalidarCache();
+
+                /*
+                 * Si la aplicación se cerró durante una descarga anterior,
+                 * se elimina el falso estado de descarga activa del usuario.
+                 */
+                SincronizacionOfflineEstadoRecuperacionService
+                    .RecuperarSiInterrumpida();
+
                 int minutosInactividad =
                     Math.Clamp(
                         loginResponse.MinutosInactividad,
