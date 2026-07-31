@@ -53,6 +53,20 @@ namespace CONATRADEC
             AnalisisEdicionUbicacionService.Instance
                 .VincularShell(shell);
 
+            /*
+             * Restaura de forma determinista la selección de elementos, las
+             * fuentes y los resultados guardados de Balance y Mixta.
+             */
+            AnalisisEdicionCalculosDeterministaService.Instance
+                .VincularShell(shell);
+
+            /*
+             * Si el listado del terreno solo trae PropietarioId, recupera los
+             * datos completos del propietario al abrir el formulario de edición.
+             */
+            TerrenoPropietarioEdicionService.Instance
+                .VincularShell(shell);
+
             DispositivoConexionService.Instance.VincularShell(shell);
             DispositivoConexionService.Instance.Iniciar();
 

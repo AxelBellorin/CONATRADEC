@@ -43,19 +43,16 @@ namespace CONATRADEC.ViewModels
         private string direccion =
             string.Empty;
 
-        private bool activo = true;
-
         private string? modoSeleccionTexto;
 
         public PropietarioFormViewModel()
         {
             GuardarCommand = new Command(
                 async () => await GuardarAsync(),
-                () => !IsReadOnly && !IsBusy);
+                () => ShowSaveButton && !IsBusy);
 
             CancelarCommand = new Command(
-                async () => await Shell.Current
-                    .GoToAsync(".."),
+                async () => await RegresarAsync(),
                 () => !IsBusy);
 
             EditarCommand = new Command(
@@ -119,8 +116,6 @@ namespace CONATRADEC.ViewModels
                     Direccion =
                         value.Direccion ??
                         string.Empty;
-
-                    Activo = value.Activo;
                 }
 
                 OnPropertyChanged();
@@ -177,30 +172,31 @@ namespace CONATRADEC.ViewModels
                 value);
         }
 
-        public bool Activo
-        {
-            get => activo;
-            set
-            {
-                if (activo == value)
-                    return;
-
-                activo = value;
-                OnPropertyChanged();
-            }
-        }
-
         public bool IsReadOnly =>
             Mode ==
             FormMode.FormModeSelect.View;
 
         public bool ShowSaveButton =>
-            !IsReadOnly;
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create =>
+                    CanAdd,
+
+                FormMode.FormModeSelect.Edit =>
+                    CanEdit,
+
+                _ => false
+            };
 
         public bool ShowEditButton =>
             Mode ==
             FormMode.FormModeSelect.View &&
             CanEdit;
+
+        public new bool CanAdd =>
+            PermissionService.Instance
+                .HasAdd(
+                    InterfazCodigos.Propietarios);
 
         public new bool CanEdit =>
             PermissionService.Instance
@@ -224,8 +220,12 @@ namespace CONATRADEC.ViewModels
 
         private async Task GuardarAsync()
         {
-            if (IsBusy || IsReadOnly)
+            if (IsBusy ||
+                IsReadOnly ||
+                !ShowSaveButton)
+            {
                 return;
+            }
 
             if (!ModoSesionService.EsEnLinea)
             {
@@ -242,6 +242,11 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            /*
+             * El estado no se administra desde el formulario.
+             * Los propietarios nuevos y editados permanecen activos.
+             * La desactivación solo se realiza mediante Eliminar y permiso.
+             */
             var request =
                 new PropietarioGuardarRequest
                 {
@@ -260,7 +265,7 @@ namespace CONATRADEC.ViewModels
                     Direccion =
                         Limpiar(Direccion),
 
-                    Activo = Activo
+                    Activo = true
                 };
 
             IsBusy = true;
@@ -315,12 +320,50 @@ namespace CONATRADEC.ViewModels
                         "Propietario actualizado correctamente.");
                 }
 
-                await Shell.Current.GoToAsync("..");
+                await RegresarAsync();
             }
             finally
             {
                 IsBusy = false;
                 ActualizarComandos();
+            }
+        }
+
+        private async Task RegresarAsync()
+        {
+            try
+            {
+                /*
+                 * El formulario siempre se abre desde la lista existente.
+                 * Se debe retirar esta página de la pila, no navegar hacia
+                 * otra lista nueva. La navegación anterior creaba una copia
+                 * adicional de Propietarios en cada Guardar o Regresar y era
+                 * la causa directa del ciclo del botón Atrás.
+                 */
+                await Shell.Current.GoToAsync("..");
+            }
+            catch
+            {
+                /*
+                 * Respaldo para una apertura excepcional sin página previa.
+                 */
+                if (bool.TryParse(
+                        ModoSeleccionTexto,
+                        out bool seleccion) &&
+                    seleccion)
+                {
+                    await GoToAsyncParameters(
+                        AppRoutes.Propietarios,
+                        new Dictionary<string, object>
+                        {
+                            ["ModoSeleccion"] = "True"
+                        });
+                }
+                else
+                {
+                    await GoToAsyncParameters(
+                        AppRoutes.Configuracion);
+                }
             }
         }
 
@@ -383,7 +426,8 @@ namespace CONATRADEC.ViewModels
                 .CallerMemberName]
             string? propertyName = null)
         {
-            string nuevo = valor ?? string.Empty;
+            string nuevo =
+                valor ?? string.Empty;
 
             if (campo == nuevo)
                 return;

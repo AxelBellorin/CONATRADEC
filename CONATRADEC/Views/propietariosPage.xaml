@@ -11,10 +11,18 @@
     <Grid RowDefinitions="Auto,*">
         <Grid
             Padding="{OnPlatform WinUI='24,18,24,10', Default='14,14,14,8'}"
-            ColumnDefinitions="*,Auto"
+            ColumnDefinitions="Auto,*,Auto"
             ColumnSpacing="12">
 
-            <VerticalStackLayout Spacing="2">
+            <Button
+                Text="{Binding TextoRegresar}"
+                Style="{StaticResource CancelButton}"
+                Command="{Binding RegresarCommand}"
+                VerticalOptions="Center" />
+
+            <VerticalStackLayout
+                Grid.Column="1"
+                Spacing="2">
                 <Label
                     Text="{Binding Titulo}"
                     FontFamily="MontserratBold"
@@ -29,7 +37,7 @@
             </VerticalStackLayout>
 
             <Button
-                Grid.Column="1"
+                Grid.Column="2"
                 Text="Nuevo"
                 Style="{StaticResource AddButton}"
                 Command="{Binding NuevoCommand}"
@@ -144,14 +152,33 @@
                                         TextColor="{StaticResource color_Cafe}" />
                                 </VerticalStackLayout>
 
-                                <Button
+                                <HorizontalStackLayout
                                     Grid.Column="2"
-                                    Text="Editar"
-                                    Style="{StaticResource UpdateButton}"
-                                    Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.EditarCommand}"
-                                    CommandParameter="{Binding .}"
-                                    IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.CanEdit}"
-                                    VerticalOptions="Center" />
+                                    Spacing="7"
+                                    VerticalOptions="Center"
+                                    IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.MostrarAccionesAdministracion}">
+
+                                    <Button
+                                        Text="Ver"
+                                        Style="{StaticResource CancelButton}"
+                                        Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.VerCommand}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.CanView}" />
+
+                                    <Button
+                                        Text="Editar"
+                                        Style="{StaticResource UpdateButton}"
+                                        Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.EditarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.CanEdit}" />
+
+                                    <Button
+                                        Text="Eliminar"
+                                        Style="{StaticResource DeleteButton}"
+                                        Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.EliminarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.CanDelete}" />
+                                </HorizontalStackLayout>
                             </Grid>
                         </Border>
                     </DataTemplate>

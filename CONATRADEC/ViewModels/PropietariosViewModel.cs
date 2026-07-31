@@ -13,6 +13,9 @@ namespace CONATRADEC.ViewModels
         private readonly PropietarioApiService service =
             new();
 
+        private readonly PropietarioCrudApiService crudService =
+            new();
+
         private string textoBusqueda =
             string.Empty;
 
@@ -28,6 +31,10 @@ namespace CONATRADEC.ViewModels
             ActualizarCommand = new Command(
                 async () => await CargarAsync());
 
+            RegresarCommand = new Command(
+                async () => await RegresarAsync(),
+                () => !IsBusy);
+
             NuevoCommand = new Command(
                 async () => await NuevoAsync(),
                 () => CanAdd && !IsBusy);
@@ -40,6 +47,16 @@ namespace CONATRADEC.ViewModels
                         propietario != null &&
                         !IsBusy);
 
+            VerCommand =
+                new Command<PropietarioResponse>(
+                    async propietario =>
+                        await VerAsync(propietario),
+                    propietario =>
+                        propietario != null &&
+                        CanView &&
+                        !EsModoSeleccion &&
+                        !IsBusy);
+
             EditarCommand =
                 new Command<PropietarioResponse>(
                     async propietario =>
@@ -47,6 +64,17 @@ namespace CONATRADEC.ViewModels
                     propietario =>
                         propietario != null &&
                         CanEdit &&
+                        !EsModoSeleccion &&
+                        !IsBusy);
+
+            EliminarCommand =
+                new Command<PropietarioResponse>(
+                    async propietario =>
+                        await EliminarAsync(propietario),
+                    propietario =>
+                        propietario != null &&
+                        CanDelete &&
+                        !EsModoSeleccion &&
                         !IsBusy);
         }
 
@@ -60,13 +88,21 @@ namespace CONATRADEC.ViewModels
 
         public Command ActualizarCommand { get; }
 
+        public Command RegresarCommand { get; }
+
         public Command NuevoCommand { get; }
 
         public Command<PropietarioResponse>
             AbrirCommand { get; }
 
         public Command<PropietarioResponse>
+            VerCommand { get; }
+
+        public Command<PropietarioResponse>
             EditarCommand { get; }
+
+        public Command<PropietarioResponse>
+            EliminarCommand { get; }
 
         public string TextoBusqueda
         {
@@ -76,7 +112,9 @@ namespace CONATRADEC.ViewModels
                 if (textoBusqueda == value)
                     return;
 
-                textoBusqueda = value ?? string.Empty;
+                textoBusqueda =
+                    value ?? string.Empty;
+
                 OnPropertyChanged();
             }
         }
@@ -91,9 +129,12 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(
                     nameof(EsModoSeleccion));
-
+                OnPropertyChanged(
+                    nameof(MostrarAccionesAdministracion));
                 OnPropertyChanged(
                     nameof(Titulo));
+                OnPropertyChanged(
+                    nameof(TextoRegresar));
             }
         }
 
@@ -103,10 +144,23 @@ namespace CONATRADEC.ViewModels
                 out bool valor) &&
             valor;
 
+        public bool MostrarAccionesAdministracion =>
+            !EsModoSeleccion;
+
         public string Titulo =>
             EsModoSeleccion
                 ? "Seleccionar propietario"
                 : "Propietarios";
+
+        public string TextoRegresar =>
+            EsModoSeleccion
+                ? "Cancelar selección"
+                : "Configuración";
+
+        public bool CanView =>
+            PermissionService.Instance
+                .HasRead(
+                    InterfazCodigos.Propietarios);
 
         public new bool CanAdd =>
             PermissionService.Instance
@@ -116,6 +170,11 @@ namespace CONATRADEC.ViewModels
         public new bool CanEdit =>
             PermissionService.Instance
                 .HasUpdate(
+                    InterfazCodigos.Propietarios);
+
+        public bool CanDelete =>
+            PermissionService.Instance
+                .HasDelete(
                     InterfazCodigos.Propietarios);
 
         public bool MostrarListaVacia =>
@@ -188,6 +247,30 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private async Task RegresarAsync()
+        {
+            if (IsBusy)
+                return;
+
+            if (EsModoSeleccion)
+            {
+                /*
+                 * La selección se abre desde el formulario de terreno. En
+                 * este modo se vuelve a la pantalla que ya existe en la pila.
+                 */
+                await Shell.Current.GoToAsync("..");
+                return;
+            }
+
+            /*
+             * En administración se regresa mediante una ruta absoluta. Esto
+             * limpia las copias históricas de propietarios que pudieron quedar
+             * apiladas y evita el ciclo infinito del botón Atrás.
+             */
+            await GoToAsyncParameters(
+                AppRoutes.Configuracion);
+        }
+
         private async Task NuevoAsync()
         {
             if (!CanAdd)
@@ -231,6 +314,22 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            await VerAsync(propietario);
+        }
+
+        private async Task VerAsync(
+            PropietarioResponse? propietario)
+        {
+            if (propietario == null)
+                return;
+
+            if (!CanView)
+            {
+                await MostrarAdvertenciaAsync(
+                    "No tiene permiso para visualizar propietarios.");
+                return;
+            }
+
             await GoToAsyncParameters(
                 AppRoutes.PropietarioFormulario,
                 new Dictionary<string, object>
@@ -239,7 +338,10 @@ namespace CONATRADEC.ViewModels
                         FormMode.FormModeSelect.View,
 
                     ["Propietario"] =
-                        propietario
+                        propietario,
+
+                    ["ModoSeleccion"] =
+                        EsModoSeleccion.ToString()
                 });
         }
 
@@ -249,6 +351,13 @@ namespace CONATRADEC.ViewModels
             if (propietario == null)
                 return;
 
+            if (!CanEdit)
+            {
+                await MostrarAdvertenciaAsync(
+                    "No tiene permiso para editar propietarios.");
+                return;
+            }
+
             await GoToAsyncParameters(
                 AppRoutes.PropietarioFormulario,
                 new Dictionary<string, object>
@@ -257,20 +366,98 @@ namespace CONATRADEC.ViewModels
                         FormMode.FormModeSelect.Edit,
 
                     ["Propietario"] =
-                        propietario
+                        propietario,
+
+                    ["ModoSeleccion"] =
+                        EsModoSeleccion.ToString()
                 });
         }
 
-        private void CambiarEstadoOcupado(bool valor)
+        private async Task EliminarAsync(
+            PropietarioResponse? propietario)
+        {
+            if (propietario == null)
+                return;
+
+            if (!CanDelete)
+            {
+                await MostrarAdvertenciaAsync(
+                    "No tiene permiso para eliminar propietarios.");
+                return;
+            }
+
+            if (propietario.TotalTerrenos > 0)
+            {
+                await MostrarAdvertenciaAsync(
+                    "No se puede eliminar el propietario porque tiene " +
+                    "terrenos vinculados. Reasigne los terrenos a otro " +
+                    "propietario antes de continuar.");
+                return;
+            }
+
+            Page? pagina =
+                Application.Current?.MainPage;
+
+            if (pagina == null)
+                return;
+
+            bool confirmar =
+                await pagina.DisplayAlert(
+                    "Eliminar propietario",
+                    $"¿Desea eliminar a {propietario.TextoPrincipal}? " +
+                    "El registro se desactivará y su historial se conservará.",
+                    "Eliminar",
+                    "Cancelar");
+
+            if (!confirmar)
+                return;
+
+            CambiarEstadoOcupado(true);
+
+            try
+            {
+                ApiResult<bool> resultado =
+                    await crudService
+                        .EliminarPropietarioResultAsync(
+                            propietario.PropietarioId);
+
+                if (!resultado.Success ||
+                    resultado.Data != true)
+                {
+                    await MostrarErrorAsync(
+                        resultado.Message);
+                    return;
+                }
+
+                Propietarios.Remove(propietario);
+                ActualizarEstadoLista();
+
+                await MostrarExitoAsync(
+                    string.IsNullOrWhiteSpace(
+                        resultado.Message)
+                        ? "Propietario eliminado correctamente."
+                        : resultado.Message);
+            }
+            finally
+            {
+                CambiarEstadoOcupado(false);
+            }
+        }
+
+        private void CambiarEstadoOcupado(
+            bool valor)
         {
             IsBusy = valor;
 
             OnPropertyChanged(
                 nameof(MostrarListaVacia));
 
+            RegresarCommand.ChangeCanExecute();
             NuevoCommand.ChangeCanExecute();
             AbrirCommand.ChangeCanExecute();
+            VerCommand.ChangeCanExecute();
             EditarCommand.ChangeCanExecute();
+            EliminarCommand.ChangeCanExecute();
         }
 
         private void ActualizarEstadoLista()

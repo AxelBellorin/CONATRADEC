@@ -59,7 +59,7 @@
 
                             <Grid
                                 ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                                RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                                 ColumnSpacing="14"
                                 RowSpacing="10">
 
@@ -151,26 +151,19 @@
                                         IsReadOnly="{Binding IsReadOnly}"
                                         BackgroundColor="#F8FAF9" />
                                 </VerticalStackLayout>
-
-                                <Grid
-                                    Grid.Row="{OnPlatform WinUI=3, Default=5}"
-                                    Grid.ColumnSpan="{OnPlatform WinUI=2, Default=1}"
-                                    ColumnDefinitions="Auto,*"
-                                    ColumnSpacing="8">
-
-                                    <Switch
-                                        IsToggled="{Binding Activo}"
-                                        IsEnabled="{Binding ShowSaveButton}"
-                                        OnColor="{StaticResource color_Verde}" />
-
-                                    <Label
-                                        Grid.Column="1"
-                                        Text="Propietario activo"
-                                        VerticalOptions="Center"
-                                        FontAttributes="Bold"
-                                        FontSize="12" />
-                                </Grid>
                             </Grid>
+
+                            <Border
+                                Padding="10"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#C9DDD6"
+                                StrokeShape="RoundRectangle 10">
+
+                                <Label
+                                    Text="El estado activo no se modifica desde este formulario. La eliminación es una acción independiente y requiere permiso."
+                                    FontSize="11"
+                                    TextColor="{StaticResource color_Verde}" />
+                            </Border>
                         </VerticalStackLayout>
                     </Border>
 
@@ -189,7 +182,7 @@
                         <Button
                             Grid.Column="{OnPlatform WinUI=1, Default=0}"
                             Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                            Text="Cancelar"
+                            Text="Regresar"
                             Style="{StaticResource CancelButton}"
                             Command="{Binding CancelarCommand}" />
                     </Grid>
