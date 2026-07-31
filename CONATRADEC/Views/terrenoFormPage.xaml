@@ -9,10 +9,10 @@
     BackgroundColor="#FFF5FF">
 
     <Grid RowDefinitions="Auto,*" RowSpacing="10">
-        <!-- Encabezado -->
         <Grid
             Padding="{OnPlatform WinUI='24,18,24,4', Default='14,14,14,2'}"
             ColumnDefinitions="*,Auto">
+
             <VerticalStackLayout Spacing="2">
                 <Label
                     Text="{Binding Title}"
@@ -20,8 +20,9 @@
                     FontAttributes="Bold"
                     FontSize="{OnPlatform WinUI=27, Default=22}"
                     TextColor="#3B655B" />
+
                 <Label
-                    Text="Complete la información general, productiva y geográfica del terreno."
+                    Text="Seleccione un propietario registrado y complete la información de la finca."
                     FontFamily="MontserratMedium"
                     FontSize="12"
                     TextColor="#6B7280" />
@@ -39,133 +40,177 @@
             <Grid
                 Padding="{OnPlatform WinUI='24,8,24,28', Default='14,6,14,24'}"
                 ColumnDefinitions="{OnPlatform WinUI='*,8*,*', Default='0,*,0'}">
+
                 <VerticalStackLayout
                     Grid.Column="1"
                     MaximumWidthRequest="1180"
                     HorizontalOptions="Fill"
                     Spacing="14">
 
-                <!-- Código automático -->
-                <Border
-                    Padding="14"
-                    BackgroundColor="#EEF5F2"
-                    Stroke="#B8D2C8"
-                    StrokeShape="RoundRectangle 15">
-                    <Grid
-                        ColumnDefinitions="{OnPlatform WinUI='Auto,*', Default='*'}"
-                        RowDefinitions="Auto,Auto"
-                        ColumnSpacing="14"
-                        RowSpacing="4">
-                        <Border
-                            Padding="10,5"
-                            BackgroundColor="#3B655B"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 9"
-                            HorizontalOptions="Start">
-                            <Label
-                                Text="CÓDIGO"
-                                FontFamily="MontserratBold"
-                                FontSize="10"
-                                TextColor="White" />
-                        </Border>
-
-                        <VerticalStackLayout
-                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                            Spacing="3">
-                            <Entry
-                                Placeholder="Se generará automáticamente al guardar"
-                                Text="{Binding CodigoTerreno, Mode=OneWay}"
-                                IsReadOnly="True"
-                                FontFamily="MontserratBold"
-                                FontSize="16"
-                                TextColor="#1F2937"
-                                BackgroundColor="Transparent" />
-                            <Label
-                                Text="El código lo asigna la API y no puede modificarse durante la edición."
-                                FontFamily="MontserratMedium"
-                                FontSize="11"
-                                TextColor="#4B5563" />
-                        </VerticalStackLayout>
-                    </Grid>
-                </Border>
-
-                <!-- Propietario -->
-                <Border
-                    Padding="{OnPlatform WinUI=18, Default=14}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 16">
-                    <VerticalStackLayout Spacing="13">
-                        <Label
-                            Text="Datos del propietario"
-                            FontFamily="MontserratBold"
-                            FontSize="17"
-                            TextColor="#3B655B" />
+                    <Border
+                        Padding="14"
+                        BackgroundColor="#EEF5F2"
+                        Stroke="#B8D2C8"
+                        StrokeShape="RoundRectangle 15">
 
                         <Grid
-                            ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                            RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                            ColumnDefinitions="{OnPlatform WinUI='Auto,*', Default='*'}"
+                            RowDefinitions="Auto,Auto"
                             ColumnSpacing="14"
-                            RowSpacing="11">
+                            RowSpacing="4">
 
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="Identificación" FontFamily="MontserratBold" FontSize="12" />
-                                <Entry
-                                    x:Name="IdentificacionEntry"
-                                    Placeholder="001-080701-1050R"
-                                    Style="{StaticResource EntryStyle}"
-                                    Keyboard="Text"
-                                    MaxLength="16"
-                                    TextChanged="IdentificacionEntry_TextChanged"
-                                    Text="{Binding IdentificacionPropietarioTerreno, Mode=TwoWay}"
-                                    IsReadOnly="{Binding IsReadOnly}" />
-                            </VerticalStackLayout>
+                            <Border
+                                Padding="10,5"
+                                BackgroundColor="#3B655B"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 9"
+                                HorizontalOptions="Start">
+
+                                <Label
+                                    Text="CÓDIGO"
+                                    FontFamily="MontserratBold"
+                                    FontSize="10"
+                                    TextColor="White" />
+                            </Border>
 
                             <VerticalStackLayout
                                 Grid.Column="{OnPlatform WinUI=1, Default=0}"
                                 Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                Spacing="4">
-                                <Label Text="Nombre completo" FontFamily="MontserratBold" FontSize="12" />
-                                <Entry
-                                    Placeholder="Nombre del propietario"
-                                    Style="{StaticResource EntryStyle}"
-                                    Text="{Binding NombrePropietarioTerreno, Mode=TwoWay}"
-                                    IsReadOnly="{Binding IsReadOnly}" />
-                            </VerticalStackLayout>
+                                Spacing="3">
 
-                            <VerticalStackLayout
-                                Grid.Row="{OnPlatform WinUI=1, Default=2}"
-                                Spacing="4">
-                                <Label Text="Teléfono" FontFamily="MontserratBold" FontSize="12" />
                                 <Entry
-                                    Placeholder="Número de teléfono"
-                                    Style="{StaticResource EntryStyle}"
-                                    Keyboard="Telephone"
-                                    MaxLength="9"
-                                    TextChanged="Entero_TextChanged"
-                                    Text="{Binding TelefonoPropietarioTexto, Mode=TwoWay}"
-                                    IsReadOnly="{Binding IsReadOnly}" />
-                            </VerticalStackLayout>
+                                    Placeholder="Se generará automáticamente al guardar"
+                                    Text="{Binding CodigoTerreno, Mode=OneWay}"
+                                    IsReadOnly="True"
+                                    FontFamily="MontserratBold"
+                                    FontSize="16"
+                                    TextColor="#1F2937"
+                                    BackgroundColor="Transparent" />
 
-                            <VerticalStackLayout
-                                Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                Grid.Row="{OnPlatform WinUI=1, Default=3}"
-                                Spacing="4">
-                                <Label Text="Correo electrónico" FontFamily="MontserratBold" FontSize="12" />
-                                <Entry
-                                    Placeholder="correo@ejemplo.com"
-                                    Style="{StaticResource EntryStyle}"
-                                    Keyboard="Email"
-                                    Text="{Binding CorreoPropietario, Mode=TwoWay}"
-                                    IsReadOnly="{Binding IsReadOnly}" />
+                                <Label
+                                    Text="El código lo asigna la API y no puede modificarse."
+                                    FontFamily="MontserratMedium"
+                                    FontSize="11"
+                                    TextColor="#4B5563" />
                             </VerticalStackLayout>
+                        </Grid>
+                    </Border>
 
-                            <VerticalStackLayout
-                                Grid.Row="{OnPlatform WinUI=2, Default=4}"
-                                Grid.ColumnSpan="{OnPlatform WinUI=2, Default=1}"
-                                Spacing="4">
-                                <Label Text="Dirección detallada del terreno" FontFamily="MontserratBold" FontSize="12" />
+                    <!-- Propietario normalizado -->
+                    <Border
+                        Padding="{OnPlatform WinUI=18, Default=14}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="12">
+                            <Grid
+                                ColumnDefinitions="*,Auto"
+                                ColumnSpacing="12">
+
+                                <VerticalStackLayout Spacing="3">
+                                    <Label
+                                        Text="Propietario del terreno"
+                                        FontFamily="MontserratBold"
+                                        FontSize="17"
+                                        TextColor="#3B655B" />
+
+                                    <Label
+                                        Text="Los datos se administran en el módulo Propietarios y aquí solo se vincula la finca."
+                                        FontFamily="MontserratMedium"
+                                        FontSize="11"
+                                        TextColor="#6B7280" />
+                                </VerticalStackLayout>
+
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Seleccionar"
+                                    Style="{StaticResource AddButton}"
+                                    Clicked="BtnSeleccionarPropietario_Clicked"
+                                    IsVisible="{Binding AllowEdit}" />
+                            </Grid>
+
+                            <Border
+                                Padding="12"
+                                BackgroundColor="#F8FAF9"
+                                Stroke="#D8E5E0"
+                                StrokeShape="RoundRectangle 12">
+
+                                <Grid
+                                    ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                                    RowDefinitions="Auto,Auto,Auto,Auto"
+                                    ColumnSpacing="14"
+                                    RowSpacing="9">
+
+                                    <VerticalStackLayout Spacing="3">
+                                        <Label
+                                            Text="Identificación"
+                                            FontSize="10"
+                                            TextColor="#6B7280" />
+
+                                        <Label
+                                            Text="{Binding PropietarioIdentificacion, TargetNullValue='No seleccionado'}"
+                                            FontSize="13"
+                                            FontAttributes="Bold"
+                                            TextColor="#1F2937" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                        Spacing="3">
+
+                                        <Label
+                                            Text="Nombre completo"
+                                            FontSize="10"
+                                            TextColor="#6B7280" />
+
+                                        <Label
+                                            Text="{Binding PropietarioNombre, TargetNullValue='Seleccione un propietario'}"
+                                            FontSize="13"
+                                            FontAttributes="Bold"
+                                            TextColor="#3B655B" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        Grid.Row="{OnPlatform WinUI=1, Default=2}"
+                                        Spacing="3">
+
+                                        <Label
+                                            Text="Teléfono"
+                                            FontSize="10"
+                                            TextColor="#6B7280" />
+
+                                        <Label
+                                            Text="{Binding PropietarioTelefono, TargetNullValue='Sin teléfono'}"
+                                            FontSize="12"
+                                            TextColor="#374151" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout
+                                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                        Grid.Row="{OnPlatform WinUI=1, Default=3}"
+                                        Spacing="3">
+
+                                        <Label
+                                            Text="Correo"
+                                            FontSize="10"
+                                            TextColor="#6B7280" />
+
+                                        <Label
+                                            Text="{Binding PropietarioCorreo, TargetNullValue='Sin correo'}"
+                                            FontSize="12"
+                                            TextColor="#374151" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label
+                                    Text="Dirección detallada del terreno"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12" />
+
                                 <Editor
                                     Placeholder="Comunidad, comarca, referencias y vías de acceso"
                                     AutoSize="TextChanges"
@@ -174,330 +219,388 @@
                                     IsReadOnly="{Binding IsReadOnly}"
                                     BackgroundColor="#F8FAF9" />
                             </VerticalStackLayout>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
+                        </VerticalStackLayout>
+                    </Border>
 
-                <!-- Producción -->
-                <Border
-                    Padding="{OnPlatform WinUI=18, Default=14}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 16">
-                    <VerticalStackLayout Spacing="13">
-                        <Label
-                            Text="Información productiva"
-                            FontFamily="MontserratBold"
-                            FontSize="17"
-                            TextColor="#3B655B" />
+                    <Border
+                        Padding="{OnPlatform WinUI=18, Default=14}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
 
-                        <Grid
-                            ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
-                            RowDefinitions="Auto,Auto,Auto"
-                            ColumnSpacing="14"
-                            RowSpacing="11">
+                        <VerticalStackLayout Spacing="13">
+                            <Label
+                                Text="Información productiva"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                TextColor="#3B655B" />
+
+                            <Grid
+                                ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
+                                RowDefinitions="Auto,Auto,Auto"
+                                ColumnSpacing="14"
+                                RowSpacing="11">
+
+                                <VerticalStackLayout Spacing="4">
+                                    <Label
+                                        Text="Extensión (manzanas)"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        Placeholder="Ej: 3.50"
+                                        Style="{StaticResource EntryStyle}"
+                                        Keyboard="Numeric"
+                                        TextChanged="DecimalDosDigitos_TextChanged"
+                                        Text="{Binding ExtensionManzanaTexto, Mode=TwoWay}"
+                                        IsReadOnly="{Binding IsReadOnly}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                    Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Producción (quintales oro)"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        Placeholder="Ej: 25.00"
+                                        Style="{StaticResource EntryStyle}"
+                                        Keyboard="Numeric"
+                                        TextChanged="DecimalDosDigitos_TextChanged"
+                                        Text="{Binding CantidadQuintalesOroTexto, Mode=TwoWay}"
+                                        IsReadOnly="{Binding IsReadOnly}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="{OnPlatform WinUI=2, Default=0}"
+                                    Grid.Row="{OnPlatform WinUI=0, Default=2}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Cantidad de plantas"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        Placeholder="Ej: 3500"
+                                        Style="{StaticResource EntryStyle}"
+                                        Keyboard="Numeric"
+                                        TextChanged="Entero_TextChanged"
+                                        Text="{Binding CantidadPlantasTerrenoTexto, Mode=TwoWay}"
+                                        IsReadOnly="{Binding IsReadOnly}" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <Label
+                                Text="La fecha de ingreso se registra automáticamente al crear el terreno."
+                                FontFamily="MontserratMedium"
+                                FontSize="11"
+                                TextColor="#6B7280" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="{OnPlatform WinUI=18, Default=14}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="13">
+                            <Label
+                                Text="Ubicación administrativa"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                TextColor="#3B655B" />
+
+                            <Grid
+                                ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
+                                RowDefinitions="Auto,Auto,Auto"
+                                ColumnSpacing="12"
+                                RowSpacing="10">
+
+                                <VerticalStackLayout Spacing="4">
+                                    <Label
+                                        Text="País"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+
+                                    <Picker
+                                        ItemsSource="{Binding Paises}"
+                                        ItemDisplayBinding="{Binding NombrePais}"
+                                        SelectedItem="{Binding PaisSeleccionado}"
+                                        IsEnabled="{Binding IsEnabled}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                    Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Departamento"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+
+                                    <Picker
+                                        ItemsSource="{Binding Departamentos}"
+                                        ItemDisplayBinding="{Binding NombreDepartamento}"
+                                        SelectedItem="{Binding DepartamentoSeleccionado}"
+                                        IsEnabled="{Binding CanPickDepartamento}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="{OnPlatform WinUI=2, Default=0}"
+                                    Grid.Row="{OnPlatform WinUI=0, Default=2}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Municipio"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+
+                                    <Picker
+                                        ItemsSource="{Binding Municipios}"
+                                        ItemDisplayBinding="{Binding NombreMunicipio}"
+                                        SelectedItem="{Binding MunicipioSeleccionado}"
+                                        IsEnabled="{Binding CanPickMunicipio}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="{OnPlatform WinUI=18, Default=14}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="13">
+                            <Label
+                                Text="Ubicación geográfica"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                TextColor="#3B655B" />
 
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="Extensión (manzanas)" FontFamily="MontserratBold" FontSize="12" />
+                                <Label
+                                    Text="Pegar coordenadas desde Google Maps"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12" />
+
                                 <Entry
-                                    x:Name="ExtensionEntry"
-                                    Placeholder="Ej: 3.50"
+                                    x:Name="CoordenadasEntry"
+                                    Placeholder="12.1234, -86.1234 o formato DMS"
                                     Style="{StaticResource EntryStyle}"
-                                    Keyboard="Numeric"
-                                    TextChanged="DecimalDosDigitos_TextChanged"
-                                    Text="{Binding ExtensionManzanaTexto, Mode=TwoWay}"
-                                    IsReadOnly="{Binding IsReadOnly}" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout
-                                Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                Spacing="4">
-                                <Label Text="Producción (quintales oro)" FontFamily="MontserratBold" FontSize="12" />
-                                <Entry
-                                    x:Name="CantidadQuintalesEntry"
-                                    Placeholder="Ej: 25.00"
-                                    Style="{StaticResource EntryStyle}"
-                                    Keyboard="Numeric"
-                                    TextChanged="DecimalDosDigitos_TextChanged"
-                                    Text="{Binding CantidadQuintalesOroTexto, Mode=TwoWay}"
-                                    IsReadOnly="{Binding IsReadOnly}" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout
-                                Grid.Column="{OnPlatform WinUI=2, Default=0}"
-                                Grid.Row="{OnPlatform WinUI=0, Default=2}"
-                                Spacing="4">
-                                <Label Text="Cantidad de plantas" FontFamily="MontserratBold" FontSize="12" />
-                                <Entry
-                                    Placeholder="Ej: 3500"
-                                    Style="{StaticResource EntryStyle}"
-                                    Keyboard="Numeric"
-                                    TextChanged="Entero_TextChanged"
-                                    Text="{Binding CantidadPlantasTerrenoTexto, Mode=TwoWay}"
-                                    IsReadOnly="{Binding IsReadOnly}" />
-                            </VerticalStackLayout>
-                        </Grid>
-
-                        <Label
-                            Text="La fecha de ingreso se registra automáticamente al crear el terreno y no puede modificarse."
-                            FontFamily="MontserratMedium"
-                            FontSize="11"
-                            TextColor="#6B7280" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Ubicación administrativa -->
-                <Border
-                    Padding="{OnPlatform WinUI=18, Default=14}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 16">
-                    <VerticalStackLayout Spacing="13">
-                        <Label
-                            Text="Ubicación administrativa"
-                            FontFamily="MontserratBold"
-                            FontSize="17"
-                            TextColor="#3B655B" />
-
-                        <Grid
-                            ColumnDefinitions="{OnPlatform WinUI='*,*,*', Default='*'}"
-                            RowDefinitions="Auto,Auto,Auto"
-                            ColumnSpacing="12"
-                            RowSpacing="10">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="País" FontFamily="MontserratBold" FontSize="12" />
-                                <Picker
-                                    ItemsSource="{Binding Paises}"
-                                    ItemDisplayBinding="{Binding NombrePais}"
-                                    SelectedItem="{Binding PaisSeleccionado}"
+                                    TextChanged="CoordenadasEntry_TextChanged"
+                                    Text="{Binding CoordenadasTexto, Mode=OneWay}"
                                     IsEnabled="{Binding IsEnabled}" />
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                Spacing="4">
-                                <Label Text="Departamento" FontFamily="MontserratBold" FontSize="12" />
-                                <Picker
-                                    ItemsSource="{Binding Departamentos}"
-                                    ItemDisplayBinding="{Binding NombreDepartamento}"
-                                    SelectedItem="{Binding DepartamentoSeleccionado}"
-                                    IsEnabled="{Binding CanPickDepartamento}" />
-                            </VerticalStackLayout>
+                            <Grid
+                                ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                                RowDefinitions="Auto,Auto"
+                                ColumnSpacing="10"
+                                RowSpacing="8">
 
-                            <VerticalStackLayout
-                                Grid.Column="{OnPlatform WinUI=2, Default=0}"
-                                Grid.Row="{OnPlatform WinUI=0, Default=2}"
-                                Spacing="4">
-                                <Label Text="Municipio" FontFamily="MontserratBold" FontSize="12" />
-                                <Picker
-                                    ItemsSource="{Binding Municipios}"
-                                    ItemDisplayBinding="{Binding NombreMunicipio}"
-                                    SelectedItem="{Binding MunicipioSeleccionado}"
-                                    IsEnabled="{Binding CanPickMunicipio}" />
-                            </VerticalStackLayout>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
+                                <Button
+                                    Text="Obtener ubicación GPS"
+                                    FontSize="14"
+                                    Style="{StaticResource AddButton}"
+                                    Command="{Binding ObtenerGpsCommand}"
+                                    IsVisible="{Binding IsEnabled}" />
 
-                <!-- Coordenadas -->
-                <Border
-                    Padding="{OnPlatform WinUI=18, Default=14}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 16">
-                    <VerticalStackLayout Spacing="13">
-                        <Label
-                            Text="Ubicación geográfica"
-                            FontFamily="MontserratBold"
-                            FontSize="17"
-                            TextColor="#3B655B" />
+                                <Button
+                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                    Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                    Text="Seleccionar en mapa"
+                                    FontSize="14"
+                                    Style="{StaticResource AddButton}"
+                                    Command="{Binding SeleccionarMapaCommand}"
+                                    IsVisible="{Binding IsEnabled}" />
+                            </Grid>
 
-                        <VerticalStackLayout Spacing="4">
-                            <Label
-                                Text="Pegar coordenadas desde Google Maps"
-                                FontFamily="MontserratBold"
-                                FontSize="12" />
-                            <Entry
-                                x:Name="CoordenadasEntry"
-                                Placeholder="12.1234, -86.1234 o formato DMS"
-                                Style="{StaticResource EntryStyle}"
-                                TextChanged="CoordenadasEntry_TextChanged"
-                                Text="{Binding CoordenadasTexto, Mode=OneWay}"
-                                IsEnabled="{Binding IsEnabled}" />
+                            <Grid
+                                ColumnDefinitions="*,*"
+                                ColumnSpacing="10">
+
+                                <VerticalStackLayout Spacing="4">
+                                    <Label
+                                        Text="Latitud"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        x:Name="LatitudEntry"
+                                        Style="{StaticResource EntryStyle}"
+                                        IsReadOnly="True"
+                                        Text="{Binding Latitud, Mode=OneWay}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="1"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Longitud"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        x:Name="LongitudEntry"
+                                        Style="{StaticResource EntryStyle}"
+                                        IsReadOnly="True"
+                                        Text="{Binding Longitud, Mode=OneWay}" />
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <Border
+                                Padding="0"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#DDE7E3"
+                                StrokeShape="RoundRectangle 13">
+
+                                <WebView
+                                    x:Name="MiniMapaWeb"
+                                    HeightRequest="{OnPlatform WinUI=260, Default=190}" />
+                            </Border>
+
+                            <Button
+                                Text="Abrir ubicación en Google Maps"
+                                Clicked="BtnAbrirEnMaps_Clicked"
+                                Style="{StaticResource AddButton}"
+                                HorizontalOptions="End" />
                         </VerticalStackLayout>
+                    </Border>
 
-                        <Grid
-                            ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                            RowDefinitions="Auto,Auto"
-                            ColumnSpacing="10"
-                            RowSpacing="8">
-                            <Button
-                                Text="Obtener ubicación GPS"
-                                FontSize="14"
-                                Style="{StaticResource AddButton}"
-                                Command="{Binding ObtenerGpsCommand}"
-                                IsVisible="{Binding IsEnabled}" />
-                            <Button
-                                Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                Text="Seleccionar en mapa"
-                                FontSize="14"
-                                Style="{StaticResource AddButton}"
-                                Command="{Binding SeleccionarMapaCommand}"
-                                IsVisible="{Binding IsEnabled}" />
-                        </Grid>
+                    <Border
+                        Padding="{OnPlatform WinUI=18, Default=14}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
 
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="Latitud" FontFamily="MontserratBold" FontSize="12" />
-                                <Entry
-                                    x:Name="LatitudEntry"
-                                    Style="{StaticResource EntryStyle}"
-                                    IsReadOnly="True"
-                                    Text="{Binding Latitud, Mode=OneWay}" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="1" Spacing="4">
-                                <Label Text="Longitud" FontFamily="MontserratBold" FontSize="12" />
-                                <Entry
-                                    x:Name="LongitudEntry"
-                                    Style="{StaticResource EntryStyle}"
-                                    IsReadOnly="True"
-                                    Text="{Binding Longitud, Mode=OneWay}" />
-                            </VerticalStackLayout>
-                        </Grid>
+                        <VerticalStackLayout Spacing="12">
+                            <Grid
+                                ColumnDefinitions="*,Auto"
+                                ColumnSpacing="12">
 
-                        <Border
-                            Padding="0"
-                            BackgroundColor="#EEF5F2"
-                            Stroke="#DDE7E3"
-                            StrokeShape="RoundRectangle 13">
-                            <WebView
-                                x:Name="MiniMapaWeb"
-                                HeightRequest="{OnPlatform WinUI=260, Default=190}" />
-                        </Border>
+                                <VerticalStackLayout Spacing="3">
+                                    <Label
+                                        Text="Fotos del terreno"
+                                        FontFamily="MontserratBold"
+                                        FontSize="17"
+                                        TextColor="#3B655B" />
+
+                                    <Label
+                                        Text="Agregue fotografías para documentar la finca."
+                                        FontFamily="MontserratMedium"
+                                        FontSize="12"
+                                        TextColor="#6B7280" />
+                                </VerticalStackLayout>
+
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Agregar fotos"
+                                    Style="{StaticResource AddButton}"
+                                    Command="{Binding SeleccionarFotosCommand}"
+                                    IsVisible="{Binding AllowEdit}" />
+                            </Grid>
+
+                            <Label
+                                Text="No hay fotos agregadas."
+                                FontFamily="MontserratMedium"
+                                FontSize="13"
+                                TextColor="#6B7280"
+                                IsVisible="{Binding NoTieneFotosTerreno}" />
+
+                            <CollectionView
+                                ItemsSource="{Binding FotosTerreno}"
+                                IsVisible="{Binding TieneFotosTerreno}"
+                                HeightRequest="178"
+                                ItemSizingStrategy="MeasureFirstItem">
+
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout
+                                        Orientation="Horizontal"
+                                        ItemSpacing="14" />
+                                </CollectionView.ItemsLayout>
+
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid
+                                            WidthRequest="155"
+                                            HeightRequest="170">
+
+                                            <Border
+                                                WidthRequest="145"
+                                                HeightRequest="145"
+                                                Margin="0,10,0,0"
+                                                Padding="0"
+                                                BackgroundColor="#F8FAF9"
+                                                Stroke="#DDE7E3"
+                                                StrokeShape="RoundRectangle 12"
+                                                HorizontalOptions="Start"
+                                                VerticalOptions="Start">
+
+                                                <Image
+                                                    Source="{Binding Imagen}"
+                                                    Aspect="AspectFill"
+                                                    WidthRequest="145"
+                                                    HeightRequest="145">
+
+                                                    <Image.GestureRecognizers>
+                                                        <TapGestureRecognizer
+                                                            Command="{Binding BindingContext.AbrirGaleriaFotosCommand, Source={x:Reference TerrenoFormPage}}"
+                                                            CommandParameter="{Binding .}" />
+                                                    </Image.GestureRecognizers>
+                                                </Image>
+                                            </Border>
+
+                                            <Button
+                                                Text="×"
+                                                WidthRequest="34"
+                                                HeightRequest="34"
+                                                CornerRadius="17"
+                                                FontSize="18"
+                                                Padding="0"
+                                                BackgroundColor="#EF4444"
+                                                TextColor="White"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="Start"
+                                                Margin="0,2,8,0"
+                                                IsVisible="{Binding BindingContext.AllowEdit, Source={x:Reference TerrenoFormPage}}"
+                                                Command="{Binding BindingContext.QuitarFotoCommand, Source={x:Reference TerrenoFormPage}}"
+                                                CommandParameter="{Binding .}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Grid
+                        ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                        RowDefinitions="Auto,Auto"
+                        ColumnSpacing="12"
+                        RowSpacing="10"
+                        Margin="0,2,0,10">
 
                         <Button
-                            Text="Abrir ubicación en Google Maps"
-                            Clicked="BtnAbrirEnMaps_Clicked"
-                            Style="{StaticResource AddButton}"
-                            HorizontalOptions="End" />
-                    </VerticalStackLayout>
-                </Border>
+                            Text="Guardar"
+                            Style="{StaticResource UpdateButton}"
+                            IsVisible="{Binding ShowSaveButton}"
+                            Clicked="BtnGuardar_Clicked" />
 
-                <!-- Fotos -->
-                <Border
-                    Padding="{OnPlatform WinUI=18, Default=14}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 16">
-                    <VerticalStackLayout Spacing="12">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <VerticalStackLayout Spacing="3">
-                                <Label
-                                    Text="Fotos del terreno"
-                                    FontFamily="MontserratBold"
-                                    FontSize="17"
-                                    TextColor="#3B655B" />
-                                <Label
-                                    Text="Agregue fotografías para documentar la finca."
-                                    FontFamily="MontserratMedium"
-                                    FontSize="12"
-                                    TextColor="#6B7280" />
-                            </VerticalStackLayout>
-
-                            <Button
-                                Grid.Column="1"
-                                Text="Agregar fotos"
-                                Style="{StaticResource AddButton}"
-                                Command="{Binding SeleccionarFotosCommand}"
-                                IsVisible="{Binding AllowEdit}" />
-                        </Grid>
-
-                        <Label
-                            Text="No hay fotos agregadas."
-                            FontFamily="MontserratMedium"
-                            FontSize="13"
-                            TextColor="#6B7280"
-                            IsVisible="{Binding NoTieneFotosTerreno}" />
-
-                        <CollectionView
-                            ItemsSource="{Binding FotosTerreno}"
-                            IsVisible="{Binding TieneFotosTerreno}"
-                            HeightRequest="178"
-                            ItemSizingStrategy="MeasureFirstItem">
-                            <CollectionView.ItemsLayout>
-                                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="14" />
-                            </CollectionView.ItemsLayout>
-
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid WidthRequest="155" HeightRequest="170">
-                                        <Border
-                                            WidthRequest="145"
-                                            HeightRequest="145"
-                                            Margin="0,10,0,0"
-                                            Padding="0"
-                                            BackgroundColor="#F8FAF9"
-                                            Stroke="#DDE7E3"
-                                            StrokeShape="RoundRectangle 12"
-                                            HorizontalOptions="Start"
-                                            VerticalOptions="Start">
-                                            <Image
-                                                Source="{Binding Imagen}"
-                                                Aspect="AspectFill"
-                                                WidthRequest="145"
-                                                HeightRequest="145">
-                                                <Image.GestureRecognizers>
-                                                    <TapGestureRecognizer
-                                                        Command="{Binding BindingContext.AbrirGaleriaFotosCommand, Source={x:Reference TerrenoFormPage}}"
-                                                        CommandParameter="{Binding .}" />
-                                                </Image.GestureRecognizers>
-                                            </Image>
-                                        </Border>
-
-                                        <Button
-                                            Text="×"
-                                            WidthRequest="34"
-                                            HeightRequest="34"
-                                            CornerRadius="17"
-                                            FontSize="18"
-                                            Padding="0"
-                                            BackgroundColor="#EF4444"
-                                            TextColor="White"
-                                            HorizontalOptions="End"
-                                            VerticalOptions="Start"
-                                            Margin="0,2,8,0"
-                                            IsVisible="{Binding BindingContext.AllowEdit, Source={x:Reference TerrenoFormPage}}"
-                                            Command="{Binding BindingContext.QuitarFotoCommand, Source={x:Reference TerrenoFormPage}}"
-                                            CommandParameter="{Binding .}" />
-                                    </Grid>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Acciones -->
-                <Grid
-                    ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                    RowDefinitions="Auto,Auto"
-                    ColumnSpacing="12"
-                    RowSpacing="10"
-                    Margin="0,2,0,10">
-                    <Button
-                        Text="Guardar"
-                        Style="{StaticResource UpdateButton}"
-                        IsVisible="{Binding ShowSaveButton}"
-                        Clicked="BtnGuardar_Clicked" />
-                    <Button
-                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                        Text="Cancelar"
-                        Style="{StaticResource CancelButton}"
-                        Command="{Binding CancelCommand}" />
-                </Grid>
+                        <Button
+                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                            Text="Cancelar"
+                            Style="{StaticResource CancelButton}"
+                            Command="{Binding CancelCommand}" />
+                    </Grid>
                 </VerticalStackLayout>
             </Grid>
         </ScrollView>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.propietariosPage"
+    x:Name="PropietariosPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{StaticResource color_Blanco}">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid
+            Padding="{OnPlatform WinUI='24,18,24,10', Default='14,14,14,8'}"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="12">
+
+            <VerticalStackLayout Spacing="2">
+                <Label
+                    Text="{Binding Titulo}"
+                    FontFamily="MontserratBold"
+                    FontAttributes="Bold"
+                    FontSize="{OnPlatform WinUI=27, Default=22}"
+                    TextColor="{StaticResource color_Verde}" />
+
+                <Label
+                    Text="Una persona se registra una sola vez y puede tener varios terrenos."
+                    FontSize="12"
+                    TextColor="{StaticResource color_GrisOscuro}" />
+            </VerticalStackLayout>
+
+            <Button
+                Grid.Column="1"
+                Text="Nuevo"
+                Style="{StaticResource AddButton}"
+                Command="{Binding NuevoCommand}"
+                IsVisible="{Binding CanAdd}" />
+        </Grid>
+
+        <RefreshView
+            Grid.Row="1"
+            Command="{Binding ActualizarCommand}"
+            IsRefreshing="{Binding IsBusy}">
+
+            <CollectionView
+                ItemsSource="{Binding Propietarios}"
+                SelectionMode="None"
+                EmptyView="No hay propietarios para mostrar.">
+
+                <CollectionView.Header>
+                    <VerticalStackLayout
+                        Padding="{OnPlatform WinUI='24,4,24,12', Default='14,4,14,10'}"
+                        Spacing="10">
+
+                        <SearchBar
+                            Placeholder="Buscar por nombre, identificación o correo"
+                            Text="{Binding TextoBusqueda}"
+                            SearchCommand="{Binding BuscarCommand}"
+                            BackgroundColor="#F8FAF9"
+                            TextColor="{StaticResource color_Negro}" />
+
+                        <Border
+                            IsVisible="{Binding EsModoSeleccion}"
+                            Padding="11"
+                            BackgroundColor="#EEF5F2"
+                            Stroke="#C9DDD6"
+                            StrokeShape="RoundRectangle 11">
+
+                            <Label
+                                Text="Toque una tarjeta para asignar ese propietario al terreno."
+                                FontSize="12"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}" />
+                        </Border>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout
+                        Orientation="Vertical"
+                        ItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:PropietarioResponse">
+                        <Border
+                            Margin="{OnPlatform WinUI='24,0', Default='14,0'}"
+                            Padding="14"
+                            BackgroundColor="White"
+                            Stroke="#DDE7E3"
+                            StrokeShape="RoundRectangle 15">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer
+                                    Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.AbrirCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid
+                                ColumnDefinitions="Auto,*,Auto"
+                                ColumnSpacing="12">
+
+                                <Border
+                                    WidthRequest="46"
+                                    HeightRequest="46"
+                                    BackgroundColor="#EEF5F2"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 13">
+
+                                    <Label
+                                        Text="👤"
+                                        FontSize="22"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+
+                                <VerticalStackLayout
+                                    Grid.Column="1"
+                                    Spacing="2">
+
+                                    <Label
+                                        Text="{Binding TextoPrincipal}"
+                                        FontSize="15"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Negro}"
+                                        MaxLines="1"
+                                        LineBreakMode="TailTruncation" />
+
+                                    <Label
+                                        Text="{Binding TextoIdentificacion}"
+                                        FontSize="12"
+                                        FontAttributes="Bold"
+                                        TextColor="{StaticResource color_Verde}" />
+
+                                    <Label
+                                        Text="{Binding TextoContacto}"
+                                        FontSize="11"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        MaxLines="1"
+                                        LineBreakMode="TailTruncation" />
+
+                                    <Label
+                                        Text="{Binding TextoTerrenos}"
+                                        FontSize="10"
+                                        TextColor="{StaticResource color_Cafe}" />
+                                </VerticalStackLayout>
+
+                                <Button
+                                    Grid.Column="2"
+                                    Text="Editar"
+                                    Style="{StaticResource UpdateButton}"
+                                    Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.EditarCommand}"
+                                    CommandParameter="{Binding .}"
+                                    IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.CanEdit}"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <ActivityIndicator
+            Grid.RowSpan="2"
+            IsRunning="{Binding IsBusy}"
+            IsVisible="{Binding IsBusy}"
+            Color="{StaticResource color_Verde}"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            WidthRequest="42"
+            HeightRequest="42" />
+    </Grid>
+</ContentPage>

@@ -46,6 +46,13 @@ namespace CONATRADEC
             ModoOfflineNavigationService.Instance
                 .VincularShell(shell);
 
+            /*
+             * Restaura País, Departamento y Municipio del terreno cuando un
+             * análisis se abre por primera vez en modo edición.
+             */
+            AnalisisEdicionUbicacionService.Instance
+                .VincularShell(shell);
+
             DispositivoConexionService.Instance.VincularShell(shell);
             DispositivoConexionService.Instance.Iniciar();
 

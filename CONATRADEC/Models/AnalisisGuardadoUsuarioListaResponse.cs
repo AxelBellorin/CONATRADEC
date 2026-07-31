@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
@@ -62,8 +62,8 @@ namespace CONATRADEC.Models
         [JsonPropertyName("codigoTerreno")]
         public string CodigoTerreno { get; set; } = string.Empty;
 
-        [JsonPropertyName("nombrePropietarioTerreno")]
-        public string NombrePropietarioTerreno { get; set; } = string.Empty;
+        [JsonPropertyName("propietario")]
+        public TerrenoPropietarioResponse? Propietario { get; set; }
 
         [JsonPropertyName("extensionManzanaTerreno")]
         public decimal ExtensionManzanaTerreno { get; set; }

@@ -15,101 +15,138 @@ namespace CONATRADEC.Services
     // ===========================================================
     // ======= SERVICIO: CalculoAnalisisTemporalService ==========
     // ===========================================================
-    // Este servicio mantiene en memoria y en archivo local temporal
-    // TODO el flujo de cálculos del análisis actual.
+    // Mantiene en memoria y en archivo local el flujo completo del
+    // análisis actual.
     //
-    // Reglas:
-    // 1. Solo existe un cálculo temporal activo.
-    // 2. Un nuevo análisis reemplaza al anterior.
-    // 3. Cada cálculo guarda su request y su resultado.
-    // 4. Si el usuario modifica datos después de calcular, el cálculo
-    //    debe marcarse como pendiente de recalcular.
-    // 5. La copia local se actualiza cada vez que cambia el estado.
+    // La sincronización se divide en dos niveles:
+    // 1. operacionLock serializa las operaciones asincrónicas.
+    // 2. estadoSync protege únicamente accesos breves en memoria.
+    //
+    // Nunca se mantiene un bloqueo de memoria mientras se espera una
+    // operación asincrónica. Esto evita que la interfaz de MAUI quede
+    // bloqueada al navegar desde Resultado hacia MultiCálculo.
     // ===========================================================
 
     class CalculoAnalisisTemporalService
     {
-        // ===========================================================
-        // ======================== SINGLETON ========================
-        // ===========================================================
-
         private static readonly Lazy<CalculoAnalisisTemporalService> instancia =
-            new Lazy<CalculoAnalisisTemporalService>(() => new CalculoAnalisisTemporalService());
+            new(() => new CalculoAnalisisTemporalService());
 
-        public static CalculoAnalisisTemporalService Instance => instancia.Value;
+        public static CalculoAnalisisTemporalService Instance =>
+            instancia.Value;
 
-        // ===========================================================
-        // =================== DEPENDENCIAS / ESTADO =================
-        // ===========================================================
+        private const string NombreArchivoTemporal =
+            "calculo_analisis_temporal.json";
 
-        private const string NombreArchivoTemporal = "calculo_analisis_temporal.json";
+        private readonly object estadoSync = new();
 
-        private CalculoAnalisisTemporalState estadoActual = new CalculoAnalisisTemporalState();
+        private readonly SemaphoreSlim operacionLock =
+            new(1, 1);
 
-        private readonly JsonSerializerOptions jsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            WriteIndented = false
-        };
+        private readonly SemaphoreSlim archivoLock =
+            new(1, 1);
 
-        private readonly SemaphoreSlim archivoLock = new(1, 1);
+        private readonly JsonSerializerOptions jsonOptions =
+            new()
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = false
+            };
+
+        private CalculoAnalisisTemporalState estadoActual =
+            new();
+
+        private bool estadoInicializadoDesdeArchivo;
 
         private string RutaArchivoTemporal =>
-            Path.Combine(FileSystem.AppDataDirectory, NombreArchivoTemporal);
-
-        // ===========================================================
-        // ======================== CONSTRUCTOR ======================
-        // ===========================================================
+            Path.Combine(
+                FileSystem.AppDataDirectory,
+                NombreArchivoTemporal);
 
         private CalculoAnalisisTemporalService()
         {
         }
 
-        // ===========================================================
-        // ====================== MÉTODOS PÚBLICOS ===================
-        // ===========================================================
-
         public CalculoAnalisisTemporalState ObtenerEstadoActual()
         {
-            return estadoActual;
+            lock (estadoSync)
+            {
+                AsegurarSeccionesInterno();
+                return estadoActual;
+            }
         }
 
         public async Task IniciarNuevoCalculoAsync(
             AnalisisSueloCalculoDataResponse? resultadoAnalisis,
             AnalisisSueloGuardarCalculoRequest? requestGuardar)
         {
-            string nuevaClave = ConstruirClaveCalculo(resultadoAnalisis, requestGuardar);
+            await operacionLock
+                .WaitAsync()
+                .ConfigureAwait(false);
 
-            await CargarDesdeArchivoAsync();
-
-            bool esMismoCalculo =
-                !string.IsNullOrWhiteSpace(estadoActual.CalculoKey) &&
-                string.Equals(estadoActual.CalculoKey, nuevaClave, StringComparison.Ordinal);
-
-            if (!esMismoCalculo)
+            try
             {
-                estadoActual = new CalculoAnalisisTemporalState
+                await CargarDesdeArchivoSiEsNecesarioAsync()
+                    .ConfigureAwait(false);
+
+                string nuevaClave =
+                    ConstruirClaveCalculo(
+                        resultadoAnalisis,
+                        requestGuardar);
+
+                lock (estadoSync)
                 {
-                    CalculoKey = nuevaClave,
-                    FechaCreacion = DateTime.Now,
-                    FechaUltimaModificacion = DateTime.Now,
-                    ResultadoAnalisisSuelo = resultadoAnalisis,
-                    RequestGuardarAnalisis = requestGuardar
-                };
-            }
-            else
-            {
-                estadoActual.ResultadoAnalisisSuelo = resultadoAnalisis;
-                estadoActual.RequestGuardarAnalisis = requestGuardar;
-                estadoActual.FechaUltimaModificacion = DateTime.Now;
-            }
+                    bool esMismoCalculo =
+                        !string.IsNullOrWhiteSpace(
+                            estadoActual.CalculoKey) &&
+                        string.Equals(
+                            estadoActual.CalculoKey,
+                            nuevaClave,
+                            StringComparison.Ordinal);
 
-            await GuardarCalculoAsync(
-                TipoCalculoTemporal.RequerimientoAnual,
-                requestGuardar,
-                resultadoAnalisis,
-                "Requerimiento anual cargado desde el resultado del análisis de suelo."
-            );
+                    if (!esMismoCalculo)
+                    {
+                        estadoActual =
+                            new CalculoAnalisisTemporalState
+                            {
+                                CalculoKey = nuevaClave,
+                                FechaCreacion = DateTime.Now,
+                                FechaUltimaModificacion = DateTime.Now,
+                                ResultadoAnalisisSuelo = resultadoAnalisis,
+                                RequestGuardarAnalisis = requestGuardar
+                            };
+                    }
+                    else
+                    {
+                        /*
+                         * Si es el mismo análisis, se actualizan únicamente
+                         * los datos base y se conservan Balance, Enmienda y
+                         * Mixta que ya hayan sido restaurados.
+                         */
+                        estadoActual.ResultadoAnalisisSuelo =
+                            resultadoAnalisis;
+
+                        estadoActual.RequestGuardarAnalisis =
+                            requestGuardar;
+
+                        estadoActual.FechaUltimaModificacion =
+                            DateTime.Now;
+                    }
+
+                    AsegurarSeccionesInterno();
+                }
+
+                await GuardarCalculoInternoAsync(
+                        TipoCalculoTemporal.RequerimientoAnual,
+                        requestGuardar,
+                        resultadoAnalisis,
+                        "Requerimiento anual cargado desde el resultado del análisis de suelo.")
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                operacionLock.Release();
+            }
         }
 
         public async Task GuardarCalculoAsync<TRequest, TResultado>(
@@ -118,30 +155,26 @@ namespace CONATRADEC.Services
             TResultado? resultado,
             string? mensajeEstado = null)
         {
-            Task<string?> tareaRequest =
-                SerializarAsync(request);
+            await operacionLock
+                .WaitAsync()
+                .ConfigureAwait(false);
 
-            Task<string?> tareaResultado =
-                SerializarAsync(resultado);
+            try
+            {
+                await CargarDesdeArchivoSiEsNecesarioAsync()
+                    .ConfigureAwait(false);
 
-            await Task.WhenAll(
-                tareaRequest,
-                tareaResultado);
-
-            CalculoSeccionTemporalState seccion = ObtenerSeccion(tipoCalculo);
-
-            seccion.TipoCalculo = tipoCalculo;
-            seccion.Estado = EstadoCalculoTemporal.Calculado;
-            seccion.RequestJson = await tareaRequest;
-            seccion.ResultadoJson = await tareaResultado;
-
-            seccion.FechaCalculo = DateTime.Now;
-            seccion.FechaUltimaModificacion = DateTime.Now;
-            seccion.MensajeEstado = mensajeEstado ?? "Cálculo actualizado correctamente.";
-
-            estadoActual.FechaUltimaModificacion = DateTime.Now;
-
-            await GuardarEnArchivoAsync();
+                await GuardarCalculoInternoAsync(
+                        tipoCalculo,
+                        request,
+                        resultado,
+                        mensajeEstado)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                operacionLock.Release();
+            }
         }
 
         public async Task MarcarPendienteRecalculoAsync(
@@ -149,58 +182,137 @@ namespace CONATRADEC.Services
             string? mensajeEstado = null,
             bool limpiarResultado = true)
         {
-            CalculoSeccionTemporalState seccion = ObtenerSeccion(tipoCalculo);
+            await operacionLock
+                .WaitAsync()
+                .ConfigureAwait(false);
 
-            seccion.Estado = EstadoCalculoTemporal.PendienteRecalculo;
-            seccion.FechaUltimaModificacion = DateTime.Now;
-            seccion.MensajeEstado = mensajeEstado ?? "Hay cambios pendientes. Debe recalcular para actualizar el resultado.";
+            try
+            {
+                await CargarDesdeArchivoSiEsNecesarioAsync()
+                    .ConfigureAwait(false);
 
-            if (limpiarResultado)
-                seccion.ResultadoJson = null;
+                string json;
 
-            estadoActual.FechaUltimaModificacion = DateTime.Now;
+                lock (estadoSync)
+                {
+                    CalculoSeccionTemporalState seccion =
+                        ObtenerSeccionInterna(
+                            tipoCalculo);
 
-            await GuardarEnArchivoAsync();
+                    seccion.Estado =
+                        EstadoCalculoTemporal.PendienteRecalculo;
+
+                    seccion.FechaUltimaModificacion =
+                        DateTime.Now;
+
+                    seccion.MensajeEstado =
+                        mensajeEstado ??
+                        "Hay cambios pendientes. Debe recalcular para actualizar el resultado.";
+
+                    if (limpiarResultado)
+                        seccion.ResultadoJson = null;
+
+                    estadoActual.FechaUltimaModificacion =
+                        DateTime.Now;
+
+                    json =
+                        SerializarEstadoActualInterno();
+                }
+
+                await EscribirArchivoAsync(json)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                operacionLock.Release();
+            }
         }
 
         public async Task ReiniciarCalculoAsync(
             TipoCalculoTemporal tipoCalculo,
             string? mensajeEstado = null)
         {
-            CalculoSeccionTemporalState seccion = ObtenerSeccion(tipoCalculo);
+            await operacionLock
+                .WaitAsync()
+                .ConfigureAwait(false);
 
-            seccion.Estado = EstadoCalculoTemporal.Reiniciado;
-            seccion.RequestJson = null;
-            seccion.ResultadoJson = null;
-            seccion.FechaCalculo = null;
-            seccion.FechaUltimaModificacion = DateTime.Now;
-            seccion.MensajeEstado = mensajeEstado ?? "Cálculo reiniciado.";
-
-            estadoActual.FechaUltimaModificacion = DateTime.Now;
-
-            await GuardarEnArchivoAsync();
-        }
-
-        public bool TieneResultadoValido(TipoCalculoTemporal tipoCalculo)
-        {
-            CalculoSeccionTemporalState seccion = ObtenerSeccion(tipoCalculo);
-
-            return seccion.TieneResultadoValido;
-        }
-
-        public TResultado? ObtenerResultado<TResultado>(TipoCalculoTemporal tipoCalculo)
-        {
             try
             {
-                CalculoSeccionTemporalState seccion = ObtenerSeccion(tipoCalculo);
+                await CargarDesdeArchivoSiEsNecesarioAsync()
+                    .ConfigureAwait(false);
 
-                if (string.IsNullOrWhiteSpace(seccion.ResultadoJson))
-                    return default;
+                string json;
 
+                lock (estadoSync)
+                {
+                    CalculoSeccionTemporalState seccion =
+                        ObtenerSeccionInterna(
+                            tipoCalculo);
+
+                    seccion.Estado =
+                        EstadoCalculoTemporal.Reiniciado;
+
+                    seccion.RequestJson = null;
+                    seccion.ResultadoJson = null;
+                    seccion.FechaCalculo = null;
+                    seccion.FechaUltimaModificacion =
+                        DateTime.Now;
+
+                    seccion.MensajeEstado =
+                        mensajeEstado ??
+                        "Cálculo reiniciado.";
+
+                    estadoActual.FechaUltimaModificacion =
+                        DateTime.Now;
+
+                    json =
+                        SerializarEstadoActualInterno();
+                }
+
+                await EscribirArchivoAsync(json)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                operacionLock.Release();
+            }
+        }
+
+        public bool TieneResultadoValido(
+            TipoCalculoTemporal tipoCalculo)
+        {
+            lock (estadoSync)
+            {
+                return ObtenerSeccionInterna(
+                    tipoCalculo)
+                    .TieneResultadoValido;
+            }
+        }
+
+        public TResultado? ObtenerResultado<TResultado>(
+            TipoCalculoTemporal tipoCalculo)
+        {
+            string? resultadoJson;
+
+            lock (estadoSync)
+            {
+                resultadoJson =
+                    ObtenerSeccionInterna(
+                        tipoCalculo)
+                        .ResultadoJson;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    resultadoJson))
+            {
+                return default;
+            }
+
+            try
+            {
                 return JsonSerializer.Deserialize<TResultado>(
-                    seccion.ResultadoJson,
-                    jsonOptions
-                );
+                    resultadoJson,
+                    jsonOptions);
             }
             catch
             {
@@ -208,19 +320,30 @@ namespace CONATRADEC.Services
             }
         }
 
-        public TRequest? ObtenerRequest<TRequest>(TipoCalculoTemporal tipoCalculo)
+        public TRequest? ObtenerRequest<TRequest>(
+            TipoCalculoTemporal tipoCalculo)
         {
+            string? requestJson;
+
+            lock (estadoSync)
+            {
+                requestJson =
+                    ObtenerSeccionInterna(
+                        tipoCalculo)
+                        .RequestJson;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    requestJson))
+            {
+                return default;
+            }
+
             try
             {
-                CalculoSeccionTemporalState seccion = ObtenerSeccion(tipoCalculo);
-
-                if (string.IsNullOrWhiteSpace(seccion.RequestJson))
-                    return default;
-
                 return JsonSerializer.Deserialize<TRequest>(
-                    seccion.RequestJson,
-                    jsonOptions
-                );
+                    requestJson,
+                    jsonOptions);
             }
             catch
             {
@@ -230,38 +353,193 @@ namespace CONATRADEC.Services
 
         public async Task GuardarEnArchivoAsync()
         {
-            await archivoLock.WaitAsync();
+            await operacionLock
+                .WaitAsync()
+                .ConfigureAwait(false);
 
             try
             {
-                string json = await Task.Run(() =>
-                    JsonSerializer.Serialize(
-                        estadoActual,
-                        jsonOptions));
+                string json;
 
-                await File.WriteAllTextAsync(RutaArchivoTemporal, json);
-            }
-            catch
-            {
-                // Si falla el respaldo local, no rompemos la UI.
-                // El estado en memoria sigue disponible durante la sesión.
+                lock (estadoSync)
+                {
+                    json =
+                        SerializarEstadoActualInterno();
+                }
+
+                await EscribirArchivoAsync(json)
+                    .ConfigureAwait(false);
             }
             finally
             {
-                archivoLock.Release();
+                operacionLock.Release();
             }
         }
 
         public async Task<bool> CargarDesdeArchivoAsync()
         {
-            await archivoLock.WaitAsync();
+            await operacionLock
+                .WaitAsync()
+                .ConfigureAwait(false);
 
             try
             {
-                if (!File.Exists(RutaArchivoTemporal))
-                    return false;
+                bool cargado =
+                    await CargarDesdeArchivoInternoAsync()
+                        .ConfigureAwait(false);
 
-                string json = await File.ReadAllTextAsync(RutaArchivoTemporal);
+                estadoInicializadoDesdeArchivo = true;
+
+                return cargado;
+            }
+            finally
+            {
+                operacionLock.Release();
+            }
+        }
+
+        public async Task LimpiarTodoAsync()
+        {
+            await operacionLock
+                .WaitAsync()
+                .ConfigureAwait(false);
+
+            try
+            {
+                lock (estadoSync)
+                {
+                    estadoActual =
+                        new CalculoAnalisisTemporalState();
+
+                    AsegurarSeccionesInterno();
+                }
+
+                estadoInicializadoDesdeArchivo = true;
+
+                await archivoLock
+                    .WaitAsync()
+                    .ConfigureAwait(false);
+
+                try
+                {
+                    if (File.Exists(
+                            RutaArchivoTemporal))
+                    {
+                        File.Delete(
+                            RutaArchivoTemporal);
+                    }
+                }
+                catch
+                {
+                    // La limpieza en memoria ya fue realizada.
+                }
+                finally
+                {
+                    archivoLock.Release();
+                }
+            }
+            finally
+            {
+                operacionLock.Release();
+            }
+        }
+
+        private async Task GuardarCalculoInternoAsync<TRequest, TResultado>(
+            TipoCalculoTemporal tipoCalculo,
+            TRequest? request,
+            TResultado? resultado,
+            string? mensajeEstado)
+        {
+            Task<string?> tareaRequest =
+                SerializarAsync(request);
+
+            Task<string?> tareaResultado =
+                SerializarAsync(resultado);
+
+            await Task.WhenAll(
+                    tareaRequest,
+                    tareaResultado)
+                .ConfigureAwait(false);
+
+            string? requestJson =
+                await tareaRequest
+                    .ConfigureAwait(false);
+
+            string? resultadoJson =
+                await tareaResultado
+                    .ConfigureAwait(false);
+
+            string estadoJson;
+
+            lock (estadoSync)
+            {
+                CalculoSeccionTemporalState seccion =
+                    ObtenerSeccionInterna(
+                        tipoCalculo);
+
+                seccion.TipoCalculo =
+                    tipoCalculo;
+
+                seccion.Estado =
+                    EstadoCalculoTemporal.Calculado;
+
+                seccion.RequestJson =
+                    requestJson;
+
+                seccion.ResultadoJson =
+                    resultadoJson;
+
+                seccion.FechaCalculo =
+                    DateTime.Now;
+
+                seccion.FechaUltimaModificacion =
+                    DateTime.Now;
+
+                seccion.MensajeEstado =
+                    mensajeEstado ??
+                    "Cálculo actualizado correctamente.";
+
+                estadoActual.FechaUltimaModificacion =
+                    DateTime.Now;
+
+                estadoJson =
+                    SerializarEstadoActualInterno();
+            }
+
+            await EscribirArchivoAsync(
+                    estadoJson)
+                .ConfigureAwait(false);
+        }
+
+        private async Task CargarDesdeArchivoSiEsNecesarioAsync()
+        {
+            if (estadoInicializadoDesdeArchivo)
+                return;
+
+            await CargarDesdeArchivoInternoAsync()
+                .ConfigureAwait(false);
+
+            estadoInicializadoDesdeArchivo = true;
+        }
+
+        private async Task<bool> CargarDesdeArchivoInternoAsync()
+        {
+            await archivoLock
+                .WaitAsync()
+                .ConfigureAwait(false);
+
+            try
+            {
+                if (!File.Exists(
+                        RutaArchivoTemporal))
+                {
+                    return false;
+                }
+
+                string json =
+                    await File.ReadAllTextAsync(
+                            RutaArchivoTemporal)
+                        .ConfigureAwait(false);
 
                 if (string.IsNullOrWhiteSpace(json))
                     return false;
@@ -271,20 +549,30 @@ namespace CONATRADEC.Services
                         JsonSerializer.Deserialize<
                             CalculoAnalisisTemporalState>(
                                 json,
-                                jsonOptions));
+                                jsonOptions))
+                        .ConfigureAwait(false);
 
                 if (estado == null)
                     return false;
 
-                estadoActual = estado;
-
-                AsegurarSecciones();
+                lock (estadoSync)
+                {
+                    estadoActual = estado;
+                    AsegurarSeccionesInterno();
+                }
 
                 return true;
             }
             catch
             {
-                estadoActual = new CalculoAnalisisTemporalState();
+                lock (estadoSync)
+                {
+                    estadoActual =
+                        new CalculoAnalisisTemporalState();
+
+                    AsegurarSeccionesInterno();
+                }
+
                 return false;
             }
             finally
@@ -293,40 +581,60 @@ namespace CONATRADEC.Services
             }
         }
 
-        public async Task LimpiarTodoAsync()
+        private async Task EscribirArchivoAsync(
+            string json)
         {
-            estadoActual = new CalculoAnalisisTemporalState();
+            await archivoLock
+                .WaitAsync()
+                .ConfigureAwait(false);
 
             try
             {
-                if (File.Exists(RutaArchivoTemporal))
-                    File.Delete(RutaArchivoTemporal);
+                await File.WriteAllTextAsync(
+                        RutaArchivoTemporal,
+                        json)
+                    .ConfigureAwait(false);
             }
             catch
             {
-                await Task.CompletedTask;
+                /*
+                 * Una falla del respaldo local no rompe la interfaz.
+                 * El estado en memoria continúa disponible.
+                 */
+            }
+            finally
+            {
+                archivoLock.Release();
             }
         }
 
-        // ===========================================================
-        // ===================== MÉTODOS PRIVADOS ====================
-        // ===========================================================
-
-        private CalculoSeccionTemporalState ObtenerSeccion(TipoCalculoTemporal tipoCalculo)
+        private CalculoSeccionTemporalState
+            ObtenerSeccionInterna(
+                TipoCalculoTemporal tipoCalculo)
         {
-            AsegurarSecciones();
+            AsegurarSeccionesInterno();
 
             return tipoCalculo switch
             {
-                TipoCalculoTemporal.RequerimientoAnual => estadoActual.RequerimientoAnual,
-                TipoCalculoTemporal.BalanceFormula => estadoActual.BalanceFormula,
-                TipoCalculoTemporal.FertilizacionMixta => estadoActual.FertilizacionMixta,
-                TipoCalculoTemporal.EnmiendaCalcarea => estadoActual.EnmiendaCalcarea,
-                _ => estadoActual.RequerimientoAnual
+                TipoCalculoTemporal.RequerimientoAnual =>
+                    estadoActual.RequerimientoAnual,
+
+                TipoCalculoTemporal.BalanceFormula =>
+                    estadoActual.BalanceFormula,
+
+                TipoCalculoTemporal.FertilizacionMixta =>
+                    estadoActual.FertilizacionMixta,
+
+                TipoCalculoTemporal.EnmiendaCalcarea =>
+                    estadoActual.EnmiendaCalcarea,
+
+                _ =>
+                    estadoActual.RequerimientoAnual
             };
         }
 
-        private Task<string?> SerializarAsync<T>(T? valor)
+        private Task<string?> SerializarAsync<T>(
+            T? valor)
         {
             if (valor is null)
                 return Task.FromResult<string?>(null);
@@ -337,27 +645,44 @@ namespace CONATRADEC.Services
                     jsonOptions));
         }
 
-        private void AsegurarSecciones()
+        private string SerializarEstadoActualInterno()
         {
-            estadoActual.RequerimientoAnual ??= new CalculoSeccionTemporalState
-            {
-                TipoCalculo = TipoCalculoTemporal.RequerimientoAnual
-            };
+            AsegurarSeccionesInterno();
 
-            estadoActual.BalanceFormula ??= new CalculoSeccionTemporalState
-            {
-                TipoCalculo = TipoCalculoTemporal.BalanceFormula
-            };
+            return JsonSerializer.Serialize(
+                estadoActual,
+                jsonOptions);
+        }
 
-            estadoActual.FertilizacionMixta ??= new CalculoSeccionTemporalState
-            {
-                TipoCalculo = TipoCalculoTemporal.FertilizacionMixta
-            };
+        private void AsegurarSeccionesInterno()
+        {
+            estadoActual.RequerimientoAnual ??=
+                new CalculoSeccionTemporalState
+                {
+                    TipoCalculo =
+                        TipoCalculoTemporal.RequerimientoAnual
+                };
 
-            estadoActual.EnmiendaCalcarea ??= new CalculoSeccionTemporalState
-            {
-                TipoCalculo = TipoCalculoTemporal.EnmiendaCalcarea
-            };
+            estadoActual.BalanceFormula ??=
+                new CalculoSeccionTemporalState
+                {
+                    TipoCalculo =
+                        TipoCalculoTemporal.BalanceFormula
+                };
+
+            estadoActual.FertilizacionMixta ??=
+                new CalculoSeccionTemporalState
+                {
+                    TipoCalculo =
+                        TipoCalculoTemporal.FertilizacionMixta
+                };
+
+            estadoActual.EnmiendaCalcarea ??=
+                new CalculoSeccionTemporalState
+                {
+                    TipoCalculo =
+                        TipoCalculoTemporal.EnmiendaCalcarea
+                };
         }
 
         private static string ConstruirClaveCalculo(
@@ -367,69 +692,97 @@ namespace CONATRADEC.Services
             if (resultadoAnalisis == null)
                 return Guid.NewGuid().ToString("N");
 
-            StringBuilder builder = new StringBuilder();
+            StringBuilder builder = new();
 
             builder.Append("TerrenoId:");
             builder.Append(resultadoAnalisis.TerrenoId);
-            builder.Append("|");
+            builder.Append('|');
 
             builder.Append("TipoCultivoId:");
             builder.Append(resultadoAnalisis.TipoCultivoId);
-            builder.Append("|");
+            builder.Append('|');
 
             builder.Append("TipoAnalisisSueloId:");
             builder.Append(resultadoAnalisis.TipoAnalisisSueloId);
-            builder.Append("|");
+            builder.Append('|');
 
             builder.Append("CantidadQuintalesOro:");
-            builder.Append(FormatearDecimalClave(resultadoAnalisis.CantidadQuintalesOro));
-            builder.Append("|");
+            builder.Append(
+                FormatearDecimalClave(
+                    resultadoAnalisis.CantidadQuintalesOro));
+            builder.Append('|');
 
             builder.Append("TamanoFinca:");
-            builder.Append(FormatearDecimalClave(resultadoAnalisis.TamanoFinca));
-            builder.Append("|");
+            builder.Append(
+                FormatearDecimalClave(
+                    resultadoAnalisis.TamanoFinca));
+            builder.Append('|');
 
             builder.Append("Ph:");
-            builder.Append(FormatearDecimalClave(resultadoAnalisis.Ph));
-            builder.Append("|");
+            builder.Append(
+                FormatearDecimalClave(
+                    resultadoAnalisis.Ph));
+            builder.Append('|');
 
             builder.Append("AcidezTotal:");
-            builder.Append(FormatearDecimalClave(resultadoAnalisis.AcidezTotal));
-            builder.Append("|");
+            builder.Append(
+                FormatearDecimalClave(
+                    resultadoAnalisis.AcidezTotal));
+            builder.Append('|');
 
             builder.Append("FechaAnalisis:");
-            builder.Append(requestGuardar?.FechaAnalisisSuelo ?? string.Empty);
-            builder.Append("|");
+            builder.Append(
+                requestGuardar?.FechaAnalisisSuelo ??
+                string.Empty);
+            builder.Append('|');
 
             builder.Append("Identificador:");
-            builder.Append(requestGuardar?.IdentificadorAnalisisSuelo ?? string.Empty);
-            builder.Append("|");
+            builder.Append(
+                requestGuardar?
+                    .IdentificadorAnalisisSuelo ??
+                string.Empty);
+            builder.Append('|');
 
             if (resultadoAnalisis.Elementos != null)
             {
-                foreach (var elemento in resultadoAnalisis.Elementos.OrderBy(x => x.ElementoQuimicosId))
+                foreach (ElementoResultadoCalculoResponse elemento
+                         in resultadoAnalisis.Elementos
+                             .OrderBy(x =>
+                                 x.ElementoQuimicosId))
                 {
                     builder.Append("Elemento:");
-                    builder.Append(elemento.ElementoQuimicosId);
-                    builder.Append(":");
-                    builder.Append(FormatearDecimalClave(elemento.RequerimientoCalculado));
-                    builder.Append("|");
+                    builder.Append(
+                        elemento.ElementoQuimicosId);
+                    builder.Append(':');
+                    builder.Append(
+                        FormatearDecimalClave(
+                            elemento.RequerimientoCalculado));
+                    builder.Append('|');
                 }
             }
 
             string textoBase = builder.ToString();
 
-            using SHA256 sha256 = SHA256.Create();
+            using SHA256 sha256 =
+                SHA256.Create();
 
-            byte[] bytes = Encoding.UTF8.GetBytes(textoBase);
-            byte[] hash = sha256.ComputeHash(bytes);
+            byte[] bytes =
+                Encoding.UTF8.GetBytes(
+                    textoBase);
+
+            byte[] hash =
+                sha256.ComputeHash(bytes);
 
             return Convert.ToBase64String(hash);
         }
 
-        private static string FormatearDecimalClave(decimal? valor)
+        private static string FormatearDecimalClave(
+            decimal? valor)
         {
-            return (valor ?? 0).ToString("0.########", CultureInfo.InvariantCulture);
+            return (valor ?? 0)
+                .ToString(
+                    "0.########",
+                    CultureInfo.InvariantCulture);
         }
     }
 }

@@ -804,14 +804,14 @@ namespace CONATRADEC.Services
                             "codigoTerreno",
                             codigo))
                     .Where(item =>
-                        CoincideTextoExactoParcial(
+                        CoincideTextoPropietario(
                             item,
-                            "nombrePropietarioTerreno",
+                            "nombreCompleto",
                             propietario))
                     .Where(item =>
-                        CoincideTextoExactoParcial(
+                        CoincideTextoPropietario(
                             item,
-                            "identificacionPropietarioTerreno",
+                            "identificacion",
                             identificacion))
                     .Where(item =>
                         CoincideTextoExactoParcial(
@@ -874,18 +874,18 @@ namespace CONATRADEC.Services
                     "propietario" when descendente =>
                         filtrados.OrderByDescending(
                             item =>
-                                ObtenerTexto(
+                                ObtenerTextoPropietario(
                                     item,
-                                    "nombrePropietarioTerreno"),
+                                    "nombreCompleto"),
                             StringComparer
                                 .CurrentCultureIgnoreCase),
 
                     "propietario" =>
                         filtrados.OrderBy(
                             item =>
-                                ObtenerTexto(
+                                ObtenerTextoPropietario(
                                     item,
-                                    "nombrePropietarioTerreno"),
+                                    "nombreCompleto"),
                             StringComparer
                                 .CurrentCultureIgnoreCase),
 
@@ -1011,17 +1011,34 @@ namespace CONATRADEC.Services
             if (string.IsNullOrWhiteSpace(texto))
                 return true;
 
-            string[] propiedades =
+            string[] propiedadesTerreno =
             {
                 "codigoTerreno",
-                "nombrePropietarioTerreno",
-                "identificacionPropietarioTerreno",
-                "direccionTerreno",
-                "correoPropietario"
+                "direccionTerreno"
             };
 
-            if (propiedades.Any(propiedad =>
+            if (propiedadesTerreno.Any(propiedad =>
                     ObtenerTexto(
+                        item,
+                        propiedad)
+                    .Contains(
+                        texto,
+                        StringComparison
+                            .CurrentCultureIgnoreCase)))
+            {
+                return true;
+            }
+
+            string[] propiedadesPropietario =
+            {
+                "nombreCompleto",
+                "identificacion",
+                "correo",
+                "telefono"
+            };
+
+            if (propiedadesPropietario.Any(propiedad =>
+                    ObtenerTextoPropietario(
                         item,
                         propiedad)
                     .Contains(
@@ -1055,6 +1072,38 @@ namespace CONATRADEC.Services
                     texto,
                     StringComparison
                         .CurrentCultureIgnoreCase));
+        }
+
+        private static bool CoincideTextoPropietario(
+            JsonObject item,
+            string propiedad,
+            string valor)
+        {
+            return string.IsNullOrWhiteSpace(valor) ||
+                   ObtenerTextoPropietario(
+                       item,
+                       propiedad)
+                   .Contains(
+                       valor,
+                       StringComparison
+                           .CurrentCultureIgnoreCase);
+        }
+
+        private static string ObtenerTextoPropietario(
+            JsonObject item,
+            string propiedad)
+        {
+            JsonObject? propietario =
+                BuscarPropiedad(
+                    item,
+                    "propietario")
+                as JsonObject;
+
+            return propietario == null
+                ? string.Empty
+                : ObtenerTexto(
+                    propietario,
+                    propiedad);
         }
 
         private static bool

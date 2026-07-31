@@ -1,48 +1,52 @@
+using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.Controls;
-using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace CONATRADEC.Views
 {
     public partial class terrenoFormPage : ContentPage
     {
-        private static readonly Regex CedulaRegex = new(
-            @"^\d{3}-\d{6}-\d{4}[A-Z]$",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private readonly TerrenoFormFotosSegurasViewModel
+            viewModel;
 
-        private readonly TerrenoFormViewModel viewModel;
+        private readonly TerrenoApiService
+            terrenoApiService = new();
 
-        private bool actualizandoCedula;
+        private readonly FotoTerrenoApiService
+            fotoTerrenoApiService = new();
+
         private bool actualizandoNumero;
-        private bool actualizandoCoordenadasTexto;
 
+        private bool actualizandoCoordenadasTexto;
 
         public terrenoFormPage()
         {
             InitializeComponent();
 
-            // Usa el controlador seguro de fotografías sin cambiar la lógica
-            // existente de guardado, edición, GPS o selección de ubicación.
-            viewModel = new TerrenoFormFotosSegurasViewModel();
+            /*
+             * Se conserva el ViewModel que libera de forma segura las
+             * fotografías temporales. El guardado envía únicamente la
+             * relación normalizada mediante propietarioId.
+             */
+            viewModel =
+                new TerrenoFormFotosSegurasViewModel();
+
             BindingContext = viewModel;
 
-            /*
-             * El formato de la identificación se aplica cuando el usuario
-             * abandona el campo. Así no se modifica el Text ni la selección
-             * mientras WinUI está procesando una pulsación.
-             */
-            IdentificacionEntry.Unfocused +=
-                IdentificacionEntry_Unfocused;
+            viewModel.RefrescarMapaAction =
+                (latitud, longitud) =>
+                {
+                    ActualizarMiniMapa(
+                        latitud,
+                        longitud);
 
-            viewModel.RefrescarMapaAction = (lat, lon) =>
-            {
-                ActualizarMiniMapa(lat, lon);
-                SincronizarEntradasCoordenadas(lat, lon);
-            };
+                    SincronizarEntradasCoordenadas(
+                        latitud,
+                        longitud);
+                };
         }
 
         protected override async void OnAppearing()
@@ -50,290 +54,579 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             await viewModel.InicializarAsync();
+
+            AplicarPropietarioSeleccionado();
+
             CargarMiniMapa();
+
             SincronizarEntradasCoordenadas(
                 viewModel.Latitud,
                 viewModel.Longitud);
         }
 
-        /*
-         * No se cancela ninguna solicitud en OnDisappearing.
-         *
-         * .NET MAUI ejecuta OnDisappearing también al abrir el selector de mapa,
-         * la galería o una aplicación externa. Cancelar aquí provoca que las
-         * solicitudes HTTP de países, departamentos, municipios o fotografías
-         * terminen con TaskCanceledException aunque el usuario solo esté
-         * seleccionando una ubicación.
-         *
-         * Las solicitudes ya se reemplazan/cancelan de forma controlada dentro
-         * del ViewModel cuando comienza una operación nueva.
-         */
-
-        private void CargarMiniMapa()
+        private void AplicarPropietarioSeleccionado()
         {
-            double lat = viewModel.Latitud ?? 12.1364;
-            double lon = viewModel.Longitud ?? -86.2510;
+            PropietarioResponse? propietario =
+                PropietarioSeleccionService
+                    .Consumir();
 
-            MiniMapaWeb.Source = new HtmlWebViewSource
-            {
-                Html = BuildLeafletHtml(lat, lon)
-            };
-        }
-
-        private void ActualizarMiniMapa(double? lat, double? lon)
-        {
-            if (lat == null || lon == null)
+            if (propietario == null)
                 return;
 
-            string html = BuildLeafletHtml(lat.Value, lon.Value);
+            viewModel.Terreno ??=
+                new TerrenoRequest();
 
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                MiniMapaWeb.Source = new HtmlWebViewSource
+            var propietarioTerreno =
+                new TerrenoPropietarioResponse
                 {
-                    Html = html
+                    PropietarioId =
+                        propietario.PropietarioId,
+                    Identificacion =
+                        propietario.Identificacion,
+                    NombreCompleto =
+                        propietario.NombreCompleto,
+                    Telefono =
+                        propietario.Telefono,
+                    Correo =
+                        propietario.Correo,
+                    Direccion =
+                        propietario.Direccion
                 };
-            });
+
+            viewModel.PropietarioSeleccionado =
+                propietarioTerreno;
         }
 
-        private void SincronizarEntradasCoordenadas(
-            double? lat,
-            double? lon)
+        private async void
+            BtnSeleccionarPropietario_Clicked(
+                object sender,
+                EventArgs e)
         {
-            MainThread.BeginInvokeOnMainThread(() =>
+            if (viewModel.IsReadOnly ||
+                viewModel.IsBusy)
             {
-                LatitudEntry.Text = lat?.ToString(
-                    "0.########",
-                    CultureInfo.InvariantCulture) ?? string.Empty;
-
-                LongitudEntry.Text = lon?.ToString(
-                    "0.########",
-                    CultureInfo.InvariantCulture) ?? string.Empty;
-
-                if (!lat.HasValue || !lon.HasValue)
-                    return;
-
-                string coordenadas =
-                    $"{lat.Value.ToString("0.########", CultureInfo.InvariantCulture)}, " +
-                    $"{lon.Value.ToString("0.########", CultureInfo.InvariantCulture)}";
-
-                // Cuando el usuario está pegando una coordenada se conserva
-                // temporalmente lo que escribe. GPS y selección en mapa sí
-                // actualizan este campo de forma automática.
-                if (CoordenadasEntry.IsFocused)
-                    return;
-
-                actualizandoCoordenadasTexto = true;
-
-                try
-                {
-                    CoordenadasEntry.Text = coordenadas;
-                }
-                finally
-                {
-                    actualizandoCoordenadasTexto = false;
-                }
-            });
-        }
-
-        private async void BtnAbrirEnMaps_Clicked(
-            object sender,
-            EventArgs e)
-        {
-            if (BindingContext is TerrenoFormViewModel vm &&
-                vm.Latitud != null &&
-                vm.Longitud != null)
-            {
-                await vm.AbrirEnGoogleMaps(
-                    vm.Latitud.Value,
-                    vm.Longitud.Value);
+                return;
             }
+
+            if (!ModoSesionService.EsEnLinea)
+            {
+                await AppNotificationService
+                    .ShowWarningAsync(
+                        "La selección de propietarios " +
+                        "requiere conexión a internet.");
+
+                return;
+            }
+
+            /*
+             * TerrenoFormViewModel conserva el estado temporal dentro de
+             * Terreno cuando una pantalla secundaria cubre el formulario.
+             */
+            viewModel.Terreno =
+                CrearEstadoTemporalFormulario();
+
+            PropietarioSeleccionService.Limpiar();
+
+            await Shell.Current.GoToAsync(
+                AppRoutes.Propietarios,
+                true,
+                new Dictionary<string, object>
+                {
+                    ["ModoSeleccion"] = "true"
+                });
         }
 
         private async void BtnGuardar_Clicked(
             object sender,
             EventArgs e)
         {
-            string cedula =
-                FormatearCedula(
-                    IdentificacionEntry.Text);
-
-            if (!CedulaRegex.IsMatch(cedula))
-            {
-                await DisplayAlert(
-                    "Identificación inválida",
-                    "La identificación debe tener el formato 001-080701-1050R.",
-                    "Aceptar");
-
-                IdentificacionEntry.Focus();
-                return;
-            }
-
-            /*
-             * La operación de guardado utiliza siempre el valor normalizado,
-             * aunque Windows no haya podido refrescar visualmente el Entry.
-             */
-            viewModel.IdentificacionPropietarioTerreno = cedula;
-
-            ActualizarIdentificacionVisual(
-                cedula);
-
-            if (viewModel.SaveCommand.CanExecute(null))
-                viewModel.SaveCommand.Execute(null);
-        }
-
-        private void IdentificacionEntry_TextChanged(
-            object sender,
-            TextChangedEventArgs e)
-        {
-            if (actualizandoCedula)
-                return;
-
-            /*
-             * No se modifica Entry.Text ni CursorPosition aquí.
-             *
-             * En Windows, TextChanged se ejecuta mientras el TextBox nativo de
-             * WinUI todavía procesa la pulsación. Cambiar el texto y la selección
-             * dentro de ese mismo evento puede terminar en una COMException.
-             *
-             * Durante la escritura únicamente sincronizamos el valor con el
-             * ViewModel. El formato se aplica al abandonar el campo o al guardar.
-             */
-            viewModel.IdentificacionPropietarioTerreno =
-                e.NewTextValue ?? string.Empty;
-        }
-
-        private void IdentificacionEntry_Unfocused(
-            object? sender,
-            FocusEventArgs e)
-        {
-            string cedulaFormateada =
-                FormatearCedula(
-                    IdentificacionEntry.Text);
-
-            viewModel.IdentificacionPropietarioTerreno =
-                cedulaFormateada;
-
-            ActualizarIdentificacionVisual(
-                cedulaFormateada);
-        }
-
-        /// <summary>
-        /// Actualiza el texto de la identificación fuera de TextChanged.
-        /// No modifica CursorPosition ni SelectionLength.
-        /// </summary>
-        private void ActualizarIdentificacionVisual(
-            string valor)
-        {
-            string textoActual =
-                IdentificacionEntry.Text ??
-                string.Empty;
-
-            if (string.Equals(
-                    textoActual,
-                    valor,
-                    StringComparison.Ordinal))
+            if (viewModel.IsBusy ||
+                viewModel.IsReadOnly)
             {
                 return;
             }
 
-            actualizandoCedula = true;
+            if (!ModoSesionService.EsEnLinea)
+            {
+                await AppNotificationService
+                    .ShowWarningAsync(
+                        "Crear o editar terrenos requiere " +
+                        "conexión a internet.");
+
+                return;
+            }
+
+            string? error = ValidarFormulario();
+
+            if (error != null)
+            {
+                await AppNotificationService
+                    .ShowWarningAsync(error);
+
+                return;
+            }
+
+            bool confirmar =
+                viewModel.Mode ==
+                    FormMode.FormModeSelect.Create
+                    ? await AppNotificationService
+                        .ConfirmSaveAsync(
+                            "el terreno")
+                    : await AppNotificationService
+                        .ConfirmUpdateAsync(
+                            "el terreno");
+
+            if (!confirmar)
+                return;
+
+            viewModel.IsBusy = true;
 
             try
             {
-                IdentificacionEntry.Text =
-                    valor;
+                TerrenoRequest request =
+                    ConstruirRequestNormalizado();
+
+                int terrenoId;
+
+                if (viewModel.Mode ==
+                    FormMode.FormModeSelect.Create)
+                {
+                    ApiResult<TerrenoResponse> resultado =
+                        await terrenoApiService
+                            .CreateTerrenoRetornandoResultAsync(
+                                request);
+
+                    TerrenoResponse? creado =
+                        resultado.Data;
+
+                    if (!resultado.Success ||
+                        creado?.TerrenoId
+                            is null or <= 0)
+                    {
+                        await AppNotificationService
+                            .ShowErrorAsync(
+                                resultado.Message);
+
+                        return;
+                    }
+
+                    terrenoId =
+                        creado.TerrenoId.Value;
+
+                    viewModel.CodigoTerreno =
+                        creado.CodigoTerreno;
+                }
+                else
+                {
+                    if (viewModel.Terreno?.TerrenoId
+                        is null or <= 0)
+                    {
+                        await AppNotificationService
+                            .ShowErrorAsync(
+                                "No se encontró el terreno " +
+                                "que desea actualizar.");
+
+                        return;
+                    }
+
+                    request.TerrenoId =
+                        viewModel.Terreno.TerrenoId;
+
+                    request.CodigoTerreno =
+                        viewModel.Terreno.CodigoTerreno;
+
+                    ApiResult<bool> resultado =
+                        await terrenoApiService
+                            .UpdateTerrenoResultAsync(
+                                request);
+
+                    if (!resultado.Success ||
+                        resultado.Data != true)
+                    {
+                        await AppNotificationService
+                            .ShowErrorAsync(
+                                resultado.Message);
+
+                        return;
+                    }
+
+                    terrenoId =
+                        viewModel.Terreno
+                            .TerrenoId.Value;
+                }
+
+                ApiResult<bool> fotos =
+                    await fotoTerrenoApiService
+                        .SubirFotosResultAsync(
+                            terrenoId,
+                            viewModel.FotosTerreno);
+
+                if (fotos.Success)
+                {
+                    foreach (FotoTerrenoItem foto
+                             in viewModel.FotosTerreno
+                                 .Where(item =>
+                                     item.EsNueva))
+                    {
+                        foto.EsNueva = false;
+                        foto.TerrenoId = terrenoId;
+                    }
+                }
+
+                await Shell.Current.GoToAsync(
+                    AppRoutes.Terrenos);
+
+                if (fotos.Success)
+                {
+                    await AppNotificationService
+                        .ShowSuccessAsync(
+                            viewModel.Mode ==
+                                FormMode.FormModeSelect.Create
+                                ? "Terreno guardado correctamente."
+                                : "Terreno actualizado correctamente.");
+                }
+                else
+                {
+                    await AppNotificationService
+                        .ShowWarningAsync(
+                            "El terreno se guardó, pero no se " +
+                            "pudieron subir todas las fotografías.");
+                }
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
-                /*
-                 * La identificación ya se actualizó en el ViewModel.
-                 * Un fallo visual del control nativo no debe cerrar la app.
-                 */
-                Debug.WriteLine(
-                    "No fue posible actualizar visualmente " +
-                    $"la identificación: {ex}");
+                System.Diagnostics.Debug.WriteLine(ex);
+
+                await AppNotificationService
+                    .ShowErrorAsync(
+                        "Ocurrió un error inesperado al " +
+                        "guardar el terreno.");
             }
             finally
             {
-                actualizandoCedula = false;
+                viewModel.IsBusy = false;
             }
         }
 
-        private static string FormatearCedula(string? valor)
+        private TerrenoRequest CrearEstadoTemporalFormulario()
         {
-            if (string.IsNullOrWhiteSpace(valor))
-                return string.Empty;
-
-            string limpio = new(
-                valor
-                    .ToUpperInvariant()
-                    .Where(char.IsLetterOrDigit)
-                    .ToArray());
-
-            string digitos = new(
-                limpio
-                    .Where(char.IsDigit)
-                    .Take(13)
-                    .ToArray());
-
-            char? letra = limpio
-                .Where(char.IsLetter)
-                .Cast<char?>()
-                .LastOrDefault();
-
-            var resultado = new StringBuilder(16);
-
-            int primerGrupo = Math.Min(3, digitos.Length);
-            resultado.Append(digitos.AsSpan(0, primerGrupo));
-
-            if (digitos.Length >= 3)
-                resultado.Append('-');
-
-            if (digitos.Length > 3)
+            return new TerrenoRequest
             {
-                int segundoGrupo = Math.Min(6, digitos.Length - 3);
-                resultado.Append(digitos.AsSpan(3, segundoGrupo));
+                TerrenoId =
+                    viewModel.Terreno?.TerrenoId,
+
+                CodigoTerreno =
+                    viewModel.Terreno?.CodigoTerreno,
+
+                PropietarioId =
+                    viewModel.PropietarioSeleccionado?
+                        .PropietarioId ??
+                    viewModel.Terreno?.PropietarioId,
+
+                Propietario =
+                    viewModel.PropietarioSeleccionado,
+
+                DireccionTerreno =
+                    viewModel.DireccionTerreno,
+
+                ExtensionManzanaTerreno =
+                    viewModel.ExtensionManzanaTerreno,
+
+                CantidadQuintalesOro =
+                    viewModel.CantidadQuintalesOro,
+
+                CantidadPlantasTerreno =
+                    viewModel.CantidadPlantasTerreno,
+
+                FechaIngresoTerreno =
+                    viewModel.FechaIngresoTerreno,
+
+                MunicipioId =
+                    viewModel
+                        .MunicipioSeleccionado?
+                        .MunicipioId ??
+                    viewModel.Terreno?
+                        .MunicipioId,
+
+                Latitud = viewModel.Latitud,
+                Longitud = viewModel.Longitud
+            };
+        }
+
+        private TerrenoRequest
+            ConstruirRequestNormalizado()
+        {
+            int propietarioId =
+                viewModel.PropietarioSeleccionado?
+                    .PropietarioId ??
+                viewModel.Terreno?
+                    .PropietarioId ??
+                0;
+
+            return new TerrenoRequest
+            {
+                TerrenoId =
+                    viewModel.Terreno?.TerrenoId,
+
+                CodigoTerreno =
+                    viewModel.Mode ==
+                        FormMode.FormModeSelect.Create
+                        ? null
+                        : viewModel.Terreno?
+                            .CodigoTerreno,
+
+                PropietarioId =
+                    propietarioId,
+
+                DireccionTerreno =
+                    viewModel
+                        .DireccionTerreno?
+                        .Trim(),
+
+                ExtensionManzanaTerreno =
+                    viewModel
+                        .ExtensionManzanaTerreno,
+
+                CantidadQuintalesOro =
+                    viewModel
+                        .CantidadQuintalesOro ?? 0,
+
+                CantidadPlantasTerreno =
+                    viewModel
+                        .CantidadPlantasTerreno ?? 0,
+
+                FechaIngresoTerreno =
+                    viewModel.Terreno?
+                        .FechaIngresoTerreno ??
+                    DateOnly.FromDateTime(
+                        DateTime.Today),
+
+                MunicipioId =
+                    viewModel
+                        .MunicipioSeleccionado?
+                        .MunicipioId ??
+                    viewModel.Terreno?
+                        .MunicipioId ??
+                    0,
+
+                Latitud = viewModel.Latitud,
+                Longitud = viewModel.Longitud
+            };
+        }
+
+        private string? ValidarFormulario()
+        {
+            int propietarioId =
+                viewModel.PropietarioSeleccionado?
+                    .PropietarioId ??
+                viewModel.Terreno?.PropietarioId ??
+                0;
+
+            if (propietarioId <= 0)
+            {
+                return
+                    "Debe seleccionar un propietario registrado.";
             }
 
-            if (digitos.Length >= 9)
-                resultado.Append('-');
-
-            if (digitos.Length > 9)
+            if (string.IsNullOrWhiteSpace(
+                    viewModel.DireccionTerreno))
             {
-                int tercerGrupo = Math.Min(4, digitos.Length - 9);
-                resultado.Append(digitos.AsSpan(9, tercerGrupo));
+                return
+                    "La dirección del terreno es obligatoria.";
             }
 
-            if (digitos.Length == 13 && letra.HasValue)
-                resultado.Append(letra.Value);
+            if (viewModel.ExtensionManzanaTerreno
+                is null or <= 0)
+            {
+                return
+                    "La extensión debe ser mayor que cero.";
+            }
 
-            return resultado.ToString();
+            if (viewModel.CantidadQuintalesOro
+                is < 0)
+            {
+                return
+                    "La cantidad de quintales no puede " +
+                    "ser negativa.";
+            }
+
+            if (viewModel.CantidadPlantasTerreno
+                is < 0)
+            {
+                return
+                    "La cantidad de plantas no puede " +
+                    "ser negativa.";
+            }
+
+            int municipioId =
+                viewModel.MunicipioSeleccionado?
+                    .MunicipioId ??
+                viewModel.Terreno?.MunicipioId ??
+                0;
+
+            if (municipioId <= 0)
+                return "Debe seleccionar un municipio.";
+
+            if (!viewModel.Latitud.HasValue ||
+                !viewModel.Longitud.HasValue)
+            {
+                return
+                    "Debe definir la ubicación del terreno.";
+            }
+
+            if (viewModel.Latitud.Value
+                is < -90 or > 90)
+            {
+                return
+                    "La latitud debe estar entre -90 y 90.";
+            }
+
+            if (viewModel.Longitud.Value
+                is < -180 or > 180)
+            {
+                return
+                    "La longitud debe estar entre -180 y 180.";
+            }
+
+            return null;
+        }
+
+        private async void BtnAbrirEnMaps_Clicked(
+            object sender,
+            EventArgs e)
+        {
+            if (viewModel.Latitud.HasValue &&
+                viewModel.Longitud.HasValue)
+            {
+                await viewModel.AbrirEnGoogleMaps(
+                    viewModel.Latitud.Value,
+                    viewModel.Longitud.Value);
+            }
+        }
+
+        private void CargarMiniMapa()
+        {
+            double latitud =
+                viewModel.Latitud ??
+                12.1364;
+
+            double longitud =
+                viewModel.Longitud ??
+                -86.2510;
+
+            MiniMapaWeb.Source =
+                new HtmlWebViewSource
+                {
+                    Html = BuildLeafletHtml(
+                        latitud,
+                        longitud)
+                };
+        }
+
+        private void ActualizarMiniMapa(
+            double? latitud,
+            double? longitud)
+        {
+            if (!latitud.HasValue ||
+                !longitud.HasValue)
+            {
+                return;
+            }
+
+            string html =
+                BuildLeafletHtml(
+                    latitud.Value,
+                    longitud.Value);
+
+            MainThread.BeginInvokeOnMainThread(
+                () =>
+                {
+                    MiniMapaWeb.Source =
+                        new HtmlWebViewSource
+                        {
+                            Html = html
+                        };
+                });
+        }
+
+        private void SincronizarEntradasCoordenadas(
+            double? latitud,
+            double? longitud)
+        {
+            MainThread.BeginInvokeOnMainThread(
+                () =>
+                {
+                    LatitudEntry.Text =
+                        latitud?.ToString(
+                            "0.########",
+                            CultureInfo.InvariantCulture) ??
+                        string.Empty;
+
+                    LongitudEntry.Text =
+                        longitud?.ToString(
+                            "0.########",
+                            CultureInfo.InvariantCulture) ??
+                        string.Empty;
+
+                    if (!latitud.HasValue ||
+                        !longitud.HasValue ||
+                        CoordenadasEntry.IsFocused)
+                    {
+                        return;
+                    }
+
+                    string coordenadas =
+                        latitud.Value.ToString(
+                            "0.########",
+                            CultureInfo.InvariantCulture) +
+                        ", " +
+                        longitud.Value.ToString(
+                            "0.########",
+                            CultureInfo.InvariantCulture);
+
+                    actualizandoCoordenadasTexto =
+                        true;
+
+                    try
+                    {
+                        CoordenadasEntry.Text =
+                            coordenadas;
+                    }
+                    finally
+                    {
+                        actualizandoCoordenadasTexto =
+                            false;
+                    }
+                });
         }
 
         private void DecimalDosDigitos_TextChanged(
             object sender,
             TextChangedEventArgs e)
         {
-            if (actualizandoNumero || sender is not Entry entry)
-                return;
-
-            string textoFiltrado = FiltrarDecimalDosDigitos(e.NewTextValue);
-
-            if (string.Equals(
-                    entry.Text,
-                    textoFiltrado,
-                    StringComparison.Ordinal))
+            if (actualizandoNumero ||
+                sender is not Entry entry)
             {
                 return;
             }
+
+            string filtrado =
+                FiltrarDecimalDosDigitos(
+                    e.NewTextValue);
+
+            if (entry.Text == filtrado)
+                return;
 
             actualizandoNumero = true;
 
             try
             {
-                entry.Text = textoFiltrado;
-                entry.CursorPosition = textoFiltrado.Length;
+                entry.Text = filtrado;
+                entry.CursorPosition =
+                    filtrado.Length;
             }
             finally
             {
@@ -341,35 +634,44 @@ namespace CONATRADEC.Views
             }
         }
 
-        private static string FiltrarDecimalDosDigitos(string? valor)
+        private static string
+            FiltrarDecimalDosDigitos(
+                string? valor)
         {
             if (string.IsNullOrEmpty(valor))
                 return string.Empty;
 
-            string separador = CultureInfo.CurrentCulture
-                .NumberFormat
-                .NumberDecimalSeparator;
+            string separador =
+                CultureInfo.CurrentCulture
+                    .NumberFormat
+                    .NumberDecimalSeparator;
 
-            var resultado = new StringBuilder();
+            var resultado =
+                new StringBuilder();
+
             bool tieneSeparador = false;
-            int cantidadDecimales = 0;
+            int decimales = 0;
 
             foreach (char caracter in valor)
             {
                 if (char.IsDigit(caracter))
                 {
-                    if (tieneSeparador && cantidadDecimales >= 2)
+                    if (tieneSeparador &&
+                        decimales >= 2)
+                    {
                         continue;
+                    }
 
                     resultado.Append(caracter);
 
                     if (tieneSeparador)
-                        cantidadDecimales++;
+                        decimales++;
 
                     continue;
                 }
 
-                if ((caracter == '.' || caracter == ',') &&
+                if ((caracter == '.' ||
+                     caracter == ',') &&
                     !tieneSeparador)
                 {
                     if (resultado.Length == 0)
@@ -387,28 +689,29 @@ namespace CONATRADEC.Views
             object sender,
             TextChangedEventArgs e)
         {
-            if (actualizandoNumero || sender is not Entry entry)
-                return;
-
-            string textoFiltrado = new(
-                (e.NewTextValue ?? string.Empty)
-                    .Where(char.IsDigit)
-                    .ToArray());
-
-            if (string.Equals(
-                    entry.Text,
-                    textoFiltrado,
-                    StringComparison.Ordinal))
+            if (actualizandoNumero ||
+                sender is not Entry entry)
             {
                 return;
             }
+
+            string filtrado =
+                new(
+                    (e.NewTextValue ??
+                     string.Empty)
+                    .Where(char.IsDigit)
+                    .ToArray());
+
+            if (entry.Text == filtrado)
+                return;
 
             actualizandoNumero = true;
 
             try
             {
-                entry.Text = textoFiltrado;
-                entry.CursorPosition = textoFiltrado.Length;
+                entry.Text = filtrado;
+                entry.CursorPosition =
+                    filtrado.Length;
             }
             finally
             {
@@ -423,37 +726,75 @@ namespace CONATRADEC.Views
             if (actualizandoCoordenadasTexto)
                 return;
 
-            viewModel.CoordenadasTexto = e.NewTextValue;
+            viewModel.CoordenadasTexto =
+                e.NewTextValue;
         }
 
-        private string BuildLeafletHtml(double lat, double lon)
+        private static string BuildLeafletHtml(
+            double latitud,
+            double longitud)
         {
-            string latStr = lat.ToString(CultureInfo.InvariantCulture);
-            string lonStr = lon.ToString(CultureInfo.InvariantCulture);
+            string latitudTexto =
+                latitud.ToString(
+                    CultureInfo.InvariantCulture);
 
-            return $@"
-<!DOCTYPE html>
-<html>
-<head>
-<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' />
-<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
-<style>
-html, body {{ margin:0; padding:0; height:100%; }}
-#map {{ width:100%; height:100%; border-radius:10px; }}
-</style>
-</head>
-<body>
-<div id='map'></div>
-<script>
-var map = L.map('map').setView([{latStr}, {lonStr}], 16);
-L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-    maxZoom: 19
-}}).addTo(map);
-var marker = L.marker([{latStr}, {lonStr}]).addTo(map);
-</script>
-</body>
-</html>";
+            string longitudTexto =
+                longitud.ToString(
+                    CultureInfo.InvariantCulture);
+
+            return $$"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta name="viewport"
+                          content="width=device-width,
+                                   initial-scale=1.0">
+
+                    <link rel="stylesheet"
+                          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+                    </script>
+
+                    <style>
+                        html, body
+                        {
+                            margin: 0;
+                            padding: 0;
+                            height: 100%;
+                        }
+
+                        #map
+                        {
+                            width: 100%;
+                            height: 100%;
+                            border-radius: 10px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div id="map"></div>
+
+                    <script>
+                        const map = L.map("map")
+                            .setView(
+                                [{{latitudTexto}}, {{longitudTexto}}],
+                                16);
+
+                        L.tileLayer(
+                            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            {
+                                maxZoom: 19
+                            })
+                            .addTo(map);
+
+                        L.marker(
+                            [{{latitudTexto}}, {{longitudTexto}}])
+                            .addTo(map);
+                    </script>
+                </body>
+                </html>
+                """;
         }
     }
 }

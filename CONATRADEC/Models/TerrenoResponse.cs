@@ -1,125 +1,118 @@
-﻿using System;
-
 namespace CONATRADEC.Models
 {
-    public class TerrenoUbicacionResponse
+    public sealed class TerrenoUbicacionResponse
     {
-        private int? paisId;
-        private string? nombrePais;
-        private int? departamentoId;
-        private string? nombreDepartamento;
-        private int? municipioId;
-        private string? nombreMunicipio;
+        public int? PaisId { get; set; }
+        public string? NombrePais { get; set; }
+        public int? DepartamentoId { get; set; }
+        public string? NombreDepartamento { get; set; }
+        public int? MunicipioId { get; set; }
+        public string? NombreMunicipio { get; set; }
+    }
 
-        public int? PaisId { get => paisId; set => paisId = value; }
-        public string? NombrePais { get => nombrePais; set => nombrePais = value; }
-        public int? DepartamentoId { get => departamentoId; set => departamentoId = value; }
-        public string? NombreDepartamento { get => nombreDepartamento; set => nombreDepartamento = value; }
-        public int? MunicipioId { get => municipioId; set => municipioId = value; }
-        public string? NombreMunicipio { get => nombreMunicipio; set => nombreMunicipio = value; }
+    public sealed class TerrenoPropietarioResponse
+    {
+        public int PropietarioId { get; set; }
 
-        public TerrenoUbicacionResponse() { }
+        public string Identificacion { get; set; } =
+            string.Empty;
+
+        public string NombreCompleto { get; set; } =
+            string.Empty;
+
+        public string? Telefono { get; set; }
+
+        public string? Correo { get; set; }
+
+        public string? Direccion { get; set; }
+
+        public string TextoNombre =>
+            string.IsNullOrWhiteSpace(NombreCompleto)
+                ? "Sin propietario"
+                : NombreCompleto.Trim();
+
+        public string TextoIdentificacion =>
+            string.IsNullOrWhiteSpace(Identificacion)
+                ? "Sin identificación"
+                : Identificacion.Trim();
+
+        public string TextoTelefono =>
+            string.IsNullOrWhiteSpace(Telefono)
+                ? "Sin teléfono"
+                : Telefono.Trim();
+
+        public string TextoCorreo =>
+            string.IsNullOrWhiteSpace(Correo)
+                ? "Sin correo"
+                : Correo.Trim();
     }
 
     public class TerrenoResponse
     {
-        private int? terrenoId;
-        private string? codigoTerreno;
-        private string? identificacionPropietarioTerreno;
-        private string? nombrePropietarioTerreno;
-        private int? telefonoPropietario;
-        private string? correoPropietario;
-        private string? direccionTerreno;
-        private decimal? extensionManzanaTerreno;
-        private DateOnly? fechaIngresoTerreno;
-        private int? municipioId;
-        private decimal? cantidadQuintalesOro;
-        private int? cantidadPlantasTerreno;
-        private double? latitud;
-        private double? longitud;
-        private bool? activo;
-        private TerrenoUbicacionResponse? ubicacion;
+        public int? TerrenoId { get; set; }
 
-        public int? TerrenoId { get => terrenoId; set => terrenoId = value; }
+        public string? CodigoTerreno { get; set; }
 
-        public string? CodigoTerreno { get => codigoTerreno; set => codigoTerreno = value; }
+        public int? PropietarioId { get; set; }
 
-        public string? IdentificacionPropietarioTerreno { get => identificacionPropietarioTerreno; set => identificacionPropietarioTerreno = value; }
-
-        public string? NombrePropietarioTerreno { get => nombrePropietarioTerreno; set => nombrePropietarioTerreno = value; }
-
-        public int? TelefonoPropietario { get => telefonoPropietario; set => telefonoPropietario = value; }
-
-        public string? CorreoPropietario { get => correoPropietario; set => correoPropietario = value; }
-
-        public string? DireccionTerreno { get => direccionTerreno; set => direccionTerreno = value; }
-
-        public decimal? ExtensionManzanaTerreno { get => extensionManzanaTerreno; set => extensionManzanaTerreno = value; }
-
-        public DateOnly? FechaIngresoTerreno { get => fechaIngresoTerreno; set => fechaIngresoTerreno = value; }
-
-        public int? MunicipioId { get => municipioId; set => municipioId = value; }
-
-        public decimal? CantidadQuintalesOro { get => cantidadQuintalesOro; set => cantidadQuintalesOro = value; }
-
-        public int? CantidadPlantasTerreno { get => cantidadPlantasTerreno; set => cantidadPlantasTerreno = value; }
-
-        public double? Latitud { get => latitud; set => latitud = value; }
-
-        public double? Longitud { get => longitud; set => longitud = value; }
-
-        public bool? Activo { get => activo; set => activo = value; }
-
-        public TerrenoUbicacionResponse? Ubicacion { get => ubicacion; set => ubicacion = value; }
-
-        // ===========================================================
-        // ========== PROPIEDADES AUXILIARES PARA NUEVO ANÁLISIS =====
-        // ===========================================================
-
-        public string? NombreCliente
+        public TerrenoPropietarioResponse? Propietario
         {
-            get
-            {
-                if (!string.IsNullOrWhiteSpace(NombrePropietarioTerreno))
-                    return NombrePropietarioTerreno;
-
-                return "Cliente no definido";
-            }
+            get;
+            set;
         }
 
-        public string? NombreTerreno
+        public string? DireccionTerreno { get; set; }
+
+        public decimal? ExtensionManzanaTerreno { get; set; }
+
+        public DateOnly? FechaIngresoTerreno { get; set; }
+
+        public int? MunicipioId { get; set; }
+
+        public decimal? CantidadQuintalesOro { get; set; }
+
+        public int? CantidadPlantasTerreno { get; set; }
+
+        public double? Latitud { get; set; }
+
+        public double? Longitud { get; set; }
+
+        public bool? Activo { get; set; }
+
+        public TerrenoUbicacionResponse? Ubicacion { get; set; }
+
+        public string NombreCliente =>
+            Propietario?.TextoNombre ??
+            "Sin propietario";
+
+        public string NombreTerreno
         {
             get
             {
-                if (!string.IsNullOrWhiteSpace(DireccionTerreno))
+                if (!string.IsNullOrWhiteSpace(
+                        DireccionTerreno))
+                {
                     return DireccionTerreno;
+                }
 
-                if (!string.IsNullOrWhiteSpace(CodigoTerreno))
+                if (!string.IsNullOrWhiteSpace(
+                        CodigoTerreno))
+                {
                     return CodigoTerreno;
+                }
 
                 return "Terreno sin nombre";
             }
         }
 
-        public decimal? TamanoFinca
-        {
-            get
-            {
-                return ExtensionManzanaTerreno;
-            }
-        }
+        public decimal? TamanoFinca =>
+            ExtensionManzanaTerreno;
 
-        public string? TextoUbicacion
-        {
-            get
-            {
-                if (Ubicacion == null)
-                    return string.Empty;
-
-                return $"{Ubicacion.NombreMunicipio}, {Ubicacion.NombreDepartamento}, {Ubicacion.NombrePais}";
-            }
-        }
-
-        public TerrenoResponse() { }
+        public string TextoUbicacion =>
+            Ubicacion is null
+                ? string.Empty
+                : $"{Ubicacion.NombreMunicipio}, " +
+                  $"{Ubicacion.NombreDepartamento}, " +
+                  $"{Ubicacion.NombrePais}";
     }
 }

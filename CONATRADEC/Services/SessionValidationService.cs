@@ -1,13 +1,22 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
 {
     /// <summary>
     /// Comprueba periódicamente que el token, el usuario, el rol y los permisos
     /// continúen vigentes. Una falla de red nunca cierra la sesión.
+    ///
+    /// El cierre automático también se encarga de recuperar visualmente la
+    /// ventana y reconstruir el Shell cuando una navegación al Login falla.
     /// </summary>
     public sealed class SessionValidationService
     {
@@ -34,9 +43,10 @@ namespace CONATRADEC.Services
             if (!TryGetUsuarioId(out int usuarioId))
                 return;
 
-            int version = Preferences.Get(
-                SessionKeys.KeySessionVersion,
-                0);
+            int version =
+                Preferences.Get(
+                    SessionKeys.KeySessionVersion,
+                    0);
 
             /*
              * Una sesión creada antes de implementar el control de versión
@@ -110,16 +120,16 @@ namespace CONATRADEC.Services
                         ? RazonCierreSesion.CambioPermisos
                         : RazonCierreSesion.SeguridadVencida;
 
-            _ = FinalizarSesionAsync(
-                razon);
+            _ = FinalizarSesionAsync(razon);
         }
 
         private async Task EjecutarAsync(
             CancellationToken cancellationToken)
         {
             // Máximo aproximado de treinta segundos estando la app abierta.
-            using var timer = new PeriodicTimer(
-                TimeSpan.FromSeconds(30));
+            using var timer =
+                new PeriodicTimer(
+                    TimeSpan.FromSeconds(30));
 
             try
             {
@@ -197,16 +207,8 @@ namespace CONATRADEC.Services
             PermissionService.Instance.Load(
                 new List<UserPermissionDTO>());
 
-            await MainThread.InvokeOnMainThreadAsync(
-                async () =>
-                {
-                    if (Shell.Current != null)
-                    {
-                        await Shell.Current.GoToAsync(
-                            AppRoutes.Login,
-                            false);
-                    }
-                });
+            await NavegarAlLoginConRecuperacionAsync(
+                mensaje: null);
         }
 
         private async Task FinalizarSesionAsync(
@@ -222,8 +224,8 @@ namespace CONATRADEC.Services
             try
             {
                 /*
-                 * Evita mostrar una advertencia atrasada después de que el usuario
-                 * ya cerró sesión manualmente.
+                 * Evita mostrar una advertencia atrasada después de que el
+                 * usuario ya cerró sesión manualmente.
                  */
                 if (!TryGetUsuarioId(out _))
                     return;
@@ -238,8 +240,8 @@ namespace CONATRADEC.Services
 
                 /*
                  * Los cambios de rol o permisos exigen credenciales reales.
-                 * La inactividad y la expiración conservan "Recordarme" y permiten
-                 * volver a autenticar con contraseña guardada o biometría.
+                 * La inactividad y la expiración conservan "Recordarme" y
+                 * permiten volver a autenticar con contraseña o biometría.
                  */
                 LimpiarDatosLocales(
                     limpiarCredencialesRecordadas:
@@ -262,19 +264,22 @@ namespace CONATRADEC.Services
                             "Su rol o sus permisos cambiaron. Inicie sesión nuevamente."
                     };
 
-                await MainThread.InvokeOnMainThreadAsync(
-                    async () =>
-                    {
-                        await GlobalService.MostrarToastAsync(
-                            mensaje);
-
-                        if (Shell.Current != null)
-                        {
-                            await Shell.Current.GoToAsync(
-                                AppRoutes.Login,
-                                false);
-                        }
-                    });
+                /*
+                 * Primero se navega al Login y después se muestra el mensaje.
+                 * Snackbar.Show espera varios segundos; mostrarlo antes podía
+                 * dejar la ventana todavía en la pantalla anterior mientras la
+                 * sesión ya había sido eliminada.
+                 */
+                await NavegarAlLoginConRecuperacionAsync(
+                    mensaje);
+            }
+            catch
+            {
+                /*
+                 * La sesión ya quedó invalidada. Se realiza un último intento
+                 * visual para no dejar el proceso vivo con una ventana perdida.
+                 */
+                await IntentarReconstruirShellAsync();
             }
             finally
             {
@@ -284,12 +289,164 @@ namespace CONATRADEC.Services
             }
         }
 
+        private static async Task
+            NavegarAlLoginConRecuperacionAsync(
+                string? mensaje)
+        {
+            await MainThread.InvokeOnMainThreadAsync(
+                async () =>
+                {
+                    bool navego = false;
+
+                    Shell? shellActual =
+                        Shell.Current;
+
+                    if (shellActual != null)
+                    {
+                        navego =
+                            await IntentarNavegarAsync(
+                                shellActual);
+                    }
+
+                    if (!navego)
+                    {
+                        await ReconstruirShellEnVentanaAsync();
+                    }
+
+                    ActivarVentanaPrincipal();
+
+                    if (!string.IsNullOrWhiteSpace(mensaje))
+                    {
+                        /*
+                         * No se espera la duración completa del Snackbar.
+                         * El cierre ya terminó y la pantalla de Login está lista.
+                         */
+                        _ = GlobalService.MostrarToastAsync(
+                            mensaje);
+                    }
+                });
+        }
+
+        private static async Task<bool>
+            IntentarNavegarAsync(
+                Shell shell)
+        {
+            for (int intento = 0;
+                 intento < 2;
+                 intento++)
+            {
+                try
+                {
+                    await shell.GoToAsync(
+                        AppRoutes.Login,
+                        false);
+
+                    return true;
+                }
+                catch when (intento == 0)
+                {
+                    /*
+                     * Shell puede estar terminando una navegación anterior.
+                     * Se concede un instante y se intenta una vez más.
+                     */
+                    await Task.Delay(150);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        private static async Task
+            ReconstruirShellEnVentanaAsync()
+        {
+            var nuevoShell =
+                new global::CONATRADEC.AppShell();
+
+            Application? aplicacion =
+                Application.Current;
+
+            Window? ventana =
+                aplicacion?
+                    .Windows
+                    .FirstOrDefault();
+
+            if (ventana != null)
+            {
+                ventana.Page = nuevoShell;
+            }
+            else if (aplicacion != null)
+            {
+#pragma warning disable CS0618
+                aplicacion.MainPage = nuevoShell;
+#pragma warning restore CS0618
+            }
+
+            /*
+             * LoginPage es el primer ShellContent, pero se navega de forma
+             * explícita para limpiar cualquier ruta residual.
+             */
+            await nuevoShell.GoToAsync(
+                AppRoutes.Login,
+                false);
+        }
+
+        private static async Task
+            IntentarReconstruirShellAsync()
+        {
+            try
+            {
+                await MainThread.InvokeOnMainThreadAsync(
+                    async () =>
+                    {
+                        await ReconstruirShellEnVentanaAsync();
+                        ActivarVentanaPrincipal();
+                    });
+            }
+            catch
+            {
+                /*
+                 * Nunca se propaga una segunda excepción desde el proceso de
+                 * recuperación del cierre de sesión.
+                 */
+            }
+        }
+
+        private static void ActivarVentanaPrincipal()
+        {
+#if WINDOWS
+            try
+            {
+                Window? ventanaMaui =
+                    Application.Current?
+                        .Windows
+                        .FirstOrDefault();
+
+                if (ventanaMaui?
+                        .Handler?
+                        .PlatformView
+                    is Microsoft.UI.Xaml.Window ventanaNativa)
+                {
+                    ventanaNativa.Activate();
+                }
+            }
+            catch
+            {
+                // La activación visual no debe impedir el cierre de sesión.
+            }
+#endif
+        }
+
         private static bool TryGetUsuarioId(
             out int usuarioId)
         {
-            string texto = Preferences.Get(
-                SessionKeys.KeyUserId,
-                string.Empty);
+            string texto =
+                Preferences.Get(
+                    SessionKeys.KeyUserId,
+                    string.Empty);
 
             return int.TryParse(
                        texto,

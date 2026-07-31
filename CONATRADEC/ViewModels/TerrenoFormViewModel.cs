@@ -22,17 +22,6 @@ namespace CONATRADEC.ViewModels
     [QueryProperty(nameof(Terreno), "Terreno")]
     public class TerrenoFormViewModel : GlobalService
     {
-        private static readonly Regex CedulaRegex = new(
-            @"^\d{3}-\d{6}-\d{4}[A-Z]$",
-            RegexOptions.Compiled |
-            RegexOptions.CultureInvariant |
-            RegexOptions.IgnoreCase);
-
-        private static readonly Regex CorreoRegex = new(
-            @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$",
-            RegexOptions.Compiled |
-            RegexOptions.CultureInvariant);
-
         private readonly TerrenoApiService terrenoApiService = new();
         private readonly PaisApiService paisApiService = new();
         private readonly DepartamentoApiService departamentoApiService = new();
@@ -54,10 +43,8 @@ namespace CONATRADEC.ViewModels
         private int? fotosCargadasTerrenoId;
 
         private string? codigoTerreno;
-        private string? identificacionPropietarioTerreno;
-        private string? nombrePropietarioTerreno;
-        private string? telefonoPropietarioTexto;
-        private string? correoPropietario;
+        private TerrenoPropietarioResponse? propietarioSeleccionado;
+        private int? propietarioOriginalId;
         private string? direccionTerreno;
         private decimal? extensionManzanaTerreno;
         private decimal? cantidadQuintalesOro;
@@ -176,19 +163,18 @@ namespace CONATRADEC.ViewModels
                 terreno = value;
 
                 if (terrenoAnteriorId != terrenoNuevoId)
+                {
+                    propietarioOriginalId =
+                        value?.Propietario?.PropietarioId ??
+                        value?.PropietarioId;
+
                     LimpiarFotosTerreno();
+                }
 
                 if (value != null)
                 {
                     CodigoTerreno = value.CodigoTerreno ?? string.Empty;
-                    IdentificacionPropietarioTerreno =
-                        value.IdentificacionPropietarioTerreno ?? string.Empty;
-                    NombrePropietarioTerreno =
-                        value.NombrePropietarioTerreno ?? string.Empty;
-                    TelefonoPropietarioTexto =
-                        value.TelefonoPropietario?.ToString(
-                            CultureInfo.InvariantCulture) ?? string.Empty;
-                    CorreoPropietario = value.CorreoPropietario ?? string.Empty;
+                    PropietarioSeleccionado = value.Propietario;
                     DireccionTerreno = value.DireccionTerreno ?? string.Empty;
                     ExtensionManzanaTerreno = value.ExtensionManzanaTerreno;
                     CantidadQuintalesOro = value.CantidadQuintalesOro;
@@ -258,29 +244,59 @@ namespace CONATRADEC.ViewModels
             set => AsignarCampo(ref codigoTerreno, value);
         }
 
-        public string? IdentificacionPropietarioTerreno
+        public TerrenoPropietarioResponse? PropietarioSeleccionado
         {
-            get => identificacionPropietarioTerreno;
-            set => AsignarCampo(ref identificacionPropietarioTerreno, value);
+            get => propietarioSeleccionado;
+            set
+            {
+                if (ReferenceEquals(
+                        propietarioSeleccionado,
+                        value))
+                {
+                    return;
+                }
+
+                propietarioSeleccionado = value;
+
+                if (Terreno is not null && value is not null)
+                {
+                    Terreno.PropietarioId =
+                        value.PropietarioId;
+                    Terreno.Propietario = value;
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(
+                    nameof(PropietarioIdentificacion));
+                OnPropertyChanged(
+                    nameof(PropietarioNombre));
+                OnPropertyChanged(
+                    nameof(PropietarioTelefono));
+                OnPropertyChanged(
+                    nameof(PropietarioCorreo));
+                OnPropertyChanged(
+                    nameof(TienePropietarioSeleccionado));
+            }
         }
 
-        public string? NombrePropietarioTerreno
-        {
-            get => nombrePropietarioTerreno;
-            set => AsignarCampo(ref nombrePropietarioTerreno, value);
-        }
+        public bool TienePropietarioSeleccionado =>
+            PropietarioSeleccionado?.PropietarioId > 0;
 
-        public string? TelefonoPropietarioTexto
-        {
-            get => telefonoPropietarioTexto;
-            set => AsignarCampo(ref telefonoPropietarioTexto, value);
-        }
+        public string PropietarioIdentificacion =>
+            PropietarioSeleccionado?.TextoIdentificacion ??
+            "No seleccionado";
 
-        public string? CorreoPropietario
-        {
-            get => correoPropietario;
-            set => AsignarCampo(ref correoPropietario, value);
-        }
+        public string PropietarioNombre =>
+            PropietarioSeleccionado?.TextoNombre ??
+            "Seleccione un propietario";
+
+        public string PropietarioTelefono =>
+            PropietarioSeleccionado?.TextoTelefono ??
+            "Sin teléfono";
+
+        public string PropietarioCorreo =>
+            PropietarioSeleccionado?.TextoCorreo ??
+            "Sin correo";
 
         public string? DireccionTerreno
         {
@@ -1385,28 +1401,17 @@ namespace CONATRADEC.ViewModels
             return new TerrenoRequest
             {
                 // En creación queda vacío: el backend genera el código.
-                // En edición se conserva únicamente por compatibilidad;
-                // el backend nunca permite modificarlo.
+                // En edición se conserva como dato inmutable.
                 CodigoTerreno = Mode == FormMode.FormModeSelect.Create
                     ? null
                     : Terreno?.CodigoTerreno,
-                IdentificacionPropietarioTerreno =
-                    IdentificacionPropietarioTerreno?
-                        .Trim()
-                        .ToUpperInvariant(),
-                NombrePropietarioTerreno =
-                    NombrePropietarioTerreno?.Trim(),
-                TelefonoPropietario =
-                    ParseTelefono(TelefonoPropietarioTexto),
-                CorreoPropietario =
-                    string.IsNullOrWhiteSpace(CorreoPropietario)
-                        ? null
-                        : CorreoPropietario.Trim(),
+                PropietarioId =
+                    PropietarioSeleccionado?.PropietarioId ??
+                    Terreno?.PropietarioId,
                 DireccionTerreno = DireccionTerreno?.Trim(),
                 ExtensionManzanaTerreno = ExtensionManzanaTerreno,
                 CantidadQuintalesOro = CantidadQuintalesOro ?? 0,
                 CantidadPlantasTerreno = CantidadPlantasTerreno ?? 0,
-                // Se envía solo por compatibilidad con clientes existentes.
                 // La API asigna la fecha real al crear y la conserva al editar.
                 FechaIngresoTerreno = Terreno?.FechaIngresoTerreno ??
                     DateOnly.FromDateTime(DateTime.Today),
@@ -1424,12 +1429,11 @@ namespace CONATRADEC.ViewModels
                 Mode == FormMode.FormModeSelect.Create
                     ? null
                     : Terreno?.CodigoTerreno;
-            destino.IdentificacionPropietarioTerreno =
-                IdentificacionPropietarioTerreno;
-            destino.NombrePropietarioTerreno = NombrePropietarioTerreno;
-            destino.TelefonoPropietario =
-                ParseTelefono(TelefonoPropietarioTexto);
-            destino.CorreoPropietario = CorreoPropietario;
+            destino.PropietarioId =
+                PropietarioSeleccionado?.PropietarioId ??
+                Terreno?.PropietarioId;
+            destino.Propietario =
+                PropietarioSeleccionado;
             destino.DireccionTerreno = DireccionTerreno;
             destino.ExtensionManzanaTerreno = ExtensionManzanaTerreno;
             destino.CantidadQuintalesOro = CantidadQuintalesOro;
@@ -1444,22 +1448,11 @@ namespace CONATRADEC.ViewModels
 
         private bool ValidateFieldsData()
         {
-            string cedula =
-                IdentificacionPropietarioTerreno?
-                    .Trim()
-                    .ToUpperInvariant() ?? string.Empty;
-
-            if (!CedulaRegex.IsMatch(cedula))
+            if (PropietarioSeleccionado?.PropietarioId
+                is null or <= 0)
             {
                 MostrarValidacion(
-                    "La identificación debe tener el formato 001-080701-1050R.");
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(NombrePropietarioTerreno))
-            {
-                MostrarValidacion(
-                    "El nombre del propietario es obligatorio.");
+                    "Debe seleccionar un propietario registrado.");
                 return false;
             }
 
@@ -1467,22 +1460,6 @@ namespace CONATRADEC.ViewModels
             {
                 MostrarValidacion(
                     "La dirección del terreno es obligatoria.");
-                return false;
-            }
-
-            if (!string.IsNullOrWhiteSpace(CorreoPropietario) &&
-                !CorreoRegex.IsMatch(CorreoPropietario.Trim()))
-            {
-                MostrarValidacion(
-                    "El correo del propietario no tiene un formato válido.");
-                return false;
-            }
-
-            if (!string.IsNullOrWhiteSpace(TelefonoPropietarioTexto) &&
-                !TelefonoPropietarioTexto.All(char.IsDigit))
-            {
-                MostrarValidacion(
-                    "El teléfono solo debe contener números.");
                 return false;
             }
 
@@ -1579,13 +1556,7 @@ namespace CONATRADEC.ViewModels
 
             if (Terreno == null || Terreno.TerrenoId is null or <= 0)
             {
-                return !string.IsNullOrWhiteSpace(
-                           IdentificacionPropietarioTerreno) ||
-                       !string.IsNullOrWhiteSpace(
-                           NombrePropietarioTerreno) ||
-                       !string.IsNullOrWhiteSpace(
-                           TelefonoPropietarioTexto) ||
-                       !string.IsNullOrWhiteSpace(CorreoPropietario) ||
+                return TienePropietarioSeleccionado ||
                        !string.IsNullOrWhiteSpace(DireccionTerreno) ||
                        ExtensionManzanaTerreno.HasValue ||
                        CantidadQuintalesOro.HasValue ||
@@ -1598,21 +1569,9 @@ namespace CONATRADEC.ViewModels
                        FotosTerreno.Any(f => f.EsNueva);
             }
 
-            return !string.Equals(
-                       IdentificacionPropietarioTerreno,
-                       Terreno.IdentificacionPropietarioTerreno,
-                       StringComparison.Ordinal) ||
-                   !string.Equals(
-                       NombrePropietarioTerreno,
-                       Terreno.NombrePropietarioTerreno,
-                       StringComparison.Ordinal) ||
-                   TelefonoPropietarioTexto !=
-                       Terreno.TelefonoPropietario?.ToString(
-                           CultureInfo.InvariantCulture) ||
-                   !string.Equals(
-                       CorreoPropietario,
-                       Terreno.CorreoPropietario,
-                       StringComparison.Ordinal) ||
+            return (PropietarioSeleccionado?.PropietarioId ??
+                       Terreno.PropietarioId) !=
+                       propietarioOriginalId ||
                    !string.Equals(
                        DireccionTerreno,
                        Terreno.DireccionTerreno,
@@ -1749,20 +1708,6 @@ namespace CONATRADEC.ViewModels
 
             return int.TryParse(
                 texto,
-                NumberStyles.None,
-                CultureInfo.InvariantCulture,
-                out int valor)
-                    ? valor
-                    : null;
-        }
-
-        private static int? ParseTelefono(string? telefono)
-        {
-            if (string.IsNullOrWhiteSpace(telefono))
-                return null;
-
-            return int.TryParse(
-                telefono,
                 NumberStyles.None,
                 CultureInfo.InvariantCulture,
                 out int valor)

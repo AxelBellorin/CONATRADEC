@@ -1,9 +1,25 @@
 using CONATRADEC.Views;
+using Microsoft.Maui.Controls;
 
 namespace CONATRADEC.Services
 {
     public static class AppRoutes
     {
+        /*
+         * Las rutas de propietarios son dinámicas.
+         * El constructor estático garantiza su registro antes de navegar.
+         */
+        static AppRoutes()
+        {
+            Routing.RegisterRoute(
+                Propietarios,
+                typeof(propietariosPage));
+
+            Routing.RegisterRoute(
+                PropietarioFormulario,
+                typeof(propietarioFormPage));
+        }
+
         public const string Login =
             "//LoginPage";
 
@@ -114,7 +130,6 @@ namespace CONATRADEC.Services
         public const string BitacoraDetalle =
             nameof(bitacoraDetallePage);
 
-        // Centro de noticias e intereses.
         public const string Noticias =
             nameof(noticiasPage);
 
@@ -127,7 +142,6 @@ namespace CONATRADEC.Services
         public const string PublicacionFormulario =
             nameof(publicacionFormPage);
 
-        // Catálogo de tipos de publicación.
         public const string CategoriasPublicacion =
             nameof(categoriaPublicacionPage);
 
@@ -136,13 +150,22 @@ namespace CONATRADEC.Services
                 nameof(
                     categoriaPublicacionFormPage);
 
-        // Administración de unidades y conversiones.
         public const string ConfiguracionUnidades =
             nameof(configuracionUnidadesPage);
 
-        // Descarga e instalación de nuevas versiones de la aplicación.
         public const string ActualizacionAplicacion =
             nameof(ActualizacionAplicacionPage);
+
+        /*
+         * Nuevas rutas.
+         * Son static readonly para forzar la inicialización de la clase
+         * y registrar las páginas antes de usarlas.
+         */
+        public static readonly string Propietarios =
+            nameof(propietariosPage);
+
+        public static readonly string PropietarioFormulario =
+            nameof(propietarioFormPage);
 
         public const string Regresar =
             "..";

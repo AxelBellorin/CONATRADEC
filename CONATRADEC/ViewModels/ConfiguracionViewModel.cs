@@ -7,25 +7,19 @@ using System.Threading;
 namespace CONATRADEC.ViewModels
 {
     /// <summary>
-    /// Catálogo optimizado de opciones de configuración.
-    /// Incluye el acceso administrativo a unidades, conversiones y al centro
-    /// de actualizaciones de la aplicación.
+    /// Catálogo de configuración filtrado por permisos.
     /// </summary>
     public sealed class ConfiguracionViewModel :
         GlobalService
     {
         private readonly IReadOnlyList<
-            ConfiguracionCategoria>
-            catalogoCompleto;
+            ConfiguracionCategoria> catalogoCompleto;
 
-        private CancellationTokenSource?
-            filtroCts;
+        private CancellationTokenSource? filtroCts;
 
         private IReadOnlyList<
-            ConfiguracionGrupoVisual>
-            gruposVisibles =
-                Array.Empty<
-                    ConfiguracionGrupoVisual>();
+            ConfiguracionGrupoVisual> gruposVisibles =
+                Array.Empty<ConfiguracionGrupoVisual>();
 
         private string textoBusqueda =
             string.Empty;
@@ -36,23 +30,19 @@ namespace CONATRADEC.ViewModels
 
         public ConfiguracionViewModel()
         {
-            catalogoCompleto =
-                CrearCatalogo();
+            catalogoCompleto = CrearCatalogo();
 
             AbrirOpcionCommand =
-                new Command<
-                    ConfiguracionOpcion>(
-                        async opcion =>
-                            await AbrirOpcionAsync(
-                                opcion),
-                        opcion =>
-                            opcion != null &&
-                            !Navegando);
+                new Command<ConfiguracionOpcion>(
+                    async opcion =>
+                        await AbrirOpcionAsync(opcion),
+                    opcion =>
+                        opcion != null &&
+                        !Navegando);
         }
 
         public IReadOnlyList<
-            ConfiguracionGrupoVisual>
-            GruposVisibles
+            ConfiguracionGrupoVisual> GruposVisibles
         {
             get => gruposVisibles;
             private set
@@ -64,9 +54,7 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                gruposVisibles =
-                    value;
-
+                gruposVisibles = value;
                 OnPropertyChanged();
             }
         }
@@ -79,21 +67,14 @@ namespace CONATRADEC.ViewModels
             get => textoBusqueda;
             set
             {
-                string nuevoValor =
-                    value ??
-                    string.Empty;
+                string nuevo =
+                    value ?? string.Empty;
 
-                if (textoBusqueda ==
-                    nuevoValor)
-                {
+                if (textoBusqueda == nuevo)
                     return;
-                }
 
-                textoBusqueda =
-                    nuevoValor;
-
+                textoBusqueda = nuevo;
                 OnPropertyChanged();
-
                 ProgramarFiltro();
             }
         }
@@ -107,7 +88,6 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 navegando = value;
-
                 OnPropertyChanged();
 
                 AbrirOpcionCommand
@@ -131,25 +111,23 @@ namespace CONATRADEC.ViewModels
 
         public void CancelarBusqueda()
         {
-            CancellationTokenSource?
-                source =
-                    Interlocked.Exchange(
-                        ref filtroCts,
-                        null);
+            CancellationTokenSource? source =
+                Interlocked.Exchange(
+                    ref filtroCts,
+                    null);
 
             CancelarSeguro(source);
         }
 
         private void ProgramarFiltro()
         {
-            CancellationTokenSource
-                source = new();
+            var source =
+                new CancellationTokenSource();
 
-            CancellationTokenSource?
-                anterior =
-                    Interlocked.Exchange(
-                        ref filtroCts,
-                        source);
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref filtroCts,
+                    source);
 
             CancelarSeguro(anterior);
 
@@ -157,20 +135,19 @@ namespace CONATRADEC.ViewModels
                 source);
         }
 
-        private async Task
-            AplicarFiltroConEsperaAsync(
-                CancellationTokenSource source)
+        private async Task AplicarFiltroConEsperaAsync(
+            CancellationTokenSource source)
         {
             try
             {
                 await Task.Delay(
-                    TimeSpan.FromMilliseconds(
-                        250),
+                    TimeSpan.FromMilliseconds(250),
                     source.Token);
 
-                if (source
-                        .IsCancellationRequested ||
-                    !EsFiltroActual(source))
+                if (source.IsCancellationRequested ||
+                    !ReferenceEquals(
+                        Volatile.Read(ref filtroCts),
+                        source))
                 {
                     return;
                 }
@@ -181,11 +158,9 @@ namespace CONATRADEC.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Una nueva tecla sustituyó la búsqueda.
             }
             catch (ObjectDisposedException)
             {
-                // La página se cerró antes de finalizar.
             }
             finally
             {
@@ -203,78 +178,48 @@ namespace CONATRADEC.ViewModels
             string filtro =
                 TextoBusqueda.Trim();
 
-            List<ConfiguracionGrupoVisual>
-                grupos = new(
-                    catalogoCompleto.Count);
+            var grupos =
+                new List<ConfiguracionGrupoVisual>();
 
-            int totalOpciones = 0;
+            int total = 0;
 
-            foreach (
-                ConfiguracionCategoria categoria
-                in catalogoCompleto
-                    .OrderBy(x => x.Orden))
+            foreach (ConfiguracionCategoria categoria
+                     in catalogoCompleto
+                         .OrderBy(item => item.Orden))
             {
                 bool coincideCategoria =
-                    string.IsNullOrWhiteSpace(
-                        filtro) ||
-                    categoria.TextoBusqueda
-                        .Contains(
-                            filtro,
-                            StringComparison
-                                .OrdinalIgnoreCase);
+                    string.IsNullOrWhiteSpace(filtro) ||
+                    categoria.TextoBusqueda.Contains(
+                        filtro,
+                        StringComparison.OrdinalIgnoreCase);
 
-                List<ConfiguracionOpcion>
-                    opciones = new(
-                        categoria
-                            .Opciones
-                            .Count);
-
-                foreach (
-                    ConfiguracionOpcion opcion
-                    in categoria.Opciones
-                        .OrderBy(x => x.Orden))
-                {
-                    if (!PermissionService
-                            .Instance
-                            .HasRead(
-                                opcion
-                                    .Interfaz))
-                    {
-                        continue;
-                    }
-
-                    bool coincide =
-                        coincideCategoria ||
-                        opcion.TextoBusqueda
-                            .Contains(
+                List<ConfiguracionOpcion> opciones =
+                    categoria.Opciones
+                        .OrderBy(item => item.Orden)
+                        .Where(item =>
+                            PermissionService.Instance
+                                .HasRead(item.Interfaz))
+                        .Where(item =>
+                            coincideCategoria ||
+                            item.TextoBusqueda.Contains(
                                 filtro,
-                                StringComparison
-                                    .OrdinalIgnoreCase);
-
-                    if (coincide)
-                        opciones.Add(opcion);
-                }
+                                StringComparison.OrdinalIgnoreCase))
+                        .ToList();
 
                 if (opciones.Count == 0)
                     continue;
 
-                totalOpciones +=
-                    opciones.Count;
+                total += opciones.Count;
 
                 grupos.Add(
-                    new
-                        ConfiguracionGrupoVisual(
-                            categoria.Titulo,
-                            categoria
-                                .Descripcion,
-                            opciones));
+                    new ConfiguracionGrupoVisual(
+                        categoria.Titulo,
+                        categoria.Descripcion,
+                        opciones));
             }
 
-            GruposVisibles =
-                grupos;
-
-            cantidadOpciones =
-                totalOpciones;
+            GruposVisibles = grupos;
+            cantidadOpciones = total;
 
             OnPropertyChanged(
                 nameof(MostrarSinOpciones));
@@ -286,20 +231,16 @@ namespace CONATRADEC.ViewModels
         private async Task AbrirOpcionAsync(
             ConfiguracionOpcion? opcion)
         {
-            if (opcion == null ||
-                Navegando)
-            {
+            if (opcion == null || Navegando)
                 return;
-            }
 
-            if (!PermissionService
-                    .Instance
-                    .HasRead(
-                        opcion.Interfaz))
+            if (!PermissionService.Instance
+                    .HasRead(opcion.Interfaz))
             {
                 await MostrarAdvertenciaAsync(
                     "No tiene permiso para consultar " +
-                    $"{opcion.Titulo.ToLowerInvariant()}.");
+                    opcion.Titulo.ToLowerInvariant() +
+                    ".");
 
                 ActualizarOpciones();
                 return;
@@ -318,8 +259,7 @@ namespace CONATRADEC.ViewModels
             {
                 await MostrarErrorInesperadoAsync(
                     "abrir " +
-                    opcion.Titulo
-                        .ToLowerInvariant(),
+                    opcion.Titulo.ToLowerInvariant(),
                     ex);
             }
             finally
@@ -327,13 +267,6 @@ namespace CONATRADEC.ViewModels
                 Navegando = false;
             }
         }
-
-        private bool EsFiltroActual(
-            CancellationTokenSource source) =>
-                ReferenceEquals(
-                    Volatile.Read(
-                        ref filtroCts),
-                    source);
 
         private static void CancelarSeguro(
             CancellationTokenSource? source)
@@ -347,36 +280,28 @@ namespace CONATRADEC.ViewModels
             }
             catch (ObjectDisposedException)
             {
-                // La búsqueda ya había finalizado.
             }
         }
 
         private static IReadOnlyList<
-            ConfiguracionCategoria>
-            CrearCatalogo()
+            ConfiguracionCategoria> CrearCatalogo()
         {
             Color verdeSuave =
-                Color.FromArgb(
-                    "#EEF5F2");
+                Color.FromArgb("#EEF5F2");
 
             Color cafeSuave =
-                Color.FromArgb(
-                    "#F7F1EC");
+                Color.FromArgb("#F7F1EC");
 
             Color amarilloSuave =
-                Color.FromArgb(
-                    "#FFF7E6");
+                Color.FromArgb("#FFF7E6");
 
             Color azulSuave =
-                Color.FromArgb(
-                    "#EEF4FF");
+                Color.FromArgb("#EEF4FF");
 
             Color grisSuave =
-                Color.FromArgb(
-                    "#F3F4F6");
+                Color.FromArgb("#F3F4F6");
 
-            return new List<
-                ConfiguracionCategoria>
+            return new List<ConfiguracionCategoria>
             {
                 Categoria(
                     "Seguridad y usuarios",
@@ -386,7 +311,7 @@ namespace CONATRADEC.ViewModels
                         "Usuarios",
                         "Crear y administrar usuarios.",
                         "iconuser.png",
-                        "userPage",
+                        InterfazCodigos.Usuarios,
                         AppRoutes.Usuarios,
                         1,
                         verdeSuave),
@@ -394,7 +319,7 @@ namespace CONATRADEC.ViewModels
                         "Roles",
                         "Definir perfiles de acceso.",
                         "iconrol.png",
-                        "rolPage",
+                        InterfazCodigos.Roles,
                         AppRoutes.Roles,
                         2,
                         verdeSuave),
@@ -402,30 +327,38 @@ namespace CONATRADEC.ViewModels
                         "Matriz de permisos",
                         "Asignar acciones disponibles por rol.",
                         "iconpermission.png",
-                        "matrizPermisosPage",
+                        InterfazCodigos.MatrizPermisos,
                         AppRoutes.MatrizPermisos,
                         3,
                         verdeSuave)),
 
                 Categoria(
-                    "Ubicación y fincas",
-                    "Catálogos geográficos y terrenos.",
+                    "Ubicación, propietarios y fincas",
+                    "Propietarios, catálogos geográficos y terrenos.",
                     2,
+                    Opcion(
+                        "Propietarios",
+                        "Registrar una vez a cada propietario y reutilizarlo en sus terrenos.",
+                        "iconuser.png",
+                        InterfazCodigos.Propietarios,
+                        AppRoutes.Propietarios,
+                        1,
+                        cafeSuave),
                     Opcion(
                         "Países y ubicaciones",
                         "Países, departamentos y municipios.",
                         "iconcountry.png",
-                        "paisPage",
+                        InterfazCodigos.Paises,
                         AppRoutes.Paises,
-                        1,
+                        2,
                         cafeSuave),
                     Opcion(
                         "Terrenos",
-                        "Registrar y administrar fincas.",
+                        "Registrar fincas vinculadas con un propietario.",
                         "iconland.png",
-                        "terrenoPage",
+                        InterfazCodigos.Terrenos,
                         AppRoutes.Terrenos,
-                        2,
+                        3,
                         cafeSuave)),
 
                 Categoria(
@@ -436,7 +369,7 @@ namespace CONATRADEC.ViewModels
                         "Tipos de cultivo",
                         "Cultivos disponibles para análisis.",
                         "iconcultivo.png",
-                        "tipoCultivoPage",
+                        InterfazCodigos.TiposCultivo,
                         AppRoutes.TiposCultivo,
                         1,
                         verdeSuave),
@@ -444,7 +377,7 @@ namespace CONATRADEC.ViewModels
                         "Tipos de análisis",
                         "Clasificaciones de análisis de suelo.",
                         "icontipoanalisis.png",
-                        "tipoAnalisisSueloPage",
+                        InterfazCodigos.TiposAnalisisSuelo,
                         AppRoutes.TiposAnalisisSuelo,
                         2,
                         verdeSuave),
@@ -452,7 +385,7 @@ namespace CONATRADEC.ViewModels
                         "Elementos químicos",
                         "Nutrientes y pesos equivalentes.",
                         "iconchemicalelement.png",
-                        "elementoQuimicoPage",
+                        InterfazCodigos.ElementosQuimicos,
                         AppRoutes.ElementosQuimicos,
                         3,
                         verdeSuave),
@@ -460,7 +393,7 @@ namespace CONATRADEC.ViewModels
                         "Fuentes de nutrientes",
                         "Fertilizantes y fuentes orgánicas.",
                         "iconfuentenutriente.png",
-                        "fuenteNutrientePage",
+                        InterfazCodigos.FuentesNutrientes,
                         AppRoutes.FuenteNutriente,
                         4,
                         verdeSuave)),
@@ -473,7 +406,7 @@ namespace CONATRADEC.ViewModels
                         "Extracción de nutrientes",
                         "Valores de extracción por quintal oro.",
                         "iconextraccion.png",
-                        "extraccionNutrientePage",
+                        InterfazCodigos.ExtraccionNutrientes,
                         AppRoutes.ExtraccionNutrientes,
                         1,
                         amarilloSuave),
@@ -481,15 +414,15 @@ namespace CONATRADEC.ViewModels
                         "Rangos nutricionales",
                         "Niveles mínimos y máximos por cultivo.",
                         "iconrangonutriente.png",
-                        "rangoNutrientePage",
+                        InterfazCodigos.RangosNutrientes,
                         AppRoutes.RangosNutrientes,
                         2,
                         amarilloSuave),
                     Opcion(
                         "Unidades y conversiones",
-                        "Unidades permitidas, valores predeterminados y fórmulas por elemento.",
+                        "Unidades permitidas y fórmulas por elemento.",
                         "iconsettings.png",
-                        "elementoQuimicoPage",
+                        InterfazCodigos.ElementosQuimicos,
                         AppRoutes.ConfiguracionUnidades,
                         3,
                         amarilloSuave)),
@@ -502,7 +435,7 @@ namespace CONATRADEC.ViewModels
                         "Tipos de publicación",
                         "Noticias, ofertas, eventos y categorías.",
                         "iconnews.png",
-                        "categoriaPublicacionPage",
+                        InterfazCodigos.CategoriasPublicacion,
                         AppRoutes.CategoriasPublicacion,
                         1,
                         azulSuave)),
@@ -515,18 +448,18 @@ namespace CONATRADEC.ViewModels
                         "Bitácora",
                         "Consultar cambios y acciones registradas.",
                         "iconsettings.png",
-                        "bitacoraPage",
+                        InterfazCodigos.Bitacora,
                         AppRoutes.Bitacora,
                         1,
                         grisSuave)),
 
                 Categoria(
                     "Sistema y aplicación",
-                    "Versiones, mantenimiento y herramientas del dispositivo.",
+                    "Versiones, mantenimiento y herramientas.",
                     7,
-                    Opcion( 
+                    Opcion(
                         "Actualizaciones",
-                        "Buscar, descargar e instalar nuevas versiones de ConatraCafé Soil.",
+                        "Buscar, descargar e instalar nuevas versiones.",
                         "iconappupdate.png",
                         InterfazCodigos.Actualizaciones,
                         AppRoutes.ActualizacionAplicacion,
@@ -535,53 +468,38 @@ namespace CONATRADEC.ViewModels
             };
         }
 
-        private static ConfiguracionCategoria
-            Categoria(
-                string titulo,
-                string descripcion,
-                int orden,
-                params ConfiguracionOpcion[]
-                    opciones) =>
-                new()
-                {
-                    Titulo =
-                        titulo,
-                    Descripcion =
-                        descripcion,
-                    Orden =
-                        orden,
-                    Opciones =
-                        opciones
-                            .OrderBy(x =>
-                                x.Orden)
-                            .ToList()
-                };
+        private static ConfiguracionCategoria Categoria(
+            string titulo,
+            string descripcion,
+            int orden,
+            params ConfiguracionOpcion[] opciones) =>
+            new()
+            {
+                Titulo = titulo,
+                Descripcion = descripcion,
+                Orden = orden,
+                Opciones = opciones
+                    .OrderBy(item => item.Orden)
+                    .ToList()
+            };
 
-        private static ConfiguracionOpcion
-            Opcion(
-                string titulo,
-                string descripcion,
-                string icono,
-                string interfaz,
-                string ruta,
-                int orden,
-                Color colorFondoIcono) =>
-                new()
-                {
-                    Titulo =
-                        titulo,
-                    Descripcion =
-                        descripcion,
-                    Icono =
-                        icono,
-                    Interfaz =
-                        interfaz,
-                    Ruta =
-                        ruta,
-                    Orden =
-                        orden,
-                    ColorFondoIcono =
-                        colorFondoIcono
-                };
+        private static ConfiguracionOpcion Opcion(
+            string titulo,
+            string descripcion,
+            string icono,
+            string interfaz,
+            string ruta,
+            int orden,
+            Color colorFondoIcono) =>
+            new()
+            {
+                Titulo = titulo,
+                Descripcion = descripcion,
+                Icono = icono,
+                Interfaz = interfaz,
+                Ruta = ruta,
+                Orden = orden,
+                ColorFondoIcono = colorFondoIcono
+            };
     }
 }

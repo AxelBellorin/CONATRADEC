@@ -37,6 +37,8 @@ namespace CONATRADEC.Views
         private AnalisisSueloCalculoDataResponse?
             resultadoCapturado;
 
+        private int versionCargaVisual;
+
         public MultiCalculoPage()
         {
             Shell.Current.FlyoutBehavior =
@@ -100,28 +102,83 @@ namespace CONATRADEC.Views
             }
 
             /*
-             * MultiCalculoPage es un ShellContent y MAUI conserva
-             * la misma instancia. Al editar otro análisis, durante
-             * unos milisegundos todavía pueden existir los elementos
-             * del balance anterior.
-             *
-             * Se espera a que MultiCalculoViewModel y
-             * BalanceFormulaViewModel hayan recibido el resultado
-             * temporal del análisis actual. Solo entonces se restauran
-             * las fuentes, el resultado y el checkbox guardados.
+             * La restauración de edición ya no se espera dentro de
+             * OnAppearing. La página se muestra inmediatamente y el trabajo
+             * continúa de forma asíncrona. Esto evita que Windows o Android
+             * parezcan congelados mientras se cargan catálogos y resultados.
              */
-            await EsperarInicializacionActualAsync();
+            int version =
+                ++versionCargaVisual;
+
+            ActualizarVistaTab();
+
+            _ = CompletarCargaVisualAsync(
+                version);
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
 
             /*
-             * ApplyQueryAttributes es async void. Por eso la selección
-             * original de Mixta debe capturarse después de que el ViewModel
-             * haya recibido el análisis y las pestañas seleccionadas.
+             * Invalida una espera visual anterior si el usuario abandona la
+             * página antes de que finalice la restauración.
              */
-            PrepararCapturaSeleccionOriginalMixta();
+            versionCargaVisual++;
+        }
 
-            await RestaurarCalculosEdicionUiService
-                .Instance
-                .RestaurarAsync(viewModel);
+        private async Task CompletarCargaVisualAsync(
+            int version)
+        {
+            try
+            {
+                await EsperarInicializacionActualAsync();
+
+                /*
+                 * Fertilización mixta inicia su carga mediante una tarea
+                 * independiente. En edición esa tarea también inicializa el
+                 * estado temporal y puede terminar después de que Balance ya
+                 * dibujó sus elementos.
+                 *
+                 * Se espera únicamente a que Mixta termine de cargar su
+                 * catálogo antes de restaurar los cálculos guardados. Así una
+                 * inicialización tardía no vuelve a limpiar las fuentes del
+                 * Balance, el checkbox del complemento ni el resultado Mixta.
+                 */
+                await EsperarInicializacionMixtaAntesDeRestaurarAsync();
+
+                if (version != versionCargaVisual)
+                    return;
+
+                /*
+                 * ApplyQueryAttributes es async void. Por eso la selección
+                 * original de Mixta debe capturarse después de que el ViewModel
+                 * haya recibido el análisis y las pestañas seleccionadas.
+                 */
+                PrepararCapturaSeleccionOriginalMixta();
+
+                Dispatcher.Dispatch(
+                    ActualizarVistaTab);
+
+                await RestaurarCalculosEdicionUiService
+                    .Instance
+                    .RestaurarAsync(viewModel);
+
+                if (version != versionCargaVisual)
+                    return;
+
+                Dispatcher.Dispatch(
+                    ActualizarVistaTab);
+            }
+            catch (Exception ex)
+            {
+                if (version != versionCargaVisual)
+                    return;
+
+                viewModel.Mensaje =
+                    "No fue posible completar la carga visual de los " +
+                    $"cálculos: {ex.Message}";
+            }
         }
 
         private void
@@ -263,8 +320,15 @@ namespace CONATRADEC.Views
             if (contexto == null)
                 return;
 
+            /*
+             * Solo se espera a que MultiCalculo reciba los parámetros del
+             * análisis actual. La carga de fuentes y la restauración de cada
+             * pestaña se ejecutan en segundo plano por su servicio específico.
+             * Así se evita repetir una espera de treinta segundos antes de
+             * comenzar la restauración real.
+             */
             for (int intento = 0;
-                 intento < 300;
+                 intento < 40;
                  intento++)
             {
                 if (!ReferenceEquals(
@@ -276,59 +340,76 @@ namespace CONATRADEC.Views
                     return;
                 }
 
-                CalculoAnalisisTemporalState
-                    estadoTemporal =
-                        CalculoAnalisisTemporalService
-                            .Instance
-                            .ObtenerEstadoActual();
-
-                AnalisisSueloCalculoDataResponse?
-                    resultadoActual =
-                        estadoTemporal
-                            .ResultadoAnalisisSuelo;
-
-                bool multiCalculoActual =
-                    resultadoActual != null &&
+                bool parametrosRecibidos =
                     viewModel.EsModoEdicion &&
-                    ReferenceEquals(
-                        viewModel.ResultadoCalculo,
-                        resultadoActual);
+                    viewModel.ResultadoCalculo != null &&
+                    viewModel.RequestGuardarAnalisis != null;
 
-                if (!multiCalculoActual)
-                {
-                    await Task.Delay(100);
-                    continue;
-                }
+                if (parametrosRecibidos)
+                    return;
 
-                /*
-                 * Si el análisis guardado no tiene balance,
-                 * no es necesario esperar esa pestaña.
-                 */
-                if (!contexto.TieneBalance ||
-                    !viewModel
-                        .MostrarBalanceFormula)
+                await Task.Delay(50);
+            }
+        }
+
+        private async Task
+            EsperarInicializacionMixtaAntesDeRestaurarAsync()
+        {
+            if (!AnalisisEdicionService
+                    .Instance
+                    .EsModoEdicion ||
+                !viewModel.MostrarFertilizacionMixta)
+            {
+                return;
+            }
+
+            AnalisisEdicionContexto? contexto =
+                AnalisisEdicionService
+                    .Instance
+                    .ContextoActual;
+
+            if (contexto == null)
+                return;
+
+            /*
+             * Antes de iniciar, FuentesDisponibles está vacío, IsBusy es
+             * false y todavía no existe error. Por eso no basta con esperar
+             * solamente a que IsBusy sea false. La carga se considera
+             * finalizada cuando ya existe al menos una fuente o se registró
+             * explícitamente un error de catálogo.
+             */
+            for (int intento = 0;
+                 intento < 200;
+                 intento++)
+            {
+                if (!ReferenceEquals(
+                        contexto,
+                        AnalisisEdicionService
+                            .Instance
+                            .ContextoActual))
                 {
                     return;
                 }
 
-                bool balanceActual =
-                    ReferenceEquals(
-                        viewModel
-                            .BalanceFormula
-                            .ResultadoCalculo,
-                        resultadoActual) &&
-                    !viewModel
-                        .BalanceFormula
-                        .IsBusy &&
-                    viewModel
-                        .BalanceFormula
-                        .ElementosBalance
-                        .Count > 0;
+                FertilizacionMixtaTabViewModel mixta =
+                    viewModel.FertilizacionMixta;
 
-                if (balanceActual)
+                bool cargaFinalizada =
+                    !mixta.IsBusy &&
+                    (mixta.TieneFuentesDisponibles ||
+                     mixta.TieneErrorFuentes);
+
+                if (cargaFinalizada)
+                {
+                    /*
+                     * Permite que finalice el bloque finally de la tarea de
+                     * inicialización antes de reconstruir los temporales.
+                     */
+                    await Task.Delay(75);
                     return;
+                }
 
-                await Task.Delay(100);
+                await Task.Delay(50);
             }
         }
 

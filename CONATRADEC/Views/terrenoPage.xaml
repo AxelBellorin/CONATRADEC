@@ -316,7 +316,7 @@
                                                 TextColor="#1F2937"
                                                 LineBreakMode="TailTruncation" />
                                             <Label
-                                                Text="{Binding NombrePropietarioTerreno}"
+                                                Text="{Binding Propietario.NombreCompleto, TargetNullValue='Sin propietario'}"
                                                 FontFamily="MontserratMedium"
                                                 FontSize="13"
                                                 TextColor="#4B5563"

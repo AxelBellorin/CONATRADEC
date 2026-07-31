@@ -96,15 +96,9 @@
 			En Android, iOS y MacCatalyst las imágenes continúan siendo procesadas
 			por .NET MAUI mediante MauiImage.
 		-->
-		<MauiImage
-			Include="Resources\Images\**\*"
-			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'" />
+		<MauiImage Include="Resources\Images\**\*" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'" />
 
-		<MauiImage
-			Update="Resources\Images\dotnet_bot.png"
-			Resize="True"
-			BaseSize="300,185"
-			Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'" />
+		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'" />
 		<MauiFont Include="Resources\Fonts\*" />
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
@@ -116,29 +110,13 @@
 		del procesador de imágenes de MAUI.
 	-->
 	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
-		<Content
-			Include="Resources\Images\**\*.png"
-			TargetPath="%(Filename)%(Extension)"
-			CopyToOutputDirectory="PreserveNewest"
-			CopyToPublishDirectory="PreserveNewest" />
+		<Content Include="Resources\Images\**\*.png" TargetPath="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
 
-		<Content
-			Include="Resources\Images\**\*.jpg"
-			TargetPath="%(Filename)%(Extension)"
-			CopyToOutputDirectory="PreserveNewest"
-			CopyToPublishDirectory="PreserveNewest" />
+		<Content Include="Resources\Images\**\*.jpg" TargetPath="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
 
-		<Content
-			Include="Resources\Images\**\*.jpeg"
-			TargetPath="%(Filename)%(Extension)"
-			CopyToOutputDirectory="PreserveNewest"
-			CopyToPublishDirectory="PreserveNewest" />
+		<Content Include="Resources\Images\**\*.jpeg" TargetPath="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
 
-		<Content
-			Include="Resources\Images\**\*.gif"
-			TargetPath="%(Filename)%(Extension)"
-			CopyToOutputDirectory="PreserveNewest"
-			CopyToPublishDirectory="PreserveNewest" />
+		<Content Include="Resources\Images\**\*.gif" TargetPath="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
 
 		<!-- Los SVG siguen siendo procesados por MAUI y se consumen como .png. -->
 		<MauiImage Include="Resources\Images\**\*.svg" />
@@ -288,6 +266,12 @@
 		</MauiXaml>
 		<MauiXaml Update="Views\nuevoAnalisisFormPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\propietarioFormPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\propietariosPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\ResultadoAnalisisSueloPage.xaml">
 			<Generator>MSBuild:Compile</Generator>

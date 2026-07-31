@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.propietarioFormPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{StaticResource color_Blanco}">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid
+            Padding="{OnPlatform WinUI='24,18,24,8', Default='14,14,14,6'}"
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="12">
+
+            <VerticalStackLayout Spacing="2">
+                <Label
+                    Text="{Binding Title}"
+                    FontFamily="MontserratBold"
+                    FontAttributes="Bold"
+                    FontSize="{OnPlatform WinUI=27, Default=22}"
+                    TextColor="{StaticResource color_Verde}" />
+
+                <Label
+                    Text="Los datos se guardan una sola vez y se reutilizan al vincular terrenos."
+                    FontSize="12"
+                    TextColor="{StaticResource color_GrisOscuro}" />
+            </VerticalStackLayout>
+
+            <Button
+                Grid.Column="1"
+                Text="Editar"
+                Style="{StaticResource UpdateButton}"
+                Command="{Binding EditarCommand}"
+                IsVisible="{Binding ShowEditButton}" />
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <Grid
+                Padding="{OnPlatform WinUI='24,8,24,28', Default='14,6,14,24'}"
+                ColumnDefinitions="{OnPlatform WinUI='*,7*,*', Default='0,*,0'}">
+
+                <VerticalStackLayout
+                    Grid.Column="1"
+                    MaximumWidthRequest="900"
+                    Spacing="14">
+
+                    <Border
+                        Padding="{OnPlatform WinUI=18, Default=14}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="12">
+                            <Label
+                                Text="Información del propietario"
+                                FontFamily="MontserratBold"
+                                FontSize="17"
+                                TextColor="{StaticResource color_Verde}" />
+
+                            <Grid
+                                ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                                RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                ColumnSpacing="14"
+                                RowSpacing="10">
+
+                                <VerticalStackLayout Spacing="4">
+                                    <Label
+                                        Text="Identificación"
+                                        FontAttributes="Bold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        Text="{Binding Identificacion, Mode=TwoWay}"
+                                        Placeholder="Cédula, RUC u otra identificación"
+                                        MaxLength="50"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        Style="{StaticResource EntryStyle}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                    Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Nombre completo"
+                                        FontAttributes="Bold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        Text="{Binding NombreCompleto, Mode=TwoWay}"
+                                        Placeholder="Nombre del propietario"
+                                        MaxLength="150"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        Style="{StaticResource EntryStyle}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Row="{OnPlatform WinUI=1, Default=2}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Teléfono"
+                                        FontAttributes="Bold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        Text="{Binding Telefono, Mode=TwoWay}"
+                                        Placeholder="Teléfono"
+                                        Keyboard="Telephone"
+                                        MaxLength="25"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        Style="{StaticResource EntryStyle}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                    Grid.Row="{OnPlatform WinUI=1, Default=3}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Correo"
+                                        FontAttributes="Bold"
+                                        FontSize="12" />
+
+                                    <Entry
+                                        Text="{Binding Correo, Mode=TwoWay}"
+                                        Placeholder="correo@ejemplo.com"
+                                        Keyboard="Email"
+                                        MaxLength="150"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        Style="{StaticResource EntryStyle}" />
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Row="{OnPlatform WinUI=2, Default=4}"
+                                    Grid.ColumnSpan="{OnPlatform WinUI=2, Default=1}"
+                                    Spacing="4">
+
+                                    <Label
+                                        Text="Dirección"
+                                        FontAttributes="Bold"
+                                        FontSize="12" />
+
+                                    <Editor
+                                        Text="{Binding Direccion, Mode=TwoWay}"
+                                        Placeholder="Dirección del propietario"
+                                        MaxLength="300"
+                                        MinimumHeightRequest="90"
+                                        AutoSize="TextChanges"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        BackgroundColor="#F8FAF9" />
+                                </VerticalStackLayout>
+
+                                <Grid
+                                    Grid.Row="{OnPlatform WinUI=3, Default=5}"
+                                    Grid.ColumnSpan="{OnPlatform WinUI=2, Default=1}"
+                                    ColumnDefinitions="Auto,*"
+                                    ColumnSpacing="8">
+
+                                    <Switch
+                                        IsToggled="{Binding Activo}"
+                                        IsEnabled="{Binding ShowSaveButton}"
+                                        OnColor="{StaticResource color_Verde}" />
+
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="Propietario activo"
+                                        VerticalOptions="Center"
+                                        FontAttributes="Bold"
+                                        FontSize="12" />
+                                </Grid>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Grid
+                        ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                        RowDefinitions="Auto,Auto"
+                        ColumnSpacing="12"
+                        RowSpacing="10">
+
+                        <Button
+                            Text="Guardar"
+                            Style="{StaticResource UpdateButton}"
+                            IsVisible="{Binding ShowSaveButton}"
+                            Command="{Binding GuardarCommand}" />
+
+                        <Button
+                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                            Text="Cancelar"
+                            Style="{StaticResource CancelButton}"
+                            Command="{Binding CancelarCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Grid>
+        </ScrollView>
+
+        <ActivityIndicator
+            Grid.RowSpan="2"
+            IsRunning="{Binding IsBusy}"
+            IsVisible="{Binding IsBusy}"
+            Color="{StaticResource color_Verde}"
+            HorizontalOptions="Center"
+            VerticalOptions="Center" />
+    </Grid>
+</ContentPage>
