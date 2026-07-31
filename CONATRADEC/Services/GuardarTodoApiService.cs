@@ -17,7 +17,9 @@ namespace CONATRADEC.Services
     /// Antes de enviar una solicitud:
     /// 1. Recupera el requerimiento anual completo cuando las pantallas
     ///    complementarias trabajaron con una lista filtrada.
-    /// 2. Corrige los totales del balance usando sus detalles si la cabecera
+    /// 2. Conserva exactamente los valores calculados por la API o por el
+    ///    motor local; solamente normaliza la unidad y el orden de prioridad.
+    /// 3. Corrige los totales del balance usando sus detalles si la cabecera
     ///    temporal llegó con mezclaTotalQq o totalLibras en cero.
     /// </summary>
     public sealed class GuardarTodoApiService
@@ -121,25 +123,25 @@ namespace CONATRADEC.Services
                 {
                     return new
                         AnalisisGuardadoListaResponse
-                        {
-                            Success = false,
-                            Message =
+                    {
+                        Success = false,
+                        Message =
                                 ExtraerMensajeError(
                                     jsonResponse,
                                     "No fue posible cargar los análisis. " +
                                     $"Código HTTP {(int)response.StatusCode}.")
-                        };
+                    };
                 }
 
                 if (resultado == null)
                 {
                     return new
                         AnalisisGuardadoListaResponse
-                        {
-                            Success = false,
-                            Message =
+                    {
+                        Success = false,
+                        Message =
                                 "La API respondió, pero no se pudo interpretar la lista de análisis."
-                        };
+                    };
                 }
 
                 resultado.Data ??= new();
@@ -151,32 +153,32 @@ namespace CONATRADEC.Services
             {
                 return new
                     AnalisisGuardadoListaResponse
-                    {
-                        Success = false,
-                        Message =
+                {
+                    Success = false,
+                    Message =
                             "La carga tardó demasiado. Revise la conexión e intente nuevamente."
-                    };
+                };
             }
             catch (HttpRequestException)
             {
                 return new
                     AnalisisGuardadoListaResponse
-                    {
-                        Success = false,
-                        Message =
+                {
+                    Success = false,
+                    Message =
                             "No fue posible conectarse con el servidor para cargar los análisis."
-                    };
+                };
             }
             catch (Exception ex)
             {
                 return new
                     AnalisisGuardadoListaResponse
-                    {
-                        Success = false,
-                        Message =
+                {
+                    Success = false,
+                    Message =
                             "Ocurrió un error al cargar los análisis: " +
                             ex.Message
-                    };
+                };
             }
         }
 
@@ -191,11 +193,11 @@ namespace CONATRADEC.Services
             {
                 return new
                     AnalisisGuardadoDetalleResponse
-                    {
-                        Success = false,
-                        Message =
+                {
+                    Success = false,
+                    Message =
                             "El identificador del cálculo no es válido."
-                    };
+                };
             }
 
             try
@@ -221,25 +223,25 @@ namespace CONATRADEC.Services
                 {
                     return new
                         AnalisisGuardadoDetalleResponse
-                        {
-                            Success = false,
-                            Message =
+                    {
+                        Success = false,
+                        Message =
                                 ExtraerMensajeError(
                                     jsonResponse,
                                     "No fue posible cargar el detalle. " +
                                     $"Código HTTP {(int)response.StatusCode}.")
-                        };
+                    };
                 }
 
                 if (resultado?.Data == null)
                 {
                     return new
                         AnalisisGuardadoDetalleResponse
-                        {
-                            Success = false,
-                            Message =
+                    {
+                        Success = false,
+                        Message =
                                 "La API respondió, pero no devolvió el detalle del análisis."
-                        };
+                    };
                 }
 
                 return resultado;
@@ -250,32 +252,32 @@ namespace CONATRADEC.Services
             {
                 return new
                     AnalisisGuardadoDetalleResponse
-                    {
-                        Success = false,
-                        Message =
+                {
+                    Success = false,
+                    Message =
                             "La consulta tardó demasiado. Revise la conexión e intente nuevamente."
-                    };
+                };
             }
             catch (HttpRequestException)
             {
                 return new
                     AnalisisGuardadoDetalleResponse
-                    {
-                        Success = false,
-                        Message =
+                {
+                    Success = false,
+                    Message =
                             "No fue posible conectarse con el servidor para cargar el detalle."
-                    };
+                };
             }
             catch (Exception ex)
             {
                 return new
                     AnalisisGuardadoDetalleResponse
-                    {
-                        Success = false,
-                        Message =
+                {
+                    Success = false,
+                    Message =
                             "Ocurrió un error al cargar el detalle: " +
                             ex.Message
-                    };
+                };
             }
         }
 
@@ -338,10 +340,10 @@ namespace CONATRADEC.Services
 
                     return new
                         EliminarAnalisisResponse
-                        {
-                            Success = false,
-                            Message = mensajeError
-                        };
+                    {
+                        Success = false,
+                        Message = mensajeError
+                    };
                 }
 
                 return resultado ??
@@ -519,6 +521,7 @@ namespace CONATRADEC.Services
             GuardarTodoRequest request)
         {
             RestaurarRequerimientoCompleto(request);
+            NormalizarRequerimientoAnual(request);
             NormalizarBalance(request.BalanceNutricional);
         }
 
@@ -546,54 +549,92 @@ namespace CONATRADEC.Services
                     .Select(x =>
                         new
                             GuardarTodoRequerimientoElementoRequest
-                            {
-                                ElementoQuimicosId =
+                        {
+                            ElementoQuimicosId =
                                     x.ElementoQuimicosId!.Value,
-                                SimboloElementoQuimico =
+                            SimboloElementoQuimico =
                                     x.SimboloElementoQuimico?
                                         .Trim() ??
                                     string.Empty,
-                                NombreElementoQuimico =
+                            NombreElementoQuimico =
                                     x.NombreElementoQuimico?
                                         .Trim() ??
                                     string.Empty,
-                                CantidadIngresada =
+                            CantidadIngresada =
                                     x.CantidadIngresada ?? 0,
-                                CantidadConvertidaLbMz =
+                            CantidadConvertidaLbMz =
                                     x.CantidadConvertidaLbMz,
-                                ExtraccionPorQQOro =
+                            ExtraccionPorQQOro =
                                     x.ExtraccionPorQQOro,
-                                ExtraccionPorProduccion =
+                            ExtraccionPorProduccion =
                                     x.ExtraccionPorProduccion,
-                                RangoMinimo =
+                            RangoMinimo =
                                     x.RangoMinimo,
-                                RangoMaximo =
+                            RangoMaximo =
                                     x.RangoMaximo,
-                                RangoMinimoLbMz =
+                            RangoMinimoLbMz =
                                     x.RangoMinimoLbMz,
-                                RangoMaximoLbMz =
+                            RangoMaximoLbMz =
                                     x.RangoMaximoLbMz,
-                                RequerimientoCalculado =
+                            RequerimientoCalculado =
                                     x.RequerimientoCalculado,
-                                UnidadBase =
+                            UnidadBase =
                                     x.UnidadBase?.Trim() ??
                                     string.Empty,
-                                UnidadMedidaResultadoId =
+                            UnidadMedidaResultadoId =
                                     x.UnidadMedidaResultadoId,
-                                UnidadResultado =
+                            UnidadResultado =
                                     string.IsNullOrWhiteSpace(
                                         x.UnidadResultado)
                                         ? "lb/Mz"
                                         : x.UnidadResultado.Trim(),
-                                Clasificacion =
+                            Clasificacion =
                                     x.Clasificacion?.Trim() ??
                                     string.Empty,
-                                Observacion =
+                            Observacion =
                                     x.Observacion?.Trim() ??
                                     string.Empty,
-                                IncluirCalculosComplementarios =
+                            IncluirCalculosComplementarios =
                                     x.IncluirEnCalculosComplementarios
-                            })
+                        })
+                    .ToList();
+        }
+
+        /// <summary>
+        /// Mantiene el mismo resultado que ya produjo la API o el motor local.
+        /// No vuelve a calcular la extracción ni el requerimiento durante el
+        /// guardado, porque podría mezclar la producción de otro estado del
+        /// formulario con el resultado que el usuario ya revisó.
+        ///
+        /// Solo asegura la unidad lb/Mz y ordena de mayor a menor necesidad.
+        /// </summary>
+        private static void NormalizarRequerimientoAnual(
+            GuardarTodoRequest request)
+        {
+            GuardarTodoRequerimientoAnualRequest requerimiento =
+                request.RequerimientoAnual;
+
+            requerimiento.Elementos ??=
+                new List<GuardarTodoRequerimientoElementoRequest>();
+
+            foreach (
+                GuardarTodoRequerimientoElementoRequest elemento
+                in requerimiento.Elementos)
+            {
+                if (string.IsNullOrWhiteSpace(
+                        elemento.UnidadResultado))
+                {
+                    elemento.UnidadResultado = "lb/Mz";
+                }
+            }
+
+            requerimiento.Elementos =
+                requerimiento.Elementos
+                    .OrderByDescending(x =>
+                        x.RequerimientoCalculado ?? 0)
+                    .ThenBy(
+                        x => x.NombreElementoQuimico,
+                        StringComparer.CurrentCultureIgnoreCase)
                     .ToList();
         }
 

@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CONATRADEC.Models
 {
     public sealed class AnalisisReporte
     {
+        private List<AnalisisReporteRequerimiento>
+            requerimientos = new();
+
         public int AnalisisSueloCalculoId { get; set; }
 
         public string Identificador { get; set; } = string.Empty;
@@ -41,7 +45,22 @@ namespace CONATRADEC.Models
 
         public List<AnalisisReporteValorLaboratorio> ValoresLaboratorio { get; set; } = new();
 
-        public List<AnalisisReporteRequerimiento> Requerimientos { get; set; } = new();
+        /// <summary>
+        /// Conserva el mismo orden de prioridad de la pantalla de resultados:
+        /// primero el elemento con mayor requerimiento anual en lb/Mz.
+        /// El setter también se ejecuta al deserializar un reporte descargado,
+        /// por lo que aplica al PDF y Excel en línea y sin conexión.
+        /// </summary>
+        public List<AnalisisReporteRequerimiento> Requerimientos
+        {
+            get => requerimientos;
+            set => requerimientos =
+                (value ?? new List<AnalisisReporteRequerimiento>())
+                    .OrderByDescending(x =>
+                        x.RequerimientoLbMz ?? 0)
+                    .ThenBy(x => x.Elemento)
+                    .ToList();
+        }
 
         public AnalisisReporteBalance? Balance { get; set; }
 

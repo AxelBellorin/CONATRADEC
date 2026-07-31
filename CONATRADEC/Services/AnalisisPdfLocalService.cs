@@ -5,24 +5,21 @@ using System.Text;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Generador PDF profesional sin dependencias nativas ni llamadas a API.
+    /// Genera el PDF local sin llamadas al servidor ni dependencias nativas.
     ///
-    /// Replica la estructura visual del reporte online:
-    /// - tamaño carta;
-    /// - encabezado institucional verde;
-    /// - secciones y tablas;
-    /// - fórmula comercial destacada;
-    /// - costos exactos y reales;
-    /// - pie de página numerado.
-    ///
-    /// Utiliza fuentes PDF estándar para funcionar en Windows y Android.
+    /// La estructura replica el PDF online:
+    /// - requerimiento anual de mayor a menor necesidad;
+    /// - balance, compra y aportes;
+    /// - enmienda calcárea con resultado final en lb/Mz;
+    /// - fertilización mixta, balance ajustado y resumen económico.
     /// </summary>
     public static class AnalisisPdfLocalService
     {
         private const double PageWidth = 612;
         private const double PageHeight = 792;
         private const double Margin = 28;
-        private const double ContentWidth = PageWidth - Margin * 2;
+        private const double ContentWidth =
+            PageWidth - Margin * 2;
 
         private static readonly PdfColor Verde =
             PdfColor.FromHex("#3B655B");
@@ -32,6 +29,8 @@ namespace CONATRADEC.Services
             PdfColor.FromHex("#FFF8D8");
         private static readonly PdfColor VerdeSuave =
             PdfColor.FromHex("#EEF5F2");
+        private static readonly PdfColor RojoSuave =
+            PdfColor.FromHex("#FDECEC");
         private static readonly PdfColor GrisBorde =
             PdfColor.FromHex("#D1D5DB");
         private static readonly PdfColor GrisFondo =
@@ -46,14 +45,18 @@ namespace CONATRADEC.Services
         private static readonly CultureInfo Cultura =
             CultureInfo.GetCultureInfo("es-NI");
 
-        public static byte[] Generar(AnalisisReporte reporte)
+        public static byte[] Generar(
+            AnalisisReporte reporte)
         {
             ArgumentNullException.ThrowIfNull(reporte);
 
             var document = new PdfReportDocument();
-            var writer = new ReportWriter(document, reporte);
+            var writer = new ReportWriter(
+                document,
+                reporte);
 
             writer.Begin();
+
             ComponerDatosGenerales(writer, reporte);
             ComponerValoresLaboratorio(writer, reporte);
             ComponerRequerimiento(writer, reporte);
@@ -71,7 +74,6 @@ namespace CONATRADEC.Services
                     reporte.FertilizacionMixta);
             }
 
-            writer.Finish();
             return document.Build();
         }
 
@@ -81,25 +83,49 @@ namespace CONATRADEC.Services
         {
             writer.SectionTitle("Datos generales");
 
-            var rows = new List<(string, string, string, string)>
-            {
-                ("Cliente", ValorO(reporte.Cliente),
-                 "Terreno", ValorO(reporte.Terreno)),
-                ("Fecha del análisis", ValorO(reporte.FechaAnalisis),
-                 "Laboratorio", ValorO(reporte.Laboratorio)),
-                ("Cultivo", ValorO(reporte.TipoCultivo),
-                 "Tipo de análisis", ValorO(reporte.TipoAnalisis)),
-                ("Producción", $"{N(reporte.ProduccionQqOro)} qq oro",
-                 "Tamaño", $"{N(reporte.TamanoFincaMz)} mz"),
-                ("pH", N(reporte.Ph),
-                 "Acidez total", N(reporte.AcidezTotal)),
-                ("Materia orgánica",
-                 N(reporte.MateriaOrganica,
-                   reporte.UnidadMateriaOrganica),
-                 "Responsable", ValorO(reporte.Responsable))
-            };
-
-            writer.KeyValueGrid(rows);
+            writer.KeyValueGrid(
+                new List<
+                    (string, string, string, string)>
+                {
+                    (
+                        "Cliente",
+                        ValorO(reporte.Cliente),
+                        "Terreno",
+                        ValorO(reporte.Terreno)
+                    ),
+                    (
+                        "Fecha del análisis",
+                        ValorO(reporte.FechaAnalisis),
+                        "Laboratorio",
+                        ValorO(reporte.Laboratorio)
+                    ),
+                    (
+                        "Cultivo",
+                        ValorO(reporte.TipoCultivo),
+                        "Tipo de análisis",
+                        ValorO(reporte.TipoAnalisis)
+                    ),
+                    (
+                        "Producción",
+                        $"{N(reporte.ProduccionQqOro)} qq oro",
+                        "Tamaño",
+                        $"{N(reporte.TamanoFincaMz)} mz"
+                    ),
+                    (
+                        "pH",
+                        N(reporte.Ph),
+                        "Acidez total",
+                        N(reporte.AcidezTotal)
+                    ),
+                    (
+                        "Materia orgánica",
+                        N(
+                            reporte.MateriaOrganica,
+                            reporte.UnidadMateriaOrganica),
+                        "Responsable",
+                        ValorO(reporte.Responsable)
+                    )
+                });
         }
 
         private static void ComponerValoresLaboratorio(
@@ -109,20 +135,28 @@ namespace CONATRADEC.Services
             writer.SectionTitle(
                 "Valores originales del laboratorio");
 
-            var rows = reporte.ValoresLaboratorio
-                .Select(item => new[]
-                {
-                    ValorO(item.Elemento),
-                    N(item.Cantidad, 4),
-                    ValorO(item.Unidad)
-                })
-                .ToList();
-
             writer.Table(
-                new[] { "Elemento", "Cantidad", "Unidad" },
-                new[] { 0.50, 0.25, 0.25 },
-                rows,
-                numericColumns: new HashSet<int> { 1 });
+                new[]
+                {
+                    "Elemento",
+                    "Cantidad",
+                    "Unidad"
+                },
+                new[]
+                {
+                    0.50,
+                    0.25,
+                    0.25
+                },
+                reporte.ValoresLaboratorio
+                    .Select(item => new[]
+                    {
+                        ValorO(item.Elemento),
+                        N(item.Cantidad, 4),
+                        ValorO(item.Unidad)
+                    })
+                    .ToList(),
+                new HashSet<int> { 1 });
         }
 
         private static void ComponerRequerimiento(
@@ -131,19 +165,22 @@ namespace CONATRADEC.Services
         {
             writer.SectionTitle("Requerimiento anual");
 
-            var rows = reporte.Requerimientos
-                .Select(item => new[]
-                {
-                    ValorO(item.Elemento),
-                    N(item.CantidadIngresada, 4),
-                    item.RequerimientoLbMz.HasValue
-                        ? $"{N(item.RequerimientoLbMz)} " +
-                          ValorO(item.UnidadResultado, "lb/Mz")
-                        : "-",
-                    ValorO(item.Clasificacion, "-"),
-                    ValorO(item.Observacion, "-")
-                })
-                .ToList();
+            List<string[]> rows =
+                reporte.Requerimientos
+                    .OrderByDescending(x =>
+                        x.RequerimientoLbMz ?? 0)
+                    .ThenBy(x => x.Elemento)
+                    .Select(item => new[]
+                    {
+                        ValorO(item.Elemento),
+                        N(item.CantidadIngresada, 4),
+                        item.RequerimientoLbMz.HasValue
+                            ? $"{N(item.RequerimientoLbMz)} lb/Mz"
+                            : "-",
+                        ValorO(item.Clasificacion, "-"),
+                        ValorO(item.Observacion, "-")
+                    })
+                    .ToList();
 
             writer.Table(
                 new[]
@@ -154,9 +191,16 @@ namespace CONATRADEC.Services
                     "Clasificación",
                     "Observación"
                 },
-                new[] { 0.17, 0.13, 0.18, 0.17, 0.35 },
+                new[]
+                {
+                    0.17,
+                    0.13,
+                    0.18,
+                    0.17,
+                    0.35
+                },
                 rows,
-                numericColumns: new HashSet<int> { 1 });
+                new HashSet<int> { 1 });
 
             if (!string.IsNullOrWhiteSpace(
                     reporte.RecomendacionGeneral))
@@ -168,20 +212,16 @@ namespace CONATRADEC.Services
                     Verde);
             }
 
-            if (reporte.Observaciones.Count > 0)
-            {
-                string observaciones = string.Join(
-                    " · ",
-                    reporte.Observaciones
-                        .Where(item =>
-                            !string.IsNullOrWhiteSpace(item)));
+            string observaciones = string.Join(
+                " · ",
+                reporte.Observaciones
+                    .Where(x =>
+                        !string.IsNullOrWhiteSpace(x)));
 
-                if (!string.IsNullOrWhiteSpace(observaciones))
-                {
-                    writer.Paragraph(
-                        "Observaciones: " + observaciones,
-                        boldPrefixLength: 14);
-                }
+            if (!string.IsNullOrWhiteSpace(observaciones))
+            {
+                writer.Paragraph(
+                    "Observaciones: " + observaciones);
             }
         }
 
@@ -191,50 +231,42 @@ namespace CONATRADEC.Services
         {
             writer.SectionTitle("Balance de fórmula");
 
-            var summary = new List<string>
-            {
-                ValorO(balance.NombreFormula, "Fórmula nutricional"),
-                $"Mezcla exacta: {N(balance.MezclaTotalQq, 3)} qq   ·   " +
-                $"Aplicaciones: {balance.TotalAplicaciones}   ·   " +
-                $"Dosis/planta/aplicación: " +
-                $"{N(balance.DosisPlantaPorAplicacionOz)} oz",
-                $"Costo real de compra: C$ {N(balance.CostoRealCompra)}   ·   " +
-                $"Precio exacto de referencia: C$ " +
-                N(balance.PrecioExactoReferencia)
-            };
-
-            writer.SummaryBox(summary, GrisFondo, Verde);
+            writer.SummaryBox(
+                new[]
+                {
+                    ValorO(
+                        balance.NombreFormula,
+                        "Fórmula nutricional"),
+                    $"Mezcla exacta: " +
+                    $"{N(balance.MezclaTotalQq, 3)} qq  ·  " +
+                    $"Aplicaciones: {balance.TotalAplicaciones}  ·  " +
+                    $"Dosis/planta/aplicación: " +
+                    $"{N(balance.DosisPlantaPorAplicacionOz)} oz",
+                    $"Costo real de compra: " +
+                    $"C$ {N(balance.CostoRealCompra)}  ·  " +
+                    $"Precio exacto de referencia: " +
+                    $"C$ {N(balance.PrecioExactoReferencia)}"
+                },
+                GrisFondo,
+                Verde);
 
             if (balance.FormulaComercial.Count > 0)
             {
-                string formula = string.Join(
-                    "  ·  ",
-                    balance.FormulaComercial
-                        .OrderBy(item => OrdenElemento(item.Key))
-                        .Select(item =>
-                            $"{item.Key.ToUpperInvariant()} " +
-                            N(item.Value)));
-
                 writer.HighlightBox(
                     "Fórmula comercial",
-                    formula,
+                    string.Join(
+                        "  ·  ",
+                        balance.FormulaComercial
+                            .OrderBy(x =>
+                                OrdenElemento(x.Key))
+                            .Select(x =>
+                                $"{x.Key.ToUpperInvariant()} " +
+                                N(x.Value))),
                     AmarilloSuave,
                     Cafe);
             }
 
             writer.Subtitle("Detalle de dosificación");
-
-            var dosageRows = balance.Detalles
-                .Select(item => new[]
-                {
-                    $"{ValorO(item.Fuente)} / {ValorO(item.Elemento)}",
-                    N(item.RequerimientoLibras),
-                    N(item.Libras),
-                    N(item.LibrasPorAplicacion),
-                    N(item.OnzasAnuales),
-                    N(item.OnzasPorAplicacion)
-                })
-                .ToList();
 
             writer.Table(
                 new[]
@@ -246,23 +278,33 @@ namespace CONATRADEC.Services
                     "Oz/año",
                     "Oz/aplic."
                 },
-                new[] { 0.31, 0.13, 0.13, 0.14, 0.14, 0.15 },
-                dosageRows,
-                new HashSet<int> { 1, 2, 3, 4, 5 });
+                new[]
+                {
+                    0.31,
+                    0.13,
+                    0.13,
+                    0.14,
+                    0.14,
+                    0.15
+                },
+                balance.Detalles
+                    .Select(item => new[]
+                    {
+                        $"{ValorO(item.Fuente)} / " +
+                        ValorO(item.Elemento),
+                        N(item.RequerimientoLibras),
+                        N(item.Libras),
+                        N(item.LibrasPorAplicacion),
+                        N(item.OnzasAnuales),
+                        N(item.OnzasPorAplicacion)
+                    })
+                    .ToList(),
+                new HashSet<int>
+                {
+                    1, 2, 3, 4, 5
+                });
 
             writer.Subtitle("Detalle de compra");
-
-            var purchaseRows = balance.Detalles
-                .Select(item => new[]
-                {
-                    $"{ValorO(item.Fuente)} / {ValorO(item.Elemento)}",
-                    N(item.QuintalesExactos, 3),
-                    N(item.QuintalesComprar, 0),
-                    $"C$ {N(item.PrecioPorQuintal)}",
-                    $"C$ {N(item.SubtotalExacto)}",
-                    $"C$ {N(item.CostoCompra)}"
-                })
-                .ToList();
 
             writer.Table(
                 new[]
@@ -274,52 +316,63 @@ namespace CONATRADEC.Services
                     "Subtotal exacto",
                     "Costo compra"
                 },
-                new[] { 0.28, 0.12, 0.12, 0.14, 0.17, 0.17 },
-                purchaseRows,
-                new HashSet<int> { 1, 2, 3, 4, 5 });
-
-            List<string> symbols = balance.Detalles
-                .SelectMany(item => item.Aportes.Keys)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(OrdenElemento)
-                .ToList();
-
-            if (symbols.Count > 0)
-            {
-                writer.Subtitle("Aportes por fuente");
-
-                var headers = new List<string> { "Fuente" };
-                headers.AddRange(symbols.Select(x => x.ToUpperInvariant()));
-
-                var weights = new List<double> { 0.40 };
-                double remaining = 0.60 / symbols.Count;
-                weights.AddRange(symbols.Select(_ => remaining));
-
-                var aporteRows = balance.Detalles
-                    .Select(item =>
+                new[]
+                {
+                    0.28,
+                    0.12,
+                    0.12,
+                    0.14,
+                    0.17,
+                    0.17
+                },
+                balance.Detalles
+                    .Select(item => new[]
                     {
-                        var row = new List<string>
-                        {
-                            ValorO(item.Fuente)
-                        };
-
-                        row.AddRange(symbols.Select(symbol =>
-                            item.Aportes.TryGetValue(
-                                symbol,
-                                out decimal value)
-                                    ? N(value)
-                                    : "-"));
-
-                        return row.ToArray();
+                        $"{ValorO(item.Fuente)} / " +
+                        ValorO(item.Elemento),
+                        N(item.QuintalesExactos, 3),
+                        N(item.QuintalesComprar, 0),
+                        $"C$ {N(item.PrecioPorQuintal)}",
+                        $"C$ {N(item.SubtotalExacto)}",
+                        $"C$ {N(item.CostoCompra)}"
                     })
-                    .ToList();
+                    .ToList(),
+                new HashSet<int>
+                {
+                    1, 2, 3, 4, 5
+                });
+
+            if (balance.Detalles.Any(x =>
+                    x.Aportes.Count > 0))
+            {
+                writer.Subtitle(
+                    "Aportes nutricionales por fuente");
 
                 writer.Table(
-                    headers.ToArray(),
-                    weights.ToArray(),
-                    aporteRows,
-                    Enumerable.Range(1, symbols.Count)
-                        .ToHashSet());
+                    new[]
+                    {
+                        "Fuente",
+                        "Libras",
+                        "QQ",
+                        "Aportes"
+                    },
+                    new[]
+                    {
+                        0.28,
+                        0.14,
+                        0.14,
+                        0.44
+                    },
+                    balance.Detalles
+                        .Select(item => new[]
+                        {
+                            ValorO(item.Fuente),
+                            N(item.Libras),
+                            N(item.QuintalesExactos, 3),
+                            TextoAportes(item.Aportes)
+                        })
+                        .ToList(),
+                    new HashSet<int> { 1, 2 });
             }
         }
 
@@ -332,45 +385,68 @@ namespace CONATRADEC.Services
             writer.SummaryBox(
                 new[]
                 {
-                    $"Fuente: {ValorO(enmienda.Fuente)}",
-                    $"CICE: {N(enmienda.Cice)}   ·   " +
-                    $"Saturación actual: {N(enmienda.SaturacionActual)}%   ·   " +
-                    $"Deseada: {N(enmienda.SaturacionDeseada)}%   ·   " +
-                    $"PRNT: {N(enmienda.Prnt)}%",
-                    $"Necesidad: {N(enmienda.NecesidadEncaladoTonHa)} ton/ha   ·   " +
-                    $"{N(enmienda.NecesidadEncaladoLbMz)} lb/Mz",
-                    $"Dosis: {N(enmienda.DosisPlantaAnualOz)} oz/planta/año   ·   " +
-                    $"{N(enmienda.DosisPlantaPorAplicacionOz)} oz/planta/aplicación"
+                    ValorO(
+                        enmienda.Fuente,
+                        "Fuente no especificada"),
+                    $"{enmienda.TotalAplicaciones} aplicaciones  ·  " +
+                    $"{enmienda.TotalPlantas:N0} plantas"
                 },
+                GrisFondo,
+                Cafe);
+
+            writer.KeyValueGrid(
+                new List<
+                    (string, string, string, string)>
+                {
+                    (
+                        "pH",
+                        N(enmienda.Ph),
+                        "Acidez total",
+                        N(enmienda.AcidezTotal)
+                    ),
+                    (
+                        "Calcio",
+                        N(enmienda.Calcio),
+                        "Magnesio",
+                        N(enmienda.Magnesio)
+                    ),
+                    (
+                        "Potasio",
+                        N(enmienda.Potasio),
+                        "CICE",
+                        N(enmienda.Cice)
+                    ),
+                    (
+                        "Saturación actual",
+                        $"{N(enmienda.SaturacionActual)}%",
+                        "Saturación deseada",
+                        $"{N(enmienda.SaturacionDeseada)}%"
+                    ),
+                    (
+                        "PRNT",
+                        $"{N(enmienda.Prnt)}%",
+                        "Necesidad",
+                        $"{N(enmienda.NecesidadEncaladoLbMz)} lb/Mz"
+                    ),
+                    (
+                        "Dosis anual",
+                        $"{N(enmienda.DosisPlantaAnualOz)} oz/planta",
+                        "Por aplicación",
+                        $"{N(enmienda.DosisPlantaPorAplicacionOz)} oz/planta"
+                    ),
+                    (
+                        "Análisis",
+                        ValorO(enmienda.NombreAnalisis),
+                        "Unidad final",
+                        "lb/Mz"
+                    )
+                });
+
+            writer.HighlightBox(
+                "Interpretación",
+                InterpretarEnmienda(enmienda),
                 VerdeSuave,
                 Verde);
-
-            writer.Table(
-                new[]
-                {
-                    "pH",
-                    "Ca",
-                    "Mg",
-                    "K",
-                    "Acidez",
-                    "Kg/ha",
-                    "Lb/ha"
-                },
-                new[] { 0.11, 0.11, 0.11, 0.11, 0.14, 0.21, 0.21 },
-                new List<string[]>
-                {
-                    new[]
-                    {
-                        N(enmienda.Ph),
-                        N(enmienda.Calcio),
-                        N(enmienda.Magnesio),
-                        N(enmienda.Potasio),
-                        N(enmienda.AcidezTotal),
-                        N(enmienda.NecesidadEncaladoKgHa),
-                        N(enmienda.NecesidadEncaladoLbHa)
-                    }
-                },
-                Enumerable.Range(0, 7).ToHashSet());
         }
 
         private static void ComponerFertilizacionMixta(
@@ -379,40 +455,49 @@ namespace CONATRADEC.Services
         {
             writer.SectionTitle("Fertilización mixta");
 
-            writer.SummaryBox(
+            if (!string.IsNullOrWhiteSpace(
+                    mixta.Observacion))
+            {
+                writer.Paragraph(mixta.Observacion);
+            }
+
+            List<string[]> fuentes =
+                mixta.Fuentes
+                    .Select(item => new[]
+                    {
+                        ValorO(item.Fuente),
+                        N(item.CantidadQq),
+                        $"C$ {N(item.PrecioPorQq)}",
+                        $"C$ {N(item.Costo)}"
+                    })
+                    .ToList();
+
+            fuentes.Add(
                 new[]
                 {
-                    mixta.EsComplementoBalance
-                        ? "Modalidad: complemento del balance comercial"
-                        : "Modalidad: fertilización mixta independiente",
-                    string.IsNullOrWhiteSpace(mixta.Observacion)
-                        ? "Sin observación adicional."
-                        : mixta.Observacion
-                },
-                GrisFondo,
-                Verde);
-
-            writer.Subtitle("Fuentes utilizadas");
+                    "Total",
+                    N(mixta.Fuentes.Sum(x => x.CantidadQq)),
+                    string.Empty,
+                    $"C$ {N(mixta.Fuentes.Sum(x => x.Costo))}"
+                });
 
             writer.Table(
                 new[]
                 {
-                    "Fuente",
+                    "Fuente utilizada",
                     "Cantidad (qq)",
                     "Precio/QQ",
                     "Costo"
                 },
-                new[] { 0.46, 0.18, 0.18, 0.18 },
-                mixta.Fuentes.Select(item => new[]
+                new[]
                 {
-                    ValorO(item.Fuente),
-                    N(item.CantidadQq),
-                    $"C$ {N(item.PrecioPorQq)}",
-                    $"C$ {N(item.Costo)}"
-                }).ToList(),
+                    0.46,
+                    0.18,
+                    0.18,
+                    0.18
+                },
+                fuentes,
                 new HashSet<int> { 1, 2, 3 });
-
-            writer.Subtitle("Resultado por elemento");
 
             writer.Table(
                 new[]
@@ -424,61 +509,78 @@ namespace CONATRADEC.Services
                     "Déficit",
                     "Sobrante"
                 },
-                new[] { 0.21, 0.17, 0.17, 0.15, 0.15, 0.15 },
-                mixta.Detalles.Select(item => new[]
+                new[]
                 {
-                    ValorO(item.Elemento),
-                    N(item.RequerimientoOriginal),
-                    N(item.AporteOrganico),
-                    N(item.Diferencia),
-                    N(item.Deficit),
-                    N(item.Sobrante)
-                }).ToList(),
-                new HashSet<int> { 1, 2, 3, 4, 5 });
+                    0.21,
+                    0.17,
+                    0.17,
+                    0.15,
+                    0.15,
+                    0.15
+                },
+                mixta.Detalles
+                    .Select(item => new[]
+                    {
+                        ValorO(item.Elemento),
+                        N(item.RequerimientoOriginal),
+                        N(item.AporteOrganico),
+                        N(item.Diferencia),
+                        N(item.Deficit),
+                        N(item.Sobrante)
+                    })
+                    .ToList(),
+                new HashSet<int>
+                {
+                    1, 2, 3, 4, 5
+                });
 
             if (mixta.AportesPorFuente.Count > 0)
             {
-                writer.Subtitle("Aportes por fuente");
+                writer.Subtitle(
+                    "Aportes de fertilización mixta por fuente");
 
                 writer.Table(
                     new[]
                     {
                         "Fuente",
                         "Elemento",
-                        "Cantidad qq",
-                        "Aporte/qq",
+                        "Cantidad (qq)",
+                        "Aporte/QQ",
                         "Aporte total"
                     },
-                    new[] { 0.32, 0.18, 0.16, 0.17, 0.17 },
-                    mixta.AportesPorFuente.Select(item => new[]
+                    new[]
                     {
-                        ValorO(item.Fuente),
-                        ValorO(item.Elemento),
-                        N(item.CantidadQq),
-                        N(item.AportePorQq),
-                        N(item.AporteTotal)
-                    }).ToList(),
+                        0.32,
+                        0.18,
+                        0.16,
+                        0.17,
+                        0.17
+                    },
+                    mixta.AportesPorFuente
+                        .Select(item => new[]
+                        {
+                            ValorO(item.Fuente),
+                            ValorO(item.Elemento),
+                            N(item.CantidadQq),
+                            N(item.AportePorQq),
+                            N(item.AporteTotal)
+                        })
+                        .ToList(),
                     new HashSet<int> { 2, 3, 4 });
             }
 
             if (mixta.BalanceAjustado != null)
-                ComponerBalanceAjustado(writer, mixta.BalanceAjustado);
+            {
+                ComponerBalanceAjustado(
+                    writer,
+                    mixta.BalanceAjustado);
+            }
 
             if (mixta.ResumenEconomico != null)
             {
-                AnalisisReporteResumenEconomico resumen =
-                    mixta.ResumenEconomico;
-
-                writer.HighlightBox(
-                    "Resumen económico",
-                    $"Comercial original: C$ {N(resumen.CostoComercialOriginal)}   ·   " +
-                    $"Mixta: C$ {N(resumen.CostoFertilizacionMixta)}   ·   " +
-                    $"Comercial ajustado: C$ {N(resumen.CostoComercialAjustado)}\n" +
-                    $"Costo total final: C$ {N(resumen.CostoTotalFinal)}   ·   " +
-                    $"{(resumen.EsAhorro ? "Ahorro" : "Diferencia")}: " +
-                    $"C$ {N(Math.Abs(resumen.DiferenciaEconomica))}",
-                    AmarilloSuave,
-                    Cafe);
+                ComponerResumenEconomico(
+                    writer,
+                    mixta.ResumenEconomico);
             }
         }
 
@@ -486,7 +588,27 @@ namespace CONATRADEC.Services
             ReportWriter writer,
             AnalisisReporteBalanceAjustado balance)
         {
-            writer.Subtitle("Balance comercial ajustado");
+            writer.SectionTitle(
+                "Balance comercial ajustado");
+
+            writer.SummaryBox(
+                new[]
+                {
+                    ValorO(
+                        balance.NombreFormula,
+                        "Balance ajustado"),
+                    $"Mezcla exacta: " +
+                    $"{N(balance.MezclaTotalQq, 3)} qq  ·  " +
+                    $"Total: {N(balance.TotalLibras)} lb  ·  " +
+                    $"Dosis/planta/aplicación: " +
+                    $"{N(balance.DosisPlantaPorAplicacionOz)} oz",
+                    $"Costo comercial ajustado: " +
+                    $"C$ {N(balance.CostoRealCompra)}  ·  " +
+                    $"Costo por aplicación: " +
+                    $"C$ {N(balance.PrecioPorAplicacion)}"
+                },
+                GrisFondo,
+                Verde);
 
             if (balance.FormulaComercial.Count > 0)
             {
@@ -495,82 +617,219 @@ namespace CONATRADEC.Services
                     string.Join(
                         "  ·  ",
                         balance.FormulaComercial
-                            .OrderBy(item => OrdenElemento(item.Key))
-                            .Select(item =>
-                                $"{item.Key.ToUpperInvariant()} " +
-                                N(item.Value))),
+                            .OrderBy(x =>
+                                OrdenElemento(x.Key))
+                            .Select(x =>
+                                $"{x.Key.ToUpperInvariant()} " +
+                                N(x.Value))),
                     AmarilloSuave,
                     Cafe);
             }
+
+            writer.Subtitle("Ajuste de requerimientos");
 
             writer.Table(
                 new[]
                 {
                     "Fuente / elemento",
-                    "Req. original",
+                    "Requerimiento original",
                     "Aporte orgánico",
-                    "Req. ajustado",
+                    "Requerimiento ajustado"
+                },
+                new[]
+                {
+                    0.34,
+                    0.22,
+                    0.21,
+                    0.23
+                },
+                balance.Detalles
+                    .Select(item => new[]
+                    {
+                        $"{ValorO(item.Fuente)} / " +
+                        ValorO(item.Elemento),
+                        N(item.RequerimientoOriginalLb),
+                        N(item.AporteOrganicoLb),
+                        N(item.RequerimientoAjustadoLb)
+                    })
+                    .ToList(),
+                new HashSet<int> { 1, 2, 3 });
+
+            writer.Subtitle("Compra comercial ajustada");
+
+            writer.Table(
+                new[]
+                {
+                    "Fuente",
+                    "QQ original",
+                    "QQ ajustado",
+                    "Reducción",
                     "QQ compra",
+                    "Precio/QQ",
                     "Costo compra"
                 },
-                new[] { 0.29, 0.14, 0.15, 0.14, 0.13, 0.15 },
-                balance.Detalles.Select(item => new[]
+                new[]
                 {
-                    $"{ValorO(item.Fuente)} / {ValorO(item.Elemento)}",
-                    N(item.RequerimientoOriginalLb),
-                    N(item.AporteOrganicoLb),
-                    N(item.RequerimientoAjustadoLb),
-                    N(item.QuintalesComprar, 0),
-                    $"C$ {N(item.CostoCompra)}"
-                }).ToList(),
-                new HashSet<int> { 1, 2, 3, 4, 5 });
+                    0.25,
+                    0.12,
+                    0.13,
+                    0.12,
+                    0.12,
+                    0.13,
+                    0.13
+                },
+                balance.Detalles
+                    .Select(item => new[]
+                    {
+                        ValorO(item.Fuente),
+                        N(item.QuintalesOriginales, 3),
+                        N(item.QuintalesAjustados, 3),
+                        N(item.ReduccionQuintales, 3),
+                        N(item.QuintalesComprar, 0),
+                        $"C$ {N(item.PrecioPorQq)}",
+                        $"C$ {N(item.CostoCompra)}"
+                    })
+                    .ToList(),
+                new HashSet<int>
+                {
+                    1, 2, 3, 4, 5, 6
+                });
         }
 
-        private static string N(
-            decimal? value,
-            int decimals = 2)
+        private static void ComponerResumenEconomico(
+            ReportWriter writer,
+            AnalisisReporteResumenEconomico resumen)
         {
-            if (!value.HasValue)
-                return "-";
+            writer.SectionTitle("Resumen económico");
 
-            return value.Value.ToString(
-                "N" + decimals,
-                Cultura);
+            writer.KeyValueGrid(
+                new List<
+                    (string, string, string, string)>
+                {
+                    (
+                        "Costo comercial original",
+                        $"C$ {N(resumen.CostoComercialOriginal)}",
+                        "Costo fertilización mixta",
+                        $"C$ {N(resumen.CostoFertilizacionMixta)}"
+                    ),
+                    (
+                        "Costo comercial ajustado",
+                        $"C$ {N(resumen.CostoComercialAjustado)}",
+                        "Costo total final",
+                        $"C$ {N(resumen.CostoTotalFinal)}"
+                    ),
+                    (
+                        resumen.EsAhorro
+                            ? "Ahorro"
+                            : "Incremento",
+                        $"C$ {N(Math.Abs(resumen.DiferenciaEconomica))}",
+                        "Comparación",
+                        resumen.EsAhorro
+                            ? "Menor que el balance original"
+                            : "Mayor que el balance original"
+                    )
+                },
+                resumen.EsAhorro
+                    ? VerdeSuave
+                    : RojoSuave);
         }
 
-        private static string N(
-            decimal value,
-            int decimals = 2) =>
-            value.ToString("N" + decimals, Cultura);
-
-        private static string N(
-            decimal? value,
-            string? unit)
+        private static string InterpretarEnmienda(
+            AnalisisReporteEnmienda enmienda)
         {
-            string number = N(value);
-            return number == "-" ||
-                   string.IsNullOrWhiteSpace(unit)
-                ? number
-                : $"{number} {unit.Trim()}";
+            if (enmienda.NecesidadEncaladoLbMz > 0)
+            {
+                return
+                    $"El cálculo determinó una necesidad de " +
+                    $"{N(enmienda.NecesidadEncaladoLbMz)} " +
+                    "lb/Mz de enmienda.";
+            }
+
+            if (enmienda.SaturacionActual >=
+                enmienda.SaturacionDeseada)
+            {
+                return
+                    $"El cálculo sí fue realizado. La saturación actual " +
+                    $"({N(enmienda.SaturacionActual)}%) alcanza o supera " +
+                    $"la deseada ({N(enmienda.SaturacionDeseada)}%); " +
+                    "por eso la necesidad y la dosis resultan en cero.";
+            }
+
+            return
+                "El cálculo fue realizado y no determinó una dosis " +
+                "positiva con los parámetros configurados para la " +
+                "fuente seleccionada.";
         }
 
-        private static string ValorO(
-            string? value,
-            string fallback = "No disponible") =>
-            string.IsNullOrWhiteSpace(value)
-                ? fallback
-                : value.Trim();
+        private static string TextoAportes(
+            IReadOnlyDictionary<string, decimal> aportes) =>
+            aportes.Count == 0
+                ? "-"
+                : string.Join(
+                    " · ",
+                    aportes
+                        .OrderBy(x =>
+                            OrdenElemento(x.Key))
+                        .Select(x =>
+                            $"{x.Key}: {N(x.Value)}"));
 
-        private static int OrdenElemento(string? value) =>
-            (value ?? string.Empty).Trim().ToUpperInvariant() switch
+        private static int OrdenElemento(
+            string? valor) =>
+            (valor ?? string.Empty)
+                .Trim()
+                .ToUpperInvariant() switch
             {
                 "N" => 1,
                 "P" => 2,
                 "K" => 3,
                 "CA" => 4,
                 "MG" => 5,
+                "S" => 6,
+                "FE" => 7,
+                "MN" => 8,
+                "ZN" => 9,
+                "CU" => 10,
+                "B" => 11,
                 _ => 99
             };
+
+        private static string N(
+            decimal? valor,
+            int decimales = 2)
+        {
+            if (!valor.HasValue)
+                return "-";
+
+            return valor.Value.ToString(
+                "N" + decimales,
+                Cultura);
+        }
+
+        private static string N(
+            decimal valor,
+            int decimales = 2) =>
+            valor.ToString(
+                "N" + decimales,
+                Cultura);
+
+        private static string N(
+            decimal? valor,
+            string? unidad)
+        {
+            string numero = N(valor);
+
+            return numero == "-" ||
+                   string.IsNullOrWhiteSpace(unidad)
+                ? numero
+                : $"{numero} {unidad.Trim()}";
+        }
+
+        private static string ValorO(
+            string? valor,
+            string alternativo = "No disponible") =>
+            string.IsNullOrWhiteSpace(valor)
+                ? alternativo
+                : valor.Trim();
 
         private sealed class ReportWriter
         {
@@ -590,83 +849,110 @@ namespace CONATRADEC.Services
 
             public void Begin() => NewPage();
 
-            public void Finish()
-            {
-            }
-
-            public void SectionTitle(string title)
+            public void SectionTitle(
+                string titulo)
             {
                 Ensure(34);
                 y -= 7;
-                page.FillRect(Margin, y - 23, ContentWidth, 23, Verde);
+
+                page.FillRect(
+                    Margin,
+                    y - 23,
+                    ContentWidth,
+                    23,
+                    Verde);
+
                 page.Text(
-                    title,
+                    titulo,
                     Margin + 9,
                     y - 16,
                     11,
-                    bold: true,
+                    true,
                     Blanco);
+
                 y -= 31;
             }
 
-            public void Subtitle(string text)
+            public void Subtitle(
+                string texto)
             {
                 Ensure(23);
                 y -= 4;
+
                 page.Text(
-                    text,
+                    texto,
                     Margin,
                     y - 11,
                     9.5,
-                    bold: true,
+                    true,
                     GrisTexto);
+
                 y -= 20;
             }
 
             public void KeyValueGrid(
-                IEnumerable<(string Key1, string Value1,
-                    string Key2, string Value2)> rows)
+                IEnumerable<(
+                    string Key1,
+                    string Value1,
+                    string Key2,
+                    string Value2)> rows,
+                PdfColor? valueBackground = null)
             {
                 const double keyWidth = 78;
-                double pairWidth = ContentWidth / 2;
+                double pairWidth =
+                    ContentWidth / 2;
+
+                PdfColor fondoValor =
+                    valueBackground ?? Blanco;
 
                 foreach (var row in rows)
                 {
-                    double valueWidth = pairWidth - keyWidth;
-                    int lines = Math.Max(
-                        Wrap(row.Value1, valueWidth - 10, 8.5).Count,
-                        Wrap(row.Value2, valueWidth - 10, 8.5).Count);
+                    double valueWidth =
+                        pairWidth - keyWidth;
 
-                    double height = Math.Max(25, 11 + lines * 10);
-                    Ensure(height);
+                    int lineas = Math.Max(
+                        Wrap(
+                            row.Value1,
+                            valueWidth - 10,
+                            8.5).Count,
+                        Wrap(
+                            row.Value2,
+                            valueWidth - 10,
+                            8.5).Count);
+
+                    double alto = Math.Max(
+                        25,
+                        11 + lineas * 10);
+
+                    Ensure(alto);
 
                     DrawCell(
                         Margin,
-                        y - height,
+                        y - alto,
                         keyWidth,
-                        height,
+                        alto,
                         row.Key1,
-                        bold: true,
+                        true,
                         GrisFondo,
                         GrisTexto,
                         8.2);
 
                     DrawCell(
                         Margin + keyWidth,
-                        y - height,
+                        y - alto,
                         valueWidth,
-                        height,
+                        alto,
                         row.Value1,
                         false,
-                        Blanco,
+                        fondoValor,
                         Negro,
                         8.5);
 
                     DrawCell(
                         Margin + pairWidth,
-                        y - height,
+                        y - alto,
                         keyWidth,
-                        height,
+                        alto,
                         row.Key2,
                         true,
                         GrisFondo,
@@ -675,16 +961,16 @@ namespace CONATRADEC.Services
 
                     DrawCell(
                         Margin + pairWidth + keyWidth,
-                        y - height,
+                        y - alto,
                         valueWidth,
-                        height,
+                        alto,
                         row.Value2,
                         false,
-                        Blanco,
+                        fondoValor,
                         Negro,
                         8.5);
 
-                    y -= height;
+                    y -= alto;
                 }
 
                 y -= 7;
@@ -702,25 +988,31 @@ namespace CONATRADEC.Services
                     return;
                 }
 
-                numericColumns ??= new HashSet<int>();
-                DrawTableHeader(headers, weights);
+                numericColumns ??=
+                    new HashSet<int>();
+
+                DrawTableHeader(
+                    headers,
+                    weights);
 
                 int rowIndex = 0;
 
                 foreach (string[] row in rows)
                 {
-                    double height = CalculateRowHeight(
+                    double alto = CalculateRowHeight(
                         row,
                         weights,
                         7.5);
 
-                    if (y - height < FooterLimit)
+                    if (y - alto < FooterLimit)
                     {
                         NewPage();
-                        DrawTableHeader(headers, weights);
+                        DrawTableHeader(
+                            headers,
+                            weights);
                     }
 
-                    PdfColor background = rowIndex % 2 == 0
+                    PdfColor fondo = rowIndex % 2 == 0
                         ? Blanco
                         : GrisFondo;
 
@@ -730,31 +1022,31 @@ namespace CONATRADEC.Services
                          index < headers.Length;
                          index++)
                     {
-                        double width =
+                        double ancho =
                             ContentWidth * weights[index];
 
-                        string value = index < row.Length
+                        string valor = index < row.Length
                             ? row[index]
                             : string.Empty;
 
                         DrawCell(
                             x,
-                            y - height,
-                            width,
-                            height,
-                            value,
+                            y - alto,
+                            ancho,
+                            alto,
+                            valor,
                             false,
-                            background,
+                            fondo,
                             Negro,
                             7.5,
                             numericColumns.Contains(index)
                                 ? TextAlignment.Right
                                 : TextAlignment.Left);
 
-                        x += width;
+                        x += ancho;
                     }
 
-                    y -= height;
+                    y -= alto;
                     rowIndex++;
                 }
 
@@ -768,49 +1060,57 @@ namespace CONATRADEC.Services
             {
                 List<string> wrapped = lines
                     .SelectMany(line =>
-                        Wrap(line, ContentWidth - 24, 8.5))
+                        Wrap(
+                            line,
+                            ContentWidth - 24,
+                            8.5))
                     .ToList();
 
-                double height = 15 + wrapped.Count * 11;
-                Ensure(height + 7);
+                double alto =
+                    15 + wrapped.Count * 11;
+
+                Ensure(alto + 7);
 
                 page.FillRect(
                     Margin,
-                    y - height,
+                    y - alto,
                     ContentWidth,
-                    height,
+                    alto,
                     background);
 
                 page.StrokeRect(
                     Margin,
-                    y - height,
+                    y - alto,
                     ContentWidth,
-                    height,
+                    alto,
                     GrisBorde,
                     0.8);
 
                 page.FillRect(
                     Margin,
-                    y - height,
+                    y - alto,
                     4,
-                    height,
+                    alto,
                     accent);
 
                 double textY = y - 14;
 
-                for (int i = 0; i < wrapped.Count; i++)
+                for (int i = 0;
+                     i < wrapped.Count;
+                     i++)
                 {
                     page.Text(
                         wrapped[i],
                         Margin + 12,
                         textY,
                         i == 0 ? 9.5 : 8.5,
-                        bold: i == 0,
+                        i == 0,
                         i == 0 ? accent : Negro);
+
                     textY -= 11;
                 }
 
-                y -= height + 8;
+                y -= alto + 8;
             }
 
             public void HighlightBox(
@@ -824,20 +1124,23 @@ namespace CONATRADEC.Services
                     ContentWidth - 24,
                     8.5);
 
-                double height = 29 + lines.Count * 11;
-                Ensure(height + 7);
+                double alto =
+                    29 + lines.Count * 11;
+
+                Ensure(alto + 7);
 
                 page.FillRect(
                     Margin,
-                    y - height,
+                    y - alto,
                     ContentWidth,
-                    height,
+                    alto,
                     background);
+
                 page.StrokeRect(
                     Margin,
-                    y - height,
+                    y - alto,
                     ContentWidth,
-                    height,
+                    alto,
                     accent,
                     0.8);
 
@@ -850,6 +1153,7 @@ namespace CONATRADEC.Services
                     accent);
 
                 double textY = y - 30;
+
                 foreach (string line in lines)
                 {
                     page.Text(
@@ -859,25 +1163,28 @@ namespace CONATRADEC.Services
                         8.5,
                         false,
                         Negro);
+
                     textY -= 11;
                 }
 
-                y -= height + 8;
+                y -= alto + 8;
             }
 
             public void Paragraph(
-                string text,
-                int boldPrefixLength = 0)
+                string text)
             {
                 List<string> lines = Wrap(
                     text,
                     ContentWidth,
                     8.5);
 
-                double height = lines.Count * 11 + 5;
-                Ensure(height);
+                double alto =
+                    lines.Count * 11 + 5;
+
+                Ensure(alto);
 
                 double textY = y - 10;
+
                 foreach (string line in lines)
                 {
                     page.Text(
@@ -885,18 +1192,18 @@ namespace CONATRADEC.Services
                         Margin,
                         textY,
                         8.5,
-                        bold: false,
+                        false,
                         GrisTexto);
+
                     textY -= 11;
                 }
 
-                y -= height;
+                y -= alto;
             }
 
             private void NewPage()
             {
-                page = document.AddPage(
-                    reporte.Identificador);
+                page = document.AddPage();
 
                 page.FillRect(
                     Margin,
@@ -921,12 +1228,10 @@ namespace CONATRADEC.Services
                     false,
                     Blanco);
 
-                string identifier = ValorO(
-                    reporte.Identificador,
-                    "Análisis de suelo");
-
                 page.TextRight(
-                    identifier,
+                    ValorO(
+                        reporte.Identificador,
+                        "Análisis de suelo"),
                     PageWidth - Margin - 14,
                     PageHeight - Margin - 25,
                     10.5,
@@ -934,7 +1239,8 @@ namespace CONATRADEC.Services
                     Blanco);
 
                 page.TextRight(
-                    $"Generado localmente: {DateTime.Now:dd/MM/yyyy HH:mm}",
+                    $"Generado localmente: " +
+                    $"{DateTime.Now:dd/MM/yyyy HH:mm}",
                     PageWidth - Margin - 14,
                     PageHeight - Margin - 43,
                     7.5,
@@ -948,24 +1254,28 @@ namespace CONATRADEC.Services
                 string[] headers,
                 double[] weights)
             {
-                double height = CalculateRowHeight(
+                double alto = CalculateRowHeight(
                     headers,
                     weights,
                     7.5,
-                    minimum: 25);
+                    25);
 
-                Ensure(height);
+                Ensure(alto);
 
                 double x = Margin;
-                for (int i = 0; i < headers.Length; i++)
+
+                for (int i = 0;
+                     i < headers.Length;
+                     i++)
                 {
-                    double width = ContentWidth * weights[i];
+                    double ancho =
+                        ContentWidth * weights[i];
 
                     DrawCell(
                         x,
-                        y - height,
-                        width,
-                        height,
+                        y - alto,
+                        ancho,
+                        alto,
                         headers[i],
                         true,
                         Verde,
@@ -973,10 +1283,10 @@ namespace CONATRADEC.Services
                         7.5,
                         TextAlignment.Center);
 
-                    x += width;
+                    x += ancho;
                 }
 
-                y -= height;
+                y -= alto;
             }
 
             private double CalculateRowHeight(
@@ -988,7 +1298,9 @@ namespace CONATRADEC.Services
                 int maxLines = 1;
 
                 for (int i = 0;
-                     i < Math.Min(values.Length, weights.Length);
+                     i < Math.Min(
+                         values.Length,
+                         weights.Length);
                      i++)
                 {
                     double width =
@@ -996,10 +1308,15 @@ namespace CONATRADEC.Services
 
                     maxLines = Math.Max(
                         maxLines,
-                        Wrap(values[i], width, fontSize).Count);
+                        Wrap(
+                            values[i],
+                            width,
+                            fontSize).Count);
                 }
 
-                return Math.Max(minimum, 10 + maxLines * 9.2);
+                return Math.Max(
+                    minimum,
+                    10 + maxLines * 9.2);
             }
 
             private void DrawCell(
@@ -1012,9 +1329,16 @@ namespace CONATRADEC.Services
                 PdfColor background,
                 PdfColor foreground,
                 double fontSize,
-                TextAlignment alignment = TextAlignment.Left)
+                TextAlignment alignment =
+                    TextAlignment.Left)
             {
-                page.FillRect(x, bottom, width, height, background);
+                page.FillRect(
+                    x,
+                    bottom,
+                    width,
+                    height,
+                    background);
+
                 page.StrokeRect(
                     x,
                     bottom,
@@ -1028,63 +1352,73 @@ namespace CONATRADEC.Services
                     width - 8,
                     fontSize);
 
-                double lineHeight = fontSize + 2;
-                double top = bottom + height - 7 - fontSize;
+                double lineHeight =
+                    fontSize + 2;
+
+                double top =
+                    bottom + height - 7 - fontSize;
 
                 for (int index = 0;
                      index < lines.Count;
                      index++)
                 {
-                    double textY = top - index * lineHeight;
+                    double textY =
+                        top - index * lineHeight;
+
                     string line = lines[index];
 
-                    if (alignment == TextAlignment.Right)
+                    switch (alignment)
                     {
-                        page.TextRight(
-                            line,
-                            x + width - 4,
-                            textY,
-                            fontSize,
-                            bold,
-                            foreground);
-                    }
-                    else if (alignment == TextAlignment.Center)
-                    {
-                        page.TextCenter(
-                            line,
-                            x + width / 2,
-                            textY,
-                            fontSize,
-                            bold,
-                            foreground);
-                    }
-                    else
-                    {
-                        page.Text(
-                            line,
-                            x + 4,
-                            textY,
-                            fontSize,
-                            bold,
-                            foreground);
+                        case TextAlignment.Right:
+                            page.TextRight(
+                                line,
+                                x + width - 4,
+                                textY,
+                                fontSize,
+                                bold,
+                                foreground);
+                            break;
+
+                        case TextAlignment.Center:
+                            page.TextCenter(
+                                line,
+                                x + width / 2,
+                                textY,
+                                fontSize,
+                                bold,
+                                foreground);
+                            break;
+
+                        default:
+                            page.Text(
+                                line,
+                                x + 4,
+                                textY,
+                                fontSize,
+                                bold,
+                                foreground);
+                            break;
                     }
                 }
             }
 
-            private void Ensure(double requiredHeight)
+            private void Ensure(
+                double requiredHeight)
             {
                 if (y - requiredHeight < FooterLimit)
                     NewPage();
             }
 
-            private static double FooterLimit => Margin + 28;
+            private static double FooterLimit =>
+                Margin + 28;
         }
 
         private sealed class PdfReportDocument
         {
-            private readonly List<PdfPage> pages = new();
+            private readonly List<PdfPage> pages =
+                new();
 
-            public PdfPage AddPage(string identifier)
+            public PdfPage AddPage()
             {
                 var page = new PdfPage();
                 pages.Add(page);
@@ -1095,9 +1429,12 @@ namespace CONATRADEC.Services
             {
                 int totalPages = pages.Count;
 
-                for (int i = 0; i < totalPages; i++)
+                for (int i = 0;
+                     i < totalPages;
+                     i++)
                 {
                     PdfPage page = pages[i];
+
                     page.Line(
                         Margin,
                         Margin + 15,
@@ -1107,7 +1444,8 @@ namespace CONATRADEC.Services
                         0.7);
 
                     page.TextCenter(
-                        $"CONATRACAFÉ SOIL · Página {i + 1} de {totalPages}",
+                        $"CONATRACAFÉ SOIL · Página " +
+                        $"{i + 1} de {totalPages}",
                         PageWidth / 2,
                         Margin + 4,
                         7.5,
@@ -1121,9 +1459,11 @@ namespace CONATRADEC.Services
 
         private sealed class PdfPage
         {
-            private readonly StringBuilder commands = new();
+            private readonly StringBuilder commands =
+                new();
 
-            public string Commands => commands.ToString();
+            public string Commands =>
+                commands.ToString();
 
             public void FillRect(
                 double x,
@@ -1134,7 +1474,8 @@ namespace CONATRADEC.Services
             {
                 commands.AppendLine(
                     $"q {color.FillCommand} " +
-                    $"{F(x)} {F(y)} {F(width)} {F(height)} re f Q");
+                    $"{F(x)} {F(y)} {F(width)} {F(height)} " +
+                    "re f Q");
             }
 
             public void StrokeRect(
@@ -1146,8 +1487,10 @@ namespace CONATRADEC.Services
                 double lineWidth)
             {
                 commands.AppendLine(
-                    $"q {color.StrokeCommand} {F(lineWidth)} w " +
-                    $"{F(x)} {F(y)} {F(width)} {F(height)} re S Q");
+                    $"q {color.StrokeCommand} " +
+                    $"{F(lineWidth)} w " +
+                    $"{F(x)} {F(y)} {F(width)} {F(height)} " +
+                    "re S Q");
             }
 
             public void Line(
@@ -1159,8 +1502,10 @@ namespace CONATRADEC.Services
                 double lineWidth)
             {
                 commands.AppendLine(
-                    $"q {color.StrokeCommand} {F(lineWidth)} w " +
-                    $"{F(x1)} {F(y1)} m {F(x2)} {F(y2)} l S Q");
+                    $"q {color.StrokeCommand} " +
+                    $"{F(lineWidth)} w " +
+                    $"{F(x1)} {F(y1)} m " +
+                    $"{F(x2)} {F(y2)} l S Q");
             }
 
             public void Text(
@@ -1172,8 +1517,9 @@ namespace CONATRADEC.Services
                 PdfColor color)
             {
                 commands.AppendLine(
-                    $"BT /{(bold ? "F2" : "F1")} {F(size)} Tf " +
-                    $"{color.FillCommand} {F(x)} {F(y)} Td " +
+                    $"BT /{(bold ? "F2" : "F1")} " +
+                    $"{F(size)} Tf {color.FillCommand} " +
+                    $"{F(x)} {F(y)} Td " +
                     $"({Escape(text)}) Tj ET");
             }
 
@@ -1185,8 +1531,18 @@ namespace CONATRADEC.Services
                 bool bold,
                 PdfColor color)
             {
-                double width = EstimateWidth(text, size, bold);
-                Text(text, right - width, y, size, bold, color);
+                double width = EstimateWidth(
+                    text,
+                    size,
+                    bold);
+
+                Text(
+                    text,
+                    right - width,
+                    y,
+                    size,
+                    bold,
+                    color);
             }
 
             public void TextCenter(
@@ -1197,14 +1553,25 @@ namespace CONATRADEC.Services
                 bool bold,
                 PdfColor color)
             {
-                double width = EstimateWidth(text, size, bold);
-                Text(text, center - width / 2, y, size, bold, color);
+                double width = EstimateWidth(
+                    text,
+                    size,
+                    bold);
+
+                Text(
+                    text,
+                    center - width / 2,
+                    y,
+                    size,
+                    bold,
+                    color);
             }
         }
 
         private static class PdfBuilder
         {
-            public static byte[] Build(List<PdfPage> pages)
+            public static byte[] Build(
+                List<PdfPage> pages)
             {
                 const int catalogId = 1;
                 const int pagesId = 2;
@@ -1212,50 +1579,76 @@ namespace CONATRADEC.Services
                 const int boldFontId = 4;
                 const int firstPageId = 5;
 
-                var objects = new Dictionary<int, byte[]>();
-                var pageIds = new List<int>();
+                var objects =
+                    new Dictionary<int, byte[]>();
 
-                for (int index = 0; index < pages.Count; index++)
+                var pageIds =
+                    new List<int>();
+
+                for (int index = 0;
+                     index < pages.Count;
+                     index++)
                 {
-                    int pageId = firstPageId + index * 2;
-                    int contentId = pageId + 1;
+                    int pageId =
+                        firstPageId + index * 2;
+
+                    int contentId =
+                        pageId + 1;
+
                     pageIds.Add(pageId);
 
-                    byte[] stream = Encoding.Latin1.GetBytes(
-                        pages[index].Commands);
+                    byte[] stream =
+                        Encoding.Latin1.GetBytes(
+                            pages[index].Commands);
 
-                    objects[contentId] = Encoding.Latin1.GetBytes(
-                        $"<< /Length {stream.Length} >>\nstream\n" +
-                        pages[index].Commands +
-                        "\nendstream");
+                    objects[contentId] =
+                        Encoding.Latin1.GetBytes(
+                            $"<< /Length {stream.Length} >>\n" +
+                            "stream\n" +
+                            pages[index].Commands +
+                            "\nendstream");
 
-                    objects[pageId] = Encoding.ASCII.GetBytes(
-                        $"<< /Type /Page /Parent {pagesId} 0 R " +
-                        $"/MediaBox [0 0 {F(PageWidth)} {F(PageHeight)}] " +
-                        $"/Resources << /Font << /F1 {regularFontId} 0 R " +
-                        $"/F2 {boldFontId} 0 R >> >> " +
-                        $"/Contents {contentId} 0 R >>");
+                    objects[pageId] =
+                        Encoding.ASCII.GetBytes(
+                            $"<< /Type /Page /Parent " +
+                            $"{pagesId} 0 R " +
+                            $"/MediaBox [0 0 {F(PageWidth)} " +
+                            $"{F(PageHeight)}] " +
+                            $"/Resources << /Font << " +
+                            $"/F1 {regularFontId} 0 R " +
+                            $"/F2 {boldFontId} 0 R >> >> " +
+                            $"/Contents {contentId} 0 R >>");
                 }
 
-                objects[catalogId] = Encoding.ASCII.GetBytes(
-                    $"<< /Type /Catalog /Pages {pagesId} 0 R >>");
+                objects[catalogId] =
+                    Encoding.ASCII.GetBytes(
+                        $"<< /Type /Catalog /Pages " +
+                        $"{pagesId} 0 R >>");
 
-                objects[pagesId] = Encoding.ASCII.GetBytes(
-                    $"<< /Type /Pages /Kids [" +
-                    string.Join(
-                        " ",
-                        pageIds.Select(id => $"{id} 0 R")) +
-                    $"] /Count {pageIds.Count} >>");
+                objects[pagesId] =
+                    Encoding.ASCII.GetBytes(
+                        "<< /Type /Pages /Kids [" +
+                        string.Join(
+                            " ",
+                            pageIds.Select(id =>
+                                $"{id} 0 R")) +
+                        $"] /Count {pageIds.Count} >>");
 
-                objects[regularFontId] = Encoding.ASCII.GetBytes(
-                    "<< /Type /Font /Subtype /Type1 " +
-                    "/BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+                objects[regularFontId] =
+                    Encoding.ASCII.GetBytes(
+                        "<< /Type /Font /Subtype /Type1 " +
+                        "/BaseFont /Helvetica " +
+                        "/Encoding /WinAnsiEncoding >>");
 
-                objects[boldFontId] = Encoding.ASCII.GetBytes(
-                    "<< /Type /Font /Subtype /Type1 " +
-                    "/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+                objects[boldFontId] =
+                    Encoding.ASCII.GetBytes(
+                        "<< /Type /Font /Subtype /Type1 " +
+                        "/BaseFont /Helvetica-Bold " +
+                        "/Encoding /WinAnsiEncoding >>");
 
-                return Serialize(objects, catalogId);
+                return Serialize(
+                    objects,
+                    catalogId);
             }
 
             private static byte[] Serialize(
@@ -1263,39 +1656,68 @@ namespace CONATRADEC.Services
                 int catalogId)
             {
                 int maxObject = objects.Keys.Max();
-                using var output = new MemoryStream();
+
+                using var output =
+                    new MemoryStream();
 
                 WriteAscii(output, "%PDF-1.4\n");
-                output.Write(new byte[]
-                {
-                    (byte)'%', 0xE2, 0xE3, 0xCF, 0xD3, (byte)'\n'
-                });
 
-                var offsets = new long[maxObject + 1];
+                output.Write(
+                    new byte[]
+                    {
+                        (byte)'%',
+                        0xE2,
+                        0xE3,
+                        0xCF,
+                        0xD3,
+                        (byte)'\n'
+                    });
 
-                for (int id = 1; id <= maxObject; id++)
+                var offsets =
+                    new long[maxObject + 1];
+
+                for (int id = 1;
+                     id <= maxObject;
+                     id++)
                 {
                     offsets[id] = output.Position;
-                    WriteAscii(output, $"{id} 0 obj\n");
+
+                    WriteAscii(
+                        output,
+                        $"{id} 0 obj\n");
+
                     output.Write(objects[id]);
-                    WriteAscii(output, "\nendobj\n");
+
+                    WriteAscii(
+                        output,
+                        "\nendobj\n");
                 }
 
                 long xref = output.Position;
-                WriteAscii(output, $"xref\n0 {maxObject + 1}\n");
-                WriteAscii(output, "0000000000 65535 f \n");
 
-                for (int id = 1; id <= maxObject; id++)
+                WriteAscii(
+                    output,
+                    $"xref\n0 {maxObject + 1}\n");
+
+                WriteAscii(
+                    output,
+                    "0000000000 65535 f \n");
+
+                for (int id = 1;
+                     id <= maxObject;
+                     id++)
                 {
                     WriteAscii(
                         output,
-                        $"{offsets[id]:0000000000} 00000 n \n");
+                        $"{offsets[id]:0000000000} " +
+                        "00000 n \n");
                 }
 
                 WriteAscii(
                     output,
                     "trailer\n" +
-                    $"<< /Size {maxObject + 1} /Root {catalogId} 0 R >>\n" +
+                    $"<< /Size {maxObject + 1} " +
+                    $"/Root {catalogId} 0 R >>\n" +
                     "startxref\n" +
                     $"{xref}\n" +
                     "%%EOF");
@@ -1307,7 +1729,9 @@ namespace CONATRADEC.Services
                 Stream stream,
                 string value)
             {
-                byte[] bytes = Encoding.ASCII.GetBytes(value);
+                byte[] bytes =
+                    Encoding.ASCII.GetBytes(value);
+
                 stream.Write(bytes);
             }
         }
@@ -1323,14 +1747,22 @@ namespace CONATRADEC.Services
             public string StrokeCommand =>
                 $"{F(R)} {F(G)} {F(B)} RG";
 
-            public static PdfColor FromHex(string hex)
+            public static PdfColor FromHex(
+                string hex)
             {
-                string value = hex.Trim().TrimStart('#');
+                string value =
+                    hex.Trim().TrimStart('#');
 
                 return new PdfColor(
-                    Convert.ToInt32(value[..2], 16) / 255d,
-                    Convert.ToInt32(value.Substring(2, 2), 16) / 255d,
-                    Convert.ToInt32(value.Substring(4, 2), 16) / 255d);
+                    Convert.ToInt32(
+                        value[..2],
+                        16) / 255d,
+                    Convert.ToInt32(
+                        value.Substring(2, 2),
+                        16) / 255d,
+                    Convert.ToInt32(
+                        value.Substring(4, 2),
+                        16) / 255d);
             }
         }
 
@@ -1347,12 +1779,19 @@ namespace CONATRADEC.Services
             double fontSize)
         {
             string value = Sanitize(text);
+
             if (string.IsNullOrEmpty(value))
-                return new List<string> { string.Empty };
+            {
+                return new List<string>
+                {
+                    string.Empty
+                };
+            }
 
             var result = new List<string>();
 
-            foreach (string paragraph in value.Split('\n'))
+            foreach (string paragraph
+                     in value.Split('\n'))
             {
                 string[] words = paragraph.Split(
                     ' ',
@@ -1368,11 +1807,15 @@ namespace CONATRADEC.Services
 
                 foreach (string word in words)
                 {
-                    string candidate = line.Length == 0
-                        ? word
-                        : line + " " + word;
+                    string candidate =
+                        line.Length == 0
+                            ? word
+                            : line + " " + word;
 
-                    if (EstimateWidth(candidate, fontSize, false) <= width)
+                    if (EstimateWidth(
+                            candidate,
+                            fontSize,
+                            false) <= width)
                     {
                         line.Clear();
                         line.Append(candidate);
@@ -1385,7 +1828,10 @@ namespace CONATRADEC.Services
                         line.Clear();
                     }
 
-                    if (EstimateWidth(word, fontSize, false) <= width)
+                    if (EstimateWidth(
+                            word,
+                            fontSize,
+                            false) <= width)
                     {
                         line.Append(word);
                         continue;
@@ -1393,13 +1839,19 @@ namespace CONATRADEC.Services
 
                     int maxChars = Math.Max(
                         1,
-                        (int)Math.Floor(width / (fontSize * 0.53)));
+                        (int)Math.Floor(
+                            width /
+                            (fontSize * 0.53)));
 
-                    for (int i = 0; i < word.Length; i += maxChars)
+                    for (int i = 0;
+                         i < word.Length;
+                         i += maxChars)
                     {
                         string part = word.Substring(
                             i,
-                            Math.Min(maxChars, word.Length - i));
+                            Math.Min(
+                                maxChars,
+                                word.Length - i));
 
                         if (i + maxChars < word.Length)
                             result.Add(part);
@@ -1424,16 +1876,21 @@ namespace CONATRADEC.Services
         {
             string value = Sanitize(text);
             double factor = bold ? 0.56 : 0.52;
-            return value.Length * fontSize * factor;
+
+            return value.Length *
+                   fontSize *
+                   factor;
         }
 
-        private static string Escape(string? text) =>
+        private static string Escape(
+            string? text) =>
             Sanitize(text)
                 .Replace("\\", "\\\\")
                 .Replace("(", "\\(")
                 .Replace(")", "\\)");
 
-        private static string Sanitize(string? text)
+        private static string Sanitize(
+            string? text)
         {
             if (string.IsNullOrWhiteSpace(text))
                 return string.Empty;
@@ -1449,15 +1906,19 @@ namespace CONATRADEC.Services
                          .Replace("’", "'")
                          .Replace("\r", string.Empty))
             {
-                builder.Append(character <= 255
-                    ? character
-                    : '?');
+                builder.Append(
+                    character <= 255
+                        ? character
+                        : '?');
             }
 
             return builder.ToString().Trim();
         }
 
-        private static string F(double value) =>
-            value.ToString("0.###", CultureInfo.InvariantCulture);
+        private static string F(
+            double value) =>
+            value.ToString(
+                "0.###",
+                CultureInfo.InvariantCulture);
     }
 }
