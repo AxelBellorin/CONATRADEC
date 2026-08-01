@@ -12,18 +12,47 @@ namespace CONATRADEC.Views
 
             viewModel = new PropietarioFormViewModel();
             BindingContext = viewModel;
+
+            OcultarNavegacionNativa();
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+            /*
+             * Shell puede reconstruir el comportamiento de regreso cuando
+             * termina una navegación dinámica. Se vuelve a ocultar aquí para
+             * impedir que Windows o Android muestren la flecha nativa.
+             */
+            OcultarNavegacionNativa();
         }
 
         protected override bool OnBackButtonPressed()
         {
             /*
-             * Regresar retira el formulario actual de la pila. No abre una
-             * nueva lista de propietarios.
+             * El botón Atrás del sistema ejecuta el mismo comando que
+             * "← Propietarios" y retira este formulario de la pila.
              */
             if (viewModel.CancelarCommand.CanExecute(null))
                 viewModel.CancelarCommand.Execute(null);
 
             return true;
+        }
+
+        private void OcultarNavegacionNativa()
+        {
+            Shell.SetNavBarIsVisible(
+                this,
+                false);
+
+            Shell.SetBackButtonBehavior(
+                this,
+                new BackButtonBehavior
+                {
+                    IsVisible = false,
+                    IsEnabled = false
+                });
         }
     }
 }

@@ -8,6 +8,16 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+
+		<!--
+			Se desactivan globalmente los inicializadores automáticos que
+			intentaban cargar componentes Main/Singleton del Windows App SDK
+			antes de ejecutar App.xaml.cs y provocaban:
+			0x80040154 (REGDB_E_CLASSNOTREG).
+		-->
+		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+		<WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
+
 		<PackageId>ConatraCafeSoil</PackageId>
 
 		<ApplicationTitle>ConatraCafé Soil</ApplicationTitle>
@@ -16,18 +26,6 @@
 		<!-- Primera versión que incorpora el actualizador interno. -->
 		<ApplicationDisplayVersion>1.0.8</ApplicationDisplayVersion>
 		<ApplicationVersion>9</ApplicationVersion>
-
-		<!--
-			Debug continúa sin empaquetar. Release genera MSIX para que Windows
-			pueda reconocer cada archivo como actualización de la misma app.
-		-->
-
-
-		<!--
-			La aplicación no usa las funciones Main/Singleton del Windows App SDK
-			(como notificaciones push). Se desactiva su inicializador automático,
-			que estaba fallando antes de ejecutar App.xaml.cs con 0x80040154.
-		-->
 
 		<!-- Compatibilidad con teléfonos físicos y emuladores Android. -->
 		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
@@ -42,18 +40,25 @@
 
 	<!--
 		Windows se distribuye como aplicación sin empaquetar y autocontenida.
-		Este modo evita el fallo de activación COM que se presentó al iniciar
-		el MSIX y permite crear un instalador EXE tradicional con Inno Setup.
+		Este modo evita depender de una instalación externa del Windows App SDK
+		y permite crear un instalador EXE tradicional con Inno Setup.
 	-->
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
 		<WindowsPackageType>None</WindowsPackageType>
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 		<SelfContained>true</SelfContained>
 
-		<!-- No se usan Main/Singleton ni DeploymentManager al iniciar. -->
+		<!--
+			No se usan Main/Singleton, DeploymentManager ni el bootstrapper
+			de un runtime instalado externamente.
+		-->
 		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+		<WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
 
-		<!-- Inicializa WinRT sin registro para la aplicación autocontenida. -->
+		<!--
+			Las aplicaciones Windows desempaquetadas y autocontenidas necesitan
+			activación WinRT sin registro.
+		-->
 		<WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>
 	</PropertyGroup>
 
@@ -93,8 +98,8 @@
 		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#3B655B" BaseSize="512,512" />
 
 		<!--
-			En Android, iOS y MacCatalyst las imágenes continúan siendo procesadas
-			por .NET MAUI mediante MauiImage.
+			En Android, iOS y MacCatalyst las imágenes continúan siendo
+			procesadas por .NET MAUI mediante MauiImage.
 		-->
 		<MauiImage Include="Resources\Images\**\*" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'windows'" />
 
@@ -268,10 +273,10 @@
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\propietarioFormPage.xaml">
-		  <Generator>MSBuild:Compile</Generator>
+			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\propietariosPage.xaml">
-		  <Generator>MSBuild:Compile</Generator>
+			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\ResultadoAnalisisSueloPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
@@ -309,7 +314,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Properties\PublishProfiles\" />
+		<Folder Include="Properties\PublishProfiles\" />
 	</ItemGroup>
 
 </Project>

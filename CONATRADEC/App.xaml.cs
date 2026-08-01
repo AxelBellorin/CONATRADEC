@@ -22,6 +22,40 @@ namespace CONATRADEC
             UserAppTheme = AppTheme.Light;
         }
 
+        /// <summary>
+        /// Vincula todos los servicios que dependen de la instancia actual del
+        /// AppShell. Debe ejecutarse tanto al iniciar la aplicación como cuando
+        /// la sesión reconstruye el Shell después de expirar por inactividad.
+        /// </summary>
+        public static void VincularServiciosShell(
+            AppShell shell)
+        {
+            ArgumentNullException.ThrowIfNull(shell);
+
+            ModoOfflineNavigationService.Instance
+                .VincularShell(shell);
+
+            AnalisisEdicionUbicacionService.Instance
+                .VincularShell(shell);
+
+            AnalisisEdicionCalculosDeterministaService.Instance
+                .VincularShell(shell);
+
+            /*
+             * Pase final de verificación. Recupera fuentes, checkbox y Mixta
+             * cuando una carga tardía de una pestaña reemplaza la restauración
+             * inicial durante la edición.
+             */
+            AnalisisEdicionRestauracionRefuerzoService.Instance
+                .VincularShell(shell);
+
+            TerrenoPropietarioEdicionService.Instance
+                .VincularShell(shell);
+
+            DispositivoConexionService.Instance
+                .VincularShell(shell);
+        }
+
         protected override Window CreateWindow(
             IActivationState? activationState)
         {
@@ -39,35 +73,8 @@ namespace CONATRADEC
             SincronizacionOfflineEstadoRecuperacionService
                 .RecuperarSiInterrumpida();
 
-            /*
-             * Impide abrir pantallas que necesitan servidor durante una sesión
-             * iniciada expresamente en modo Sin conexión.
-             */
-            ModoOfflineNavigationService.Instance
-                .VincularShell(shell);
+            VincularServiciosShell(shell);
 
-            /*
-             * Restaura País, Departamento y Municipio del terreno cuando un
-             * análisis se abre por primera vez en modo edición.
-             */
-            AnalisisEdicionUbicacionService.Instance
-                .VincularShell(shell);
-
-            /*
-             * Restaura de forma determinista la selección de elementos, las
-             * fuentes y los resultados guardados de Balance y Mixta.
-             */
-            AnalisisEdicionCalculosDeterministaService.Instance
-                .VincularShell(shell);
-
-            /*
-             * Si el listado del terreno solo trae PropietarioId, recupera los
-             * datos completos del propietario al abrir el formulario de edición.
-             */
-            TerrenoPropietarioEdicionService.Instance
-                .VincularShell(shell);
-
-            DispositivoConexionService.Instance.VincularShell(shell);
             DispositivoConexionService.Instance.Iniciar();
 
             window.Created += (_, _) =>
@@ -79,6 +86,9 @@ namespace CONATRADEC
 
                 SesionInactividadService.Instance
                     .ReanudarSesion();
+
+                WindowsWindowRecoveryService
+                    .RestaurarYActivar();
             };
 
             window.Resumed += (_, _) =>
@@ -91,8 +101,17 @@ namespace CONATRADEC
                 SesionInactividadService.Instance
                     .ReanudarSesion();
 
-                _ = DispositivoConexionService.Instance
+                /*
+                 * En Windows el evento Resumed puede ejecutarse mientras WinRT
+                 * todavía reactiva los perfiles de red. La envoltura segura
+                 * retrasa brevemente la consulta y observa cualquier excepción,
+                 * evitando que una función secundaria de telemetría cierre la app.
+                 */
+                _ = DispositivoConexionLifecycleSeguroService.Instance
                     .ReanudarAsync();
+
+                WindowsWindowRecoveryService
+                    .RestaurarYActivar();
             };
 
             window.Stopped += (_, _) =>
@@ -110,7 +129,7 @@ namespace CONATRADEC
                 SesionInactividadService.Instance
                     .Pausar();
 
-                _ = DispositivoConexionService.Instance
+                _ = DispositivoConexionLifecycleSeguroService.Instance
                     .SuspenderAsync();
             };
 
@@ -124,7 +143,7 @@ namespace CONATRADEC
                 SesionInactividadService.Instance
                     .Pausar();
 
-                _ = DispositivoConexionService.Instance
+                _ = DispositivoConexionLifecycleSeguroService.Instance
                     .DetenerAsync();
             };
 

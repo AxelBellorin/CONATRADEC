@@ -35,32 +35,42 @@ namespace CONATRADEC.Services
                     {
                         InnerHandler = new RespuestaLocalGeneralHttpHandler
                         {
+                            /*
+                             * Debe estar antes del caché y del guardado local:
+                             * así observa detalles recuperados del caché y
+                             * adjunta la versión/snapshot antes de que una
+                             * operación sea guardada en SQLite.
+                             */
                             InnerHandler =
-                                new AnalisisHistorialCacheHttpHandler
+                                new AnalisisHistorialConcurrenciaHttpHandler
                                 {
                                     InnerHandler =
-                                        new AnalisisOfflineGuardarHttpHandler
+                                        new AnalisisHistorialCacheHttpHandler
                                         {
                                             InnerHandler =
-                                                new AnalisisCalculoLocalHttpHandler
+                                                new AnalisisOfflineGuardarHttpHandler
                                                 {
                                                     InnerHandler =
-                                                        new AnalisisComplementariosLocalHttpHandler
+                                                        new AnalisisCalculoLocalHttpHandler
                                                         {
                                                             InnerHandler =
-                                                                new AnalisisCatalogosLocalHttpHandler
+                                                                new AnalisisComplementariosLocalHttpHandler
                                                                 {
                                                                     InnerHandler =
-                                                                        new CatalogosLocalHttpHandler
+                                                                        new AnalisisCatalogosLocalHttpHandler
                                                                         {
                                                                             InnerHandler =
-                                                                                new ContenidoSincronizacionHandler
+                                                                                new CatalogosLocalHttpHandler
                                                                                 {
                                                                                     InnerHandler =
-                                                                                        new ModoSesionHttpHandler
+                                                                                        new ContenidoSincronizacionHandler
                                                                                         {
                                                                                             InnerHandler =
-                                                                                                new HttpClientHandler()
+                                                                                                new ModoSesionHttpHandler
+                                                                                                {
+                                                                                                    InnerHandler =
+                                                                                                        new HttpClientHandler()
+                                                                                                }
                                                                                         }
                                                                                 }
                                                                         }
@@ -206,9 +216,8 @@ namespace CONATRADEC.Services
                 if (actividadVersionEnviada > 0)
                 {
                     /*
-                     * Solo se confirma al recibir una respuesta HTTP. Si hubo una
-                     * falla de red, la actividad permanece pendiente y se enviará
-                     * nuevamente en la próxima solicitud.
+                     * Solo se confirma al recibir una respuesta HTTP. Si hubo
+                     * falla de red, la actividad permanece pendiente.
                      */
                     SesionInactividadService.Instance
                         .ConfirmarActividadEnviada(

@@ -1,4 +1,4 @@
-﻿using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices;
 using System.Reflection;
@@ -8,10 +8,11 @@ namespace CONATRADEC.Services
 {
     /// <summary>
     /// Agrega una flecha fija de regreso en la parte superior de los
-    /// formularios de CONATRADEC.
+    /// formularios antiguos de CONATRADEC que todavía no poseen un
+    /// encabezado propio.
     ///
-    /// Municipio utiliza una flecha propia enlazada directamente a
-    /// CancelCommand, por lo que se excluye del encabezado global.
+    /// Municipio y Propietario utilizan navegación definida directamente
+    /// en su XAML, por lo que se excluyen del encabezado global.
     /// </summary>
     public static class FormNavigationHeaderService
     {
@@ -28,10 +29,6 @@ namespace CONATRADEC.Services
                 "BackCommand"
             ];
 
-        /// <summary>
-        /// Busca la página actualmente visible y agrega o corrige el encabezado
-        /// de navegación cuando corresponde.
-        /// </summary>
         public static void AsegurarEnPaginaActual()
         {
             MainThread.BeginInvokeOnMainThread(
@@ -51,14 +48,11 @@ namespace CONATRADEC.Services
             ContentPage pagina)
         {
             /*
-             * Municipio posee su propia flecha en el XAML.
-             *
-             * ShellContent conserva la instancia de la página. Por eso, si la
-             * página ya había sido envuelta anteriormente por este servicio,
-             * no basta con excluirla: también debemos retirar el encabezado
-             * global que quedó montado en memoria.
+             * Estas páginas ya poseen navegación propia.
+             * Si una instancia fue envuelta anteriormente, también se retira
+             * el encabezado global que haya quedado guardado en memoria.
              */
-            if (EsFormularioMunicipio(pagina))
+            if (UsaNavegacionPropia(pagina))
             {
                 QuitarEncabezadoGlobalSiExiste(pagina);
                 return;
@@ -135,10 +129,6 @@ namespace CONATRADEC.Services
             pagina.Content = contenedor;
         }
 
-        /// <summary>
-        /// Retira exclusivamente el contenedor creado por este servicio.
-        /// No modifica el contenido original ni las demás páginas.
-        /// </summary>
         private static void QuitarEncabezadoGlobalSiExiste(
             ContentPage pagina)
         {
@@ -161,10 +151,6 @@ namespace CONATRADEC.Services
             if (contenidoOriginal == null)
                 return;
 
-            /*
-             * Primero se separa del contenedor anterior para que MAUI permita
-             * asignarlo nuevamente como contenido principal de la página.
-             */
             contenedor.Children.Remove(
                 contenidoOriginal);
 
@@ -252,22 +238,11 @@ namespace CONATRADEC.Services
                 if (comando != null)
                 {
                     if (comando.CanExecute(null))
-                    {
-                        /*
-                         * Se utiliza el comando original del formulario.
-                         * De esta forma se conservan limpieza, confirmaciones
-                         * y rutas ya implementadas por cada ViewModel.
-                         */
                         comando.Execute(null);
-                    }
 
                     return;
                 }
 
-                /*
-                 * Respaldo para formularios antiguos que todavía no poseen
-                 * un comando público de cancelación.
-                 */
                 if (Shell.Current != null)
                 {
                     await Shell.Current.GoToAsync(
@@ -278,9 +253,7 @@ namespace CONATRADEC.Services
             catch
             {
                 /*
-                 * El botón de navegación no debe provocar el cierre de la app.
-                 * Los formularios modernos utilizan su comando propio, por lo
-                 * que este bloque únicamente cubre una ruta de respaldo.
+                 * La navegación de respaldo nunca debe cerrar la aplicación.
                  */
             }
             finally
@@ -344,13 +317,21 @@ namespace CONATRADEC.Services
                    ocupado;
         }
 
-        private static bool EsFormularioMunicipio(
+        private static bool UsaNavegacionPropia(
             ContentPage pagina)
         {
-            return string.Equals(
-                pagina.GetType().Name,
-                "municipioFormPage",
-                StringComparison.OrdinalIgnoreCase);
+            string nombre =
+                pagina.GetType().Name;
+
+            return
+                string.Equals(
+                    nombre,
+                    "municipioFormPage",
+                    StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    nombre,
+                    "propietarioFormPage",
+                    StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool EsFormulario(
@@ -372,12 +353,6 @@ namespace CONATRADEC.Services
         private static Thickness
             ObtenerPaddingEncabezado()
         {
-            /*
-             * DeviceIdiom es una estructura y sus valores estáticos no pueden
-             * utilizarse como patrones constantes dentro de un switch.
-             * Las comparaciones directas funcionan correctamente en todos los
-             * destinos de .NET MAUI.
-             */
             if (DeviceInfo.Idiom ==
                 DeviceIdiom.Desktop)
             {

@@ -3,36 +3,32 @@
     x:Class="CONATRADEC.Views.propietarioFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{StaticResource color_Blanco}">
 
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior
+            IsVisible="False"
+            IsEnabled="False" />
+    </Shell.BackButtonBehavior>
+
     <Grid RowDefinitions="Auto,*">
-        <Grid
-            Padding="{OnPlatform WinUI='24,18,24,8', Default='14,14,14,6'}"
-            ColumnDefinitions="*,Auto"
-            ColumnSpacing="12">
 
-            <VerticalStackLayout Spacing="2">
-                <Label
-                    Text="{Binding Title}"
-                    FontFamily="MontserratBold"
-                    FontAttributes="Bold"
-                    FontSize="{OnPlatform WinUI=27, Default=22}"
-                    TextColor="{StaticResource color_Verde}" />
-
-                <Label
-                    Text="Los datos se guardan una sola vez y se reutilizan al vincular terrenos."
-                    FontSize="12"
-                    TextColor="{StaticResource color_GrisOscuro}" />
-            </VerticalStackLayout>
-
-            <Button
-                Grid.Column="1"
-                Text="Editar"
-                Style="{StaticResource UpdateButton}"
-                Command="{Binding EditarCommand}"
-                IsVisible="{Binding ShowEditButton}" />
-        </Grid>
+        <!--
+            Encabezado propio del formulario.
+            Reemplaza por completo la flecha nativa de Shell y utiliza el
+            mismo patrón visual de los demás catálogos.
+        -->
+        <controls:ResponsiveCatalogHeader
+            Grid.Row="0"
+            Title="{Binding Title}"
+            Subtitle="Los datos se guardan una sola vez y se reutilizan al vincular terrenos."
+            BackText="← Propietarios"
+            BackCommand="{Binding CancelarCommand}"
+            PrimaryText="Editar"
+            PrimaryCommand="{Binding EditarCommand}"
+            IsPrimaryVisible="{Binding ShowEditButton}" />
 
         <ScrollView Grid.Row="1">
             <Grid

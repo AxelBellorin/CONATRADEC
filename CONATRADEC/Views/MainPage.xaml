@@ -242,167 +242,176 @@
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:AnalisisGuardadoResumen">
-                            <SwipeView
+                            <Border
                                 Margin="{OnPlatform WinUI='24,4', Default='14,4'}"
-                                IsEnabled="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanView}">
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#E5E7EB"
+                                StrokeShape="RoundRectangle 15">
 
-                                <SwipeView.RightItems>
-                                    <SwipeItems Mode="Reveal">
-                                        <SwipeItem
-                                            Text="Editar"
-                                            IconImageSource="iconupdate.png"
-                                            BackgroundColor="{StaticResource BlueUpdate}"
-                                            Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EditarCommand}"
-                                            CommandParameter="{Binding .}"
-                                            IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanEdit}" />
-                                        <SwipeItem
-                                            Text="Eliminar"
-                                            IconImageSource="icondelete.png"
-                                            BackgroundColor="{StaticResource RedDelete}"
-                                            Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EliminarCommand}"
-                                            CommandParameter="{Binding .}"
-                                            IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanDelete}" />
-                                    </SwipeItems>
-                                </SwipeView.RightItems>
+                                <Grid
+                                    RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                    RowSpacing="8">
 
-                                <Border
-                                    Padding="14"
-                                    BackgroundColor="White"
-                                    Stroke="#E5E7EB"
-                                    StrokeShape="RoundRectangle 15">
-
-                                    <Border.GestureRecognizers>
-                                        <TapGestureRecognizer
-                                            Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.VisualizarCommand}"
-                                            CommandParameter="{Binding .}" />
-                                    </Border.GestureRecognizers>
-
-                                    <Grid
-                                        RowDefinitions="Auto,Auto,Auto,Auto"
-                                        RowSpacing="8">
-
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                            <VerticalStackLayout Spacing="2">
-                                                <Label
-                                                    Text="{Binding IdentificadorMostrar}"
-                                                    FontSize="17"
-                                                    FontAttributes="Bold"
-                                                    TextColor="{StaticResource color_Verde}"
-                                                    MaxLines="1"
-                                                    LineBreakMode="TailTruncation" />
-                                                <Label
-                                                    Text="{Binding ClienteMostrar}"
-                                                    FontSize="14"
-                                                    FontAttributes="Bold"
-                                                    TextColor="{StaticResource color_Negro}"
-                                                    MaxLines="1"
-                                                    LineBreakMode="TailTruncation" />
-                                                <Label
-                                                    Text="{Binding TerrenoMostrar}"
-                                                    FontSize="11"
-                                                    TextColor="{StaticResource color_GrisOscuro}"
-                                                    MaxLines="1"
-                                                    LineBreakMode="TailTruncation" />
-                                                <Label
-                                                    Text="{Binding UsuarioMostrar, StringFormat='Usuario: {0}'}"
-                                                    IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EsAdministrador}"
-                                                    FontSize="10"
-                                                    TextColor="{StaticResource color_Cafe}"
-                                                    MaxLines="1"
-                                                    LineBreakMode="TailTruncation" />
-                                            </VerticalStackLayout>
-
-                                            <Border
-                                                Grid.Column="1"
-                                                Padding="8,5"
-                                                BackgroundColor="#EEF5F2"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 9"
-                                                VerticalOptions="Start">
-                                                <VerticalStackLayout Spacing="1">
-                                                    <Label
-                                                        Text="Laboratorio"
-                                                        FontSize="9"
-                                                        TextColor="{StaticResource color_GrisOscuro}"
-                                                        HorizontalTextAlignment="Center" />
-                                                    <Label
-                                                        Text="{Binding FechaAnalisisTexto}"
-                                                        FontSize="11"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{StaticResource color_Verde}" />
-                                                </VerticalStackLayout>
-                                            </Border>
-                                        </Grid>
-
-                                        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <VerticalStackLayout Spacing="2">
                                             <Label
-                                                Text="{Binding LaboratorioMostrar, StringFormat='Laboratorio: {0}'}"
+                                                Text="{Binding IdentificadorMostrar}"
+                                                FontSize="17"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Verde}"
+                                                MaxLines="1"
+                                                LineBreakMode="TailTruncation" />
+                                            <Label
+                                                Text="{Binding ClienteMostrar}"
+                                                FontSize="14"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Negro}"
+                                                MaxLines="1"
+                                                LineBreakMode="TailTruncation" />
+                                            <Label
+                                                Text="{Binding TerrenoMostrar}"
                                                 FontSize="11"
                                                 TextColor="{StaticResource color_GrisOscuro}"
                                                 MaxLines="1"
                                                 LineBreakMode="TailTruncation" />
                                             <Label
-                                                Grid.Column="1"
-                                                Text="{Binding FechaRegistroTexto, StringFormat='Guardado: {0}'}"
-                                                FontSize="11"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Verde}"
-                                                HorizontalTextAlignment="End" />
-                                        </Grid>
+                                                Text="{Binding UsuarioMostrar, StringFormat='Usuario: {0}'}"
+                                                IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EsAdministrador}"
+                                                FontSize="10"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                MaxLines="1"
+                                                LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
 
-                                        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                        <Border
+                                            Grid.Column="1"
+                                            Padding="8,5"
+                                            BackgroundColor="#EEF5F2"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 9"
+                                            VerticalOptions="Start">
                                             <VerticalStackLayout Spacing="1">
-                                                <Label Text="pH" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
-                                                <Label Text="{Binding PhTexto}" FontSize="14" FontAttributes="Bold" />
+                                                <Label
+                                                    Text="Laboratorio"
+                                                    FontSize="9"
+                                                    TextColor="{StaticResource color_GrisOscuro}"
+                                                    HorizontalTextAlignment="Center" />
+                                                <Label
+                                                    Text="{Binding FechaAnalisisTexto}"
+                                                    FontSize="11"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{StaticResource color_Verde}" />
                                             </VerticalStackLayout>
-                                            <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                <Label Text="Finca" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
-                                                <Label Text="{Binding TamanoFincaTexto}" FontSize="14" FontAttributes="Bold" />
-                                            </VerticalStackLayout>
-                                            <VerticalStackLayout Grid.Column="2" Spacing="1">
-                                                <Label Text="Producción" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
-                                                <Label Text="{Binding ProduccionTexto}" FontSize="13" FontAttributes="Bold" />
-                                            </VerticalStackLayout>
-                                        </Grid>
-
-                                        <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="6">
-                                            <Border
-                                                IsVisible="{Binding TieneFormulaNutricional}"
-                                                Padding="7,3"
-                                                BackgroundColor="#EEF5F2"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 8">
-                                                <Label Text="✓ Balance" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
-                                            </Border>
-                                            <Border
-                                                Grid.Column="1"
-                                                IsVisible="{Binding TieneEnmiendaCalcarea}"
-                                                Padding="7,3"
-                                                BackgroundColor="#FFF3E8"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 8">
-                                                <Label Text="✓ Enmienda" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
-                                            </Border>
-                                            <Border
-                                                Grid.Column="2"
-                                                IsVisible="{Binding TieneFertilizacionMixta}"
-                                                Padding="7,3"
-                                                BackgroundColor="#FFF8D8"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 8">
-                                                <Label Text="✓ Mixta" FontSize="10" FontAttributes="Bold" TextColor="#7A5C00" />
-                                            </Border>
-                                            <Label
-                                                Grid.Column="3"
-                                                Text="Ver detalle ›"
-                                                HorizontalOptions="End"
-                                                FontSize="11"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Verde}" />
-                                        </Grid>
+                                        </Border>
                                     </Grid>
-                                </Border>
-                            </SwipeView>
+
+                                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                        <Label
+                                            Text="{Binding LaboratorioMostrar, StringFormat='Laboratorio: {0}'}"
+                                            FontSize="11"
+                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation" />
+                                        <Label
+                                            Grid.Column="1"
+                                            Text="{Binding FechaRegistroTexto, StringFormat='Guardado: {0}'}"
+                                            FontSize="11"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Verde}"
+                                            HorizontalTextAlignment="End" />
+                                    </Grid>
+
+                                    <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                        <VerticalStackLayout Spacing="1">
+                                            <Label Text="pH" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding PhTexto}" FontSize="14" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                            <Label Text="Finca" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding TamanoFincaTexto}" FontSize="14" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Grid.Column="2" Spacing="1">
+                                            <Label Text="Producción" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding ProduccionTexto}" FontSize="13" FontAttributes="Bold" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+
+                                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="6">
+                                        <Border
+                                            IsVisible="{Binding TieneFormulaNutricional}"
+                                            Padding="7,3"
+                                            BackgroundColor="#EEF5F2"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 8">
+                                            <Label Text="✓ Balance" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                        </Border>
+                                        <Border
+                                            Grid.Column="1"
+                                            IsVisible="{Binding TieneEnmiendaCalcarea}"
+                                            Padding="7,3"
+                                            BackgroundColor="#FFF3E8"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 8">
+                                            <Label Text="✓ Enmienda" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                                        </Border>
+                                        <Border
+                                            Grid.Column="2"
+                                            IsVisible="{Binding TieneFertilizacionMixta}"
+                                            Padding="7,3"
+                                            BackgroundColor="#FFF8D8"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 8">
+                                            <Label Text="✓ Mixta" FontSize="10" FontAttributes="Bold" TextColor="#7A5C00" />
+                                        </Border>
+                                    </Grid>
+
+                                    <Grid
+                                        Grid.Row="4"
+                                        Margin="0,4,0,0"
+                                        ColumnDefinitions="*,*,*"
+                                        ColumnSpacing="8">
+                                        <Button
+                                            Text="Ver"
+                                            HeightRequest="42"
+                                            Padding="8,7"
+                                            CornerRadius="10"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            BackgroundColor="#EEF5F2"
+                                            TextColor="{StaticResource color_Verde}"
+                                            IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanView}"
+                                            Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.VisualizarCommand}"
+                                            CommandParameter="{Binding .}" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Editar"
+                                            HeightRequest="42"
+                                            Padding="8,7"
+                                            CornerRadius="10"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            BackgroundColor="{StaticResource BlueUpdate}"
+                                            TextColor="White"
+                                            IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanEdit}"
+                                            Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EditarCommand}"
+                                            CommandParameter="{Binding .}" />
+                                        <Button
+                                            Grid.Column="2"
+                                            Text="Eliminar"
+                                            HeightRequest="42"
+                                            Padding="8,7"
+                                            CornerRadius="10"
+                                            FontSize="12"
+                                            FontAttributes="Bold"
+                                            BackgroundColor="{StaticResource RedDelete}"
+                                            TextColor="White"
+                                            IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanDelete}"
+                                            Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EliminarCommand}"
+                                            CommandParameter="{Binding .}" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
 

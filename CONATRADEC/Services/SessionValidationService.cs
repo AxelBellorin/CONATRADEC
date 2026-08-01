@@ -1,13 +1,11 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace CONATRADEC.Services
 {
@@ -15,8 +13,9 @@ namespace CONATRADEC.Services
     /// Comprueba periódicamente que el token, el usuario, el rol y los permisos
     /// continúen vigentes. Una falla de red nunca cierra la sesión.
     ///
-    /// El cierre automático también se encarga de recuperar visualmente la
-    /// ventana y reconstruir el Shell cuando una navegación al Login falla.
+    /// El cierre automático recupera la ventana de Windows y reconstruye el
+    /// Shell cuando una navegación al Login falla. La nueva instancia del Shell
+    /// vuelve a vincular todos los servicios de edición y navegación.
     /// </summary>
     public sealed class SessionValidationService
     {
@@ -264,12 +263,6 @@ namespace CONATRADEC.Services
                             "Su rol o sus permisos cambiaron. Inicie sesión nuevamente."
                     };
 
-                /*
-                 * Primero se navega al Login y después se muestra el mensaje.
-                 * Snackbar.Show espera varios segundos; mostrarlo antes podía
-                 * dejar la ventana todavía en la pantalla anterior mientras la
-                 * sesión ya había sido eliminada.
-                 */
                 await NavegarAlLoginConRecuperacionAsync(
                     mensaje);
             }
@@ -313,7 +306,8 @@ namespace CONATRADEC.Services
                         await ReconstruirShellEnVentanaAsync();
                     }
 
-                    ActivarVentanaPrincipal();
+                    WindowsWindowRecoveryService
+                        .RestaurarYActivar();
 
                     if (!string.IsNullOrWhiteSpace(mensaje))
                     {
@@ -366,6 +360,16 @@ namespace CONATRADEC.Services
             var nuevoShell =
                 new global::CONATRADEC.AppShell();
 
+            /*
+             * El Shell nuevo debe recibir exactamente los mismos servicios que
+             * la instancia creada al iniciar la aplicación. Sin esta llamada,
+             * la restauración de Balance/Mixta y otras navegaciones continuaban
+             * escuchando a una instancia de Shell que ya no estaba visible.
+             */
+            global::CONATRADEC.App
+                .VincularServiciosShell(
+                    nuevoShell);
+
             Application? aplicacion =
                 Application.Current;
 
@@ -392,6 +396,9 @@ namespace CONATRADEC.Services
             await nuevoShell.GoToAsync(
                 AppRoutes.Login,
                 false);
+
+            WindowsWindowRecoveryService
+                .RestaurarYActivar();
         }
 
         private static async Task
@@ -403,7 +410,9 @@ namespace CONATRADEC.Services
                     async () =>
                     {
                         await ReconstruirShellEnVentanaAsync();
-                        ActivarVentanaPrincipal();
+
+                        WindowsWindowRecoveryService
+                            .RestaurarYActivar();
                     });
             }
             catch
@@ -413,31 +422,6 @@ namespace CONATRADEC.Services
                  * recuperación del cierre de sesión.
                  */
             }
-        }
-
-        private static void ActivarVentanaPrincipal()
-        {
-#if WINDOWS
-            try
-            {
-                Window? ventanaMaui =
-                    Application.Current?
-                        .Windows
-                        .FirstOrDefault();
-
-                if (ventanaMaui?
-                        .Handler?
-                        .PlatformView
-                    is Microsoft.UI.Xaml.Window ventanaNativa)
-                {
-                    ventanaNativa.Activate();
-                }
-            }
-            catch
-            {
-                // La activación visual no debe impedir el cierre de sesión.
-            }
-#endif
         }
 
         private static bool TryGetUsuarioId(

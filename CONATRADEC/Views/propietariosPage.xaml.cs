@@ -10,25 +10,50 @@ namespace CONATRADEC.Views
         {
             InitializeComponent();
 
-            viewModel = new PropietariosViewModel();
-            BindingContext = viewModel;
+            /*
+             * La ruta es secundaria, pero la pantalla ya posee su propio botón
+             * de catálogo. Se oculta también por código la barra nativa para
+             * cubrir WinUI después de reconstruir el Shell por inactividad.
+             */
+            Shell.SetNavBarIsVisible(
+                this,
+                false);
+
+            Shell.SetBackButtonBehavior(
+                this,
+                new BackButtonBehavior
+                {
+                    IsVisible = false,
+                    IsEnabled = false
+                });
+
+            viewModel =
+                new PropietariosViewModel();
+
+            BindingContext =
+                viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            Shell.SetNavBarIsVisible(
+                this,
+                false);
+
             await viewModel.InicializarAsync();
         }
 
         protected override bool OnBackButtonPressed()
         {
             /*
-             * El botón Atrás del sistema debe ejecutar la misma salida
-             * determinista que el botón visible. Así no se recorren las copias
-             * antiguas de Propietarios que hubieran quedado en la pila.
+             * Atrás del sistema usa la misma salida del botón visible.
              */
             if (viewModel.RegresarCommand.CanExecute(null))
+            {
                 viewModel.RegresarCommand.Execute(null);
+            }
 
             return true;
         }
