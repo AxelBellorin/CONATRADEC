@@ -1,154 +1,138 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
     [QueryProperty(
         nameof(ModoSeleccionTexto),
         "ModoSeleccion")]
-    public sealed class PropietariosViewModel :
-        GlobalService
+    public sealed class PropietariosViewModel : GlobalService
     {
-        private readonly PropietarioApiService service =
-            new();
+        private readonly PropietarioApiService service = new();
+        private readonly PropietarioCrudApiService crudService = new();
 
-        private readonly PropietarioCrudApiService crudService =
-            new();
-
-        private string textoBusqueda =
-            string.Empty;
-
+        private CancellationTokenSource? cargaCts;
+        private string textoBusqueda = string.Empty;
         private string? modoSeleccionTexto;
-
         private bool mostrarEliminados;
-
         private bool inicializado;
+        private bool isRefreshing;
+        private bool cargandoMas;
+        private int paginaActual;
+        private int totalPaginas;
+        private int totalRegistros;
 
         public PropietariosViewModel()
         {
             BuscarCommand = new Command(
-                async () => await CargarAsync(),
-                () => !IsBusy);
+                async () => await CargarAsync(reiniciar: true),
+                () => PuedeEjecutarCargaInicial);
 
             ActualizarCommand = new Command(
-                async () => await CargarAsync(),
-                () => !IsBusy);
+                async () => await RefrescarAsync(),
+                () => PuedeEjecutarCargaInicial);
+
+            CargarMasCommand = new Command(
+                async () => await CargarAsync(reiniciar: false),
+                () =>
+                    !IsBusy &&
+                    !CargandoMas &&
+                    PuedeCargarMas);
 
             RegresarCommand = new Command(
                 async () => await RegresarAsync(),
-                () => !IsBusy);
+                () => !IsBusy && !CargandoMas);
 
             NuevoCommand = new Command(
                 async () => await NuevoAsync(),
-                () => CanAdd && !IsBusy);
+                () => CanAdd && !IsBusy && !CargandoMas);
 
-            AbrirCommand =
-                new Command<PropietarioResponse>(
-                    async propietario =>
-                        await AbrirAsync(propietario),
-                    propietario =>
-                        propietario != null &&
-                        !IsBusy);
+            AbrirCommand = new Command<PropietarioResponse>(
+                async propietario => await AbrirAsync(propietario),
+                propietario =>
+                    propietario != null &&
+                    !IsBusy &&
+                    !CargandoMas);
 
-            VerCommand =
-                new Command<PropietarioResponse>(
-                    async propietario =>
-                        await VerAsync(propietario),
-                    propietario =>
-                        propietario != null &&
-                        CanView &&
-                        !EsModoSeleccion &&
-                        !IsBusy);
+            VerCommand = new Command<PropietarioResponse>(
+                async propietario => await VerAsync(propietario),
+                propietario =>
+                    propietario != null &&
+                    CanView &&
+                    !EsModoSeleccion &&
+                    !IsBusy &&
+                    !CargandoMas);
 
-            EditarCommand =
-                new Command<PropietarioResponse>(
-                    async propietario =>
-                        await EditarAsync(propietario),
-                    propietario =>
-                        propietario != null &&
-                        propietario.Activo &&
-                        CanEdit &&
-                        !EsModoSeleccion &&
-                        !IsBusy);
+            EditarCommand = new Command<PropietarioResponse>(
+                async propietario => await EditarAsync(propietario),
+                propietario =>
+                    propietario != null &&
+                    propietario.Activo &&
+                    CanEdit &&
+                    !EsModoSeleccion &&
+                    !IsBusy &&
+                    !CargandoMas);
 
-            EliminarCommand =
-                new Command<PropietarioResponse>(
-                    async propietario =>
-                        await EliminarAsync(propietario),
-                    propietario =>
-                        propietario != null &&
-                        propietario.Activo &&
-                        CanDelete &&
-                        !EsModoSeleccion &&
-                        !IsBusy);
+            EliminarCommand = new Command<PropietarioResponse>(
+                async propietario => await EliminarAsync(propietario),
+                propietario =>
+                    propietario != null &&
+                    propietario.Activo &&
+                    CanDelete &&
+                    !EsModoSeleccion &&
+                    !IsBusy &&
+                    !CargandoMas);
 
-            RecuperarCommand =
-                new Command<PropietarioResponse>(
-                    async propietario =>
-                        await RecuperarAsync(propietario),
-                    propietario =>
-                        propietario != null &&
-                        !propietario.Activo &&
-                        CanEdit &&
-                        !EsModoSeleccion &&
-                        !IsBusy);
+            RecuperarCommand = new Command<PropietarioResponse>(
+                async propietario => await RecuperarAsync(propietario),
+                propietario =>
+                    propietario != null &&
+                    !propietario.Activo &&
+                    CanEdit &&
+                    !EsModoSeleccion &&
+                    !IsBusy &&
+                    !CargandoMas);
 
-            VerTerrenosCommand =
-                new Command<PropietarioResponse>(
-                    async propietario =>
-                        await VerTerrenosAsync(propietario),
-                    propietario =>
-                        propietario != null &&
-                        propietario.TotalTerrenos > 0 &&
-                        CanView &&
-                        !EsModoSeleccion &&
-                        !IsBusy);
+            VerTerrenosCommand = new Command<PropietarioResponse>(
+                async propietario => await VerTerrenosAsync(propietario),
+                propietario =>
+                    propietario != null &&
+                    propietario.TotalTerrenos > 0 &&
+                    CanView &&
+                    !EsModoSeleccion &&
+                    !IsBusy &&
+                    !CargandoMas);
         }
 
-        public ObservableCollection<
-            PropietarioResponse> Propietarios
-        {
-            get;
-        } = new();
+        public ObservableCollection<PropietarioResponse>
+            Propietarios { get; } = new();
 
         public Command BuscarCommand { get; }
-
         public Command ActualizarCommand { get; }
-
+        public Command CargarMasCommand { get; }
         public Command RegresarCommand { get; }
-
         public Command NuevoCommand { get; }
-
-        public Command<PropietarioResponse>
-            AbrirCommand { get; }
-
-        public Command<PropietarioResponse>
-            VerCommand { get; }
-
-        public Command<PropietarioResponse>
-            EditarCommand { get; }
-
-        public Command<PropietarioResponse>
-            EliminarCommand { get; }
-
-        public Command<PropietarioResponse>
-            RecuperarCommand { get; }
-
-        public Command<PropietarioResponse>
-            VerTerrenosCommand { get; }
+        public Command<PropietarioResponse> AbrirCommand { get; }
+        public Command<PropietarioResponse> VerCommand { get; }
+        public Command<PropietarioResponse> EditarCommand { get; }
+        public Command<PropietarioResponse> EliminarCommand { get; }
+        public Command<PropietarioResponse> RecuperarCommand { get; }
+        public Command<PropietarioResponse> VerTerrenosCommand { get; }
 
         public string TextoBusqueda
         {
             get => textoBusqueda;
             set
             {
-                if (textoBusqueda == value)
+                string nuevo = value ?? string.Empty;
+
+                if (textoBusqueda == nuevo)
                     return;
 
-                textoBusqueda =
-                    value ?? string.Empty;
-
+                textoBusqueda = nuevo;
                 OnPropertyChanged();
             }
         }
@@ -158,19 +142,19 @@ namespace CONATRADEC.ViewModels
             get => mostrarEliminados;
             set
             {
-                if (mostrarEliminados == value)
+                bool nuevo = value && !EsModoSeleccion;
+
+                if (mostrarEliminados == nuevo)
                     return;
 
-                mostrarEliminados =
-                    value && !EsModoSeleccion;
-
+                mostrarEliminados = nuevo;
                 OnPropertyChanged();
 
                 if (inicializado &&
                     !IsBusy &&
                     !EsModoSeleccion)
                 {
-                    _ = CargarAsync();
+                    _ = CargarAsync(reiniciar: true);
                 }
             }
         }
@@ -180,34 +164,60 @@ namespace CONATRADEC.ViewModels
             get => modoSeleccionTexto;
             set
             {
+                if (modoSeleccionTexto == value)
+                    return;
+
                 modoSeleccionTexto = value;
 
-                if (EsModoSeleccion &&
-                    mostrarEliminados)
+                if (EsModoSeleccion && mostrarEliminados)
                 {
                     mostrarEliminados = false;
-                    OnPropertyChanged(
-                        nameof(MostrarEliminados));
+                    OnPropertyChanged(nameof(MostrarEliminados));
                 }
 
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(EsModoSeleccion));
-                OnPropertyChanged(
-                    nameof(MostrarAccionesAdministracion));
-                OnPropertyChanged(
-                    nameof(MostrarFiltroEliminados));
-                OnPropertyChanged(
-                    nameof(Titulo));
-                OnPropertyChanged(
-                    nameof(TextoRegresar));
+                OnPropertyChanged(nameof(EsModoSeleccion));
+                OnPropertyChanged(nameof(MostrarAccionesAdministracion));
+                OnPropertyChanged(nameof(MostrarFiltroEliminados));
+                OnPropertyChanged(nameof(Titulo));
+                OnPropertyChanged(nameof(TextoRegresar));
+
+                if (inicializado && !IsBusy)
+                    _ = CargarAsync(reiniciar: true);
+            }
+        }
+
+        public bool IsRefreshing
+        {
+            get => isRefreshing;
+            set
+            {
+                if (isRefreshing == value)
+                    return;
+
+                isRefreshing = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public bool CargandoMas
+        {
+            get => cargandoMas;
+            private set
+            {
+                if (cargandoMas == value)
+                    return;
+
+                cargandoMas = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+                ActualizarEstadoLista();
             }
         }
 
         public bool EsModoSeleccion =>
-            bool.TryParse(
-                ModoSeleccionTexto,
-                out bool valor) &&
+            bool.TryParse(ModoSeleccionTexto, out bool valor) &&
             valor;
 
         public bool MostrarAccionesAdministracion =>
@@ -227,119 +237,221 @@ namespace CONATRADEC.ViewModels
                 : "Configuración";
 
         public new bool CanView =>
-            PermissionService.Instance
-                .HasRead(
-                    InterfazCodigos.Propietarios);
+            PermissionService.Instance.HasRead(
+                InterfazCodigos.Propietarios);
 
         public new bool CanAdd =>
-            PermissionService.Instance
-                .HasAdd(
-                    InterfazCodigos.Propietarios);
+            PermissionService.Instance.HasAdd(
+                InterfazCodigos.Propietarios);
 
         public new bool CanEdit =>
-            PermissionService.Instance
-                .HasUpdate(
-                    InterfazCodigos.Propietarios);
+            PermissionService.Instance.HasUpdate(
+                InterfazCodigos.Propietarios);
 
         public new bool CanDelete =>
-            PermissionService.Instance
-                .HasDelete(
-                    InterfazCodigos.Propietarios);
+            PermissionService.Instance.HasDelete(
+                InterfazCodigos.Propietarios);
 
         public bool MostrarListaVacia =>
             inicializado &&
             !IsBusy &&
+            !CargandoMas &&
             Propietarios.Count == 0;
+
+        public bool PuedeCargarMas =>
+            paginaActual > 0 &&
+            paginaActual < totalPaginas;
+
+        public bool MostrarFinLista =>
+            inicializado &&
+            Propietarios.Count > 0 &&
+            !PuedeCargarMas &&
+            !IsBusy &&
+            !CargandoMas;
+
+        public string ResumenResultados =>
+            totalRegistros == 1
+                ? "1 propietario encontrado"
+                : $"{totalRegistros:N0} propietarios encontrados";
+
+        private bool PuedeEjecutarCargaInicial =>
+            !IsBusy &&
+            !CargandoMas &&
+            !IsRefreshing;
 
         public async Task InicializarAsync()
         {
-            if (inicializado)
-            {
-                await CargarAsync();
-                return;
-            }
-
             inicializado = true;
-            await CargarAsync();
+            await CargarAsync(reiniciar: true);
         }
 
-        private async Task CargarAsync()
+        public void CancelarCarga()
         {
-            if (IsBusy)
-                return;
+            CancellationTokenSource? source =
+                Interlocked.Exchange(ref cargaCts, null);
 
+            CancelarSeguro(source);
+
+            IsBusy = false;
+            IsRefreshing = false;
+            CargandoMas = false;
+            ActualizarComandos();
+        }
+
+        private async Task CargarAsync(bool reiniciar)
+        {
             if (!ModoSesionService.EsEnLinea)
             {
-                await MostrarAdvertenciaAsync(
-                    "La administración de propietarios " +
-                    "requiere conexión a internet.");
-
+                CancelarCarga();
                 Propietarios.Clear();
+                paginaActual = 0;
+                totalPaginas = 0;
+                totalRegistros = 0;
                 ActualizarEstadoLista();
+
+                await MostrarAdvertenciaAsync(
+                    "La administración de propietarios requiere conexión a internet.");
                 return;
             }
 
-            CambiarEstadoOcupado(true);
+            if (reiniciar && IsBusy)
+                return;
+
+            if (!reiniciar &&
+                (CargandoMas || !PuedeCargarMas))
+            {
+                return;
+            }
+
+            CancellationTokenSource source = PrepararCarga();
 
             try
             {
-                ApiResult<ObservableCollection<
-                    PropietarioResponse>> result =
-                    await service
-                        .GetPropietariosResultAsync(
-                            TextoBusqueda,
-                            incluirInactivos:
-                                MostrarEliminados &&
-                                !EsModoSeleccion,
-                            paraSeleccionTerreno:
-                                EsModoSeleccion);
+                if (reiniciar)
+                    CambiarEstadoOcupado(true);
+                else
+                    CargandoMas = true;
 
-                if (!result.Success ||
-                    result.Data == null)
+                int paginaSolicitada = reiniciar
+                    ? 1
+                    : paginaActual + 1;
+
+                ApiResult<PropietarioPaginaResponse> result =
+                    await service.BuscarPaginadoAsync(
+                        TextoBusqueda,
+                        incluirInactivos:
+                            MostrarEliminados &&
+                            !EsModoSeleccion,
+                        paraSeleccionTerreno:
+                            EsModoSeleccion,
+                        pagina: paginaSolicitada,
+                        tamanoPagina: ObtenerTamanoPagina(),
+                        cancellationToken: source.Token);
+
+                if (source.IsCancellationRequested ||
+                    !EsCargaActual(source))
                 {
-                    await MostrarErrorAsync(
-                        result.Message);
                     return;
                 }
 
-                Propietarios.Clear();
-
-                foreach (PropietarioResponse item
-                         in result.Data)
+                if (!result.Success || result.Data == null)
                 {
-                    Propietarios.Add(item);
+                    if (!EsCancelacion(result.Message))
+                        await MostrarErrorAsync(result.Message);
+
+                    return;
                 }
 
-                ActualizarEstadoLista();
+                AplicarPagina(result.Data, reiniciar);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancelación normal al cambiar búsqueda o salir de la pantalla.
+            }
+            catch (ObjectDisposedException)
+            {
+                // La navegación puede cerrar la operación anterior en Android.
             }
             finally
             {
-                CambiarEstadoOcupado(false);
+                if (EsCargaActual(source))
+                {
+                    if (reiniciar)
+                    {
+                        CambiarEstadoOcupado(false);
+                        IsRefreshing = false;
+                    }
+                    else
+                    {
+                        CargandoMas = false;
+                    }
+                }
+
+                LiberarCarga(source);
+                ActualizarComandos();
+                ActualizarEstadoLista();
+            }
+        }
+
+        private void AplicarPagina(
+            PropietarioPaginaResponse pagina,
+            bool reiniciar)
+        {
+            if (reiniciar)
+                Propietarios.Clear();
+
+            HashSet<int> ids =
+                Propietarios
+                    .Select(item => item.PropietarioId)
+                    .ToHashSet();
+
+            foreach (PropietarioResponse item in pagina.Items)
+            {
+                if (item.PropietarioId <= 0)
+                    continue;
+
+                if (ids.Add(item.PropietarioId))
+                    Propietarios.Add(item);
+            }
+
+            paginaActual = Math.Max(1, pagina.Pagina);
+            totalPaginas = Math.Max(0, pagina.TotalPaginas);
+            totalRegistros = Math.Max(0, pagina.TotalRegistros);
+
+            ActualizarEstadoLista();
+        }
+
+        private async Task RefrescarAsync()
+        {
+            if (!PuedeEjecutarCargaInicial)
+                return;
+
+            IsRefreshing = true;
+
+            try
+            {
+                await CargarAsync(reiniciar: true);
+            }
+            finally
+            {
+                IsRefreshing = false;
             }
         }
 
         private async Task RegresarAsync()
         {
-            if (IsBusy)
+            if (IsBusy || CargandoMas)
                 return;
+
+            CancelarCarga();
 
             if (EsModoSeleccion)
             {
-                /*
-                 * La selección se abre desde el formulario de terreno. En
-                 * este modo se vuelve a la pantalla que ya existe en la pila.
-                 */
                 await Shell.Current.GoToAsync("..");
                 return;
             }
 
-            /*
-             * En administración se regresa mediante una ruta absoluta. Esto
-             * limpia las copias históricas de propietarios que pudieron quedar
-             * apiladas y evita el ciclo infinito del botón Atrás.
-             */
-            await GoToAsyncParameters(
-                AppRoutes.Configuracion);
+            await GoToAsyncParameters(AppRoutes.Configuracion);
         }
 
         private async Task NuevoAsync()
@@ -351,15 +463,14 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            CancelarCarga();
+
             await GoToAsyncParameters(
                 AppRoutes.PropietarioFormulario,
                 new Dictionary<string, object>
                 {
-                    ["Mode"] =
-                        FormMode.FormModeSelect.Create,
-
-                    ["ModoSeleccion"] =
-                        EsModoSeleccion.ToString()
+                    ["Mode"] = FormMode.FormModeSelect.Create,
+                    ["ModoSeleccion"] = EsModoSeleccion.ToString()
                 });
         }
 
@@ -378,9 +489,8 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                PropietarioSeleccionService
-                    .Seleccionar(propietario);
-
+                PropietarioSeleccionService.Seleccionar(propietario);
+                CancelarCarga();
                 await Shell.Current.GoToAsync("..");
                 return;
             }
@@ -401,18 +511,15 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            CancelarCarga();
+
             await GoToAsyncParameters(
                 AppRoutes.PropietarioFormulario,
                 new Dictionary<string, object>
                 {
-                    ["Mode"] =
-                        FormMode.FormModeSelect.View,
-
-                    ["Propietario"] =
-                        propietario,
-
-                    ["ModoSeleccion"] =
-                        EsModoSeleccion.ToString()
+                    ["Mode"] = FormMode.FormModeSelect.View,
+                    ["Propietario"] = propietario,
+                    ["ModoSeleccion"] = EsModoSeleccion.ToString()
                 });
         }
 
@@ -436,18 +543,15 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            CancelarCarga();
+
             await GoToAsyncParameters(
                 AppRoutes.PropietarioFormulario,
                 new Dictionary<string, object>
                 {
-                    ["Mode"] =
-                        FormMode.FormModeSelect.Edit,
-
-                    ["Propietario"] =
-                        propietario,
-
-                    ["ModoSeleccion"] =
-                        EsModoSeleccion.ToString()
+                    ["Mode"] = FormMode.FormModeSelect.Edit,
+                    ["Propietario"] = propietario,
+                    ["ModoSeleccion"] = EsModoSeleccion.ToString()
                 });
         }
 
@@ -471,12 +575,13 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            CancelarCarga();
+
             await GoToAsyncParameters(
                 AppRoutes.PropietarioTerrenos,
                 new Dictionary<string, object>
                 {
-                    ["Propietario"] =
-                        propietario
+                    ["Propietario"] = propietario
                 });
         }
 
@@ -496,47 +601,40 @@ namespace CONATRADEC.ViewModels
             if (propietario.TotalTerrenos > 0)
             {
                 await MostrarAdvertenciaAsync(
-                    "No se puede eliminar el propietario porque tiene " +
-                    "terrenos vinculados. Utilice Ver terrenos para " +
-                    "reasignarlos antes de continuar.");
+                    "No se puede eliminar el propietario porque tiene terrenos vinculados. " +
+                    "Utilice Ver terrenos para reasignarlos antes de continuar.");
                 return;
             }
 
-            bool confirmar =
-                await ConfirmarAsync(
-                    "Eliminar propietario",
-                    $"¿Desea eliminar a {propietario.TextoPrincipal}? " +
-                    "El registro quedará disponible en Mostrar eliminados.",
-                    "Eliminar",
-                    "Cancelar");
+            bool confirmar = await ConfirmarAsync(
+                "Eliminar propietario",
+                $"¿Desea eliminar a {propietario.TextoPrincipal}? " +
+                "El registro quedará disponible en Mostrar eliminados.",
+                "Eliminar",
+                "Cancelar");
 
             if (!confirmar)
                 return;
 
             bool recargar = false;
-
             CambiarEstadoOcupado(true);
 
             try
             {
                 ApiResult<bool> resultado =
-                    await crudService
-                        .EliminarPropietarioResultAsync(
-                            propietario.PropietarioId);
+                    await crudService.EliminarPropietarioResultAsync(
+                        propietario.PropietarioId);
 
-                if (!resultado.Success ||
-                    resultado.Data != true)
+                if (!resultado.Success || resultado.Data != true)
                 {
-                    await MostrarErrorAsync(
-                        resultado.Message);
+                    await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
                 recargar = true;
 
                 await MostrarExitoAsync(
-                    string.IsNullOrWhiteSpace(
-                        resultado.Message)
+                    string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Propietario eliminado correctamente."
                         : resultado.Message);
             }
@@ -546,7 +644,7 @@ namespace CONATRADEC.ViewModels
             }
 
             if (recargar)
-                await CargarAsync();
+                await CargarAsync(reiniciar: true);
         }
 
         private async Task RecuperarAsync(
@@ -569,41 +667,35 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            bool confirmar =
-                await ConfirmarAsync(
-                    "Recuperar propietario",
-                    $"¿Desea recuperar a {propietario.TextoPrincipal}? " +
-                    "Volverá a estar disponible para crear o reasignar terrenos.",
-                    "Recuperar",
-                    "Cancelar");
+            bool confirmar = await ConfirmarAsync(
+                "Recuperar propietario",
+                $"¿Desea recuperar a {propietario.TextoPrincipal}? " +
+                "Volverá a estar disponible para crear o reasignar terrenos.",
+                "Recuperar",
+                "Cancelar");
 
             if (!confirmar)
                 return;
 
             bool recargar = false;
-
             CambiarEstadoOcupado(true);
 
             try
             {
                 ApiResult<bool> resultado =
-                    await crudService
-                        .RecuperarPropietarioResultAsync(
-                            propietario.PropietarioId);
+                    await crudService.RecuperarPropietarioResultAsync(
+                        propietario.PropietarioId);
 
-                if (!resultado.Success ||
-                    resultado.Data != true)
+                if (!resultado.Success || resultado.Data != true)
                 {
-                    await MostrarErrorAsync(
-                        resultado.Message);
+                    await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
                 recargar = true;
 
                 await MostrarExitoAsync(
-                    string.IsNullOrWhiteSpace(
-                        resultado.Message)
+                    string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Propietario recuperado correctamente."
                         : resultado.Message);
             }
@@ -613,19 +705,22 @@ namespace CONATRADEC.ViewModels
             }
 
             if (recargar)
-                await CargarAsync();
+                await CargarAsync(reiniciar: true);
         }
 
-        private void CambiarEstadoOcupado(
-            bool valor)
+        private void CambiarEstadoOcupado(bool valor)
         {
             IsBusy = valor;
+            OnPropertyChanged(nameof(MostrarListaVacia));
+            ActualizarComandos();
+            ActualizarEstadoLista();
+        }
 
-            OnPropertyChanged(
-                nameof(MostrarListaVacia));
-
+        private void ActualizarComandos()
+        {
             BuscarCommand.ChangeCanExecute();
             ActualizarCommand.ChangeCanExecute();
+            CargarMasCommand.ChangeCanExecute();
             RegresarCommand.ChangeCanExecute();
             NuevoCommand.ChangeCanExecute();
             AbrirCommand.ChangeCanExecute();
@@ -638,8 +733,68 @@ namespace CONATRADEC.ViewModels
 
         private void ActualizarEstadoLista()
         {
-            OnPropertyChanged(
-                nameof(MostrarListaVacia));
+            OnPropertyChanged(nameof(MostrarListaVacia));
+            OnPropertyChanged(nameof(PuedeCargarMas));
+            OnPropertyChanged(nameof(MostrarFinLista));
+            OnPropertyChanged(nameof(ResumenResultados));
         }
+
+        private static int ObtenerTamanoPagina() =>
+            DeviceInfo.Platform == DevicePlatform.WinUI
+                ? 36
+                : 16;
+
+        private CancellationTokenSource PrepararCarga()
+        {
+            var source = new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref cargaCts, source);
+
+            CancelarSeguro(anterior);
+            return source;
+        }
+
+        private bool EsCargaActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref cargaCts),
+                source);
+
+        private void LiberarCarga(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref cargaCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                source.Dispose();
+            }
+        }
+
+        private static bool EsCancelacion(string? mensaje) =>
+            !string.IsNullOrWhiteSpace(mensaje) &&
+            mensaje.Contains(
+                "cancel",
+                StringComparison.OrdinalIgnoreCase);
     }
 }

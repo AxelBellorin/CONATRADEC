@@ -1,72 +1,63 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
-    [QueryProperty(
-        nameof(Propietario),
-        "Propietario")]
-    public sealed class PropietarioTerrenosViewModel :
-        GlobalService
+    [QueryProperty(nameof(Propietario), "Propietario")]
+    public sealed class PropietarioTerrenosViewModel : GlobalService
     {
-        private readonly PropietarioTerrenosApiService
-            terrenosService =
-                new();
+        private readonly PropietarioTerrenosApiService terrenosService = new();
+        private readonly PropietarioApiService propietarioApiService = new();
 
-        private readonly PropietarioApiService
-            propietarioApiService =
-                new();
-
+        private CancellationTokenSource? propietariosCts;
         private PropietarioResponse? propietario;
-
-        private PropietarioTerrenoResumenResponse?
-            terrenoSeleccionado;
-
-        private string textoBusquedaDestino =
-            string.Empty;
-
+        private PropietarioTerrenoResumenResponse? terrenoSeleccionado;
+        private string textoBusquedaDestino = string.Empty;
         private bool mostrarSelectorPropietario;
+        private bool cargandoMasPropietarios;
+        private int paginaPropietarios;
+        private int totalPaginasPropietarios;
+        private int totalPropietarios;
 
         public PropietarioTerrenosViewModel()
         {
-            RegresarCommand =
-                new Command(
-                    async () =>
-                        await RegresarAsync(),
-                    () => !IsBusy);
+            RegresarCommand = new Command(
+                async () => await RegresarAsync(),
+                () => !IsBusy && !CargandoMasPropietarios);
 
-            ActualizarCommand =
-                new Command(
-                    async () =>
-                        await CargarDetalleAsync(),
-                    () => !IsBusy);
+            ActualizarCommand = new Command(
+                async () => await CargarDetalleAsync(),
+                () => !IsBusy && !CargandoMasPropietarios);
 
             CambiarPropietarioCommand =
-                new Command<
-                    PropietarioTerrenoResumenResponse>(
-                    async terreno =>
-                        await AbrirSelectorAsync(
-                            terreno),
+                new Command<PropietarioTerrenoResumenResponse>(
+                    async terreno => await AbrirSelectorAsync(terreno),
                     terreno =>
                         terreno != null &&
                         terreno.Activo &&
                         CanEdit &&
-                        !IsBusy);
+                        !IsBusy &&
+                        !CargandoMasPropietarios);
 
-            BuscarPropietariosCommand =
-                new Command(
-                    async () =>
-                        await CargarPropietariosDestinoAsync(),
-                    () =>
-                        MostrarSelectorPropietario &&
-                        !IsBusy);
+            BuscarPropietariosCommand = new Command(
+                async () => await CargarPropietariosDestinoAsync(true),
+                () => MostrarSelectorPropietario && !IsBusy);
+
+            CargarMasPropietariosCommand = new Command(
+                async () => await CargarPropietariosDestinoAsync(false),
+                () =>
+                    MostrarSelectorPropietario &&
+                    !IsBusy &&
+                    !CargandoMasPropietarios &&
+                    PuedeCargarMasPropietarios);
 
             SeleccionarPropietarioCommand =
                 new Command<PropietarioResponse>(
                     async propietarioDestino =>
-                        await ReasignarAsync(
-                            propietarioDestino),
+                        await ReasignarAsync(propietarioDestino),
                     propietarioDestino =>
                         propietarioDestino != null &&
                         propietarioDestino.Activo &&
@@ -75,57 +66,41 @@ namespace CONATRADEC.ViewModels
                             Propietario?.PropietarioId &&
                         TerrenoSeleccionado != null &&
                         CanEdit &&
-                        !IsBusy);
+                        !IsBusy &&
+                        !CargandoMasPropietarios);
 
-            CancelarCambioCommand =
-                new Command(
-                    CerrarSelector,
-                    () =>
-                        MostrarSelectorPropietario &&
-                        !IsBusy);
+            CancelarCambioCommand = new Command(
+                CerrarSelector,
+                () => MostrarSelectorPropietario && !IsBusy);
 
-            Terrenos.CollectionChanged +=
-                (_, _) =>
-                {
-                    OnPropertyChanged(
-                        nameof(HayTerrenos));
-                    OnPropertyChanged(
-                        nameof(NoHayTerrenos));
-                    OnPropertyChanged(
-                        nameof(TextoResumenTerrenos));
-                };
+            Terrenos.CollectionChanged += (_, _) =>
+            {
+                OnPropertyChanged(nameof(HayTerrenos));
+                OnPropertyChanged(nameof(NoHayTerrenos));
+                OnPropertyChanged(nameof(TextoResumenTerrenos));
+            };
 
-            PropietariosDestino.CollectionChanged +=
-                (_, _) =>
-                {
-                    OnPropertyChanged(
-                        nameof(HayPropietariosDestino));
-                    OnPropertyChanged(
-                        nameof(NoHayPropietariosDestino));
-                };
+            PropietariosDestino.CollectionChanged += (_, _) =>
+            {
+                OnPropertyChanged(nameof(HayPropietariosDestino));
+                OnPropertyChanged(nameof(NoHayPropietariosDestino));
+            };
         }
 
-        public ObservableCollection<
-            PropietarioTerrenoResumenResponse>
+        public ObservableCollection<PropietarioTerrenoResumenResponse>
             Terrenos { get; } = new();
 
-        public ObservableCollection<
-            PropietarioResponse>
+        public ObservableCollection<PropietarioResponse>
             PropietariosDestino { get; } = new();
 
         public Command RegresarCommand { get; }
-
         public Command ActualizarCommand { get; }
-
-        public Command<
-            PropietarioTerrenoResumenResponse>
+        public Command<PropietarioTerrenoResumenResponse>
             CambiarPropietarioCommand { get; }
-
         public Command BuscarPropietariosCommand { get; }
-
+        public Command CargarMasPropietariosCommand { get; }
         public Command<PropietarioResponse>
             SeleccionarPropietarioCommand { get; }
-
         public Command CancelarCambioCommand { get; }
 
         public PropietarioResponse? Propietario
@@ -133,52 +108,32 @@ namespace CONATRADEC.ViewModels
             get => propietario;
             set
             {
-                if (ReferenceEquals(
-                        propietario,
-                        value))
-                {
+                if (ReferenceEquals(propietario, value))
                     return;
-                }
 
                 propietario = value;
-
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(Titulo));
-                OnPropertyChanged(
-                    nameof(TextoPropietario));
-                OnPropertyChanged(
-                    nameof(TextoIdentificacion));
-                OnPropertyChanged(
-                    nameof(TextoContacto));
-                OnPropertyChanged(
-                    nameof(TextoEstadoPropietario));
-                OnPropertyChanged(
-                    nameof(TextoResumenTerrenos));
-
+                OnPropertyChanged(nameof(Titulo));
+                OnPropertyChanged(nameof(TextoPropietario));
+                OnPropertyChanged(nameof(TextoIdentificacion));
+                OnPropertyChanged(nameof(TextoContacto));
+                OnPropertyChanged(nameof(TextoEstadoPropietario));
+                OnPropertyChanged(nameof(TextoResumenTerrenos));
                 ActualizarComandos();
             }
         }
 
-        public PropietarioTerrenoResumenResponse?
-            TerrenoSeleccionado
+        public PropietarioTerrenoResumenResponse? TerrenoSeleccionado
         {
             get => terrenoSeleccionado;
             private set
             {
-                if (ReferenceEquals(
-                        terrenoSeleccionado,
-                        value))
-                {
+                if (ReferenceEquals(terrenoSeleccionado, value))
                     return;
-                }
 
                 terrenoSeleccionado = value;
-
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TextoTerrenoSeleccionado));
-
+                OnPropertyChanged(nameof(TextoTerrenoSeleccionado));
                 ActualizarComandos();
             }
         }
@@ -188,14 +143,12 @@ namespace CONATRADEC.ViewModels
             get => textoBusquedaDestino;
             set
             {
-                string nuevo =
-                    value ?? string.Empty;
+                string nuevo = value ?? string.Empty;
 
                 if (textoBusquedaDestino == nuevo)
                     return;
 
                 textoBusquedaDestino = nuevo;
-
                 OnPropertyChanged();
             }
         }
@@ -209,67 +162,83 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 mostrarSelectorPropietario = value;
-
                 OnPropertyChanged();
                 ActualizarComandos();
             }
         }
 
-        public string Titulo =>
-            "Terrenos del propietario";
+        public bool CargandoMasPropietarios
+        {
+            get => cargandoMasPropietarios;
+            private set
+            {
+                if (cargandoMasPropietarios == value)
+                    return;
 
+                cargandoMasPropietarios = value;
+                OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public string Titulo => "Terrenos del propietario";
         public string TextoPropietario =>
-            Propietario?.TextoPrincipal ??
-            "Propietario";
-
+            Propietario?.TextoPrincipal ?? "Propietario";
         public string TextoIdentificacion =>
-            Propietario?.TextoIdentificacion ??
-            "Sin identificación";
-
+            Propietario?.TextoIdentificacion ?? "Sin identificación";
         public string TextoContacto =>
-            Propietario?.TextoContacto ??
-            "Sin contacto registrado";
-
+            Propietario?.TextoContacto ?? "Sin contacto registrado";
         public string TextoEstadoPropietario =>
-            Propietario?.TextoEstado ??
-            string.Empty;
-
+            Propietario?.TextoEstado ?? string.Empty;
         public string TextoResumenTerrenos =>
             Terrenos.Count == 1
                 ? "1 terreno vinculado"
                 : $"{Terrenos.Count} terrenos vinculados";
-
         public string TextoTerrenoSeleccionado =>
             TerrenoSeleccionado == null
                 ? string.Empty
                 : "Cambiar propietario de " +
                   TerrenoSeleccionado.TextoCodigo;
+        public string TextoResumenPropietarios =>
+            totalPropietarios == 1
+                ? "1 propietario disponible"
+                : $"{totalPropietarios:N0} propietarios disponibles";
 
-        public bool HayTerrenos =>
-            Terrenos.Count > 0;
-
-        public bool NoHayTerrenos =>
-            Terrenos.Count == 0;
-
+        public bool HayTerrenos => Terrenos.Count > 0;
+        public bool NoHayTerrenos => Terrenos.Count == 0;
         public bool HayPropietariosDestino =>
             PropietariosDestino.Count > 0;
-
         public bool NoHayPropietariosDestino =>
-            PropietariosDestino.Count == 0;
+            PropietariosDestino.Count == 0 &&
+            !IsBusy &&
+            !CargandoMasPropietarios;
+        public bool PuedeCargarMasPropietarios =>
+            paginaPropietarios < totalPaginasPropietarios;
+        public bool MostrarFinPropietarios =>
+            PropietariosDestino.Count > 0 &&
+            !PuedeCargarMasPropietarios &&
+            !CargandoMasPropietarios;
 
         public new bool CanView =>
-            PermissionService.Instance
-                .HasRead(
-                    InterfazCodigos.Propietarios);
+            PermissionService.Instance.HasRead(
+                InterfazCodigos.Propietarios);
 
         public new bool CanEdit =>
-            PermissionService.Instance
-                .HasUpdate(
-                    InterfazCodigos.Propietarios);
+            PermissionService.Instance.HasUpdate(
+                InterfazCodigos.Propietarios);
 
-        public async Task InicializarAsync()
-        {
+        public async Task InicializarAsync() =>
             await CargarDetalleAsync();
+
+        public void CancelarCarga()
+        {
+            CancellationTokenSource? source =
+                Interlocked.Exchange(ref propietariosCts, null);
+
+            CancelarSeguro(source);
+            IsBusy = false;
+            CargandoMasPropietarios = false;
+            ActualizarComandos();
         }
 
         private async Task CargarDetalleAsync()
@@ -277,9 +246,7 @@ namespace CONATRADEC.ViewModels
             if (IsBusy)
                 return;
 
-            int propietarioId =
-                Propietario?.PropietarioId ??
-                0;
+            int propietarioId = Propietario?.PropietarioId ?? 0;
 
             if (propietarioId <= 0)
             {
@@ -298,8 +265,7 @@ namespace CONATRADEC.ViewModels
             if (!ModoSesionService.EsEnLinea)
             {
                 await MostrarAdvertenciaAsync(
-                    "La administración de propietarios requiere " +
-                    "conexión a internet.");
+                    "La administración de propietarios requiere conexión a internet.");
                 return;
             }
 
@@ -307,17 +273,13 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                ApiResult<PropietarioDetalleResponse>
-                    resultado =
-                        await terrenosService
-                            .ObtenerDetalleAsync(
-                                propietarioId);
+                ApiResult<PropietarioDetalleResponse> resultado =
+                    await terrenosService.ObtenerDetalleAsync(propietarioId);
 
                 if (!resultado.Success ||
                     resultado.Data?.Propietario == null)
                 {
-                    await MostrarErrorAsync(
-                        resultado.Message);
+                    await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
@@ -327,20 +289,16 @@ namespace CONATRADEC.ViewModels
                 propietarioActual.TotalTerrenos =
                     resultado.Data.Terrenos.Count;
 
-                Propietario =
-                    propietarioActual;
-
+                Propietario = propietarioActual;
                 Terrenos.Clear();
 
-                foreach (
-                    PropietarioTerrenoResumenResponse terreno
-                    in resultado.Data.Terrenos)
+                foreach (PropietarioTerrenoResumenResponse terreno
+                         in resultado.Data.Terrenos)
                 {
                     Terrenos.Add(terreno);
                 }
 
-                OnPropertyChanged(
-                    nameof(TextoResumenTerrenos));
+                OnPropertyChanged(nameof(TextoResumenTerrenos));
             }
             finally
             {
@@ -357,8 +315,7 @@ namespace CONATRADEC.ViewModels
             if (!CanEdit)
             {
                 await MostrarAdvertenciaAsync(
-                    "No tiene permiso para cambiar el propietario " +
-                    "de un terreno.");
+                    "No tiene permiso para cambiar el propietario de un terreno.");
                 return;
             }
 
@@ -369,69 +326,127 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            TerrenoSeleccionado =
-                terreno;
-
-            TextoBusquedaDestino =
-                string.Empty;
-
-            MostrarSelectorPropietario =
-                true;
-
-            await CargarPropietariosDestinoAsync();
+            TerrenoSeleccionado = terreno;
+            TextoBusquedaDestino = string.Empty;
+            MostrarSelectorPropietario = true;
+            await CargarPropietariosDestinoAsync(true);
         }
 
-        private async Task
-            CargarPropietariosDestinoAsync()
+        private async Task CargarPropietariosDestinoAsync(bool reiniciar)
         {
-            if (IsBusy ||
-                !MostrarSelectorPropietario)
+            if (IsBusy || !MostrarSelectorPropietario)
+                return;
+
+            if (!reiniciar &&
+                (CargandoMasPropietarios ||
+                 !PuedeCargarMasPropietarios))
             {
                 return;
             }
 
-            CambiarEstadoOcupado(true);
+            CancellationTokenSource source = PrepararCargaPropietarios();
 
             try
             {
-                ApiResult<ObservableCollection<
-                    PropietarioResponse>> resultado =
-                        await propietarioApiService
-                            .GetPropietariosResultAsync(
-                                TextoBusquedaDestino,
-                                incluirInactivos: false,
-                                paraSeleccionTerreno: true);
-
-                if (!resultado.Success ||
-                    resultado.Data == null)
+                if (reiniciar)
                 {
-                    await MostrarErrorAsync(
-                        resultado.Message);
+                    CambiarEstadoOcupado(true);
+                }
+                else
+                {
+                    CargandoMasPropietarios = true;
+                }
+
+                int pagina = reiniciar
+                    ? 1
+                    : paginaPropietarios + 1;
+
+                ApiResult<PropietarioPaginaResponse> resultado =
+                    await propietarioApiService.BuscarPaginadoAsync(
+                        TextoBusquedaDestino,
+                        incluirInactivos: false,
+                        paraSeleccionTerreno: true,
+                        pagina: pagina,
+                        tamanoPagina: ObtenerTamanoPaginaPropietarios(),
+                        cancellationToken: source.Token);
+
+                if (source.IsCancellationRequested ||
+                    !EsCargaPropietariosActual(source))
+                {
                     return;
                 }
 
-                int propietarioActualId =
-                    Propietario?.PropietarioId ??
-                    0;
-
-                PropietariosDestino.Clear();
-
-                foreach (PropietarioResponse item
-                         in resultado.Data
-                             .Where(item =>
-                                 item.Activo &&
-                                 item.PropietarioId !=
-                                     propietarioActualId)
-                             .OrderBy(item =>
-                                 item.NombreCompleto))
+                if (!resultado.Success || resultado.Data == null)
                 {
-                    PropietariosDestino.Add(item);
+                    if (!EsCancelacion(resultado.Message))
+                        await MostrarErrorAsync(resultado.Message);
+
+                    return;
                 }
+
+                AplicarPaginaPropietarios(
+                    resultado.Data,
+                    reiniciar);
+            }
+            catch (OperationCanceledException)
+            {
             }
             finally
             {
-                CambiarEstadoOcupado(false);
+                if (EsCargaPropietariosActual(source))
+                {
+                    if (reiniciar)
+                        CambiarEstadoOcupado(false);
+                    else
+                        CargandoMasPropietarios = false;
+                }
+
+                LiberarCargaPropietarios(source);
             }
+        }
+
+        private void AplicarPaginaPropietarios(
+            PropietarioPaginaResponse pagina,
+            bool reiniciar)
+        {
+            if (reiniciar)
+                PropietariosDestino.Clear();
+
+            int propietarioActualId =
+                Propietario?.PropietarioId ?? 0;
+
+            HashSet<int> ids = PropietariosDestino
+                .Select(item => item.PropietarioId)
+                .ToHashSet();
+
+            foreach (PropietarioResponse item in pagina.Items)
+            {
+                if (!item.Activo ||
+                    item.PropietarioId == propietarioActualId ||
+                    !ids.Add(item.PropietarioId))
+                {
+                    continue;
+                }
+
+                PropietariosDestino.Add(item);
+            }
+
+            paginaPropietarios = Math.Max(1, pagina.Pagina);
+            totalPaginasPropietarios =
+                Math.Max(0, pagina.TotalPaginas);
+            totalPropietarios = Math.Max(
+                0,
+                pagina.TotalRegistros -
+                (pagina.Items.Any(x =>
+                    x.PropietarioId == propietarioActualId)
+                    ? 1
+                    : 0));
+
+            OnPropertyChanged(nameof(PuedeCargarMasPropietarios));
+            OnPropertyChanged(nameof(MostrarFinPropietarios));
+            OnPropertyChanged(nameof(TextoResumenPropietarios));
+            OnPropertyChanged(nameof(NoHayPropietariosDestino));
+            ActualizarComandos();
         }
 
         private async Task ReasignarAsync(
@@ -453,14 +468,13 @@ namespace CONATRADEC.ViewModels
             PropietarioTerrenoResumenResponse terreno =
                 TerrenoSeleccionado;
 
-            bool confirmar =
-                await ConfirmarAsync(
-                    "Cambiar propietario",
-                    $"¿Desea asignar {terreno.TextoCodigo} a " +
-                    $"{propietarioDestino.TextoPrincipal}? " +
-                    $"Se retirará de {TextoPropietario}.",
-                    "Cambiar propietario",
-                    "Cancelar");
+            bool confirmar = await ConfirmarAsync(
+                "Cambiar propietario",
+                $"¿Desea asignar {terreno.TextoCodigo} a " +
+                $"{propietarioDestino.TextoPrincipal}? " +
+                $"Se retirará de {TextoPropietario}.",
+                "Cambiar propietario",
+                "Cancelar");
 
             if (!confirmar)
                 return;
@@ -470,16 +484,13 @@ namespace CONATRADEC.ViewModels
             try
             {
                 ApiResult<bool> resultado =
-                    await terrenosService
-                        .ReasignarTerrenoAsync(
-                            propietarioDestino.PropietarioId,
-                            terreno.TerrenoId);
+                    await terrenosService.ReasignarTerrenoAsync(
+                        propietarioDestino.PropietarioId,
+                        terreno.TerrenoId);
 
-                if (!resultado.Success ||
-                    resultado.Data != true)
+                if (!resultado.Success || resultado.Data != true)
                 {
-                    await MostrarErrorAsync(
-                        resultado.Message);
+                    await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
@@ -487,18 +498,14 @@ namespace CONATRADEC.ViewModels
 
                 if (Propietario != null)
                 {
-                    Propietario.TotalTerrenos =
-                        Terrenos.Count;
-
-                    OnPropertyChanged(
-                        nameof(TextoResumenTerrenos));
+                    Propietario.TotalTerrenos = Terrenos.Count;
+                    OnPropertyChanged(nameof(TextoResumenTerrenos));
                 }
 
                 CerrarSelector();
 
                 await MostrarExitoAsync(
-                    string.IsNullOrWhiteSpace(
-                        resultado.Message)
+                    string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Terreno reasignado correctamente."
                         : resultado.Message);
             }
@@ -516,29 +523,28 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            await GoToAsyncParameters(
-                AppRoutes.Regresar);
+            await GoToAsyncParameters(AppRoutes.Regresar);
         }
 
         private void CerrarSelector()
         {
-            MostrarSelectorPropietario =
-                false;
-
-            TerrenoSeleccionado =
-                null;
-
-            TextoBusquedaDestino =
-                string.Empty;
-
+            CancelarCarga();
+            MostrarSelectorPropietario = false;
+            TerrenoSeleccionado = null;
+            TextoBusquedaDestino = string.Empty;
             PropietariosDestino.Clear();
+            paginaPropietarios = 0;
+            totalPaginasPropietarios = 0;
+            totalPropietarios = 0;
+            OnPropertyChanged(nameof(TextoResumenPropietarios));
+            OnPropertyChanged(nameof(MostrarFinPropietarios));
         }
 
-        private void CambiarEstadoOcupado(
-            bool valor)
+        private void CambiarEstadoOcupado(bool valor)
         {
             IsBusy = valor;
             ActualizarComandos();
+            OnPropertyChanged(nameof(NoHayPropietariosDestino));
         }
 
         private void ActualizarComandos()
@@ -547,8 +553,64 @@ namespace CONATRADEC.ViewModels
             ActualizarCommand.ChangeCanExecute();
             CambiarPropietarioCommand.ChangeCanExecute();
             BuscarPropietariosCommand.ChangeCanExecute();
+            CargarMasPropietariosCommand.ChangeCanExecute();
             SeleccionarPropietarioCommand.ChangeCanExecute();
             CancelarCambioCommand.ChangeCanExecute();
         }
+
+        private static int ObtenerTamanoPaginaPropietarios() =>
+            DeviceInfo.Platform == DevicePlatform.WinUI
+                ? 32
+                : 14;
+
+        private CancellationTokenSource PrepararCargaPropietarios()
+        {
+            var source = new CancellationTokenSource();
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref propietariosCts, source);
+            CancelarSeguro(anterior);
+            return source;
+        }
+
+        private bool EsCargaPropietariosActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref propietariosCts),
+                source);
+
+        private void LiberarCargaPropietarios(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref propietariosCts,
+                null,
+                source);
+            source.Dispose();
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                source.Dispose();
+            }
+        }
+
+        private static bool EsCancelacion(string? mensaje) =>
+            !string.IsNullOrWhiteSpace(mensaje) &&
+            mensaje.Contains(
+                "cancel",
+                StringComparison.OrdinalIgnoreCase);
     }
 }

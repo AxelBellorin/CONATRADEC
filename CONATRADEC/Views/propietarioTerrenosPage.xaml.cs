@@ -2,20 +2,14 @@ using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
-    public partial class propietarioTerrenosPage :
-        ContentPage
+    public partial class propietarioTerrenosPage : ContentPage
     {
-        private readonly PropietarioTerrenosViewModel
-            viewModel;
+        private readonly PropietarioTerrenosViewModel viewModel;
 
         public propietarioTerrenosPage()
         {
             InitializeComponent();
-
-            Shell.SetNavBarIsVisible(
-                this,
-                false);
-
+            Shell.SetNavBarIsVisible(this, false);
             Shell.SetBackButtonBehavior(
                 this,
                 new BackButtonBehavior
@@ -24,30 +18,27 @@ namespace CONATRADEC.Views
                     IsEnabled = false
                 });
 
-            viewModel =
-                new PropietarioTerrenosViewModel();
-
-            BindingContext =
-                viewModel;
+            viewModel = new PropietarioTerrenosViewModel();
+            BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-
-            Shell.SetNavBarIsVisible(
-                this,
-                false);
-
+            Shell.SetNavBarIsVisible(this, false);
             await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+            base.OnDisappearing();
         }
 
         protected override bool OnBackButtonPressed()
         {
             if (viewModel.RegresarCommand.CanExecute(null))
-            {
                 viewModel.RegresarCommand.Execute(null);
-            }
 
             return true;
         }

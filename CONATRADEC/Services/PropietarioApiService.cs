@@ -8,27 +8,30 @@ namespace CONATRADEC.Services
 {
     public sealed class PropietarioApiService
     {
-        private readonly HttpClient httpClient;
-
-        private readonly JsonSerializerOptions jsonOptions =
+        private static readonly JsonSerializerOptions JsonOptions =
             new(JsonSerializerDefaults.Web)
             {
                 PropertyNameCaseInsensitive = true
             };
+
+        private readonly HttpClient httpClient;
 
         public PropietarioApiService()
             : this(ApiClientService.Client)
         {
         }
 
-        public PropietarioApiService(
-            HttpClient httpClient)
+        public PropietarioApiService(HttpClient httpClient)
         {
             this.httpClient = httpClient ??
-                throw new ArgumentNullException(
-                    nameof(httpClient));
+                throw new ArgumentNullException(nameof(httpClient));
         }
 
+        /// <summary>
+        /// Método compatible con versiones anteriores. Conserva el endpoint
+        /// sin paginación para los puntos del sistema que todavía lo necesiten.
+        /// Los listados visuales nuevos deben utilizar BuscarPaginadoAsync.
+        /// </summary>
         public async Task<ApiResult<
             ObservableCollection<PropietarioResponse>>>
             GetPropietariosResultAsync(
@@ -39,10 +42,9 @@ namespace CONATRADEC.Services
         {
             try
             {
-                string baseRuta =
-                    paraSeleccionTerreno
-                        ? "api/terreno/propietarios-disponibles"
-                        : "api/parametrizacion-acceso/propietarios";
+                string baseRuta = paraSeleccionTerreno
+                    ? "api/terreno/propietarios-disponibles"
+                    : "api/parametrizacion-acceso/propietarios";
 
                 string ruta =
                     baseRuta +
@@ -52,7 +54,7 @@ namespace CONATRADEC.Services
                 if (!paraSeleccionTerreno)
                 {
                     ruta +=
-                        $"&incluirInactivos=" +
+                        "&incluirInactivos=" +
                         incluirInactivos
                             .ToString()
                             .ToLowerInvariant();
@@ -61,13 +63,105 @@ namespace CONATRADEC.Services
                 using HttpResponseMessage response =
                     await httpClient.GetAsync(
                         ruta,
+                        HttpCompletionOption.ResponseHeadersRead,
                         cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     return ApiResult<
-                        ObservableCollection<
-                            PropietarioResponse>>.Fail(
+                        ObservableCollection<PropietarioResponse>>.Fail(
+                            await ObtenerMensajeAsync(
+                                response,
+                                "No fue posible cargar los propietarios.",
+                                cancellationToken),
+                            (int)response.StatusCode);
+                }
+
+                List<PropietarioResponse>? items =
+                    await response.Content.ReadFromJsonAsync<
+                        List<PropietarioResponse>>(
+                        JsonOptions,
+                        cancellationToken);
+
+                return ApiResult<
+                    ObservableCollection<PropietarioResponse>>.Ok(
+                        new ObservableCollection<PropietarioResponse>(
+                            items ?? []));
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<
+                    ObservableCollection<PropietarioResponse>>.Fail(
+                        "La consulta tardó demasiado.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<
+                    ObservableCollection<PropietarioResponse>>.Fail(
+                        "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<
+                    ObservableCollection<PropietarioResponse>>.Fail(
+                        "No fue posible conectarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<
+                    ObservableCollection<PropietarioResponse>>.Fail(
+                        "El servidor devolvió propietarios con un formato no reconocido.");
+            }
+        }
+
+        /// <summary>
+        /// Obtiene únicamente la página visible. En modo selección utiliza un
+        /// endpoint que no exige permisos administrativos de propietarios.
+        /// </summary>
+        public async Task<ApiResult<PropietarioPaginaResponse>>
+            BuscarPaginadoAsync(
+                string? buscar,
+                bool incluirInactivos,
+                bool paraSeleccionTerreno,
+                int pagina,
+                int tamanoPagina,
+                CancellationToken cancellationToken = default)
+        {
+            pagina = Math.Max(1, pagina);
+            tamanoPagina = Math.Clamp(tamanoPagina, 6, 100);
+
+            string baseRuta = paraSeleccionTerreno
+                ? "api/terreno/propietarios-disponibles/paginado"
+                : "api/parametrizacion-acceso/propietarios/paginado";
+
+            string ruta =
+                baseRuta +
+                $"?pagina={pagina}" +
+                $"&tamanoPagina={tamanoPagina}" +
+                $"&buscar={Uri.EscapeDataString(
+                    buscar?.Trim() ?? string.Empty)}";
+
+            if (!paraSeleccionTerreno)
+            {
+                ruta +=
+                    "&incluirInactivos=" +
+                    incluirInactivos
+                        .ToString()
+                        .ToLowerInvariant();
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        ruta,
+                        HttpCompletionOption.ResponseHeadersRead,
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<PropietarioPaginaResponse>.Fail(
                         await ObtenerMensajeAsync(
                             response,
                             "No fue posible cargar los propietarios.",
@@ -75,57 +169,190 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
-                List<PropietarioResponse>? items =
-                    await response.Content
-                        .ReadFromJsonAsync<
-                            List<PropietarioResponse>>(
-                            jsonOptions,
-                            cancellationToken);
+                PropietarioPaginaResponse? data =
+                    await response.Content.ReadFromJsonAsync<
+                        PropietarioPaginaResponse>(
+                        JsonOptions,
+                        cancellationToken);
 
-                return ApiResult<
-                    ObservableCollection<
-                        PropietarioResponse>>.Ok(
-                    new ObservableCollection<
-                        PropietarioResponse>(
-                        items ?? []));
+                if (data == null)
+                {
+                    return ApiResult<PropietarioPaginaResponse>.Fail(
+                        "El servidor no devolvió la página de propietarios esperada.");
+                }
+
+                data.Items ??= [];
+
+                return ApiResult<PropietarioPaginaResponse>.Ok(data);
             }
             catch (TaskCanceledException)
-                when (!cancellationToken
-                    .IsCancellationRequested)
+                when (!cancellationToken.IsCancellationRequested)
             {
-                return ApiResult<
-                    ObservableCollection<
-                        PropietarioResponse>>.Fail(
+                return ApiResult<PropietarioPaginaResponse>.Fail(
                     "La consulta tardó demasiado.");
             }
             catch (OperationCanceledException)
             {
-                return ApiResult<
-                    ObservableCollection<
-                        PropietarioResponse>>.Fail(
+                return ApiResult<PropietarioPaginaResponse>.Fail(
                     "La operación fue cancelada.");
             }
             catch (HttpRequestException)
             {
-                return ApiResult<
-                    ObservableCollection<
-                        PropietarioResponse>>.Fail(
+                return ApiResult<PropietarioPaginaResponse>.Fail(
                     "No fue posible conectarse con el servidor.");
             }
             catch (JsonException)
             {
-                return ApiResult<
-                    ObservableCollection<
-                        PropietarioResponse>>.Fail(
-                    "El servidor devolvió propietarios con un " +
-                    "formato no reconocido.");
+                return ApiResult<PropietarioPaginaResponse>.Fail(
+                    "El servidor devolvió una página con formato no reconocido.");
+            }
+            catch
+            {
+                return ApiResult<PropietarioPaginaResponse>.Fail(
+                    "Ocurrió un error inesperado al cargar los propietarios.");
             }
         }
 
-        public async Task<ApiResult<int>>
-            CrearPropietarioResultAsync(
-                PropietarioGuardarRequest request,
+        /// <summary>
+        /// Recupera un solo propietario. Evita descargar el catálogo completo
+        /// cuando el formulario necesita completar una relación existente.
+        /// </summary>
+        public async Task<ApiResult<PropietarioResponse>>
+            ObtenerDisponiblePorIdAsync(
+                int propietarioId,
                 CancellationToken cancellationToken = default)
+        {
+            if (propietarioId <= 0)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "No se recibió un propietario válido.");
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        "api/terreno/propietarios-disponibles/" +
+                        propietarioId,
+                        HttpCompletionOption.ResponseHeadersRead,
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<PropietarioResponse>.Fail(
+                        await ObtenerMensajeAsync(
+                            response,
+                            "No fue posible cargar el propietario.",
+                            cancellationToken),
+                        (int)response.StatusCode);
+                }
+
+                PropietarioResponse? propietario =
+                    await response.Content.ReadFromJsonAsync<
+                        PropietarioResponse>(
+                        JsonOptions,
+                        cancellationToken);
+
+                return propietario == null
+                    ? ApiResult<PropietarioResponse>.Fail(
+                        "El servidor no devolvió el propietario solicitado.")
+                    : ApiResult<PropietarioResponse>.Ok(propietario);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "La consulta tardó demasiado.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "No fue posible conectarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "El servidor devolvió un formato no reconocido.");
+            }
+        }
+
+        /// <summary>
+        /// Recupera un propietario desde la ruta administrativa. Se conserva
+        /// para formularios que ya tienen permiso de propietarios.
+        /// </summary>
+        public async Task<ApiResult<PropietarioResponse>>
+            ObtenerPorIdAsync(
+                int propietarioId,
+                CancellationToken cancellationToken = default)
+        {
+            if (propietarioId <= 0)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "No se recibió un propietario válido.");
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        "api/parametrizacion-acceso/" +
+                        $"propietarios/{propietarioId}",
+                        HttpCompletionOption.ResponseHeadersRead,
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<PropietarioResponse>.Fail(
+                        await ObtenerMensajeAsync(
+                            response,
+                            "No fue posible cargar el propietario.",
+                            cancellationToken),
+                        (int)response.StatusCode);
+                }
+
+                PropietarioDetalleResponse? detalle =
+                    await response.Content.ReadFromJsonAsync<
+                        PropietarioDetalleResponse>(
+                        JsonOptions,
+                        cancellationToken);
+
+                return detalle?.Propietario == null
+                    ? ApiResult<PropietarioResponse>.Fail(
+                        "El servidor no devolvió el propietario solicitado.")
+                    : ApiResult<PropietarioResponse>.Ok(
+                        detalle.Propietario);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "La consulta tardó demasiado.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "No fue posible conectarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<PropietarioResponse>.Fail(
+                    "El servidor devolvió un formato no reconocido.");
+            }
+        }
+
+        public async Task<ApiResult<int>> CrearPropietarioResultAsync(
+            PropietarioGuardarRequest request,
+            CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
 
@@ -148,24 +375,20 @@ namespace CONATRADEC.Services
                 }
 
                 string contenido =
-                    await response.Content
-                        .ReadAsStringAsync(
-                            cancellationToken);
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
 
-                int propietarioId =
-                    ExtraerPropietarioId(contenido);
+                int propietarioId = ExtraerPropietarioId(contenido);
 
                 return propietarioId > 0
                     ? ApiResult<int>.Ok(
                         propietarioId,
                         "Propietario creado correctamente.")
                     : ApiResult<int>.Fail(
-                        "El propietario se procesó, pero no se " +
-                        "recibió su identificador.");
+                        "El propietario se procesó, pero no se recibió su identificador.");
             }
             catch (TaskCanceledException)
-                when (!cancellationToken
-                    .IsCancellationRequested)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<int>.Fail(
                     "La solicitud tardó demasiado.");
@@ -175,18 +398,17 @@ namespace CONATRADEC.Services
                 return ApiResult<int>.Fail(
                     "No fue posible conectarse con el servidor.");
             }
-            catch (Exception)
+            catch
             {
                 return ApiResult<int>.Fail(
                     "Ocurrió un error inesperado al crear el propietario.");
             }
         }
 
-        public async Task<ApiResult<bool>>
-            ActualizarPropietarioResultAsync(
-                int propietarioId,
-                PropietarioGuardarRequest request,
-                CancellationToken cancellationToken = default)
+        public async Task<ApiResult<bool>> ActualizarPropietarioResultAsync(
+            int propietarioId,
+            PropietarioGuardarRequest request,
+            CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
 
@@ -220,8 +442,7 @@ namespace CONATRADEC.Services
                     "Propietario actualizado correctamente.");
             }
             catch (TaskCanceledException)
-                when (!cancellationToken
-                    .IsCancellationRequested)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<bool>.Fail(
                     "La solicitud tardó demasiado.");
@@ -231,15 +452,14 @@ namespace CONATRADEC.Services
                 return ApiResult<bool>.Fail(
                     "No fue posible conectarse con el servidor.");
             }
-            catch (Exception)
+            catch
             {
                 return ApiResult<bool>.Fail(
-                    "Ocurrió un error inesperado al actualizar " +
-                    "el propietario.");
+                    "Ocurrió un error inesperado al actualizar el propietario.");
             }
         }
 
-        private async Task<string> ObtenerMensajeAsync(
+        private static async Task<string> ObtenerMensajeAsync(
             HttpResponseMessage response,
             string predeterminado,
             CancellationToken cancellationToken)
@@ -247,17 +467,15 @@ namespace CONATRADEC.Services
             try
             {
                 string contenido =
-                    await response.Content
-                        .ReadAsStringAsync(
-                            cancellationToken);
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(contenido))
                 {
                     using JsonDocument documento =
                         JsonDocument.Parse(contenido);
 
-                    JsonElement raiz =
-                        documento.RootElement;
+                    JsonElement raiz = documento.RootElement;
 
                     foreach (string nombre in new[]
                     {
@@ -270,17 +488,12 @@ namespace CONATRADEC.Services
                                 raiz,
                                 nombre,
                                 out JsonElement valor) &&
-                            valor.ValueKind ==
-                            JsonValueKind.String)
+                            valor.ValueKind == JsonValueKind.String)
                         {
-                            string? texto =
-                                valor.GetString();
+                            string? texto = valor.GetString();
 
-                            if (!string.IsNullOrWhiteSpace(
-                                    texto))
-                            {
+                            if (!string.IsNullOrWhiteSpace(texto))
                                 return texto;
-                            }
                         }
                     }
                 }
@@ -294,22 +507,17 @@ namespace CONATRADEC.Services
             {
                 HttpStatusCode.Unauthorized =>
                     "La sesión no es válida o ha expirado.",
-
                 HttpStatusCode.Forbidden =>
                     "No tiene permiso para realizar esta operación.",
-
                 HttpStatusCode.Conflict =>
                     "Ya existe un propietario con esos datos.",
-
                 HttpStatusCode.NotFound =>
                     "No se encontró el propietario.",
-
                 _ => predeterminado
             };
         }
 
-        private int ExtraerPropietarioId(
-            string contenido)
+        private static int ExtraerPropietarioId(string contenido)
         {
             if (string.IsNullOrWhiteSpace(contenido))
                 return 0;
@@ -319,15 +527,13 @@ namespace CONATRADEC.Services
                 using JsonDocument documento =
                     JsonDocument.Parse(contenido);
 
-                JsonElement raiz =
-                    documento.RootElement;
+                JsonElement raiz = documento.RootElement;
 
                 if (TryGetPropertyIgnoreCase(
                         raiz,
                         "data",
                         out JsonElement data) &&
-                    data.ValueKind ==
-                    JsonValueKind.Object)
+                    data.ValueKind == JsonValueKind.Object)
                 {
                     raiz = data;
                 }
@@ -337,19 +543,14 @@ namespace CONATRADEC.Services
                         "propietarioId",
                         out JsonElement id))
                 {
-                    if (id.ValueKind ==
-                            JsonValueKind.Number &&
-                        id.TryGetInt32(
-                            out int numero))
+                    if (id.ValueKind == JsonValueKind.Number &&
+                        id.TryGetInt32(out int numero))
                     {
                         return numero;
                     }
 
-                    if (id.ValueKind ==
-                            JsonValueKind.String &&
-                        int.TryParse(
-                            id.GetString(),
-                            out numero))
+                    if (id.ValueKind == JsonValueKind.String &&
+                        int.TryParse(id.GetString(), out numero))
                     {
                         return numero;
                     }
@@ -367,15 +568,13 @@ namespace CONATRADEC.Services
             string nombre,
             out JsonElement valor)
         {
-            if (elemento.ValueKind !=
-                JsonValueKind.Object)
+            if (elemento.ValueKind != JsonValueKind.Object)
             {
                 valor = default;
                 return false;
             }
 
-            foreach (JsonProperty propiedad
-                     in elemento.EnumerateObject())
+            foreach (JsonProperty propiedad in elemento.EnumerateObject())
             {
                 if (string.Equals(
                         propiedad.Name,

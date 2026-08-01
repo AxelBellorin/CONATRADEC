@@ -10,9 +10,7 @@
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
     <Shell.BackButtonBehavior>
-        <BackButtonBehavior
-            IsVisible="False"
-            IsEnabled="False" />
+        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
     </Shell.BackButtonBehavior>
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
@@ -35,74 +33,23 @@
                     BackgroundColor="#EEF5F2"
                     Stroke="#C9DDD6"
                     StrokeShape="RoundRectangle 16">
-
-                    <Grid
-                        ColumnDefinitions="*,Auto"
-                        ColumnSpacing="14">
-
-                        <VerticalStackLayout
-                            Spacing="4">
-
-                            <Label
-                                Text="{Binding TextoPropietario}"
-                                FontSize="18"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Label
-                                Text="{Binding TextoIdentificacion}"
-                                FontSize="12"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Verde}" />
-
-                            <Label
-                                Text="{Binding TextoContacto}"
-                                FontSize="11"
-                                TextColor="{StaticResource color_GrisOscuro}" />
-
-                            <Label
-                                Text="{Binding TextoResumenTerrenos}"
-                                FontSize="12"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Cafe}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding TextoPropietario}" FontSize="18" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                            <Label Text="{Binding TextoIdentificacion}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                            <Label Text="{Binding TextoContacto}" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                            <Label Text="{Binding TextoResumenTerrenos}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
                         </VerticalStackLayout>
-
-                        <Border
-                            Grid.Column="1"
-                            Padding="10,5"
-                            BackgroundColor="#E7F4EC"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 10"
-                            VerticalOptions="Start">
-
+                        <Border Grid.Column="1" Padding="10,5" BackgroundColor="#E7F4EC" StrokeThickness="0" StrokeShape="RoundRectangle 10" VerticalOptions="Start">
                             <Border.Triggers>
-                                <DataTrigger
-                                    TargetType="Border"
-                                    Binding="{Binding Propietario.Activo}"
-                                    Value="False">
-
-                                    <Setter
-                                        Property="BackgroundColor"
-                                        Value="#FDE7D3" />
+                                <DataTrigger TargetType="Border" Binding="{Binding Propietario.Activo}" Value="False">
+                                    <Setter Property="BackgroundColor" Value="#FDE7D3" />
                                 </DataTrigger>
                             </Border.Triggers>
-
-                            <Label
-                                Text="{Binding TextoEstadoPropietario}"
-                                FontSize="10"
-                                FontAttributes="Bold"
-                                TextColor="#276749">
-
+                            <Label Text="{Binding TextoEstadoPropietario}" FontSize="10" FontAttributes="Bold" TextColor="#276749">
                                 <Label.Triggers>
-                                    <DataTrigger
-                                        TargetType="Label"
-                                        Binding="{Binding Propietario.Activo}"
-                                        Value="False">
-
-                                        <Setter
-                                            Property="TextColor"
-                                            Value="#9C4221" />
+                                    <DataTrigger TargetType="Label" Binding="{Binding Propietario.Activo}" Value="False">
+                                        <Setter Property="TextColor" Value="#9C4221" />
                                     </DataTrigger>
                                 </Label.Triggers>
                             </Label>
@@ -110,123 +57,43 @@
                     </Grid>
                 </Border>
 
-                <RefreshView
-                    Grid.Row="2"
-                    Command="{Binding ActualizarCommand}"
-                    IsRefreshing="{Binding IsBusy}">
-
-                    <CollectionView
-                        ItemsSource="{Binding Terrenos}"
-                        SelectionMode="None">
-
+                <RefreshView Grid.Row="2" Command="{Binding ActualizarCommand}" IsRefreshing="{Binding IsBusy}">
+                    <CollectionView ItemsSource="{Binding Terrenos}" SelectionMode="None">
                         <CollectionView.EmptyView>
-                            <Border
-                                Margin="0,16"
-                                Padding="24"
-                                BackgroundColor="#FAFBFA"
-                                Stroke="#DDE7E3"
-                                StrokeShape="RoundRectangle 16">
-
-                                <VerticalStackLayout
-                                    Spacing="6"
-                                    HorizontalOptions="Center">
-
-                                    <Label
-                                        Text="Sin terrenos vinculados"
-                                        FontSize="16"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource color_Negro}"
-                                        HorizontalTextAlignment="Center" />
-
-                                    <Label
-                                        Text="Este propietario ya no tiene terrenos activos asignados."
-                                        FontSize="12"
-                                        TextColor="{StaticResource color_GrisOscuro}"
-                                        HorizontalTextAlignment="Center" />
+                            <Border Margin="0,16" Padding="24" BackgroundColor="#FAFBFA" Stroke="#DDE7E3" StrokeShape="RoundRectangle 16">
+                                <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                    <Label Text="Sin terrenos vinculados" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" HorizontalTextAlignment="Center" />
+                                    <Label Text="Este propietario ya no tiene terrenos activos asignados." FontSize="12" TextColor="{StaticResource color_GrisOscuro}" HorizontalTextAlignment="Center" />
                                 </VerticalStackLayout>
                             </Border>
                         </CollectionView.EmptyView>
-
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:PropietarioTerrenoResumenResponse">
-                                <Border
-                                    Padding="16"
-                                    BackgroundColor="White"
-                                    Stroke="#DDE7E3"
-                                    StrokeShape="RoundRectangle 16">
-
-                                    <Grid
-                                        RowDefinitions="Auto,Auto,Auto"
-                                        RowSpacing="10">
-
-                                        <Grid
-                                            ColumnDefinitions="*,Auto"
-                                            ColumnSpacing="12">
-
-                                            <Label
-                                                Text="{Binding TextoCodigo}"
-                                                FontSize="17"
-                                                FontFamily="MontserratBold"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Negro}" />
-
-                                            <Border
-                                                Grid.Column="1"
-                                                Padding="9,4"
-                                                BackgroundColor="#E7F4EC"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 9">
-
-                                                <Label
-                                                    Text="{Binding TextoEstado}"
-                                                    FontSize="10"
-                                                    FontAttributes="Bold"
-                                                    TextColor="#276749" />
+                                <Border Padding="16" BackgroundColor="White" Stroke="#DDE7E3" StrokeShape="RoundRectangle 16">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <Label Text="{Binding TextoCodigo}" FontSize="17" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                                            <Border Grid.Column="1" Padding="9,4" BackgroundColor="#E7F4EC" StrokeThickness="0" StrokeShape="RoundRectangle 9">
+                                                <Label Text="{Binding TextoEstado}" FontSize="10" FontAttributes="Bold" TextColor="#276749" />
                                             </Border>
                                         </Grid>
-
-                                        <VerticalStackLayout
-                                            Grid.Row="1"
-                                            Spacing="5">
-
-                                            <Label
-                                                Text="{Binding TextoDireccion}"
-                                                FontSize="12"
-                                                TextColor="{StaticResource color_GrisOscuro}"
-                                                MaxLines="2"
-                                                LineBreakMode="TailTruncation" />
-
-                                            <HorizontalStackLayout
-                                                Spacing="14">
-
-                                                <Label
-                                                    Text="{Binding TextoExtension}"
-                                                    FontSize="11"
-                                                    FontAttributes="Bold"
-                                                    TextColor="{StaticResource color_Verde}" />
-
-                                                <Label
-                                                    Text="{Binding TextoProduccion}"
-                                                    FontSize="11"
-                                                    FontAttributes="Bold"
-                                                    TextColor="{StaticResource color_Cafe}" />
+                                        <VerticalStackLayout Grid.Row="1" Spacing="5">
+                                            <Label Text="{Binding TextoDireccion}" FontSize="12" TextColor="{StaticResource color_GrisOscuro}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                            <HorizontalStackLayout Spacing="14">
+                                                <Label Text="{Binding TextoExtension}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                                <Label Text="{Binding TextoProduccion}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
                                             </HorizontalStackLayout>
                                         </VerticalStackLayout>
-
-                                        <VerticalStackLayout
+                                        <Button
                                             Grid.Row="2"
-                                            IsVisible="{Binding Activo}">
-
-                                            <Button
-                                                Text="Cambiar propietario"
-                                                Padding="10,10"
-                                                BackgroundColor="{StaticResource BlueUpdate}"
-                                                TextColor="White"
-                                                CornerRadius="10"
-                                                Command="{Binding Source={x:Reference PropietarioTerrenosPageRoot}, Path=BindingContext.CambiarPropietarioCommand}"
-                                                CommandParameter="{Binding .}"
-                                                IsVisible="{Binding Source={x:Reference PropietarioTerrenosPageRoot}, Path=BindingContext.CanEdit}" />
-                                        </VerticalStackLayout>
+                                            Text="Cambiar propietario"
+                                            Padding="10,10"
+                                            BackgroundColor="{StaticResource BlueUpdate}"
+                                            TextColor="White"
+                                            CornerRadius="10"
+                                            Command="{Binding Source={x:Reference PropietarioTerrenosPageRoot}, Path=BindingContext.CambiarPropietarioCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Source={x:Reference PropietarioTerrenosPageRoot}, Path=BindingContext.CanEdit}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -234,13 +101,11 @@
                     </CollectionView>
                 </RefreshView>
 
-                <!-- Selector de nuevo propietario. -->
                 <Grid
                     Grid.RowSpan="3"
                     IsVisible="{Binding MostrarSelectorPropietario}"
                     BackgroundColor="#99000000"
                     Padding="{OnIdiom Phone='12', Tablet='30', Desktop='60'}">
-
                     <Border
                         Padding="{OnIdiom Phone='14', Tablet='18', Desktop='22'}"
                         BackgroundColor="White"
@@ -250,32 +115,14 @@
                         MaximumHeightRequest="720"
                         HorizontalOptions="Center"
                         VerticalOptions="Center">
-
-                        <Grid
-                            RowDefinitions="Auto,Auto,*,Auto"
-                            RowSpacing="12">
-
-                            <VerticalStackLayout
-                                Spacing="4">
-
-                                <Label
-                                    Text="{Binding TextoTerrenoSeleccionado}"
-                                    FontSize="18"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Negro}" />
-
-                                <Label
-                                    Text="Seleccione el propietario activo que recibirá el terreno."
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
+                        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding TextoTerrenoSeleccionado}" FontSize="18" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                                <Label Text="Seleccione el propietario activo que recibirá el terreno." FontSize="12" TextColor="{StaticResource color_GrisOscuro}" />
+                                <Label Text="{Binding TextoResumenPropietarios}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
                             </VerticalStackLayout>
 
-                            <Grid
-                                Grid.Row="1"
-                                ColumnDefinitions="*,Auto"
-                                ColumnSpacing="8">
-
+                            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <SearchBar
                                     Placeholder="Buscar propietario"
                                     Text="{Binding TextoBusquedaDestino, Mode=TwoWay}"
@@ -283,7 +130,6 @@
                                     BackgroundColor="#F8FAF9"
                                     TextColor="{StaticResource color_Negro}"
                                     PlaceholderColor="{StaticResource color_Gris}" />
-
                                 <Button
                                     Grid.Column="1"
                                     Text="Buscar"
@@ -298,42 +144,25 @@
                                 Grid.Row="2"
                                 ItemsSource="{Binding PropietariosDestino}"
                                 SelectionMode="None"
-                                EmptyView="No hay otros propietarios activos para mostrar.">
-
+                                RemainingItemsThreshold="3"
+                                RemainingItemsThresholdReachedCommand="{Binding CargarMasPropietariosCommand}">
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Text="No hay otros propietarios activos para mostrar."
+                                        Padding="16"
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        HorizontalTextAlignment="Center" />
+                                </CollectionView.EmptyView>
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate x:DataType="models:PropietarioResponse">
-                                        <Border
-                                            Margin="0,0,0,8"
-                                            Padding="12"
-                                            BackgroundColor="#FAFBFA"
-                                            Stroke="#DDE7E3"
-                                            StrokeShape="RoundRectangle 12">
-
-                                            <Grid
-                                                ColumnDefinitions="*,Auto"
-                                                ColumnSpacing="12">
-
-                                                <VerticalStackLayout
-                                                    Spacing="3">
-
-                                                    <Label
-                                                        Text="{Binding TextoPrincipal}"
-                                                        FontSize="14"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{StaticResource color_Negro}" />
-
-                                                    <Label
-                                                        Text="{Binding TextoIdentificacion}"
-                                                        FontSize="11"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{StaticResource color_Verde}" />
-
-                                                    <Label
-                                                        Text="{Binding TextoContacto}"
-                                                        FontSize="10"
-                                                        TextColor="{StaticResource color_GrisOscuro}" />
+                                        <Border Margin="0,0,0,8" Padding="12" BackgroundColor="#FAFBFA" Stroke="#DDE7E3" StrokeShape="RoundRectangle 12">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                <VerticalStackLayout Spacing="3">
+                                                    <Label Text="{Binding TextoPrincipal}" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
+                                                    <Label Text="{Binding TextoIdentificacion}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                                    <Label Text="{Binding TextoContacto}" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
                                                 </VerticalStackLayout>
-
                                                 <Button
                                                     Grid.Column="1"
                                                     Text="Asignar"
@@ -348,6 +177,20 @@
                                         </Border>
                                     </DataTemplate>
                                 </CollectionView.ItemTemplate>
+                                <CollectionView.Footer>
+                                    <VerticalStackLayout Padding="8" Spacing="5">
+                                        <ActivityIndicator
+                                            IsVisible="{Binding CargandoMasPropietarios}"
+                                            IsRunning="{Binding CargandoMasPropietarios}"
+                                            Color="{StaticResource color_Naranja}" />
+                                        <Label
+                                            IsVisible="{Binding MostrarFinPropietarios}"
+                                            Text="Fin de propietarios disponibles"
+                                            FontSize="10"
+                                            TextColor="{StaticResource color_Gris}"
+                                            HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </CollectionView.Footer>
                             </CollectionView>
 
                             <Button
@@ -364,17 +207,8 @@
                     </Border>
                 </Grid>
 
-                <Grid
-                    Grid.RowSpan="3"
-                    IsVisible="{Binding IsBusy}"
-                    InputTransparent="False"
-                    BackgroundColor="#40FFFFFF">
-
-                    <ActivityIndicator
-                        IsRunning="True"
-                        Color="{StaticResource color_Naranja}"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
+                <Grid Grid.RowSpan="3" IsVisible="{Binding IsBusy}" InputTransparent="False" BackgroundColor="#40FFFFFF">
+                    <ActivityIndicator IsRunning="True" Color="{StaticResource color_Naranja}" HorizontalOptions="Center" VerticalOptions="Center" />
                 </Grid>
             </Grid>
         </Grid>
