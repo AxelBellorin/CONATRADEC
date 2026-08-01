@@ -5,6 +5,7 @@ using Microsoft.Maui.Controls;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -39,8 +40,10 @@ namespace CONATRADEC.ViewModels
         private decimal precioExactoFormulaReferencia;
 
         private int? terrenoId;
+        private int? analisisSueloCalculoIdEdicion;
 
         private bool tieneResultadoBalance;
+        private bool esModoEdicion;
         private bool suspenderRecalculoAutomatico;
         private bool complementarConFertilizacionMixta;
 
@@ -443,6 +446,21 @@ namespace CONATRADEC.ViewModels
         {
             LimpiarPantalla();
 
+            esModoEdicion =
+                ObtenerBoolQuery(
+                    query,
+                    "esModoEdicion");
+
+            analisisSueloCalculoIdEdicion = null;
+
+            if (query.ContainsKey("analisisSueloCalculoIdEdicion") &&
+                int.TryParse(
+                    query["analisisSueloCalculoIdEdicion"]?.ToString(),
+                    out int idEdicion))
+            {
+                analisisSueloCalculoIdEdicion = idEdicion;
+            }
+
             if (query.ContainsKey("resultadoCalculo"))
                 ResultadoCalculo = query["resultadoCalculo"] as AnalisisSueloCalculoDataResponse;
 
@@ -489,8 +507,19 @@ namespace CONATRADEC.ViewModels
                 await CargarFuentesNutrientesAsync();
                 CargarElementosDesdeResultado();
 
-                if (FuentesNutrientes.Count > 0 &&
-                    ElementosBalance.Count > 0)
+                int fuentesRestauradas =
+                    esModoEdicion
+                        ? RestaurarFuentesGuardadas()
+                        : 0;
+
+                if (fuentesRestauradas > 0)
+                {
+                    Mensaje =
+                        $"Se restauraron {fuentesRestauradas} fuentes " +
+                        "del balance guardado.";
+                }
+                else if (FuentesNutrientes.Count > 0 &&
+                         ElementosBalance.Count > 0)
                 {
                     Mensaje =
                         "Seleccione una fuente de nutriente para cada elemento.";
@@ -636,6 +665,146 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        /// <summary>
+        /// Restaura la fuente seleccionada de cada elemento usando como fuente
+        /// de verdad el detalle persistido del análisis. Se usa la misma
+        /// instancia que pertenece a FuentesDisponibles para que el Picker de
+        /// MAUI reconozca correctamente el SelectedItem.
+        /// </summary>
+        private int RestaurarFuentesGuardadas()
+        {
+            AnalisisEdicionContexto? contexto =
+                AnalisisEdicionService
+                    .Instance
+                    .ContextoActual;
+
+            if (contexto == null ||
+                contexto.Detalle.BalanceNutricional?.Detalles == null)
+            {
+                return 0;
+            }
+
+            if (analisisSueloCalculoIdEdicion.HasValue &&
+                contexto.AnalisisSueloCalculoId !=
+                    analisisSueloCalculoIdEdicion.Value)
+            {
+                return 0;
+            }
+
+            int fuentesRestauradas = 0;
+
+            suspenderRecalculoAutomatico = true;
+
+            try
+            {
+                foreach (BalanceFormulaElementoViewModel elemento
+                         in ElementosBalance)
+                {
+                    if (elemento.ElementoQuimicosId is not int elementoId ||
+                        elementoId <= 0)
+                    {
+                        continue;
+                    }
+
+                    AnalisisGuardadoFormulaDetalle? detalleGuardado =
+                        contexto
+                            .Detalle
+                            .BalanceNutricional
+                            .Detalles
+                            .FirstOrDefault(x =>
+                                x.ElementoQuimicosId == elementoId &&
+                                x.FuenteNutrientesId > 0);
+
+                    if (detalleGuardado == null)
+                        continue;
+
+                    int fuenteId =
+                        detalleGuardado.FuenteNutrientesId;
+
+                    FuenteNutrienteResponse? fuente =
+                        elemento.FuentesDisponibles
+                            .FirstOrDefault(x =>
+                                x.FuenteNutrientesId == fuenteId);
+
+                    fuente ??=
+                        FuentesNutrientes
+                            .FirstOrDefault(x =>
+                                x.FuenteNutrientesId == fuenteId);
+
+                    fuente ??=
+                        contexto.FuentesCatalogo
+                            .FirstOrDefault(x =>
+                                x.FuenteNutrientesId == fuenteId);
+
+                    if (fuente == null)
+                    {
+                        fuente =
+                            new FuenteNutrienteResponse
+                            {
+                                FuenteNutrientesId = fuenteId,
+                                NombreNutriente =
+                                    !string.IsNullOrWhiteSpace(
+                                        detalleGuardado.NombreFuente)
+                                        ? detalleGuardado.NombreFuente
+                                        : $"Fuente #{fuenteId}",
+                                PrecioNutriente =
+                                    detalleGuardado.PrecioPorQuintal,
+                                Activo = true
+                            };
+                    }
+
+                    if (!FuentesNutrientes.Any(x =>
+                            x.FuenteNutrientesId == fuenteId))
+                    {
+                        FuentesNutrientes.Add(fuente);
+                    }
+
+                    if (!elemento.FuentesDisponibles.Any(x =>
+                            x.FuenteNutrientesId == fuenteId))
+                    {
+                        elemento.FuentesDisponibles.Add(fuente);
+                    }
+
+                    /*
+                     * El Picker compara la instancia seleccionada con las
+                     * instancias del ItemsSource. Por eso se toma nuevamente
+                     * desde FuentesDisponibles y no se asigna un objeto ajeno.
+                     */
+                    elemento.FuenteSeleccionada =
+                        elemento.FuentesDisponibles
+                            .First(x =>
+                                x.FuenteNutrientesId == fuenteId);
+
+                    fuentesRestauradas++;
+                }
+            }
+            finally
+            {
+                suspenderRecalculoAutomatico = false;
+                RefrescarComandos();
+            }
+
+            return fuentesRestauradas;
+        }
+
+        private static bool ObtenerBoolQuery(
+            IDictionary<string, object> query,
+            string key)
+        {
+            if (!query.ContainsKey(key))
+                return false;
+
+            object? valor = query[key];
+
+            if (valor is bool valorBooleano)
+                return valorBooleano;
+
+            return bool.TryParse(
+                valor?.ToString(),
+                out bool resultado) &&
+                resultado;
+        }
+
         private ObservableCollection<FuenteNutrienteResponse> ObtenerFuentesParaElemento(string? simboloElemento)
         {
             string simboloNormalizado = NormalizarSimbolo(simboloElemento);
@@ -690,6 +859,9 @@ namespace CONATRADEC.ViewModels
         {
             RefrescarComandos();
 
+            if (suspenderRecalculoAutomatico)
+                return;
+
             if (ComplementarConFertilizacionMixta)
                 NotificarCambioComplemento(null);
 
@@ -701,9 +873,6 @@ namespace CONATRADEC.ViewModels
                     true
                 );
             }
-
-            if (suspenderRecalculoAutomatico)
-                return;
 
             recalculoCancellationTokenSource?.Cancel();
             recalculoCancellationTokenSource = new CancellationTokenSource();
@@ -1368,6 +1537,9 @@ namespace CONATRADEC.ViewModels
         {
             recalculoCancellationTokenSource?.Cancel();
 
+            esModoEdicion = false;
+            analisisSueloCalculoIdEdicion = null;
+
             Mensaje = string.Empty;
             ErrorTotalAplicaciones = string.Empty;
 
@@ -1432,33 +1604,199 @@ namespace CONATRADEC.ViewModels
     {
         private FuenteNutrienteResponse? fuenteSeleccionada;
 
+        private ObservableCollection<FuenteNutrienteResponse>
+            fuentesDisponibles;
+
+        private int fuenteSeleccionadaIndex = -1;
+
+        private bool sincronizandoSeleccion;
+
+        public BalanceFormulaElementoViewModel()
+        {
+            fuentesDisponibles =
+                new ObservableCollection<
+                    FuenteNutrienteResponse>();
+
+            fuentesDisponibles.CollectionChanged +=
+                FuentesDisponibles_CollectionChanged;
+        }
+
         public int? ElementoQuimicosId { get; set; }
 
-        public string SimboloElementoQuimico { get; set; } = string.Empty;
+        public string SimboloElementoQuimico { get; set; } =
+            string.Empty;
 
-        public string NombreElementoQuimico { get; set; } = string.Empty;
+        public string NombreElementoQuimico { get; set; } =
+            string.Empty;
 
         public decimal RequerimientoLibras { get; set; }
 
-        public ObservableCollection<FuenteNutrienteResponse> FuentesDisponibles { get; set; } = new();
+        /// <summary>
+        /// Catálogo que utiliza directamente el Picker.
+        ///
+        /// La propiedad deja de ser un auto-property para poder detectar
+        /// reconstrucciones del catálogo y mantener sincronizados:
+        /// FuenteSeleccionada, FuenteSeleccionadaIndex y SelectedItem.
+        /// </summary>
+        public ObservableCollection<FuenteNutrienteResponse>
+            FuentesDisponibles
+        {
+            get => fuentesDisponibles;
+            set
+            {
+                ObservableCollection<FuenteNutrienteResponse>
+                    nuevaColeccion =
+                        value ??
+                        new ObservableCollection<
+                            FuenteNutrienteResponse>();
+
+                if (ReferenceEquals(
+                        fuentesDisponibles,
+                        nuevaColeccion))
+                {
+                    SincronizarSeleccionConCatalogo();
+                    return;
+                }
+
+                fuentesDisponibles.CollectionChanged -=
+                    FuentesDisponibles_CollectionChanged;
+
+                fuentesDisponibles =
+                    nuevaColeccion;
+
+                fuentesDisponibles.CollectionChanged +=
+                    FuentesDisponibles_CollectionChanged;
+
+                OnPropertyChanged(
+                    nameof(FuentesDisponibles));
+
+                OnPropertyChanged(
+                    nameof(TextoCantidadFuentes));
+
+                SincronizarSeleccionConCatalogo();
+            }
+        }
 
         public Action? FuenteCambiada { get; set; }
 
+        /// <summary>
+        /// Fuente lógica seleccionada.
+        ///
+        /// Siempre se reemplaza por la instancia exacta que pertenece a
+        /// FuentesDisponibles. Esto evita que WinUI conserve un objeto con
+        /// el mismo ID, pero que el Picker no reconoce como SelectedItem.
+        /// </summary>
         public FuenteNutrienteResponse? FuenteSeleccionada
         {
             get => fuenteSeleccionada;
             set
             {
-                fuenteSeleccionada = value;
-                OnPropertyChanged(nameof(FuenteSeleccionada));
-                OnPropertyChanged(nameof(TieneFuenteSeleccionada));
-                OnPropertyChanged(nameof(TextoFuenteSeleccionada));
-                OnPropertyChanged(nameof(TextoAporteFuenteSeleccionada));
-                FuenteCambiada?.Invoke();
+                EstablecerFuenteDesdeObjeto(
+                    value,
+                    notificarCambioUsuario: true);
             }
         }
 
-        public bool TieneFuenteSeleccionada => FuenteSeleccionada != null;
+        /// <summary>
+        /// Índice visual utilizado como respaldo determinista del Picker.
+        ///
+        /// SelectedItem puede quedar vacío en Windows cuando el ItemsSource
+        /// se reconstruye durante la edición. El índice se mantiene por ID y
+        /// permite que la vista vuelva a mostrar exactamente la fuente guardada.
+        /// </summary>
+        public int FuenteSeleccionadaIndex
+        {
+            get => fuenteSeleccionadaIndex;
+            set
+            {
+                if (sincronizandoSeleccion)
+                {
+                    fuenteSeleccionadaIndex = value;
+                    return;
+                }
+
+                SeleccionarFuentePorIndice(
+                    value,
+                    notificarCambioUsuario: true);
+            }
+        }
+
+        /// <summary>
+        /// Se utiliza desde la vista cuando el usuario cambia el Picker.
+        /// </summary>
+        public void SeleccionarFuentePorIndice(
+            int indice)
+        {
+            SeleccionarFuentePorIndice(
+                indice,
+                notificarCambioUsuario: true);
+        }
+
+        /// <summary>
+        /// Restaura una selección persistida sin disparar recálculos.
+        ///
+        /// Si la fuente ya no viene en el catálogo actual, se agrega el
+        /// respaldo guardado para que el análisis pueda mostrar fielmente
+        /// lo que el usuario había seleccionado.
+        /// </summary>
+        public bool RestaurarFuentePorId(
+            int fuenteNutrientesId,
+            FuenteNutrienteResponse? fuenteRespaldo = null)
+        {
+            if (fuenteNutrientesId <= 0)
+                return false;
+
+            FuenteNutrienteResponse? fuente =
+                FuentesDisponibles
+                    .FirstOrDefault(x =>
+                        x.FuenteNutrientesId ==
+                            fuenteNutrientesId);
+
+            if (fuente == null &&
+                fuenteRespaldo != null)
+            {
+                FuenteNutrienteResponse? existente =
+                    FuentesDisponibles
+                        .FirstOrDefault(x =>
+                            x.FuenteNutrientesId ==
+                                fuenteRespaldo
+                                    .FuenteNutrientesId);
+
+                if (existente == null)
+                {
+                    FuentesDisponibles.Add(
+                        fuenteRespaldo);
+
+                    fuente =
+                        fuenteRespaldo;
+                }
+                else
+                {
+                    fuente =
+                        existente;
+                }
+            }
+
+            if (fuente == null)
+                return false;
+
+            int indice =
+                ObtenerIndicePorId(
+                    fuenteNutrientesId);
+
+            if (indice < 0)
+                return false;
+
+            AplicarSeleccion(
+                FuentesDisponibles[indice],
+                indice,
+                notificarCambioUsuario: false);
+
+            return true;
+        }
+
+        public bool TieneFuenteSeleccionada =>
+            FuenteSeleccionada != null;
 
         public string TextoRequerimiento =>
             $"{RequerimientoLibras.ToString("N2", CultureInfo.InvariantCulture)} lb";
@@ -1486,19 +1824,245 @@ namespace CONATRADEC.ViewModels
                 if (FuenteSeleccionada == null)
                     return string.Empty;
 
-                string simboloActual = NormalizarSimboloLocal(SimboloElementoQuimico);
+                string simboloActual =
+                    NormalizarSimboloLocal(
+                        SimboloElementoQuimico);
 
-                var aporte = FuenteSeleccionada.ElementosQuimicos?
-                    .FirstOrDefault(x => NormalizarSimboloLocal(x.SimboloElementoQuimico) == simboloActual);
+                var aporte =
+                    FuenteSeleccionada.ElementosQuimicos?
+                        .FirstOrDefault(x =>
+                            NormalizarSimboloLocal(
+                                x.SimboloElementoQuimico) ==
+                            simboloActual);
 
                 if (aporte == null)
                     return string.Empty;
 
-                return $"Aporta {aporte.CantidadAporte:N0}% de {SimboloElementoQuimico.Trim()}";
+                return
+                    $"Aporta {aporte.CantidadAporte:N0}% de " +
+                    SimboloElementoQuimico.Trim();
             }
         }
 
-        private static string NormalizarSimboloLocal(string? simbolo)
+        private void EstablecerFuenteDesdeObjeto(
+            FuenteNutrienteResponse? fuente,
+            bool notificarCambioUsuario)
+        {
+            if (fuente == null)
+            {
+                AplicarSeleccion(
+                    null,
+                    -1,
+                    notificarCambioUsuario);
+
+                return;
+            }
+
+            int fuenteId =
+                fuente.FuenteNutrientesId ?? 0;
+
+            if (fuenteId <= 0)
+            {
+                AplicarSeleccion(
+                    null,
+                    -1,
+                    notificarCambioUsuario);
+
+                return;
+            }
+
+            int indice =
+                ObtenerIndicePorId(
+                    fuenteId);
+
+            if (indice < 0)
+            {
+                /*
+                 * La selección puede venir del detalle offline o de un
+                 * catálogo almacenado. Se agrega la misma instancia para
+                 * garantizar que forme parte del ItemsSource del Picker.
+                 */
+                FuentesDisponibles.Add(
+                    fuente);
+
+                indice =
+                    ObtenerIndicePorId(
+                        fuenteId);
+            }
+
+            FuenteNutrienteResponse fuenteExacta =
+                FuentesDisponibles[indice];
+
+            AplicarSeleccion(
+                fuenteExacta,
+                indice,
+                notificarCambioUsuario);
+        }
+
+        private void SeleccionarFuentePorIndice(
+            int indice,
+            bool notificarCambioUsuario)
+        {
+            int indiceNormalizado =
+                indice >= 0 &&
+                indice < FuentesDisponibles.Count
+                    ? indice
+                    : -1;
+
+            FuenteNutrienteResponse? fuente =
+                indiceNormalizado >= 0
+                    ? FuentesDisponibles[
+                        indiceNormalizado]
+                    : null;
+
+            AplicarSeleccion(
+                fuente,
+                indiceNormalizado,
+                notificarCambioUsuario);
+        }
+
+        private void AplicarSeleccion(
+            FuenteNutrienteResponse? fuente,
+            int indice,
+            bool notificarCambioUsuario)
+        {
+            int idAnterior =
+                fuenteSeleccionada?
+                    .FuenteNutrientesId ??
+                0;
+
+            int idNuevo =
+                fuente?
+                    .FuenteNutrientesId ??
+                0;
+
+            bool cambioId =
+                idAnterior != idNuevo;
+
+            bool cambioObjeto =
+                !ReferenceEquals(
+                    fuenteSeleccionada,
+                    fuente);
+
+            bool cambioIndice =
+                fuenteSeleccionadaIndex !=
+                indice;
+
+            if (!cambioId &&
+                !cambioObjeto &&
+                !cambioIndice)
+            {
+                return;
+            }
+
+            sincronizandoSeleccion = true;
+
+            try
+            {
+                fuenteSeleccionada =
+                    fuente;
+
+                fuenteSeleccionadaIndex =
+                    indice;
+
+                OnPropertyChanged(
+                    nameof(FuenteSeleccionada));
+
+                OnPropertyChanged(
+                    nameof(FuenteSeleccionadaIndex));
+
+                OnPropertyChanged(
+                    nameof(TieneFuenteSeleccionada));
+
+                OnPropertyChanged(
+                    nameof(TextoFuenteSeleccionada));
+
+                OnPropertyChanged(
+                    nameof(TextoAporteFuenteSeleccionada));
+            }
+            finally
+            {
+                sincronizandoSeleccion = false;
+            }
+
+            /*
+             * Cambiar solamente la instancia o el índice para restaurar la
+             * interfaz no representa una modificación del usuario.
+             */
+            if (notificarCambioUsuario &&
+                cambioId)
+            {
+                FuenteCambiada?.Invoke();
+            }
+        }
+
+        private void SincronizarSeleccionConCatalogo()
+        {
+            int fuenteId =
+                fuenteSeleccionada?
+                    .FuenteNutrientesId ??
+                0;
+
+            if (fuenteId <= 0)
+            {
+                AplicarSeleccion(
+                    null,
+                    -1,
+                    notificarCambioUsuario: false);
+
+                return;
+            }
+
+            int indice =
+                ObtenerIndicePorId(
+                    fuenteId);
+
+            if (indice < 0)
+            {
+                AplicarSeleccion(
+                    null,
+                    -1,
+                    notificarCambioUsuario: false);
+
+                return;
+            }
+
+            AplicarSeleccion(
+                FuentesDisponibles[indice],
+                indice,
+                notificarCambioUsuario: false);
+        }
+
+        private int ObtenerIndicePorId(
+            int fuenteNutrientesId)
+        {
+            for (int indice = 0;
+                 indice < FuentesDisponibles.Count;
+                 indice++)
+            {
+                if (FuentesDisponibles[indice]
+                        .FuenteNutrientesId ==
+                    fuenteNutrientesId)
+                {
+                    return indice;
+                }
+            }
+
+            return -1;
+        }
+
+        private void FuentesDisponibles_CollectionChanged(
+            object? sender,
+            NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(
+                nameof(TextoCantidadFuentes));
+
+            SincronizarSeleccionConCatalogo();
+        }
+
+        private static string NormalizarSimboloLocal(
+            string? simbolo)
         {
             return (simbolo ?? string.Empty)
                 .Trim()

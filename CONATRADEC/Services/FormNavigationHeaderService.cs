@@ -1,23 +1,34 @@
-using Microsoft.Maui.ApplicationModel;
+﻿using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices;
+using System;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Agrega una flecha fija de regreso en la parte superior de los
-    /// formularios antiguos de CONATRADEC que todavía no poseen un
-    /// encabezado propio.
+    /// Administra el encabezado superior agregado dinámicamente a las páginas.
     ///
-    /// Municipio y Propietario utilizan navegación definida directamente
-    /// en su XAML, por lo que se excluyen del encabezado global.
+    /// Funciones:
+    /// 1. Conserva la flecha de regreso utilizada por los formularios antiguos.
+    /// 2. Muestra "Abandonar edición" durante todo el flujo de edición de un
+    ///    análisis de suelo.
+    /// 3. Retira el encabezado cuando la página ya no necesita ninguno de los
+    ///    controles, evitando que una instancia reutilizada conserve botones.
     /// </summary>
     public static class FormNavigationHeaderService
     {
         private const string MarcaContenedor =
             "CONATRADEC_FORM_BACK_WRAPPER";
+
+        private const string AutomationIdRegresar =
+            "BotonRegresarFormulario";
+
+        private const string AutomationIdAbandonarEdicion =
+            "BotonAbandonarEdicionAnalisis";
 
         private static readonly string[]
             nombresComandosNavegacion =
@@ -27,6 +38,17 @@ namespace CONATRADEC.Services
                 "RegresarCommand",
                 "VolverCommand",
                 "BackCommand"
+            ];
+
+        private static readonly string[]
+            paginasProcesoAnalisis =
+            [
+                "EditarAnalisisGuardadoPage",
+                "NuevoAnalisisFormPage",
+                "ResultadoAnalisisSueloPage",
+                "BalanceFormulaPage",
+                "FertilizacionMixtaPage",
+                "MultiCalculoPage"
             ];
 
         public static void AsegurarEnPaginaActual()
@@ -47,53 +69,60 @@ namespace CONATRADEC.Services
         private static void AsegurarEnPagina(
             ContentPage pagina)
         {
+            bool requiereBotonRegresar =
+                EsFormulario(pagina) &&
+                !UsaNavegacionPropia(pagina);
+
+            bool requiereBotonAbandonar =
+                AnalisisEdicionService
+                    .Instance
+                    .EsModoEdicion &&
+                EsPaginaProcesoAnalisis(pagina);
+
             /*
-             * Estas páginas ya poseen navegación propia.
-             * Si una instancia fue envuelta anteriormente, también se retira
-             * el encabezado global que haya quedado guardado en memoria.
+             * Las páginas declaradas como ShellContent se reutilizan.
+             * Si una pantalla ya no está editando, se restaura su contenido
+             * original para que el botón no aparezca en un análisis nuevo.
              */
-            if (UsaNavegacionPropia(pagina))
+            if (!requiereBotonRegresar &&
+                !requiereBotonAbandonar)
             {
-                QuitarEncabezadoGlobalSiExiste(pagina);
+                QuitarEncabezadoGlobalSiExiste(
+                    pagina);
+
                 return;
             }
 
-            if (!EsFormulario(pagina))
-                return;
-
             if (pagina.Content == null)
             {
+                pagina.Loaded -= Pagina_Loaded;
                 pagina.Loaded += Pagina_Loaded;
                 return;
             }
 
-            if (string.Equals(
-                    pagina.Content.StyleId,
+            if (pagina.Content is Grid contenedorExistente &&
+                string.Equals(
+                    contenedorExistente.StyleId,
                     MarcaContenedor,
                     StringComparison.Ordinal))
             {
+                ActualizarEncabezado(
+                    pagina,
+                    contenedorExistente,
+                    requiereBotonRegresar,
+                    requiereBotonAbandonar);
+
                 return;
             }
 
             View contenidoOriginal =
                 pagina.Content;
 
-            var botonRegresar =
-                CrearBotonRegresar(pagina);
-
-            var encabezado =
-                new Grid
-                {
-                    Padding = ObtenerPaddingEncabezado(),
-                    BackgroundColor = Colors.Transparent,
-                    HorizontalOptions =
-                        LayoutOptions.Fill,
-                    VerticalOptions =
-                        LayoutOptions.Start
-                };
-
-            encabezado.Children.Add(
-                botonRegresar);
+            Grid encabezado =
+                CrearEncabezado(
+                    pagina,
+                    requiereBotonRegresar,
+                    requiereBotonAbandonar);
 
             var contenedor =
                 new Grid
@@ -126,7 +155,100 @@ namespace CONATRADEC.Services
             contenedor.Children.Add(
                 contenidoOriginal);
 
-            pagina.Content = contenedor;
+            pagina.Content =
+                contenedor;
+        }
+
+        private static void ActualizarEncabezado(
+            ContentPage pagina,
+            Grid contenedor,
+            bool requiereBotonRegresar,
+            bool requiereBotonAbandonar)
+        {
+            Grid? encabezadoAnterior =
+                contenedor.Children
+                    .OfType<Grid>()
+                    .FirstOrDefault(
+                        vista =>
+                            Grid.GetRow(vista) == 0);
+
+            Grid encabezadoNuevo =
+                CrearEncabezado(
+                    pagina,
+                    requiereBotonRegresar,
+                    requiereBotonAbandonar);
+
+            if (encabezadoAnterior != null)
+            {
+                contenedor.Children.Remove(
+                    encabezadoAnterior);
+            }
+
+            Grid.SetRow(
+                encabezadoNuevo,
+                0);
+
+            contenedor.Children.Insert(
+                0,
+                encabezadoNuevo);
+        }
+
+        private static Grid CrearEncabezado(
+            ContentPage pagina,
+            bool mostrarRegresar,
+            bool mostrarAbandonar)
+        {
+            var encabezado =
+                new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(
+                            GridLength.Auto),
+                        new ColumnDefinition(
+                            GridLength.Star),
+                        new ColumnDefinition(
+                            GridLength.Auto)
+                    },
+                    ColumnSpacing = 12,
+                    Padding =
+                        ObtenerPaddingEncabezado(),
+                    BackgroundColor =
+                        Colors.Transparent,
+                    HorizontalOptions =
+                        LayoutOptions.Fill,
+                    VerticalOptions =
+                        LayoutOptions.Start
+                };
+
+            if (mostrarRegresar)
+            {
+                Button botonRegresar =
+                    CrearBotonRegresar(pagina);
+
+                Grid.SetColumn(
+                    botonRegresar,
+                    0);
+
+                encabezado.Children.Add(
+                    botonRegresar);
+            }
+
+            if (mostrarAbandonar)
+            {
+                Button botonAbandonar =
+                    CrearBotonAbandonarEdicion(
+                        pagina);
+
+                Grid.SetColumn(
+                    botonAbandonar,
+                    2);
+
+                encabezado.Children.Add(
+                    botonAbandonar);
+            }
+
+            return encabezado;
         }
 
         private static void QuitarEncabezadoGlobalSiExiste(
@@ -196,7 +318,7 @@ namespace CONATRADEC.Services
                     VerticalOptions =
                         LayoutOptions.Center,
                     AutomationId =
-                        "BotonRegresarFormulario"
+                        AutomationIdRegresar
                 };
 
             SemanticProperties.SetDescription(
@@ -212,6 +334,134 @@ namespace CONATRADEC.Services
                 };
 
             return boton;
+        }
+
+        private static Button
+            CrearBotonAbandonarEdicion(
+                ContentPage pagina)
+        {
+            bool esEscritorio =
+                DeviceInfo.Idiom ==
+                DeviceIdiom.Desktop;
+
+            var boton =
+                new Button
+                {
+                    Text =
+                        esEscritorio
+                            ? "Abandonar edición"
+                            : "Salir de edición",
+                    HeightRequest = 46,
+                    MinimumHeightRequest = 46,
+                    Padding =
+                        new Thickness(
+                            16,
+                            0),
+                    CornerRadius = 13,
+                    FontSize = 14,
+                    FontAttributes =
+                        FontAttributes.Bold,
+                    BackgroundColor =
+                        Color.FromArgb(
+                            "#FEE2E2"),
+                    TextColor =
+                        Color.FromArgb(
+                            "#B91C1C"),
+                    BorderColor =
+                        Color.FromArgb(
+                            "#EF4444"),
+                    BorderWidth = 1,
+                    HorizontalOptions =
+                        LayoutOptions.End,
+                    VerticalOptions =
+                        LayoutOptions.Center,
+                    AutomationId =
+                        AutomationIdAbandonarEdicion
+                };
+
+            SemanticProperties.SetDescription(
+                boton,
+                "Abandonar la edición del análisis sin guardar los cambios");
+
+            boton.Clicked +=
+                async (_, _) =>
+                {
+                    await EjecutarAbandonoEdicionAsync(
+                        pagina,
+                        boton);
+                };
+
+            return boton;
+        }
+
+        private static async Task
+            EjecutarAbandonoEdicionAsync(
+                ContentPage pagina,
+                Button boton)
+        {
+            if (!boton.IsEnabled)
+                return;
+
+            boton.IsEnabled = false;
+
+            try
+            {
+                bool confirmar =
+                    await pagina.DisplayAlert(
+                        "Abandonar edición",
+                        "Se perderán los cambios que todavía no haya guardado. " +
+                        "¿Desea salir de la edición de este análisis?",
+                        "Salir de edición",
+                        "Continuar editando");
+
+                if (!confirmar)
+                    return;
+
+                /*
+                 * Primero se elimina el contexto de edición. Los servicios de
+                 * restauración que todavía estén esperando detectarán que la
+                 * edición terminó y dejarán de modificar las pantallas.
+                 */
+                AnalisisEdicionService
+                    .Instance
+                    .Limpiar();
+
+                SeleccionElementosComplementariosService
+                    .Limpiar();
+
+                /*
+                 * La navegación cancela los trabajos asociados a la pantalla
+                 * anterior. Después se elimina cualquier cálculo temporal para
+                 * que no se reutilice al iniciar o editar otro análisis.
+                 */
+                if (Shell.Current != null)
+                {
+                    await Shell.Current.GoToAsync(
+                        "//MainPage",
+                        false);
+                }
+
+                await CalculoAnalisisTemporalService
+                    .Instance
+                    .LimpiarTodoAsync();
+            }
+            catch (Exception ex)
+            {
+                await pagina.DisplayAlert(
+                    "No fue posible salir",
+                    "Ocurrió un error al abandonar la edición: " +
+                    ex.Message,
+                    "Aceptar");
+            }
+            finally
+            {
+                if (ReferenceEquals(
+                        Shell.Current?.CurrentPage,
+                        pagina))
+                {
+                    boton.IsEnabled = true;
+                }
+            }
         }
 
         private static async Task EjecutarRegresoAsync(
@@ -350,6 +600,20 @@ namespace CONATRADEC.Services
                     StringComparison.OrdinalIgnoreCase);
         }
 
+        private static bool EsPaginaProcesoAnalisis(
+            ContentPage pagina)
+        {
+            string nombre =
+                pagina.GetType().Name;
+
+            return paginasProcesoAnalisis.Any(
+                paginaProceso =>
+                    string.Equals(
+                        paginaProceso,
+                        nombre,
+                        StringComparison.OrdinalIgnoreCase));
+        }
+
         private static Thickness
             ObtenerPaddingEncabezado()
         {
@@ -360,7 +624,7 @@ namespace CONATRADEC.Services
                     24,
                     16,
                     24,
-                    2);
+                    6);
             }
 
             if (DeviceInfo.Idiom ==
@@ -370,14 +634,14 @@ namespace CONATRADEC.Services
                     22,
                     14,
                     22,
-                    2);
+                    5);
             }
 
             return new Thickness(
                 14,
                 12,
                 14,
-                2);
+                5);
         }
     }
 }

@@ -62,6 +62,20 @@
             return fallback;
         }
 
+        //private static bool IsGenericMessage(string message)
+        //{
+        //    string value = message.ToLowerInvariant();
+
+        //    return value.Contains("no fue posible") ||
+        //           value.Contains("no se pudo") ||
+        //           value.Contains("ocurrió un error") ||
+        //           value.Contains("ocurrio un error") ||
+        //           value.Contains("error inesperado") ||
+        //           value.Contains("intente nuevamente") ||
+        //           value.Contains("servidor presentó") ||
+        //           value.Contains("servidor presento");
+        //}
+
         private static bool IsGenericMessage(string message)
         {
             string value = message.ToLowerInvariant();
@@ -73,7 +87,10 @@
                    value.Contains("error inesperado") ||
                    value.Contains("intente nuevamente") ||
                    value.Contains("servidor presentó") ||
-                   value.Contains("servidor presento");
+                   value.Contains("servidor presento") ||
+                   value.Contains("datos enviados no son válidos") ||
+                   value.Contains("datos enviados no son validos") ||
+                   value.Contains("revise los datos ingresados");
         }
 
         private static string Normalize(string value) =>

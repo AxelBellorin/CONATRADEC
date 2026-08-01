@@ -229,10 +229,27 @@ namespace CONATRADEC.Services
                     terreno,
                     cancellationToken);
 
+                //if (!response.IsSuccessStatusCode)
+                //{
+                //    return ApiResult<bool>.Fail(
+                //        ObtenerMensajeHttp(response.StatusCode, "actualizar el terreno"),
+                //        (int)response.StatusCode);
+                //}
+
                 if (!response.IsSuccessStatusCode)
                 {
+                    string contenido = await response.Content
+                        .ReadAsStringAsync(cancellationToken);
+
+                    string mensaje = ApiErrorMessageParser.Parse(
+                        response.StatusCode,
+                        contenido,
+                        ObtenerMensajeHttp(
+                            response.StatusCode,
+                            "actualizar el terreno"));
+
                     return ApiResult<bool>.Fail(
-                        ObtenerMensajeHttp(response.StatusCode, "actualizar el terreno"),
+                        mensaje,
                         (int)response.StatusCode);
                 }
 
