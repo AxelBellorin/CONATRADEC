@@ -1,25 +1,30 @@
 using CONATRADEC.Models;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Operaciones administrativas adicionales del CRUD de propietarios.
-    ///
-    /// Incluye eliminación lógica y recuperación. Crear, editar y listar
-    /// permanecen en PropietarioApiService.
+    /// Consulta los terrenos de un propietario y permite reasignarlos a otro
+    /// propietario activo sin salir del módulo de Propietarios.
     /// </summary>
-    public sealed class PropietarioCrudApiService
+    public sealed class PropietarioTerrenosApiService
     {
+        private static readonly JsonSerializerOptions JsonOptions =
+            new(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
         private readonly HttpClient httpClient;
 
-        public PropietarioCrudApiService()
+        public PropietarioTerrenosApiService()
             : this(ApiClientService.Client)
         {
         }
 
-        public PropietarioCrudApiService(
+        internal PropietarioTerrenosApiService(
             HttpClient httpClient)
         {
             this.httpClient =
@@ -28,88 +33,110 @@ namespace CONATRADEC.Services
                     nameof(httpClient));
         }
 
-        public async Task<ApiResult<bool>>
-            EliminarPropietarioResultAsync(
+        public async Task<ApiResult<PropietarioDetalleResponse>>
+            ObtenerDetalleAsync(
                 int propietarioId,
                 CancellationToken cancellationToken = default)
         {
             if (propietarioId <= 0)
             {
-                return ApiResult<bool>.Fail(
+                return ApiResult<PropietarioDetalleResponse>.Fail(
                     "No se recibió un propietario válido.");
             }
 
             try
             {
                 using HttpResponseMessage response =
-                    await httpClient.DeleteAsync(
+                    await httpClient.GetAsync(
                         "api/parametrizacion-acceso/" +
                         $"propietarios/{propietarioId}",
                         cancellationToken);
 
-                string mensaje =
-                    await ObtenerMensajeAsync(
-                        response,
-                        response.IsSuccessStatusCode
-                            ? "Propietario eliminado correctamente."
-                            : "No fue posible eliminar el propietario.",
-                        cancellationToken);
-
                 if (!response.IsSuccessStatusCode)
                 {
-                    return ApiResult<bool>.Fail(
-                        mensaje,
+                    return ApiResult<PropietarioDetalleResponse>.Fail(
+                        await ObtenerMensajeAsync(
+                            response,
+                            "No fue posible cargar los terrenos del propietario.",
+                            cancellationToken),
                         (int)response.StatusCode);
                 }
 
-                return ApiResult<bool>.Ok(
-                    true,
-                    mensaje);
+                PropietarioDetalleResponse? detalle =
+                    await response.Content
+                        .ReadFromJsonAsync<PropietarioDetalleResponse>(
+                            JsonOptions,
+                            cancellationToken);
+
+                if (detalle?.Propietario == null)
+                {
+                    return ApiResult<PropietarioDetalleResponse>.Fail(
+                        "El servidor respondió, pero no devolvió el propietario.");
+                }
+
+                detalle.Terrenos ??= [];
+
+                return ApiResult<PropietarioDetalleResponse>.Ok(
+                    detalle);
             }
             catch (TaskCanceledException)
                 when (!cancellationToken.IsCancellationRequested)
             {
-                return ApiResult<bool>.Fail(
-                    "La solicitud tardó demasiado.");
+                return ApiResult<PropietarioDetalleResponse>.Fail(
+                    "La consulta tardó demasiado.");
             }
             catch (OperationCanceledException)
             {
-                return ApiResult<bool>.Fail(
+                return ApiResult<PropietarioDetalleResponse>.Fail(
                     "La operación fue cancelada.");
             }
             catch (HttpRequestException)
             {
-                return ApiResult<bool>.Fail(
+                return ApiResult<PropietarioDetalleResponse>.Fail(
                     "No fue posible conectarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<PropietarioDetalleResponse>.Fail(
+                    "El servidor devolvió un detalle con formato no reconocido.");
             }
             catch
             {
-                return ApiResult<bool>.Fail(
-                    "Ocurrió un error inesperado al eliminar el propietario.");
+                return ApiResult<PropietarioDetalleResponse>.Fail(
+                    "Ocurrió un error inesperado al cargar los terrenos.");
             }
         }
 
         public async Task<ApiResult<bool>>
-            RecuperarPropietarioResultAsync(
-                int propietarioId,
+            ReasignarTerrenoAsync(
+                int propietarioDestinoId,
+                int terrenoId,
                 CancellationToken cancellationToken = default)
         {
-            if (propietarioId <= 0)
+            if (propietarioDestinoId <= 0)
             {
                 return ApiResult<bool>.Fail(
-                    "No se recibió un propietario válido.");
+                    "Debe seleccionar un propietario de destino.");
+            }
+
+            if (terrenoId <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "No se recibió un terreno válido.");
             }
 
             try
             {
-                using var request =
-                    new HttpRequestMessage(
-                        HttpMethod.Post,
-                        "api/parametrizacion-acceso/" +
-                        $"propietarios/{propietarioId}/recuperar");
+                var request =
+                    new VincularTerrenoPropietarioRequest
+                    {
+                        TerrenoId = terrenoId
+                    };
 
                 using HttpResponseMessage response =
-                    await httpClient.SendAsync(
+                    await httpClient.PostAsJsonAsync(
+                        "api/parametrizacion-acceso/" +
+                        $"propietarios/{propietarioDestinoId}/terrenos",
                         request,
                         cancellationToken);
 
@@ -117,8 +144,8 @@ namespace CONATRADEC.Services
                     await ObtenerMensajeAsync(
                         response,
                         response.IsSuccessStatusCode
-                            ? "Propietario recuperado correctamente."
-                            : "No fue posible recuperar el propietario.",
+                            ? "Terreno reasignado correctamente."
+                            : "No fue posible reasignar el terreno.",
                         cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
@@ -151,7 +178,7 @@ namespace CONATRADEC.Services
             catch
             {
                 return ApiResult<bool>.Fail(
-                    "Ocurrió un error inesperado al recuperar el propietario.");
+                    "Ocurrió un error inesperado al reasignar el terreno.");
             }
         }
 
@@ -203,14 +230,17 @@ namespace CONATRADEC.Services
 
             return response.StatusCode switch
             {
-                HttpStatusCode.Conflict =>
-                    "No se puede completar la operación porque el propietario todavía tiene relaciones activas.",
+                HttpStatusCode.Unauthorized =>
+                    "La sesión no es válida o ha expirado.",
 
                 HttpStatusCode.Forbidden =>
-                    "No tiene permiso para modificar propietarios.",
+                    "No tiene permiso para administrar los terrenos del propietario.",
 
                 HttpStatusCode.NotFound =>
-                    "No se encontró el propietario.",
+                    "No se encontró el propietario o el terreno.",
+
+                HttpStatusCode.Conflict =>
+                    "No fue posible cambiar la relación del terreno.",
 
                 _ => predeterminado
             };

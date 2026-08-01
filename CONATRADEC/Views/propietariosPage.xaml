@@ -9,11 +9,6 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
-    <!--
-        Propietarios es una ruta secundaria porque también se abre desde el
-        formulario de Terreno. Se oculta expresamente la flecha nativa de Shell
-        para conservar un solo botón de regreso dentro del catálogo.
-    -->
     <Shell.BackButtonBehavior>
         <BackButtonBehavior
             IsVisible="False"
@@ -61,6 +56,42 @@
                         TextColor="{StaticResource color_Verde}" />
                 </Border>
 
+                <Border
+                    Grid.Row="2"
+                    IsVisible="{Binding MostrarFiltroEliminados}"
+                    Padding="12"
+                    BackgroundColor="#FFFDF8"
+                    Stroke="#E7DDC8"
+                    StrokeShape="RoundRectangle 12">
+
+                    <Grid
+                        ColumnDefinitions="*,Auto"
+                        ColumnSpacing="14">
+
+                        <VerticalStackLayout
+                            Spacing="2"
+                            VerticalOptions="Center">
+
+                            <Label
+                                Text="Mostrar propietarios eliminados"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Label
+                                Text="Permite recuperar registros eliminados sin perder su historial."
+                                FontSize="11"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                        </VerticalStackLayout>
+
+                        <Switch
+                            Grid.Column="1"
+                            IsToggled="{Binding MostrarEliminados, Mode=TwoWay}"
+                            OnColor="{StaticResource color_Verde}"
+                            VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+
                 <RefreshView
                     Grid.Row="3"
                     Command="{Binding ActualizarCommand}"
@@ -87,6 +118,22 @@
                                     Stroke="#DDE7E3"
                                     StrokeShape="RoundRectangle 16">
 
+                                    <Border.Triggers>
+                                        <DataTrigger
+                                            TargetType="Border"
+                                            Binding="{Binding Activo}"
+                                            Value="False">
+
+                                            <Setter
+                                                Property="BackgroundColor"
+                                                Value="#FFF8F1" />
+
+                                            <Setter
+                                                Property="Stroke"
+                                                Value="#F4C999" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer
                                             Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.AbrirCommand}"
@@ -98,7 +145,7 @@
                                         RowSpacing="12">
 
                                         <Grid
-                                            ColumnDefinitions="Auto,*"
+                                            ColumnDefinitions="Auto,*,Auto"
                                             ColumnSpacing="12">
 
                                             <Border
@@ -150,12 +197,58 @@
                                                     FontSize="11"
                                                     TextColor="{StaticResource color_Cafe}" />
                                             </VerticalStackLayout>
+
+                                            <Border
+                                                Grid.Column="2"
+                                                Padding="10,5"
+                                                BackgroundColor="#E7F4EC"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 10"
+                                                VerticalOptions="Start">
+
+                                                <Border.Triggers>
+                                                    <DataTrigger
+                                                        TargetType="Border"
+                                                        Binding="{Binding Activo}"
+                                                        Value="False">
+
+                                                        <Setter
+                                                            Property="BackgroundColor"
+                                                            Value="#FDE7D3" />
+                                                    </DataTrigger>
+                                                </Border.Triggers>
+
+                                                <Label
+                                                    Text="{Binding TextoEstado}"
+                                                    FontSize="10"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#276749">
+
+                                                    <Label.Triggers>
+                                                        <DataTrigger
+                                                            TargetType="Label"
+                                                            Binding="{Binding Activo}"
+                                                            Value="False">
+
+                                                            <Setter
+                                                                Property="TextColor"
+                                                                Value="#9C4221" />
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+                                            </Border>
                                         </Grid>
 
                                         <Grid
                                             Grid.Row="1"
-                                            IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.MostrarAccionesAdministracion}"
+                                            IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.MostrarAccionesAdministracion}">
+
+                                            <!-- Acciones de propietarios activos. -->
+                                            <Grid
+                                                IsVisible="{Binding Activo}"
+                                            RowDefinitions="Auto,Auto"
                                             ColumnDefinitions="*,*,*"
+                                            RowSpacing="8"
                                             ColumnSpacing="8">
 
                                             <Button
@@ -189,6 +282,65 @@
                                                 Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.EliminarCommand}"
                                                 CommandParameter="{Binding .}"
                                                 IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.CanDelete}" />
+
+                                            <Button
+                                                Grid.Row="1"
+                                                Grid.ColumnSpan="3"
+                                                Text="{Binding TextoBotonTerrenos}"
+                                                Padding="10,10"
+                                                BackgroundColor="#F4EDE7"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                BorderColor="#D9C5B5"
+                                                BorderWidth="1"
+                                                CornerRadius="10"
+                                                Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.VerTerrenosCommand}"
+                                                CommandParameter="{Binding .}"
+                                                IsVisible="{Binding TieneTerrenos}" />
+                                        </Grid>
+
+                                            <!-- Acciones de propietarios eliminados. -->
+                                            <Grid
+                                                IsVisible="{Binding EstaInactivo}"
+                                            RowDefinitions="Auto,Auto"
+                                            ColumnDefinitions="*,*"
+                                            RowSpacing="8"
+                                            ColumnSpacing="8">
+
+                                            <Button
+                                                Text="Ver"
+                                                Padding="8,9"
+                                                BackgroundColor="#F4EDE7"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                CornerRadius="10"
+                                                Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.VerCommand}"
+                                                CommandParameter="{Binding .}"
+                                                IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.CanView}" />
+
+                                            <Button
+                                                Grid.Column="1"
+                                                Text="Recuperar"
+                                                Padding="8,9"
+                                                BackgroundColor="{StaticResource color_Verde}"
+                                                TextColor="White"
+                                                CornerRadius="10"
+                                                Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.RecuperarCommand}"
+                                                CommandParameter="{Binding .}"
+                                                IsVisible="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.CanEdit}" />
+
+                                            <Button
+                                                Grid.Row="1"
+                                                Grid.ColumnSpan="2"
+                                                Text="{Binding TextoBotonTerrenos}"
+                                                Padding="10,10"
+                                                BackgroundColor="#FDE7D3"
+                                                TextColor="#9C4221"
+                                                BorderColor="#F4C999"
+                                                BorderWidth="1"
+                                                CornerRadius="10"
+                                                Command="{Binding Source={x:Reference PropietariosPageRoot}, Path=BindingContext.VerTerrenosCommand}"
+                                                CommandParameter="{Binding .}"
+                                                IsVisible="{Binding TieneTerrenos}" />
+                                            </Grid>
                                         </Grid>
                                     </Grid>
                                 </Border>

@@ -69,6 +69,33 @@ namespace CONATRADEC.Services
             object? sender,
             ShellNavigatedEventArgs e)
         {
+            /*
+             * Cuando regresamos desde una pantalla secundaria, como el selector
+             * de propietarios o el mapa, el formulario ya contiene cambios
+             * realizados por el usuario.
+             *
+             * No debemos consultar nuevamente el terreno porque la API todavía
+             * contiene el propietario anterior y reemplazaría la nueva selección.
+             */
+            bool regresandoAlFormulario =
+                (e.Source == ShellNavigationSource.Pop ||
+                 e.Source == ShellNavigationSource.PopToRoot) &&
+                shellVinculado?.CurrentPage
+                    is terrenoFormPage;
+
+            if (regresandoAlFormulario)
+            {
+                CancellationTokenSource? operacionAnterior =
+                    Interlocked.Exchange(
+                        ref cargaCts,
+                        null);
+
+                CancelarYLiberar(
+                    operacionAnterior);
+
+                return;
+            }
+
             var nueva =
                 new CancellationTokenSource();
 

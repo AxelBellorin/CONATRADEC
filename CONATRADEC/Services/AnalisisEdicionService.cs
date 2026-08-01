@@ -40,6 +40,15 @@ namespace CONATRADEC.Services
 
         public string ClaveEnmiendaOriginal { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Indica que el usuario cambió los elementos que participan en
+        /// Balance y Fertilización Mixta durante la edición actual.
+        ///
+        /// El detalle persistido nunca se elimina: esta bandera controla si
+        /// corresponde restaurarlo o dejar ambos cálculos pendientes.
+        /// </summary>
+        public bool CambioSeleccionElementos { get; set; }
+
         public bool TieneBalance => Detalle.BalanceNutricional != null;
 
         public bool TieneEnmienda => Detalle.EnmiendaCalcarea != null;
@@ -174,6 +183,7 @@ namespace CONATRADEC.Services
                         ElementosCatalogo = elementos,
                         FuentesCatalogo = fuentes,
                         CantidadPlantas = plantas,
+                        CambioSeleccionElementos = false,
                         ClaveRequerimientoOriginal =
                             ConstruirClaveRequerimiento(request),
                         ClaveBalanceOriginal =
@@ -283,7 +293,8 @@ namespace CONATRADEC.Services
             await temporal.IniciarNuevoCalculoAsync(resultado, request);
 
             if (incluirBalance &&
-                contexto.TieneBalance)
+                contexto.TieneBalance &&
+                !contexto.CambioSeleccionElementos)
             {
                 await RestaurarBalanceAsync(
                     contexto,
@@ -308,7 +319,8 @@ namespace CONATRADEC.Services
             }
 
             if (incluirMixta &&
-                contexto.TieneMixta)
+                contexto.TieneMixta &&
+                !contexto.CambioSeleccionElementos)
             {
                 await RestaurarMixtaAsync(
                     contexto,
@@ -477,23 +489,30 @@ namespace CONATRADEC.Services
                     .ToList()
             };
 
-            FertilizacionMixtaCalculoResponse? calculado =
-                await mixtaApiService.CalcularAsync(request);
-
             FertilizacionMixtaCalculoResponse resultado;
 
-            if (calculado?.Success == true)
+            if (requerimientoCambio)
             {
+                FertilizacionMixtaCalculoResponse? calculado =
+                    await mixtaApiService.CalcularAsync(request);
+
+                if (calculado?.Success != true)
+                {
+                    throw new InvalidOperationException(
+                        calculado?.Message ??
+                        "No fue posible actualizar automáticamente la fertilización mixta.");
+                }
+
                 resultado = calculado;
-            }
-            else if (requerimientoCambio)
-            {
-                throw new InvalidOperationException(
-                    calculado?.Message ??
-                    "No fue posible actualizar automáticamente la fertilización mixta.");
             }
             else
             {
+                /*
+                 * Al abrir una edición sin cambios se debe mostrar una copia
+                 * fiel de lo guardado. No se llama nuevamente al endpoint de
+                 * cálculo porque podría producir otro resultado, depender de
+                 * conexión o reemplazar los datos offline.
+                 */
                 resultado =
                     ConstruirResultadoMixtaGuardado(contexto, guardado);
             }
@@ -523,11 +542,15 @@ namespace CONATRADEC.Services
                 UsuarioId = detalle.DatosAnalisis.UsuarioId,
                 CantidadQuintalesOro = anual.CantidadQuintalesOro,
                 TamanoFinca = anual.TamanoFinca,
-                Ph = anual.Ph,
+                Ph = ObtenerValorPrincipalORespaldo(
+                    anual.Ph,
+                    enmienda?.Ph),
                 MateriaOrganica = anual.MateriaOrganica ?? 0,
                 UnidadMedidaMateriaOrganicaId =
                     anual.UnidadMedidaMateriaOrganicaId,
-                AcidezTotal = anual.AcidezTotal ?? 0,
+                AcidezTotal = ObtenerValorPrincipalORespaldo(
+                    anual.AcidezTotal,
+                    enmienda?.AcidezTotal),
                 CalcioCice = enmienda?.Ca ?? 0,
                 MagnesioCice = enmienda?.Mg ?? 0,
                 PotasioCice = enmienda?.K ?? 0,
@@ -582,8 +605,12 @@ namespace CONATRADEC.Services
                 TipoAnalisisSuelo = "Requerimiento anual",
                 CantidadQuintalesOro = anual.CantidadQuintalesOro,
                 TamanoFinca = anual.TamanoFinca,
-                Ph = anual.Ph,
-                AcidezTotal = anual.AcidezTotal ?? 0,
+                Ph = ObtenerValorPrincipalORespaldo(
+                    anual.Ph,
+                    detalle.EnmiendaCalcarea?.Ph),
+                AcidezTotal = ObtenerValorPrincipalORespaldo(
+                    anual.AcidezTotal,
+                    detalle.EnmiendaCalcarea?.AcidezTotal),
                 RecomendacionGeneral = anual.RecomendacionGeneral,
                 Observaciones =
                     anual.Observaciones?.ToList() ??
@@ -613,7 +640,9 @@ namespace CONATRADEC.Services
                             item.RequerimientoCalculado,
                         UnidadMedidaResultadoId = item.UnidadMedidaId,
                         Clasificacion = item.Clasificacion,
-                        Observacion = item.Observacion
+                        Observacion = item.Observacion,
+                        IncluirEnCalculosComplementarios =
+                            item.IncluirCalculosComplementarios
                     });
             }
 
@@ -1012,6 +1041,26 @@ namespace CONATRADEC.Services
                 F(request.PotasioCice),
                 plantas,
                 aplicaciones);
+        }
+
+        private static decimal
+            ObtenerValorPrincipalORespaldo(
+                decimal? valorPrincipal,
+                decimal? valorRespaldo)
+        {
+            if (valorPrincipal.HasValue &&
+                valorPrincipal.Value > 0)
+            {
+                return valorPrincipal.Value;
+            }
+
+            if (valorRespaldo.HasValue &&
+                valorRespaldo.Value > 0)
+            {
+                return valorRespaldo.Value;
+            }
+
+            return valorPrincipal ?? valorRespaldo ?? 0;
         }
 
         private static string F(decimal? valor) =>

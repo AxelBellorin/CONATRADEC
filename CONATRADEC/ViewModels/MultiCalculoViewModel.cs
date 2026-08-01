@@ -470,7 +470,8 @@ namespace CONATRADEC.ViewModels
 
             FertilizacionMixta.Inicializar(
                 ResultadoCalculo,
-                RequestGuardarAnalisis);
+                RequestGuardarAnalisis,
+                EsModoEdicion);
 
             fertilizacionMixtaInicializada = true;
         }

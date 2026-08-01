@@ -18,6 +18,10 @@ namespace CONATRADEC.Services
             Routing.RegisterRoute(
                 PropietarioFormulario,
                 typeof(propietarioFormPage));
+
+            Routing.RegisterRoute(
+                PropietarioTerrenos,
+                typeof(propietarioTerrenosPage));
         }
 
         public const string Login =
@@ -157,15 +161,17 @@ namespace CONATRADEC.Services
             nameof(ActualizacionAplicacionPage);
 
         /*
-         * Nuevas rutas.
-         * Son static readonly para forzar la inicialización de la clase
-         * y registrar las páginas antes de usarlas.
+         * Son static readonly para forzar la inicialización de la clase y
+         * registrar las páginas antes de usarlas.
          */
         public static readonly string Propietarios =
             nameof(propietariosPage);
 
         public static readonly string PropietarioFormulario =
             nameof(propietarioFormPage);
+
+        public static readonly string PropietarioTerrenos =
+            nameof(propietarioTerrenosPage);
 
         public const string Regresar =
             "..";

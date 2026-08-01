@@ -26,6 +26,7 @@ namespace CONATRADEC.ViewModels
 
         private bool isBusy;
         private bool suspendiendoCambiosTemporales;
+        private bool esModoEdicion;
 
         public FertilizacionMixtaTabViewModel()
         {
@@ -168,10 +169,12 @@ namespace CONATRADEC.ViewModels
 
         public void Inicializar(
             AnalisisSueloCalculoDataResponse? resultado,
-            AnalisisSueloGuardarCalculoRequest? requestGuardar)
+            AnalisisSueloGuardarCalculoRequest? requestGuardar,
+            bool modoEdicion = false)
         {
             ResultadoCalculo = resultado;
             RequestGuardarAnalisis = requestGuardar;
+            esModoEdicion = modoEdicion;
 
             ResultadoFertilizacionMixta = null;
             PrepararNuevaInicializacion();
@@ -200,10 +203,23 @@ namespace CONATRADEC.ViewModels
             {
                 suspendiendoCambiosTemporales = true;
 
-                await CalculoAnalisisTemporalService.Instance.IniciarNuevoCalculoAsync(
-                    ResultadoCalculo,
-                    RequestGuardarAnalisis
-                );
+                /*
+                 * En edición el temporal completo ya fue restaurado desde el
+                 * análisis persistido antes de llegar a esta pestaña.
+                 *
+                 * ResultadoCalculo contiene únicamente los elementos elegidos
+                 * para cálculos complementarios. Si se vuelve a ejecutar
+                 * IniciarNuevoCalculoAsync con esa lista filtrada, cambia
+                 * CalculoKey y el servicio reemplaza todo el estado temporal,
+                 * borrando Balance, Enmienda y Mixta.
+                 */
+                if (!esModoEdicion)
+                {
+                    await CalculoAnalisisTemporalService.Instance
+                        .IniciarNuevoCalculoAsync(
+                            ResultadoCalculo,
+                            RequestGuardarAnalisis);
+                }
 
                 FertilizacionMixtaCalculoResponse? resultadoTemporal =
                     CalculoAnalisisTemporalService.Instance.ObtenerResultado<FertilizacionMixtaCalculoResponse>(

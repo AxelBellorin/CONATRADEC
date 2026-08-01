@@ -947,6 +947,14 @@ namespace CONATRADEC.ViewModels
             if (!EsModoEdicion)
                 return;
 
+            AnalisisEdicionContexto? contexto =
+                AnalisisEdicionService
+                    .Instance
+                    .ContextoActual;
+
+            if (contexto == null)
+                return;
+
             HashSet<int> seleccionActual =
                 Elementos
                     .Where(x =>
@@ -956,37 +964,39 @@ namespace CONATRADEC.ViewModels
                         x.ElementoQuimicosId!.Value)
                     .ToHashSet();
 
-            /*
-             * Si la selección no cambió, se conservan los cálculos
-             * temporales que ya fueron restaurados desde el formulario.
-             * Esto evita recalcular Balance, Enmienda y Mixta por segunda
-             * vez y elimina el bloqueo de Windows y Android.
-             */
-            if (seleccionActual.SetEquals(
-                    elementosIncluidosInicialmente))
+            HashSet<int> seleccionPersistida =
+                ObtenerSeleccionComplementariaPersistida(
+                    contexto);
+
+            bool seleccionCambio =
+                !seleccionActual.SetEquals(
+                    seleccionPersistida);
+
+            contexto.CambioSeleccionElementos =
+                seleccionCambio;
+
+            if (!seleccionCambio)
             {
+                /*
+                 * El usuario puede haber cambiado la selección, volver atrás y
+                 * dejarla nuevamente igual a la guardada. En ese caso se
+                 * habilita otra vez la restauración persistida.
+                 */
+                AnalisisEdicionService
+                    .Instance
+                    .RestauracionUiRealizada = false;
+
                 return;
             }
 
-            AnalisisEdicionContexto? contexto =
-                AnalisisEdicionService
-                    .Instance
-                    .ContextoActual;
-
-            if (contexto == null)
-                return;
-
             /*
-             * Si el usuario realmente cambió los elementos, el Balance y
-             * la Mixta guardados ya no corresponden a esa selección.
-             * Se reinician únicamente esas dos secciones, sin realizar
-             * llamadas automáticas a las APIs durante la navegación.
+             * El detalle obtenido de API o SQLite es la fuente de verdad y no
+             * debe ponerse en null. Solo se reinician las secciones temporales
+             * para que la pantalla solicite un nuevo cálculo con la selección
+             * modificada.
              */
-            if (contexto.Detalle.BalanceNutricional != null)
+            if (contexto.TieneBalance)
             {
-                contexto.Detalle.BalanceNutricional =
-                    null;
-
                 await CalculoAnalisisTemporalService
                     .Instance
                     .ReiniciarCalculoAsync(
@@ -995,11 +1005,8 @@ namespace CONATRADEC.ViewModels
                         "La selección de elementos cambió. Debe recalcular el balance.");
             }
 
-            if (contexto.Detalle.FertilizacionMixta != null)
+            if (contexto.TieneMixta)
             {
-                contexto.Detalle.FertilizacionMixta =
-                    null;
-
                 await CalculoAnalisisTemporalService
                     .Instance
                     .ReiniciarCalculoAsync(
@@ -1014,6 +1021,67 @@ namespace CONATRADEC.ViewModels
 
             MensajeSeleccionCalculo =
                 "La selección de elementos cambió. Balance y Fertilización mixta deberán recalcularse antes de actualizar.";
+        }
+
+        private static HashSet<int>
+            ObtenerSeleccionComplementariaPersistida(
+                AnalisisEdicionContexto contexto)
+        {
+            HashSet<int> seleccion =
+                contexto
+                    .Detalle
+                    .RequerimientoAnual
+                    .Elementos
+                    .Where(x =>
+                        x.ElementoQuimicosId > 0 &&
+                        x.IncluirCalculosComplementarios)
+                    .Select(x =>
+                        x.ElementoQuimicosId)
+                    .ToHashSet();
+
+            /*
+             * Compatibilidad con análisis antiguos donde la bandera de
+             * inclusión no fue almacenada. Balance y Mixta sí conservan los
+             * IDs que participaron realmente.
+             */
+            if (seleccion.Count == 0)
+            {
+                foreach (
+                    AnalisisGuardadoFormulaDetalle detalle
+                    in contexto
+                        .Detalle
+                        .BalanceNutricional?
+                        .Detalles
+                    ??
+                    new List<
+                        AnalisisGuardadoFormulaDetalle>())
+                {
+                    if (detalle.ElementoQuimicosId > 0)
+                    {
+                        seleccion.Add(
+                            detalle.ElementoQuimicosId);
+                    }
+                }
+
+                foreach (
+                    AnalisisGuardadoMixtaDetalle detalle
+                    in contexto
+                        .Detalle
+                        .FertilizacionMixta?
+                        .Detalles
+                    ??
+                    new List<
+                        AnalisisGuardadoMixtaDetalle>())
+                {
+                    if (detalle.ElementoQuimicosId > 0)
+                    {
+                        seleccion.Add(
+                            detalle.ElementoQuimicosId);
+                    }
+                }
+            }
+
+            return seleccion;
         }
 
         private async Task

@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
@@ -38,16 +38,15 @@ namespace CONATRADEC
             AnalisisEdicionUbicacionService.Instance
                 .VincularShell(shell);
 
-            AnalisisEdicionCalculosDeterministaService.Instance
-                .VincularShell(shell);
-
             /*
-             * Pase final de verificación. Recupera fuentes, checkbox y Mixta
-             * cuando una carga tardía de una pestaña reemplaza la restauración
-             * inicial durante la edición.
+             * La restauración de los cálculos guardados se ejecuta desde
+             * MultiCalculoPage después de que Balance, Enmienda y Mixta hayan
+             * terminado su inicialización.
+             *
+             * Se retiraron los dos observadores globales de navegación porque
+             * ambos intentaban restaurar las mismas pestañas al mismo tiempo y
+             * podían competir con la carga interna de Fertilización Mixta.
              */
-            AnalisisEdicionRestauracionRefuerzoService.Instance
-                .VincularShell(shell);
 
             TerrenoPropietarioEdicionService.Instance
                 .VincularShell(shell);

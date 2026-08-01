@@ -278,6 +278,9 @@
 		<MauiXaml Update="Views\propietariosPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\propietarioTerrenosPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\ResultadoAnalisisSueloPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

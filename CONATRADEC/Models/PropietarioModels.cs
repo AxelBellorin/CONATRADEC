@@ -59,8 +59,19 @@ namespace CONATRADEC.Models
                 ? "1 terreno"
                 : $"{TotalTerrenos} terrenos";
 
+        public string TextoBotonTerrenos =>
+            TotalTerrenos == 1
+                ? "Ver terreno vinculado"
+                : $"Ver terrenos vinculados ({TotalTerrenos})";
+
         public string TextoEstado =>
-            Activo ? "Activo" : "Inactivo";
+            Activo ? "Activo" : "Eliminado";
+
+        public bool EstaInactivo =>
+            !Activo;
+
+        public bool TieneTerrenos =>
+            TotalTerrenos > 0;
     }
 
     public sealed class PropietarioGuardarRequest
