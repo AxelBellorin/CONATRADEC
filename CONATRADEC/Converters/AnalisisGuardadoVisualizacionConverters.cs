@@ -215,7 +215,6 @@ namespace CONATRADEC.Converters
             throw new NotSupportedException();
         }
     }
-
     public sealed class EnmiendaInterpretacionConverter :
         IValueConverter
     {

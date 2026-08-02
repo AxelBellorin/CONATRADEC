@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
@@ -911,6 +911,42 @@ namespace CONATRADEC.ViewModels
         {
             if (analisis == null || !CanEdit || IsBusy)
                 return;
+
+            string usuarioActualTexto = Preferences.Get(
+                SessionKeys.KeyUserId,
+                string.Empty);
+
+            if (!int.TryParse(
+                    usuarioActualTexto,
+                    out int usuarioActualId) ||
+                usuarioActualId <= 0)
+            {
+                await MostrarInformacionAsync(
+                    "No se pudo identificar al usuario de la sesión. " +
+                    "Cierre sesión e ingrese nuevamente.");
+
+                return;
+            }
+
+            if (!analisis.UsuarioId.HasValue ||
+                analisis.UsuarioId.Value <= 0)
+            {
+                await MostrarInformacionAsync(
+                    "Este análisis no tiene un usuario propietario asignado. " +
+                    "No puede editarse hasta corregir ese dato.");
+
+                return;
+            }
+
+            if (analisis.UsuarioId.Value != usuarioActualId)
+            {
+                await MostrarInformacionAsync(
+                    $"No puede editar el análisis “{analisis.IdentificadorMostrar}” " +
+                    $"porque pertenece a {analisis.UsuarioMostrar}. " +
+                    "Solamente el usuario propietario puede modificarlo.");
+
+                return;
+            }
 
             try
             {

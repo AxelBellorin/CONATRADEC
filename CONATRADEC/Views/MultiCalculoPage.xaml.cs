@@ -1,8 +1,11 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls.Shapes;
 using System;
 using System.ComponentModel;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CONATRADEC.Views
@@ -39,6 +42,19 @@ namespace CONATRADEC.Views
 
         private int versionCargaVisual;
 
+        /*
+         * Indicador visual independiente del IsBusy utilizado para guardar.
+         * Su única responsabilidad es cubrir la carga inicial y la construcción
+         * visual de una pestaña.
+         */
+        private Grid? indicadorCargaVisual;
+        private Label? textoCargaVisual;
+        private CancellationTokenSource?
+            cambioTabCancellationTokenSource;
+
+        private bool cargaInicialEnCurso;
+        private bool paginaVisible;
+
         public MultiCalculoPage()
         {
             Shell.Current.FlyoutBehavior =
@@ -47,6 +63,8 @@ namespace CONATRADEC.Views
             InitializeComponent();
 
             BindingContext = viewModel;
+
+            CrearIndicadorCargaVisual();
 
             viewModel.PropertyChanged +=
                 ViewModel_PropertyChanged;
@@ -87,11 +105,17 @@ namespace CONATRADEC.Views
         {
             base.OnAppearing();
 
+            paginaVisible = true;
+            cargaInicialEnCurso = true;
+
             viewModel.LoadPagePermissions(
                 "ResultadoAnalisisSueloPage");
 
             if (!viewModel.CanView)
             {
+                cargaInicialEnCurso = false;
+                OcultarIndicadorCargaVisual();
+
                 await GlobalService.MostrarToastAsync(
                     "No tiene permisos para ver los cálculos complementarios.");
 
@@ -102,15 +126,15 @@ namespace CONATRADEC.Views
             }
 
             /*
-             * La restauración de edición ya no se espera dentro de
-             * OnAppearing. La página se muestra inmediatamente y el trabajo
-             * continúa de forma asíncrona. Esto evita que Windows o Android
-             * parezcan congelados mientras se cargan catálogos y resultados.
+             * El indicador se muestra antes de construir la pestaña activa.
+             * El pequeño Yield/Delay de CompletarCargaVisualAsync permite que
+             * MAUI pinte primero la rueda y luego realice el trabajo visual.
              */
+            MostrarIndicadorCargaVisual(
+                "Preparando los datos...");
+
             int version =
                 ++versionCargaVisual;
-
-            ActualizarVistaTab();
 
             _ = CompletarCargaVisualAsync(
                 version);
@@ -120,11 +144,17 @@ namespace CONATRADEC.Views
         {
             base.OnDisappearing();
 
+            paginaVisible = false;
+            cargaInicialEnCurso = false;
+
             /*
              * Invalida una espera visual anterior si el usuario abandona la
              * página antes de que finalice la restauración.
              */
             versionCargaVisual++;
+
+            CancelarCambioTab();
+            OcultarIndicadorCargaVisual();
         }
 
         private async Task CompletarCargaVisualAsync(
@@ -132,6 +162,22 @@ namespace CONATRADEC.Views
         {
             try
             {
+                /*
+                 * Permite que el indicador quede visible antes de crear o medir
+                 * la primera interfaz de cálculo.
+                 */
+                await Task.Yield();
+                await Task.Delay(60);
+
+                if (version != versionCargaVisual ||
+                    !paginaVisible)
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(
+                    ActualizarVistaTab);
+
                 await EsperarInicializacionActualAsync();
 
                 /*
@@ -147,8 +193,11 @@ namespace CONATRADEC.Views
                  */
                 await EsperarInicializacionMixtaAntesDeRestaurarAsync();
 
-                if (version != versionCargaVisual)
+                if (version != versionCargaVisual ||
+                    !paginaVisible)
+                {
                     return;
+                }
 
                 /*
                  * ApplyQueryAttributes es async void. Por eso la selección
@@ -157,18 +206,31 @@ namespace CONATRADEC.Views
                  */
                 PrepararCapturaSeleccionOriginalMixta();
 
-                Dispatcher.Dispatch(
+                await MainThread.InvokeOnMainThreadAsync(
                     ActualizarVistaTab);
 
                 await RestaurarCalculosEdicionUiService
                     .Instance
                     .RestaurarAsync(viewModel);
 
-                if (version != versionCargaVisual)
+                if (version != versionCargaVisual ||
+                    !paginaVisible)
+                {
                     return;
+                }
 
-                Dispatcher.Dispatch(
+                await MainThread.InvokeOnMainThreadAsync(
                     ActualizarVistaTab);
+
+                /*
+                 * Si el Balance restaurado inicia su recálculo determinista,
+                 * se mantiene el indicador hasta que termine. En las demás
+                 * pestañas se espera su carga real de catálogo.
+                 */
+                await EsperarTabActualListaAsync(
+                    CancellationToken.None);
+
+                await Task.Delay(80);
             }
             catch (Exception ex)
             {
@@ -178,6 +240,14 @@ namespace CONATRADEC.Views
                 viewModel.Mensaje =
                     "No fue posible completar la carga visual de los " +
                     $"cálculos: {ex.Message}";
+            }
+            finally
+            {
+                if (version == versionCargaVisual)
+                {
+                    cargaInicialEnCurso = false;
+                    OcultarIndicadorCargaVisual();
+                }
             }
         }
 
@@ -430,8 +500,168 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            Dispatcher.Dispatch(
-                ActualizarVistaTab);
+            if (!paginaVisible)
+                return;
+
+            /*
+             * La carga inicial ya mantiene su propio indicador y realizará
+             * el dibujo final. No se crea una segunda espera simultánea.
+             */
+            if (cargaInicialEnCurso)
+                return;
+
+            _ = CambiarVistaTabConIndicadorAsync();
+        }
+
+        private async Task
+            CambiarVistaTabConIndicadorAsync()
+        {
+            CancellationTokenSource nueva =
+                new();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref cambioTabCancellationTokenSource,
+                    nueva);
+
+            if (anterior != null)
+            {
+                try
+                {
+                    anterior.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+                finally
+                {
+                    anterior.Dispose();
+                }
+            }
+
+            CancellationToken token =
+                nueva.Token;
+
+            try
+            {
+                MostrarIndicadorCargaVisual(
+                    "Preparando los datos...");
+
+                /*
+                 * Garantiza que el overlay se pinte antes de construir por
+                 * primera vez la vista seleccionada.
+                 */
+                await Task.Yield();
+                await Task.Delay(
+                    55,
+                    token);
+
+                await MainThread.InvokeOnMainThreadAsync(
+                    ActualizarVistaTab);
+
+                await EsperarTabActualListaAsync(
+                    token);
+
+                /*
+                 * Concede un ciclo adicional para que MAUI termine de medir
+                 * la nueva vista antes de retirar el overlay.
+                 */
+                await Task.Delay(
+                    90,
+                    token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                viewModel.Mensaje =
+                    "No fue posible mostrar la pestaña seleccionada: " +
+                    ex.Message;
+            }
+            finally
+            {
+                if (ReferenceEquals(
+                        cambioTabCancellationTokenSource,
+                        nueva))
+                {
+                    Interlocked.Exchange(
+                        ref cambioTabCancellationTokenSource,
+                        null);
+
+                    nueva.Dispose();
+
+                    OcultarIndicadorCargaVisual();
+                }
+            }
+        }
+
+        private async Task EsperarTabActualListaAsync(
+            CancellationToken cancellationToken)
+        {
+            /*
+             * Máximo de quince segundos para no dejar la interfaz cubierta
+             * indefinidamente si una API devolvió error. Los ViewModels
+             * conservarán su mensaje de error debajo del overlay.
+             */
+            for (int intento = 0;
+                 intento < 300;
+                 intento++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (!paginaVisible)
+                    return;
+
+                if (TabActualEstaLista())
+                    return;
+
+                await Task.Delay(
+                    50,
+                    cancellationToken);
+            }
+        }
+
+        private bool TabActualEstaLista()
+        {
+            if (viewModel.EsBalanceSeleccionado)
+            {
+                BalanceFormulaViewModel balance =
+                    viewModel.BalanceFormula;
+
+                return
+                    !balance.IsBusy &&
+                    (
+                        balance.ElementosBalance.Count > 0 ||
+                        !string.IsNullOrWhiteSpace(
+                            balance.Mensaje)
+                    );
+            }
+
+            if (viewModel.EsEnmiendaSeleccionada)
+            {
+                EnmiendaCalcareaTabViewModel enmienda =
+                    viewModel.EnmiendaCalcarea;
+
+                return
+                    !enmienda.IsBusy &&
+                    enmienda.CargaEnmiendasFinalizada;
+            }
+
+            if (viewModel.EsFertilizacionSeleccionada)
+            {
+                FertilizacionMixtaTabViewModel mixta =
+                    viewModel.FertilizacionMixta;
+
+                return
+                    !mixta.IsBusy &&
+                    (
+                        mixta.TieneFuentesDisponibles ||
+                        mixta.TieneErrorFuentes
+                    );
+            }
+
+            return true;
         }
 
         private void ActualizarVistaTab()
@@ -526,6 +756,161 @@ namespace CONATRADEC.Views
             ContenidoTabActual
                 .Children
                 .Add(fertilizacionView);
+        }
+
+        private void CrearIndicadorCargaVisual()
+        {
+            if (Content is not Grid contenedorRaiz)
+                return;
+
+            var actividad =
+                new ActivityIndicator
+                {
+                    IsRunning = true,
+                    WidthRequest = 46,
+                    HeightRequest = 46,
+                    Color =
+                        Color.FromArgb("#3B655B"),
+                    HorizontalOptions =
+                        LayoutOptions.Center
+                };
+
+            textoCargaVisual =
+                new Label
+                {
+                    Text =
+                        "Preparando los datos...",
+                    FontSize = 15,
+                    FontAttributes =
+                        FontAttributes.Bold,
+                    TextColor =
+                        Color.FromArgb("#1F2937"),
+                    HorizontalTextAlignment =
+                        TextAlignment.Center,
+                    LineBreakMode =
+                        LineBreakMode.WordWrap
+                };
+
+            var tarjeta =
+                new Border
+                {
+                    BackgroundColor =
+                        Colors.White,
+                    Stroke =
+                        Color.FromArgb("#D1D5DB"),
+                    StrokeThickness = 1,
+                    StrokeShape =
+                        new RoundRectangle
+                        {
+                            CornerRadius =
+                                new CornerRadius(18)
+                        },
+                    Padding =
+                        new Thickness(24, 20),
+                    Margin = 24,
+                    HorizontalOptions =
+                        LayoutOptions.Center,
+                    VerticalOptions =
+                        LayoutOptions.Center,
+                    MaximumWidthRequest = 420,
+                    Content =
+                        new VerticalStackLayout
+                        {
+                            Spacing = 12,
+                            Children =
+                            {
+                                actividad,
+                                textoCargaVisual
+                            }
+                        }
+                };
+
+            indicadorCargaVisual =
+                new Grid
+                {
+                    BackgroundColor =
+                        Color.FromArgb("#80000000"),
+                    IsVisible = false,
+                    InputTransparent = false,
+                    ZIndex = 2000
+                };
+
+            Grid.SetRowSpan(
+                indicadorCargaVisual,
+                3);
+
+            indicadorCargaVisual
+                .Children
+                .Add(tarjeta);
+
+            contenedorRaiz
+                .Children
+                .Add(indicadorCargaVisual);
+        }
+
+        private void MostrarIndicadorCargaVisual(
+            string mensaje)
+        {
+            void Mostrar()
+            {
+                if (textoCargaVisual != null)
+                    textoCargaVisual.Text = mensaje;
+
+                if (indicadorCargaVisual != null)
+                    indicadorCargaVisual.IsVisible = true;
+            }
+
+            if (MainThread.IsMainThread)
+            {
+                Mostrar();
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(
+                    Mostrar);
+            }
+        }
+
+        private void OcultarIndicadorCargaVisual()
+        {
+            void Ocultar()
+            {
+                if (indicadorCargaVisual != null)
+                    indicadorCargaVisual.IsVisible = false;
+            }
+
+            if (MainThread.IsMainThread)
+            {
+                Ocultar();
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(
+                    Ocultar);
+            }
+        }
+
+        private void CancelarCambioTab()
+        {
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref cambioTabCancellationTokenSource,
+                    null);
+
+            if (anterior == null)
+                return;
+
+            try
+            {
+                anterior.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                anterior.Dispose();
+            }
         }
     }
 }

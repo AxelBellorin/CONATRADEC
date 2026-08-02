@@ -517,7 +517,6 @@
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource color_Verde}" />
                         </VerticalStackLayout>
-
                     </Grid>
                 </Border>
 
