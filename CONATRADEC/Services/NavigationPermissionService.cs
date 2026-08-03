@@ -27,6 +27,7 @@ namespace CONATRADEC.Services
             InterfazCodigos.ExtraccionNutrientes,
             InterfazCodigos.RangosNutrientes,
             InterfazCodigos.CategoriasPublicacion,
+            DiagnosticoIARoutes.Interfaz,
             InterfazCodigos.Bitacora
         };
 

@@ -209,6 +209,9 @@
 		<MauiXaml Update="Views\datosSinConexionPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\DiagnosticoIAPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\EditarAnalisisGuardadoPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

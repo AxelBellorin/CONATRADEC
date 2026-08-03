@@ -441,9 +441,22 @@ namespace CONATRADEC.ViewModels
                         azulSuave)),
 
                 Categoria(
+                    "Inteligencia artificial",
+                    "Diagnóstico visual preliminar y validación humana.",
+                    6,
+                    Opcion(
+                        "Diagnóstico de enfermedades con IA",
+                        "Analizar fotografías y confirmar o corregir el veredicto de Gemini.",
+                        "iconalbum.png",
+                        DiagnosticoIARoutes.Interfaz,
+                        DiagnosticoIARoutes.Pagina,
+                        1,
+                        azulSuave)),
+
+                Categoria(
                     "Auditoría y control",
                     "Seguimiento de las operaciones realizadas.",
-                    6,
+                    7,
                     Opcion(
                         "Bitácora",
                         "Consultar cambios y acciones registradas.",
@@ -456,7 +469,7 @@ namespace CONATRADEC.ViewModels
                 Categoria(
                     "Sistema y aplicación",
                     "Versiones, mantenimiento y herramientas.",
-                    7,
+                    8,
                     Opcion(
                         "Actualizaciones",
                         "Buscar, descargar e instalar nuevas versiones.",

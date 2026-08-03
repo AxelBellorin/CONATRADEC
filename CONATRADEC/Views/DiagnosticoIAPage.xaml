@@ -1,0 +1,670 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.DiagnosticoIAPage"
+    x:Name="DiagnosticoPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{StaticResource color_Blanco}">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <RefreshView
+            IsRefreshing="{Binding IsBusy}"
+            Command="{Binding ActualizarCommand}">
+
+            <ScrollView>
+                <VerticalStackLayout
+                    Padding="{OnIdiom Phone='14,14,14,28', Tablet='20,18,20,32', Desktop='28,22,28,36'}"
+                    Spacing="16">
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label
+                            Text="Diagnóstico de enfermedades con IA"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            FontSize="{OnIdiom Phone=24, Tablet=27, Desktop=30}"
+                            TextColor="{StaticResource color_Verde}" />
+
+                        <Label
+                            Text="Gemini analiza las fotografías y una persona autorizada confirma o corrige el veredicto."
+                            FontSize="13"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+                    </VerticalStackLayout>
+
+                    <Border
+                        Padding="13"
+                        BackgroundColor="#FFF8E6"
+                        Stroke="#F4D58D"
+                        StrokeShape="RoundRectangle 13">
+                        <Label
+                            Text="Resultado preliminar: no reemplaza la inspección fitosanitaria. El módulo requiere conexión a internet."
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            TextColor="#7A5300" />
+                    </Border>
+
+                    <!-- SOLICITUD DE ANÁLISIS: permiso Agregar -->
+                    <Border
+                        IsVisible="{Binding CanAdd}"
+                        Padding="{OnIdiom Phone=14, Tablet=17, Desktop=18}"
+                        BackgroundColor="White"
+                        Stroke="#DDE7E3"
+                        StrokeShape="RoundRectangle 16">
+
+                        <VerticalStackLayout Spacing="13">
+                            <Label
+                                Text="Nueva evaluación visual"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="18"
+                                TextColor="{StaticResource color_Negro}" />
+
+                            <Grid
+                                ColumnDefinitions="*,*"
+                                ColumnSpacing="10">
+                                <Button
+                                    Text="Tomar foto"
+                                    Command="{Binding TomarFotoCommand}"
+                                    BackgroundColor="{StaticResource color_Verde}"
+                                    TextColor="White"
+                                    CornerRadius="11" />
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Galería"
+                                    Command="{Binding AgregarFotoCommand}"
+                                    BackgroundColor="#EEF5F2"
+                                    TextColor="{StaticResource color_Verde}"
+                                    CornerRadius="11" />
+                            </Grid>
+
+                            <Label
+                                Text="{Binding ResumenFotos}"
+                                FontSize="11"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+
+                            <ScrollView
+                                Orientation="Horizontal"
+                                IsVisible="{Binding TieneFotos}">
+                                <HorizontalStackLayout
+                                    Spacing="10"
+                                    BindableLayout.ItemsSource="{Binding Fotos}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:FotoDiagnosticoSeleccionada">
+                                            <Border
+                                                WidthRequest="142"
+                                                Padding="5"
+                                                BackgroundColor="#F9FAFB"
+                                                Stroke="#D1D5DB"
+                                                StrokeShape="RoundRectangle 12">
+                                                <Grid RowDefinitions="112,Auto" RowSpacing="5">
+                                                    <Image
+                                                        Source="{Binding VistaPrevia}"
+                                                        Aspect="AspectFill"
+                                                        HeightRequest="112" />
+                                                    <Button
+                                                        Grid.Row="1"
+                                                        Text="Quitar"
+                                                        HeightRequest="34"
+                                                        Padding="7,3"
+                                                        FontSize="11"
+                                                        CornerRadius="8"
+                                                        BackgroundColor="#FEE2E2"
+                                                        TextColor="#B91C1C"
+                                                        Command="{Binding Source={x:Reference DiagnosticoPageRoot}, Path=BindingContext.QuitarFotoCommand}"
+                                                        CommandParameter="{Binding .}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </HorizontalStackLayout>
+                            </ScrollView>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label
+                                    Text="Código del terreno (opcional)"
+                                    FontSize="11"
+                                    FontAttributes="Bold" />
+                                <Entry
+                                    Text="{Binding CodigoTerreno}"
+                                    Placeholder="Ejemplo: TR-00025"
+                                    MaxLength="50"
+                                    BackgroundColor="#F9FAFB" />
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label
+                                    Text="Observaciones visibles o antecedentes (opcional)"
+                                    FontSize="11"
+                                    FontAttributes="Bold" />
+                                <Editor
+                                    Text="{Binding ObservacionUsuario}"
+                                    Placeholder="Ejemplo: las manchas comenzaron en hojas adultas..."
+                                    MaxLength="1000"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="92"
+                                    BackgroundColor="#F9FAFB" />
+                            </VerticalStackLayout>
+
+                            <Button
+                                Text="Analizar con Gemini"
+                                Command="{Binding AnalizarCommand}"
+                                HeightRequest="50"
+                                CornerRadius="13"
+                                FontAttributes="Bold"
+                                BackgroundColor="{StaticResource color_Naranja}"
+                                TextColor="White" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- ÚLTIMO RESULTADO -->
+                    <Border
+                        IsVisible="{Binding TieneResultadoReciente}"
+                        Padding="15"
+                        BackgroundColor="#EEF5F2"
+                        Stroke="#BFD8CE"
+                        StrokeShape="RoundRectangle 16">
+                        <VerticalStackLayout Spacing="7">
+                            <Label
+                                Text="Último veredicto preliminar"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="17"
+                                TextColor="{StaticResource color_Verde}" />
+                            <Label
+                                Text="{Binding ResultadoReciente.DiagnosticoMostrar}"
+                                FontSize="19"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Negro}" />
+                            <Label
+                                Text="{Binding ResultadoReciente.NivelCoincidencia, StringFormat='Coincidencia visual: {0}'}"
+                                FontSize="12"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Cafe}" />
+                            <Label
+                                Text="{Binding ResultadoReciente.Resumen}"
+                                FontSize="13"
+                                TextColor="{StaticResource color_GrisOscuro}" />
+                            <Label
+                                Text="Pendiente de validación humana"
+                                FontAttributes="Bold"
+                                FontSize="12"
+                                TextColor="{StaticResource color_Cafe}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- HISTORIAL DEL SOLICITANTE: permiso Leer -->
+                    <VerticalStackLayout
+                        IsVisible="{Binding CanView}"
+                        Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label
+                                Text="Mis diagnósticos"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="19"
+                                TextColor="{StaticResource color_Negro}" />
+                            <Button
+                                Grid.Column="1"
+                                Text="Actualizar"
+                                Command="{Binding ActualizarCommand}"
+                                Padding="12,6"
+                                CornerRadius="9"
+                                BackgroundColor="#EEF5F2"
+                                TextColor="{StaticResource color_Verde}" />
+                        </Grid>
+
+                        <Label
+                            IsVisible="{Binding MostrarSinMisDiagnosticos}"
+                            Text="Todavía no ha enviado fotografías para diagnóstico."
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                        <VerticalStackLayout
+                            Spacing="10"
+                            BindableLayout.ItemsSource="{Binding MisDiagnosticos}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:DiagnosticoIAItem">
+                                    <Border
+                                        Padding="13"
+                                        BackgroundColor="White"
+                                        Stroke="#E5E7EB"
+                                        StrokeShape="RoundRectangle 14">
+                                        <VerticalStackLayout Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <Label
+                                                    Text="{Binding DiagnosticoVigenteMostrar}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="16"
+                                                    TextColor="{StaticResource color_Negro}" />
+                                                <Label
+                                                    Grid.Column="1"
+                                                    Text="{Binding EstadoMostrar}"
+                                                    TextColor="{Binding ColorEstado}"
+                                                    FontAttributes="Bold"
+                                                    FontSize="11" />
+                                            </Grid>
+                                            <Label Text="{Binding TerrenoTexto}" FontSize="11" />
+                                            <Label Text="{Binding FechaSolicitudTexto}" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
+                                            <Label Text="{Binding ResumenVigente}" FontSize="12" MaxLines="4" />
+
+                                            <Border
+                                                IsVisible="{Binding TieneErrorAnalisis}"
+                                                Padding="10"
+                                                BackgroundColor="#FEF2F2"
+                                                Stroke="#FECACA"
+                                                StrokeShape="RoundRectangle 10">
+                                                <VerticalStackLayout Spacing="3">
+                                                    <Label
+                                                        Text="Detalle del error"
+                                                        FontSize="11"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#991B1B" />
+                                                    <Label
+                                                        Text="{Binding ErrorAnalisis}"
+                                                        FontSize="11"
+                                                        TextColor="#991B1B"
+                                                        LineBreakMode="WordWrap" />
+                                                </VerticalStackLayout>
+                                            </Border>
+
+                                            <Label
+                                                Text="{Binding ValidacionFinalTexto, StringFormat='Resultado humano: {0}'}"
+                                                IsVisible="{Binding TieneValidacionHumana}"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Verde}" />
+                                            <ScrollView Orientation="Horizontal">
+                                                <HorizontalStackLayout
+                                                    Spacing="8"
+                                                    BindableLayout.ItemsSource="{Binding Imagenes}">
+                                                    <BindableLayout.ItemTemplate>
+                                                        <DataTemplate x:DataType="models:DiagnosticoIAImagenItem">
+                                                            <Image
+                                                                Source="{Binding UrlImagen}"
+                                                                WidthRequest="110"
+                                                                HeightRequest="82"
+                                                                Aspect="AspectFill" />
+                                                        </DataTemplate>
+                                                    </BindableLayout.ItemTemplate>
+                                                </HorizontalStackLayout>
+                                            </ScrollView>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- COLA DE CLASIFICACIÓN: permiso Actualizar -->
+                    <VerticalStackLayout
+                        IsVisible="{Binding CanClassify}"
+                        Spacing="11">
+                        <Label
+                            Text="Pendientes de clasificación"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            FontSize="19"
+                            TextColor="{StaticResource color_Cafe}" />
+
+                        <Label
+                            IsVisible="{Binding MostrarSinPendientes}"
+                            Text="No hay diagnósticos pendientes de revisión."
+                            FontSize="12"
+                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                        <VerticalStackLayout
+                            Spacing="10"
+                            BindableLayout.ItemsSource="{Binding Pendientes}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:DiagnosticoIAItem">
+                                    <Border
+                                        Padding="13"
+                                        BackgroundColor="#FFFDF8"
+                                        Stroke="#E6CBA8"
+                                        StrokeShape="RoundRectangle 14">
+                                        <VerticalStackLayout Spacing="7">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label
+                                                        Text="{Binding DiagnosticoVigenteMostrar}"
+                                                        FontAttributes="Bold"
+                                                        FontSize="16" />
+                                                    <Label
+                                                        Text="{Binding UsuarioSolicitante, StringFormat='Solicitante: {0}'}"
+                                                        FontSize="11" />
+                                                    <Label Text="{Binding TerrenoTexto}" FontSize="11" />
+                                                </VerticalStackLayout>
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Text="Revisar"
+                                                    Command="{Binding Source={x:Reference DiagnosticoPageRoot}, Path=BindingContext.SeleccionarPendienteCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="{StaticResource color_Cafe}"
+                                                    TextColor="White"
+                                                    CornerRadius="9"
+                                                    Padding="12,7" />
+                                            </Grid>
+                                            <Label Text="{Binding ResumenVigente}" FontSize="12" />
+                                            <ScrollView Orientation="Horizontal">
+                                                <HorizontalStackLayout
+                                                    Spacing="8"
+                                                    BindableLayout.ItemsSource="{Binding Imagenes}">
+                                                    <BindableLayout.ItemTemplate>
+                                                        <DataTemplate x:DataType="models:DiagnosticoIAImagenItem">
+                                                            <Image
+                                                                Source="{Binding UrlImagen}"
+                                                                WidthRequest="120"
+                                                                HeightRequest="90"
+                                                                Aspect="AspectFill" />
+                                                        </DataTemplate>
+                                                    </BindableLayout.ItemTemplate>
+                                                </HorizontalStackLayout>
+                                            </ScrollView>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <Border
+                            IsVisible="{Binding TienePendienteSeleccionado}"
+                            Padding="15"
+                            BackgroundColor="White"
+                            Stroke="#D3B58D"
+                            StrokeShape="RoundRectangle 16">
+                            <VerticalStackLayout Spacing="14">
+
+                                <Label
+                                    Text="Revisión y validación humana"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    FontSize="18"
+                                    TextColor="{StaticResource color_Cafe}" />
+
+                                <!-- Veredicto inicial: nunca se sobrescribe. -->
+                                <Border
+                                    Padding="12"
+                                    BackgroundColor="#F9FAFB"
+                                    Stroke="#E5E7EB"
+                                    StrokeShape="RoundRectangle 12">
+                                    <VerticalStackLayout Spacing="5">
+                                        <Label
+                                            Text="Primer veredicto de Gemini"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.DiagnosticoMostrar}"
+                                            FontAttributes="Bold"
+                                            FontSize="17"
+                                            TextColor="{StaticResource color_Negro}" />
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.NivelCoincidencia, StringFormat='Coincidencia visual: {0}'}"
+                                            FontAttributes="Bold"
+                                            FontSize="11"
+                                            TextColor="{StaticResource color_Cafe}" />
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.Resumen}"
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <!-- Última segunda opinión de Gemini. -->
+                                <Border
+                                    IsVisible="{Binding TieneRevisionCompletadaSeleccionada}"
+                                    Padding="13"
+                                    BackgroundColor="#EEF5F2"
+                                    Stroke="#BFD8CE"
+                                    StrokeShape="RoundRectangle 13">
+                                    <VerticalStackLayout Spacing="7">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label
+                                                Text="Segunda revisión de Gemini"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                FontSize="15"
+                                                TextColor="{StaticResource color_Verde}" />
+                                            <Label
+                                                Grid.Column="1"
+                                                Text="{Binding PendienteSeleccionado.RevisionVigenteIA.FechaRevisionTexto}"
+                                                FontSize="10"
+                                                TextColor="{StaticResource color_GrisOscuro}" />
+                                        </Grid>
+
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.RevisionVigenteIA.DiagnosticoMostrar}"
+                                            FontAttributes="Bold"
+                                            FontSize="18"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.RevisionVigenteIA.NivelCoincidencia, StringFormat='Coincidencia visual revisada: {0}'}"
+                                            FontAttributes="Bold"
+                                            FontSize="11"
+                                            TextColor="{StaticResource color_Cafe}" />
+
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.RevisionVigenteIA.CambioVeredictoTexto}"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_Verde}" />
+
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.RevisionVigenteIA.RelacionMostrar}"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_Cafe}" />
+
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.RevisionVigenteIA.ResumenRevision}"
+                                            FontSize="12"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+
+                                        <VerticalStackLayout
+                                            IsVisible="{Binding PendienteSeleccionado.RevisionVigenteIA.TieneEvidenciasApoyo}"
+                                            Spacing="3">
+                                            <Label
+                                                Text="Evidencias que apoyan la revisión"
+                                                FontAttributes="Bold"
+                                                FontSize="11"
+                                                TextColor="{StaticResource color_Verde}" />
+                                            <VerticalStackLayout
+                                                BindableLayout.ItemsSource="{Binding PendienteSeleccionado.RevisionVigenteIA.EvidenciasApoyo}">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Label
+                                                            Text="{Binding ., StringFormat='• {0}'}"
+                                                            FontSize="11"
+                                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </VerticalStackLayout>
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            IsVisible="{Binding PendienteSeleccionado.RevisionVigenteIA.TieneEvidenciasContradiccion}"
+                                            Spacing="3">
+                                            <Label
+                                                Text="Evidencias que generan duda o contradicción"
+                                                FontAttributes="Bold"
+                                                FontSize="11"
+                                                TextColor="#B45309" />
+                                            <VerticalStackLayout
+                                                BindableLayout.ItemsSource="{Binding PendienteSeleccionado.RevisionVigenteIA.EvidenciasContradiccion}">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Label
+                                                            Text="{Binding ., StringFormat='• {0}'}"
+                                                            FontSize="11"
+                                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </VerticalStackLayout>
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            IsVisible="{Binding PendienteSeleccionado.RevisionVigenteIA.TieneInformacionFaltante}"
+                                            Spacing="3">
+                                            <Label
+                                                Text="Información o fotografías faltantes"
+                                                FontAttributes="Bold"
+                                                FontSize="11"
+                                                TextColor="#B91C1C" />
+                                            <VerticalStackLayout
+                                                BindableLayout.ItemsSource="{Binding PendienteSeleccionado.RevisionVigenteIA.InformacionFaltante}">
+                                                <BindableLayout.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Label
+                                                            Text="{Binding ., StringFormat='• {0}'}"
+                                                            FontSize="11"
+                                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                                    </DataTemplate>
+                                                </BindableLayout.ItemTemplate>
+                                            </VerticalStackLayout>
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <Border
+                                    IsVisible="{Binding PendienteSeleccionado.UltimaRevisionIA.TieneError}"
+                                    Padding="11"
+                                    BackgroundColor="#FEF2F2"
+                                    Stroke="#FECACA"
+                                    StrokeShape="RoundRectangle 11">
+                                    <VerticalStackLayout Spacing="3">
+                                        <Label
+                                            Text="No fue posible completar la última segunda revisión"
+                                            FontAttributes="Bold"
+                                            FontSize="12"
+                                            TextColor="#B91C1C" />
+                                        <Label
+                                            Text="{Binding PendienteSeleccionado.UltimaRevisionIA.ErrorRevision}"
+                                            FontSize="11"
+                                            TextColor="#991B1B" />
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <!-- Solicitar otra revisión sin cerrar el caso. -->
+                                <Border
+                                    IsVisible="{Binding PuedeSolicitarSegundaRevision}"
+                                    Padding="13"
+                                    BackgroundColor="#FFF8E6"
+                                    Stroke="#F4D58D"
+                                    StrokeShape="RoundRectangle 13">
+                                    <VerticalStackLayout Spacing="9">
+                                        <Label
+                                            Text="Solicitar una segunda opinión a Gemini"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            FontSize="15"
+                                            TextColor="#7A5300" />
+
+                                        <Label
+                                            Text="Gemini volverá a examinar las mismas fotografías. Comparará su primer veredicto con su criterio, pero no guardará una decisión final."
+                                            FontSize="11"
+                                            TextColor="#6B4B00" />
+
+                                        <Entry
+                                            Text="{Binding DiagnosticoPropuestoRevision}"
+                                            Placeholder="Diagnóstico que considera probable (opcional)"
+                                            MaxLength="300"
+                                            BackgroundColor="White" />
+
+                                        <Editor
+                                            Text="{Binding RetroalimentacionParaIA}"
+                                            Placeholder="Explique qué observó, qué le genera duda o por qué considera otra causa"
+                                            MaxLength="2000"
+                                            AutoSize="TextChanges"
+                                            MinimumHeightRequest="92"
+                                            BackgroundColor="White" />
+
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Button
+                                                Text="Revisar nuevamente con Gemini"
+                                                Command="{Binding SolicitarSegundaRevisionCommand}"
+                                                HeightRequest="46"
+                                                CornerRadius="11"
+                                                FontAttributes="Bold"
+                                                BackgroundColor="{StaticResource color_Naranja}"
+                                                TextColor="White" />
+                                            <Label
+                                                Grid.Column="1"
+                                                Text="{Binding ResumenRevisionesSeleccionado}"
+                                                VerticalOptions="Center"
+                                                FontSize="10"
+                                                TextColor="#7A5300" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <BoxView
+                                    HeightRequest="1"
+                                    BackgroundColor="#E5E7EB" />
+
+                                <!-- La decisión humana siempre es la definitiva. -->
+                                <Label
+                                    Text="Registrar decisión humana final"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    FontSize="16"
+                                    TextColor="{StaticResource color_Cafe}" />
+
+                                <Label
+                                    Text="{Binding PendienteSeleccionado.DiagnosticoVigenteMostrar, StringFormat='Veredicto vigente de Gemini: {0}'}"
+                                    FontAttributes="Bold"
+                                    FontSize="13" />
+
+                                <Picker
+                                    Title="Seleccione la decisión"
+                                    ItemsSource="{Binding Decisiones}"
+                                    SelectedItem="{Binding DecisionSeleccionada}" />
+
+                                <Entry
+                                    IsVisible="{Binding RequiereDiagnosticoCorregido}"
+                                    Text="{Binding DiagnosticoFinal}"
+                                    Placeholder="Diagnóstico correcto"
+                                    MaxLength="300" />
+
+                                <Editor
+                                    Text="{Binding ObservacionesClasificador}"
+                                    Placeholder="Observaciones de la decisión humana final"
+                                    MaxLength="2000"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="88" />
+
+                                <Button
+                                    Text="Guardar clasificación final"
+                                    Command="{Binding ClasificarCommand}"
+                                    HeightRequest="48"
+                                    CornerRadius="12"
+                                    FontAttributes="Bold"
+                                    BackgroundColor="{StaticResource color_Verde}"
+                                    TextColor="White" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                    </VerticalStackLayout>
+
+                    <Grid
+                        IsVisible="{Binding IsBusy}"
+                        Padding="14"
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="10"
+                        HorizontalOptions="Center">
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            Color="{StaticResource color_Naranja}" />
+                        <Label
+                            Grid.Column="1"
+                            Text="Procesando..."
+                            FontAttributes="Bold"
+                            VerticalOptions="Center" />
+                    </Grid>
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+    </ContentView>
+</ContentPage>
