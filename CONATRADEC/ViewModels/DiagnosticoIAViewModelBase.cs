@@ -5,8 +5,13 @@ namespace CONATRADEC.ViewModels
 {
     public abstract class DiagnosticoIAViewModelBase : GlobalService
     {
+        // Se conserva el cliente anterior para no romper páginas todavía no
+        // migradas y se agrega el flujo por fotografía.
         protected readonly DiagnosticoIAApiService Api =
             DiagnosticoIAApiService.Instance;
+
+        protected readonly InspeccionFitosanitariaApiService InspeccionApi =
+            InspeccionFitosanitariaApiService.Instance;
 
         private string mensajeEstado = string.Empty;
 
@@ -39,26 +44,21 @@ namespace CONATRADEC.ViewModels
 
         protected bool ValidarEnLinea(bool mostrarMensaje = true)
         {
-            NetworkAccess accesoRed =
-                Connectivity.Current.NetworkAccess;
+            NetworkAccess accesoRed = Connectivity.Current.NetworkAccess;
 
 #if WINDOWS
-            bool redDisponible =
-                accesoRed != NetworkAccess.None;
+            bool redDisponible = accesoRed != NetworkAccess.None;
 #else
-            bool redDisponible =
-                accesoRed == NetworkAccess.Internet;
+            bool redDisponible = accesoRed == NetworkAccess.Internet;
 #endif
 
-            bool enLinea =
-                redDisponible &&
-                ModoSesionService.EsEnLinea;
+            bool enLinea = redDisponible && ModoSesionService.EsEnLinea;
 
             if (!enLinea && mostrarMensaje)
             {
                 _ = MostrarAlertaAsync(
                     "Conexión requerida",
-                    "El diagnóstico con IA, su revisión y aprobación están disponibles únicamente en línea.");
+                    "La inspección fitosanitaria, el análisis IA y la validación humana están disponibles únicamente en línea.");
             }
 
             return enLinea;
@@ -75,12 +75,14 @@ namespace CONATRADEC.ViewModels
                 .ToList();
 
         protected static string UnirLista(IEnumerable<string>? valores) =>
-            string.Join(
-                Environment.NewLine,
-                valores ?? []);
+            string.Join(Environment.NewLine, valores ?? []);
 
         protected static bool EsSesionInvalidada(Exception ex) =>
             ex is DiagnosticoIAApiException
+            {
+                EsSesionInvalidada: true
+            } ||
+            ex is InspeccionFitosanitariaApiException
             {
                 EsSesionInvalidada: true
             };
@@ -88,13 +90,10 @@ namespace CONATRADEC.ViewModels
         protected async Task MostrarErrorAsync(Exception ex)
         {
             if (EsSesionInvalidada(ex))
-            {
-                // ApiClientService ya limpió la sesión y navegó al Login.
                 return;
-            }
 
             await MostrarAlertaAsync(
-                "Diagnóstico IA",
+                "Inspección fitosanitaria",
                 ex.Message);
         }
 

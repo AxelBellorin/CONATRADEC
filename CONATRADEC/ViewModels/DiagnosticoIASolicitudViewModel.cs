@@ -1,91 +1,95 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Media;
-using Microsoft.Maui.Storage;
 using System.Collections.ObjectModel;
 
 namespace CONATRADEC.ViewModels
 {
     /// <summary>
-    /// Registra nuevas inspecciones y presenta listados resumidos. El detalle
-    /// completo se abre en DiagnosticoIAResultadoPage para evitar una pantalla
-    /// excesivamente extensa.
+    /// Registra inspecciones y muestra las bandejas. La IA se ejecuta después
+    /// desde el detalle, permitiendo seleccionar una, varias o todas las fotos.
     /// </summary>
     public sealed class DiagnosticoIASolicitudViewModel :
         DiagnosticoIAViewModelBase
     {
         private bool inicializado;
+        private string modoVista = DiagnosticoIARoutes.ModoMisInspecciones;
         private string codigoTerreno = string.Empty;
         private string observacion = string.Empty;
         private TerrenoBusquedaIAItem? terrenoSeleccionado;
-        private readonly List<DiagnosticoIAListaItem> todasSolicitudes = [];
-        private int maximoFotos = 40;
-        private string modoVista = DiagnosticoIARoutes.ModoMisInspecciones;
 
         public DiagnosticoIASolicitudViewModel()
         {
             Fotos.CollectionChanged += (_, _) =>
             {
-                NotificarFotos();
+                OnPropertyChanged(nameof(TieneFotos));
+                OnPropertyChanged(nameof(ResumenFotos));
                 ActualizarComandos();
             };
 
             AgregarFotoCommand = new Command(
-                async () => await AgregarFotosGaleriaAsync(),
-                () => !IsBusy && CanAdd && PuedeAgregarFotos);
+                async () => await AgregarFotosAsync(),
+                () => !IsBusy && EsModoNueva);
 
             TomarFotoCommand = new Command(
                 async () => await TomarFotoAsync(),
-                () => !IsBusy && CanAdd && PuedeAgregarFotos);
+                () => !IsBusy && EsModoNueva && MediaPicker.Default.IsCaptureSupported);
 
-            QuitarFotoCommand = new Command<FotoDiagnosticoSeleccionada>(
+            QuitarFotoCommand = new Command<InspeccionFotoLocal>(
                 QuitarFoto,
                 item => item != null && !IsBusy);
 
-            AnalizarCommand = new Command(
-                async () => await AnalizarAsync(),
-                () => !IsBusy && CanAdd && TieneFotos);
+            GuardarCommand = new Command(
+                async () => await GuardarAsync(),
+                () => !IsBusy && EsModoNueva && TieneFotos);
 
             ActualizarCommand = new Command(
-                async () => await ActualizarAsync(),
-                () => !IsBusy && CanView);
+                async () => await CargarBandejaAsync(),
+                () => !IsBusy && !EsModoNueva);
 
-            AbrirResultadoCommand = new Command<DiagnosticoIAListaItem>(
+            AbrirResultadoCommand = new Command<InspeccionFitosanitariaListaItemV2>(
                 async item => await AbrirResultadoAsync(item),
                 item => item != null && !IsBusy);
-
-            VerResultadosCommand = new Command(
-                async () => await AbrirMisResultadosAsync(),
-                () => !IsBusy && CanView);
 
             BuscarTerrenoCommand = new Command(
                 async () => await GoToAsyncParameters(
                     DiagnosticoIARoutes.PaginaBusquedaTerreno),
-                () => !IsBusy && CanView);
+                () => !IsBusy && EsModoNueva);
 
             QuitarTerrenoCommand = new Command(
                 QuitarTerreno,
-                () => !IsBusy && TieneTerrenoSeleccionado);
+                () => !IsBusy && TerrenoSeleccionado != null);
         }
 
-        public ObservableCollection<FotoDiagnosticoSeleccionada> Fotos { get; } = [];
-        public ObservableCollection<DiagnosticoIAListaItem> MisSolicitudes { get; } = [];
-        public ObservableCollection<string> TiposFotografia { get; } = [];
+        public ObservableCollection<InspeccionFotoLocal> Fotos { get; } = [];
+        public ObservableCollection<InspeccionFitosanitariaListaItemV2>
+            Solicitudes { get; } = [];
+
+        public IReadOnlyList<string> TiposFotografia { get; } =
+        [
+            "EVIDENCIA",
+            "HOJA",
+            "FRUTO",
+            "TALLO",
+            "RAMA",
+            "PLANTA_COMPLETA",
+            "RAIZ",
+            "OTRA"
+        ];
 
         public Command AgregarFotoCommand { get; }
         public Command TomarFotoCommand { get; }
-        public Command<FotoDiagnosticoSeleccionada> QuitarFotoCommand { get; }
-        public Command AnalizarCommand { get; }
+        public Command<InspeccionFotoLocal> QuitarFotoCommand { get; }
+        public Command GuardarCommand { get; }
         public Command ActualizarCommand { get; }
-        public Command<DiagnosticoIAListaItem> AbrirResultadoCommand { get; }
-        public Command VerResultadosCommand { get; }
+        public Command<InspeccionFitosanitariaListaItemV2> AbrirResultadoCommand { get; }
         public Command BuscarTerrenoCommand { get; }
         public Command QuitarTerrenoCommand { get; }
 
         public string CodigoTerreno
         {
             get => codigoTerreno;
-            private set
+            set
             {
                 string nuevo = value ?? string.Empty;
                 if (codigoTerreno == nuevo)
@@ -119,219 +123,117 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 terrenoSeleccionado = value;
-                CodigoTerreno = value?.CodigoTerreno ?? string.Empty;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneTerrenoSeleccionado));
-                OnPropertyChanged(nameof(SinTerrenoSeleccionado));
+                OnPropertyChanged(nameof(TerrenoSeleccionadoTexto));
                 QuitarTerrenoCommand.ChangeCanExecute();
             }
         }
 
-        public string ModoVista
-        {
-            get => modoVista;
-            private set
-            {
-                if (modoVista == value)
-                    return;
+        public bool TieneTerrenoSeleccionado => TerrenoSeleccionado != null;
 
-                modoVista = value;
-                OnPropertyChanged();
-                NotificarModo();
-            }
-        }
+        public string TerrenoSeleccionadoTexto => TerrenoSeleccionado == null
+            ? "La inspección puede guardarse sin terreno vinculado."
+            : TerrenoSeleccionado.ResumenSeleccion;
 
         public bool EsModoNueva =>
-            ModoVista == DiagnosticoIARoutes.ModoNuevaInspeccion;
+            modoVista == DiagnosticoIARoutes.ModoNuevaInspeccion;
 
-        public bool EsModoDecisiones =>
-            ModoVista == DiagnosticoIARoutes.ModoDecisionesPendientes;
+        public bool EsModoListado => !EsModoNueva;
 
-        public bool EsModoHistorial =>
-            ModoVista == DiagnosticoIARoutes.ModoHistorial;
-
-        public bool MostrarFormularioNueva => EsModoNueva;
-        public bool MostrarListado => !EsModoNueva;
-
-        public string TituloPantalla => ModoVista switch
+        public string TituloPagina => modoVista switch
         {
-            DiagnosticoIARoutes.ModoNuevaInspeccion =>
-                "Nueva inspección fitosanitaria",
-            DiagnosticoIARoutes.ModoDecisionesPendientes =>
-                "Decisiones pendientes",
-            DiagnosticoIARoutes.ModoHistorial =>
-                "Historial de inspecciones",
-            _ => "Mis inspecciones fitosanitarias"
-        };
-
-        public string SubtituloPantalla => ModoVista switch
-        {
-            DiagnosticoIARoutes.ModoNuevaInspeccion =>
-                "Cada fotografía se procesa como una evidencia independiente.",
-            DiagnosticoIARoutes.ModoDecisionesPendientes =>
-                "Revise el resultado preliminar antes de continuar.",
-            DiagnosticoIARoutes.ModoHistorial =>
-                "Inspecciones finalizadas, canceladas o rechazadas.",
-            _ => "Seguimiento resumido de solicitudes y resultados."
-        };
-
-        public string TextoRegresar => "Inspección fitosanitaria";
-
-        public string TituloListado => ModoVista switch
-        {
-            DiagnosticoIARoutes.ModoDecisionesPendientes =>
-                "Pendientes de mi decisión",
-            DiagnosticoIARoutes.ModoHistorial => "Historial",
+            DiagnosticoIARoutes.ModoNuevaInspeccion => "Nueva inspección fitosanitaria",
+            DiagnosticoIARoutes.ModoDecisionesPendientes => "Decisiones pendientes",
+            DiagnosticoIARoutes.ModoHistorial => "Historial de inspecciones",
             _ => "Mis inspecciones"
         };
 
-        public string MensajeListaVacia => ModoVista switch
-        {
-            DiagnosticoIARoutes.ModoDecisionesPendientes =>
-                "No tiene decisiones pendientes.",
-            DiagnosticoIARoutes.ModoHistorial =>
-                "Todavía no existen inspecciones en el historial.",
-            _ => "Todavía no hay inspecciones registradas."
-        };
+        public string SubtituloPagina => EsModoNueva
+            ? "Registre la evidencia y la fecha real de identificación en campo. El análisis se ejecutará por fotografía."
+            : "Cada tarjeta resume el avance individual de las fotografías.";
 
         public bool TieneFotos => Fotos.Count > 0;
-        public bool PuedeAgregarFotos => Fotos.Count < maximoFotos;
-        public bool TieneSolicitudes => MisSolicitudes.Count > 0;
-        public bool SinSolicitudes => !TieneSolicitudes;
-        public bool TieneTerrenoSeleccionado => TerrenoSeleccionado != null;
-        public bool SinTerrenoSeleccionado => !TieneTerrenoSeleccionado;
+        public string ResumenFotos => Fotos.Count == 1
+            ? "1 fotografía preparada"
+            : $"{Fotos.Count} fotografías preparadas";
 
-        public string ResumenFotos =>
-            $"{Fotos.Count} de {maximoFotos} fotografías seleccionadas";
-
-        public string ResumenProcesamiento => Fotos.Count == 0
-            ? "Cada fotografía tendrá un resultado independiente y puede pertenecer a una planta diferente."
-            : $"Se procesarán {Fotos.Count} fotografía(s) de forma independiente. Puede cerrar la aplicación después de registrar la solicitud; el servidor conservará el trabajo.";
-
-        public async Task InicializarAsync()
-        {
-            ActualizarPermisos();
-
-            if (!inicializado)
-            {
-                inicializado = true;
-                DiagnosticoIARoutes.AsegurarRegistro();
-
-                if (CanView && ValidarEnLinea(false))
-                {
-                    try
-                    {
-                        DiagnosticoIACatalogos catalogos =
-                            await Api.ObtenerCatalogosAsync();
-
-                        maximoFotos = Math.Clamp(
-                            catalogos.MaximoFotografiasPorInspeccion,
-                            1,
-                            100);
-
-                        TiposFotografia.Clear();
-                        foreach (string tipo in catalogos.PartesPlantaSugeridas)
-                            TiposFotografia.Add(tipo);
-
-                        if (!TiposFotografia.Contains("EVIDENCIA"))
-                            TiposFotografia.Insert(0, "EVIDENCIA");
-
-                        NotificarFotos();
-                    }
-                    catch (Exception ex)
-                    {
-                        await MostrarErrorAsync(ex);
-                    }
-                }
-            }
-
-            if (MostrarListado)
-                await ActualizarAsync();
-        }
+        public bool TieneSolicitudes => Solicitudes.Count > 0;
+        public bool SinSolicitudes => EsModoListado && !IsBusy && Solicitudes.Count == 0;
 
         public void AplicarModo(string? modo)
         {
-            ModoVista = DiagnosticoIARoutes.NormalizarModo(modo);
-            AplicarFiltroModo();
-        }
-
-        public void AplicarTerrenoSeleccionado(TerrenoBusquedaIAItem? terreno)
-        {
-            if (terreno != null)
-                TerrenoSeleccionado = terreno;
-        }
-
-        private void ActualizarPermisos()
-        {
-            var permiso = PermissionService.Instance.Get(
-                DiagnosticoIARoutes.InterfazSolicitud);
-
-            CanView = permiso.leer;
-            CanAdd = permiso.agregar;
-            CanEdit = permiso.actualizar;
-            CanDelete = permiso.eliminar;
-
-            OnPropertyChanged(nameof(CanView));
-            OnPropertyChanged(nameof(CanAdd));
+            modoVista = DiagnosticoIARoutes.NormalizarModo(modo);
+            OnPropertyChanged(nameof(EsModoNueva));
+            OnPropertyChanged(nameof(EsModoListado));
+            OnPropertyChanged(nameof(TituloPagina));
+            OnPropertyChanged(nameof(SubtituloPagina));
+            OnPropertyChanged(nameof(SinSolicitudes));
             ActualizarComandos();
         }
 
-        private async Task ActualizarAsync()
+        public void AplicarTerrenoSeleccionado(TerrenoBusquedaIAItem terreno)
         {
-            if (IsBusy || !CanView || !ValidarEnLinea(false))
+            TerrenoSeleccionado = terreno;
+            CodigoTerreno = terreno.CodigoTerreno;
+        }
+
+        public async Task InicializarAsync()
+        {
+            if (!ValidarEnLinea())
                 return;
 
-            IsBusy = true;
-            MensajeEstado = "Cargando inspecciones...";
-            ActualizarComandos();
+            if (inicializado && EsModoNueva)
+                return;
 
-            try
-            {
-                List<DiagnosticoIAListaItem> items =
-                    await Api.ObtenerMisSolicitudesAsync();
+            inicializado = true;
 
-                todasSolicitudes.Clear();
-                todasSolicitudes.AddRange(items);
-                AplicarFiltroModo();
-                MensajeEstado = string.Empty;
-            }
-            catch (Exception ex)
-            {
-                MensajeEstado = string.Empty;
-                await MostrarErrorAsync(ex);
-            }
-            finally
-            {
-                IsBusy = false;
-                ActualizarComandos();
-            }
+            if (EsModoListado)
+                await CargarBandejaAsync();
         }
 
-        private async Task AgregarFotosGaleriaAsync()
+        private async Task AgregarFotosAsync()
         {
-            if (IsBusy || !PuedeAgregarFotos)
+            if (IsBusy || !ValidarEnLinea())
                 return;
 
             try
             {
-                IEnumerable<FileResult>? resultados =
+                IEnumerable<FileResult> seleccion =
                     await FilePicker.Default.PickMultipleAsync(
                         new PickOptions
                         {
-                            PickerTitle = "Seleccionar fotografías",
+                            PickerTitle = "Seleccione fotografías de la inspección",
                             FileTypes = FilePickerFileType.Images
-                        });
+                        }) ?? [];
 
-                if (resultados == null)
-                    return;
-
-                foreach (FileResult resultado in resultados)
+                foreach (FileResult archivo in seleccion)
                 {
-                    if (!PuedeAgregarFotos)
+                    if (Fotos.Count >= 40)
+                    {
+                        await MostrarAlertaAsync(
+                            "Límite alcanzado",
+                            "Puede registrar hasta 40 fotografías por inspección.");
                         break;
+                    }
 
-                    Fotos.Add(await CrearFotoTemporalAsync(resultado));
+                    string ruta = await CopiarTemporalAsync(archivo);
+
+                    if (Fotos.Any(item => item.RutaLocal == ruta))
+                        continue;
+
+                    Fotos.Add(new InspeccionFotoLocal
+                    {
+                        RutaLocal = ruta,
+                        NombreArchivo = archivo.FileName,
+                        TipoContenido = archivo.ContentType ?? "image/jpeg",
+                        FechaIdentificacionCampo = DateTime.Today,
+                        TipoFotografia = "EVIDENCIA"
+                    });
                 }
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
@@ -341,24 +243,38 @@ namespace CONATRADEC.ViewModels
 
         private async Task TomarFotoAsync()
         {
-            if (IsBusy || !PuedeAgregarFotos)
+            if (IsBusy || !ValidarEnLinea() ||
+                !MediaPicker.Default.IsCaptureSupported)
+            {
                 return;
+            }
+
+            if (Fotos.Count >= 40)
+            {
+                await MostrarAlertaAsync(
+                    "Límite alcanzado",
+                    "Puede registrar hasta 40 fotografías por inspección.");
+                return;
+            }
 
             try
             {
-                if (!MediaPicker.Default.IsCaptureSupported)
-                {
-                    await MostrarAlertaAsync(
-                        "Cámara",
-                        "La captura de fotografías no está disponible en este dispositivo.");
+                FileResult? archivo = await MediaPicker.Default.CapturePhotoAsync();
+                if (archivo == null)
                     return;
-                }
 
-                FileResult? resultado =
-                    await MediaPicker.Default.CapturePhotoAsync();
-
-                if (resultado != null)
-                    Fotos.Add(await CrearFotoTemporalAsync(resultado));
+                string ruta = await CopiarTemporalAsync(archivo);
+                Fotos.Add(new InspeccionFotoLocal
+                {
+                    RutaLocal = ruta,
+                    NombreArchivo = archivo.FileName,
+                    TipoContenido = archivo.ContentType ?? "image/jpeg",
+                    FechaIdentificacionCampo = DateTime.Today,
+                    TipoFotografia = "EVIDENCIA"
+                });
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
@@ -366,43 +282,48 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task AnalizarAsync()
+        private void QuitarFoto(InspeccionFotoLocal? foto)
         {
-            if (IsBusy || !CanAdd || !TieneFotos || !ValidarEnLinea())
+            if (foto == null || IsBusy)
+                return;
+
+            Fotos.Remove(foto);
+        }
+
+        private async Task GuardarAsync()
+        {
+            if (IsBusy || !TieneFotos || !ValidarEnLinea())
                 return;
 
             bool confirmar = await ConfirmarAsync(
-                "Registrar inspección",
-                $"Se guardarán {Fotos.Count} fotografías. Cada una se analizará por separado y el técnico decidirá después si el caso pasa al analizador humano.");
+                "Guardar inspección",
+                "Las fotografías se conservarán como evidencia. Después podrá seleccionar cuáles analizar, enviar o descartar lógicamente.");
 
             if (!confirmar)
                 return;
 
             IsBusy = true;
-            MensajeEstado = "Guardando fotografías e iniciando el procesamiento...";
+            MensajeEstado = "Guardando fotografías y fechas de campo...";
             ActualizarComandos();
 
             try
             {
-                var progreso = new Progress<DiagnosticoIAProcesamientoEstado>(
-                    ActualizarProgreso);
+                InspeccionFitosanitariaDetalleV2 detalle =
+                    await InspeccionApi.CrearAsync(
+                        Fotos.ToList(),
+                        CodigoTerreno,
+                        Observacion);
 
-                DiagnosticoIADetalle detalle = await Api.AnalizarAsync(
-                    Fotos.ToList(),
-                    CodigoTerreno,
-                    Observacion,
-                    progreso);
+                foreach (InspeccionFotoLocal foto in Fotos)
+                    EliminarTemporalSeguro(foto.RutaLocal);
 
-                int diagnosticoId = detalle.DiagnosticoIAId;
-                LimpiarFormulario();
+                Fotos.Clear();
+                Observacion = string.Empty;
 
-                await MostrarAlertaAsync(
-                    "Inspección registrada",
-                    "La evidencia quedó guardada. Se abrirá la pantalla de resultado de esta inspección.");
-
-                await AbrirResultadoAsync(
-                    diagnosticoId,
-                    DiagnosticoIARoutes.ModoMisInspecciones);
+                await GoToAsyncParameters(
+                    DiagnosticoIARoutes.CrearRutaResultado(
+                        detalle.InspeccionId,
+                        DiagnosticoIARoutes.ModoMisInspecciones));
             }
             catch (Exception ex)
             {
@@ -416,185 +337,112 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task AbrirResultadoAsync(
-            DiagnosticoIAListaItem? item)
+        private async Task CargarBandejaAsync()
         {
-            if (item == null)
+            if (IsBusy || !ValidarEnLinea(false))
                 return;
 
-            await AbrirResultadoAsync(item.DiagnosticoIAId, ModoVista);
-        }
-
-        private async Task AbrirResultadoAsync(
-            int diagnosticoId,
-            string origen)
-        {
-            if (Shell.Current == null || diagnosticoId <= 0)
-                return;
-
-            DiagnosticoIARoutes.AsegurarRegistro();
-            await Shell.Current.GoToAsync(
-                DiagnosticoIARoutes.CrearRutaResultado(
-                    diagnosticoId,
-                    origen),
-                false);
-        }
-
-        private async Task AbrirMisResultadosAsync()
-        {
-            if (Shell.Current == null)
-                return;
-
-            await Shell.Current.GoToAsync(
-                DiagnosticoIARoutes.CrearRutaSolicitud(
-                    DiagnosticoIARoutes.ModoMisInspecciones),
-                false);
-        }
-
-        private void ActualizarProgreso(
-            DiagnosticoIAProcesamientoEstado estado)
-        {
-            if (estado == null)
-                return;
-
-            string mensaje = string.IsNullOrWhiteSpace(estado.Mensaje)
-                ? "Procesando fotografías..."
-                : estado.Mensaje.Trim();
-
-            MensajeEstado = estado.TotalFotografias > 0
-                ? $"{mensaje} {estado.FotografiasProcesadas} de {estado.TotalFotografias} ({estado.Porcentaje}%)."
-                : mensaje;
-        }
-
-        private void AplicarFiltroModo()
-        {
-            IEnumerable<DiagnosticoIAListaItem> filtrados = todasSolicitudes;
-
-            if (EsModoDecisiones)
-            {
-                filtrados = filtrados.Where(item =>
-                    item.Estado ==
-                        DiagnosticoIAEstados.PendienteDecisionTecnico);
-            }
-            else if (EsModoHistorial)
-            {
-                filtrados = filtrados.Where(item =>
-                    EsEstadoHistorial(item.Estado));
-            }
-
-            MisSolicitudes.Clear();
-            foreach (DiagnosticoIAListaItem item in filtrados)
-                MisSolicitudes.Add(item);
-
-            OnPropertyChanged(nameof(TieneSolicitudes));
-            OnPropertyChanged(nameof(SinSolicitudes));
-        }
-
-        private static bool EsEstadoHistorial(string? estado) =>
-            estado is
-                DiagnosticoIAEstados.CanceladoPorTecnico or
-                DiagnosticoIAEstados.Aprobado or
-                DiagnosticoIAEstados.AprobadoConCorreccion or
-                DiagnosticoIAEstados.Rechazado or
-                DiagnosticoIAEstados.NoConcluyente or
-                DiagnosticoIAEstados.PublicadoAlbum or
-                DiagnosticoIAEstados.Anulado;
-
-        private void NotificarModo()
-        {
-            OnPropertyChanged(nameof(EsModoNueva));
-            OnPropertyChanged(nameof(EsModoDecisiones));
-            OnPropertyChanged(nameof(EsModoHistorial));
-            OnPropertyChanged(nameof(MostrarFormularioNueva));
-            OnPropertyChanged(nameof(MostrarListado));
-            OnPropertyChanged(nameof(TituloPantalla));
-            OnPropertyChanged(nameof(SubtituloPantalla));
-            OnPropertyChanged(nameof(TituloListado));
-            OnPropertyChanged(nameof(MensajeListaVacia));
-        }
-
-        private void NotificarFotos()
-        {
-            OnPropertyChanged(nameof(TieneFotos));
-            OnPropertyChanged(nameof(PuedeAgregarFotos));
-            OnPropertyChanged(nameof(ResumenFotos));
-            OnPropertyChanged(nameof(ResumenProcesamiento));
-        }
-
-        private void QuitarFoto(FotoDiagnosticoSeleccionada? foto)
-        {
-            if (foto == null)
-                return;
-
-            Fotos.Remove(foto);
+            IsBusy = true;
+            MensajeEstado = "Cargando inspecciones...";
+            ActualizarComandos();
 
             try
             {
-                if (File.Exists(foto.RutaLocal))
-                    File.Delete(foto.RutaLocal);
+                string modoApi = modoVista switch
+                {
+                    DiagnosticoIARoutes.ModoHistorial => "historial",
+                    _ => "mis"
+                };
+
+                List<InspeccionFitosanitariaListaItemV2> items =
+                    await InspeccionApi.ObtenerBandejaAsync(modoApi);
+
+                if (modoVista == DiagnosticoIARoutes.ModoDecisionesPendientes)
+                {
+                    items = items
+                        .Where(item => item.Estado is
+                            "EN_PROCESO" or
+                            "EN_PROCESO_CON_ERRORES")
+                        .ToList();
+                }
+
+                Solicitudes.Clear();
+                foreach (InspeccionFitosanitariaListaItemV2 item in items)
+                    Solicitudes.Add(item);
+
+                OnPropertyChanged(nameof(TieneSolicitudes));
+                OnPropertyChanged(nameof(SinSolicitudes));
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorAsync(ex);
+            }
+            finally
+            {
+                MensajeEstado = string.Empty;
+                IsBusy = false;
+                OnPropertyChanged(nameof(SinSolicitudes));
+                ActualizarComandos();
+            }
+        }
+
+        private async Task AbrirResultadoAsync(
+            InspeccionFitosanitariaListaItemV2? item)
+        {
+            if (item == null || IsBusy)
+                return;
+
+            await GoToAsyncParameters(
+                DiagnosticoIARoutes.CrearRutaResultado(
+                    item.InspeccionId,
+                    modoVista));
+        }
+
+        private void QuitarTerreno()
+        {
+            TerrenoSeleccionado = null;
+            CodigoTerreno = string.Empty;
+        }
+
+        private static async Task<string> CopiarTemporalAsync(FileResult archivo)
+        {
+            string extension = Path.GetExtension(archivo.FileName);
+            if (string.IsNullOrWhiteSpace(extension))
+                extension = ".jpg";
+
+            string carpeta = Path.Combine(
+                FileSystem.CacheDirectory,
+                "inspecciones-fitosanitarias");
+            Directory.CreateDirectory(carpeta);
+
+            string destino = Path.Combine(
+                carpeta,
+                $"{Guid.NewGuid():N}{extension}");
+
+            await using Stream origen = await archivo.OpenReadAsync();
+            await using FileStream salida = File.Create(destino);
+            await origen.CopyToAsync(salida);
+            return destino;
+        }
+
+        private static void EliminarTemporalSeguro(string? ruta)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(ruta) && File.Exists(ruta))
+                    File.Delete(ruta);
             }
             catch
             {
             }
         }
 
-        private void QuitarTerreno()
-        {
-            TerrenoSeleccionado = null;
-        }
-
-        private void LimpiarFormulario()
-        {
-            foreach (FotoDiagnosticoSeleccionada foto in Fotos.ToList())
-                QuitarFoto(foto);
-
-            TerrenoSeleccionado = null;
-            Observacion = string.Empty;
-        }
-
-        private static async Task<FotoDiagnosticoSeleccionada>
-            CrearFotoTemporalAsync(FileResult resultado)
-        {
-            string extension = Path.GetExtension(resultado.FileName);
-            if (string.IsNullOrWhiteSpace(extension))
-                extension = ".jpg";
-
-            string ruta = Path.Combine(
-                FileSystem.CacheDirectory,
-                $"diagnostico-{Guid.NewGuid():N}{extension}");
-
-            await using Stream origen = await resultado.OpenReadAsync();
-            await using FileStream destino = new(
-                ruta,
-                FileMode.Create,
-                FileAccess.Write,
-                FileShare.None,
-                81920,
-                useAsync: true);
-
-            await origen.CopyToAsync(destino);
-
-            return new FotoDiagnosticoSeleccionada
-            {
-                RutaLocal = ruta,
-                NombreArchivo = resultado.FileName,
-                TipoContenido = string.IsNullOrWhiteSpace(resultado.ContentType)
-                    ? "image/jpeg"
-                    : resultado.ContentType,
-                TipoFotografia = "EVIDENCIA"
-            };
-        }
-
         private void ActualizarComandos()
         {
-            RegresarCommand.ChangeCanExecute();
             AgregarFotoCommand.ChangeCanExecute();
             TomarFotoCommand.ChangeCanExecute();
-            QuitarFotoCommand.ChangeCanExecute();
-            AnalizarCommand.ChangeCanExecute();
+            GuardarCommand.ChangeCanExecute();
             ActualizarCommand.ChangeCanExecute();
-            AbrirResultadoCommand.ChangeCanExecute();
-            VerResultadosCommand.ChangeCanExecute();
             BuscarTerrenoCommand.ChangeCanExecute();
             QuitarTerrenoCommand.ChangeCanExecute();
         }

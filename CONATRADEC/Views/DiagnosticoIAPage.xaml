@@ -24,7 +24,10 @@
                 Title="Inspección fitosanitaria"
                 Subtitle="Recorridos de campo, análisis visual por fotografía y validación humana."
                 BackText="← Inicio"
-                BackCommand="{Binding RegresarCommand}" />
+                BackCommand="{Binding RegresarCommand}"
+                PrimaryText="Nueva inspección"
+                PrimaryCommand="{Binding NuevaInspeccionCommand}"
+                IsPrimaryVisible="{Binding PuedeNuevaInspeccion}" />
 
             <ScrollView Grid.Row="1">
                 <VerticalStackLayout

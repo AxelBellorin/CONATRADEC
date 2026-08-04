@@ -1,261 +1,308 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.DiagnosticoIASolicitudPage"
-    x:Name="DiagnosticoIASolicitudRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    NavigationPage.HasNavigationBar="False"
-    NavigationPage.HasBackButton="False"
     BackgroundColor="#F7F8F7">
-
-    <Shell.BackButtonBehavior>
-        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
-    </Shell.BackButtonBehavior>
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
             Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-            RowDefinitions="Auto,Auto,*"
+            RowDefinitions="Auto,*"
             RowSpacing="14">
 
             <controls:ResponsiveCatalogHeader
                 Grid.Row="0"
-                Title="{Binding TituloPantalla}"
-                Subtitle="{Binding SubtituloPantalla}"
-                BackText="{Binding TextoRegresar, StringFormat='← {0}'}"
-                BackCommand="{Binding RegresarCommand}" />
+                Title="{Binding TituloPagina}"
+                Subtitle="{Binding SubtituloPagina}"
+                BackText="← Inspección fitosanitaria"
+                BackCommand="{Binding RegresarCommand}"
+                IsPrimaryVisible="False" />
 
-            <Border
-                Grid.Row="1"
-                Padding="12"
-                BackgroundColor="#FFF8D9"
-                Stroke="#E8C75A"
-                StrokeShape="RoundRectangle 11"
-                IsVisible="{Binding TieneMensajeEstado}">
-                <Label Text="{Binding MensajeEstado}" TextColor="#6B5710" />
-            </Border>
-
-            <ScrollView Grid.Row="2">
+            <ScrollView Grid.Row="1">
                 <VerticalStackLayout
-                    Spacing="16"
+                    Spacing="14"
                     MaximumWidthRequest="1150"
                     HorizontalOptions="Center">
 
                     <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#C8DED6"
-                        StrokeShape="RoundRectangle 15"
-                        IsVisible="{Binding MostrarFormularioNueva}">
-                        <VerticalStackLayout Spacing="13">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                <VerticalStackLayout Spacing="3">
-                                    <Label Text="Terreno" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Label
-                                        Text="Seleccione el terreno del recorrido. Puede dejarlo vacío cuando la evidencia todavía no esté asociada."
-                                        FontSize="12"
-                                        TextColor="#5E6B67" />
-                                </VerticalStackLayout>
-                                <Button
-                                    Grid.Column="1"
-                                    Text="Buscar terreno"
-                                    Command="{Binding BuscarTerrenoCommand}"
-                                    BackgroundColor="#E3EFEA"
-                                    TextColor="#3B655B" />
-                            </Grid>
+                        Padding="16"
+                        BackgroundColor="#FFF9E8"
+                        Stroke="#E2B93B"
+                        StrokeShape="RoundRectangle 14"
+                        IsVisible="{Binding TieneMensajeEstado}">
+                        <HorizontalStackLayout Spacing="10">
+                            <ActivityIndicator
+                                IsRunning="{Binding IsBusy}"
+                                Color="#9B552C" />
+                            <Label
+                                Text="{Binding MensajeEstado}"
+                                VerticalTextAlignment="Center"
+                                TextColor="#6B5710" />
+                        </HorizontalStackLayout>
+                    </Border>
 
-                            <Border
-                                Padding="12"
-                                BackgroundColor="#EEF5F2"
-                                Stroke="#C8DED6"
-                                StrokeShape="RoundRectangle 11"
-                                IsVisible="{Binding TieneTerrenoSeleccionado}">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                    <VerticalStackLayout Spacing="2">
-                                        <Label
-                                            Text="{Binding TerrenoSeleccionado.CodigoTerreno}"
-                                            FontAttributes="Bold"
-                                            TextColor="#3B655B" />
-                                        <Label
-                                            Text="{Binding TerrenoSeleccionado.DireccionTerreno}" />
-                                        <Label
-                                            Text="{Binding TerrenoSeleccionado.PropietarioTexto}"
-                                            FontSize="12"
-                                            TextColor="#5E6B67" />
-                                        <Label
-                                            Text="{Binding TerrenoSeleccionado.UbicacionTexto}"
-                                            FontSize="11"
-                                            TextColor="#6B7280" />
-                                    </VerticalStackLayout>
+                    <VerticalStackLayout
+                        Spacing="14"
+                        IsVisible="{Binding EsModoNueva}">
+
+                        <Border
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 15">
+                            <VerticalStackLayout Spacing="12">
+                                <Label
+                                    Text="Datos de campo"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+
+                                <Grid
+                                    ColumnDefinitions="*,Auto"
+                                    ColumnSpacing="10">
+                                    <Entry
+                                        Grid.Column="0"
+                                        Text="{Binding CodigoTerreno}"
+                                        Placeholder="Código de terreno opcional"
+                                        IsReadOnly="{Binding TieneTerrenoSeleccionado}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Buscar terreno"
+                                        Command="{Binding BuscarTerrenoCommand}"
+                                        BackgroundColor="#E3EFEA"
+                                        TextColor="#3B655B" />
+                                </Grid>
+
+                                <Grid
+                                    ColumnDefinitions="*,Auto"
+                                    IsVisible="{Binding TieneTerrenoSeleccionado}">
+                                    <Label
+                                        Grid.Column="0"
+                                        Text="{Binding TerrenoSeleccionadoTexto}"
+                                        TextColor="#3B655B"
+                                        VerticalTextAlignment="Center" />
                                     <Button
                                         Grid.Column="1"
                                         Text="Quitar"
                                         Command="{Binding QuitarTerrenoCommand}"
-                                        BackgroundColor="#FDECEC"
-                                        TextColor="#B91C1C" />
+                                        BackgroundColor="Transparent"
+                                        TextColor="#B42318" />
                                 </Grid>
-                            </Border>
 
-                            <Label
-                                Text="Sin terreno seleccionado."
-                                IsVisible="{Binding SinTerrenoSeleccionado}"
-                                FontSize="12"
-                                TextColor="#6B7280" />
+                                <Editor
+                                    Text="{Binding Observacion}"
+                                    Placeholder="Observación general del recorrido o síntomas reportados"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="90"
+                                    MaxLength="1000" />
+                            </VerticalStackLayout>
+                        </Border>
 
-                            <Label Text="Observaciones del recorrido" FontAttributes="Bold" />
-                            <Editor
-                                Text="{Binding Observacion}"
-                                Placeholder="Contexto de campo, zona observada o información que deba considerar el analizador humano."
-                                AutoSize="TextChanges"
-                                MinimumHeightRequest="90" />
+                        <Border
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 15">
+                            <VerticalStackLayout Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                        <Label
+                                            Text="Fotografías"
+                                            FontSize="20"
+                                            FontAttributes="Bold"
+                                            TextColor="#263A35" />
+                                        <Label
+                                            Text="{Binding ResumenFotos}"
+                                            TextColor="#5E6B67" />
+                                    </VerticalStackLayout>
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Galería"
+                                        Command="{Binding AgregarFotoCommand}"
+                                        BackgroundColor="#3B655B"
+                                        TextColor="White" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Text="Cámara"
+                                        Command="{Binding TomarFotoCommand}"
+                                        BackgroundColor="#9B552C"
+                                        TextColor="White" />
+                                </Grid>
 
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <Label
+                                    Text="La fecha de identificación en campo se guarda por fotografía y no se reemplaza por la fecha de carga o análisis."
+                                    TextColor="#6B5710"
+                                    FontSize="13" />
+
+                                <CollectionView
+                                    ItemsSource="{Binding Fotos}"
+                                    SelectionMode="None"
+                                    EmptyView="Agregue fotografías para continuar.">
+                                    <CollectionView.ItemsLayout>
+                                        <LinearItemsLayout
+                                            Orientation="Vertical"
+                                            ItemSpacing="10" />
+                                    </CollectionView.ItemsLayout>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:InspeccionFotoLocal">
+                                            <Border
+                                                Padding="12"
+                                                BackgroundColor="#FAFCFB"
+                                                Stroke="#D9E3DF"
+                                                StrokeShape="RoundRectangle 12">
+                                                <Grid
+                                                    ColumnDefinitions="100,*"
+                                                    RowDefinitions="Auto,Auto,Auto"
+                                                    ColumnSpacing="12"
+                                                    RowSpacing="8">
+                                                    <Image
+                                                        Grid.RowSpan="3"
+                                                        Source="{Binding Miniatura}"
+                                                        HeightRequest="100"
+                                                        WidthRequest="100"
+                                                        Aspect="AspectFill" />
+
+                                                    <Label
+                                                        Grid.Column="1"
+                                                        Text="{Binding NombreArchivo}"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#263A35"
+                                                        LineBreakMode="TailTruncation" />
+
+                                                    <Grid
+                                                        Grid.Row="1"
+                                                        Grid.Column="1"
+                                                        ColumnDefinitions="*,*"
+                                                        ColumnSpacing="8">
+                                                        <Picker
+                                                            Grid.Column="0"
+                                                            Title="Tipo de foto"
+                                                            ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.TiposFotografia}"
+                                                            SelectedItem="{Binding TipoFotografia}" />
+                                                        <DatePicker
+                                                            Grid.Column="1"
+                                                            Date="{Binding FechaIdentificacionCampo}" />
+                                                    </Grid>
+
+                                                    <Button
+                                                        Grid.Row="2"
+                                                        Grid.Column="1"
+                                                        Text="Quitar fotografía"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.QuitarFotoCommand}"
+                                                        CommandParameter="{Binding .}"
+                                                        HorizontalOptions="End"
+                                                        BackgroundColor="Transparent"
+                                                        TextColor="#B42318" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+
                                 <Button
-                                    Text="Seleccionar fotografías"
-                                    Command="{Binding AgregarFotoCommand}"
-                                    BackgroundColor="#3B655B"
-                                    TextColor="White" />
-                                <Button
-                                    Grid.Column="1"
-                                    Text="Tomar fotografía"
-                                    Command="{Binding TomarFotoCommand}"
-                                    BackgroundColor="#9B552C"
-                                    TextColor="White" />
-                            </Grid>
-
-                            <Label Text="{Binding ResumenFotos}" FontAttributes="Bold" TextColor="#3B655B" />
-                            <Label Text="{Binding ResumenProcesamiento}" FontSize="12" TextColor="#5E6B67" />
-
-                            <CollectionView
-                                ItemsSource="{Binding Fotos}"
-                                SelectionMode="None"
-                                MaximumHeightRequest="420">
-                                <CollectionView.ItemsLayout>
-                                    <GridItemsLayout
-                                        Orientation="Vertical"
-                                        Span="{OnPlatform WinUI=3, Default=1}"
-                                        HorizontalItemSpacing="10"
-                                        VerticalItemSpacing="10" />
-                                </CollectionView.ItemsLayout>
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:FotoDiagnosticoSeleccionada">
-                                        <Border Padding="10" Stroke="#D9E3DF" StrokeShape="RoundRectangle 12">
-                                            <VerticalStackLayout Spacing="7">
-                                                <Image Source="{Binding RutaLocal}" HeightRequest="150" Aspect="AspectFill" />
-                                                <Picker
-                                                    ItemsSource="{Binding Source={x:Reference DiagnosticoIASolicitudRoot}, Path=BindingContext.TiposFotografia}"
-                                                    SelectedItem="{Binding TipoFotografia}" />
-                                                <Button
-                                                    Text="Quitar"
-                                                    Command="{Binding Source={x:Reference DiagnosticoIASolicitudRoot}, Path=BindingContext.QuitarFotoCommand}"
-                                                    CommandParameter="{Binding .}"
-                                                    BackgroundColor="#FDECEC"
-                                                    TextColor="#B91C1C" />
-                                            </VerticalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-
-                            <Grid ColumnDefinitions="2*,*" ColumnSpacing="10">
-                                <Button
-                                    Text="Registrar y analizar"
-                                    Command="{Binding AnalizarCommand}"
+                                    Text="Guardar inspección"
+                                    Command="{Binding GuardarCommand}"
                                     BackgroundColor="#3B655B"
                                     TextColor="White"
-                                    FontAttributes="Bold"
+                                    CornerRadius="11"
                                     HeightRequest="48" />
-                                <Button
-                                    Grid.Column="1"
-                                    Text="Ver mis resultados"
-                                    Command="{Binding VerResultadosCommand}"
-                                    BackgroundColor="#EEF2F0"
-                                    TextColor="#263A35"
-                                    HeightRequest="48" />
-                            </Grid>
-                        </VerticalStackLayout>
-                    </Border>
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
 
-                    <Border
-                        Padding="16"
-                        BackgroundColor="White"
-                        Stroke="#D9E3DF"
-                        StrokeShape="RoundRectangle 15"
-                        IsVisible="{Binding MostrarListado}">
-                        <VerticalStackLayout Spacing="12">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                <Label
-                                    Text="{Binding TituloListado}"
-                                    FontSize="21"
-                                    FontAttributes="Bold"
-                                    TextColor="#263A35" />
-                                <Button
-                                    Grid.Column="1"
-                                    Text="Actualizar"
-                                    Command="{Binding ActualizarCommand}"
-                                    BackgroundColor="#EEF2F0"
-                                    TextColor="#3B655B" />
-                            </Grid>
+                    <VerticalStackLayout
+                        Spacing="12"
+                        IsVisible="{Binding EsModoListado}">
+                        <Button
+                            Text="Actualizar"
+                            Command="{Binding ActualizarCommand}"
+                            HorizontalOptions="End"
+                            BackgroundColor="#E3EFEA"
+                            TextColor="#3B655B" />
 
-                            <Label
-                                Text="{Binding MensajeListaVacia}"
-                                IsVisible="{Binding SinSolicitudes}"
-                                HorizontalTextAlignment="Center"
-                                TextColor="#6B7280"
-                                Margin="0,20" />
-
-                            <CollectionView
-                                ItemsSource="{Binding MisSolicitudes}"
-                                SelectionMode="None"
-                                IsVisible="{Binding TieneSolicitudes}">
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:DiagnosticoIAListaItem">
-                                        <Border
-                                            Margin="0,0,0,10"
-                                            Padding="14"
-                                            Stroke="#DDE5E2"
-                                            StrokeShape="RoundRectangle 13">
-                                            <Grid ColumnDefinitions="88,*,Auto" ColumnSpacing="12">
-                                                <Image
-                                                    Source="{Binding UrlMiniatura}"
-                                                    WidthRequest="86"
-                                                    HeightRequest="86"
-                                                    Aspect="AspectFill" />
-                                                <VerticalStackLayout Grid.Column="1" Spacing="3">
-                                                    <Label Text="{Binding DiagnosticoTexto}" FontAttributes="Bold" TextColor="#263A35" />
-                                                    <Label Text="{Binding TerrenoTexto}" FontSize="12" />
-                                                    <Label Text="{Binding FechaTexto}" FontSize="12" TextColor="#5E6B67" />
-                                                    <Label Text="{Binding TotalImagenes, StringFormat='{0} fotografía(s)'}" FontSize="12" />
-                                                    <Label Text="{Binding EstadoTexto}" TextColor="{Binding EstadoColor}" FontAttributes="Bold" FontSize="12" />
-                                                </VerticalStackLayout>
+                        <CollectionView
+                            ItemsSource="{Binding Solicitudes}"
+                            SelectionMode="None">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout
+                                    Orientation="Vertical"
+                                    ItemSpacing="10" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:InspeccionFitosanitariaListaItemV2">
+                                    <Border
+                                        Padding="14"
+                                        BackgroundColor="White"
+                                        Stroke="#D9E3DF"
+                                        StrokeShape="RoundRectangle 14">
+                                        <Grid
+                                            ColumnDefinitions="82,*,Auto"
+                                            RowDefinitions="Auto,Auto,Auto"
+                                            ColumnSpacing="12"
+                                            RowSpacing="4">
+                                            <Image
+                                                Grid.RowSpan="3"
+                                                Source="{Binding UrlMiniatura}"
+                                                HeightRequest="76"
+                                                WidthRequest="76"
+                                                Aspect="AspectFill" />
+                                            <Label
+                                                Grid.Column="1"
+                                                Text="{Binding TerrenoTexto}"
+                                                FontSize="17"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35" />
+                                            <Label
+                                                Grid.Row="1"
+                                                Grid.Column="1"
+                                                Text="{Binding Resumen}"
+                                                TextColor="#5E6B67" />
+                                            <Label
+                                                Grid.Row="2"
+                                                Grid.Column="1"
+                                                Text="{Binding FechaTexto}"
+                                                FontSize="12"
+                                                TextColor="#7A8581" />
+                                            <VerticalStackLayout
+                                                Grid.Column="2"
+                                                Grid.RowSpan="3"
+                                                Spacing="6">
+                                                <Label
+                                                    Text="{Binding Estado}"
+                                                    TextColor="#9B552C"
+                                                    FontAttributes="Bold"
+                                                    HorizontalTextAlignment="Center" />
                                                 <Button
-                                                    Grid.Column="2"
-                                                    Text="Ver resultado"
-                                                    Command="{Binding Source={x:Reference DiagnosticoIASolicitudRoot}, Path=BindingContext.AbrirResultadoCommand}"
+                                                    Text="Abrir"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.AbrirResultadoCommand}"
                                                     CommandParameter="{Binding .}"
-                                                    BackgroundColor="#E3EFEA"
-                                                    TextColor="#3B655B"
-                                                    VerticalOptions="Center" />
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-                        </VerticalStackLayout>
-                    </Border>
+                                                    BackgroundColor="#3B655B"
+                                                    TextColor="White" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Border
+                            Padding="18"
+                            BackgroundColor="#FFF9E8"
+                            Stroke="#E2B93B"
+                            StrokeShape="RoundRectangle 14"
+                            IsVisible="{Binding SinSolicitudes}">
+                            <Label
+                                Text="No se encontraron inspecciones para esta bandeja."
+                                HorizontalTextAlignment="Center"
+                                TextColor="#6B5710" />
+                        </Border>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </ScrollView>
-
-            <ActivityIndicator
-                Grid.RowSpan="3"
-                IsRunning="{Binding IsBusy}"
-                IsVisible="{Binding IsBusy}"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Color="#3B655B" />
         </Grid>
     </ContentView>
 </ContentPage>

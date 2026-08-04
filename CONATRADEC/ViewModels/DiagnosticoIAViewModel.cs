@@ -150,7 +150,7 @@ namespace CONATRADEC.ViewModels
 
         private async Task NavegarAsync(string ruta)
         {
-            if (IsBusy || Shell.Current == null)
+            if (IsBusy)
                 return;
 
             IsBusy = true;
@@ -159,7 +159,12 @@ namespace CONATRADEC.ViewModels
             try
             {
                 DiagnosticoIARoutes.AsegurarRegistro();
-                await Shell.Current.GoToAsync(ruta, false);
+
+                /*
+                 * Toda navegación del módulo pasa por GlobalService para evitar
+                 * dos Shell.GoToAsync simultáneos al hacer doble clic.
+                 */
+                await GoToAsyncParameters(ruta);
             }
             finally
             {

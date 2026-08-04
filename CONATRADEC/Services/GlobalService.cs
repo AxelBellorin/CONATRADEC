@@ -4,11 +4,24 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace CONATRADEC.Services
 {
     public class GlobalService : INotifyPropertyChanged
     {
+        /*
+         * Shell no admite dos navegaciones simultáneas. Este bloqueo es
+         * estático porque cada ViewModel hereda una instancia diferente de
+         * GlobalService, pero todos comparten el mismo Shell de la aplicación.
+         */
+        private static readonly SemaphoreSlim NavigationSemaphore =
+            new(initialCount: 1, maxCount: 1);
+
+        private static string? rutaNavegacionEnCurso;
+
+        private const int MaximoReintentosNavegacion = 20;
+
         public bool CanAdd { get; protected set; }
         public bool CanEdit { get; protected set; }
         public bool CanDelete { get; protected set; }
@@ -231,6 +244,66 @@ namespace CONATRADEC.Services
             if (string.IsNullOrWhiteSpace(route))
                 return;
 
+            string rutaDestino = ResolverRutaDestino(route);
+
+            /*
+             * Un doble clic puede entrar aquí desde dos ViewModels diferentes.
+             * Si el mismo destino ya está procesándose, la segunda llamada se
+             * descarta antes de esperar el bloqueo global.
+             */
+            if (string.Equals(
+                    rutaNavegacionEnCurso,
+                    rutaDestino,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            await NavigationSemaphore.WaitAsync();
+
+            try
+            {
+                Shell? shell = Shell.Current;
+
+                if (shell == null)
+                    return;
+
+                /*
+                 * Otra llamada pudo completar la navegación mientras esta
+                 * esperaba el semáforo. No se apila nuevamente la misma página.
+                 */
+                if (parameters == null &&
+                    EsRutaActual(shell, rutaDestino))
+                {
+                    return;
+                }
+
+                rutaNavegacionEnCurso = rutaDestino;
+
+                // Evita navegar mientras el teclado todavía ocupa parte
+                // de la pantalla en Android.
+                await KeyboardService.HideAsync();
+
+                await EjecutarNavegacionSeguraAsync(
+                    shell,
+                    rutaDestino,
+                    parameters);
+
+                /*
+                 * Algunas versiones de Shell terminan GoToAsync unas pocas
+                 * milésimas antes de liberar su navegación interna.
+                 */
+                await Task.Delay(60);
+            }
+            finally
+            {
+                rutaNavegacionEnCurso = null;
+                NavigationSemaphore.Release();
+            }
+        }
+
+        private static string ResolverRutaDestino(string route)
+        {
             string rutaDestino = route;
 
             /*
@@ -251,17 +324,117 @@ namespace CONATRADEC.Services
                         .ObtenerRutaInicialPermitida();
             }
 
-            // Evita navegar mientras el teclado todavía ocupa parte
-            // de la pantalla en Android.
-            await KeyboardService.HideAsync();
+            return rutaDestino;
+        }
 
-            if (parameters == null)
-                await Shell.Current.GoToAsync(rutaDestino, false);
-            else
-                await Shell.Current.GoToAsync(
+        private static async Task EjecutarNavegacionSeguraAsync(
+            Shell shell,
+            string rutaDestino,
+            IDictionary<string, object>? parameters)
+        {
+            for (int intento = 1;
+                 intento <= MaximoReintentosNavegacion;
+                 intento++)
+            {
+                try
+                {
+                    if (parameters == null &&
+                        EsRutaActual(shell, rutaDestino))
+                    {
+                        return;
+                    }
+
+                    if (parameters == null)
+                    {
+                        await shell.GoToAsync(
+                            rutaDestino,
+                            animate: false);
+                    }
+                    else
+                    {
+                        await shell.GoToAsync(
+                            rutaDestino,
+                            animate: false,
+                            parameters);
+                    }
+
+                    return;
+                }
+                catch (InvalidOperationException ex)
+                    when (EsNavegacionPendiente(ex))
+                {
+                    if (intento == MaximoReintentosNavegacion)
+                    {
+                        Debug.WriteLine(
+                            "Shell permaneció ocupado después de varios " +
+                            $"intentos. Ruta: {rutaDestino}. Error: {ex}");
+
+                        await MostrarAdvertenciaAsync(
+                            "La pantalla todavía estaba terminando de abrirse. " +
+                            "Intente nuevamente.");
+
+                        return;
+                    }
+
+                    await Task.Delay(75);
+                }
+            }
+        }
+
+        private static bool EsNavegacionPendiente(
+            InvalidOperationException exception) =>
+            exception.Message.Contains(
+                "Pending Navigations still processing",
+                StringComparison.OrdinalIgnoreCase);
+
+        private static bool EsRutaActual(
+            Shell shell,
+            string rutaDestino)
+        {
+            if (string.Equals(
                     rutaDestino,
-                    false,
-                    parameters);
+                    AppRoutes.Regresar,
+                    StringComparison.OrdinalIgnoreCase) ||
+                rutaDestino.StartsWith("..", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            string rutaActual = NormalizarRutaComparacion(
+                shell.CurrentState?.Location?.OriginalString);
+
+            string destino = NormalizarRutaComparacion(
+                rutaDestino);
+
+            if (string.IsNullOrWhiteSpace(rutaActual) ||
+                string.IsNullOrWhiteSpace(destino))
+            {
+                return false;
+            }
+
+            return string.Equals(
+                       rutaActual,
+                       destino,
+                       StringComparison.OrdinalIgnoreCase) ||
+                   rutaActual.EndsWith(
+                       "/" + destino,
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizarRutaComparacion(
+            string? ruta)
+        {
+            if (string.IsNullOrWhiteSpace(ruta))
+                return string.Empty;
+
+            string valor = Uri.UnescapeDataString(ruta)
+                .Trim()
+                .Trim('/');
+
+            while (valor.StartsWith("/", StringComparison.Ordinal))
+                valor = valor[1..];
+
+            return valor;
         }
 
         public bool ValidateNavigation(string interfaz)
