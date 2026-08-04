@@ -2,13 +2,14 @@ using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
-    public partial class DiagnosticoIAPage : ContentPage
+    public partial class DiagnosticoIAAnalizadorPage : ContentPage
     {
-        private readonly DiagnosticoIAViewModel viewModel = new();
+        private readonly DiagnosticoIAAnalizadorViewModel viewModel;
 
-        public DiagnosticoIAPage()
+        public DiagnosticoIAAnalizadorPage()
         {
             InitializeComponent();
+            viewModel = new DiagnosticoIAAnalizadorViewModel();
             BindingContext = viewModel;
         }
 

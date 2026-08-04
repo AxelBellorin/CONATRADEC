@@ -4,15 +4,15 @@ namespace CONATRADEC.Controls
 {
     /// <summary>
     /// Cambia únicamente la presentación del menú según el ancho disponible.
-    ///
-    /// En Windows amplio muestra la barra lateral. En una ventana estrecha,
-    /// Android o iOS oculta la barra lateral y utiliza la navegación inferior.
-    /// No modifica rutas, páginas ni el estado de navegación de Shell.
+    /// Reserva suficiente espacio para nombres largos, como Inspección
+    /// fitosanitaria, sin afectar la navegación inferior de móvil.
     /// </summary>
     public sealed class ResponsiveNavigationLayoutBehavior : Behavior<Grid>
     {
         private const double DesktopBreakpoint = 900;
-        private const double DesktopMenuWidth = 230;
+        private const double DesktopMenuMinWidth = 275;
+        private const double DesktopMenuMaxWidth = 315;
+        private const double DesktopMenuProportion = 0.18;
 
         private Grid? layout;
         private Border? desktopNavigation;
@@ -22,11 +22,9 @@ namespace CONATRADEC.Controls
         protected override void OnAttachedTo(Grid bindable)
         {
             base.OnAttachedTo(bindable);
-
             layout = bindable;
             bindable.Loaded += OnLoaded;
             bindable.SizeChanged += OnSizeChanged;
-
             bindable.Dispatcher.Dispatch(ApplyLayout);
         }
 
@@ -34,12 +32,10 @@ namespace CONATRADEC.Controls
         {
             bindable.Loaded -= OnLoaded;
             bindable.SizeChanged -= OnSizeChanged;
-
             layout = null;
             desktopNavigation = null;
             compactNavigation = null;
             navigationColumn = null;
-
             base.OnDetachingFrom(bindable);
         }
 
@@ -49,10 +45,7 @@ namespace CONATRADEC.Controls
             ApplyLayout();
         }
 
-        private void OnSizeChanged(object? sender, EventArgs e)
-        {
-            ApplyLayout();
-        }
+        private void OnSizeChanged(object? sender, EventArgs e) => ApplyLayout();
 
         private void ResolveElements()
         {
@@ -115,25 +108,28 @@ namespace CONATRADEC.Controls
             bool showDesktopNavigation =
                 isWindows && availableWidth >= DesktopBreakpoint;
 
+            double menuWidth = Math.Clamp(
+                availableWidth * DesktopMenuProportion,
+                DesktopMenuMinWidth,
+                DesktopMenuMaxWidth);
+
             if (navigationColumn != null)
             {
                 navigationColumn.Width = showDesktopNavigation
-                    ? new GridLength(DesktopMenuWidth)
+                    ? new GridLength(menuWidth)
                     : new GridLength(0);
             }
 
             if (desktopNavigation != null)
             {
                 desktopNavigation.IsVisible = showDesktopNavigation;
-                desktopNavigation.InputTransparent =
-                    !showDesktopNavigation;
+                desktopNavigation.InputTransparent = !showDesktopNavigation;
             }
 
             if (compactNavigation != null)
             {
                 compactNavigation.IsVisible = !showDesktopNavigation;
-                compactNavigation.InputTransparent =
-                    showDesktopNavigation;
+                compactNavigation.InputTransparent = showDesktopNavigation;
             }
         }
     }

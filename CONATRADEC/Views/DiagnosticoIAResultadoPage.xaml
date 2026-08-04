@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.DiagnosticoIAResultadoPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    NavigationPage.HasBackButton="False"
+    BackgroundColor="#F7F8F7">
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+    </Shell.BackButtonBehavior>
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
+            RowDefinitions="Auto,Auto,*"
+            RowSpacing="14">
+
+            <controls:ResponsiveCatalogHeader
+                Grid.Row="0"
+                Title="{Binding TituloResultado}"
+                Subtitle="Detalle, resultados por fotografía y decisiones del técnico."
+                BackText="{Binding TextoRegresar, StringFormat='← {0}'}"
+                BackCommand="{Binding RegresarResultadoCommand}"
+                PrimaryText="Actualizar"
+                PrimaryCommand="{Binding ActualizarCommand}"
+                IsPrimaryVisible="True" />
+
+            <Border
+                Grid.Row="1"
+                Padding="12"
+                BackgroundColor="#FFF8D9"
+                Stroke="#E8C75A"
+                StrokeShape="RoundRectangle 11"
+                IsVisible="{Binding TieneMensajeEstado}">
+                <Label Text="{Binding MensajeEstado}" TextColor="#6B5710" />
+            </Border>
+
+            <ScrollView Grid.Row="2">
+                <VerticalStackLayout
+                    Spacing="16"
+                    MaximumWidthRequest="1180"
+                    HorizontalOptions="Center"
+                    IsVisible="{Binding TieneDetalle}">
+
+                    <Border Padding="16" BackgroundColor="White" Stroke="#C8DED6" StrokeShape="RoundRectangle 15">
+                        <VerticalStackLayout Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="Detalle de la solicitud" FontSize="22" FontAttributes="Bold" TextColor="#263A35" />
+                                    <Label Text="{Binding Detalle.FechaTexto}" />
+                                    <Label Text="{Binding Detalle.TerrenoTexto}" />
+                                    <Label Text="{Binding Detalle.UsuarioSolicitante, StringFormat='Técnico: {0}'}" FontSize="12" />
+                                </VerticalStackLayout>
+                                <Border
+                                    Grid.Column="1"
+                                    Padding="12,7"
+                                    BackgroundColor="{Binding Detalle.EstadoColor}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 14"
+                                    VerticalOptions="Start">
+                                    <Label Text="{Binding Detalle.EstadoTexto}" TextColor="White" FontAttributes="Bold" />
+                                </Border>
+                            </Grid>
+
+                            <Border
+                                Padding="11"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#C8DED6"
+                                StrokeShape="RoundRectangle 10"
+                                IsVisible="{Binding MostrarSeguimiento}">
+                                <Label
+                                    Text="El servidor continúa procesando la evidencia. Esta pantalla se actualizará automáticamente cada pocos segundos."
+                                    TextColor="#3B655B"
+                                    FontAttributes="Bold" />
+                            </Border>
+
+                            <Label Text="Resumen general de Gemini" FontAttributes="Bold" FontSize="17" />
+                            <Label Text="{Binding Detalle.DiagnosticoSugerido}" FontSize="20" FontAttributes="Bold" TextColor="#3B655B" />
+                            <Label Text="{Binding Detalle.Resumen}" LineBreakMode="WordWrap" />
+                            <Label Text="{Binding Detalle.ErrorAnalisis}" TextColor="#B91C1C" IsVisible="{Binding Detalle.TieneError}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Padding="16" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 15">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Resultado por fotografía" FontSize="21" FontAttributes="Bold" TextColor="#263A35" />
+                            <Label
+                                Text="Gemini utiliza únicamente categorías y fichas activas del Álbum Botánico. Cuando no encuentra una coincidencia, el analizador humano realizará la clasificación oficial."
+                                FontSize="12"
+                                TextColor="#5E6B67" />
+
+                            <CollectionView ItemsSource="{Binding Detalle.Imagenes}" SelectionMode="None">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:DiagnosticoIAImagenItem">
+                                        <Border
+                                            Margin="0,0,0,12"
+                                            Padding="12"
+                                            Stroke="#D9E3DF"
+                                            StrokeShape="RoundRectangle 12">
+                                            <Grid ColumnDefinitions="{OnPlatform WinUI='210,*', Default='*'}" RowDefinitions="Auto,Auto" ColumnSpacing="14" RowSpacing="10">
+                                                <Image
+                                                    Source="{Binding UrlImagen}"
+                                                    WidthRequest="{OnPlatform WinUI=210, Default=320}"
+                                                    HeightRequest="210"
+                                                    Aspect="AspectFill" />
+
+                                                <VerticalStackLayout
+                                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                                                    Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                                    Spacing="5">
+                                                    <Label Text="{Binding NumeroFotoTexto}" FontSize="18" FontAttributes="Bold" TextColor="#3B655B" />
+                                                    <Label Text="{Binding TipoFotografiaTexto}" FontSize="12" />
+
+                                                    <VerticalStackLayout IsVisible="{Binding TieneResultadoIA}" Spacing="5">
+                                                        <Label Text="{Binding ResultadoIA.DiagnosticoTexto}" FontSize="17" FontAttributes="Bold" />
+                                                        <Label Text="{Binding ResultadoIA.ParteTexto}" />
+                                                        <Label Text="{Binding ResultadoIA.ClasificacionTexto}" />
+                                                        <Label Text="{Binding ResultadoIA.CertezaTexto}" />
+
+                                                        <Border Padding="10" BackgroundColor="#EEF5F2" Stroke="#C8DED6" StrokeShape="RoundRectangle 9">
+                                                            <VerticalStackLayout Spacing="3">
+                                                                <Label Text="Clasificación del Álbum Botánico" FontAttributes="Bold" TextColor="#3B655B" />
+                                                                <Label Text="{Binding ResultadoIA.ClasificacionAlbumTexto}" />
+                                                                <Label Text="{Binding ResultadoIA.EstadoClasificacionAlbumTexto}" FontSize="12" TextColor="#5E6B67" />
+                                                            </VerticalStackLayout>
+                                                        </Border>
+
+                                                        <Label Text="{Binding ResultadoIA.ResumenImagen}" LineBreakMode="WordWrap" />
+                                                    </VerticalStackLayout>
+
+                                                    <Label
+                                                        Text="Sin resultado individual disponible."
+                                                        IsVisible="{Binding SinResultadoIA}"
+                                                        TextColor="#6B7280" />
+                                                </VerticalStackLayout>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="16"
+                        BackgroundColor="#F7FBF9"
+                        Stroke="#9CB7AE"
+                        StrokeShape="RoundRectangle 14"
+                        IsVisible="{Binding Detalle.TieneRevision}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Última evaluación adicional de Gemini" FontSize="18" FontAttributes="Bold" TextColor="#3B655B" />
+                            <Label Text="{Binding Detalle.UltimaRevisionIA.DiagnosticoRevisado}" FontAttributes="Bold" />
+                            <Label Text="{Binding Detalle.UltimaRevisionIA.CambioTexto}" TextColor="#9B552C" />
+                            <Label Text="{Binding Detalle.UltimaRevisionIA.ResumenRevision}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="16"
+                        BackgroundColor="#FFF9E8"
+                        Stroke="#E2B93B"
+                        StrokeShape="RoundRectangle 14"
+                        IsVisible="{Binding PuedeDecidir}">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Decisión del técnico" FontSize="20" FontAttributes="Bold" TextColor="#263A35" />
+                            <Label
+                                Text="Su decisión no establece la clasificación oficial. El analizador humano confirmará o corregirá la relación con el Álbum Botánico."
+                                LineBreakMode="WordWrap" />
+                            <Label Text="{Binding Detalle.ResumenLimiteRevisiones}" FontSize="12" TextColor="#5E6B67" />
+
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                                <Button
+                                    Text="Enviar al analizador"
+                                    Command="{Binding EnviarAnalizadorCommand}"
+                                    BackgroundColor="#3B655B"
+                                    TextColor="White"
+                                    FontAttributes="Bold" />
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Solicitar otra evaluación"
+                                    Command="{Binding SolicitarNuevaEvaluacionCommand}"
+                                    IsVisible="{Binding PuedeSolicitarNuevaEvaluacion}"
+                                    BackgroundColor="#F2C94C"
+                                    TextColor="#263A35" />
+                                <Button
+                                    Grid.Row="1"
+                                    Grid.ColumnSpan="2"
+                                    Text="No continuar con esta solicitud"
+                                    Command="{Binding NoContinuarCommand}"
+                                    BackgroundColor="#B91C1C"
+                                    TextColor="White" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button
+                            Text="Reintentar análisis"
+                            Command="{Binding ReintentarCommand}"
+                            IsVisible="{Binding PuedeReintentar}"
+                            BackgroundColor="#F2C94C"
+                            TextColor="#263A35" />
+                        <Button
+                            Grid.Column="1"
+                            Text="Anular diagnóstico"
+                            Command="{Binding AnularCommand}"
+                            IsVisible="{Binding PuedeAnular}"
+                            BackgroundColor="#B91C1C"
+                            TextColor="White" />
+                    </Grid>
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <ActivityIndicator
+                Grid.RowSpan="3"
+                IsRunning="{Binding IsBusy}"
+                IsVisible="{Binding IsBusy}"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Color="#3B655B" />
+        </Grid>
+    </ContentView>
+</ContentPage>

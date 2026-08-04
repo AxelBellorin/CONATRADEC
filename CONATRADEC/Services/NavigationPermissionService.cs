@@ -1,17 +1,17 @@
 using System;
+using System.Collections.Generic;
 
 namespace CONATRADEC.Services
 {
     /// <summary>
     /// Centraliza las reglas de visibilidad y navegación de las secciones
     /// principales de la aplicación.
-    ///
-    /// Configuración es una sección contenedora: se muestra cuando el usuario
-    /// puede consultar al menos una de las interfaces incluidas en ella.
     /// </summary>
     public static class NavigationPermissionService
     {
         public const string GrupoConfiguracion = "Configuracion";
+        public const string GrupoInspeccionFitosanitaria =
+            "InspeccionFitosanitaria";
 
         private static readonly string[] InterfacesConfiguracion =
         {
@@ -27,8 +27,15 @@ namespace CONATRADEC.Services
             InterfazCodigos.ExtraccionNutrientes,
             InterfazCodigos.RangosNutrientes,
             InterfazCodigos.CategoriasPublicacion,
-            DiagnosticoIARoutes.Interfaz,
+            DiagnosticoIARoutes.InterfazConfiguracion,
             InterfazCodigos.Bitacora
+        };
+
+        private static readonly string[] InterfacesInspeccionFitosanitaria =
+        {
+            DiagnosticoIARoutes.InterfazSolicitud,
+            DiagnosticoIARoutes.InterfazAnalizador,
+            DiagnosticoIARoutes.InterfazAprobador
         };
 
         public static bool PuedeVerOpcion(
@@ -52,12 +59,30 @@ namespace CONATRADEC.Services
                 return PuedeVerConfiguracion();
             }
 
+            if (string.Equals(
+                    grupoPermisos,
+                    GrupoInspeccionFitosanitaria,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return PuedeVerInspeccionFitosanitaria();
+            }
+
             return false;
         }
 
-        public static bool PuedeVerConfiguracion()
+        public static bool PuedeVerConfiguracion() =>
+            TieneLecturaEnAlguna(InterfacesConfiguracion);
+
+        public static bool PuedeVerInspeccionFitosanitaria()
         {
-            foreach (string interfaz in InterfacesConfiguracion)
+            DiagnosticoIARoutes.AsegurarRegistro();
+            return TieneLecturaEnAlguna(InterfacesInspeccionFitosanitaria);
+        }
+
+        private static bool TieneLecturaEnAlguna(
+            IEnumerable<string> interfaces)
+        {
+            foreach (string interfaz in interfaces)
             {
                 if (PermissionService.Instance.HasRead(interfaz))
                     return true;
@@ -68,8 +93,6 @@ namespace CONATRADEC.Services
 
         /// <summary>
         /// Devuelve la primera sección principal que el usuario puede abrir.
-        /// Se utiliza después del login y cuando se intenta entrar a una
-        /// sección no autorizada.
         /// </summary>
         public static string ObtenerRutaInicialPermitida()
         {
@@ -78,6 +101,9 @@ namespace CONATRADEC.Services
             {
                 return AppRoutes.Principal;
             }
+
+            if (PuedeVerInspeccionFitosanitaria())
+                return AppRoutes.InspeccionFitosanitaria;
 
             if (PermissionService.Instance.HasRead(
                     InterfazCodigos.AlbumFotos))

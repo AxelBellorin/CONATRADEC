@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.TerrenoBusquedaIAPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    NavigationPage.HasBackButton="False"
+    BackgroundColor="#F7F8F7">
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+    </Shell.BackButtonBehavior>
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
+            RowDefinitions="Auto,*"
+            RowSpacing="14">
+
+            <controls:ResponsiveCatalogHeader
+                Grid.Row="0"
+                Title="Buscar terreno"
+                Subtitle="Código, propietario, ubicación, dirección y extensión."
+                BackText="← Nueva inspección"
+                BackCommand="{Binding RegresarCommand}"
+                PrimaryText="Limpiar"
+                PrimaryCommand="{Binding LimpiarCommand}"
+                IsPrimaryVisible="True" />
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="16" Spacing="14">
+                <Border
+                    Padding="16"
+                    BackgroundColor="White"
+                    Stroke="#D9E3DF"
+                    StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="10">
+                        <Label
+                            Text="Búsqueda general"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            TextColor="#263A35" />
+                        <Entry
+                            Placeholder="Código, propietario, municipio, departamento o dirección"
+                            Text="{Binding Texto}"
+                            ReturnType="Search"
+                            ReturnCommand="{Binding BuscarCommand}" />
+
+                        <Label
+                            Text="Filtros avanzados"
+                            FontAttributes="Bold"
+                            TextColor="#3B655B" />
+
+                        <Grid
+                            ColumnDefinitions="*,*"
+                            RowDefinitions="Auto,Auto,Auto"
+                            ColumnSpacing="10"
+                            RowSpacing="8">
+                            <Entry
+                                Placeholder="Código del terreno"
+                                Text="{Binding Codigo}" />
+                            <Entry
+                                Grid.Column="1"
+                                Placeholder="Nombre del propietario"
+                                Text="{Binding Propietario}" />
+                            <Entry
+                                Grid.Row="1"
+                                Placeholder="Identificación del propietario"
+                                Text="{Binding IdentificacionPropietario}" />
+                            <Entry
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Placeholder="País, departamento o municipio"
+                                Text="{Binding Ubicacion}" />
+                            <Entry
+                                Grid.Row="2"
+                                Placeholder="Dirección o referencia"
+                                Text="{Binding Direccion}" />
+                            <Grid
+                                Grid.Row="2"
+                                Grid.Column="1"
+                                ColumnDefinitions="*,*"
+                                ColumnSpacing="8">
+                                <Entry
+                                    Placeholder="Mz mín."
+                                    Keyboard="Numeric"
+                                    Text="{Binding ExtensionMinimaTexto}" />
+                                <Entry
+                                    Grid.Column="1"
+                                    Placeholder="Mz máx."
+                                    Keyboard="Numeric"
+                                    Text="{Binding ExtensionMaximaTexto}" />
+                            </Grid>
+                        </Grid>
+
+                        <Button
+                            Text="Buscar terrenos"
+                            Command="{Binding BuscarCommand}"
+                            BackgroundColor="#F2C94C"
+                            TextColor="#263A35"
+                            FontAttributes="Bold"
+                            CornerRadius="11" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border
+                    Padding="10"
+                    BackgroundColor="#FFF8D9"
+                    Stroke="#E8C75A"
+                    StrokeShape="RoundRectangle 10"
+                    IsVisible="{Binding TieneMensajeEstado}">
+                    <Label Text="{Binding MensajeEstado}" TextColor="#6B5710" />
+                </Border>
+
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label
+                        Text="Resultados"
+                        FontSize="20"
+                        FontAttributes="Bold"
+                        TextColor="#263A35" />
+                    <Label
+                        Grid.Column="1"
+                        Text="{Binding ResumenResultados}"
+                        VerticalOptions="Center"
+                        TextColor="#5E6B67" />
+                </Grid>
+
+                <Label
+                    Text="No se encontraron terrenos con los filtros indicados."
+                    TextColor="#6B7280"
+                    IsVisible="{Binding SinResultados}" />
+
+                <CollectionView
+                    ItemsSource="{Binding Resultados}"
+                    SelectionMode="None"
+                    IsVisible="{Binding TieneResultados}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:TerrenoBusquedaIAItem">
+                            <Border
+                                Padding="14"
+                                Margin="0,0,0,10"
+                                BackgroundColor="White"
+                                Stroke="#D9E3DF"
+                                StrokeShape="RoundRectangle 14">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Spacing="3">
+                                        <Label
+                                            Text="{Binding CodigoTerreno}"
+                                            FontSize="18"
+                                            FontAttributes="Bold"
+                                            TextColor="#3B655B" />
+                                        <Label
+                                            Text="{Binding PropietarioTexto}"
+                                            FontAttributes="Bold"
+                                            TextColor="#263A35" />
+                                        <Label Text="{Binding UbicacionTexto}" />
+                                        <Label Text="{Binding DireccionTerreno}" FontSize="12" />
+                                        <Label Text="{Binding ExtensionTexto}" FontSize="12" />
+                                    </VerticalStackLayout>
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Seleccionar"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SeleccionarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        BackgroundColor="#3B655B"
+                                        TextColor="White"
+                                        VerticalOptions="Center"
+                                        CornerRadius="10" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Button
+                    Text="Cargar más"
+                    Command="{Binding CargarMasCommand}"
+                    IsVisible="{Binding PuedeCargarMas}"
+                    BackgroundColor="#E3EFEA"
+                    TextColor="#3B655B" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <ActivityIndicator
+            Grid.RowSpan="2"
+            IsRunning="{Binding IsBusy}"
+            IsVisible="{Binding IsBusy}"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            Color="#3B655B" />
+        </Grid>
+    </ContentView>
+</ContentPage>

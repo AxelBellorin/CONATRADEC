@@ -442,16 +442,16 @@ namespace CONATRADEC.ViewModels
 
                 Categoria(
                     "Inteligencia artificial",
-                    "Diagnóstico visual preliminar y validación humana.",
+                    "Parámetros administrativos del proveedor y sus revisiones.",
                     6,
                     Opcion(
-                        "Diagnóstico de enfermedades con IA",
-                        "Analizar fotografías y confirmar o corregir el veredicto de Gemini.",
-                        "iconalbum.png",
-                        DiagnosticoIARoutes.Interfaz,
-                        DiagnosticoIARoutes.Pagina,
+                        "Configuración de Diagnóstico IA",
+                        "Administrar cuántas revisiones adicionales puede solicitarse a Gemini por diagnóstico.",
+                        "iconsettings.png",
+                        DiagnosticoIARoutes.InterfazConfiguracion,
+                        DiagnosticoIARoutes.PaginaConfiguracion,
                         1,
-                        azulSuave)),
+                        amarilloSuave)),
 
                 Categoria(
                     "Auditoría y control",

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.DiagnosticoIAConfiguracionPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    NavigationPage.HasBackButton="False"
+    Title="Configuración de Diagnóstico IA"
+    BackgroundColor="#F7F8F7">
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+    </Shell.BackButtonBehavior>
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
+            RowDefinitions="Auto,*"
+            RowSpacing="14">
+
+            <controls:ResponsiveCatalogHeader
+                Grid.Row="0"
+                Title="Configuración de inteligencia artificial"
+                Subtitle="Control administrativo de revisiones adicionales con Gemini."
+                BackText="← Configuración"
+                BackCommand="{Binding RegresarCommand}"
+                PrimaryText="Actualizar"
+                PrimaryCommand="{Binding ActualizarCommand}"
+                IsPrimaryVisible="{Binding CanView}" />
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout
+                Padding="22"
+                Spacing="16"
+                MaximumWidthRequest="820"
+                HorizontalOptions="Center">
+
+                <Border
+                    Padding="18"
+                    BackgroundColor="#EEF5F2"
+                    Stroke="#A9C0B8"
+                    StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="7">
+                        <Label
+                            Text="Límite de revisiones adicionales"
+                            FontSize="22"
+                            FontAttributes="Bold"
+                            TextColor="#263A35" />
+                        <Label
+                            Text="Esta configuración se aplica inmediatamente a todos los diagnósticos. El análisis inicial de Gemini no se contabiliza como revisión."
+                            TextColor="#52635E"
+                            LineBreakMode="WordWrap" />
+                        <Label
+                            Text="{Binding ResumenActual}"
+                            FontAttributes="Bold"
+                            TextColor="#3B655B" />
+                        <Label
+                            Text="{Binding UltimaModificacion}"
+                            FontSize="12"
+                            TextColor="#6B7672" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border
+                    Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D7E0DD"
+                    StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="15">
+                            <VerticalStackLayout Spacing="3">
+                                <Label
+                                    Text="Permitir revisiones ilimitadas"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="El backend seguirá impidiendo revisiones simultáneas y solo contará las completadas correctamente."
+                                    FontSize="13"
+                                    TextColor="#63706C" />
+                            </VerticalStackLayout>
+                            <Switch
+                                Grid.Column="1"
+                                IsEnabled="{Binding CanEdit}"
+                                IsToggled="{Binding RevisionesIlimitadas}" />
+                        </Grid>
+
+                        <VerticalStackLayout
+                            Spacing="6"
+                            IsVisible="{Binding MostrarCampoMaximo}">
+                            <Label
+                                Text="Máximo de revisiones por diagnóstico"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Entry
+                                Text="{Binding MaximoRevisionesTexto}"
+                                IsEnabled="{Binding CanEdit}"
+                                Keyboard="Numeric"
+                                Placeholder="Entre 1 y 20"
+                                MaxLength="2" />
+                            <Label
+                                Text="Valor permitido: de 1 a 20 revisiones adicionales."
+                                FontSize="12"
+                                TextColor="#6B7672" />
+                        </VerticalStackLayout>
+
+                        <Border
+                            Padding="12"
+                            BackgroundColor="#FFF7D6"
+                            Stroke="#E7CC68"
+                            StrokeShape="RoundRectangle 10">
+                            <Label
+                                Text="{Binding AyudaLimite}"
+                                TextColor="#6B5710"
+                                LineBreakMode="WordWrap" />
+                        </Border>
+
+                        <Button
+                            Text="Guardar configuración"
+                            Command="{Binding GuardarCommand}"
+                            IsVisible="{Binding CanEdit}"
+                            BackgroundColor="#3B655B"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            HeightRequest="48" />
+
+                        <Label
+                            Text="Su permiso es únicamente de lectura."
+                            IsVisible="{Binding SoloLectura}"
+                            TextColor="#9B552C"
+                            HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border
+                    Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D7E0DD"
+                    StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="12">
+                        <Label
+                            Text="Historial de modificaciones"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            TextColor="#263A35" />
+
+                        <Label
+                            Text="Todavía no se han registrado cambios administrativos."
+                            IsVisible="{Binding SinHistorial}"
+                            TextColor="#6B7672" />
+
+                        <CollectionView
+                            ItemsSource="{Binding Historial}"
+                            IsVisible="{Binding TieneHistorial}"
+                            SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Margin="0,0,0,8"
+                                        Padding="12"
+                                        BackgroundColor="#F8FAF9"
+                                        Stroke="#E0E7E4"
+                                        StrokeShape="RoundRectangle 10">
+                                        <Grid
+                                            RowDefinitions="Auto,Auto"
+                                            ColumnDefinitions="*,Auto"
+                                            RowSpacing="4">
+                                            <Label
+                                                Text="{Binding CambioTexto}"
+                                                FontAttributes="Bold"
+                                                TextColor="#3B655B" />
+                                            <Label
+                                                Grid.Column="1"
+                                                Text="{Binding FechaTexto}"
+                                                FontSize="12"
+                                                TextColor="#6B7672" />
+                                            <Label
+                                                Grid.Row="1"
+                                                Grid.ColumnSpan="2"
+                                                Text="{Binding UsuarioTexto}"
+                                                FontSize="13"
+                                                TextColor="#52635E" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label
+                    Text="{Binding MensajeEstado}"
+                    IsVisible="{Binding TieneMensajeEstado}"
+                    HorizontalTextAlignment="Center"
+                    TextColor="#3B655B"
+                    FontAttributes="Bold" />
+
+                <ActivityIndicator
+                    IsRunning="{Binding IsBusy}"
+                    IsVisible="{Binding IsBusy}"
+                    Color="#3B655B" />
+            </VerticalStackLayout>
+        </ScrollView>
+        </Grid>
+    </ContentView>
+</ContentPage>

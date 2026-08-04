@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.DiagnosticoIAAprobadorPage"
+    x:Name="AprobadorPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    NavigationPage.HasBackButton="False"
+    BackgroundColor="{StaticResource color_Blanco}">
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+    </Shell.BackButtonBehavior>
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
+            RowDefinitions="Auto,*"
+            RowSpacing="14">
+
+            <controls:ResponsiveCatalogHeader
+                Grid.Row="0"
+                Title="Bandeja del aprobador"
+                Subtitle="Revise la clasificación humana, resuelva propuestas del álbum y registre la decisión final."
+                BackText="← Inspección fitosanitaria"
+                BackCommand="{Binding RegresarCommand}"
+                PrimaryText="Actualizar"
+                PrimaryCommand="{Binding ActualizarCommand}"
+                IsPrimaryVisible="{Binding CanView}" />
+
+            <ScrollView Grid.Row="1">
+                <VerticalStackLayout Spacing="15">
+                    <Border
+                        IsVisible="{Binding TieneMensajeEstado}"
+                        Padding="12"
+                        BackgroundColor="#FFF8D9"
+                        Stroke="#E8C75A"
+                        StrokeShape="RoundRectangle 12">
+                        <Label Text="{Binding MensajeEstado}" TextColor="#6B5710" />
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding TieneAdvertenciaMismoUsuario}"
+                        Padding="12"
+                        BackgroundColor="#EEF4FF"
+                        Stroke="#B8CCF4"
+                        StrokeShape="RoundRectangle 12">
+                        <Label Text="{Binding AdvertenciaMismoUsuario}" TextColor="#274C77" />
+                    </Border>
+
+                    <Border Padding="16" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 16">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Casos pendientes" FontSize="20" FontAttributes="Bold" />
+                            <Label Text="No existen inspecciones pendientes de aprobación." IsVisible="{Binding SinPendientes}" TextColor="#6B7280" />
+                            <CollectionView ItemsSource="{Binding Pendientes}" IsVisible="{Binding TienePendientes}" SelectionMode="None" MaximumHeightRequest="330">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:DiagnosticoIAListaItem">
+                                        <Border Padding="12" Margin="0,0,0,10" Stroke="#DDE5E2" StrokeShape="RoundRectangle 12">
+                                            <Grid ColumnDefinitions="72,*,Auto" ColumnSpacing="12">
+                                                <Image Source="{Binding UrlMiniatura}" WidthRequest="70" HeightRequest="70" Aspect="AspectFill" />
+                                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                    <Label Text="{Binding DiagnosticoTexto}" FontAttributes="Bold" />
+                                                    <Label Text="{Binding TerrenoTexto}" FontSize="12" />
+                                                    <Label Text="{Binding Analizador}" FontSize="12" />
+                                                    <Label Text="{Binding EstadoTexto}" TextColor="{Binding EstadoColor}" FontAttributes="Bold" FontSize="12" />
+                                                </VerticalStackLayout>
+                                                <Button
+                                                    Grid.Column="2"
+                                                    Text="Abrir"
+                                                    Command="{Binding Source={x:Reference AprobadorPageRoot}, Path=BindingContext.SeleccionarCommand}"
+                                                    CommandParameter="{Binding .}"
+                                                    BackgroundColor="#E3EFEA"
+                                                    TextColor="#3B655B" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <VerticalStackLayout IsVisible="{Binding TieneSeleccionado}" Spacing="15">
+                        <Border Padding="16" BackgroundColor="White" Stroke="#9CB7AE" StrokeShape="RoundRectangle 16">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <VerticalStackLayout>
+                                        <Label Text="Resultado enviado por el analizador" FontSize="20" FontAttributes="Bold" />
+                                        <Label Text="{Binding Seleccionado.TerrenoTexto}" />
+                                    </VerticalStackLayout>
+                                    <Border Grid.Column="1" Padding="10,5" BackgroundColor="{Binding Seleccionado.EstadoColor}" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                                        <Label Text="{Binding Seleccionado.EstadoTexto}" TextColor="White" FontAttributes="Bold" />
+                                    </Border>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Border Padding="12" BackgroundColor="#F8FAF9" Stroke="#D9E3DF" StrokeShape="RoundRectangle 12">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="Gemini" FontAttributes="Bold" TextColor="#3B655B" />
+                                            <Label Text="{Binding Seleccionado.CategoriaPrincipalIA}" />
+                                            <Label Text="{Binding Seleccionado.DiagnosticoSugerido}" FontAttributes="Bold" />
+                                            <Label Text="{Binding Seleccionado.Resumen}" FontSize="12" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                    <Border Grid.Column="1" Padding="12" BackgroundColor="#F8FAF9" Stroke="#D9E3DF" StrokeShape="RoundRectangle 12">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="Analizador" FontAttributes="Bold" TextColor="#3B655B" />
+                                            <Label Text="{Binding Seleccionado.AnalisisHumanoActual.CategoriaPrincipal}" />
+                                            <Label Text="{Binding Seleccionado.AnalisisHumanoActual.DiagnosticoPropuesto}" FontAttributes="Bold" />
+                                            <Label Text="{Binding Seleccionado.AnalisisHumanoActual.Observaciones}" FontSize="12" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Padding="16" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 16">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Clasificación oficial por fotografía" FontSize="20" FontAttributes="Bold" />
+                                <Label
+                                    Text="El aprobador puede sustituir una propuesta por una ficha existente o autorizar la creación de la ficha propuesta."
+                                    FontSize="12"
+                                    TextColor="#5E6B67" />
+
+                                <CollectionView ItemsSource="{Binding Seleccionado.Imagenes}" SelectionMode="None">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:DiagnosticoIAImagenItem">
+                                            <Border Padding="12" Margin="0,0,0,10" Stroke="#D9E3DF" StrokeShape="RoundRectangle 12">
+                                                <Grid ColumnDefinitions="{OnIdiom Phone='100,*', Desktop='170,*'}" ColumnSpacing="12">
+                                                    <Image Source="{Binding UrlImagen}" WidthRequest="{OnIdiom Phone=100, Desktop=170}" HeightRequest="{OnIdiom Phone=120, Desktop=170}" Aspect="AspectFill" />
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                                        <Label Text="{Binding NumeroFotoTexto}" FontAttributes="Bold" TextColor="#3B655B" />
+                                                        <Label Text="{Binding ResultadoIA.DiagnosticoTexto}" FontAttributes="Bold" IsVisible="{Binding TieneResultadoIA}" />
+                                                        <Label Text="{Binding ResultadoIA.ClasificacionAlbumTexto}" FontSize="12" TextColor="#3B655B" IsVisible="{Binding TieneResultadoIA}" />
+                                                        <Label Text="{Binding ResultadoIA.EstadoClasificacionAlbumTexto}" FontSize="11" TextColor="#6B7280" IsVisible="{Binding TieneResultadoIA}" />
+                                                        <Label Text="{Binding ResultadoIA.MotivoClasificacionAlbum}" FontSize="11" IsVisible="{Binding ResultadoIA.ClasificacionAlbumPropuesta}" />
+                                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,4,0,0" IsVisible="{Binding TieneResultadoIA}">
+                                                            <Button
+                                                                Text="Usar ficha existente"
+                                                                Command="{Binding Source={x:Reference AprobadorPageRoot}, Path=BindingContext.SeleccionarFichaCommand}"
+                                                                CommandParameter="{Binding .}"
+                                                                BackgroundColor="#E3EFEA"
+                                                                TextColor="#3B655B"
+                                                                FontSize="12" />
+                                                            <Button
+                                                                Grid.Column="1"
+                                                                Text="Autorizar nueva ficha"
+                                                                IsVisible="{Binding ResultadoIA.ClasificacionAlbumPropuesta}"
+                                                                Command="{Binding Source={x:Reference AprobadorPageRoot}, Path=BindingContext.CrearFichaPropuestaCommand}"
+                                                                CommandParameter="{Binding .}"
+                                                                BackgroundColor="#F2C94C"
+                                                                TextColor="#263238"
+                                                                FontSize="12" />
+                                                        </Grid>
+
+                                                        <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6" Margin="0,7,0,0">
+                                                            <CheckBox IsChecked="{Binding EsEvidenciaValida}" Color="#3B655B" />
+                                                            <Label Grid.Column="1" Text="Evidencia válida" VerticalOptions="Center" FontSize="12" />
+                                                            <CheckBox Grid.Column="2" IsChecked="{Binding AptaParaAlbum}" Color="#3B655B" />
+                                                            <Label Grid.Column="3" Text="Apta para álbum" VerticalOptions="Center" FontSize="12" />
+                                                        </Grid>
+                                                        <Picker Title="Calidad técnica" ItemsSource="{Binding Source={x:Reference AprobadorPageRoot}, Path=BindingContext.CalidadesImagen}" SelectedItem="{Binding CalidadTecnica}" />
+                                                        <Editor Placeholder="Observación sobre la fotografía" Text="{Binding ObservacionAprobador}" AutoSize="TextChanges" />
+                                                    </VerticalStackLayout>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border
+                            IsVisible="{Binding TieneClasificacionesPendientesAprobador}"
+                            Padding="12"
+                            BackgroundColor="#FFF7E6"
+                            Stroke="#F2C94C"
+                            StrokeShape="RoundRectangle 12">
+                            <Label
+                                Text="No podrá aprobar positivamente mientras existan propuestas o clasificaciones pendientes. Devolver, rechazar o marcar no concluyente sigue disponible."
+                                FontAttributes="Bold"
+                                TextColor="#6B5710" />
+                        </Border>
+
+                        <Border Padding="16" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 16">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Decisión final" FontSize="20" FontAttributes="Bold" />
+                                <Picker Title="Decisión" ItemsSource="{Binding Decisiones}" SelectedItem="{Binding Decision}" />
+                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                                    <Picker Title="Calidad" ItemsSource="{Binding CalidadesEvaluacion}" SelectedItem="{Binding CalidadFinal}" />
+                                    <Picker Grid.Column="1" Title="Estado" ItemsSource="{Binding EstadosGenerales}" SelectedItem="{Binding EstadoGeneralFinal}" />
+                                    <Picker Grid.Row="1" Title="Categoría" ItemsSource="{Binding Categorias}" SelectedItem="{Binding CategoriaFinal}" />
+                                    <Picker Grid.Row="1" Grid.Column="1" Title="Severidad" ItemsSource="{Binding Severidades}" SelectedItem="{Binding SeveridadFinal}" />
+                                    <Picker Grid.Row="2" Title="Certeza" ItemsSource="{Binding NivelesCerteza}" SelectedItem="{Binding CertezaFinal}" />
+                                    <Entry Grid.Row="2" Grid.Column="1" Placeholder="Tipo de diagnóstico" Text="{Binding TipoDiagnosticoFinal}" />
+                                </Grid>
+                                <Entry Placeholder="Diagnóstico final" Text="{Binding DiagnosticoFinal}" />
+                                <Editor Placeholder="Categorías secundarias" Text="{Binding CategoriasSecundariasTexto}" AutoSize="TextChanges" />
+                                <Editor Placeholder="Observaciones o motivo de devolución/rechazo" Text="{Binding Observaciones}" AutoSize="TextChanges" />
+                                <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding PuedeAutorizarAlbum}">
+                                    <CheckBox IsChecked="{Binding AutorizaAlbum}" Color="#3B655B" />
+                                    <Label Grid.Column="1" Text="Autorizar fotografías aptas para publicación posterior en el álbum" VerticalOptions="Center" />
+                                </Grid>
+                                <Button Text="Registrar decisión" Command="{Binding ResolverCommand}" BackgroundColor="#9B552C" TextColor="White" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border IsVisible="{Binding PuedeMostrarAlbum}" Padding="16" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 16">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="Publicación de fotografías aprobadas" FontSize="20" FontAttributes="Bold" />
+                                <Button Text="Cargar catálogo del álbum" Command="{Binding CargarAlbumCommand}" BackgroundColor="#E3EFEA" TextColor="#3B655B" />
+                                <Picker Title="Categoría" ItemsSource="{Binding CategoriasAlbum}" ItemDisplayBinding="{Binding NombreCategoria}" SelectedItem="{Binding CategoriaAlbumSeleccionada}" />
+                                <Picker Title="Ficha" ItemsSource="{Binding RegistrosAlbum}" ItemDisplayBinding="{Binding Titulo}" SelectedItem="{Binding RegistroAlbumSeleccionado}" />
+                                <CollectionView ItemsSource="{Binding Seleccionado.Imagenes}" SelectionMode="None">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:DiagnosticoIAImagenItem">
+                                            <Border Padding="10" Margin="0,0,0,8" Stroke="#E5E7EB" StrokeShape="RoundRectangle 10">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <CheckBox IsChecked="{Binding SeleccionadaParaAlbum}" Color="#3B655B" />
+                                                    <VerticalStackLayout Grid.Column="1">
+                                                        <Label Text="{Binding NumeroFotoTexto}" FontAttributes="Bold" />
+                                                        <Entry Placeholder="Descripción para el álbum" Text="{Binding DescripcionAlbum}" />
+                                                    </VerticalStackLayout>
+                                                    <VerticalStackLayout Grid.Column="2">
+                                                        <CheckBox IsChecked="{Binding EsPortada}" Color="#9B552C" />
+                                                        <Label Text="Portada" FontSize="10" />
+                                                    </VerticalStackLayout>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                                <Button Text="Publicar fotografías seleccionadas" Command="{Binding PublicarAlbumCommand}" BackgroundColor="#3B655B" TextColor="White" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+    </ContentView>
+</ContentPage>

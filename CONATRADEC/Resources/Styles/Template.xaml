@@ -2,19 +2,10 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:controls="clr-namespace:CONATRADEC.Controls">
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:services="clr-namespace:CONATRADEC.Services">
 
-    <!--
-        Menú responsivo compartido:
-        - Windows con 900 px o más: barra lateral.
-        - Windows estrecho, Android e iOS: barra inferior.
-
-        Las opciones normales respetan los permisos del usuario.
-        Datos sin conexión respeta el permiso de lectura asignado al rol y
-        no concede permisos administrativos sobre los catálogos.
-    -->
     <ControlTemplate x:Key="FooterTemplate">
-
         <Grid
             RowDefinitions="*,Auto"
             BackgroundColor="{StaticResource color_Blanco}">
@@ -41,45 +32,29 @@
                 StrokeThickness="1">
 
                 <Border.Shadow>
-                    <Shadow
-                        Brush="Black"
-                        Offset="3,0"
-                        Radius="12"
-                        Opacity="0.08" />
+                    <Shadow Brush="Black" Offset="3,0" Radius="12" Opacity="0.08" />
                 </Border.Shadow>
 
                 <Grid RowDefinitions="Auto,*,Auto">
-
-                    <VerticalStackLayout
-                        Grid.Row="0"
-                        Padding="10,8,10,20"
-                        Spacing="3">
-
-                        <Label
-                            Text="ConatraCafé"
-                            FontSize="22"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
-
-                        <Label
-                            Text="Soil"
-                            FontSize="13"
-                            FontFamily="MontserratMedium"
-                            TextColor="{StaticResource color_GrisOscuro}" />
-
+                    <VerticalStackLayout Grid.Row="0" Padding="10,8,10,20" Spacing="3">
+                        <Label Text="ConatraCafé" FontSize="22" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                        <Label Text="Soil" FontSize="13" FontFamily="MontserratMedium" TextColor="{StaticResource color_GrisOscuro}" />
                     </VerticalStackLayout>
 
-                    <VerticalStackLayout
-                        Grid.Row="1"
-                        Spacing="8">
-
+                    <VerticalStackLayout Grid.Row="1" Spacing="8">
                         <controls:AppNavigationMenuItem
                             Texto="Inicio"
                             Icono="iconhome.png"
                             Interfaz="MainPage"
                             Ruta="//MainPage"
                             Seccion="Inicio" />
+
+                        <controls:AppNavigationMenuItem
+                            Texto="Inspección fitosanitaria"
+                            Icono="iconcultivo.png"
+                            GrupoPermisos="InspeccionFitosanitaria"
+                            Ruta="{x:Static services:DiagnosticoIARoutes.RutaModulo}"
+                            Seccion="Inspeccion" />
 
                         <controls:AppNavigationMenuItem
                             Texto="Álbum de fotos"
@@ -108,18 +83,10 @@
                             Interfaz="datosSinConexionPage"
                             Ruta="//DatosSinConexionPage"
                             Seccion="DatosOffline" />
-
                     </VerticalStackLayout>
 
-                    <VerticalStackLayout
-                        Grid.Row="2"
-                        Spacing="10">
-
-                        <BoxView
-                            HeightRequest="1"
-                            Color="#E5E7EB"
-                            Margin="0,0,0,4" />
-
+                    <VerticalStackLayout Grid.Row="2" Spacing="10">
+                        <BoxView HeightRequest="1" Color="#E5E7EB" Margin="0,0,0,4" />
                         <Border
                             HeightRequest="50"
                             MinimumHeightRequest="50"
@@ -128,34 +95,15 @@
                             Stroke="Transparent"
                             StrokeThickness="1"
                             StrokeShape="RoundRectangle 12">
-
                             <Border.GestureRecognizers>
-                                <TapGestureRecognizer
-                                    Command="{Binding CerrarSesionCommand}" />
+                                <TapGestureRecognizer Command="{Binding CerrarSesionCommand}" />
                             </Border.GestureRecognizers>
-
-                            <Grid
-                                ColumnDefinitions="26,*"
-                                ColumnSpacing="12">
-
-                                <Image
-                                    Source="iconloginout.png"
-                                    HeightRequest="24"
-                                    WidthRequest="24"
-                                    VerticalOptions="Center" />
-
-                                <Label
-                                    Grid.Column="1"
-                                    Text="Cerrar sesión"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="15"
-                                    TextColor="{StaticResource RedDelete}"
-                                    VerticalOptions="Center" />
+                            <Grid ColumnDefinitions="26,*" ColumnSpacing="12">
+                                <Image Source="iconloginout.png" HeightRequest="24" WidthRequest="24" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="Cerrar sesión" FontFamily="MontserratMedium" FontSize="15" TextColor="{StaticResource RedDelete}" VerticalOptions="Center" />
                             </Grid>
                         </Border>
-
                     </VerticalStackLayout>
-
                 </Grid>
             </Border>
 
@@ -176,23 +124,10 @@
                 StrokeThickness="1">
 
                 <Border.Shadow>
-                    <Shadow
-                        Brush="Black"
-                        Offset="0,-3"
-                        Radius="12"
-                        Opacity="0.10" />
+                    <Shadow Brush="Black" Offset="0,-3" Radius="12" Opacity="0.10" />
                 </Border.Shadow>
 
-                <FlexLayout
-                    Direction="Row"
-                    AlignItems="Stretch"
-                    JustifyContent="SpaceBetween">
-
-                    <!--
-                        Ajusta únicamente la presentación de la barra móvil:
-                        aumenta el alto, reserva espacio para las etiquetas y
-                        permite que "Sin conexión" utilice dos líneas.
-                    -->
+                <FlexLayout Direction="Row" AlignItems="Stretch" JustifyContent="SpaceBetween">
                     <FlexLayout.Behaviors>
                         <controls:MobileNavigationBarBehavior />
                     </FlexLayout.Behaviors>
@@ -205,6 +140,16 @@
                         Interfaz="MainPage"
                         Ruta="//MainPage"
                         Seccion="Inicio"
+                        EsMovil="True" />
+
+                    <controls:AppNavigationMenuItem
+                        FlexLayout.Grow="1"
+                        FlexLayout.Basis="0"
+                        Texto="Inspección"
+                        Icono="iconcultivo.png"
+                        GrupoPermisos="InspeccionFitosanitaria"
+                        Ruta="{x:Static services:DiagnosticoIARoutes.RutaModulo}"
+                        Seccion="Inspeccion"
                         EsMovil="True" />
 
                     <controls:AppNavigationMenuItem
@@ -257,21 +202,10 @@
                         BackgroundColor="Transparent"
                         HorizontalOptions="Fill"
                         VerticalOptions="Center">
-
                         <VerticalStackLayout.GestureRecognizers>
-                            <TapGestureRecognizer
-                                Command="{Binding CerrarSesionCommand}" />
+                            <TapGestureRecognizer Command="{Binding CerrarSesionCommand}" />
                         </VerticalStackLayout.GestureRecognizers>
-
-                        <Image
-                            Source="iconloginout.png"
-                            HeightRequest="24"
-                            WidthRequest="24"
-                            MinimumHeightRequest="24"
-                            MinimumWidthRequest="24"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center" />
-
+                        <Image Source="iconloginout.png" HeightRequest="24" WidthRequest="24" MinimumHeightRequest="24" MinimumWidthRequest="24" HorizontalOptions="Center" VerticalOptions="Center" />
                         <Label
                             Text="Salir"
                             FontSize="11.5"
@@ -285,10 +219,8 @@
                             HorizontalTextAlignment="Center"
                             HorizontalOptions="Fill" />
                     </VerticalStackLayout>
-
                 </FlexLayout>
             </Border>
-
         </Grid>
     </ControlTemplate>
 </ResourceDictionary>

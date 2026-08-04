@@ -1,4 +1,4 @@
-using CONATRADEC.Views;
+﻿using CONATRADEC.Views;
 using Microsoft.Maui.Controls;
 
 namespace CONATRADEC.Services
@@ -6,7 +6,7 @@ namespace CONATRADEC.Services
     public static class AppRoutes
     {
         /*
-         * Las rutas de propietarios son dinámicas.
+         * Las rutas de propietarios y Diagnóstico IA son dinámicas.
          * El constructor estático garantiza su registro antes de navegar.
          */
         static AppRoutes()
@@ -22,6 +22,7 @@ namespace CONATRADEC.Services
             Routing.RegisterRoute(
                 PropietarioTerrenos,
                 typeof(propietarioTerrenosPage));
+
         }
 
         public const string Login =
@@ -159,6 +160,28 @@ namespace CONATRADEC.Services
 
         public const string ActualizacionAplicacion =
             nameof(ActualizacionAplicacionPage);
+
+        /*
+         * Son static readonly para que el primer acceso ejecute el
+         * constructor estático y registre las páginas dinámicas.
+         */
+        public static readonly string InspeccionFitosanitaria =
+            DiagnosticoIARoutes.Pagina;
+
+        public static readonly string DiagnosticoIASolicitud =
+            DiagnosticoIARoutes.PaginaSolicitud;
+
+        public static readonly string DiagnosticoIAAnalizador =
+            DiagnosticoIARoutes.PaginaAnalizador;
+
+        public static readonly string DiagnosticoIAResultado =
+            DiagnosticoIARoutes.PaginaResultado;
+
+        public static readonly string DiagnosticoIAAprobador =
+            DiagnosticoIARoutes.PaginaAprobador;
+
+        public static readonly string DiagnosticoIAConfiguracion =
+            DiagnosticoIARoutes.PaginaConfiguracion;
 
         /*
          * Son static readonly para forzar la inicialización de la clase y
