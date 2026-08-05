@@ -335,29 +335,69 @@
                                             <Border
                                                 Margin="0,8,0,0"
                                                 Padding="12"
+                                                BackgroundColor="#EEF5F2"
+                                                Stroke="#AFCFC2"
+                                                StrokeShape="RoundRectangle 12"
+                                                IsVisible="{Binding TieneJerarquiaAlbum}">
+                                                <VerticalStackLayout Spacing="4">
+                                                    <Label
+                                                        Text="Clasificación para el Álbum Botánico"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#31584D" />
+                                                    <Label
+                                                        Text="{Binding JerarquiaAlbum.Categoria, StringFormat='Categoría: {0}'}"
+                                                        TextColor="#4F5D59" />
+                                                    <Label
+                                                        Text="{Binding JerarquiaAlbum.Subcategoria, StringFormat='Subcategoría: {0}'}"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#3B655B" />
+                                                    <Label
+                                                        Text="{Binding JerarquiaAlbum.Ficha, StringFormat='Diagnóstico específico: {0}'}"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#263A35" />
+                                                    <Label
+                                                        Text="{Binding JerarquiaAlbum.NombreCientifico, StringFormat='Nombre científico: {0}'}"
+                                                        FontAttributes="Italic"
+                                                        TextColor="#4F5D59"
+                                                        IsVisible="{Binding JerarquiaAlbum.TieneNombreCientifico}" />
+                                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                                                        <Label Grid.Column="0" Text="{Binding JerarquiaAlbum.EstadoCategoria}" FontSize="10" TextColor="#6A7D76" />
+                                                        <Label Grid.Column="1" Text="{Binding JerarquiaAlbum.EstadoSubcategoria}" FontSize="10" TextColor="#6A7D76" />
+                                                        <Label Grid.Column="2" Text="{Binding JerarquiaAlbum.EstadoFicha}" FontSize="10" TextColor="#6A7D76" />
+                                                    </Grid>
+                                                    <Label
+                                                        Text="{Binding JerarquiaAlbum.Motivo}"
+                                                        FontSize="12"
+                                                        TextColor="#5E6B67" />
+                                                </VerticalStackLayout>
+                                            </Border>
+
+                                            <Border
+                                                Margin="0,8,0,0"
+                                                Padding="12"
                                                 BackgroundColor="#FFF9E8"
                                                 Stroke="#E2B93B"
                                                 StrokeShape="RoundRectangle 12"
                                                 IsVisible="{Binding TienePropuestaAlbum}">
                                                 <VerticalStackLayout Spacing="4">
                                                     <Label
-                                                        Text="Propuesta para el Álbum Botánico"
+                                                        Text="Jerarquía pendiente de revisión"
                                                         FontAttributes="Bold"
                                                         TextColor="#6B5710" />
                                                     <Label
-                                                        Text="{Binding ResultadoIA.CategoriaAlbumPropuesta, StringFormat='Capítulo sugerido: {0}'}"
+                                                        Text="{Binding ResultadoIA.CategoriaAlbumPropuesta, StringFormat='Categoría sugerida: {0}'}"
                                                         TextColor="#4F5D59" />
                                                     <Label
-                                                        Text="{Binding ResultadoIA.ClasificacionAlbumPropuesta, StringFormat='Ficha sugerida: {0}'}"
+                                                        Text="{Binding ResultadoIA.ClasificacionAlbumPropuesta, StringFormat='Diagnóstico específico sugerido: {0}'}"
                                                         FontAttributes="Bold"
                                                         TextColor="#3B655B" />
                                                     <Label
-                                                        Text="{Binding ResultadoIA.MotivoAlbumPropuesta}"
-                                                        TextColor="#5E6B67" />
-                                                    <Label
-                                                        Text="El técnico no crea la ficha. El analizador confirmará una ficha existente o propondrá una nueva, y el aprobador decidirá si se incorpora al álbum."
+                                                        Text="La subcategoría se seleccionará o propondrá durante la clasificación humana."
                                                         FontSize="12"
                                                         TextColor="#7A6A2A" />
+                                                    <Label
+                                                        Text="{Binding ResultadoIA.MotivoAlbumPropuesta}"
+                                                        TextColor="#5E6B67" />
                                                 </VerticalStackLayout>
                                             </Border>
                                         </VerticalStackLayout>

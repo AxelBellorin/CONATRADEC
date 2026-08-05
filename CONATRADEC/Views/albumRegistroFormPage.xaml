@@ -63,7 +63,7 @@
                                 TextColor="{StaticResource color_Verde}" />
 
                             <Label
-                                Text="Defina el capítulo y los nombres principales del registro."
+                                Text="Defina la ruta completa: categoría, subcategoría y ficha específica."
                                 FontSize="12"
                                 TextColor="{StaticResource color_GrisOscuro}" />
 
@@ -110,6 +110,96 @@
 
                         </VerticalStackLayout>
 
+                        <VerticalStackLayout Spacing="6">
+
+                            <Grid
+                                ColumnDefinitions="*,Auto,Auto,Auto"
+                                ColumnSpacing="7">
+
+                                <Label
+                                    Grid.Column="0"
+                                    Text="Subcategoría *"
+                                    VerticalOptions="Center"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Nueva"
+                                    Command="{Binding CrearSubcategoriaCommand}"
+                                    IsVisible="{Binding CanAdd}"
+                                    IsEnabled="{Binding NotIsBusy}"
+                                    Style="{x:Null}"
+                                    Padding="10,6"
+                                    CornerRadius="9"
+                                    BackgroundColor="#EAF3EF"
+                                    TextColor="#3B655B" />
+
+                                <Button
+                                    Grid.Column="2"
+                                    Text="Editar"
+                                    Command="{Binding EditarSubcategoriaCommand}"
+                                    IsVisible="{Binding CanEdit}"
+                                    IsEnabled="{Binding PuedeEditarSubcategoria}"
+                                    Style="{x:Null}"
+                                    Padding="10,6"
+                                    CornerRadius="9"
+                                    BackgroundColor="#EAF0FF"
+                                    TextColor="#2D5A9E" />
+
+                                <Button
+                                    Grid.Column="3"
+                                    Text="Desactivar"
+                                    Command="{Binding CambiarEstadoSubcategoriaCommand}"
+                                    IsVisible="{Binding CanDelete}"
+                                    IsEnabled="{Binding PuedeEditarSubcategoria}"
+                                    Style="{x:Null}"
+                                    Padding="10,6"
+                                    CornerRadius="9"
+                                    BackgroundColor="#FFF4E8"
+                                    TextColor="#9B552C" />
+                            </Grid>
+
+                            <Border
+                                Padding="12,2"
+                                BackgroundColor="#F8FAF9"
+                                Stroke="#D6E1DC"
+                                StrokeShape="RoundRectangle 12">
+
+                                <Border.Triggers>
+                                    <DataTrigger
+                                        TargetType="Border"
+                                        Binding="{Binding TieneErrorSubcategoria}"
+                                        Value="True">
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+
+                                <Picker
+                                    ItemsSource="{Binding Subcategorias}"
+                                    SelectedItem="{Binding SubcategoriaSeleccionada}"
+                                    ItemDisplayBinding="{Binding NombreSubcategoria}"
+                                    Title="Seleccione una subcategoría"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource color_Negro}" />
+
+                            </Border>
+
+                            <Label
+                                Text="No hay subcategorías activas. Cree una para continuar."
+                                IsVisible="{Binding SinSubcategorias}"
+                                FontSize="11"
+                                TextColor="#9B552C" />
+
+                            <Label
+                                Text="{Binding ErrorSubcategoria}"
+                                IsVisible="{Binding TieneErrorSubcategoria}"
+                                Style="{StaticResource ValidationMessageStyle}" />
+
+                        </VerticalStackLayout>
+
                         <Grid
                             ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
                             RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
@@ -122,7 +212,7 @@
                                 Spacing="6">
 
                                 <Label
-                                    Text="Título o nombre común *"
+                                    Text="Ficha o diagnóstico específico *"
                                     FontSize="13"
                                     FontAttributes="Bold"
                                     TextColor="{StaticResource color_Negro}" />
@@ -146,7 +236,7 @@
                                     <Entry
                                         Text="{Binding Titulo}"
                                         MaxLength="200"
-                                        Placeholder="Ejemplo: Roya del café"
+                                        Placeholder="Ejemplo: Minador de la hoja"
                                         BackgroundColor="Transparent"
                                         TextColor="{StaticResource color_Negro}" />
 
@@ -189,7 +279,7 @@
                                     <Entry
                                         Text="{Binding NombreCientifico}"
                                         MaxLength="200"
-                                        Placeholder="Ejemplo: Hemileia vastatrix"
+                                        Placeholder="Ejemplo: Leucoptera coffeella"
                                         BackgroundColor="Transparent"
                                         TextColor="{StaticResource color_Negro}" />
 

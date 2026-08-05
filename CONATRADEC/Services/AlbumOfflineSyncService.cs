@@ -5,18 +5,10 @@ using Microsoft.Maui.Storage;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Descarga el contenido activo completo del Álbum Botánico para que pueda
-    /// consultarse sin conexión.
-    ///
-    /// Se almacenan:
-    /// - la carga inicial;
-    /// - todas las páginas de la galería;
-    /// - todas las páginas de cada categoría;
-    /// - el detalle de cada registro;
-    /// - miniaturas y fotografías internas.
-    ///
-    /// Las respuestas continúan pasando por ContenidoSincronizacionHandler,
-    /// por lo que se guardan en SQLite con la versión vigente.
+    /// Descarga el Álbum Botánico completo con su nueva jerarquía:
+    /// categorías, subcategorías, fichas, detalles y fotografías.
+    /// Todas las rutas quedan almacenadas por ContenidoSincronizacionHandler
+    /// con una única versión transaccional para su consulta sin conexión.
     /// </summary>
     public sealed class AlbumOfflineSyncService
     {
@@ -24,7 +16,7 @@ namespace CONATRADEC.Services
             new(() => new AlbumOfflineSyncService());
 
         private readonly SemaphoreSlim syncLock = new(1, 1);
-        private readonly AlbumBotanicoCargaApiService cargaApiService = new();
+        private readonly AlbumJerarquiaApiService jerarquiaApi = new();
         private readonly AlbumBotanicoApiService albumApiService = new();
 
         private const string ClaveVersionCompletaPrefijo =
@@ -38,46 +30,27 @@ namespace CONATRADEC.Services
 
         public void MarcarPendiente()
         {
-            string usuarioId =
-                ObtenerUsuarioId();
+            string usuarioId = ObtenerUsuarioId();
 
             if (usuarioId != "0")
-            {
-                Preferences.Remove(
-                    ConstruirClaveVersionCompleta(
-                        usuarioId));
-            }
+                Preferences.Remove(ConstruirClaveVersionCompleta(usuarioId));
 
-            ContenidoSincronizacionRuntime
-                .Invalidar("album");
+            ContenidoSincronizacionRuntime.Invalidar("album");
         }
 
-        /// <summary>
-        /// Comprueba la versión del servidor con una solicitud ligera.
-        /// Solamente ejecuta la descarga completa cuando:
-        /// - el usuario la fuerza manualmente;
-        /// - la versión cambió;
-        /// - la versión actual nunca terminó de descargarse por completo.
-        /// </summary>
-        public async Task<AlbumOfflineSyncResult>
-            SincronizarSiNecesarioAsync(
-                bool forzarDescargaCompleta,
-                CancellationToken cancellationToken = default)
+        public async Task<AlbumOfflineSyncResult> SincronizarSiNecesarioAsync(
+            bool forzarDescargaCompleta,
+            CancellationToken cancellationToken = default)
         {
             ContenidoSincronizacionRuntime.Invalidar("album");
 
-            int pageSize =
-                DeviceInfo.Platform == DevicePlatform.WinUI
-                    ? 12
-                    : 6;
-
-            ApiResult<AlbumInicioResponse> verification =
-                await cargaApiService.GetInicioAsync(
+            int pageSize = ObtenerTamanoPagina();
+            ApiResult<AlbumInicioJerarquiaResponse> verification =
+                await jerarquiaApi.GetInicioAsync(
                     pageSize,
                     cancellationToken);
 
-            if (!verification.Success ||
-                verification.Data == null)
+            if (!verification.Success || verification.Data == null)
             {
                 return FailWithState(
                     verification.Message,
@@ -86,7 +59,6 @@ namespace CONATRADEC.Services
 
             string userId = ObtenerUsuarioId();
             string stateKey = $"{userId}|album";
-
             ContenidoModuloEstadoEntity? state =
                 await ContenidoLocalDatabaseService.Instance
                     .ObtenerEstadoAsync(stateKey);
@@ -104,15 +76,10 @@ namespace CONATRADEC.Services
             }
 
             if (!forzarDescargaCompleta &&
-                EstaVersionCompleta(
-                    userId,
-                    currentVersion))
+                EstaVersionCompleta(userId, currentVersion))
             {
-                DateTime? lastSync =
-                    state?.UltimaSincronizacionExitosaUtc;
-
-                bool conectado =
-                    EstadoConexionService.Instance.HayInternet;
+                DateTime? lastSync = state?.UltimaSincronizacionExitosaUtc;
+                bool conectado = EstadoConexionService.Instance.HayInternet;
 
                 ContenidoEstadoService.Instance.Actualizar(
                     "album",
@@ -124,11 +91,9 @@ namespace CONATRADEC.Services
                         : "Sin conexión · usando datos sincronizados",
                     conectado
                         ? "Datos sincronizados anteriormente · versión validada con el servidor · " +
-                          ContenidoEstadoService.ConstruirDetalleFecha(
-                              lastSync)
+                          ContenidoEstadoService.ConstruirDetalleFecha(lastSync)
                         : "Datos sincronizados anteriormente · " +
-                          ContenidoEstadoService.ConstruirDetalleFecha(
-                              lastSync),
+                          ContenidoEstadoService.ConstruirDetalleFecha(lastSync),
                     currentVersion,
                     lastSync);
 
@@ -138,8 +103,7 @@ namespace CONATRADEC.Services
                     "El álbum local ya contiene la versión vigente.");
             }
 
-            return await SincronizarAsync(
-                cancellationToken);
+            return await SincronizarAsync(cancellationToken);
         }
 
         public async Task<AlbumOfflineSyncResult> SincronizarAsync(
@@ -161,22 +125,17 @@ namespace CONATRADEC.Services
                     "album",
                     TipoEstadoSincronizacionContenido.Verificando,
                     "Sincronizando álbum completo...",
-                    "Comprobando categorías y registros disponibles.");
+                    "Comprobando categorías, subcategorías y fichas disponibles.");
 
                 ContenidoSincronizacionRuntime.Invalidar("album");
 
-                int pageSize =
-                    DeviceInfo.Platform == DevicePlatform.WinUI
-                        ? 12
-                        : 6;
-
-                ApiResult<AlbumInicioResponse> initialResult =
-                    await cargaApiService.GetInicioAsync(
+                int pageSize = ObtenerTamanoPagina();
+                ApiResult<AlbumInicioJerarquiaResponse> initialResult =
+                    await jerarquiaApi.GetInicioAsync(
                         pageSize,
                         cancellationToken);
 
-                if (!initialResult.Success ||
-                    initialResult.Data == null)
+                if (!initialResult.Success || initialResult.Data == null)
                 {
                     return FailWithState(
                         initialResult.Message,
@@ -185,28 +144,26 @@ namespace CONATRADEC.Services
 
                 List<CategoriaAlbumBotanicoResponse> categories =
                     initialResult.Data.Categorias
-                        .Where(x => x.Activo)
+                        .Where(item => item.Activo)
+                        .ToList();
+
+                List<SubcategoriaAlbumBotanicoResponse> subcategories =
+                    initialResult.Data.Subcategorias
+                        .Where(item => item.Activo)
                         .ToList();
 
                 var records = new Dictionary<
                     int,
-                    AlbumGaleriaItemResponse>();
+                    AlbumGaleriaJerarquiaItemResponse>();
 
-                AddRecords(
+                AddRecords(records, initialResult.Data.Galeria.Items);
+
+                AlbumPagesResult allPages = await DownloadPagesAsync(
+                    categoryId: null,
+                    subcategoryId: null,
+                    pageSize,
                     records,
-                    initialResult.Data.Galeria.Items);
-
-                /*
-                 * La pantalla utiliza /galeria-paginada al seleccionar Todos,
-                 * aunque la primera entrada se cargue con /inicio. Se guardan
-                 * ambas rutas para que regresar a Todos funcione offline.
-                 */
-                AlbumPagesResult allPages =
-                    await DownloadPagesAsync(
-                        categoryId: null,
-                        pageSize,
-                        records,
-                        cancellationToken);
+                    cancellationToken);
 
                 if (!allPages.Success)
                 {
@@ -216,9 +173,7 @@ namespace CONATRADEC.Services
                 }
 
                 int currentCategory = 0;
-
-                foreach (CategoriaAlbumBotanicoResponse category
-                         in categories)
+                foreach (CategoriaAlbumBotanicoResponse category in categories)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     currentCategory++;
@@ -230,12 +185,12 @@ namespace CONATRADEC.Services
                         $"{currentCategory} de {categories.Count}: " +
                         category.NombreCategoria);
 
-                    AlbumPagesResult categoryPages =
-                        await DownloadPagesAsync(
-                            category.CategoriaAlbumBotanicoId,
-                            pageSize,
-                            records,
-                            cancellationToken);
+                    AlbumPagesResult categoryPages = await DownloadPagesAsync(
+                        category.CategoriaAlbumBotanicoId,
+                        subcategoryId: null,
+                        pageSize,
+                        records,
+                        cancellationToken);
 
                     if (!categoryPages.Success)
                     {
@@ -246,16 +201,50 @@ namespace CONATRADEC.Services
                     }
                 }
 
-                List<AlbumGaleriaItemResponse> activeRecords =
+                int currentSubcategory = 0;
+                foreach (SubcategoriaAlbumBotanicoResponse subcategory in
+                         subcategories)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    currentSubcategory++;
+
+                    ContenidoEstadoService.Instance.Actualizar(
+                        "album",
+                        TipoEstadoSincronizacionContenido.Verificando,
+                        "Descargando subcategorías...",
+                        $"{currentSubcategory} de {subcategories.Count}: " +
+                        subcategory.NombreSubcategoria);
+
+                    AlbumPagesResult subcategoryPages =
+                        await DownloadPagesAsync(
+                            subcategory.CategoriaAlbumBotanicoId,
+                            subcategory.SubcategoriaAlbumBotanicoId,
+                            pageSize,
+                            records,
+                            cancellationToken);
+
+                    if (!subcategoryPages.Success)
+                    {
+                        return FailWithState(
+                            subcategoryPages.Message,
+                            $"No fue posible descargar la subcategoría " +
+                            $"'{subcategory.NombreSubcategoria}'.");
+                    }
+                }
+
+                List<AlbumGaleriaJerarquiaItemResponse> activeRecords =
                     records.Values
-                        .Where(x => x.Activo && x.CategoriaActiva)
-                        .OrderBy(x => x.AlbumBotanicoCafeId)
+                        .Where(item =>
+                            item.Activo &&
+                            item.CategoriaActiva &&
+                            item.SubcategoriaActiva)
+                        .OrderBy(item => item.AlbumBotanicoCafeId)
                         .ToList();
 
                 int currentRecord = 0;
                 int totalPhotos = 0;
 
-                foreach (AlbumGaleriaItemResponse item in activeRecords)
+                foreach (AlbumGaleriaJerarquiaItemResponse item in activeRecords)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     currentRecord++;
@@ -267,19 +256,13 @@ namespace CONATRADEC.Services
                         $"{currentRecord} de {activeRecords.Count}: " +
                         item.Titulo);
 
-                    /*
-                     * Se usa incluirInactivos=false para que el detalle activo
-                     * tenga una ruta pública cacheable. La administración de
-                     * registros inactivos continúa requiriendo internet.
-                     */
                     ApiResult<AlbumDetalleResponse> detailResult =
                         await albumApiService.GetDetalleAsync(
                             item.AlbumBotanicoCafeId,
                             incluirInactivos: false,
                             cancellationToken: cancellationToken);
 
-                    if (!detailResult.Success ||
-                        detailResult.Data == null)
+                    if (!detailResult.Success || detailResult.Data == null)
                     {
                         return FailWithState(
                             detailResult.Message,
@@ -291,9 +274,7 @@ namespace CONATRADEC.Services
                 }
 
                 string userId = ObtenerUsuarioId();
-
                 string stateKey = $"{userId}|album";
-
                 ContenidoModuloEstadoEntity? state =
                     await ContenidoLocalDatabaseService.Instance
                         .ObtenerEstadoAsync(stateKey);
@@ -307,45 +288,31 @@ namespace CONATRADEC.Services
                         "Los datos descargados se conservarán para el próximo intento.");
                 }
 
-                /*
-                 * La versión anterior se elimina únicamente después de
-                 * completar categorías, páginas, detalles y fotografías.
-                 */
                 await ContenidoLocalDatabaseService.Instance
                     .EliminarRespuestasVersionAnteriorAsync(
                         userId,
                         "album",
                         version);
 
-                await ImagenLocalCacheService
-                    .LimpiarVersionAnteriorAsync(
-                        userId,
-                        "album",
-                        version);
-
-                await ImagenLocalCacheService
-                    .AplicarLimiteAsync();
-
-                MarcarVersionCompleta(
+                await ImagenLocalCacheService.LimpiarVersionAnteriorAsync(
                     userId,
+                    "album",
                     version);
 
-                DateTime now = DateTime.UtcNow;
+                await ImagenLocalCacheService.AplicarLimiteAsync();
+                MarcarVersionCompleta(userId, version);
 
-                /*
-                 * Para llegar hasta aquí todas las solicitudes del álbum
-                 * respondieron correctamente. Por tanto, la API está accesible
-                 * aunque Windows todavía no haya actualizado su indicador.
-                 */
-                EstadoConexionService.Instance
-                    .ReportarServidorDisponible();
+                DateTime now = DateTime.UtcNow;
+                EstadoConexionService.Instance.ReportarServidorDisponible();
 
                 ContenidoEstadoService.Instance.Actualizar(
                     "album",
                     TipoEstadoSincronizacionContenido.Servidor,
                     "Conectado · datos del servidor",
                     "Origen: servidor · datos guardados en el dispositivo actualizados · " +
-                    $"{activeRecords.Count} registros y " +
+                    $"{categories.Count} categorías, " +
+                    $"{subcategories.Count} subcategorías, " +
+                    $"{activeRecords.Count} fichas y " +
                     $"{totalPhotos} fotografías sincronizadas · " +
                     ContenidoEstadoService.ConstruirDetalleFecha(now),
                     version,
@@ -354,7 +321,7 @@ namespace CONATRADEC.Services
                 return AlbumOfflineSyncResult.Ok(
                     activeRecords.Count,
                     totalPhotos,
-                    "El álbum completo fue sincronizado correctamente.");
+                    "El álbum jerárquico completo fue sincronizado correctamente.");
             }
             catch (OperationCanceledException)
             {
@@ -379,48 +346,11 @@ namespace CONATRADEC.Services
             }
         }
 
-        private static string ObtenerUsuarioId()
-        {
-            string userId = Preferences.Get(
-                SessionKeys.KeyUserId,
-                string.Empty);
-
-            return string.IsNullOrWhiteSpace(userId)
-                ? "0"
-                : userId;
-        }
-
-        private static bool EstaVersionCompleta(
-            string userId,
-            string version)
-        {
-            string storedVersion = Preferences.Get(
-                ConstruirClaveVersionCompleta(userId),
-                string.Empty);
-
-            return string.Equals(
-                storedVersion,
-                version,
-                StringComparison.Ordinal);
-        }
-
-        private static void MarcarVersionCompleta(
-            string userId,
-            string version)
-        {
-            Preferences.Set(
-                ConstruirClaveVersionCompleta(userId),
-                version);
-        }
-
-        private static string ConstruirClaveVersionCompleta(
-            string userId) =>
-            ClaveVersionCompletaPrefijo + userId;
-
         private async Task<AlbumPagesResult> DownloadPagesAsync(
             int? categoryId,
+            int? subcategoryId,
             int pageSize,
-            IDictionary<int, AlbumGaleriaItemResponse> records,
+            IDictionary<int, AlbumGaleriaJerarquiaItemResponse> records,
             CancellationToken cancellationToken)
         {
             const int maxPages = 500;
@@ -430,9 +360,10 @@ namespace CONATRADEC.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                ApiResult<AlbumGaleriaPaginaResponse> result =
-                    await cargaApiService.GetPaginaAsync(
+                ApiResult<AlbumGaleriaJerarquiaPaginaResponse> result =
+                    await jerarquiaApi.GetPaginaAsync(
                         categoryId,
+                        subcategoryId,
                         buscar: null,
                         incluirInactivos: false,
                         pagina: page,
@@ -440,24 +371,15 @@ namespace CONATRADEC.Services
                         cancellationToken: cancellationToken);
 
                 if (!result.Success || result.Data == null)
-                {
-                    return AlbumPagesResult.Fail(
-                        result.Message);
-                }
+                    return AlbumPagesResult.Fail(result.Message);
 
-                AddRecords(
-                    records,
-                    result.Data.Items);
+                AddRecords(records, result.Data.Items);
 
                 if (!result.Data.TieneMas)
                     return AlbumPagesResult.Ok();
 
                 int nextPage = result.Data.PaginaActual + 1;
-
-                if (nextPage <= page)
-                    nextPage = page + 1;
-
-                page = nextPage;
+                page = nextPage <= page ? page + 1 : nextPage;
             }
 
             return AlbumPagesResult.Fail(
@@ -465,18 +387,50 @@ namespace CONATRADEC.Services
         }
 
         private static void AddRecords(
-            IDictionary<int, AlbumGaleriaItemResponse> destination,
-            IEnumerable<AlbumGaleriaItemResponse>? items)
+            IDictionary<int, AlbumGaleriaJerarquiaItemResponse> destination,
+            IEnumerable<AlbumGaleriaJerarquiaItemResponse>? items)
         {
             if (items == null)
                 return;
 
-            foreach (AlbumGaleriaItemResponse item in items)
+            foreach (AlbumGaleriaJerarquiaItemResponse item in items)
             {
                 if (item.AlbumBotanicoCafeId > 0)
                     destination[item.AlbumBotanicoCafeId] = item;
             }
         }
+
+        private static int ObtenerTamanoPagina() =>
+            DeviceInfo.Platform == DevicePlatform.WinUI ? 12 : 6;
+
+        private static string ObtenerUsuarioId()
+        {
+            string userId = Preferences.Get(
+                SessionKeys.KeyUserId,
+                string.Empty);
+
+            return string.IsNullOrWhiteSpace(userId) ? "0" : userId;
+        }
+
+        private static bool EstaVersionCompleta(
+            string userId,
+            string version) =>
+            string.Equals(
+                Preferences.Get(
+                    ConstruirClaveVersionCompleta(userId),
+                    string.Empty),
+                version,
+                StringComparison.Ordinal);
+
+        private static void MarcarVersionCompleta(
+            string userId,
+            string version) =>
+            Preferences.Set(
+                ConstruirClaveVersionCompleta(userId),
+                version);
+
+        private static string ConstruirClaveVersionCompleta(string userId) =>
+            ClaveVersionCompletaPrefijo + userId;
 
         private static AlbumOfflineSyncResult FailWithState(
             string? originalMessage,
@@ -504,11 +458,7 @@ namespace CONATRADEC.Services
             public bool Success { get; private init; }
             public string Message { get; private init; } = string.Empty;
 
-            public static AlbumPagesResult Ok() =>
-                new()
-                {
-                    Success = true
-                };
+            public static AlbumPagesResult Ok() => new() { Success = true };
 
             public static AlbumPagesResult Fail(string? message) =>
                 new()

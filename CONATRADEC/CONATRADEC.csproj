@@ -254,6 +254,9 @@
 		<MauiXaml Update="Views\fuenteNutrientePage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\JerarquiaAlbumFotografiaPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\matrizPermisosPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

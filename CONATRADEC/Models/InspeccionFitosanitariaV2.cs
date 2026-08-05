@@ -172,6 +172,7 @@ namespace CONATRADEC.Models
         public string SeveridadVisual { get; set; } = string.Empty;
         public string NivelCerteza { get; set; } = string.Empty;
         public int? CategoriaAlbumBotanicoIdSugerida { get; set; }
+        public int? SubcategoriaAlbumBotanicoIdSugerida { get; set; }
         public int? AlbumBotanicoCafeIdSugerido { get; set; }
         public string CategoriaAlbumSugerida { get; set; } = string.Empty;
         public string ClasificacionAlbumSugerida { get; set; } = string.Empty;
@@ -315,6 +316,7 @@ namespace CONATRADEC.Models
     public sealed class InspeccionFotoV2 : INotifyPropertyChanged
     {
         private bool seleccionada;
+        private JerarquiaDiagnosticoFotoResponse? jerarquiaAlbum;
 
         public int FotografiaId { get; set; }
         public int Orden { get; set; }
@@ -337,6 +339,36 @@ namespace CONATRADEC.Models
         public InspeccionFotoAnalisisHumanoV2? UltimoAnalisisHumano { get; set; }
         public InspeccionFotoAprobacionV2? UltimaAprobacion { get; set; }
         public List<InspeccionFotoHistorialV2> Historial { get; set; } = [];
+
+        /// <summary>
+        /// Clasificación jerárquica oficial o propuesta para el Álbum Botánico.
+        /// Se carga en una sola consulta por inspección para evitar N+1.
+        /// </summary>
+        public JerarquiaDiagnosticoFotoResponse? JerarquiaAlbum
+        {
+            get => jerarquiaAlbum;
+            set
+            {
+                if (ReferenceEquals(jerarquiaAlbum, value))
+                    return;
+
+                jerarquiaAlbum = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneJerarquiaAlbum));
+                OnPropertyChanged(nameof(TieneClasificacionAlbumCompleta));
+            }
+        }
+
+        public bool TieneJerarquiaAlbum =>
+            JerarquiaAlbum?.TieneClasificacion == true;
+
+        public bool TieneClasificacionAlbumCompleta =>
+            JerarquiaAlbum?.CategoriaAlbumBotanicoId is > 0 &&
+            JerarquiaAlbum?.SubcategoriaAlbumBotanicoId is > 0 &&
+            JerarquiaAlbum?.AlbumBotanicoCafeId is > 0 &&
+            JerarquiaAlbum.CategoriaEsPropuesta == false &&
+            JerarquiaAlbum.SubcategoriaEsPropuesta == false &&
+            JerarquiaAlbum.FichaEsPropuesta == false;
 
         public bool Seleccionada
         {
@@ -512,6 +544,8 @@ namespace CONATRADEC.Models
     {
         public int AlbumBotanicoCafeId { get; set; }
         public int CategoriaAlbumBotanicoId { get; set; }
+        public int? SubcategoriaAlbumBotanicoId { get; set; }
+        public string Subcategoria { get; set; } = string.Empty;
         public string Titulo { get; set; } = string.Empty;
         public string NombreCientifico { get; set; } = string.Empty;
 

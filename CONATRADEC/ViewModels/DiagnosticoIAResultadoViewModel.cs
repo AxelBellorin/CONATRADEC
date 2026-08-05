@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.Views;
 using Microsoft.Maui.Media;
@@ -19,6 +19,7 @@ namespace CONATRADEC.ViewModels
         private int diagnosticoId;
         private readonly TipoFotografiaIAApiService tiposFotografiaApi = new();
         private readonly AlbumBotanicoApiService albumBotanicoApi = new();
+        private readonly AlbumJerarquiaApiService jerarquiaApi = new();
         private string origen = DiagnosticoIARoutes.ModoMisInspecciones;
         private InspeccionFitosanitariaDetalleV2? detalle;
 
@@ -256,7 +257,7 @@ namespace CONATRADEC.ViewModels
                     }
                 }
 
-                AplicarDetalle(actualizado);
+                await AplicarDetalleAsync(actualizado);
             }
             catch (Exception ex)
             {
@@ -457,7 +458,7 @@ namespace CONATRADEC.ViewModels
                         diagnosticoId,
                         temporales);
 
-                AplicarDetalle(actualizado);
+                await AplicarDetalleAsync(actualizado);
 
                 await MostrarAlertaAsync(
                     "Fotografías agregadas",
@@ -488,7 +489,7 @@ namespace CONATRADEC.ViewModels
                 foto.ResultadoIA.TieneFichaAlbumCoincidente == false &&
                 foto.ResultadoIA.RequiereDecisionClasificacion == false);
 
-        private void AplicarDetalle(
+        private async Task AplicarDetalleAsync(
             InspeccionFitosanitariaDetalleV2 actualizado)
         {
             Detalle = actualizado;
@@ -506,12 +507,49 @@ namespace CONATRADEC.ViewModels
                 Fotografias.Add(foto);
             }
 
+            await CargarJerarquiaAlbumAsync();
+
             OnPropertyChanged(nameof(PuedeAgregarFotografias));
             OnPropertyChanged(nameof(PuedeCerrarInspeccion));
             OnPropertyChanged(nameof(MostrarCierreTecnico));
             OnPropertyChanged(nameof(MotivoNoPuedeCerrar));
             OnPropertyChanged(nameof(SubtituloResultado));
             NotificarSeleccion();
+        }
+
+        private async Task CargarJerarquiaAlbumAsync()
+        {
+            if (diagnosticoId <= 0 || Fotografias.Count == 0)
+                return;
+
+            ApiResult<List<JerarquiaDiagnosticoFotoResponse>> resultado =
+                await jerarquiaApi.GetJerarquiaDiagnosticoAsync(diagnosticoId);
+
+            if (!resultado.Success)
+                return;
+
+            List<JerarquiaDiagnosticoFotoResponse> items =
+                resultado.Data ?? [];
+
+            JerarquiaAlbumCacheService.Establecer(
+                diagnosticoId,
+                items);
+
+            Dictionary<int, JerarquiaDiagnosticoFotoResponse> mapa = items
+                .Where(item => item.FotografiaId > 0)
+                .GroupBy(item => item.FotografiaId)
+                .ToDictionary(
+                    grupo => grupo.Key,
+                    grupo => grupo.Last());
+
+            foreach (InspeccionFotoV2 foto in Fotografias)
+            {
+                foto.JerarquiaAlbum = mapa.TryGetValue(
+                    foto.FotografiaId,
+                    out JerarquiaDiagnosticoFotoResponse? jerarquia)
+                    ? jerarquia
+                    : null;
+            }
         }
 
         private void FotoPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -560,7 +598,7 @@ namespace CONATRADEC.ViewModels
                 InspeccionFitosanitariaDetalleV2 actualizado =
                     await InspeccionApi.CerrarInspeccionAsync(diagnosticoId);
 
-                AplicarDetalle(actualizado);
+                await AplicarDetalleAsync(actualizado);
 
                 await MostrarAlertaAsync(
                     "Inspección cerrada",
@@ -816,7 +854,7 @@ namespace CONATRADEC.ViewModels
 
                     InspeccionFotoResultadoIAV2? ia = foto.ResultadoIA;
 
-                    if (ia?.RequiereGestionAlbum == true)
+                    if (!foto.TieneClasificacionAlbumCompleta)
                     {
                         bool clasificacionLista =
                             await GestionarClasificacionAlbumAnalizadorAsync(
@@ -922,7 +960,7 @@ namespace CONATRADEC.ViewModels
                     if (decision is "APROBAR" or
                         "APROBAR_CON_CORRECCION")
                     {
-                        if (foto.ResultadoIA?.RequiereDecisionClasificacion == true)
+                        if (!foto.TieneClasificacionAlbumCompleta)
                         {
                             bool clasificacionResuelta =
                                 await GestionarClasificacionAlbumAprobadorAsync(
@@ -974,113 +1012,18 @@ namespace CONATRADEC.ViewModels
             if (Shell.Current == null || foto.ResultadoIA == null)
                 return false;
 
-            InspeccionFotoResultadoIAV2 resultado = foto.ResultadoIA;
-            (CategoriaAlbumBotanicoResponse? categoria,
-                List<InspeccionAlbumFichaV2> fichas) =
-                await CargarContextoClasificacionAlbumAsync(resultado);
-
-            if (categoria == null)
-            {
-                await MostrarAlertaAsync(
-                    "Capítulo no disponible",
-                    $"No existe un capítulo activo llamado “{resultado.CategoriaAlbumPropuesta}”. " +
-                    "Un administrador del Álbum Botánico debe crearlo antes de registrar la propuesta de esta fotografía.");
-                return false;
-            }
-
-            if (fichas.Count > 0)
-            {
-                string? accion = await Shell.Current.DisplayActionSheet(
-                    $"Álbum Botánico · {indice} de {total}",
-                    "Cancelar",
-                    null,
-                    "Usar una ficha existente",
-                    "Proponer una ficha nueva");
-
-                if (string.IsNullOrWhiteSpace(accion) || accion == "Cancelar")
-                    return false;
-
-                if (accion == "Usar una ficha existente")
-                {
-                    InspeccionAlbumFichaV2? ficha =
-                        await SeleccionarFichaExistenteAsync(
-                            categoria,
-                            fichas,
-                            resultado.AlbumBotanicoCafeIdSugerido);
-
-                    if (ficha == null)
-                        return false;
-
-                    await InspeccionApi.ResolverClasificacionExistenteAsync(
-                        diagnosticoId,
-                        foto.FotografiaId,
-                        ficha.AlbumBotanicoCafeId);
-
-                    return true;
-                }
-            }
-            else
-            {
-                bool continuar = await ConfirmarAsync(
-                    $"Proponer nueva ficha · {indice} de {total}",
-                    $"El capítulo “{categoria.NombreCategoria}” todavía no contiene fichas compatibles. " +
-                    $"Se preparará una propuesta individual para {foto.Titulo}.");
-
-                if (!continuar)
-                    return false;
-            }
-
-            string? titulo = await Shell.Current.DisplayPromptAsync(
-                $"Nombre de la ficha propuesta · {indice} de {total}",
-                "Indique un nombre claro para la clasificación que revisará el aprobador.",
-                "Continuar",
-                "Cancelar",
-                "Nombre de la ficha",
-                200,
-                Keyboard.Default,
-                resultado.ClasificacionAlbumPropuesta);
-
-            if (string.IsNullOrWhiteSpace(titulo) || titulo.Trim().Length < 3)
-                return false;
-
-            string? nombreCientifico = await Shell.Current.DisplayPromptAsync(
-                $"Nombre científico · {indice} de {total}",
-                "Dato opcional. Puede dejarlo vacío cuando no corresponda.",
-                "Continuar",
-                "Omitir",
-                "Opcional",
-                200,
-                Keyboard.Default,
-                resultado.NombreCientificoSugerido);
-
-            string motivoInicial = resultado.MotivoAlbumPropuesta;
-            string? motivo = await Shell.Current.DisplayPromptAsync(
-                $"Justificación · {indice} de {total}",
-                "Explique por qué la evidencia no corresponde a una ficha existente.",
-                "Guardar propuesta",
-                "Cancelar",
-                "Motivo obligatorio",
-                1000,
-                Keyboard.Default,
-                motivoInicial);
-
-            if (string.IsNullOrWhiteSpace(motivo) || motivo.Trim().Length < 8)
-            {
-                await MostrarAlertaAsync(
-                    "Justificación requerida",
-                    "La propuesta necesita una explicación de al menos 8 caracteres.");
-                return false;
-            }
-
-            await InspeccionApi.ProponerClasificacionAlbumAsync(
+            var pagina = new JerarquiaAlbumFotografiaPage(
                 diagnosticoId,
-                foto.FotografiaId,
-                categoria.CategoriaAlbumBotanicoId,
-                titulo,
-                nombreCientifico,
-                motivo);
+                foto,
+                "ANALIZADOR");
 
-            return true;
+            await Shell.Current.Navigation.PushModalAsync(pagina);
+            bool guardado = await pagina.ResultadoTask;
+
+            if (guardado)
+                await CargarJerarquiaAlbumAsync();
+
+            return guardado;
         }
 
         private async Task<bool> GestionarClasificacionAlbumAprobadorAsync(
@@ -1091,128 +1034,18 @@ namespace CONATRADEC.ViewModels
             if (Shell.Current == null || foto.ResultadoIA == null)
                 return false;
 
-            InspeccionFotoResultadoIAV2 resultado = foto.ResultadoIA;
-            (CategoriaAlbumBotanicoResponse? categoria,
-                List<InspeccionAlbumFichaV2> fichas) =
-                await CargarContextoClasificacionAlbumAsync(resultado);
-
-            if (categoria == null)
-            {
-                await MostrarAlertaAsync(
-                    "Capítulo no disponible",
-                    $"El capítulo sugerido “{resultado.CategoriaAlbumPropuesta}” no existe o está inactivo. " +
-                    "Créelo en el Álbum Botánico antes de aprobar esta propuesta.");
-                return false;
-            }
-
-            string accion = "Crear la ficha propuesta";
-
-            if (fichas.Count > 0)
-            {
-                string? seleccion = await Shell.Current.DisplayActionSheet(
-                    $"Resolver clasificación · {indice} de {total}",
-                    "Cancelar",
-                    null,
-                    "Crear la ficha propuesta",
-                    "Usar una ficha existente");
-
-                if (string.IsNullOrWhiteSpace(seleccion) || seleccion == "Cancelar")
-                    return false;
-
-                accion = seleccion;
-            }
-            else
-            {
-                bool crear = await ConfirmarAsync(
-                    $"Crear ficha botánica · {indice} de {total}",
-                    $"No existen fichas en “{categoria.NombreCategoria}”. " +
-                    $"¿Desea crear “{resultado.ClasificacionAlbumPropuesta}” y vincularla con esta fotografía?");
-
-                if (!crear)
-                    return false;
-            }
-
-            if (accion == "Usar una ficha existente")
-            {
-                InspeccionAlbumFichaV2? ficha =
-                    await SeleccionarFichaExistenteAsync(
-                        categoria,
-                        fichas,
-                        resultado.AlbumBotanicoCafeIdSugerido);
-
-                if (ficha == null)
-                    return false;
-
-                await InspeccionApi.ResolverClasificacionExistenteAsync(
-                    diagnosticoId,
-                    foto.FotografiaId,
-                    ficha.AlbumBotanicoCafeId);
-
-                return true;
-            }
-
-            string? titulo = await Shell.Current.DisplayPromptAsync(
-                $"Título de la nueva ficha · {indice} de {total}",
-                "Confirme o corrija el nombre que se incorporará al Álbum Botánico.",
-                "Continuar",
-                "Cancelar",
-                "Título obligatorio",
-                200,
-                Keyboard.Default,
-                resultado.ClasificacionAlbumPropuesta);
-
-            if (string.IsNullOrWhiteSpace(titulo) || titulo.Trim().Length < 3)
-                return false;
-
-            string? nombreCientifico = await Shell.Current.DisplayPromptAsync(
-                $"Nombre científico · {indice} de {total}",
-                "Dato opcional de la nueva ficha.",
-                "Continuar",
-                "Omitir",
-                "Opcional",
-                200,
-                Keyboard.Default,
-                resultado.NombreCientificoSugerido);
-
-            string descripcionInicial = string.IsNullOrWhiteSpace(
-                    resultado.ResumenImagen)
-                ? resultado.MotivoAlbumPropuesta
-                : resultado.ResumenImagen;
-
-            string? descripcion = await Shell.Current.DisplayPromptAsync(
-                $"Descripción de la ficha · {indice} de {total}",
-                "Describa la evidencia que representará la nueva ficha.",
-                "Crear ficha",
-                "Cancelar",
-                "Descripción obligatoria",
-                3000,
-                Keyboard.Default,
-                descripcionInicial);
-
-            if (string.IsNullOrWhiteSpace(descripcion) ||
-                descripcion.Trim().Length < 8)
-            {
-                await MostrarAlertaAsync(
-                    "Descripción requerida",
-                    "La nueva ficha necesita una descripción de al menos 8 caracteres.");
-                return false;
-            }
-
-            string sintomas = string.Join(
-                "; ",
-                resultado.SintomasVisibles
-                    .Where(item => !string.IsNullOrWhiteSpace(item)));
-
-            await InspeccionApi.CrearClasificacionAlbumAsync(
+            var pagina = new JerarquiaAlbumFotografiaPage(
                 diagnosticoId,
-                foto.FotografiaId,
-                categoria.CategoriaAlbumBotanicoId,
-                titulo,
-                nombreCientifico,
-                descripcion,
-                sintomas);
+                foto,
+                "APROBADOR");
 
-            return true;
+            await Shell.Current.Navigation.PushModalAsync(pagina);
+            bool guardado = await pagina.ResultadoTask;
+
+            if (guardado)
+                await CargarJerarquiaAlbumAsync();
+
+            return guardado;
         }
 
         private async Task<(
@@ -1340,109 +1173,66 @@ namespace CONATRADEC.ViewModels
                 return;
 
             InspeccionFotoV2 foto = FotosSeleccionadas[0];
+            JerarquiaDiagnosticoFotoResponse? jerarquia =
+                foto.JerarquiaAlbum;
+
+            if (jerarquia?.CategoriaAlbumBotanicoId is not > 0 ||
+                jerarquia.SubcategoriaAlbumBotanicoId is not > 0 ||
+                jerarquia.AlbumBotanicoCafeId is not > 0 ||
+                jerarquia.CategoriaEsPropuesta ||
+                jerarquia.SubcategoriaEsPropuesta ||
+                jerarquia.FichaEsPropuesta)
+            {
+                await MostrarAlertaAsync(
+                    "Clasificación jerárquica pendiente",
+                    "Antes de publicar, el aprobador debe dejar una categoría, una subcategoría y una ficha oficiales para esta fotografía.");
+                return;
+            }
+
+            string ruta =
+                $"{jerarquia.Categoria} → " +
+                $"{jerarquia.Subcategoria} → " +
+                jerarquia.Ficha;
+
+            bool confirmar = await ConfirmarAsync(
+                "Publicar en el Álbum Botánico",
+                $"La fotografía se publicará en:\n\n{ruta}\n\n" +
+                "La evidencia original permanecerá en la inspección.");
+
+            if (!confirmar)
+                return;
+
+            string? descripcion = await Shell.Current.DisplayPromptAsync(
+                "Descripción de la fotografía",
+                "Descripción opcional para la imagen publicada.",
+                "Publicar",
+                "Cancelar",
+                "Opcional",
+                500,
+                Keyboard.Default);
+
+            if (descripcion == null)
+                return;
 
             IsBusy = true;
-            MensajeEstado = "Cargando catálogo activo del álbum...";
+            MensajeEstado = "Publicando referencia aprobada en el álbum...";
             ActualizarComandos();
 
             try
             {
-                List<InspeccionAlbumCategoriaV2> categorias =
-                    await InspeccionApi.ObtenerCatalogoAlbumAsync();
-
-                if (categorias.Count == 0)
-                {
-                    await MostrarAlertaAsync(
-                        "Álbum sin fichas",
-                        "No existen categorías activas con fichas disponibles para publicar.");
-                    return;
-                }
-
-                int? categoriaSugerida =
-                    foto.ResultadoIA?.CategoriaAlbumBotanicoIdSugerida;
-
-                categorias = categorias
-                    .OrderByDescending(item =>
-                        item.CategoriaAlbumBotanicoId == categoriaSugerida)
-                    .ThenBy(item => item.Nombre)
-                    .ToList();
-
-                string? categoriaTexto = await Shell.Current.DisplayActionSheet(
-                    "Categoría del Álbum Botánico",
-                    "Cancelar",
-                    null,
-                    categorias
-                        .Select(item => item.TextoSeleccion)
-                        .ToArray());
-
-                if (string.IsNullOrWhiteSpace(categoriaTexto) ||
-                    categoriaTexto == "Cancelar")
-                {
-                    return;
-                }
-
-                InspeccionAlbumCategoriaV2? categoria = categorias
-                    .FirstOrDefault(item =>
-                        item.TextoSeleccion == categoriaTexto);
-
-                if (categoria == null || categoria.Fichas.Count == 0)
-                    return;
-
-                int? fichaSugerida =
-                    foto.ResultadoIA?.AlbumBotanicoCafeIdSugerido;
-
-                List<InspeccionAlbumFichaV2> fichas = categoria.Fichas
-                    .OrderByDescending(item =>
-                        item.AlbumBotanicoCafeId == fichaSugerida)
-                    .ThenBy(item => item.Titulo)
-                    .ToList();
-
-                string? fichaTexto = await Shell.Current.DisplayActionSheet(
-                    "Ficha que recibirá la fotografía",
-                    "Cancelar",
-                    null,
-                    fichas
-                        .Select(item => item.TextoSeleccion)
-                        .ToArray());
-
-                if (string.IsNullOrWhiteSpace(fichaTexto) ||
-                    fichaTexto == "Cancelar")
-                {
-                    return;
-                }
-
-                InspeccionAlbumFichaV2? ficha = fichas.FirstOrDefault(item =>
-                    item.TextoSeleccion == fichaTexto);
-
-                if (ficha == null)
-                    return;
-
-                string? descripcion = await Shell.Current.DisplayPromptAsync(
-                    "Descripción",
-                    "Descripción opcional para la fotografía del álbum.",
-                    "Publicar",
-                    "Cancelar",
-                    "Opcional",
-                    500,
-                    Keyboard.Default);
-
-                if (descripcion == null)
-                    return;
-
-                MensajeEstado = "Publicando referencia aprobada en el álbum...";
-
                 await InspeccionApi.PublicarAlbumAsync(
                     diagnosticoId,
                     foto.FotografiaId,
-                    categoria.CategoriaAlbumBotanicoId,
-                    ficha.AlbumBotanicoCafeId,
+                    jerarquia.CategoriaAlbumBotanicoId.Value,
+                    jerarquia.AlbumBotanicoCafeId.Value,
                     descripcion,
                     false,
                     0);
 
                 await MostrarAlertaAsync(
                     "Publicación completada",
-                    "La foto fue vinculada al álbum y la evidencia original permanece en la inspección.");
+                    $"La fotografía fue publicada en {ruta}.");
+
                 await RecargarDespuesOperacionAsync();
             }
             catch (Exception ex)
@@ -1619,7 +1409,7 @@ namespace CONATRADEC.ViewModels
                 }
             }
 
-            AplicarDetalle(actualizado);
+            await AplicarDetalleAsync(actualizado);
         }
 
         private static async Task<string> CopiarTemporalAsync(

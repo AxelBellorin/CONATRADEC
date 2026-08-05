@@ -10,17 +10,11 @@ namespace CONATRADEC.Services
     /// <summary>
     /// Caché transparente de Noticias y Álbum.
     ///
-    /// En línea:
-    /// - siempre consulta primero la API;
-    /// - entrega su respuesta sin esperar comprobaciones de versión;
-    /// - guarda JSON e imágenes silenciosamente.
-    ///
-    /// Sin conexión:
-    /// - usa exclusivamente la respuesta exacta guardada en SQLite;
-    /// - nunca consulta estado, versión o disponibilidad del servidor.
+    /// En línea consulta primero la API y guarda JSON e imágenes. Sin conexión
+    /// usa la respuesta exacta conservada en SQLite. Las rutas jerárquicas del
+    /// álbum se consideran parte del mismo módulo y comparten su versión.
     /// </summary>
-    public sealed class ContenidoSincronizacionHandler :
-        DelegatingHandler
+    public sealed class ContenidoSincronizacionHandler : DelegatingHandler
     {
         private static readonly SemaphoreSlim ImageDownloads =
             new(initialCount: 3, maxCount: 3);
@@ -37,17 +31,11 @@ namespace CONATRADEC.Services
             if (request.Method != HttpMethod.Get ||
                 string.IsNullOrWhiteSpace(module))
             {
-                return await base.SendAsync(
-                    request,
-                    cancellationToken);
+                return await base.SendAsync(request, cancellationToken);
             }
 
             if (!DatosSinConexionPermisos.TienePermiso)
-            {
-                return await base.SendAsync(
-                    request,
-                    cancellationToken);
-            }
+                return await base.SendAsync(request, cancellationToken);
 
             string usuarioId = Preferences.Get(
                 SessionKeys.KeyUserId,
@@ -72,8 +60,7 @@ namespace CONATRADEC.Services
                                 module,
                                 cancellationToken);
 
-                    if (!string.IsNullOrWhiteSpace(
-                            respuestaDinamica))
+                    if (!string.IsNullOrWhiteSpace(respuestaDinamica))
                     {
                         return CrearRespuestaLocalJson(
                             request,
@@ -91,21 +78,14 @@ namespace CONATRADEC.Services
                     cacheKey,
                     DateTime.UtcNow);
 
-                return CrearRespuestaCache(
-                    request,
-                    local);
+                return CrearRespuestaCache(request, local);
             }
 
             HttpResponseMessage response =
-                await base.SendAsync(
-                    request,
-                    cancellationToken);
+                await base.SendAsync(request, cancellationToken);
 
-            if (!response.IsSuccessStatusCode ||
-                response.Content == null)
-            {
+            if (!response.IsSuccessStatusCode || response.Content == null)
                 return response;
-            }
 
             string json = await response.Content
                 .ReadAsStringAsync(cancellationToken);
@@ -114,11 +94,6 @@ namespace CONATRADEC.Services
                 response.Content.Headers.ContentType?.MediaType ??
                 "application/json";
 
-            /*
-             * Durante Descargar todo todas las rutas del paquete comparten una
-             * sola versión. Fuera de esa operación, una consulta online normal
-             * puede conservar su hash individual como copia silenciosa.
-             */
             string version =
                 DescargaOfflineContext.Activa &&
                 !string.IsNullOrWhiteSpace(
@@ -159,10 +134,7 @@ namespace CONATRADEC.Services
                     UltimoError = string.Empty
                 });
 
-            ReemplazarContenido(
-                response,
-                json,
-                contentType);
+            ReemplazarContenido(response, json, contentType);
 
             Task imagesTask = PreCargarImagenesAsync(
                 request,
@@ -186,8 +158,7 @@ namespace CONATRADEC.Services
             return response;
         }
 
-        private static async Task ContinuarEnSegundoPlanoAsync(
-            Task task)
+        private static async Task ContinuarEnSegundoPlanoAsync(Task task)
         {
             try
             {
@@ -209,30 +180,23 @@ namespace CONATRADEC.Services
         {
             try
             {
-                List<DescargaImagen> downloads =
-                    ExtraerImagenes(
+                List<DescargaImagen> downloads = ExtraerImagenes(
                         request,
                         module,
                         route,
                         json)
-                    .Where(item =>
-                        !string.IsNullOrWhiteSpace(item.Url))
-                    .DistinctBy(item =>
-                        $"{item.Url}|{item.Original}")
-                    .Take(
-                        DescargaOfflineContext.Activa
-                            ? 200
-                            : 20)
+                    .Where(item => !string.IsNullOrWhiteSpace(item.Url))
+                    .DistinctBy(item => $"{item.Url}|{item.Original}")
+                    .Take(DescargaOfflineContext.Activa ? 200 : 20)
                     .ToList();
 
                 await Task.WhenAll(
-                    downloads.Select(item =>
-                        DescargarImagenAsync(
-                            usuarioId,
-                            module,
-                            version,
-                            item,
-                            cancellationToken)));
+                    downloads.Select(item => DescargarImagenAsync(
+                        usuarioId,
+                        module,
+                        version,
+                        item,
+                        cancellationToken)));
             }
             catch (OperationCanceledException)
                 when (cancellationToken.IsCancellationRequested)
@@ -241,7 +205,7 @@ namespace CONATRADEC.Services
             }
             catch
             {
-                /* El JSON sigue siendo válido aunque una imagen falle. */
+                // El JSON sigue siendo válido aunque una imagen falle.
             }
         }
 
@@ -334,9 +298,7 @@ namespace CONATRADEC.Services
                 {
                     yield return new DescargaImagen
                     {
-                        Url = ConstruirContenidoUrl(
-                            authority,
-                            path),
+                        Url = ConstruirContenidoUrl(authority, path),
                         Original = true
                     };
                 }
@@ -354,10 +316,8 @@ namespace CONATRADEC.Services
                 return;
 
             string destination = image.Original
-                ? ImagenLocalCacheService.ObtenerRutaOriginal(
-                    image.Url)
-                : ImagenLocalCacheService.ObtenerRutaMiniatura(
-                    image.Url);
+                ? ImagenLocalCacheService.ObtenerRutaOriginal(image.Url)
+                : ImagenLocalCacheService.ObtenerRutaMiniatura(image.Url);
 
             if (File.Exists(destination) &&
                 new FileInfo(destination).Length > 0)
@@ -379,24 +339,21 @@ namespace CONATRADEC.Services
                 using var timeout =
                     CancellationTokenSource.CreateLinkedTokenSource(
                         cancellationToken);
-
                 timeout.CancelAfter(TimeSpan.FromSeconds(20));
 
                 using var imageRequest = new HttpRequestMessage(
                     HttpMethod.Get,
                     image.Url);
 
-                using HttpResponseMessage response =
-                    await base.SendAsync(
-                        imageRequest,
-                        timeout.Token);
+                using HttpResponseMessage response = await base.SendAsync(
+                    imageRequest,
+                    timeout.Token);
 
                 if (!response.IsSuccessStatusCode)
                     return;
 
                 await using Stream stream =
-                    await response.Content.ReadAsStreamAsync(
-                        timeout.Token);
+                    await response.Content.ReadAsStreamAsync(timeout.Token);
 
                 await ImagenLocalCacheService.GuardarAsync(
                     stream,
@@ -500,13 +457,10 @@ namespace CONATRADEC.Services
             if (Uri.TryCreate(path, UriKind.Absolute, out Uri? absolute))
                 path = absolute.AbsolutePath;
 
-            return path.StartsWith('/')
-                ? path
-                : "/" + path;
+            return path.StartsWith('/') ? path : "/" + path;
         }
 
-        private static Uri ObtenerAutoridad(
-            HttpRequestMessage request)
+        private static Uri ObtenerAutoridad(HttpRequestMessage request)
         {
             Uri uri = request.RequestUri ??
                 throw new InvalidOperationException(
@@ -514,18 +468,11 @@ namespace CONATRADEC.Services
 
             if (!uri.IsAbsoluteUri)
             {
-                string baseUrl =
-                    new UrlApiService()
-                        .BaseUrlApi
-                        .TrimEnd('/') + "/";
-
-                Uri baseUri = new(
-                    baseUrl,
-                    UriKind.Absolute);
-
-                uri = new Uri(
-                    baseUri,
-                    uri);
+                string baseUrl = new UrlApiService()
+                    .BaseUrlApi
+                    .TrimEnd('/') + "/";
+                Uri baseUri = new(baseUrl, UriKind.Absolute);
+                uri = new Uri(baseUri, uri);
             }
 
             return new Uri(uri.GetLeftPart(UriPartial.Authority));
@@ -550,7 +497,6 @@ namespace CONATRADEC.Services
             response.Headers.TryAddWithoutValidation(
                 "X-Contenido-Origen",
                 "sqlite-sesion-offline");
-
             return response;
         }
 
@@ -558,8 +504,7 @@ namespace CONATRADEC.Services
             HttpRequestMessage request,
             string json)
         {
-            var response = new HttpResponseMessage(
-                HttpStatusCode.OK)
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 RequestMessage = request,
                 Content = new StringContent(
@@ -571,7 +516,6 @@ namespace CONATRADEC.Services
             response.Headers.TryAddWithoutValidation(
                 "X-Contenido-Origen",
                 "sqlite-consulta-local");
-
             return response;
         }
 
@@ -611,11 +555,13 @@ namespace CONATRADEC.Services
             string pathAndQuery = ObtenerPathYQuery(request)
                 .ToLowerInvariant();
 
-            if (pathAndQuery.Contains("incluirinactivos=true"))
+            if (pathAndQuery.Contains("incluirinactivos=true") ||
+                pathAndQuery.Contains("incluirinactivas=true"))
+            {
                 return null;
+            }
 
-            string path = ObtenerPath(request)
-                .ToLowerInvariant();
+            string path = ObtenerPath(request).ToLowerInvariant();
 
             if (path == "/api/publicacion/categorias" ||
                 path == "/api/publicacion/feed" ||
@@ -628,7 +574,11 @@ namespace CONATRADEC.Services
                 path == "/api/album-botanico/galeria" ||
                 path == "/api/album-botanico/galeria-paginada" ||
                 path.StartsWith("/api/album-botanico/detalle/") ||
-                path == "/api/categoria-album-botanico/listar")
+                path == "/api/categoria-album-botanico/listar" ||
+                path == "/api/album-jerarquia/inicio" ||
+                path == "/api/album-jerarquia/galeria-paginada" ||
+                path == "/api/album-jerarquia/subcategorias" ||
+                path == "/api/album-jerarquia/registros")
             {
                 return "album";
             }
@@ -636,8 +586,7 @@ namespace CONATRADEC.Services
             return null;
         }
 
-        private static string ObtenerPath(
-            HttpRequestMessage request)
+        private static string ObtenerPath(HttpRequestMessage request)
         {
             Uri? uri = request.RequestUri;
             if (uri == null)
@@ -670,9 +619,7 @@ namespace CONATRADEC.Services
         {
             byte[] hash = SHA256.HashData(
                 Encoding.UTF8.GetBytes(value));
-
-            return Convert.ToHexString(hash)
-                .ToLowerInvariant();
+            return Convert.ToHexString(hash).ToLowerInvariant();
         }
 
         private sealed class DescargaImagen
