@@ -35,6 +35,7 @@ namespace CONATRADEC.Services
             IReadOnlyCollection<InspeccionFotoLocal> fotos,
             string? codigoTerreno,
             string? observacion,
+            string? nombreInspeccion,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(codigoTerreno))
@@ -45,6 +46,13 @@ namespace CONATRADEC.Services
             }
 
             using var contenido = new MultipartFormDataContent();
+
+            if (!string.IsNullOrWhiteSpace(nombreInspeccion))
+            {
+                contenido.Add(
+                    new StringContent(nombreInspeccion.Trim(), Encoding.UTF8),
+                    "NombreInspeccion");
+            }
 
             contenido.Add(
                 new StringContent(codigoTerreno.Trim(), Encoding.UTF8),
@@ -207,13 +215,17 @@ namespace CONATRADEC.Services
                 new { fotografiaIds },
                 cancellationToken);
 
-        public Task<InspeccionFitosanitariaDetalleV2> CerrarInspeccionAsync(
+        public async Task<InspeccionFitosanitariaDetalleV2> CerrarInspeccionAsync(
             int inspeccionId,
-            CancellationToken cancellationToken = default) =>
-            PostAsync<InspeccionFitosanitariaDetalleV2>(
-                $"api/inspecciones-fitosanitarias/{inspeccionId}/cerrar-tecnico",
+            CancellationToken cancellationToken = default)
+        {
+            await PostAsync<JsonElement>(
+                $"api/inspecciones-fitosanitarias/{inspeccionId}/cerrar-definitivo",
                 new { },
                 cancellationToken);
+
+            return await ObtenerDetalleAsync(inspeccionId, cancellationToken);
+        }
 
         public Task<InspeccionOperacionMasivaV2> DescartarFotosAsync(
             int inspeccionId,

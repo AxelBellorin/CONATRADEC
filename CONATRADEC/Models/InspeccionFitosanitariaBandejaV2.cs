@@ -50,6 +50,8 @@ namespace CONATRADEC.Models
     public sealed class InspeccionFitosanitariaBandejaItemV2
     {
         public int InspeccionId { get; set; }
+        public string NombreInspeccion { get; set; } = string.Empty;
+        public bool CerradaTecnico { get; set; }
         public string CodigoTerreno { get; set; } = string.Empty;
         public string Propietario { get; set; } = string.Empty;
         public string Municipio { get; set; } = string.Empty;
@@ -61,6 +63,11 @@ namespace CONATRADEC.Models
         public int ConError { get; set; }
         public int Finalizadas { get; set; }
         public string UrlMiniatura { get; set; } = string.Empty;
+
+        public string NombreInspeccionTexto =>
+            string.IsNullOrWhiteSpace(NombreInspeccion)
+                ? $"Inspección #{InspeccionId}"
+                : NombreInspeccion.Trim();
 
         public string TerrenoTexto => string.IsNullOrWhiteSpace(CodigoTerreno)
             ? "Terreno no disponible (registro anterior)"
@@ -90,7 +97,9 @@ namespace CONATRADEC.Models
             }
         }
 
-        public string EstadoTexto => Estado switch
+        public string EstadoTexto => CerradaTecnico
+            ? "Cerrada"
+            : Estado switch
         {
             "BORRADOR" => "Borrador",
             "EN_PROCESO" => "En proceso",
@@ -101,6 +110,10 @@ namespace CONATRADEC.Models
             "FINALIZADA_PARCIALMENTE" => "Finalizada parcialmente",
             _ => (Estado ?? string.Empty).Replace('_', ' ')
         };
+
+        public string TextoAbrir => CerradaTecnico
+            ? "Ver inspección"
+            : "Abrir inspección";
 
         public string Resumen =>
             $"{TotalFotografias} fotos · {Pendientes} pendientes · " +

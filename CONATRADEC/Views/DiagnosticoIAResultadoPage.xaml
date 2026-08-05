@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.DiagnosticoIAResultadoPage"
+    x:Name="PaginaResultado"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:CONATRADEC.Controls"
@@ -51,7 +52,8 @@
                         Padding="14"
                         BackgroundColor="White"
                         Stroke="#C8DED6"
-                        StrokeShape="RoundRectangle 14">
+                        StrokeShape="RoundRectangle 14"
+                        IsVisible="{Binding EsInspeccionAbierta}">
                         <VerticalStackLayout Spacing="10">
                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                                 <VerticalStackLayout Grid.Column="0" Spacing="2">
@@ -174,6 +176,24 @@
 
                     <Border
                         Padding="14"
+                        BackgroundColor="#EEF2F0"
+                        Stroke="#B8C7C1"
+                        StrokeShape="RoundRectangle 14"
+                        IsVisible="{Binding EsInspeccionCerrada}">
+                        <VerticalStackLayout Spacing="4">
+                            <Label
+                                Text="Inspección cerrada · Solo lectura"
+                                FontSize="18"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Label
+                                Text="El cierre es definitivo. La información y las fotografías pueden consultarse, pero ninguna acción modificará este expediente."
+                                TextColor="#5E6B67" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="14"
                         BackgroundColor="#EAF3EF"
                         Stroke="#C8DED6"
                         StrokeShape="RoundRectangle 14"
@@ -222,6 +242,7 @@
                                             Grid.Column="0"
                                             IsChecked="{Binding Seleccionada}"
                                             IsEnabled="{Binding PuedeSeleccionarse}"
+                                            IsVisible="{Binding Source={x:Reference PaginaResultado}, Path=BindingContext.EsInspeccionAbierta}"
                                             VerticalOptions="Start"
                                             Color="#3B655B" />
 

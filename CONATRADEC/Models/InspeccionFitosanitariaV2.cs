@@ -294,6 +294,7 @@ namespace CONATRADEC.Models
     public sealed class InspeccionFitosanitariaDetalleV2
     {
         public int InspeccionId { get; set; }
+        public string NombreInspeccion { get; set; } = string.Empty;
         public int? TerrenoId { get; set; }
         public string CodigoTerreno { get; set; } = string.Empty;
         public int UsuarioSolicitanteId { get; set; }
@@ -312,7 +313,9 @@ namespace CONATRADEC.Models
         public bool PuedeAprobar { get; set; }
         public bool PuedePublicarAlbum { get; set; }
 
-        public string Titulo => $"Inspección #{InspeccionId}";
+        public string Titulo => string.IsNullOrWhiteSpace(NombreInspeccion)
+            ? $"Inspección #{InspeccionId}"
+            : NombreInspeccion.Trim();
         public string TerrenoTexto => string.IsNullOrWhiteSpace(CodigoTerreno)
             ? "Terreno no disponible (registro anterior)"
             : $"Terreno {CodigoTerreno}";

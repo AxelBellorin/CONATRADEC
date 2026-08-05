@@ -55,6 +55,13 @@
                         <Border Padding="18" BackgroundColor="White" Stroke="#C8DED6" StrokeShape="RoundRectangle 15">
                             <VerticalStackLayout Spacing="12">
                                 <Label Text="Datos de campo" FontSize="20" FontAttributes="Bold" TextColor="#263A35"/>
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="Nombre de la inspección *" FontAttributes="Bold" TextColor="#263A35"/>
+                                    <Entry Text="{Binding NombreInspeccion}"
+                                           Placeholder="Ej. Revisión de roya - Lote norte"
+                                           MaxLength="150"
+                                           ReturnType="Next"/>
+                                </VerticalStackLayout>
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                     <Entry Grid.Column="0" Text="{Binding CodigoTerreno}" Placeholder="Código de terreno opcional" IsReadOnly="{Binding TieneTerrenoSeleccionado}"/>
                                     <Button Grid.Column="1" Text="Buscar terreno" Command="{Binding BuscarTerrenoCommand}" BackgroundColor="#E3EFEA" TextColor="#3B655B"/>
@@ -204,7 +211,7 @@
                               ColumnSpacing="7">
                             <Entry Grid.Column="0"
                                    Text="{Binding BuscarInspeccion}"
-                                   Placeholder="Terreno, propietario, ubicación o archivo"
+                                   Placeholder="Nombre, terreno, propietario, ubicación o archivo"
                                    ReturnType="Search"
                                    ReturnCommand="{Binding BuscarInspeccionesCommand}"
                                    ClearButtonVisibility="WhileEditing"
@@ -372,43 +379,49 @@
                                         Stroke="#D9E3DF"
                                         StrokeShape="RoundRectangle 14">
                                     <Grid ColumnDefinitions="82,*,Auto"
-                                          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                                           ColumnSpacing="12"
                                           RowSpacing="3">
-                                        <Image Grid.RowSpan="5"
+                                        <Image Grid.RowSpan="6"
                                                Source="{Binding UrlMiniatura}"
                                                HeightRequest="76"
                                                WidthRequest="76"
                                                Aspect="AspectFill"/>
                                         <Label Grid.Column="1"
-                                               Text="{Binding TerrenoTexto}"
+                                               Text="{Binding NombreInspeccionTexto}"
                                                FontSize="17"
                                                FontAttributes="Bold"
                                                TextColor="#263A35"
                                                LineBreakMode="TailTruncation"/>
                                         <Label Grid.Row="1"
                                                Grid.Column="1"
+                                               Text="{Binding TerrenoTexto}"
+                                               FontSize="13"
+                                               TextColor="#3B655B"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="2"
+                                               Grid.Column="1"
                                                Text="{Binding PropietarioTexto, StringFormat='Propietario: {0}'}"
                                                TextColor="#40544E"
                                                LineBreakMode="TailTruncation"/>
-                                        <Label Grid.Row="2"
+                                        <Label Grid.Row="3"
                                                Grid.Column="1"
                                                Text="{Binding UbicacionTexto}"
                                                FontSize="12"
                                                TextColor="#6B7773"
                                                LineBreakMode="TailTruncation"/>
-                                        <Label Grid.Row="3"
+                                        <Label Grid.Row="4"
                                                Grid.Column="1"
                                                Text="{Binding Resumen}"
                                                TextColor="#5E6B67"
                                                LineBreakMode="TailTruncation"/>
-                                        <Label Grid.Row="4"
+                                        <Label Grid.Row="5"
                                                Grid.Column="1"
                                                Text="{Binding FechaTexto}"
                                                FontSize="12"
                                                TextColor="#7A8581"/>
                                         <VerticalStackLayout Grid.Column="2"
-                                                             Grid.RowSpan="5"
+                                                             Grid.RowSpan="6"
                                                              Spacing="8"
                                                              MinimumWidthRequest="150">
                                             <Border Padding="10,5"
@@ -420,7 +433,7 @@
                                                        FontAttributes="Bold"
                                                        HorizontalTextAlignment="Center"/>
                                             </Border>
-                                            <Button Text="Abrir inspección"
+                                            <Button Text="{Binding TextoAbrir}"
                                                     Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.AbrirResultadoCommand}"
                                                     CommandParameter="{Binding .}"
                                                     BackgroundColor="#3B655B"

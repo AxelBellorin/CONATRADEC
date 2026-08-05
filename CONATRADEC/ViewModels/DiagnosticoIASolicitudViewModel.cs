@@ -40,6 +40,7 @@ namespace CONATRADEC.ViewModels
 
         private bool inicializado;
         private string modoVista = DiagnosticoIARoutes.ModoMisInspecciones;
+        private string nombreInspeccion = string.Empty;
         private string codigoTerreno = string.Empty;
         private string observacion = string.Empty;
         private TerrenoBusquedaIAItem? terrenoSeleccionado;
@@ -245,6 +246,20 @@ namespace CONATRADEC.ViewModels
 
         public DateTime FechaMaximaFiltro =>
             FechaMaximaPermitida;
+
+        public string NombreInspeccion
+        {
+            get => nombreInspeccion;
+            set
+            {
+                string nuevo = value ?? string.Empty;
+                if (nombreInspeccion == nuevo)
+                    return;
+
+                nombreInspeccion = nuevo;
+                OnPropertyChanged();
+            }
+        }
 
         public string CodigoTerreno
         {
@@ -1061,6 +1076,23 @@ namespace CONATRADEC.ViewModels
             if (IsBusy || !TieneFotos || !ValidarEnLinea())
                 return;
 
+            string nombre = NombreInspeccion.Trim();
+            if (nombre.Length < 3)
+            {
+                await MostrarAlertaAsync(
+                    "Nombre requerido",
+                    "Escriba un nombre de al menos 3 caracteres para identificar la inspección.");
+                return;
+            }
+
+            if (nombre.Length > 150)
+            {
+                await MostrarAlertaAsync(
+                    "Nombre demasiado largo",
+                    "El nombre de la inspección no puede superar 150 caracteres.");
+                return;
+            }
+
             bool confirmar = await ConfirmarAsync(
                 "Guardar inspección",
                 "Las fotografías se conservarán como evidencia. Después podrá seleccionar cuáles analizar, enviar o descartar lógicamente.");
@@ -1080,7 +1112,8 @@ namespace CONATRADEC.ViewModels
                     await InspeccionApi.CrearAsync(
                         Fotos.ToList(),
                         CodigoTerreno,
-                        Observacion);
+                        Observacion,
+                        nombre);
 
                 foreach (InspeccionFotoLocal foto in Fotos)
                 {
@@ -1089,8 +1122,16 @@ namespace CONATRADEC.ViewModels
                 }
 
                 Fotos.Clear();
+                NombreInspeccion = string.Empty;
                 Observacion = string.Empty;
 
+                // Normaliza la pila: módulo -> Mis inspecciones -> resultado.
+                // Así el botón Atrás del resultado siempre vuelve al listado y
+                // el botón Atrás del listado vuelve al módulo principal.
+                await GoToAsyncParameters(AppRoutes.Regresar);
+                await GoToAsyncParameters(
+                    DiagnosticoIARoutes.CrearRutaSolicitud(
+                        DiagnosticoIARoutes.ModoMisInspecciones));
                 await GoToAsyncParameters(
                     DiagnosticoIARoutes.CrearRutaResultado(
                         detalle.InspeccionId,

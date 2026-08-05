@@ -32,7 +32,7 @@ namespace CONATRADEC.ViewModels
                 () => !IsBusy && PuedeCerrarInspeccion);
             SeleccionarTodoCommand = new Command(
                 SeleccionarTodo,
-                () => !IsBusy && Fotografias.Count > 0);
+                () => !IsBusy && EsInspeccionAbierta && Fotografias.Count > 0);
             QuitarSeleccionCommand = new Command(
                 QuitarSeleccion,
                 () => !IsBusy && TieneSeleccion);
@@ -95,10 +95,15 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(PuedeCerrarInspeccion));
                 OnPropertyChanged(nameof(MostrarCierreTecnico));
                 OnPropertyChanged(nameof(MotivoNoPuedeCerrar));
+                OnPropertyChanged(nameof(EsInspeccionCerrada));
+                OnPropertyChanged(nameof(EsInspeccionAbierta));
             }
         }
 
         public bool TieneDetalle => Detalle != null;
+        public bool EsInspeccionCerrada => Detalle?.CerradaTecnico == true;
+        public bool EsInspeccionAbierta => !EsInspeccionCerrada;
+
         public string TituloResultado => Detalle?.Titulo ?? "Inspección fitosanitaria";
         public string SubtituloResultado => Detalle == null
             ? "Cargando expediente..."
@@ -496,8 +501,7 @@ namespace CONATRADEC.ViewModels
 
             bool confirmar = await ConfirmarAsync(
                 "Cerrar inspección",
-                "Después del cierre no podrá agregar, descartar ni volver a analizar fotografías desde la etapa técnica. Las fotografías enviadas quedarán visibles para el analizador.");
-
+                "El cierre es definitivo. Después de continuar, ningún técnico, analizador o aprobador podrá modificar, procesar, descartar, aprobar ni publicar fotografías de esta inspección. Solo podrá consultarse.");
             if (!confirmar)
                 return;
 
@@ -514,7 +518,7 @@ namespace CONATRADEC.ViewModels
 
                 await MostrarAlertaAsync(
                     "Inspección cerrada",
-                    "La inspección fue enviada a la bandeja del analizador.");
+                    "La inspección quedó cerrada definitivamente y en modo de solo lectura.");
             }
             catch (Exception ex)
             {
@@ -1049,8 +1053,10 @@ namespace CONATRADEC.ViewModels
 
         private async Task RegresarResultadoAsync()
         {
-            string ruta = DiagnosticoIARoutes.CrearRutaSolicitud(origen);
-            await GoToAsyncParameters(ruta);
+            // La pantalla que abrió el resultado ya está debajo en la pila.
+            // No se crea otro listado, porque eso hacía que Atrás regresara
+            // nuevamente al resultado.
+            await GoToAsyncParameters(AppRoutes.Regresar);
         }
 
         private void NotificarSeleccion()
