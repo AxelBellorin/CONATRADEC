@@ -100,7 +100,7 @@
                                     TextColor="White"
                                     Margin="0,0,8,8" />
                                 <Button
-                                    Text="Enviar al analizador"
+                                    Text="Preparar revisión"
                                     WidthRequest="170"
                                     HeightRequest="46"
                                     CornerRadius="11"
@@ -170,6 +170,36 @@
                                     Margin="0,0,8,8" />
                             </FlexLayout>
                         </VerticalStackLayout>
+                    </Border>
+
+                    <Border
+                        Padding="14"
+                        BackgroundColor="#EAF3EF"
+                        Stroke="#C8DED6"
+                        StrokeShape="RoundRectangle 14"
+                        IsVisible="{Binding MostrarCierreTecnico}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label
+                                    Text="Cierre de la inspección"
+                                    FontSize="18"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="{Binding MotivoNoPuedeCerrar}"
+                                    TextColor="#4D625C" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="Cerrar inspección"
+                                Command="{Binding CerrarInspeccionCommand}"
+                                IsEnabled="{Binding PuedeCerrarInspeccion}"
+                                WidthRequest="170"
+                                HeightRequest="46"
+                                CornerRadius="11"
+                                BackgroundColor="#9B552C"
+                                TextColor="White" />
+                        </Grid>
                     </Border>
 
                     <VerticalStackLayout

@@ -40,5 +40,16 @@ namespace CONATRADEC.Views
             base.OnAppearing();
             await viewModel.InicializarAsync();
         }
+
+        protected override bool OnBackButtonPressed()
+        {
+            if (viewModel.EsVisorAbierto)
+            {
+                viewModel.CerrarVisor();
+                return true;
+            }
+
+            return base.OnBackButtonPressed();
+        }
     }
 }

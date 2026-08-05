@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.TipoFotografiaIAFormPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F7F8F7">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
+            RowDefinitions="Auto,*"
+            RowSpacing="14">
+
+            <controls:ResponsiveCatalogHeader
+                Grid.Row="0"
+                Title="{Binding TituloPagina}"
+                Subtitle="{Binding SubtituloPagina}"
+                BackText="← Tipos de fotografía"
+                BackCommand="{Binding CancelarCommand}"
+                IsPrimaryVisible="False" />
+
+            <ScrollView Grid.Row="1">
+                <Border
+                    MaximumWidthRequest="900"
+                    HorizontalOptions="Center"
+                    Padding="20"
+                    BackgroundColor="White"
+                    Stroke="#D9E3DF"
+                    StrokeShape="RoundRectangle 15">
+                    <VerticalStackLayout Spacing="14">
+                        <VerticalStackLayout Spacing="5">
+                            <Label
+                                Text="Código técnico *"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Entry
+                                Text="{Binding Codigo}"
+                                IsReadOnly="{Binding CodigoSoloLectura}"
+                                MaxLength="40"
+                                Placeholder="EJEMPLO_FOTO" />
+                            <Label
+                                Text="El código queda asociado a fotografías históricas y no puede cambiarse después de crear el registro."
+                                FontSize="12"
+                                TextColor="#7A8581" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label
+                                Text="Nombre visible *"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Entry
+                                Text="{Binding Nombre}"
+                                IsReadOnly="{Binding EsSoloLectura}"
+                                MaxLength="100"
+                                Placeholder="Ejemplo: Hoja" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label
+                                Text="Descripción"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Editor
+                                Text="{Binding Descripcion}"
+                                IsReadOnly="{Binding EsSoloLectura}"
+                                MaxLength="500"
+                                MinimumHeightRequest="85"
+                                AutoSize="TextChanges"
+                                Placeholder="Explique cuándo debe seleccionarse este tipo." />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label
+                                Text="Instrucción específica para Gemini *"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Editor
+                                Text="{Binding InstruccionIA}"
+                                IsReadOnly="{Binding EsSoloLectura}"
+                                MaxLength="2000"
+                                MinimumHeightRequest="150"
+                                AutoSize="TextChanges"
+                                Placeholder="Indique qué síntomas, estructuras o daños debe observar con mayor atención." />
+                            <Label
+                                Text="Esta instrucción se incorpora al prompt de cada fotografía seleccionada con este tipo."
+                                FontSize="12"
+                                TextColor="#3B655B" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label
+                                Text="Orden *"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Entry
+                                Text="{Binding OrdenTexto}"
+                                IsReadOnly="{Binding EsSoloLectura}"
+                                Keyboard="Numeric"
+                                MaxLength="3"
+                                WidthRequest="160"
+                                HorizontalOptions="Start" />
+                        </VerticalStackLayout>
+
+                        <Grid
+                            ColumnDefinitions="*,*"
+                            ColumnSpacing="10">
+                            <Button
+                                Grid.Column="0"
+                                Text="Cancelar"
+                                Command="{Binding CancelarCommand}"
+                                HeightRequest="48"
+                                BackgroundColor="#EEF2F0"
+                                TextColor="#263A35" />
+                            <Button
+                                Grid.Column="1"
+                                Text="Guardar"
+                                Command="{Binding GuardarCommand}"
+                                IsVisible="{Binding MostrarGuardar}"
+                                HeightRequest="48"
+                                BackgroundColor="#3B655B"
+                                TextColor="White" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </ScrollView>
+        </Grid>
+    </ContentView>
+</ContentPage>

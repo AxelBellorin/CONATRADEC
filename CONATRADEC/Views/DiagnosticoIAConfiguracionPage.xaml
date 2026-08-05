@@ -18,14 +18,15 @@
             <controls:ResponsiveCatalogHeader
                 Grid.Row="0"
                 Title="Configuración de inteligencia artificial"
-                Subtitle="Proveedor multimodal, modelos, seguridad y límites de revisiones."
+                Subtitle="Límites de revisión y catálogo de tipos de fotografía utilizados por el análisis visual."
                 BackText="Regresar"
-                BackCommand="{Binding RegresarCommand}" />
+                BackCommand="{Binding RegresarCommand}"
+                IsPrimaryVisible="False" />
 
             <ScrollView Grid.Row="1">
                 <VerticalStackLayout
                     Spacing="14"
-                    MaximumWidthRequest="1050"
+                    MaximumWidthRequest="900"
                     HorizontalOptions="Center">
 
                     <Border
@@ -51,6 +52,8 @@
                         <Button
                             Text="Actualizar"
                             Command="{Binding ActualizarCommand}"
+                            WidthRequest="170"
+                            HeightRequest="46"
                             BackgroundColor="#EEF2F0"
                             TextColor="#263A35" />
                     </HorizontalStackLayout>
@@ -59,166 +62,29 @@
                         Padding="18"
                         BackgroundColor="White"
                         Stroke="#C8DED6"
-                        StrokeShape="RoundRectangle 15">
-                        <VerticalStackLayout Spacing="12">
-                            <Label
-                                Text="Proveedor de análisis visual"
-                                FontSize="21"
-                                FontAttributes="Bold"
-                                TextColor="#263A35" />
-                            <Label
-                                Text="La clave se envía únicamente al backend y se almacena protegida. Nunca se devuelve completa a MAUI."
-                                TextColor="#5E6B67" />
-
-                            <FlexLayout
-                                Direction="Row"
-                                Wrap="Wrap">
-                                <Button
-                                    Text="Usar Gemini nativo"
-                                    Command="{Binding UsarGeminiCommand}"
-                                    Margin="0,0,8,8"
-                                    BackgroundColor="#E3EFEA"
-                                    TextColor="#3B655B" />
-                                <Button
-                                    Text="Usar OpenRouter"
-                                    Command="{Binding UsarOpenRouterCommand}"
-                                    Margin="0,0,8,8"
-                                    BackgroundColor="#EEF2F0"
-                                    TextColor="#263A35" />
-                            </FlexLayout>
-
-                            <Grid
-                                ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                                RowDefinitions="Auto,Auto,Auto,Auto,Auto"
-                                ColumnSpacing="12"
-                                RowSpacing="10">
-                                <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="4">
-                                    <Label Text="Nombre del proveedor" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Entry
-                                        Text="{Binding NombreProveedor}"
-                                        Placeholder="GEMINI u OPENROUTER"
-                                        IsReadOnly="{Binding SoloLectura}" />
-                                </VerticalStackLayout>
-
-                                <VerticalStackLayout
-                                    Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                    Spacing="4">
-                                    <Label Text="Protocolo" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Picker
-                                        ItemsSource="{Binding Protocolos}"
-                                        SelectedItem="{Binding Protocolo}"
-                                        IsEnabled="{Binding CanEdit}" />
-                                </VerticalStackLayout>
-
-                                <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="4">
-                                    <Label Text="URL base" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Entry
-                                        Text="{Binding BaseUrl}"
-                                        Placeholder="https://.../"
-                                        Keyboard="Url"
-                                        IsReadOnly="{Binding SoloLectura}" />
-                                </VerticalStackLayout>
-
-                                <VerticalStackLayout
-                                    Grid.Row="{OnPlatform WinUI=1, Default=2}"
-                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                    Spacing="4">
-                                    <Label Text="Endpoint" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Entry
-                                        Text="{Binding Endpoint}"
-                                        Placeholder="Ruta relativa del endpoint"
-                                        IsReadOnly="{Binding SoloLectura}" />
-                                </VerticalStackLayout>
-
-                                <VerticalStackLayout Grid.Row="2" Grid.Column="0" Spacing="4">
-                                    <Label Text="Modelo principal" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Entry
-                                        Text="{Binding ModeloPrincipal}"
-                                        Placeholder="Modelo multimodal"
-                                        IsReadOnly="{Binding SoloLectura}" />
-                                </VerticalStackLayout>
-
-                                <VerticalStackLayout
-                                    Grid.Row="{OnPlatform WinUI=2, Default=3}"
-                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                    Spacing="4">
-                                    <Label Text="Modelo de respaldo" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Entry
-                                        Text="{Binding ModeloRespaldo}"
-                                        Placeholder="Opcional"
-                                        IsReadOnly="{Binding SoloLectura}" />
-                                </VerticalStackLayout>
-
-                                <VerticalStackLayout Grid.Row="3" Grid.Column="0" Spacing="4">
-                                    <Label Text="API key" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Entry
-                                        Text="{Binding ApiKey}"
-                                        Placeholder="Déjela vacía para conservar la guardada"
-                                        IsPassword="True"
-                                        IsReadOnly="{Binding SoloLectura}" />
-                                    <Label
-                                        Text="{Binding ApiKeyGuardadaTexto}"
-                                        FontSize="12"
-                                        TextColor="#7A8581" />
-                                </VerticalStackLayout>
-
-                                <VerticalStackLayout
-                                    Grid.Row="{OnPlatform WinUI=3, Default=4}"
-                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                    Spacing="4">
-                                    <Label Text="Tiempo de espera (segundos)" FontAttributes="Bold" TextColor="#263A35" />
-                                    <Stepper
-                                        Minimum="30"
-                                        Maximum="600"
-                                        Increment="10"
-                                        Value="{Binding TimeoutSegundosValor}"
-                                        IsEnabled="{Binding CanEdit}" />
-                                    <Label
-                                        Text="{Binding TimeoutSegundosTexto}"
-                                        TextColor="#5E6B67" />
-                                </VerticalStackLayout>
-                            </Grid>
-
-                            <HorizontalStackLayout Spacing="8">
-                                <CheckBox
-                                    IsChecked="{Binding ProveedorActivo}"
-                                    IsEnabled="{Binding CanEdit}"
-                                    Color="#3B655B" />
+                        StrokeShape="RoundRectangle 15"
+                        IsVisible="{Binding PuedeAdministrarTiposFotografia}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                            <VerticalStackLayout Spacing="5">
                                 <Label
-                                    Text="Proveedor activo"
-                                    VerticalTextAlignment="Center"
+                                    Text="Tipos de fotografía para la IA"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
                                     TextColor="#263A35" />
-                            </HorizontalStackLayout>
-
-                            <Border
-                                Padding="12"
-                                BackgroundColor="#F2F6F4"
-                                Stroke="#C8DED6"
-                                StrokeShape="RoundRectangle 11"
-                                IsVisible="{Binding TieneResultadoPrueba}">
                                 <Label
-                                    Text="{Binding ResultadoPrueba}"
-                                    TextColor="#263A35" />
-                            </Border>
-
-                            <HorizontalStackLayout
-                                Spacing="8"
-                                HorizontalOptions="End">
-                                <Button
-                                    Text="Probar conexión"
-                                    Command="{Binding ProbarConexionCommand}"
-                                    IsVisible="{Binding CanEdit}"
-                                    BackgroundColor="#E3EFEA"
-                                    TextColor="#3B655B" />
-                                <Button
-                                    Text="Guardar proveedor"
-                                    Command="{Binding GuardarProveedorCommand}"
-                                    IsVisible="{Binding CanEdit}"
-                                    BackgroundColor="#3B655B"
-                                    TextColor="White" />
-                            </HorizontalStackLayout>
-                        </VerticalStackLayout>
+                                    Text="Administre las partes o evidencias disponibles y la instrucción específica que Gemini utilizará para prestar mayor atención a cada fotografía."
+                                    TextColor="#5E6B67" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="Administrar catálogo"
+                                Command="{Binding AdministrarTiposFotografiaCommand}"
+                                WidthRequest="190"
+                                HeightRequest="46"
+                                VerticalOptions="Center"
+                                BackgroundColor="#3B655B"
+                                TextColor="White" />
+                        </Grid>
                     </Border>
 
                     <Border
@@ -254,7 +120,10 @@
                             <VerticalStackLayout
                                 Spacing="4"
                                 IsVisible="{Binding MostrarCampoMaximo}">
-                                <Label Text="Cantidad máxima (1 a 20)" FontAttributes="Bold" TextColor="#263A35" />
+                                <Label
+                                    Text="Cantidad máxima (1 a 20)"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
                                 <Entry
                                     Text="{Binding MaximoRevisionesTexto}"
                                     Keyboard="Numeric"
@@ -269,8 +138,10 @@
 
                             <Button
                                 Text="Guardar límite"
-                                Command="{Binding GuardarLimitesCommand}"
+                                Command="{Binding GuardarCommand}"
                                 IsVisible="{Binding CanEdit}"
+                                WidthRequest="170"
+                                HeightRequest="46"
                                 HorizontalOptions="End"
                                 BackgroundColor="#9B552C"
                                 TextColor="White" />
@@ -288,6 +159,7 @@
                                 FontSize="19"
                                 FontAttributes="Bold"
                                 TextColor="#263A35" />
+
                             <CollectionView
                                 ItemsSource="{Binding Historial}"
                                 SelectionMode="None"
@@ -302,7 +174,7 @@
                                             StrokeShape="RoundRectangle 10">
                                             <VerticalStackLayout Spacing="3">
                                                 <Label
-                                                    Text="{Binding Usuario}"
+                                                    Text="{Binding UsuarioTexto}"
                                                     FontAttributes="Bold"
                                                     TextColor="#263A35" />
                                                 <Label
@@ -317,6 +189,7 @@
                                     </DataTemplate>
                                 </CollectionView.ItemTemplate>
                             </CollectionView>
+
                             <Label
                                 Text="Todavía no hay cambios registrados."
                                 IsVisible="{Binding SinHistorial}"

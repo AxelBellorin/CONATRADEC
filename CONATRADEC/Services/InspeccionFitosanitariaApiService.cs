@@ -37,14 +37,18 @@ namespace CONATRADEC.Services
             string? observacion,
             CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(codigoTerreno))
+            {
+                throw new ArgumentException(
+                    "Debe seleccionar un terreno antes de crear la inspección.",
+                    nameof(codigoTerreno));
+            }
+
             using var contenido = new MultipartFormDataContent();
 
-            if (!string.IsNullOrWhiteSpace(codigoTerreno))
-            {
-                contenido.Add(
-                    new StringContent(codigoTerreno.Trim(), Encoding.UTF8),
-                    "CodigoTerreno");
-            }
+            contenido.Add(
+                new StringContent(codigoTerreno.Trim(), Encoding.UTF8),
+                "CodigoTerreno");
 
             if (!string.IsNullOrWhiteSpace(observacion))
             {
@@ -201,6 +205,14 @@ namespace CONATRADEC.Services
             PostAsync<InspeccionOperacionMasivaV2>(
                 $"api/inspecciones-fitosanitarias/{inspeccionId}/enviar-analizador",
                 new { fotografiaIds },
+                cancellationToken);
+
+        public Task<InspeccionFitosanitariaDetalleV2> CerrarInspeccionAsync(
+            int inspeccionId,
+            CancellationToken cancellationToken = default) =>
+            PostAsync<InspeccionFitosanitariaDetalleV2>(
+                $"api/inspecciones-fitosanitarias/{inspeccionId}/cerrar-tecnico",
+                new { },
                 cancellationToken);
 
         public Task<InspeccionOperacionMasivaV2> DescartarFotosAsync(

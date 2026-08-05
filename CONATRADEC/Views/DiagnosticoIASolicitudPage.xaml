@@ -8,6 +8,45 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="#F7F8F7">
 
+    <ContentPage.Resources>
+        <!--
+            Los botones disponibles usan el verde principal. Cuando se llega
+            al inicio o al final quedan grises para que el límite sea evidente.
+        -->
+        <Style x:Key="FotoNavegacionButtonStyle" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="#3B655B" />
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="HeightRequest" Value="48" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <VisualStateGroupList>
+                    <VisualStateGroup Name="CommonStates">
+                        <VisualState Name="Normal" />
+                        <VisualState Name="PointerOver">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="#31584F" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState Name="Pressed">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="#294A43" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState Name="Disabled">
+                            <VisualState.Setters>
+                                <Setter Property="BackgroundColor" Value="#EDF1EF" />
+                                <Setter Property="TextColor" Value="#8A9691" />
+                                <Setter Property="Opacity" Value="1" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateGroupList>
+            </Setter>
+        </Style>
+    </ContentPage.Resources>
+
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
             Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
@@ -20,11 +59,23 @@
                 Subtitle="{Binding SubtituloPagina}"
                 BackText="← Inspección fitosanitaria"
                 BackCommand="{Binding RegresarCommand}"
-                IsPrimaryVisible="False" />
+                IsPrimaryVisible="False"
+                IsVisible="{Binding VisorCerrado}" />
 
-            <ScrollView Grid.Row="1">
+            <ScrollView
+                x:Name="ContenidoScroll"
+                Grid.Row="1"
+                HorizontalOptions="Fill"
+                HorizontalScrollBarVisibility="Never"
+                IsVisible="{Binding VisorCerrado}">
+                <!--
+                    El ancho del contenido depende del área visible del ScrollView,
+                    no de las proporciones de la fotografía. Así una imagen vertical
+                    conserva exactamente el mismo contenedor que una horizontal.
+                -->
                 <VerticalStackLayout
                     Spacing="14"
+                    WidthRequest="{Binding Source={x:Reference ContenidoScroll}, Path=Width}"
                     MaximumWidthRequest="1150"
                     HorizontalOptions="Center">
 
@@ -47,6 +98,7 @@
 
                     <VerticalStackLayout
                         Spacing="14"
+                        HorizontalOptions="Fill"
                         IsVisible="{Binding EsModoNueva}">
 
                         <Border
@@ -104,12 +156,19 @@
 
                         <Border
                             Padding="18"
+                            HorizontalOptions="Fill"
                             BackgroundColor="White"
                             Stroke="#C8DED6"
                             StrokeShape="RoundRectangle 15">
-                            <VerticalStackLayout Spacing="12">
-                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <VerticalStackLayout
+                                Spacing="14"
+                                HorizontalOptions="Fill">
+                                <Grid
+                                    ColumnDefinitions="*,Auto,Auto"
+                                    ColumnSpacing="8">
+                                    <VerticalStackLayout
+                                        Grid.Column="0"
+                                        Spacing="2">
                                         <Label
                                             Text="Fotografías"
                                             FontSize="20"
@@ -119,18 +178,22 @@
                                             Text="{Binding ResumenFotos}"
                                             TextColor="#5E6B67" />
                                     </VerticalStackLayout>
+
                                     <Button
                                         Grid.Column="1"
                                         Text="Galería"
                                         Command="{Binding AgregarFotoCommand}"
                                         BackgroundColor="#3B655B"
-                                        TextColor="White" />
+                                        TextColor="White"
+                                        MinimumWidthRequest="110" />
+
                                     <Button
                                         Grid.Column="2"
                                         Text="Cámara"
                                         Command="{Binding TomarFotoCommand}"
                                         BackgroundColor="#9B552C"
-                                        TextColor="White" />
+                                        TextColor="White"
+                                        MinimumWidthRequest="110" />
                                 </Grid>
 
                                 <Label
@@ -138,70 +201,231 @@
                                     TextColor="#6B5710"
                                     FontSize="13" />
 
-                                <CollectionView
-                                    ItemsSource="{Binding Fotos}"
-                                    SelectionMode="None"
-                                    EmptyView="Agregue fotografías para continuar.">
-                                    <CollectionView.ItemsLayout>
-                                        <LinearItemsLayout
-                                            Orientation="Vertical"
-                                            ItemSpacing="10" />
-                                    </CollectionView.ItemsLayout>
-                                    <CollectionView.ItemTemplate>
-                                        <DataTemplate x:DataType="models:InspeccionFotoLocal">
+                                <Border
+                                    Padding="14"
+                                    HorizontalOptions="Fill"
+                                    BackgroundColor="#FAFCFB"
+                                    Stroke="#D9E3DF"
+                                    StrokeShape="RoundRectangle 14"
+                                    IsVisible="{Binding TieneFotos}">
+                                    <VerticalStackLayout
+                                        Spacing="12"
+                                        HorizontalOptions="Fill">
+
+                                        <Grid
+                                            ColumnDefinitions="*,Auto"
+                                            ColumnSpacing="10">
+                                            <VerticalStackLayout
+                                                Grid.Column="0"
+                                                Spacing="2">
+                                                <Label
+                                                    Text="{Binding ContadorFotoActual}"
+                                                    FontSize="16"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#3B655B" />
+                                                <Label
+                                                    Text="{Binding FotoActual.NombreArchivo}"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35"
+                                                    LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+
+                                            <Button
+                                                Grid.Column="1"
+                                                Text="Quitar"
+                                                Command="{Binding QuitarFotoCommand}"
+                                                CommandParameter="{Binding FotoActual}"
+                                                BackgroundColor="#FDECEC"
+                                                TextColor="#B42318"
+                                                Padding="18,8"
+                                                VerticalOptions="Center" />
+                                        </Grid>
+
+                                        <Grid
+                                            HeightRequest="{OnIdiom Phone=300, Tablet=400, Desktop=470}"
+                                            HorizontalOptions="Fill"
+                                            BackgroundColor="#EEF3F1"
+                                            IsClippedToBounds="True">
+                                            <Grid.GestureRecognizers>
+                                                <TapGestureRecognizer
+                                                    Command="{Binding AbrirVisorCommand}" />
+                                                <SwipeGestureRecognizer
+                                                    Direction="Left"
+                                                    Command="{Binding FotoSiguienteCommand}" />
+                                                <SwipeGestureRecognizer
+                                                    Direction="Right"
+                                                    Command="{Binding FotoAnteriorCommand}" />
+                                            </Grid.GestureRecognizers>
+
+                                            <Image
+                                                Source="{Binding ImagenTarjetaActual}"
+                                                Aspect="AspectFit"
+                                                HorizontalOptions="Fill"
+                                                VerticalOptions="Fill" />
+
                                             <Border
-                                                Padding="12"
-                                                BackgroundColor="#FAFCFB"
-                                                Stroke="#D9E3DF"
-                                                StrokeShape="RoundRectangle 12">
-                                                <Grid
-                                                    ColumnDefinitions="100,*"
-                                                    RowDefinitions="Auto,Auto,Auto"
-                                                    ColumnSpacing="12"
-                                                    RowSpacing="8">
-                                                    <Image
-                                                        Grid.RowSpan="3"
-                                                        Source="{Binding Miniatura}"
-                                                        HeightRequest="100"
-                                                        WidthRequest="100"
-                                                        Aspect="AspectFill" />
-
-                                                    <Label
-                                                        Grid.Column="1"
-                                                        Text="{Binding NombreArchivo}"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#263A35"
-                                                        LineBreakMode="TailTruncation" />
-
-                                                    <Grid
-                                                        Grid.Row="1"
-                                                        Grid.Column="1"
-                                                        ColumnDefinitions="*,*"
-                                                        ColumnSpacing="8">
-                                                        <Picker
-                                                            Grid.Column="0"
-                                                            Title="Tipo de foto"
-                                                            ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.TiposFotografia}"
-                                                            SelectedItem="{Binding TipoFotografia}" />
-                                                        <DatePicker
-                                                            Grid.Column="1"
-                                                            Date="{Binding FechaIdentificacionCampo}" />
-                                                    </Grid>
-
-                                                    <Button
-                                                        Grid.Row="2"
-                                                        Grid.Column="1"
-                                                        Text="Quitar fotografía"
-                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.QuitarFotoCommand}"
-                                                        CommandParameter="{Binding .}"
-                                                        HorizontalOptions="End"
-                                                        BackgroundColor="Transparent"
-                                                        TextColor="#B42318" />
-                                                </Grid>
+                                                Padding="10,6"
+                                                Margin="10"
+                                                HorizontalOptions="End"
+                                                VerticalOptions="End"
+                                                BackgroundColor="#CC263A35"
+                                                Stroke="Transparent"
+                                                StrokeShape="RoundRectangle 10">
+                                                <Label
+                                                    Text="Ver imagen completa"
+                                                    TextColor="White"
+                                                    FontSize="12" />
                                             </Border>
-                                        </DataTemplate>
-                                    </CollectionView.ItemTemplate>
-                                </CollectionView>
+                                        </Grid>
+
+                                        <Grid
+                                            ColumnDefinitions="Auto,*,Auto"
+                                            ColumnSpacing="12">
+                                            <Button
+                                                Grid.Column="0"
+                                                Text="← Anterior"
+                                                Command="{Binding FotoAnteriorCommand}"
+                                                IsEnabled="{Binding TieneFotoAnterior}"
+                                                Style="{StaticResource FotoNavegacionButtonStyle}"
+                                                MinimumWidthRequest="{OnIdiom Phone=96, Default=130}" />
+
+                                            <VerticalStackLayout
+                                                Grid.Column="1"
+                                                Spacing="1"
+                                                VerticalOptions="Center">
+                                                <Label
+                                                    Text="{Binding ContadorFotoActual}"
+                                                    HorizontalTextAlignment="Center"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35" />
+                                                <Label
+                                                    Text="{Binding EstadoNavegacionFoto}"
+                                                    HorizontalTextAlignment="Center"
+                                                    FontSize="12"
+                                                    TextColor="#66746F"
+                                                    LineBreakMode="WordWrap"
+                                                    MaxLines="2" />
+                                            </VerticalStackLayout>
+
+                                            <Button
+                                                Grid.Column="2"
+                                                Text="Siguiente →"
+                                                Command="{Binding FotoSiguienteCommand}"
+                                                IsEnabled="{Binding TieneFotoSiguiente}"
+                                                Style="{StaticResource FotoNavegacionButtonStyle}"
+                                                MinimumWidthRequest="{OnIdiom Phone=96, Default=130}" />
+                                        </Grid>
+
+                                        <!--
+                                            Grid en lugar de FlexLayout: evita el recorte del Picker
+                                            nativo de Windows y mantiene una medición estable. En
+                                            teléfono los campos se colocan uno debajo del otro.
+                                        -->
+                                        <Grid
+                                            ColumnDefinitions="*,220"
+                                            RowDefinitions="Auto,Auto"
+                                            ColumnSpacing="18"
+                                            RowSpacing="12">
+
+                                            <Grid
+                                                Grid.Row="0"
+                                                Grid.Column="0"
+                                                Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
+                                                MaximumWidthRequest="360"
+                                                HorizontalOptions="Fill"
+                                                RowDefinitions="Auto,54"
+                                                RowSpacing="6">
+                                                <Label
+                                                    Text="Tipo de fotografía *"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35" />
+
+                                                <Border
+                                                    Grid.Row="1"
+                                                    HeightRequest="54"
+                                                    BackgroundColor="White"
+                                                    Stroke="#C9D4D0"
+                                                    StrokeShape="RoundRectangle 8">
+                                                    <!--
+                                                        En Windows, Title se dibuja como una cabecera
+                                                        adicional encima del valor seleccionado. Al
+                                                        quitarlo, el control utiliza una sola línea y
+                                                        deja de recortar el texto visible.
+                                                    -->
+                                                    <Picker
+                                                        Margin="10,0,6,0"
+                                                        TextColor="#263A35"
+                                                        FontSize="15"
+                                                        BackgroundColor="Transparent"
+                                                        HorizontalOptions="Fill"
+                                                        VerticalOptions="Center"
+                                                        ItemsSource="{Binding TiposFotografia}"
+                                                        ItemDisplayBinding="{Binding Nombre}"
+                                                        SelectedItem="{Binding TipoFotografiaSeleccionada, Mode=TwoWay}" />
+                                                </Border>
+                                            </Grid>
+
+                                            <Grid
+                                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                                Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
+                                                RowDefinitions="Auto,54"
+                                                RowSpacing="6">
+                                                <Label
+                                                    Text="Fecha de identificación en campo *"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35" />
+
+                                                <Border
+                                                    Grid.Row="1"
+                                                    HeightRequest="54"
+                                                    BackgroundColor="White"
+                                                    Stroke="#C9D4D0"
+                                                    StrokeShape="RoundRectangle 8">
+                                                    <DatePicker
+                                                        Margin="10,0,6,0"
+                                                        Date="{Binding FotoActual.FechaIdentificacionCampo, Mode=TwoWay}"
+                                                        Format="dd/MM/yyyy"
+                                                        TextColor="#263A35"
+                                                        FontSize="15"
+                                                        BackgroundColor="Transparent"
+                                                        HorizontalOptions="Fill"
+                                                        VerticalOptions="Fill" />
+                                                </Border>
+                                            </Grid>
+                                        </Grid>
+
+                                        <Border
+                                            Padding="12,10"
+                                            BackgroundColor="#EAF3F0"
+                                            Stroke="Transparent"
+                                            StrokeShape="RoundRectangle 12">
+                                            <VerticalStackLayout Spacing="3">
+                                                <Label
+                                                    Text="Enfoque para el análisis"
+                                                    FontSize="12"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#3B655B" />
+                                                <Label
+                                                    Text="{Binding EnfoqueFotoActual}"
+                                                    FontSize="12"
+                                                    TextColor="#4F6660" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <Border
+                                    Padding="18"
+                                    BackgroundColor="#F7FAF9"
+                                    Stroke="#D9E3DF"
+                                    StrokeShape="RoundRectangle 12"
+                                    IsVisible="{Binding SinFotos}">
+                                    <Label
+                                        Text="Agregue fotografías para continuar."
+                                        HorizontalTextAlignment="Center"
+                                        TextColor="#5E6B67" />
+                                </Border>
 
                                 <Button
                                     Text="Guardar inspección"
@@ -209,7 +433,7 @@
                                     BackgroundColor="#3B655B"
                                     TextColor="White"
                                     CornerRadius="11"
-                                    HeightRequest="48" />
+                                    HeightRequest="50" />
                             </VerticalStackLayout>
                         </Border>
                     </VerticalStackLayout>
@@ -303,6 +527,141 @@
                     </VerticalStackLayout>
                 </VerticalStackLayout>
             </ScrollView>
+
+            <!-- Visor de una sola fotografía. La pantalla principal se oculta para
+                 evitar mantener dos imágenes grandes renderizadas al mismo tiempo. -->
+            <Grid
+                Grid.RowSpan="2"
+                ZIndex="100"
+                Padding="{OnIdiom Phone='10,10,10,16', Tablet='18', Desktop='22'}"
+                RowDefinitions="Auto,*,Auto"
+                RowSpacing="12"
+                BackgroundColor="#F014211E"
+                IsVisible="{Binding EsVisorAbierto}">
+
+                <Grid
+                    Grid.Row="0"
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="12">
+                    <Button
+                        Grid.Column="0"
+                        Text="Cerrar"
+                        Command="{Binding CerrarVisorCommand}"
+                        BackgroundColor="#334F6660"
+                        TextColor="White" />
+
+                    <Label
+                        Grid.Column="1"
+                        Text="{Binding ContadorFotoActual}"
+                        HorizontalTextAlignment="Center"
+                        VerticalTextAlignment="Center"
+                        FontSize="17"
+                        FontAttributes="Bold"
+                        TextColor="White" />
+
+                    <Label
+                        Grid.Column="2"
+                        Text="{Binding TipoFotografiaActualTexto}"
+                        VerticalTextAlignment="Center"
+                        TextColor="#D8E6E1" />
+                </Grid>
+
+                <Grid
+                    Grid.Row="1"
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="8"
+                    IsClippedToBounds="True">
+
+                    <Button
+                        Grid.Column="0"
+                        Text="‹"
+                        FontSize="30"
+                        Command="{Binding FotoAnteriorCommand}"
+                        IsEnabled="{Binding TieneFotoAnterior}"
+                        Style="{StaticResource FotoNavegacionButtonStyle}"
+                        WidthRequest="54" />
+
+                    <Grid
+                        Grid.Column="1"
+                        BackgroundColor="#08100E"
+                        IsClippedToBounds="True">
+                        <Grid.GestureRecognizers>
+                            <SwipeGestureRecognizer
+                                Direction="Left"
+                                Command="{Binding FotoSiguienteCommand}" />
+                            <SwipeGestureRecognizer
+                                Direction="Right"
+                                Command="{Binding FotoAnteriorCommand}" />
+                            <TapGestureRecognizer
+                                NumberOfTapsRequired="2"
+                                Command="{Binding RestablecerZoomCommand}" />
+                        </Grid.GestureRecognizers>
+
+                        <Image
+                            Source="{Binding ImagenVisorActual}"
+                            Aspect="AspectFit"
+                            Scale="{Binding EscalaVisor}"
+                            HorizontalOptions="Fill"
+                            VerticalOptions="Fill" />
+                    </Grid>
+
+                    <Button
+                        Grid.Column="2"
+                        Text="›"
+                        FontSize="30"
+                        Command="{Binding FotoSiguienteCommand}"
+                        IsEnabled="{Binding TieneFotoSiguiente}"
+                        Style="{StaticResource FotoNavegacionButtonStyle}"
+                        WidthRequest="54" />
+                </Grid>
+
+                <Grid
+                    Grid.Row="2"
+                    ColumnDefinitions="*,Auto,Auto,Auto,*"
+                    ColumnSpacing="8">
+
+                    <Label
+                        Grid.Column="0"
+                        Text="{Binding FotoActual.FechaIdentificacionCampo, StringFormat='Identificación en campo: {0:dd/MM/yyyy}'}"
+                        VerticalTextAlignment="Center"
+                        TextColor="#D8E6E1"
+                        LineBreakMode="TailTruncation" />
+
+                    <Button
+                        Grid.Column="1"
+                        Text="−"
+                        FontSize="22"
+                        Command="{Binding ReducirZoomCommand}"
+                        BackgroundColor="#334F6660"
+                        TextColor="White"
+                        WidthRequest="48" />
+
+                    <Label
+                        Grid.Column="2"
+                        Text="{Binding PorcentajeZoom}"
+                        VerticalTextAlignment="Center"
+                        HorizontalTextAlignment="Center"
+                        TextColor="White"
+                        WidthRequest="62" />
+
+                    <Button
+                        Grid.Column="3"
+                        Text="+"
+                        FontSize="20"
+                        Command="{Binding AumentarZoomCommand}"
+                        BackgroundColor="#334F6660"
+                        TextColor="White"
+                        WidthRequest="48" />
+
+                    <Label
+                        Grid.Column="4"
+                        Text="Doble toque para restablecer"
+                        HorizontalTextAlignment="End"
+                        VerticalTextAlignment="Center"
+                        TextColor="#B9CCC5"
+                        FontSize="12" />
+                </Grid>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>

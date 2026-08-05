@@ -22,10 +22,34 @@ namespace CONATRADEC.Models
         public const string PublicadaAlbum = "PUBLICADA_ALBUM";
     }
 
+    public static class InspeccionEstadosV2
+    {
+        public const string Borrador = "BORRADOR";
+        public const string EnProceso = "EN_PROCESO";
+        public const string Parcial = "PARCIAL";
+        public const string PendienteRevision = "PENDIENTE_REVISION";
+        public const string PendienteAprobacion = "PENDIENTE_APROBACION";
+        public const string Finalizada = "FINALIZADA";
+        public const string FinalizadaParcialmente = "FINALIZADA_PARCIALMENTE";
+
+        public static string ObtenerTexto(string? estado) => estado switch
+        {
+            Borrador => "Borrador",
+            EnProceso => "En proceso",
+            Parcial => "Parcial",
+            PendienteRevision => "Pendiente de revisión",
+            PendienteAprobacion => "Pendiente de aprobación",
+            Finalizada => "Finalizada",
+            FinalizadaParcialmente => "Finalizada parcialmente",
+            _ => (estado ?? string.Empty).Replace('_', ' ')
+        };
+    }
+
     public sealed class InspeccionFotoLocal : INotifyPropertyChanged
     {
         private DateTime fechaIdentificacionCampo = DateTime.Today;
         private string tipoFotografia = "EVIDENCIA";
+        private TipoFotografiaIAItem? tipoFotografiaSeleccionada;
 
         public string RutaLocal { get; init; } = string.Empty;
         public string NombreArchivo { get; init; } = string.Empty;
@@ -61,6 +85,30 @@ namespace CONATRADEC.Models
             }
         }
 
+
+        public TipoFotografiaIAItem? TipoFotografiaSeleccionada
+        {
+            get => tipoFotografiaSeleccionada;
+            set
+            {
+                if (ReferenceEquals(tipoFotografiaSeleccionada, value))
+                    return;
+
+                tipoFotografiaSeleccionada = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(InstruccionTipoFotografia));
+
+                if (value != null)
+                    TipoFotografia = value.Codigo;
+            }
+        }
+
+        public string InstruccionTipoFotografia =>
+            string.IsNullOrWhiteSpace(
+                TipoFotografiaSeleccionada?.InstruccionIA)
+                ? "Seleccione un tipo de fotografía para conocer qué detalles priorizará la IA."
+                : TipoFotografiaSeleccionada!.InstruccionIA;
+
         public ImageSource? Miniatura => string.IsNullOrWhiteSpace(RutaLocal)
             ? null
             : ImageSource.FromFile(RutaLocal);
@@ -77,6 +125,8 @@ namespace CONATRADEC.Models
         public string CodigoTerreno { get; set; } = string.Empty;
         public DateTime FechaRegistroSistemaUtc { get; set; }
         public string Estado { get; set; } = string.Empty;
+        public bool CerradaTecnico { get; set; }
+        public DateTime? FechaCierreTecnicoUtc { get; set; }
         public int TotalFotografias { get; set; }
         public int Pendientes { get; set; }
         public int ConError { get; set; }
@@ -84,8 +134,14 @@ namespace CONATRADEC.Models
         public string UrlMiniatura { get; set; } = string.Empty;
 
         public string TerrenoTexto => string.IsNullOrWhiteSpace(CodigoTerreno)
-            ? "Sin terreno vinculado"
+            ? "Terreno no disponible (registro anterior)"
             : $"Terreno {CodigoTerreno}";
+
+        public string EstadoTexto => InspeccionEstadosV2.ObtenerTexto(Estado);
+
+        public string CierreTexto => CerradaTecnico
+            ? "Inspección cerrada por el técnico"
+            : "Inspección abierta por el técnico";
 
         public string Resumen =>
             $"{TotalFotografias} fotos · {Pendientes} pendientes · " +
@@ -245,16 +301,27 @@ namespace CONATRADEC.Models
         public string Observacion { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
         public DateTime FechaRegistroSistemaUtc { get; set; }
+        public bool CerradaTecnico { get; set; }
+        public DateTime? FechaCierreTecnicoUtc { get; set; }
+        public int? UsuarioCierreTecnicoId { get; set; }
         public List<InspeccionFotoV2> Fotografias { get; set; } = [];
         public bool PuedeGestionarSolicitud { get; set; }
+        public bool PuedeCerrarInspeccion { get; set; }
+        public string MotivoNoPuedeCerrar { get; set; } = string.Empty;
         public bool PuedeAnalizar { get; set; }
         public bool PuedeAprobar { get; set; }
         public bool PuedePublicarAlbum { get; set; }
 
         public string Titulo => $"Inspección #{InspeccionId}";
         public string TerrenoTexto => string.IsNullOrWhiteSpace(CodigoTerreno)
-            ? "Sin terreno vinculado"
+            ? "Terreno no disponible (registro anterior)"
             : $"Terreno {CodigoTerreno}";
+
+        public string EstadoTexto => InspeccionEstadosV2.ObtenerTexto(Estado);
+
+        public string CierreTexto => CerradaTecnico
+            ? "Inspección cerrada por el técnico"
+            : "Inspección abierta por el técnico";
     }
 
     public sealed class InspeccionOperacionItemV2

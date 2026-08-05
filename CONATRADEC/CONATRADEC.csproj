@@ -326,6 +326,12 @@
 		<MauiXaml Update="Views\terrenoPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\TipoFotografiaIAFormPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\TipoFotografiaIAPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\userFormPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

@@ -15,6 +15,7 @@ namespace CONATRADEC.ViewModels
         DiagnosticoIAViewModelBase
     {
         private int diagnosticoId;
+        private readonly TipoFotografiaIAApiService tiposFotografiaApi = new();
         private string origen = DiagnosticoIARoutes.ModoMisInspecciones;
         private InspeccionFitosanitariaDetalleV2? detalle;
 
@@ -26,6 +27,9 @@ namespace CONATRADEC.ViewModels
             AgregarFotografiasCommand = new Command(
                 async () => await AgregarFotografiasAsync(),
                 () => !IsBusy && PuedeAgregarFotografias);
+            CerrarInspeccionCommand = new Command(
+                async () => await CerrarInspeccionAsync(),
+                () => !IsBusy && PuedeCerrarInspeccion);
             SeleccionarTodoCommand = new Command(
                 SeleccionarTodo,
                 () => !IsBusy && Fotografias.Count > 0);
@@ -62,6 +66,7 @@ namespace CONATRADEC.ViewModels
 
         public Command ActualizarCommand { get; }
         public Command AgregarFotografiasCommand { get; }
+        public Command CerrarInspeccionCommand { get; }
         public Command SeleccionarTodoCommand { get; }
         public Command QuitarSeleccionCommand { get; }
         public Command ProcesarSeleccionCommand { get; }
@@ -87,6 +92,9 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(TituloResultado));
                 OnPropertyChanged(nameof(SubtituloResultado));
                 OnPropertyChanged(nameof(PuedeAgregarFotografias));
+                OnPropertyChanged(nameof(PuedeCerrarInspeccion));
+                OnPropertyChanged(nameof(MostrarCierreTecnico));
+                OnPropertyChanged(nameof(MotivoNoPuedeCerrar));
             }
         }
 
@@ -94,11 +102,25 @@ namespace CONATRADEC.ViewModels
         public string TituloResultado => Detalle?.Titulo ?? "Inspección fitosanitaria";
         public string SubtituloResultado => Detalle == null
             ? "Cargando expediente..."
-            : $"{Detalle.TerrenoTexto} · Estado calculado: {Detalle.Estado}";
+            : $"{Detalle.TerrenoTexto} · Estado: {Detalle.EstadoTexto} · {Detalle.CierreTexto}";
 
         public bool PuedeAgregarFotografias =>
             Detalle?.PuedeGestionarSolicitud == true &&
             Fotografias.Count < 40;
+
+
+        public bool PuedeCerrarInspeccion =>
+            Detalle?.PuedeCerrarInspeccion == true;
+
+        public bool MostrarCierreTecnico =>
+            Detalle is
+            {
+                PuedeGestionarSolicitud: true,
+                CerradaTecnico: false
+            };
+
+        public string MotivoNoPuedeCerrar =>
+            Detalle?.MotivoNoPuedeCerrar ?? string.Empty;
 
         public List<InspeccionFotoV2> FotosSeleccionadas => Fotografias
             .Where(item => item.Seleccionada)
@@ -112,8 +134,7 @@ namespace CONATRADEC.ViewModels
 
         public bool PuedeProcesarSeleccion =>
             TieneSeleccion &&
-            (Detalle?.PuedeGestionarSolicitud == true ||
-             Detalle?.PuedeAnalizar == true) &&
+            Detalle?.PuedeGestionarSolicitud == true &&
             FotosSeleccionadas.All(item => item.Estado is
                 InspeccionFotoEstados.Borrador or
                 InspeccionFotoEstados.PendienteIA or
@@ -140,8 +161,7 @@ namespace CONATRADEC.ViewModels
 
         public bool PuedeDescartarSeleccion =>
             TieneSeleccion &&
-            (Detalle?.PuedeGestionarSolicitud == true ||
-             Detalle?.PuedeAnalizar == true) &&
+            Detalle?.PuedeGestionarSolicitud == true &&
             FotosSeleccionadas.All(item =>
                 item.Estado != InspeccionFotoEstados.PublicadaAlbum);
 
@@ -324,24 +344,52 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                string? tipoFotografia =
+                ApiResult<List<TipoFotografiaIAItem>> tiposResult =
+                    await tiposFotografiaApi.ListarActivosAsync();
+
+                if (!tiposResult.Success ||
+                    tiposResult.Data == null ||
+                    tiposResult.Data.Count == 0)
+                {
+                    await MostrarAlertaAsync(
+                        "Catálogo requerido",
+                        string.IsNullOrWhiteSpace(tiposResult.Message)
+                            ? "No hay tipos de fotografía activos. Solicite al administrador que configure el catálogo."
+                            : tiposResult.Message);
+                    return;
+                }
+
+                List<TipoFotografiaIAItem> tiposDisponibles =
+                    tiposResult.Data
+                        .Where(item => item.Activo)
+                        .OrderBy(item => item.Orden)
+                        .ThenBy(item => item.Nombre)
+                        .ToList();
+
+                string? nombreSeleccionado =
                     await Shell.Current.DisplayActionSheet(
                         "Tipo de fotografía",
                         "Cancelar",
                         null,
-                        "EVIDENCIA",
-                        "HOJA",
-                        "RAMA",
-                        "FRUTO",
-                        "TALLO",
-                        "PLANTA_COMPLETA",
-                        "OTRO");
+                        tiposDisponibles
+                            .Select(item => item.NombreMostrar)
+                            .ToArray());
 
-                if (string.IsNullOrWhiteSpace(tipoFotografia) ||
-                    tipoFotografia == "Cancelar")
+                if (string.IsNullOrWhiteSpace(nombreSeleccionado) ||
+                    nombreSeleccionado == "Cancelar")
                 {
                     return;
                 }
+
+                TipoFotografiaIAItem? tipoSeleccionado =
+                    tiposDisponibles.FirstOrDefault(item =>
+                        string.Equals(
+                            item.NombreMostrar,
+                            nombreSeleccionado,
+                            StringComparison.Ordinal));
+
+                if (tipoSeleccionado == null)
+                    return;
 
                 foreach (FileResult archivo in archivos)
                 {
@@ -352,7 +400,7 @@ namespace CONATRADEC.ViewModels
                         NombreArchivo = archivo.FileName,
                         TipoContenido = archivo.ContentType ?? "image/jpeg",
                         FechaIdentificacionCampo = fechaCampo.Date,
-                        TipoFotografia = tipoFotografia
+                        TipoFotografiaSeleccionada = tipoSeleccionado
                     });
                 }
 
@@ -412,6 +460,10 @@ namespace CONATRADEC.ViewModels
             }
 
             OnPropertyChanged(nameof(PuedeAgregarFotografias));
+            OnPropertyChanged(nameof(PuedeCerrarInspeccion));
+            OnPropertyChanged(nameof(MostrarCierreTecnico));
+            OnPropertyChanged(nameof(MotivoNoPuedeCerrar));
+            OnPropertyChanged(nameof(SubtituloResultado));
             NotificarSeleccion();
         }
 
@@ -435,6 +487,45 @@ namespace CONATRADEC.ViewModels
                 foto.Seleccionada = false;
 
             NotificarSeleccion();
+        }
+
+        private async Task CerrarInspeccionAsync()
+        {
+            if (!PuedeCerrarInspeccion || Detalle == null)
+                return;
+
+            bool confirmar = await ConfirmarAsync(
+                "Cerrar inspección",
+                "Después del cierre no podrá agregar, descartar ni volver a analizar fotografías desde la etapa técnica. Las fotografías enviadas quedarán visibles para el analizador.");
+
+            if (!confirmar)
+                return;
+
+            IsBusy = true;
+            MensajeEstado = "Cerrando inspección y habilitando la revisión humana...";
+            ActualizarComandos();
+
+            try
+            {
+                InspeccionFitosanitariaDetalleV2 actualizado =
+                    await InspeccionApi.CerrarInspeccionAsync(diagnosticoId);
+
+                AplicarDetalle(actualizado);
+
+                await MostrarAlertaAsync(
+                    "Inspección cerrada",
+                    "La inspección fue enviada a la bandeja del analizador.");
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorAsync(ex);
+            }
+            finally
+            {
+                MensajeEstado = string.Empty;
+                IsBusy = false;
+                ActualizarComandos();
+            }
         }
 
         private async Task ProcesarSeleccionAsync()
@@ -486,11 +577,11 @@ namespace CONATRADEC.ViewModels
                 return;
 
             await EjecutarOperacionAsync(
-                "Enviando fotografías al analizador...",
+                "Preparando fotografías para la revisión humana...",
                 ids => InspeccionApi.EnviarAnalizadorAsync(
                     diagnosticoId,
                     ids),
-                "Fotografías enviadas");
+                "Fotografías preparadas");
         }
 
         private async Task SolicitarRevisionAsync()
@@ -976,6 +1067,9 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(PuedeAprobarSeleccion));
             OnPropertyChanged(nameof(PuedePublicarSeleccion));
             OnPropertyChanged(nameof(PuedeAgregarFotografias));
+            OnPropertyChanged(nameof(PuedeCerrarInspeccion));
+            OnPropertyChanged(nameof(MostrarCierreTecnico));
+            OnPropertyChanged(nameof(MotivoNoPuedeCerrar));
             ActualizarComandos();
         }
 
@@ -983,6 +1077,7 @@ namespace CONATRADEC.ViewModels
         {
             ActualizarCommand.ChangeCanExecute();
             AgregarFotografiasCommand.ChangeCanExecute();
+            CerrarInspeccionCommand.ChangeCanExecute();
             SeleccionarTodoCommand.ChangeCanExecute();
             QuitarSeleccionCommand.ChangeCanExecute();
             ProcesarSeleccionCommand.ChangeCanExecute();
