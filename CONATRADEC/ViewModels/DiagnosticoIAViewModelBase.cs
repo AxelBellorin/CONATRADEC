@@ -17,9 +17,11 @@ namespace CONATRADEC.ViewModels
 
         protected DiagnosticoIAViewModelBase()
         {
+            // Esta página se abrió desde el panel de inspección mediante una
+            // ruta apilada. Regresar con ".." evita intentar abrir nuevamente
+            // la misma ruta y conserva correctamente la pila de Shell.
             RegresarCommand = new Command(
-                async () => await GoToAsyncParameters(
-                    DiagnosticoIARoutes.RutaModulo),
+                async () => await GoToAsyncParameters(AppRoutes.Regresar),
                 () => !IsBusy);
         }
 
