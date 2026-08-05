@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.albumFotosPage"
     x:Name="AlbumPageRoot"
@@ -6,6 +6,17 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='#F4F7F5', Default={StaticResource color_Blanco}}">
+
+    <!--
+        Esta página utiliza los botones y el menú propios de CONATRADEC.
+        Se oculta y deshabilita el botón de retroceso nativo de Shell
+        sin modificar la lógica de navegación existente.
+    -->
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior
+            IsVisible="False"
+            IsEnabled="False" />
+    </Shell.BackButtonBehavior>
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
 

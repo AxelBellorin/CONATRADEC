@@ -12,6 +12,7 @@ namespace CONATRADEC.ViewModels
             ActualizarCommand = new Command(
                 async () => await CargarAsync(),
                 () => !IsBusy);
+
             AbrirCommand = new Command<InspeccionFitosanitariaListaItemV2>(
                 async item => await AbrirAsync(item),
                 item => item != null && !IsBusy);
@@ -23,7 +24,8 @@ namespace CONATRADEC.ViewModels
         public Command ActualizarCommand { get; }
         public Command<InspeccionFitosanitariaListaItemV2> AbrirCommand { get; }
 
-        public bool SinSolicitudes => !IsBusy && Solicitudes.Count == 0;
+        public bool SinSolicitudes =>
+            !IsBusy && Solicitudes.Count == 0;
 
         public Task InicializarAsync() => CargarAsync();
 
@@ -33,13 +35,16 @@ namespace CONATRADEC.ViewModels
                 return;
 
             IsBusy = true;
-            MensajeEstado = "Cargando fotografías pendientes de aprobación...";
+            MensajeEstado =
+                "Cargando fotografías pendientes de aprobación...";
             ActualizarCommand.ChangeCanExecute();
+            AbrirCommand.ChangeCanExecute();
 
             try
             {
                 List<InspeccionFitosanitariaListaItemV2> items =
-                    await InspeccionApi.ObtenerBandejaAsync("aprobador");
+                    await InspeccionApi.ObtenerBandejaAsync(
+                        DiagnosticoIARoutes.ModoAprobador);
 
                 Solicitudes.Clear();
                 foreach (InspeccionFitosanitariaListaItemV2 item in items)
@@ -57,6 +62,7 @@ namespace CONATRADEC.ViewModels
                 IsBusy = false;
                 OnPropertyChanged(nameof(SinSolicitudes));
                 ActualizarCommand.ChangeCanExecute();
+                AbrirCommand.ChangeCanExecute();
             }
         }
 
@@ -69,7 +75,7 @@ namespace CONATRADEC.ViewModels
             await GoToAsyncParameters(
                 DiagnosticoIARoutes.CrearRutaResultado(
                     item.InspeccionId,
-                    DiagnosticoIARoutes.ModoHistorial));
+                    DiagnosticoIARoutes.ModoAprobador));
         }
     }
 }

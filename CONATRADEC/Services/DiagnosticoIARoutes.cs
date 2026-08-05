@@ -22,6 +22,8 @@ namespace CONATRADEC.Services
         public const string ModoMisInspecciones = "mis";
         public const string ModoDecisionesPendientes = "decisiones";
         public const string ModoHistorial = "historial";
+        public const string ModoAnalizador = "analizador";
+        public const string ModoAprobador = "aprobador";
 
         public static readonly string Pagina = Registrar(
             nameof(Views.DiagnosticoIAPage),
@@ -81,6 +83,22 @@ namespace CONATRADEC.Services
                    $"&origen={Uri.EscapeDataString(origenNormalizado)}";
         }
 
+        /// <summary>
+        /// Ruta de respaldo cuando Shell no conserva la página que abrió el
+        /// resultado. Evita regresar a una bandeja diferente de la real.
+        /// </summary>
+        public static string CrearRutaRegresoResultado(string? origen)
+        {
+            string normalizado = NormalizarModo(origen);
+
+            return normalizado switch
+            {
+                ModoAnalizador => PaginaAnalizador,
+                ModoAprobador => PaginaAprobador,
+                _ => CrearRutaSolicitud(normalizado)
+            };
+        }
+
         public static string NormalizarModo(string? modo)
         {
             string valor = (modo ?? string.Empty)
@@ -92,6 +110,8 @@ namespace CONATRADEC.Services
                 ModoNuevaInspeccion => ModoNuevaInspeccion,
                 ModoDecisionesPendientes => ModoDecisionesPendientes,
                 ModoHistorial => ModoHistorial,
+                ModoAnalizador => ModoAnalizador,
+                ModoAprobador => ModoAprobador,
                 _ => ModoMisInspecciones
             };
         }

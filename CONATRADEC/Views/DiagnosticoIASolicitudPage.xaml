@@ -40,7 +40,7 @@
     </ContentPage.Resources>
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}" RowDefinitions="Auto,*" RowSpacing="14">
-            <controls:ResponsiveCatalogHeader Grid.Row="0" Title="{Binding TituloPagina}" Subtitle="{Binding SubtituloPagina}" BackText="← Inspección fitosanitaria" BackCommand="{Binding RegresarCommand}" IsPrimaryVisible="False" IsVisible="{Binding VisorCerrado}"/>
+            <controls:ResponsiveCatalogHeader Grid.Row="0" Title="{Binding TituloPagina}" Subtitle="{Binding SubtituloPagina}" BackText="← Inspección fitosanitaria" BackCommand="{Binding RegresarSolicitudCommand}" IsPrimaryVisible="False" IsVisible="{Binding VisorCerrado}"/>
             <!-- Visor de una sola fotografía. La pantalla principal se oculta para
                  evitar mantener dos imágenes grandes renderizadas al mismo tiempo. -->
             <ScrollView x:Name="ContenidoScroll" Grid.Row="1" HorizontalOptions="Fill" HorizontalScrollBarVisibility="Never" IsVisible="{Binding EsModoNueva}">

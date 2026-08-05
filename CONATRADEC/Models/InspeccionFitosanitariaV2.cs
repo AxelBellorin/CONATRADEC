@@ -122,6 +122,7 @@ namespace CONATRADEC.Models
     public sealed class InspeccionFitosanitariaListaItemV2
     {
         public int InspeccionId { get; set; }
+        public string NombreInspeccion { get; set; } = string.Empty;
         public string CodigoTerreno { get; set; } = string.Empty;
         public DateTime FechaRegistroSistemaUtc { get; set; }
         public string Estado { get; set; } = string.Empty;
@@ -133,6 +134,11 @@ namespace CONATRADEC.Models
         public int Finalizadas { get; set; }
         public string UrlMiniatura { get; set; } = string.Empty;
 
+        public string NombreInspeccionTexto =>
+            string.IsNullOrWhiteSpace(NombreInspeccion)
+                ? $"Inspección #{InspeccionId}"
+                : NombreInspeccion.Trim();
+
         public string TerrenoTexto => string.IsNullOrWhiteSpace(CodigoTerreno)
             ? "Terreno no disponible (registro anterior)"
             : $"Terreno {CodigoTerreno}";
@@ -140,8 +146,8 @@ namespace CONATRADEC.Models
         public string EstadoTexto => InspeccionEstadosV2.ObtenerTexto(Estado);
 
         public string CierreTexto => CerradaTecnico
-            ? "Inspección cerrada por el técnico"
-            : "Inspección abierta por el técnico";
+            ? "Inspección cerrada definitivamente"
+            : "Inspección abierta";
 
         public string Resumen =>
             $"{TotalFotografias} fotos · {Pendientes} pendientes · " +
@@ -186,6 +192,79 @@ namespace CONATRADEC.Models
         public string DiagnosticoVisible => string.IsNullOrWhiteSpace(DiagnosticoProbable)
             ? "Sin diagnóstico preliminar"
             : DiagnosticoProbable;
+
+        /// <summary>
+        /// Las plantas aparentemente sanas también forman parte del Álbum
+        /// Botánico. La categoría fitosanitaria continúa siendo NO_APLICA,
+        /// pero la evidencia puede requerir una ficha dentro de Plantas sanas.
+        /// </summary>
+        public bool EsAparentementeSana
+        {
+            get
+            {
+                if (string.Equals(
+                        EstadoGeneral,
+                        "APARENTEMENTE_SANA",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                /*
+                 * Compatibilidad con resultados históricos: algunas respuestas
+                 * anteriores no devolvían EstadoGeneral al cliente, aunque el
+                 * diagnóstico sí indicaba expresamente que la planta estaba
+                 * aparentemente sana.
+                 */
+                bool categoriaNoAplica = string.Equals(
+                    CategoriaPrincipal,
+                    "NO_APLICA",
+                    StringComparison.OrdinalIgnoreCase);
+
+                bool diagnosticoSano =
+                    DiagnosticoProbable.Contains(
+                        "aparentemente sana",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    DiagnosticoProbable.Contains(
+                        "aparentemente sano",
+                        StringComparison.OrdinalIgnoreCase);
+
+                return categoriaNoAplica && diagnosticoSano;
+            }
+        }
+
+        public bool TieneFichaAlbumCoincidente =>
+            CoincideCatalogoAlbum &&
+            AlbumBotanicoCafeIdSugerido is > 0;
+
+        public bool RequiereGestionAlbum =>
+            RequiereDecisionClasificacion ||
+            (EsAparentementeSana && !TieneFichaAlbumCoincidente);
+
+        public string CategoriaAlbumPropuesta =>
+            !string.IsNullOrWhiteSpace(CategoriaAlbumSugerida)
+                ? CategoriaAlbumSugerida.Trim()
+                : EsAparentementeSana
+                    ? "Plantas sanas"
+                    : string.IsNullOrWhiteSpace(CategoriaPrincipal)
+                        ? "Clasificación pendiente"
+                        : CategoriaPrincipal.Replace('_', ' ');
+
+        public string ClasificacionAlbumPropuesta =>
+            !string.IsNullOrWhiteSpace(ClasificacionAlbumSugerida)
+                ? ClasificacionAlbumSugerida.Trim()
+                : !string.IsNullOrWhiteSpace(DiagnosticoProbable)
+                    ? DiagnosticoProbable.Trim()
+                    : EsAparentementeSana
+                        ? "Planta de café aparentemente sana"
+                        : "Nueva ficha por definir";
+
+        public string MotivoAlbumPropuesta =>
+            !string.IsNullOrWhiteSpace(MotivoClasificacionAlbum)
+                ? MotivoClasificacionAlbum.Trim()
+                : EsAparentementeSana
+                    ? "La fotografía corresponde a una planta de café aparentemente sana, pero no existe una ficha compatible dentro del capítulo Plantas sanas."
+                    : "La IA no encontró una ficha activa del Álbum Botánico que represente de forma segura este hallazgo.";
     }
 
     public sealed class InspeccionFotoAnalisisHumanoV2
@@ -264,19 +343,71 @@ namespace CONATRADEC.Models
             get => seleccionada;
             set
             {
-                if (seleccionada == value)
+                /*
+                 * Una fotografía bloqueada nunca puede conservar selección.
+                 * Esto evita que un estado final o una evidencia en proceso sea
+                 * enviada accidentalmente en una operación posterior.
+                 */
+                bool nuevoValor = value && PuedeSeleccionarse;
+
+                if (seleccionada == nuevoValor)
                     return;
 
-                seleccionada = value;
+                seleccionada = nuevoValor;
                 OnPropertyChanged();
             }
         }
 
         public bool TieneResultadoIA => ResultadoIA != null;
+        public bool TienePropuestaAlbum =>
+            !Descartada &&
+            !PublicadaAlbum &&
+            !TieneAprobacion &&
+            ResultadoIA?.RequiereGestionAlbum == true;
         public bool TieneError => !string.IsNullOrWhiteSpace(ErrorProcesamiento);
         public bool TieneAnalisisHumano => UltimoAnalisisHumano != null;
         public bool TieneAprobacion => UltimaAprobacion != null;
-        public bool PuedeSeleccionarse => !Descartada;
+
+        public bool EsEstadoFinal => Estado is
+            InspeccionFotoEstados.Aprobada or
+            InspeccionFotoEstados.AprobadaConCorreccion or
+            InspeccionFotoEstados.Rechazada or
+            InspeccionFotoEstados.NoConcluyente or
+            InspeccionFotoEstados.Descartada or
+            InspeccionFotoEstados.PublicadaAlbum;
+
+        public bool EstaProcesando =>
+            Estado == InspeccionFotoEstados.AnalizandoIA;
+
+        /*
+         * Una foto aprobada y autorizada conserva una única acción posible:
+         * publicarla en el álbum. No puede volver a analizarse, descartarse ni
+         * recibir otra decisión.
+         */
+        public bool PuedePublicarseEnAlbum =>
+            !PublicadaAlbum &&
+            UltimaAprobacion?.AutorizaPublicacionAlbum == true &&
+            Estado is
+                InspeccionFotoEstados.Aprobada or
+                InspeccionFotoEstados.AprobadaConCorreccion;
+
+        public bool EsSoloConsulta =>
+            Descartada || EstaProcesando ||
+            (EsEstadoFinal && !PuedePublicarseEnAlbum);
+
+        public bool PuedeSeleccionarse =>
+            !EsSoloConsulta;
+
+        public string DisponibilidadTexto => PuedePublicarseEnAlbum
+            ? "Proceso finalizado · disponible únicamente para publicar en el álbum"
+            : EsEstadoFinal || Descartada
+                ? "Proceso finalizado · solo consulta"
+                : EstaProcesando
+                    ? "Procesamiento en curso"
+                    : string.Empty;
+
+        public bool TieneMensajeDisponibilidad =>
+            !string.IsNullOrWhiteSpace(DisponibilidadTexto);
         public string Titulo => $"Fotografía {Orden} · {TipoFotografia.Replace('_', ' ')}";
         public string FechaCampoTexto => FechaIdentificacionCampo.HasValue
             ? $"Identificación en campo: {FechaIdentificacionCampo:dd/MM/yyyy}"
@@ -323,8 +454,8 @@ namespace CONATRADEC.Models
         public string EstadoTexto => InspeccionEstadosV2.ObtenerTexto(Estado);
 
         public string CierreTexto => CerradaTecnico
-            ? "Inspección cerrada por el técnico"
-            : "Inspección abierta por el técnico";
+            ? "Inspección cerrada definitivamente"
+            : "Inspección abierta";
     }
 
     public sealed class InspeccionOperacionItemV2

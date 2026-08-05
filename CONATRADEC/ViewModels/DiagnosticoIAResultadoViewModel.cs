@@ -1,9 +1,11 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
+using CONATRADEC.Views;
 using Microsoft.Maui.Media;
 using System.Globalization;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Text;
 
 namespace CONATRADEC.ViewModels
 {
@@ -16,6 +18,7 @@ namespace CONATRADEC.ViewModels
     {
         private int diagnosticoId;
         private readonly TipoFotografiaIAApiService tiposFotografiaApi = new();
+        private readonly AlbumBotanicoApiService albumBotanicoApi = new();
         private string origen = DiagnosticoIARoutes.ModoMisInspecciones;
         private InspeccionFitosanitariaDetalleV2? detalle;
 
@@ -128,7 +131,8 @@ namespace CONATRADEC.ViewModels
             Detalle?.MotivoNoPuedeCerrar ?? string.Empty;
 
         public List<InspeccionFotoV2> FotosSeleccionadas => Fotografias
-            .Where(item => item.Seleccionada)
+            .Where(item => item.Seleccionada && item.PuedeSeleccionarse)
+            .OrderBy(item => item.Orden)
             .ToList();
 
         public bool TieneSeleccion => FotosSeleccionadas.Count > 0;
@@ -154,21 +158,17 @@ namespace CONATRADEC.ViewModels
 
         public bool PuedeSolicitarRevision =>
             TieneSeleccion &&
-            (Detalle?.PuedeGestionarSolicitud == true ||
-             Detalle?.PuedeAnalizar == true) &&
+            Detalle?.PuedeGestionarSolicitud == true &&
             FotosSeleccionadas.All(item => item.Estado is
                 InspeccionFotoEstados.PendienteDecisionTecnico or
-                InspeccionFotoEstados.PendienteAnalizador or
-                InspeccionFotoEstados.EnAnalisisHumano or
-                InspeccionFotoEstados.DevueltaAnalizador or
-                InspeccionFotoEstados.ErrorIA or
-                InspeccionFotoEstados.NoConcluyente);
+                InspeccionFotoEstados.ErrorIA);
 
         public bool PuedeDescartarSeleccion =>
             TieneSeleccion &&
             Detalle?.PuedeGestionarSolicitud == true &&
             FotosSeleccionadas.All(item =>
-                item.Estado != InspeccionFotoEstados.PublicadaAlbum);
+                !item.EsEstadoFinal &&
+                !item.EstaProcesando);
 
         public bool PuedeAnalizarSeleccion =>
             TieneSeleccion &&
@@ -194,8 +194,13 @@ namespace CONATRADEC.ViewModels
 
         public string TextoRegresar => origen switch
         {
-            DiagnosticoIARoutes.ModoDecisionesPendientes => "Decisiones pendientes",
+            DiagnosticoIARoutes.ModoDecisionesPendientes =>
+                "Decisiones pendientes",
             DiagnosticoIARoutes.ModoHistorial => "Historial",
+            DiagnosticoIARoutes.ModoAnalizador =>
+                "Bandeja del analizador",
+            DiagnosticoIARoutes.ModoAprobador =>
+                "Bandeja del aprobador",
             _ => "Mis inspecciones"
         };
 
@@ -223,6 +228,33 @@ namespace CONATRADEC.ViewModels
             {
                 InspeccionFitosanitariaDetalleV2 actualizado =
                     await InspeccionApi.ObtenerDetalleAsync(diagnosticoId);
+
+                /*
+                 * Los resultados generados con versiones anteriores podían
+                 * marcar una planta sana como NO_APLICA también para el Álbum
+                 * Botánico. La normalización se ejecuta una sola vez cuando el
+                 * detalle todavía necesita esa corrección y luego se recarga.
+                 */
+                if (RequiereNormalizarPlantasSanas(actualizado))
+                {
+                    try
+                    {
+                        await InspeccionApi.NormalizarPlantasSanasAsync(
+                            diagnosticoId);
+
+                        actualizado =
+                            await InspeccionApi.ObtenerDetalleAsync(
+                                diagnosticoId);
+                    }
+                    catch (InspeccionFitosanitariaApiException)
+                    {
+                        /*
+                         * El modelo visual conserva una propuesta de respaldo
+                         * para no ocultar la clasificación mientras el backend
+                         * nuevo todavía no haya sido publicado.
+                         */
+                    }
+                }
 
                 AplicarDetalle(actualizado);
             }
@@ -449,6 +481,13 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private static bool RequiereNormalizarPlantasSanas(
+            InspeccionFitosanitariaDetalleV2 detalle) =>
+            detalle.Fotografias.Any(foto =>
+                foto.ResultadoIA?.EsAparentementeSana == true &&
+                foto.ResultadoIA.TieneFichaAlbumCoincidente == false &&
+                foto.ResultadoIA.RequiereDecisionClasificacion == false);
+
         private void AplicarDetalle(
             InspeccionFitosanitariaDetalleV2 actualizado)
         {
@@ -460,6 +499,9 @@ namespace CONATRADEC.ViewModels
             Fotografias.Clear();
             foreach (InspeccionFotoV2 foto in actualizado.Fotografias)
             {
+                if (!foto.PuedeSeleccionarse)
+                    foto.Seleccionada = false;
+
                 foto.PropertyChanged += FotoPropertyChanged;
                 Fotografias.Add(foto);
             }
@@ -480,8 +522,12 @@ namespace CONATRADEC.ViewModels
 
         private void SeleccionarTodo()
         {
-            foreach (InspeccionFotoV2 foto in Fotografias.Where(item => item.PuedeSeleccionarse))
+            foreach (InspeccionFotoV2 foto in Fotografias.Where(item =>
+                         item.PuedeSeleccionarse &&
+                         !item.EsEstadoFinal))
+            {
                 foto.Seleccionada = true;
+            }
 
             NotificarSeleccion();
         }
@@ -501,12 +547,12 @@ namespace CONATRADEC.ViewModels
 
             bool confirmar = await ConfirmarAsync(
                 "Cerrar inspección",
-                "El cierre es definitivo. Después de continuar, ningún técnico, analizador o aprobador podrá modificar, procesar, descartar, aprobar ni publicar fotografías de esta inspección. Solo podrá consultarse.");
+                "El cierre es definitivo y solo está disponible cuando todas las fotografías finalizaron. Después de continuar no podrá modificar, procesar, descartar, aprobar ni publicar ninguna evidencia. Solo podrá consultarse.");
             if (!confirmar)
                 return;
 
             IsBusy = true;
-            MensajeEstado = "Cerrando inspección y habilitando la revisión humana...";
+            MensajeEstado = "Cerrando definitivamente la inspección...";
             ActualizarComandos();
 
             try
@@ -539,37 +585,51 @@ namespace CONATRADEC.ViewModels
 
             bool confirmar = await ConfirmarAsync(
                 "Analizar fotografías",
-                "La IA procesará cada fotografía por separado. Los resultados correctos se conservarán aunque otra fotografía falle.");
+                "Cada fotografía se enviará en una petición independiente. Un error no detendrá ni revertirá las demás.");
 
             if (!confirmar)
                 return;
 
             await EjecutarOperacionAsync(
                 "Analizando fotografías seleccionadas...",
-                ids => ProcesarEnLotesAsync(ids),
+                ids => EjecutarPorFotografiaAsync(
+                    ids,
+                    fotografiaId => InspeccionApi.ProcesarFotosAsync(
+                        diagnosticoId,
+                        [fotografiaId])),
                 "Análisis completado");
         }
 
-        private async Task<InspeccionOperacionMasivaV2> ProcesarEnLotesAsync(
-            IReadOnlyCollection<int> ids)
+        private async Task<InspeccionOperacionMasivaV2>
+            EjecutarPorFotografiaAsync(
+                IReadOnlyCollection<int> ids,
+                Func<int, Task<InspeccionOperacionMasivaV2>> accion)
         {
             var acumulado = new InspeccionOperacionMasivaV2
             {
                 TotalSolicitadas = ids.Count
             };
 
-            // Se envía una fotografía por petición para respetar el procesamiento
-            // individual y evitar que el tiempo de una imagen agote todo el lote.
-            foreach (int[] lote in ids.Chunk(1))
+            foreach (int fotografiaId in ids.Distinct())
             {
-                InspeccionOperacionMasivaV2 parcial =
-                    await InspeccionApi.ProcesarFotosAsync(
-                        diagnosticoId,
-                        lote);
+                try
+                {
+                    InspeccionOperacionMasivaV2 parcial =
+                        await accion(fotografiaId);
 
-                acumulado.TotalExitosas += parcial.TotalExitosas;
-                acumulado.TotalConError += parcial.TotalConError;
-                acumulado.Resultados.AddRange(parcial.Resultados);
+                    AcumularResultado(acumulado, parcial);
+                }
+                catch (Exception ex)
+                {
+                    acumulado.TotalConError++;
+                    acumulado.Resultados.Add(
+                        new InspeccionOperacionItemV2
+                        {
+                            FotografiaId = fotografiaId,
+                            Exitoso = false,
+                            Mensaje = ex.Message
+                        });
+                }
             }
 
             return acumulado;
@@ -582,9 +642,11 @@ namespace CONATRADEC.ViewModels
 
             await EjecutarOperacionAsync(
                 "Preparando fotografías para la revisión humana...",
-                ids => InspeccionApi.EnviarAnalizadorAsync(
-                    diagnosticoId,
-                    ids),
+                ids => EjecutarPorFotografiaAsync(
+                    ids,
+                    fotografiaId => InspeccionApi.EnviarAnalizadorAsync(
+                        diagnosticoId,
+                        [fotografiaId])),
                 "Fotografías preparadas");
         }
 
@@ -593,44 +655,40 @@ namespace CONATRADEC.ViewModels
             if (!PuedeSolicitarRevision || Shell.Current == null)
                 return;
 
-            string? motivo = await Shell.Current.DisplayPromptAsync(
-                "Nueva evaluación IA",
-                "Explique qué debe revisar la IA en las fotografías seleccionadas.",
-                "Continuar",
-                "Cancelar",
-                "Motivo obligatorio",
-                2000,
-                Keyboard.Default);
+            await EjecutarSecuenciaIndividualAsync(
+                "Reevaluando con IA",
+                "Reevaluación completada",
+                async (foto, indice, total) =>
+                {
+                    /*
+                     * La fotografía, el motivo y el diagnóstico opcional se
+                     * presentan en una sola interfaz. Cada formulario pertenece
+                     * exclusivamente a la fotografía que se está procesando.
+                     */
+                    var formulario = new RevisionIAFotografiaPage(
+                        foto,
+                        indice,
+                        total);
 
-            if (motivo == null)
-                return;
+                    Task<RevisionIAFormularioResultado?> esperaResultado =
+                        formulario.EsperarResultadoAsync();
 
-            motivo = motivo.Trim();
-            if (motivo.Length < 8)
-            {
-                await MostrarAlertaAsync(
-                    "Motivo requerido",
-                    "Escriba al menos 8 caracteres.");
-                return;
-            }
+                    await Shell.Current.Navigation.PushModalAsync(
+                        formulario,
+                        animated: false);
 
-            string? propuesta = await Shell.Current.DisplayPromptAsync(
-                "Diagnóstico considerado",
-                "Diagnóstico opcional que desea contrastar.",
-                "Procesar",
-                "Omitir",
-                "Opcional",
-                300,
-                Keyboard.Default);
+                    RevisionIAFormularioResultado? resultado =
+                        await esperaResultado;
 
-            await EjecutarOperacionAsync(
-                "Reevaluando fotografías seleccionadas...",
-                ids => InspeccionApi.SolicitarRevisionIAAsync(
-                    diagnosticoId,
-                    ids,
-                    motivo,
-                    propuesta),
-                "Reevaluación completada");
+                    if (resultado == null)
+                        return null;
+
+                    return await InspeccionApi.SolicitarRevisionIAAsync(
+                        diagnosticoId,
+                        [foto.FotografiaId],
+                        resultado.Motivo,
+                        resultado.DiagnosticoPropuesto);
+                });
         }
 
         private async Task DescartarAsync()
@@ -638,33 +696,37 @@ namespace CONATRADEC.ViewModels
             if (!PuedeDescartarSeleccion || Shell.Current == null)
                 return;
 
-            string? motivo = await Shell.Current.DisplayPromptAsync(
-                "Descartar fotografías",
-                "Indique el motivo. Las imágenes y su historial no se eliminarán.",
-                "Descartar",
-                "Cancelar",
-                "Motivo obligatorio",
-                1000,
-                Keyboard.Default);
-
-            if (motivo == null || motivo.Trim().Length < 8)
-            {
-                if (motivo != null)
+            await EjecutarSecuenciaIndividualAsync(
+                "Registrando descarte",
+                "Descarte registrado",
+                async (foto, indice, total) =>
                 {
-                    await MostrarAlertaAsync(
-                        "Motivo requerido",
-                        "Escriba al menos 8 caracteres.");
-                }
-                return;
-            }
+                    string? motivo = await Shell.Current.DisplayPromptAsync(
+                        $"Descartar fotografía · {indice} de {total}",
+                        $"{foto.Titulo}. Indique el motivo exclusivo de esta evidencia. La imagen y su historial no se eliminarán.",
+                        "Descartar",
+                        "Cancelar",
+                        "Motivo obligatorio",
+                        1000,
+                        Keyboard.Default);
 
-            await EjecutarOperacionAsync(
-                "Registrando descarte lógico...",
-                ids => InspeccionApi.DescartarFotosAsync(
-                    diagnosticoId,
-                    ids,
-                    motivo.Trim()),
-                "Descarte registrado");
+                    if (motivo == null)
+                        return null;
+
+                    motivo = motivo.Trim();
+                    if (motivo.Length < 8)
+                    {
+                        await MostrarAlertaAsync(
+                            "Motivo requerido",
+                            $"El descarte de {foto.Titulo} necesita al menos 8 caracteres.");
+                        return null;
+                    }
+
+                    return await InspeccionApi.DescartarFotosAsync(
+                        diagnosticoId,
+                        [foto.FotografiaId],
+                        motivo);
+                });
         }
 
         private async Task RegistrarAnalisisHumanoAsync()
@@ -672,99 +734,124 @@ namespace CONATRADEC.ViewModels
             if (!PuedeAnalizarSeleccion || Shell.Current == null)
                 return;
 
-            string? diagnostico = await Shell.Current.DisplayPromptAsync(
-                "Clasificación humana",
-                "Escriba el diagnóstico que aplicará a las fotografías seleccionadas.",
-                "Continuar",
-                "Cancelar",
-                "Diagnóstico obligatorio",
-                300,
-                Keyboard.Default);
-
-            if (string.IsNullOrWhiteSpace(diagnostico))
-                return;
-
-            string? categoria = await Shell.Current.DisplayActionSheet(
-                "Categoría principal",
-                "Cancelar",
-                null,
-                "ENFERMEDAD",
-                "PLAGA",
-                "ALTERACION_NUTRICIONAL",
-                "ESTRES_ABIOTICO",
-                "DANO_MECANICO",
-                "AFECTACION_NO_DETERMINADA",
-                "NO_APLICA");
-
-            if (string.IsNullOrWhiteSpace(categoria) || categoria == "Cancelar")
-                return;
-
-            string? severidad = await Shell.Current.DisplayActionSheet(
-                "Severidad visual",
-                "Cancelar",
-                null,
-                "LEVE",
-                "MODERADA",
-                "SEVERA",
-                "NO_EVALUABLE",
-                "NO_APLICA");
-
-            if (string.IsNullOrWhiteSpace(severidad) || severidad == "Cancelar")
-                return;
-
-            string? certeza = await Shell.Current.DisplayActionSheet(
-                "Nivel de certeza",
-                "Cancelar",
-                null,
-                "ALTO",
-                "MEDIO",
-                "BAJO",
-                "NO_DETERMINADO");
-
-            if (string.IsNullOrWhiteSpace(certeza) || certeza == "Cancelar")
-                return;
-
-            string? observaciones = await Shell.Current.DisplayPromptAsync(
-                "Observaciones",
-                "Observaciones técnicas opcionales.",
-                "Continuar",
-                "Omitir",
-                "Opcional",
-                3000,
-                Keyboard.Default);
-
-            bool enviar = await ConfirmarAsync(
-                "Enviar al aprobador",
-                "¿Desea guardar y enviar inmediatamente esta clasificación al aprobador? Si cancela, quedará como borrador.");
-
-            List<InspeccionFotoAnalisisHumanoRequestV2> items =
-                FotosSeleccionadas.Select(foto =>
+            await EjecutarSecuenciaIndividualAsync(
+                "Guardando clasificación humana",
+                "Clasificaciones humanas",
+                async (foto, indice, total) =>
                 {
+                    string? diagnostico = await Shell.Current.DisplayPromptAsync(
+                        $"Clasificación humana · {indice} de {total}",
+                        $"{foto.Titulo}. Escriba el diagnóstico exclusivo de esta fotografía.",
+                        "Continuar",
+                        "Cancelar",
+                        "Diagnóstico obligatorio",
+                        300,
+                        Keyboard.Default);
+
+                    if (string.IsNullOrWhiteSpace(diagnostico))
+                        return null;
+
+                    string? categoria = await Shell.Current.DisplayActionSheet(
+                        $"Categoría principal · {indice} de {total}",
+                        "Cancelar",
+                        null,
+                        "ENFERMEDAD",
+                        "PLAGA",
+                        "ALTERACION_NUTRICIONAL",
+                        "ESTRES_ABIOTICO",
+                        "DANO_MECANICO",
+                        "AFECTACION_NO_DETERMINADA",
+                        "NO_APLICA");
+
+                    if (string.IsNullOrWhiteSpace(categoria) ||
+                        categoria == "Cancelar")
+                    {
+                        return null;
+                    }
+
+                    string? severidad = await Shell.Current.DisplayActionSheet(
+                        $"Severidad visual · {indice} de {total}",
+                        "Cancelar",
+                        null,
+                        "LEVE",
+                        "MODERADA",
+                        "SEVERA",
+                        "NO_EVALUABLE",
+                        "NO_APLICA");
+
+                    if (string.IsNullOrWhiteSpace(severidad) ||
+                        severidad == "Cancelar")
+                    {
+                        return null;
+                    }
+
+                    string? certeza = await Shell.Current.DisplayActionSheet(
+                        $"Nivel de certeza · {indice} de {total}",
+                        "Cancelar",
+                        null,
+                        "ALTO",
+                        "MEDIO",
+                        "BAJO",
+                        "NO_DETERMINADO");
+
+                    if (string.IsNullOrWhiteSpace(certeza) ||
+                        certeza == "Cancelar")
+                    {
+                        return null;
+                    }
+
+                    string? observaciones =
+                        await Shell.Current.DisplayPromptAsync(
+                            $"Observaciones · {indice} de {total}",
+                            $"Observaciones técnicas opcionales para {foto.Titulo}.",
+                            "Continuar",
+                            "Omitir",
+                            "Opcional",
+                            3000,
+                            Keyboard.Default);
+
+                    bool enviar = await ConfirmarAsync(
+                        $"Enviar al aprobador · {indice} de {total}",
+                        $"¿Desea enviar ahora la clasificación de {foto.Titulo}? Si cancela, únicamente esta fotografía quedará como borrador humano.");
+
                     InspeccionFotoResultadoIAV2? ia = foto.ResultadoIA;
-                    return new InspeccionFotoAnalisisHumanoRequestV2
+
+                    if (ia?.RequiereGestionAlbum == true)
+                    {
+                        bool clasificacionLista =
+                            await GestionarClasificacionAlbumAnalizadorAsync(
+                                foto,
+                                indice,
+                                total);
+
+                        if (!clasificacionLista)
+                            return null;
+                    }
+
+                    var item = new InspeccionFotoAnalisisHumanoRequestV2
                     {
                         FotografiaId = foto.FotografiaId,
-                        CalidadEvaluacion = ia?.CalidadEvaluacion ?? "NO_EVALUABLE",
-                        EstadoGeneral = ia?.EstadoGeneral ?? "INDETERMINADA",
+                        CalidadEvaluacion =
+                            ia?.CalidadEvaluacion ?? "NO_EVALUABLE",
+                        EstadoGeneral =
+                            ia?.EstadoGeneral ?? "INDETERMINADA",
                         CategoriaPrincipal = categoria,
-                        CategoriasSecundarias = ia?.CategoriasSecundarias ?? [],
+                        CategoriasSecundarias =
+                            ia?.CategoriasSecundarias ?? [],
                         Diagnostico = diagnostico.Trim(),
-                        TipoDiagnostico = ia?.TipoDiagnostico ?? string.Empty,
+                        TipoDiagnostico =
+                            ia?.TipoDiagnostico ?? string.Empty,
                         Severidad = severidad,
                         NivelCerteza = certeza,
-                        Observaciones = observaciones?.Trim() ?? string.Empty
+                        Observaciones =
+                            observaciones?.Trim() ?? string.Empty
                     };
-                }).ToList();
 
-            await EjecutarOperacionAsync(
-                enviar
-                    ? "Guardando y enviando clasificación humana..."
-                    : "Guardando clasificación humana...",
-                _ => InspeccionApi.GuardarAnalisisHumanoAsync(
-                    diagnosticoId,
-                    items,
-                    enviar),
-                "Clasificación humana guardada");
+                    return await InspeccionApi.GuardarAnalisisHumanoAsync(
+                        diagnosticoId,
+                        [item],
+                        enviar);
+                });
         }
 
         private async Task RegistrarAprobacionAsync()
@@ -772,83 +859,479 @@ namespace CONATRADEC.ViewModels
             if (!PuedeAprobarSeleccion || Shell.Current == null)
                 return;
 
-            string? decision = await Shell.Current.DisplayActionSheet(
-                "Decisión del aprobador",
-                "Cancelar",
-                null,
-                "APROBAR",
-                "APROBAR_CON_CORRECCION",
-                "DEVOLVER_AL_ANALIZADOR",
-                "RECHAZAR",
-                "NO_CONCLUYENTE");
-
-            if (string.IsNullOrWhiteSpace(decision) || decision == "Cancelar")
-                return;
-
-            string? diagnosticoFinal = string.Empty;
-            if (decision == "APROBAR_CON_CORRECCION")
-            {
-                diagnosticoFinal = await Shell.Current.DisplayPromptAsync(
-                    "Diagnóstico final corregido",
-                    "Escriba la clasificación final que reemplazará la propuesta del analizador.",
-                    "Continuar",
-                    "Cancelar",
-                    "Diagnóstico final",
-                    300,
-                    Keyboard.Default);
-
-                if (string.IsNullOrWhiteSpace(diagnosticoFinal))
-                    return;
-            }
-
-            string? observaciones = await Shell.Current.DisplayPromptAsync(
-                "Observaciones de aprobación",
-                "Puede documentar el motivo de la decisión.",
-                "Continuar",
-                "Omitir",
-                "Opcional",
-                3000,
-                Keyboard.Default);
-
-            bool autorizaAlbum = false;
-            if (decision is "APROBAR" or "APROBAR_CON_CORRECCION")
-            {
-                autorizaAlbum = await ConfirmarAsync(
-                    "Autorizar álbum",
-                    "¿Estas fotografías pueden publicarse posteriormente en el Álbum Botánico?");
-            }
-
-            List<InspeccionFotoAprobacionRequestV2> items =
-                FotosSeleccionadas.Select(foto =>
+            await EjecutarSecuenciaIndividualAsync(
+                "Registrando aprobación",
+                "Decisiones del aprobador",
+                async (foto, indice, total) =>
                 {
-                    InspeccionFotoAnalisisHumanoV2 humano =
-                        foto.UltimoAnalisisHumano!;
+                    InspeccionFotoAnalisisHumanoV2? humano =
+                        foto.UltimoAnalisisHumano;
 
-                    return new InspeccionFotoAprobacionRequestV2
+                    if (humano == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"{foto.Titulo} no tiene una clasificación humana enviada.");
+                    }
+
+                    string? decision = await Shell.Current.DisplayActionSheet(
+                        $"Decisión del aprobador · {indice} de {total}",
+                        "Cancelar",
+                        null,
+                        "APROBAR",
+                        "APROBAR_CON_CORRECCION",
+                        "DEVOLVER_AL_ANALIZADOR",
+                        "RECHAZAR",
+                        "NO_CONCLUYENTE");
+
+                    if (string.IsNullOrWhiteSpace(decision) ||
+                        decision == "Cancelar")
+                    {
+                        return null;
+                    }
+
+                    string diagnosticoFinal = humano.Diagnostico;
+                    if (decision == "APROBAR_CON_CORRECCION")
+                    {
+                        string? correccion =
+                            await Shell.Current.DisplayPromptAsync(
+                                $"Diagnóstico final · {indice} de {total}",
+                                $"Escriba la corrección exclusiva de {foto.Titulo}.",
+                                "Continuar",
+                                "Cancelar",
+                                "Diagnóstico final",
+                                300,
+                                Keyboard.Default);
+
+                        if (string.IsNullOrWhiteSpace(correccion))
+                            return null;
+
+                        diagnosticoFinal = correccion.Trim();
+                    }
+
+                    string? observaciones =
+                        await Shell.Current.DisplayPromptAsync(
+                            $"Observaciones de aprobación · {indice} de {total}",
+                            $"Documente opcionalmente la decisión de {foto.Titulo}.",
+                            "Continuar",
+                            "Omitir",
+                            "Opcional",
+                            3000,
+                            Keyboard.Default);
+
+                    bool autorizaAlbum = false;
+                    if (decision is "APROBAR" or
+                        "APROBAR_CON_CORRECCION")
+                    {
+                        if (foto.ResultadoIA?.RequiereDecisionClasificacion == true)
+                        {
+                            bool clasificacionResuelta =
+                                await GestionarClasificacionAlbumAprobadorAsync(
+                                    foto,
+                                    indice,
+                                    total);
+
+                            if (!clasificacionResuelta)
+                                return null;
+                        }
+
+                        autorizaAlbum = await ConfirmarAsync(
+                            $"Autorizar álbum · {indice} de {total}",
+                            $"¿La fotografía {foto.Orden} podrá utilizarse posteriormente en el Álbum Botánico?");
+                    }
+
+                    var item = new InspeccionFotoAprobacionRequestV2
                     {
                         FotografiaId = foto.FotografiaId,
                         Decision = decision,
-                        CalidadEvaluacionFinal = humano.CalidadEvaluacion,
+                        CalidadEvaluacionFinal =
+                            humano.CalidadEvaluacion,
                         EstadoGeneralFinal = humano.EstadoGeneral,
-                        CategoriaPrincipalFinal = humano.CategoriaPrincipal,
-                        CategoriasSecundariasFinales = humano.CategoriasSecundarias,
-                        DiagnosticoFinal = string.IsNullOrWhiteSpace(diagnosticoFinal)
-                            ? humano.Diagnostico
-                            : diagnosticoFinal.Trim(),
-                        TipoDiagnosticoFinal = humano.TipoDiagnostico,
+                        CategoriaPrincipalFinal =
+                            humano.CategoriaPrincipal,
+                        CategoriasSecundariasFinales =
+                            humano.CategoriasSecundarias,
+                        DiagnosticoFinal = diagnosticoFinal,
+                        TipoDiagnosticoFinal =
+                            humano.TipoDiagnostico,
                         SeveridadFinal = humano.Severidad,
                         NivelCertezaFinal = humano.NivelCerteza,
-                        Observaciones = observaciones?.Trim() ?? string.Empty,
+                        Observaciones =
+                            observaciones?.Trim() ?? string.Empty,
                         AutorizaPublicacionAlbum = autorizaAlbum
                     };
-                }).ToList();
 
-            await EjecutarOperacionAsync(
-                "Registrando decisiones individuales...",
-                _ => InspeccionApi.RegistrarAprobacionesAsync(
+                    return await InspeccionApi.RegistrarAprobacionesAsync(
+                        diagnosticoId,
+                        [item]);
+                });
+        }
+
+        private async Task<bool> GestionarClasificacionAlbumAnalizadorAsync(
+            InspeccionFotoV2 foto,
+            int indice,
+            int total)
+        {
+            if (Shell.Current == null || foto.ResultadoIA == null)
+                return false;
+
+            InspeccionFotoResultadoIAV2 resultado = foto.ResultadoIA;
+            (CategoriaAlbumBotanicoResponse? categoria,
+                List<InspeccionAlbumFichaV2> fichas) =
+                await CargarContextoClasificacionAlbumAsync(resultado);
+
+            if (categoria == null)
+            {
+                await MostrarAlertaAsync(
+                    "Capítulo no disponible",
+                    $"No existe un capítulo activo llamado “{resultado.CategoriaAlbumPropuesta}”. " +
+                    "Un administrador del Álbum Botánico debe crearlo antes de registrar la propuesta de esta fotografía.");
+                return false;
+            }
+
+            if (fichas.Count > 0)
+            {
+                string? accion = await Shell.Current.DisplayActionSheet(
+                    $"Álbum Botánico · {indice} de {total}",
+                    "Cancelar",
+                    null,
+                    "Usar una ficha existente",
+                    "Proponer una ficha nueva");
+
+                if (string.IsNullOrWhiteSpace(accion) || accion == "Cancelar")
+                    return false;
+
+                if (accion == "Usar una ficha existente")
+                {
+                    InspeccionAlbumFichaV2? ficha =
+                        await SeleccionarFichaExistenteAsync(
+                            categoria,
+                            fichas,
+                            resultado.AlbumBotanicoCafeIdSugerido);
+
+                    if (ficha == null)
+                        return false;
+
+                    await InspeccionApi.ResolverClasificacionExistenteAsync(
+                        diagnosticoId,
+                        foto.FotografiaId,
+                        ficha.AlbumBotanicoCafeId);
+
+                    return true;
+                }
+            }
+            else
+            {
+                bool continuar = await ConfirmarAsync(
+                    $"Proponer nueva ficha · {indice} de {total}",
+                    $"El capítulo “{categoria.NombreCategoria}” todavía no contiene fichas compatibles. " +
+                    $"Se preparará una propuesta individual para {foto.Titulo}.");
+
+                if (!continuar)
+                    return false;
+            }
+
+            string? titulo = await Shell.Current.DisplayPromptAsync(
+                $"Nombre de la ficha propuesta · {indice} de {total}",
+                "Indique un nombre claro para la clasificación que revisará el aprobador.",
+                "Continuar",
+                "Cancelar",
+                "Nombre de la ficha",
+                200,
+                Keyboard.Default,
+                resultado.ClasificacionAlbumPropuesta);
+
+            if (string.IsNullOrWhiteSpace(titulo) || titulo.Trim().Length < 3)
+                return false;
+
+            string? nombreCientifico = await Shell.Current.DisplayPromptAsync(
+                $"Nombre científico · {indice} de {total}",
+                "Dato opcional. Puede dejarlo vacío cuando no corresponda.",
+                "Continuar",
+                "Omitir",
+                "Opcional",
+                200,
+                Keyboard.Default,
+                resultado.NombreCientificoSugerido);
+
+            string motivoInicial = resultado.MotivoAlbumPropuesta;
+            string? motivo = await Shell.Current.DisplayPromptAsync(
+                $"Justificación · {indice} de {total}",
+                "Explique por qué la evidencia no corresponde a una ficha existente.",
+                "Guardar propuesta",
+                "Cancelar",
+                "Motivo obligatorio",
+                1000,
+                Keyboard.Default,
+                motivoInicial);
+
+            if (string.IsNullOrWhiteSpace(motivo) || motivo.Trim().Length < 8)
+            {
+                await MostrarAlertaAsync(
+                    "Justificación requerida",
+                    "La propuesta necesita una explicación de al menos 8 caracteres.");
+                return false;
+            }
+
+            await InspeccionApi.ProponerClasificacionAlbumAsync(
+                diagnosticoId,
+                foto.FotografiaId,
+                categoria.CategoriaAlbumBotanicoId,
+                titulo,
+                nombreCientifico,
+                motivo);
+
+            return true;
+        }
+
+        private async Task<bool> GestionarClasificacionAlbumAprobadorAsync(
+            InspeccionFotoV2 foto,
+            int indice,
+            int total)
+        {
+            if (Shell.Current == null || foto.ResultadoIA == null)
+                return false;
+
+            InspeccionFotoResultadoIAV2 resultado = foto.ResultadoIA;
+            (CategoriaAlbumBotanicoResponse? categoria,
+                List<InspeccionAlbumFichaV2> fichas) =
+                await CargarContextoClasificacionAlbumAsync(resultado);
+
+            if (categoria == null)
+            {
+                await MostrarAlertaAsync(
+                    "Capítulo no disponible",
+                    $"El capítulo sugerido “{resultado.CategoriaAlbumPropuesta}” no existe o está inactivo. " +
+                    "Créelo en el Álbum Botánico antes de aprobar esta propuesta.");
+                return false;
+            }
+
+            string accion = "Crear la ficha propuesta";
+
+            if (fichas.Count > 0)
+            {
+                string? seleccion = await Shell.Current.DisplayActionSheet(
+                    $"Resolver clasificación · {indice} de {total}",
+                    "Cancelar",
+                    null,
+                    "Crear la ficha propuesta",
+                    "Usar una ficha existente");
+
+                if (string.IsNullOrWhiteSpace(seleccion) || seleccion == "Cancelar")
+                    return false;
+
+                accion = seleccion;
+            }
+            else
+            {
+                bool crear = await ConfirmarAsync(
+                    $"Crear ficha botánica · {indice} de {total}",
+                    $"No existen fichas en “{categoria.NombreCategoria}”. " +
+                    $"¿Desea crear “{resultado.ClasificacionAlbumPropuesta}” y vincularla con esta fotografía?");
+
+                if (!crear)
+                    return false;
+            }
+
+            if (accion == "Usar una ficha existente")
+            {
+                InspeccionAlbumFichaV2? ficha =
+                    await SeleccionarFichaExistenteAsync(
+                        categoria,
+                        fichas,
+                        resultado.AlbumBotanicoCafeIdSugerido);
+
+                if (ficha == null)
+                    return false;
+
+                await InspeccionApi.ResolverClasificacionExistenteAsync(
                     diagnosticoId,
-                    items),
-                "Decisiones registradas");
+                    foto.FotografiaId,
+                    ficha.AlbumBotanicoCafeId);
+
+                return true;
+            }
+
+            string? titulo = await Shell.Current.DisplayPromptAsync(
+                $"Título de la nueva ficha · {indice} de {total}",
+                "Confirme o corrija el nombre que se incorporará al Álbum Botánico.",
+                "Continuar",
+                "Cancelar",
+                "Título obligatorio",
+                200,
+                Keyboard.Default,
+                resultado.ClasificacionAlbumPropuesta);
+
+            if (string.IsNullOrWhiteSpace(titulo) || titulo.Trim().Length < 3)
+                return false;
+
+            string? nombreCientifico = await Shell.Current.DisplayPromptAsync(
+                $"Nombre científico · {indice} de {total}",
+                "Dato opcional de la nueva ficha.",
+                "Continuar",
+                "Omitir",
+                "Opcional",
+                200,
+                Keyboard.Default,
+                resultado.NombreCientificoSugerido);
+
+            string descripcionInicial = string.IsNullOrWhiteSpace(
+                    resultado.ResumenImagen)
+                ? resultado.MotivoAlbumPropuesta
+                : resultado.ResumenImagen;
+
+            string? descripcion = await Shell.Current.DisplayPromptAsync(
+                $"Descripción de la ficha · {indice} de {total}",
+                "Describa la evidencia que representará la nueva ficha.",
+                "Crear ficha",
+                "Cancelar",
+                "Descripción obligatoria",
+                3000,
+                Keyboard.Default,
+                descripcionInicial);
+
+            if (string.IsNullOrWhiteSpace(descripcion) ||
+                descripcion.Trim().Length < 8)
+            {
+                await MostrarAlertaAsync(
+                    "Descripción requerida",
+                    "La nueva ficha necesita una descripción de al menos 8 caracteres.");
+                return false;
+            }
+
+            string sintomas = string.Join(
+                "; ",
+                resultado.SintomasVisibles
+                    .Where(item => !string.IsNullOrWhiteSpace(item)));
+
+            await InspeccionApi.CrearClasificacionAlbumAsync(
+                diagnosticoId,
+                foto.FotografiaId,
+                categoria.CategoriaAlbumBotanicoId,
+                titulo,
+                nombreCientifico,
+                descripcion,
+                sintomas);
+
+            return true;
+        }
+
+        private async Task<(
+            CategoriaAlbumBotanicoResponse? Categoria,
+            List<InspeccionAlbumFichaV2> Fichas)>
+            CargarContextoClasificacionAlbumAsync(
+                InspeccionFotoResultadoIAV2 resultado)
+        {
+            ApiResult<List<CategoriaAlbumBotanicoResponse>> categoriasResult =
+                await albumBotanicoApi.GetCategoriasAsync(false);
+
+            if (!categoriasResult.Success || categoriasResult.Data == null)
+            {
+                throw new InvalidOperationException(
+                    string.IsNullOrWhiteSpace(categoriasResult.Message)
+                        ? "No fue posible cargar los capítulos activos del Álbum Botánico."
+                        : categoriasResult.Message);
+            }
+
+            List<CategoriaAlbumBotanicoResponse> categorias =
+                categoriasResult.Data
+                    .Where(item => item.Activo)
+                    .ToList();
+
+            CategoriaAlbumBotanicoResponse? categoria = categorias
+                .FirstOrDefault(item =>
+                    item.CategoriaAlbumBotanicoId ==
+                    resultado.CategoriaAlbumBotanicoIdSugerida);
+
+            if (categoria == null)
+            {
+                string nombreSugerido = NormalizarComparacion(
+                    resultado.CategoriaAlbumPropuesta);
+
+                categoria = categorias.FirstOrDefault(item =>
+                    NormalizarComparacion(item.NombreCategoria) ==
+                    nombreSugerido);
+            }
+
+            if (categoria == null && resultado.EsAparentementeSana)
+            {
+                categoria = categorias.FirstOrDefault(item =>
+                    NormalizarComparacion(item.NombreCategoria)
+                        .Contains("PLANTASSANA", StringComparison.Ordinal));
+            }
+
+            var fichas = new List<InspeccionAlbumFichaV2>();
+
+            if (categoria != null)
+            {
+                List<InspeccionAlbumCategoriaV2> catalogo =
+                    await InspeccionApi.ObtenerCatalogoAlbumAsync();
+
+                fichas = catalogo
+                    .FirstOrDefault(item =>
+                        item.CategoriaAlbumBotanicoId ==
+                        categoria.CategoriaAlbumBotanicoId)
+                    ?.Fichas
+                    .Where(item => item.AlbumBotanicoCafeId > 0)
+                    .OrderBy(item => item.Titulo)
+                    .ToList() ?? [];
+            }
+
+            return (categoria, fichas);
+        }
+
+        private async Task<InspeccionAlbumFichaV2?>
+            SeleccionarFichaExistenteAsync(
+                CategoriaAlbumBotanicoResponse categoria,
+                IReadOnlyCollection<InspeccionAlbumFichaV2> fichas,
+                int? fichaSugeridaId)
+        {
+            if (Shell.Current == null || fichas.Count == 0)
+                return null;
+
+            List<InspeccionAlbumFichaV2> ordenadas = fichas
+                .OrderByDescending(item =>
+                    item.AlbumBotanicoCafeId == fichaSugeridaId)
+                .ThenBy(item => item.Titulo)
+                .ToList();
+
+            string? seleccion = await Shell.Current.DisplayActionSheet(
+                $"Ficha de {categoria.NombreCategoria}",
+                "Cancelar",
+                null,
+                ordenadas.Select(item => item.TextoSeleccion).ToArray());
+
+            if (string.IsNullOrWhiteSpace(seleccion) || seleccion == "Cancelar")
+                return null;
+
+            return ordenadas.FirstOrDefault(item =>
+                item.TextoSeleccion == seleccion);
+        }
+
+        private static string NormalizarComparacion(string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                return string.Empty;
+
+            string descompuesto = valor
+                .Trim()
+                .ToUpperInvariant()
+                .Normalize(NormalizationForm.FormD);
+
+            var builder = new StringBuilder(descompuesto.Length);
+
+            foreach (char caracter in descompuesto)
+            {
+                UnicodeCategory categoria =
+                    CharUnicodeInfo.GetUnicodeCategory(caracter);
+
+                if (categoria == UnicodeCategory.NonSpacingMark)
+                    continue;
+
+                if (char.IsLetterOrDigit(caracter))
+                    builder.Append(caracter);
+            }
+
+            return builder.ToString();
         }
 
         private async Task PublicarAlbumAsync()
@@ -974,6 +1457,111 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private async Task EjecutarSecuenciaIndividualAsync(
+            string mensajeBase,
+            string tituloResultado,
+            Func<
+                InspeccionFotoV2,
+                int,
+                int,
+                Task<InspeccionOperacionMasivaV2?>> accion)
+        {
+            List<InspeccionFotoV2> fotos = FotosSeleccionadas.ToList();
+            if (fotos.Count == 0)
+                return;
+
+            var acumulado = new InspeccionOperacionMasivaV2
+            {
+                TotalSolicitadas = fotos.Count
+            };
+
+            int atendidas = 0;
+            bool cancelada = false;
+
+            IsBusy = true;
+            ActualizarComandos();
+
+            try
+            {
+                for (int indice = 0; indice < fotos.Count; indice++)
+                {
+                    InspeccionFotoV2 foto = fotos[indice];
+                    int posicion = indice + 1;
+
+                    MensajeEstado =
+                        $"{mensajeBase}: fotografía {posicion} de {fotos.Count}...";
+
+                    try
+                    {
+                        InspeccionOperacionMasivaV2? parcial =
+                            await accion(foto, posicion, fotos.Count);
+
+                        if (parcial == null)
+                        {
+                            cancelada = true;
+                            break;
+                        }
+
+                        AcumularResultado(acumulado, parcial);
+                    }
+                    catch (Exception ex)
+                    {
+                        acumulado.TotalConError++;
+                        acumulado.Resultados.Add(
+                            new InspeccionOperacionItemV2
+                            {
+                                FotografiaId = foto.FotografiaId,
+                                Exitoso = false,
+                                Mensaje = ex.Message
+                            });
+                    }
+
+                    atendidas++;
+                }
+
+                await RecargarDespuesOperacionAsync();
+
+                int pendientes = Math.Max(0, fotos.Count - atendidas);
+                string resumen =
+                    $"{acumulado.TotalExitosas} fotografía(s) completadas";
+
+                if (acumulado.TotalConError > 0)
+                {
+                    resumen +=
+                        $" y {acumulado.TotalConError} con error";
+                }
+
+                resumen += ".";
+
+                if (cancelada && pendientes > 0)
+                {
+                    resumen +=
+                        $" El proceso se detuvo antes de atender {pendientes} fotografía(s).";
+                }
+
+                await MostrarAlertaAsync(tituloResultado, resumen);
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorAsync(ex);
+            }
+            finally
+            {
+                MensajeEstado = string.Empty;
+                IsBusy = false;
+                ActualizarComandos();
+            }
+        }
+
+        private static void AcumularResultado(
+            InspeccionOperacionMasivaV2 destino,
+            InspeccionOperacionMasivaV2 origen)
+        {
+            destino.TotalExitosas += origen.TotalExitosas;
+            destino.TotalConError += origen.TotalConError;
+            destino.Resultados.AddRange(origen.Resultados);
+        }
+
         private async Task EjecutarOperacionAsync(
             string mensaje,
             Func<IReadOnlyCollection<int>, Task<InspeccionOperacionMasivaV2>> accion,
@@ -1014,6 +1602,23 @@ namespace CONATRADEC.ViewModels
             InspeccionFitosanitariaDetalleV2 actualizado =
                 await InspeccionApi.ObtenerDetalleAsync(diagnosticoId);
 
+            if (RequiereNormalizarPlantasSanas(actualizado))
+            {
+                try
+                {
+                    await InspeccionApi.NormalizarPlantasSanasAsync(
+                        diagnosticoId);
+
+                    actualizado =
+                        await InspeccionApi.ObtenerDetalleAsync(
+                            diagnosticoId);
+                }
+                catch (InspeccionFitosanitariaApiException)
+                {
+                    /* La propuesta visual de respaldo permanece disponible. */
+                }
+            }
+
             AplicarDetalle(actualizado);
         }
 
@@ -1053,10 +1658,39 @@ namespace CONATRADEC.ViewModels
 
         private async Task RegresarResultadoAsync()
         {
-            // La pantalla que abrió el resultado ya está debajo en la pila.
-            // No se crea otro listado, porque eso hacía que Atrás regresara
-            // nuevamente al resultado.
-            await GoToAsyncParameters(AppRoutes.Regresar);
+            Shell? shell = Shell.Current;
+            if (shell == null)
+                return;
+
+            string rutaAnterior =
+                shell.CurrentState?.Location?.OriginalString ?? string.Empty;
+
+            /*
+             * El origen normal es la pantalla que abrió este detalle. Si Shell
+             * no conserva esa entrada (por ejemplo, después de una entrada
+             * directa), se reconstruye solamente el listado correspondiente.
+             */
+            try
+            {
+                await GoToAsyncParameters(AppRoutes.Regresar);
+                await Task.Delay(100);
+            }
+            catch (InvalidOperationException)
+            {
+                // La entrada directa puede no conservar una página anterior.
+            }
+
+            string rutaActual =
+                shell.CurrentState?.Location?.OriginalString ?? string.Empty;
+
+            if (string.Equals(
+                    rutaAnterior,
+                    rutaActual,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                await GoToAsyncParameters(
+                    DiagnosticoIARoutes.CrearRutaRegresoResultado(origen));
+            }
         }
 
         private void NotificarSeleccion()

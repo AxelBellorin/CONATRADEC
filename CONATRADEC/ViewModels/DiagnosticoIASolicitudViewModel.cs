@@ -73,6 +73,10 @@ namespace CONATRADEC.ViewModels
         {
             Fotos.CollectionChanged += AlCambiarColeccionFotos;
 
+            RegresarSolicitudCommand = new Command(
+                async () => await RegresarSolicitudAsync(),
+                () => !IsBusy);
+
             tipoFotografiaFiltroSeleccionado =
                 TiposFotografiaFiltro[0];
             estadoFiltroSeleccionado =
@@ -162,6 +166,8 @@ namespace CONATRADEC.ViewModels
         public ObservableCollection<InspeccionFotoLocal> Fotos { get; } = [];
         public ObservableCollection<InspeccionFitosanitariaBandejaItemV2>
             Solicitudes { get; } = [];
+
+        public Command RegresarSolicitudCommand { get; }
 
         public IReadOnlyList<TipoFotografiaOpcion> TiposFotografia { get; } =
         [
@@ -1071,6 +1077,48 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private async Task RegresarSolicitudAsync()
+        {
+            if (EsVisorAbierto)
+            {
+                CerrarVisor();
+                return;
+            }
+
+            Shell? shell = Shell.Current;
+            if (shell == null)
+                return;
+
+            string rutaAnterior =
+                shell.CurrentState?.Location?.OriginalString ?? string.Empty;
+
+            /*
+             * Primero se respeta la pila real. En algunas entradas directas de
+             * Shell la página no tiene un padre navegable; en ese caso se usa
+             * la ruta explícita del módulo como respaldo.
+             */
+            try
+            {
+                await GoToAsyncParameters(AppRoutes.Regresar);
+                await Task.Delay(100);
+            }
+            catch (InvalidOperationException)
+            {
+                // La entrada directa puede no tener una página anterior.
+            }
+
+            string rutaActual =
+                shell.CurrentState?.Location?.OriginalString ?? string.Empty;
+
+            if (string.Equals(
+                    rutaAnterior,
+                    rutaActual,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                await GoToAsyncParameters(DiagnosticoIARoutes.RutaModulo);
+            }
+        }
+
         private async Task GuardarAsync()
         {
             if (IsBusy || !TieneFotos || !ValidarEnLinea())
@@ -1420,6 +1468,7 @@ namespace CONATRADEC.ViewModels
             TomarFotoCommand.ChangeCanExecute();
             QuitarFotoCommand.ChangeCanExecute();
             GuardarCommand.ChangeCanExecute();
+            RegresarSolicitudCommand.ChangeCanExecute();
             ActualizarComandosListado();
             BuscarTerrenoCommand.ChangeCanExecute();
             QuitarTerrenoCommand.ChangeCanExecute();

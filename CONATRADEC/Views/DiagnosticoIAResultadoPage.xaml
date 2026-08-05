@@ -275,6 +275,12 @@
                                                 FontSize="13"
                                                 TextColor="#5E6B67" />
                                             <Label
+                                                Text="{Binding DisponibilidadTexto}"
+                                                FontSize="13"
+                                                FontAttributes="Bold"
+                                                TextColor="#7A5A13"
+                                                IsVisible="{Binding TieneMensajeDisponibilidad}" />
+                                            <Label
                                                 Text="{Binding DiagnosticoTexto}"
                                                 FontSize="16"
                                                 FontAttributes="Bold"
@@ -325,6 +331,35 @@
                                                         TextColor="#5E6B67" />
                                                 </VerticalStackLayout>
                                             </Grid>
+
+                                            <Border
+                                                Margin="0,8,0,0"
+                                                Padding="12"
+                                                BackgroundColor="#FFF9E8"
+                                                Stroke="#E2B93B"
+                                                StrokeShape="RoundRectangle 12"
+                                                IsVisible="{Binding TienePropuestaAlbum}">
+                                                <VerticalStackLayout Spacing="4">
+                                                    <Label
+                                                        Text="Propuesta para el Álbum Botánico"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#6B5710" />
+                                                    <Label
+                                                        Text="{Binding ResultadoIA.CategoriaAlbumPropuesta, StringFormat='Capítulo sugerido: {0}'}"
+                                                        TextColor="#4F5D59" />
+                                                    <Label
+                                                        Text="{Binding ResultadoIA.ClasificacionAlbumPropuesta, StringFormat='Ficha sugerida: {0}'}"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#3B655B" />
+                                                    <Label
+                                                        Text="{Binding ResultadoIA.MotivoAlbumPropuesta}"
+                                                        TextColor="#5E6B67" />
+                                                    <Label
+                                                        Text="El técnico no crea la ficha. El analizador confirmará una ficha existente o propondrá una nueva, y el aprobador decidirá si se incorpora al álbum."
+                                                        FontSize="12"
+                                                        TextColor="#7A6A2A" />
+                                                </VerticalStackLayout>
+                                            </Border>
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout

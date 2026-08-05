@@ -170,7 +170,7 @@ namespace CONATRADEC.Services
             string modo,
             CancellationToken cancellationToken = default) =>
             GetAsync<List<InspeccionFitosanitariaListaItemV2>>(
-                "api/inspecciones-fitosanitarias/bandeja?modo=" +
+                "api/inspecciones-fitosanitarias-flujo/bandeja?modo=" +
                 Uri.EscapeDataString(modo ?? "mis"),
                 cancellationToken);
 
@@ -180,6 +180,25 @@ namespace CONATRADEC.Services
             GetAsync<InspeccionFitosanitariaDetalleV2>(
                 $"api/inspecciones-fitosanitarias/{inspeccionId}",
                 cancellationToken);
+
+        /// <summary>
+        /// Normaliza resultados aparentemente sanos para vincularlos con el
+        /// capítulo Plantas sanas. No crea categorías ni fichas: únicamente
+        /// registra una coincidencia existente o deja una propuesta pendiente
+        /// para el analizador humano.
+        /// </summary>
+        public async Task NormalizarPlantasSanasAsync(
+            int inspeccionId,
+            CancellationToken cancellationToken = default)
+        {
+            if (inspeccionId <= 0)
+                return;
+
+            await PostAsync<JsonElement>(
+                $"api/diagnostico-ia-clasificacion/{inspeccionId}/normalizar-plantas-sanas",
+                new { },
+                cancellationToken);
+        }
 
         public Task<InspeccionOperacionMasivaV2> ProcesarFotosAsync(
             int inspeccionId,
@@ -195,8 +214,13 @@ namespace CONATRADEC.Services
             IReadOnlyCollection<int> fotografiaIds,
             string retroalimentacion,
             string? diagnosticoPropuesto,
-            CancellationToken cancellationToken = default) =>
-            PostAsync<InspeccionOperacionMasivaV2>(
+            CancellationToken cancellationToken = default)
+        {
+            ValidarUnaFotografia(
+                fotografiaIds,
+                "Cada solicitud de revisión IA debe corresponder a una sola fotografía.");
+
+            return PostAsync<InspeccionOperacionMasivaV2>(
                 $"api/inspecciones-fitosanitarias/{inspeccionId}/solicitar-revision-ia",
                 new
                 {
@@ -205,6 +229,7 @@ namespace CONATRADEC.Services
                     diagnosticoPropuesto = diagnosticoPropuesto?.Trim()
                 },
                 cancellationToken);
+        }
 
         public Task<InspeccionOperacionMasivaV2> EnviarAnalizadorAsync(
             int inspeccionId,
@@ -231,8 +256,13 @@ namespace CONATRADEC.Services
             int inspeccionId,
             IReadOnlyCollection<int> fotografiaIds,
             string motivo,
-            CancellationToken cancellationToken = default) =>
-            PostAsync<InspeccionOperacionMasivaV2>(
+            CancellationToken cancellationToken = default)
+        {
+            ValidarUnaFotografia(
+                fotografiaIds,
+                "Cada descarte debe registrar el motivo de una sola fotografía.");
+
+            return PostAsync<InspeccionOperacionMasivaV2>(
                 $"api/inspecciones-fitosanitarias/{inspeccionId}/descartar-fotografias",
                 new
                 {
@@ -240,28 +270,91 @@ namespace CONATRADEC.Services
                     motivo = motivo.Trim()
                 },
                 cancellationToken);
+        }
 
         public Task<InspeccionOperacionMasivaV2> GuardarAnalisisHumanoAsync(
             int inspeccionId,
             IReadOnlyCollection<InspeccionFotoAnalisisHumanoRequestV2> fotografias,
             bool enviarAprobacion,
-            CancellationToken cancellationToken = default) =>
-            PostAsync<InspeccionOperacionMasivaV2>(
-                $"api/inspecciones-fitosanitarias/{inspeccionId}/analisis-humano",
+            CancellationToken cancellationToken = default)
+        {
+            ValidarUnaFotografia(
+                fotografias,
+                "Cada clasificación humana debe guardarse para una sola fotografía.");
+
+            return PostAsync<InspeccionOperacionMasivaV2>(
+                $"api/inspecciones-fitosanitarias-flujo/{inspeccionId}/analisis-humano-individual",
                 new
                 {
                     fotografias,
                     enviarAprobacion
                 },
                 cancellationToken);
+        }
 
         public Task<InspeccionOperacionMasivaV2> RegistrarAprobacionesAsync(
             int inspeccionId,
             IReadOnlyCollection<InspeccionFotoAprobacionRequestV2> fotografias,
-            CancellationToken cancellationToken = default) =>
-            PostAsync<InspeccionOperacionMasivaV2>(
-                $"api/inspecciones-fitosanitarias/{inspeccionId}/aprobaciones",
+            CancellationToken cancellationToken = default)
+        {
+            ValidarUnaFotografia(
+                fotografias,
+                "Cada decisión del aprobador debe corresponder a una sola fotografía.");
+
+            return PostAsync<InspeccionOperacionMasivaV2>(
+                $"api/inspecciones-fitosanitarias-flujo/{inspeccionId}/aprobacion-individual",
                 new { fotografias },
+                cancellationToken);
+        }
+
+        public Task<JsonElement> ResolverClasificacionExistenteAsync(
+            int inspeccionId,
+            int fotografiaId,
+            int albumBotanicoCafeId,
+            CancellationToken cancellationToken = default) =>
+            PostAsync<JsonElement>(
+                $"api/diagnostico-ia-clasificacion/{inspeccionId}/imagen/{fotografiaId}/usar-existente",
+                new { albumBotanicoCafeId },
+                cancellationToken);
+
+        public Task<JsonElement> ProponerClasificacionAlbumAsync(
+            int inspeccionId,
+            int fotografiaId,
+            int categoriaAlbumBotanicoId,
+            string titulo,
+            string? nombreCientifico,
+            string motivo,
+            CancellationToken cancellationToken = default) =>
+            PostAsync<JsonElement>(
+                $"api/diagnostico-ia-clasificacion/{inspeccionId}/imagen/{fotografiaId}/proponer-nueva",
+                new
+                {
+                    categoriaAlbumBotanicoId,
+                    titulo = titulo.Trim(),
+                    nombreCientifico = nombreCientifico?.Trim(),
+                    motivo = motivo.Trim()
+                },
+                cancellationToken);
+
+        public Task<JsonElement> CrearClasificacionAlbumAsync(
+            int inspeccionId,
+            int fotografiaId,
+            int categoriaAlbumBotanicoId,
+            string titulo,
+            string? nombreCientifico,
+            string descripcion,
+            string? sintomas,
+            CancellationToken cancellationToken = default) =>
+            PostAsync<JsonElement>(
+                $"api/diagnostico-ia-clasificacion/{inspeccionId}/imagen/{fotografiaId}/crear-clasificacion",
+                new
+                {
+                    categoriaAlbumBotanicoId,
+                    titulo = titulo.Trim(),
+                    nombreCientifico = nombreCientifico?.Trim(),
+                    descripcion = descripcion.Trim(),
+                    sintomas = sintomas?.Trim()
+                },
                 cancellationToken);
 
         public Task<JsonElement> PublicarAlbumAsync(
@@ -313,6 +406,14 @@ namespace CONATRADEC.Services
                 "api/inspecciones-fitosanitarias/proveedor-ia/probar",
                 CrearPayloadProveedor(configuracion),
                 cancellationToken);
+
+        private static void ValidarUnaFotografia<T>(
+            IReadOnlyCollection<T>? elementos,
+            string mensaje)
+        {
+            if (elementos == null || elementos.Count != 1)
+                throw new ArgumentException(mensaje, nameof(elementos));
+        }
 
         private static object CrearPayloadProveedor(
             ProveedorIAConfiguracionV2 configuracion) =>

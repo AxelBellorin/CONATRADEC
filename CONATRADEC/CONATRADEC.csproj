@@ -305,6 +305,9 @@
 		<MauiXaml Update="Views\ResultadosAnalisisPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\RevisionIAFotografiaPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\rolFormPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
