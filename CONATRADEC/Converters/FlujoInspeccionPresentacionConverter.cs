@@ -6,9 +6,12 @@ namespace CONATRADEC.Converters
 {
     /// <summary>
     /// Centraliza la visibilidad de acciones y selección de fotografías según
-    /// la pantalla de origen, el cierre de la etapa técnica y el estado de cada
-    /// evidencia. No modifica los estados internos ni sustituye las validaciones
-    /// del backend.
+    /// la pantalla de origen, la etapa técnica y el estado de cada evidencia.
+    /// No modifica estados internos ni sustituye las validaciones del backend.
+    ///
+    /// El analizador puede trabajar con las fotografías que el técnico ya
+    /// envió, aunque la etapa técnica todavía continúe abierta. El aprobador sí
+    /// permanece bloqueado hasta que la revisión humana se complete.
     /// </summary>
     public sealed class FlujoInspeccionPresentacionConverter :
         IValueConverter,
@@ -99,27 +102,36 @@ namespace CONATRADEC.Converters
 
         private static bool MostrarPanelAcciones(
             string origen,
-            bool etapaTecnicaCerrada)
+            bool etapaTecnicaFinalizada)
         {
             if (EsVistaTecnico(origen))
-                return !etapaTecnicaCerrada;
+                return !etapaTecnicaFinalizada;
 
-            if (EsVistaAnalizador(origen) || EsVistaAprobador(origen))
-                return etapaTecnicaCerrada;
+            /*
+             * El analizador recibe las evidencias de forma progresiva. Por eso
+             * su panel se mantiene disponible aun cuando el técnico todavía no
+             * haya finalizado toda la etapa. Las reglas del estado individual
+             * determinan qué fotografía puede seleccionar.
+             */
+            if (EsVistaAnalizador(origen))
+                return true;
+
+            if (EsVistaAprobador(origen))
+                return etapaTecnicaFinalizada;
 
             return false;
         }
 
         private static bool PuedeSeleccionarFotografia(
             string origen,
-            bool etapaTecnicaCerrada,
+            bool etapaTecnicaFinalizada,
             string estado)
         {
             estado = estado.Trim().ToUpperInvariant();
 
             if (EsVistaTecnico(origen))
             {
-                if (etapaTecnicaCerrada)
+                if (etapaTecnicaFinalizada)
                     return false;
 
                 return estado is
@@ -131,9 +143,6 @@ namespace CONATRADEC.Converters
 
             if (EsVistaAnalizador(origen))
             {
-                if (!etapaTecnicaCerrada)
-                    return false;
-
                 return estado is
                     "PENDIENTE_ANALIZADOR" or
                     "EN_ANALISIS_HUMANO" or
@@ -143,7 +152,7 @@ namespace CONATRADEC.Converters
 
             if (EsVistaAprobador(origen))
             {
-                return etapaTecnicaCerrada &&
+                return etapaTecnicaFinalizada &&
                        estado == "PENDIENTE_APROBACION";
             }
 

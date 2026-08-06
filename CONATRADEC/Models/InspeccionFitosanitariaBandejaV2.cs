@@ -51,7 +51,15 @@ namespace CONATRADEC.Models
     {
         public int InspeccionId { get; set; }
         public string NombreInspeccion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Compatibilidad con respuestas anteriores. En la bandeja nueva este
+        /// valor representa la finalización de la etapa técnica.
+        /// </summary>
         public bool CerradaTecnico { get; set; }
+
+        public bool EtapaTecnicaFinalizada { get; set; }
+        public bool CerradaDefinitiva { get; set; }
         public string CodigoTerreno { get; set; } = string.Empty;
         public string Propietario { get; set; } = string.Empty;
         public string Municipio { get; set; } = string.Empty;
@@ -62,7 +70,22 @@ namespace CONATRADEC.Models
         public int Pendientes { get; set; }
         public int ConError { get; set; }
         public int Finalizadas { get; set; }
+        public int RequierenDecisionTecnico { get; set; }
+        public int EnviadasRevision { get; set; }
+        public int Procesando { get; set; }
+        public int Descartadas { get; set; }
         public string UrlMiniatura { get; set; } = string.Empty;
+
+        public bool EtapaTecnicaFinalizadaEfectiva =>
+            EtapaTecnicaFinalizada || CerradaTecnico;
+
+        public bool TieneDecisionesTecnicas =>
+            !CerradaDefinitiva &&
+            !EtapaTecnicaFinalizadaEfectiva &&
+            RequierenDecisionTecnico > 0;
+
+        public bool TieneProcesamientoActivo =>
+            !CerradaDefinitiva && Procesando > 0;
 
         public string NombreInspeccionTexto =>
             string.IsNullOrWhiteSpace(NombreInspeccion)
@@ -97,27 +120,122 @@ namespace CONATRADEC.Models
             }
         }
 
-        public string EstadoTexto => CerradaTecnico
-            ? "Cerrada"
-            : Estado switch
+        public string EstadoTexto
         {
-            "BORRADOR" => "Borrador",
-            "EN_PROCESO" => "En proceso",
-            "EN_PROCESO_CON_ERRORES" => "En proceso con errores",
-            "PENDIENTE_REVISION" => "Pendiente de revisión",
-            "PENDIENTE_APROBACION" => "Pendiente de aprobación",
-            "FINALIZADA" => "Finalizada",
-            "FINALIZADA_PARCIALMENTE" => "Finalizada parcialmente",
-            _ => (Estado ?? string.Empty).Replace('_', ' ')
-        };
+            get
+            {
+                if (CerradaDefinitiva)
+                    return "Cerrada definitivamente";
 
-        public string TextoAbrir => CerradaTecnico
-            ? "Ver inspección"
-            : "Abrir inspección";
+                if (EtapaTecnicaFinalizadaEfectiva)
+                {
+                    return Estado switch
+                    {
+                        "PENDIENTE_APROBACION" => "Pendiente de aprobación",
+                        "FINALIZADA" => "Revisión completada",
+                        "FINALIZADA_PARCIALMENTE" =>
+                            "Revisión completada parcialmente",
+                        _ => "En revisión humana"
+                    };
+                }
+
+                if (RequierenDecisionTecnico > 0)
+                {
+                    return RequierenDecisionTecnico == 1
+                        ? "1 decisión técnica pendiente"
+                        : $"{RequierenDecisionTecnico} decisiones técnicas pendientes";
+                }
+
+                if (Procesando > 0)
+                    return "Análisis IA en proceso";
+
+                return Estado switch
+                {
+                    "BORRADOR" => "Borrador",
+                    "EN_PROCESO" => "En proceso",
+                    "EN_PROCESO_CON_ERRORES" => "En proceso con errores",
+                    "PENDIENTE_REVISION" => "Pendiente de revisión",
+                    "PENDIENTE_APROBACION" => "Pendiente de aprobación",
+                    "FINALIZADA" => "Finalizada",
+                    "FINALIZADA_PARCIALMENTE" => "Finalizada parcialmente",
+                    _ => (Estado ?? string.Empty).Replace('_', ' ')
+                };
+            }
+        }
+
+        public string EstadoFondo =>
+            CerradaDefinitiva
+                ? "#EEF2F0"
+                : TieneDecisionesTecnicas
+                    ? "#FFF5D6"
+                    : ConError > 0
+                        ? "#FDECEC"
+                        : EtapaTecnicaFinalizadaEfectiva
+                            ? "#EAF3EF"
+                            : TieneProcesamientoActivo
+                                ? "#EDF4FF"
+                                : "#FFF4EA";
+
+        public string EstadoColor =>
+            CerradaDefinitiva
+                ? "#52625D"
+                : TieneDecisionesTecnicas
+                    ? "#7A5A13"
+                    : ConError > 0
+                        ? "#B42318"
+                        : EtapaTecnicaFinalizadaEfectiva
+                            ? "#315E52"
+                            : TieneProcesamientoActivo
+                                ? "#315B86"
+                                : "#9B552C";
+
+        public string TextoAbrir =>
+            CerradaDefinitiva
+                ? "Consultar expediente"
+                : TieneDecisionesTecnicas
+                    ? "Atender decisiones"
+                    : EtapaTecnicaFinalizadaEfectiva
+                        ? "Ver avance de revisión"
+                        : "Abrir inspección";
 
         public string Resumen =>
-            $"{TotalFotografias} fotos · {Pendientes} pendientes · " +
-            $"{ConError} con error · {Finalizadas} finalizadas";
+            $"{TotalFotografias} fotos · " +
+            $"{RequierenDecisionTecnico} por decidir · " +
+            $"{EnviadasRevision} enviadas · " +
+            $"{Finalizadas} finalizadas";
+
+        public string ProgresoTexto
+        {
+            get
+            {
+                if (TotalFotografias <= 0)
+                    return "Sin fotografías registradas";
+
+                if (CerradaDefinitiva)
+                    return "Expediente finalizado y disponible solo para consulta";
+
+                if (TieneDecisionesTecnicas)
+                {
+                    string decisiones = RequierenDecisionTecnico == 1
+                        ? "1 fotografía requiere una decisión"
+                        : $"{RequierenDecisionTecnico} fotografías requieren decisión";
+
+                    return decisiones;
+                }
+
+                if (EtapaTecnicaFinalizadaEfectiva)
+                    return "La etapa técnica ya fue enviada al analizador";
+
+                if (Procesando > 0)
+                {
+                    return Procesando == 1
+                        ? "1 fotografía está siendo procesada por la IA"
+                        : $"{Procesando} fotografías están siendo procesadas por la IA";
+                }
+
+                return "Abra la inspección para continuar el flujo por fotografía";
+            }
+        }
 
         public string FechaTexto =>
             FechaRegistroSistemaUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
