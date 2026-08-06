@@ -14,6 +14,8 @@
         <ResourceDictionary>
             <converters:CodigoLegibleConverter
                 x:Key="CodigoLegibleConverter" />
+            <converters:JerarquiaPropuestaPresentacionConverter
+                x:Key="JerarquiaPropuestaPresentacionConverter" />
         </ResourceDictionary>
     </ContentPage.Resources>
 
@@ -716,12 +718,12 @@
                                                                         FontAttributes="Bold"
                                                                         TextColor="#667A8A" />
                                                                     <Label
-                                                                        Text="{Binding ResultadoIA.CategoriaAlbumPropuesta}"
+                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=CategoriaValor}"
                                                                         FontSize="14"
                                                                         FontAttributes="Bold"
                                                                         TextColor="#263A35" />
                                                                     <Label
-                                                                        Text="Sugerida por IA"
+                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=CategoriaEstado}"
                                                                         FontSize="10"
                                                                         TextColor="#416886" />
                                                                 </VerticalStackLayout>
@@ -757,12 +759,12 @@
                                                                         FontAttributes="Bold"
                                                                         TextColor="#806A21" />
                                                                     <Label
-                                                                        Text="Pendiente de definir"
+                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=SubcategoriaValor}"
                                                                         FontSize="14"
                                                                         FontAttributes="Bold"
                                                                         TextColor="#6B5710" />
                                                                     <Label
-                                                                        Text="Requiere analizador"
+                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=SubcategoriaEstado}"
                                                                         FontSize="10"
                                                                         TextColor="#755B08" />
                                                                 </VerticalStackLayout>
@@ -798,12 +800,12 @@
                                                                         FontAttributes="Bold"
                                                                         TextColor="#8A5A3B" />
                                                                     <Label
-                                                                        Text="{Binding ResultadoIA.ClasificacionAlbumPropuesta}"
+                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=FichaValor}"
                                                                         FontSize="14"
                                                                         FontAttributes="Bold"
                                                                         TextColor="#263A35" />
                                                                     <Label
-                                                                        Text="Ficha propuesta"
+                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=FichaEstado}"
                                                                         FontSize="10"
                                                                         TextColor="#87451F" />
                                                                 </VerticalStackLayout>
@@ -819,7 +821,7 @@
                                                             VerticalOptions="Start" />
                                                         <VerticalStackLayout Grid.Column="1" Spacing="2">
                                                             <Label
-                                                                Text="Falta definir la subcategoría y aprobar la creación de la ficha propuesta."
+                                                                Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=AvisoPendiente}"
                                                                 FontSize="11"
                                                                 FontAttributes="Bold"
                                                                 TextColor="#6B5710" />
