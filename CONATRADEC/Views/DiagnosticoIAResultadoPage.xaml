@@ -241,376 +241,425 @@
                                     Stroke="#D9E3DF"
                                     StrokeShape="RoundRectangle 14">
                                     <Grid
-                                        ColumnDefinitions="Auto,150,*"
-                                        RowDefinitions="Auto,Auto"
-                                        ColumnSpacing="12"
-                                        RowSpacing="10">
+                                        RowDefinitions="Auto,Auto,Auto"
+                                        RowSpacing="12">
 
-                                        <CheckBox
-                                            Grid.Column="0"
-                                            IsChecked="{Binding Seleccionada}"
-                                            IsEnabled="{Binding PuedeSeleccionarse}"
-                                            IsVisible="{Binding Source={x:Reference PaginaResultado}, Path=BindingContext.EsInspeccionAbierta}"
-                                            VerticalOptions="Start"
-                                            Color="#3B655B" />
+                                        <!-- Encabezado: identifica la evidencia sin confundir el tipo de foto con la jerarquía. -->
+                                        <Grid
+                                            Grid.Row="0"
+                                            ColumnDefinitions="Auto,*,Auto"
+                                            ColumnSpacing="12">
+                                            <CheckBox
+                                                Grid.Column="0"
+                                                IsChecked="{Binding Seleccionada}"
+                                                IsEnabled="{Binding PuedeSeleccionarse}"
+                                                IsVisible="{Binding Source={x:Reference PaginaResultado}, Path=BindingContext.EsInspeccionAbierta}"
+                                                VerticalOptions="Start"
+                                                Color="#3B655B" />
 
-                                        <Image
-                                            Grid.Column="1"
-                                            Source="{Binding UrlImagen}"
-                                            HeightRequest="145"
-                                            WidthRequest="145"
-                                            Aspect="AspectFill" />
-
-                                        <VerticalStackLayout
-                                            Grid.Column="2"
-                                            Spacing="5">
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                                <VerticalStackLayout
-                                                    Grid.Column="0"
-                                                    Spacing="5">
-                                                    <Label
-                                                        Text="{Binding Orden, StringFormat='Fotografía {0}'}"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#263A35" />
-                                                    <Border
-                                                        Padding="9,4"
-                                                        HorizontalOptions="Start"
-                                                        BackgroundColor="#EEF5F2"
-                                                        Stroke="#C8DED6"
-                                                        StrokeShape="RoundRectangle 10">
-                                                        <Label
-                                                            Text="{Binding TipoFotografia, Converter={StaticResource CodigoLegibleConverter}, ConverterParameter='Tipo de fotografía: '}"
-                                                            FontSize="12"
-                                                            FontAttributes="Bold"
-                                                            TextColor="#3B655B" />
-                                                    </Border>
-                                                </VerticalStackLayout>
+                                            <VerticalStackLayout
+                                                Grid.Column="1"
+                                                Spacing="5">
                                                 <Label
-                                                    Grid.Column="1"
-                                                    Text="{Binding EstadoTexto}"
+                                                    Text="{Binding Orden, StringFormat='Fotografía {0}'}"
+                                                    FontSize="18"
                                                     FontAttributes="Bold"
-                                                    TextColor="#9B552C" />
-                                            </Grid>
-
-                                            <Label
-                                                Text="{Binding FechaCampoTexto}"
-                                                FontSize="13"
-                                                TextColor="#5E6B67" />
-                                            <Label
-                                                Text="{Binding DisponibilidadTexto}"
-                                                FontSize="13"
-                                                FontAttributes="Bold"
-                                                TextColor="#7A5A13"
-                                                IsVisible="{Binding TieneMensajeDisponibilidad}" />
-                                            <Label
-                                                Text="{Binding DiagnosticoTexto}"
-                                                FontSize="16"
-                                                FontAttributes="Bold"
-                                                TextColor="#3B655B" />
-                                            <Label
-                                                Text="{Binding ResultadoIA.ResumenImagen}"
-                                                TextColor="#4F5D59" />
-                                            <Label
-                                                Text="{Binding ErrorProcesamiento}"
-                                                TextColor="#B42318"
-                                                IsVisible="{Binding TieneError}" />
-
-                                            <Grid
-                                                ColumnDefinitions="*,*"
-                                                ColumnSpacing="10">
-                                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                                    TextColor="#263A35" />
+                                                <Border
+                                                    Padding="9,4"
+                                                    HorizontalOptions="Start"
+                                                    BackgroundColor="#EEF5F2"
+                                                    Stroke="#C8DED6"
+                                                    StrokeShape="RoundRectangle 10">
                                                     <Label
-                                                        Text="Clasificación IA"
+                                                        Text="{Binding TipoFotografia, Converter={StaticResource CodigoLegibleConverter}, ConverterParameter='Tipo de fotografía: '}"
+                                                        FontSize="12"
                                                         FontAttributes="Bold"
-                                                        TextColor="#263A35" />
-                                                    <Label
-                                                        Text="{Binding ResultadoIA.CategoriaPrincipal}"
-                                                        TextColor="#5E6B67">
-                                                        <Label.Triggers>
-                                                            <DataTrigger
-                                                                TargetType="Label"
-                                                                Binding="{Binding ResultadoIA.CategoriaPrincipal}"
-                                                                Value="NO_APLICA">
-                                                                <Setter
-                                                                    Property="Text"
-                                                                    Value="Estado fitosanitario: Aparentemente sana" />
-                                                            </DataTrigger>
-                                                        </Label.Triggers>
-                                                    </Label>
-                                                    <Label
-                                                        Text="Resultado: Sin indicios visibles de plagas o enfermedades"
-                                                        TextColor="#5E6B67"
-                                                        IsVisible="False">
-                                                        <Label.Triggers>
-                                                            <DataTrigger
-                                                                TargetType="Label"
-                                                                Binding="{Binding ResultadoIA.CategoriaPrincipal}"
-                                                                Value="NO_APLICA">
-                                                                <Setter
-                                                                    Property="IsVisible"
-                                                                    Value="True" />
-                                                            </DataTrigger>
-                                                        </Label.Triggers>
-                                                    </Label>
-                                                    <Label
-                                                        Text="{Binding ResultadoIA.SeveridadVisual, StringFormat='Severidad: {0}'}"
-                                                        TextColor="#5E6B67">
-                                                        <Label.Triggers>
-                                                            <DataTrigger
-                                                                TargetType="Label"
-                                                                Binding="{Binding ResultadoIA.SeveridadVisual}"
-                                                                Value="NO_APLICA">
-                                                                <Setter
-                                                                    Property="IsVisible"
-                                                                    Value="False" />
-                                                            </DataTrigger>
-                                                        </Label.Triggers>
-                                                    </Label>
-                                                    <Label
-                                                        Text="{Binding ResultadoIA.NivelCerteza, StringFormat='Certeza: {0}'}"
-                                                        TextColor="#5E6B67">
-                                                        <Label.Triggers>
-                                                            <DataTrigger
-                                                                TargetType="Label"
-                                                                Binding="{Binding ResultadoIA.NivelCerteza}"
-                                                                Value="ALTO">
-                                                                <Setter Property="Text" Value="Certeza: Alta" />
-                                                            </DataTrigger>
-                                                            <DataTrigger
-                                                                TargetType="Label"
-                                                                Binding="{Binding ResultadoIA.NivelCerteza}"
-                                                                Value="MEDIO">
-                                                                <Setter Property="Text" Value="Certeza: Media" />
-                                                            </DataTrigger>
-                                                            <DataTrigger
-                                                                TargetType="Label"
-                                                                Binding="{Binding ResultadoIA.NivelCerteza}"
-                                                                Value="BAJO">
-                                                                <Setter Property="Text" Value="Certeza: Baja" />
-                                                            </DataTrigger>
-                                                            <DataTrigger
-                                                                TargetType="Label"
-                                                                Binding="{Binding ResultadoIA.NivelCerteza}"
-                                                                Value="NO_APLICA">
-                                                                <Setter Property="IsVisible" Value="False" />
-                                                            </DataTrigger>
-                                                        </Label.Triggers>
-                                                    </Label>
-                                                </VerticalStackLayout>
+                                                        TextColor="#3B655B" />
+                                                </Border>
+                                                <Label
+                                                    Text="{Binding FechaCampoTexto}"
+                                                    FontSize="13"
+                                                    TextColor="#5E6B67" />
+                                            </VerticalStackLayout>
 
-                                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                                    <Label
-                                                        Text="Trazabilidad"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#263A35" />
-                                                    <Label
-                                                        Text="{Binding ModeloIAUtilizado, StringFormat='Modelo: {0}'}"
-                                                        TextColor="#5E6B67" />
-                                                    <Label
-                                                        Text="{Binding IntentosIA, StringFormat='Intentos IA: {0}'}"
-                                                        TextColor="#5E6B67" />
-                                                    <Label
-                                                        Text="{Binding UltimoAnalisisHumano.UsuarioAnalizador, StringFormat='Analizador: {0}'}"
-                                                        TextColor="#5E6B67" />
-                                                    <Label
-                                                        Text="{Binding UltimaAprobacion.UsuarioAprobador, StringFormat='Aprobador: {0}'}"
-                                                        TextColor="#5E6B67" />
-                                                </VerticalStackLayout>
-                                            </Grid>
+                                            <Label
+                                                Grid.Column="2"
+                                                Text="{Binding EstadoTexto}"
+                                                FontAttributes="Bold"
+                                                TextColor="#9B552C"
+                                                VerticalOptions="Start" />
+                                        </Grid>
 
+                                        <!-- La fotografía vuelve a ser la evidencia principal de la tarjeta. -->
+                                        <Grid
+                                            Grid.Row="1"
+                                            ColumnDefinitions="Auto,*"
+                                            ColumnSpacing="16">
                                             <Border
-                                                Margin="0,10,0,0"
-                                                Padding="14"
-                                                BackgroundColor="#EEF5F2"
-                                                Stroke="#AFCFC2"
-                                                StrokeShape="RoundRectangle 14"
-                                                IsVisible="{Binding TieneJerarquiaAlbum}">
-                                                <VerticalStackLayout Spacing="10">
-                                                    <VerticalStackLayout Spacing="2">
+                                                Grid.Column="0"
+                                                WidthRequest="{OnIdiom Phone=120, Tablet=190, Desktop=230}"
+                                                HeightRequest="{OnIdiom Phone=120, Tablet=190, Desktop=230}"
+                                                BackgroundColor="#F4F7F5"
+                                                Stroke="#C8DED6"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 12">
+                                                <Image
+                                                    Source="{Binding UrlImagen}"
+                                                    Aspect="AspectFill" />
+                                            </Border>
+
+                                            <VerticalStackLayout
+                                                Grid.Column="1"
+                                                Spacing="8">
+                                                <Label
+                                                    Text="{Binding DisponibilidadTexto}"
+                                                    FontSize="13"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#7A5A13"
+                                                    IsVisible="{Binding TieneMensajeDisponibilidad}" />
+                                                <Label
+                                                    Text="{Binding DiagnosticoTexto}"
+                                                    FontSize="17"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#3B655B" />
+                                                <Label
+                                                    Text="{Binding ResultadoIA.ResumenImagen}"
+                                                    TextColor="#4F5D59" />
+                                                <Label
+                                                    Text="{Binding ErrorProcesamiento}"
+                                                    TextColor="#B42318"
+                                                    IsVisible="{Binding TieneError}" />
+
+                                                <Grid
+                                                    ColumnDefinitions="*,*"
+                                                    ColumnSpacing="18">
+                                                    <VerticalStackLayout Grid.Column="0" Spacing="3">
                                                         <Label
-                                                            Text="Clasificación del Álbum Botánico"
-                                                            FontSize="16"
+                                                            Text="Clasificación IA"
                                                             FontAttributes="Bold"
-                                                            TextColor="#31584D" />
+                                                            TextColor="#263A35" />
                                                         <Label
-                                                            Text="La fotografía se organiza mediante tres niveles claramente diferenciados."
-                                                            FontSize="12"
-                                                            TextColor="#5E6B67" />
+                                                            Text="{Binding ResultadoIA.CategoriaPrincipal}"
+                                                            TextColor="#5E6B67">
+                                                            <Label.Triggers>
+                                                                <DataTrigger
+                                                                    TargetType="Label"
+                                                                    Binding="{Binding ResultadoIA.CategoriaPrincipal}"
+                                                                    Value="NO_APLICA">
+                                                                    <Setter
+                                                                        Property="Text"
+                                                                        Value="Estado fitosanitario: Aparentemente sana" />
+                                                                </DataTrigger>
+                                                            </Label.Triggers>
+                                                        </Label>
+                                                        <Label
+                                                            Text="Resultado: Sin indicios visibles de plagas o enfermedades"
+                                                            TextColor="#5E6B67"
+                                                            IsVisible="False">
+                                                            <Label.Triggers>
+                                                                <DataTrigger
+                                                                    TargetType="Label"
+                                                                    Binding="{Binding ResultadoIA.CategoriaPrincipal}"
+                                                                    Value="NO_APLICA">
+                                                                    <Setter
+                                                                        Property="IsVisible"
+                                                                        Value="True" />
+                                                                </DataTrigger>
+                                                            </Label.Triggers>
+                                                        </Label>
+                                                        <Label
+                                                            Text="{Binding ResultadoIA.SeveridadVisual, StringFormat='Severidad: {0}'}"
+                                                            TextColor="#5E6B67">
+                                                            <Label.Triggers>
+                                                                <DataTrigger
+                                                                    TargetType="Label"
+                                                                    Binding="{Binding ResultadoIA.SeveridadVisual}"
+                                                                    Value="NO_APLICA">
+                                                                    <Setter
+                                                                        Property="IsVisible"
+                                                                        Value="False" />
+                                                                </DataTrigger>
+                                                            </Label.Triggers>
+                                                        </Label>
+                                                        <Label
+                                                            Text="{Binding ResultadoIA.NivelCerteza, StringFormat='Certeza: {0}'}"
+                                                            TextColor="#5E6B67">
+                                                            <Label.Triggers>
+                                                                <DataTrigger
+                                                                    TargetType="Label"
+                                                                    Binding="{Binding ResultadoIA.NivelCerteza}"
+                                                                    Value="ALTO">
+                                                                    <Setter Property="Text" Value="Certeza: Alta" />
+                                                                </DataTrigger>
+                                                                <DataTrigger
+                                                                    TargetType="Label"
+                                                                    Binding="{Binding ResultadoIA.NivelCerteza}"
+                                                                    Value="MEDIO">
+                                                                    <Setter Property="Text" Value="Certeza: Media" />
+                                                                </DataTrigger>
+                                                                <DataTrigger
+                                                                    TargetType="Label"
+                                                                    Binding="{Binding ResultadoIA.NivelCerteza}"
+                                                                    Value="BAJO">
+                                                                    <Setter Property="Text" Value="Certeza: Baja" />
+                                                                </DataTrigger>
+                                                                <DataTrigger
+                                                                    TargetType="Label"
+                                                                    Binding="{Binding ResultadoIA.NivelCerteza}"
+                                                                    Value="NO_APLICA">
+                                                                    <Setter Property="IsVisible" Value="False" />
+                                                                </DataTrigger>
+                                                            </Label.Triggers>
+                                                        </Label>
                                                     </VerticalStackLayout>
 
-                                                    <Border
-                                                        Padding="11"
-                                                        BackgroundColor="#FFFFFF"
-                                                        Stroke="#D4E5DE"
-                                                        StrokeShape="RoundRectangle 11">
-                                                        <Grid ColumnDefinitions="32,*,Auto" ColumnSpacing="10">
-                                                            <Border
-                                                                WidthRequest="28"
-                                                                HeightRequest="28"
-                                                                BackgroundColor="#3B655B"
-                                                                StrokeThickness="0"
-                                                                StrokeShape="RoundRectangle 14">
-                                                                <Label
-                                                                    Text="1"
-                                                                    HorizontalTextAlignment="Center"
-                                                                    VerticalTextAlignment="Center"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="White" />
-                                                            </Border>
-                                                            <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                <Label
-                                                                    Text="CATEGORÍA"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#6A7D76" />
-                                                                <Label
-                                                                    Text="{Binding JerarquiaAlbum.Categoria}"
-                                                                    FontSize="15"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#263A35" />
-                                                            </VerticalStackLayout>
-                                                            <Border
-                                                                Grid.Column="2"
-                                                                Padding="8,4"
-                                                                VerticalOptions="Center"
-                                                                BackgroundColor="#E5F2ED"
-                                                                Stroke="#C4DED4"
-                                                                StrokeShape="RoundRectangle 10">
-                                                                <Label
-                                                                    Text="{Binding JerarquiaAlbum.EstadoCategoria}"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#31584D" />
-                                                            </Border>
-                                                        </Grid>
-                                                    </Border>
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                                        <Label
+                                                            Text="Trazabilidad"
+                                                            FontAttributes="Bold"
+                                                            TextColor="#263A35" />
+                                                        <Label
+                                                            Text="{Binding ModeloIAUtilizado, StringFormat='Modelo: {0}'}"
+                                                            TextColor="#5E6B67" />
+                                                        <Label
+                                                            Text="{Binding IntentosIA, StringFormat='Intentos IA: {0}'}"
+                                                            TextColor="#5E6B67" />
+                                                        <Label
+                                                            Text="{Binding UltimoAnalisisHumano.UsuarioAnalizador, StringFormat='Analizador: {0}'}"
+                                                            TextColor="#5E6B67" />
+                                                        <Label
+                                                            Text="{Binding UltimaAprobacion.UsuarioAprobador, StringFormat='Aprobador: {0}'}"
+                                                            TextColor="#5E6B67" />
+                                                    </VerticalStackLayout>
+                                                </Grid>
+                                            </VerticalStackLayout>
+                                        </Grid>
 
-                                                    <Label
-                                                        Text="↓"
-                                                        Margin="14,-8,0,-8"
-                                                        FontSize="18"
-                                                        TextColor="#7E9C91" />
+                                        <VerticalStackLayout
+                                            Grid.Row="2"
+                                            Spacing="10">
 
-                                                    <Border
-                                                        Padding="11"
-                                                        BackgroundColor="#FFFFFF"
-                                                        Stroke="#D4E5DE"
-                                                        StrokeShape="RoundRectangle 11">
-                                                        <Grid ColumnDefinitions="32,*,Auto" ColumnSpacing="10">
-                                                            <Border
-                                                                WidthRequest="28"
-                                                                HeightRequest="28"
-                                                                BackgroundColor="#3B655B"
-                                                                StrokeThickness="0"
-                                                                StrokeShape="RoundRectangle 14">
-                                                                <Label
-                                                                    Text="2"
-                                                                    HorizontalTextAlignment="Center"
-                                                                    VerticalTextAlignment="Center"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="White" />
-                                                            </Border>
-                                                            <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                <Label
-                                                                    Text="SUBCATEGORÍA"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#6A7D76" />
-                                                                <Label
-                                                                    Text="{Binding JerarquiaAlbum.Subcategoria}"
-                                                                    FontSize="15"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#3B655B" />
-                                                            </VerticalStackLayout>
-                                                            <Border
-                                                                Grid.Column="2"
-                                                                Padding="8,4"
-                                                                VerticalOptions="Center"
-                                                                BackgroundColor="#E5F2ED"
-                                                                Stroke="#C4DED4"
-                                                                StrokeShape="RoundRectangle 10">
-                                                                <Label
-                                                                    Text="{Binding JerarquiaAlbum.EstadoSubcategoria}"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#31584D" />
-                                                            </Border>
-                                                        </Grid>
-                                                    </Border>
+                                            <!-- Jerarquía ya cargada: siempre conserva visible la categoría que encajó. -->
+                                            <Border
+                                                Padding="12"
+                                                BackgroundColor="#F7FAF8"
+                                                Stroke="#C8DED6"
+                                                StrokeShape="RoundRectangle 12"
+                                                IsVisible="{Binding TieneJerarquiaAlbum}">
+                                                <VerticalStackLayout Spacing="8">
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                        <VerticalStackLayout Grid.Column="0" Spacing="1">
+                                                            <Label
+                                                                Text="Clasificación asignada al Álbum Botánico"
+                                                                FontSize="15"
+                                                                FontAttributes="Bold"
+                                                                TextColor="#31584D" />
+                                                            <Label
+                                                                Text="Categoría, subcategoría y diagnóstico que encajaron con esta fotografía."
+                                                                FontSize="11"
+                                                                TextColor="#5E6B67" />
+                                                        </VerticalStackLayout>
+                                                        <Border
+                                                            Grid.Column="1"
+                                                            Padding="8,4"
+                                                            VerticalOptions="Center"
+                                                            BackgroundColor="#E5F2ED"
+                                                            Stroke="#C4DED4"
+                                                            StrokeShape="RoundRectangle 10">
+                                                            <Label
+                                                                Text="Jerarquía cargada"
+                                                                FontSize="10"
+                                                                FontAttributes="Bold"
+                                                                TextColor="#31584D" />
+                                                        </Border>
+                                                    </Grid>
 
-                                                    <Label
-                                                        Text="↓"
-                                                        Margin="14,-8,0,-8"
-                                                        FontSize="18"
-                                                        TextColor="#7E9C91" />
+                                                    <FlexLayout
+                                                        Direction="Row"
+                                                        Wrap="Wrap"
+                                                        AlignItems="Stretch"
+                                                        JustifyContent="SpaceBetween">
+                                                        <Border
+                                                            Margin="0,0,6,6"
+                                                            Padding="10"
+                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Grow="1"
+                                                            BackgroundColor="#FFFFFF"
+                                                            Stroke="#D4E5DE"
+                                                            StrokeShape="RoundRectangle 10">
+                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
+                                                                <Border
+                                                                    WidthRequest="26"
+                                                                    HeightRequest="26"
+                                                                    BackgroundColor="#3B655B"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 13">
+                                                                    <Label
+                                                                        Text="1"
+                                                                        HorizontalTextAlignment="Center"
+                                                                        VerticalTextAlignment="Center"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="White" />
+                                                                </Border>
+                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                                                    <Label
+                                                                        Text="CATEGORÍA"
+                                                                        FontSize="9"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#6A7D76" />
+                                                                    <Label
+                                                                        Text="{Binding JerarquiaAlbum.Categoria}"
+                                                                        FontSize="14"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#263A35">
+                                                                        <Label.Triggers>
+                                                                            <DataTrigger
+                                                                                TargetType="Label"
+                                                                                Binding="{Binding JerarquiaAlbum.Categoria}"
+                                                                                Value="">
+                                                                                <Setter Property="Text" Value="Categoría pendiente" />
+                                                                            </DataTrigger>
+                                                                        </Label.Triggers>
+                                                                    </Label>
+                                                                    <Label
+                                                                        Text="{Binding JerarquiaAlbum.EstadoCategoria}"
+                                                                        FontSize="10"
+                                                                        TextColor="#527066" />
+                                                                </VerticalStackLayout>
+                                                            </Grid>
+                                                        </Border>
 
-                                                    <Border
-                                                        Padding="11"
-                                                        BackgroundColor="#FFFFFF"
-                                                        Stroke="#D4E5DE"
-                                                        StrokeShape="RoundRectangle 11">
-                                                        <Grid ColumnDefinitions="32,*,Auto" ColumnSpacing="10">
-                                                            <Border
-                                                                WidthRequest="28"
-                                                                HeightRequest="28"
-                                                                BackgroundColor="#3B655B"
-                                                                StrokeThickness="0"
-                                                                StrokeShape="RoundRectangle 14">
-                                                                <Label
-                                                                    Text="3"
-                                                                    HorizontalTextAlignment="Center"
-                                                                    VerticalTextAlignment="Center"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="White" />
-                                                            </Border>
-                                                            <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                <Label
-                                                                    Text="DIAGNÓSTICO ESPECÍFICO"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#6A7D76" />
-                                                                <Label
-                                                                    Text="{Binding JerarquiaAlbum.Ficha}"
-                                                                    FontSize="15"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#263A35" />
-                                                                <Label
-                                                                    Text="{Binding JerarquiaAlbum.NombreCientifico}"
-                                                                    FontSize="12"
-                                                                    FontAttributes="Italic"
-                                                                    TextColor="#5E6B67"
-                                                                    IsVisible="{Binding JerarquiaAlbum.TieneNombreCientifico}" />
-                                                            </VerticalStackLayout>
-                                                            <Border
-                                                                Grid.Column="2"
-                                                                Padding="8,4"
-                                                                VerticalOptions="Center"
-                                                                BackgroundColor="#E5F2ED"
-                                                                Stroke="#C4DED4"
-                                                                StrokeShape="RoundRectangle 10">
-                                                                <Label
-                                                                    Text="{Binding JerarquiaAlbum.EstadoFicha}"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#31584D" />
-                                                            </Border>
-                                                        </Grid>
-                                                    </Border>
+                                                        <Border
+                                                            Margin="0,0,6,6"
+                                                            Padding="10"
+                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Grow="1"
+                                                            BackgroundColor="#FFFFFF"
+                                                            Stroke="#D4E5DE"
+                                                            StrokeShape="RoundRectangle 10">
+                                                            <Border.Triggers>
+                                                                <DataTrigger
+                                                                    TargetType="Border"
+                                                                    Binding="{Binding JerarquiaAlbum.Subcategoria}"
+                                                                    Value="">
+                                                                    <Setter Property="BackgroundColor" Value="#FFFDF6" />
+                                                                    <Setter Property="Stroke" Value="#E7C85C" />
+                                                                </DataTrigger>
+                                                            </Border.Triggers>
+                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
+                                                                <Border
+                                                                    WidthRequest="26"
+                                                                    HeightRequest="26"
+                                                                    BackgroundColor="#3B655B"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 13">
+                                                                    <Label
+                                                                        Text="2"
+                                                                        HorizontalTextAlignment="Center"
+                                                                        VerticalTextAlignment="Center"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="White" />
+                                                                </Border>
+                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                                                    <Label
+                                                                        Text="SUBCATEGORÍA"
+                                                                        FontSize="9"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#6A7D76" />
+                                                                    <Label
+                                                                        Text="{Binding JerarquiaAlbum.Subcategoria}"
+                                                                        FontSize="14"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#3B655B">
+                                                                        <Label.Triggers>
+                                                                            <DataTrigger
+                                                                                TargetType="Label"
+                                                                                Binding="{Binding JerarquiaAlbum.Subcategoria}"
+                                                                                Value="">
+                                                                                <Setter Property="Text" Value="Pendiente de definir" />
+                                                                                <Setter Property="TextColor" Value="#6B5710" />
+                                                                            </DataTrigger>
+                                                                        </Label.Triggers>
+                                                                    </Label>
+                                                                    <Label
+                                                                        Text="{Binding JerarquiaAlbum.EstadoSubcategoria}"
+                                                                        FontSize="10"
+                                                                        TextColor="#527066" />
+                                                                </VerticalStackLayout>
+                                                            </Grid>
+                                                        </Border>
+
+                                                        <Border
+                                                            Margin="0,0,0,6"
+                                                            Padding="10"
+                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Grow="1"
+                                                            BackgroundColor="#FFFFFF"
+                                                            Stroke="#D4E5DE"
+                                                            StrokeShape="RoundRectangle 10">
+                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
+                                                                <Border
+                                                                    WidthRequest="26"
+                                                                    HeightRequest="26"
+                                                                    BackgroundColor="#3B655B"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 13">
+                                                                    <Label
+                                                                        Text="3"
+                                                                        HorizontalTextAlignment="Center"
+                                                                        VerticalTextAlignment="Center"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="White" />
+                                                                </Border>
+                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                                                    <Label
+                                                                        Text="DIAGNÓSTICO ESPECÍFICO"
+                                                                        FontSize="9"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#6A7D76" />
+                                                                    <Label
+                                                                        Text="{Binding JerarquiaAlbum.Ficha}"
+                                                                        FontSize="14"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#263A35">
+                                                                        <Label.Triggers>
+                                                                            <DataTrigger
+                                                                                TargetType="Label"
+                                                                                Binding="{Binding JerarquiaAlbum.Ficha}"
+                                                                                Value="">
+                                                                                <Setter Property="Text" Value="Diagnóstico pendiente" />
+                                                                            </DataTrigger>
+                                                                        </Label.Triggers>
+                                                                    </Label>
+                                                                    <Label
+                                                                        Text="{Binding JerarquiaAlbum.NombreCientifico}"
+                                                                        FontSize="10"
+                                                                        FontAttributes="Italic"
+                                                                        TextColor="#5E6B67"
+                                                                        IsVisible="{Binding JerarquiaAlbum.TieneNombreCientifico}" />
+                                                                    <Label
+                                                                        Text="{Binding JerarquiaAlbum.EstadoFicha}"
+                                                                        FontSize="10"
+                                                                        TextColor="#527066" />
+                                                                </VerticalStackLayout>
+                                                            </Grid>
+                                                        </Border>
+                                                    </FlexLayout>
 
                                                     <Label
                                                         Text="{Binding JerarquiaAlbum.Motivo}"
-                                                        FontSize="12"
+                                                        FontSize="11"
                                                         TextColor="#5E6B67" />
                                                 </VerticalStackLayout>
                                             </Border>
 
+                                            <!-- Propuesta: la tarjeta general es neutral y solo resalta el nivel pendiente. -->
                                             <Border
-                                                Margin="0,10,0,0"
-                                                Padding="14"
-                                                BackgroundColor="#FFF9E8"
-                                                Stroke="#E2B93B"
-                                                StrokeShape="RoundRectangle 14"
+                                                Padding="12"
+                                                BackgroundColor="#FBFCFB"
+                                                Stroke="#D9E3DF"
+                                                StrokeShape="RoundRectangle 12"
                                                 IsVisible="{Binding TienePropuestaAlbum}">
                                                 <Border.Triggers>
                                                     <DataTrigger
@@ -620,227 +669,198 @@
                                                         <Setter Property="IsVisible" Value="False" />
                                                     </DataTrigger>
                                                 </Border.Triggers>
-                                                <VerticalStackLayout Spacing="10">
-                                                    <VerticalStackLayout Spacing="2">
+                                                <VerticalStackLayout Spacing="8">
+                                                    <VerticalStackLayout Spacing="1">
                                                         <Label
                                                             Text="Clasificación propuesta para el Álbum Botánico"
-                                                            FontSize="16"
+                                                            FontSize="15"
                                                             FontAttributes="Bold"
-                                                            TextColor="#6B5710" />
+                                                            TextColor="#31584D" />
                                                         <Label
-                                                            Text="Cada nivel indica qué información ya fue sugerida y cuál requiere intervención humana."
-                                                            FontSize="12"
-                                                            TextColor="#7A6A2A" />
+                                                            Text="La categoría identificada permanece visible; únicamente se destaca lo que aún requiere revisión."
+                                                            FontSize="11"
+                                                            TextColor="#5E6B67" />
                                                     </VerticalStackLayout>
 
-                                                    <Border
-                                                        Padding="11"
-                                                        BackgroundColor="#FFFFFF"
-                                                        Stroke="#D9E4EE"
-                                                        StrokeShape="RoundRectangle 11">
-                                                        <Grid ColumnDefinitions="32,*,Auto" ColumnSpacing="10">
-                                                            <Border
-                                                                WidthRequest="28"
-                                                                HeightRequest="28"
-                                                                BackgroundColor="#527A9E"
-                                                                StrokeThickness="0"
-                                                                StrokeShape="RoundRectangle 14">
-                                                                <Label
-                                                                    Text="1"
-                                                                    HorizontalTextAlignment="Center"
-                                                                    VerticalTextAlignment="Center"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="White" />
-                                                            </Border>
-                                                            <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                <Label
-                                                                    Text="CATEGORÍA"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#667A8A" />
-                                                                <Label
-                                                                    Text="{Binding ResultadoIA.CategoriaAlbumPropuesta}"
-                                                                    FontSize="15"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#263A35" />
-                                                            </VerticalStackLayout>
-                                                            <Border
-                                                                Grid.Column="2"
-                                                                Padding="8,4"
-                                                                VerticalOptions="Center"
-                                                                BackgroundColor="#EAF1F7"
-                                                                Stroke="#CCDCE9"
-                                                                StrokeShape="RoundRectangle 10">
-                                                                <Label
-                                                                    Text="Sugerida por IA"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#416886" />
-                                                            </Border>
-                                                        </Grid>
-                                                    </Border>
+                                                    <FlexLayout
+                                                        Direction="Row"
+                                                        Wrap="Wrap"
+                                                        AlignItems="Stretch"
+                                                        JustifyContent="SpaceBetween">
+                                                        <Border
+                                                            Margin="0,0,6,6"
+                                                            Padding="10"
+                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Grow="1"
+                                                            BackgroundColor="#F7FAFD"
+                                                            Stroke="#CCDCE9"
+                                                            StrokeShape="RoundRectangle 10">
+                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
+                                                                <Border
+                                                                    WidthRequest="26"
+                                                                    HeightRequest="26"
+                                                                    BackgroundColor="#527A9E"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 13">
+                                                                    <Label
+                                                                        Text="1"
+                                                                        HorizontalTextAlignment="Center"
+                                                                        VerticalTextAlignment="Center"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="White" />
+                                                                </Border>
+                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                                                    <Label
+                                                                        Text="CATEGORÍA"
+                                                                        FontSize="9"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#667A8A" />
+                                                                    <Label
+                                                                        Text="{Binding ResultadoIA.CategoriaAlbumPropuesta}"
+                                                                        FontSize="14"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#263A35" />
+                                                                    <Label
+                                                                        Text="Sugerida por IA"
+                                                                        FontSize="10"
+                                                                        TextColor="#416886" />
+                                                                </VerticalStackLayout>
+                                                            </Grid>
+                                                        </Border>
 
-                                                    <Label
-                                                        Text="↓"
-                                                        Margin="14,-8,0,-8"
-                                                        FontSize="18"
-                                                        TextColor="#AA8A29" />
+                                                        <Border
+                                                            Margin="0,0,6,6"
+                                                            Padding="10"
+                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Grow="1"
+                                                            BackgroundColor="#FFFDF6"
+                                                            Stroke="#E7C85C"
+                                                            StrokeShape="RoundRectangle 10">
+                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
+                                                                <Border
+                                                                    WidthRequest="26"
+                                                                    HeightRequest="26"
+                                                                    BackgroundColor="#C99B18"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 13">
+                                                                    <Label
+                                                                        Text="2"
+                                                                        HorizontalTextAlignment="Center"
+                                                                        VerticalTextAlignment="Center"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="White" />
+                                                                </Border>
+                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                                                    <Label
+                                                                        Text="SUBCATEGORÍA"
+                                                                        FontSize="9"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#806A21" />
+                                                                    <Label
+                                                                        Text="Pendiente de definir"
+                                                                        FontSize="14"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#6B5710" />
+                                                                    <Label
+                                                                        Text="Requiere analizador"
+                                                                        FontSize="10"
+                                                                        TextColor="#755B08" />
+                                                                </VerticalStackLayout>
+                                                            </Grid>
+                                                        </Border>
 
-                                                    <Border
-                                                        Padding="11"
-                                                        BackgroundColor="#FFFDF6"
-                                                        Stroke="#E7C85C"
-                                                        StrokeShape="RoundRectangle 11">
-                                                        <Grid ColumnDefinitions="32,*,Auto" ColumnSpacing="10">
-                                                            <Border
-                                                                WidthRequest="28"
-                                                                HeightRequest="28"
-                                                                BackgroundColor="#C99B18"
-                                                                StrokeThickness="0"
-                                                                StrokeShape="RoundRectangle 14">
-                                                                <Label
-                                                                    Text="2"
-                                                                    HorizontalTextAlignment="Center"
-                                                                    VerticalTextAlignment="Center"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="White" />
-                                                            </Border>
-                                                            <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                <Label
-                                                                    Text="SUBCATEGORÍA"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#806A21" />
-                                                                <Label
-                                                                    Text="Pendiente de definir"
-                                                                    FontSize="15"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#6B5710" />
-                                                                <Label
-                                                                    Text="El analizador seleccionará una existente o propondrá una nueva."
-                                                                    FontSize="11"
-                                                                    TextColor="#7A6A2A" />
-                                                            </VerticalStackLayout>
-                                                            <Border
-                                                                Grid.Column="2"
-                                                                Padding="8,4"
-                                                                VerticalOptions="Center"
-                                                                BackgroundColor="#FFF3C4"
-                                                                Stroke="#E6C75C"
-                                                                StrokeShape="RoundRectangle 10">
-                                                                <Label
-                                                                    Text="Requiere analizador"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#755B08" />
-                                                            </Border>
-                                                        </Grid>
-                                                    </Border>
+                                                        <Border
+                                                            Margin="0,0,0,6"
+                                                            Padding="10"
+                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Grow="1"
+                                                            BackgroundColor="#FFF8F2"
+                                                            Stroke="#E2B38E"
+                                                            StrokeShape="RoundRectangle 10">
+                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
+                                                                <Border
+                                                                    WidthRequest="26"
+                                                                    HeightRequest="26"
+                                                                    BackgroundColor="#9B552C"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 13">
+                                                                    <Label
+                                                                        Text="3"
+                                                                        HorizontalTextAlignment="Center"
+                                                                        VerticalTextAlignment="Center"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="White" />
+                                                                </Border>
+                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
+                                                                    <Label
+                                                                        Text="DIAGNÓSTICO ESPECÍFICO"
+                                                                        FontSize="9"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#8A5A3B" />
+                                                                    <Label
+                                                                        Text="{Binding ResultadoIA.ClasificacionAlbumPropuesta}"
+                                                                        FontSize="14"
+                                                                        FontAttributes="Bold"
+                                                                        TextColor="#263A35" />
+                                                                    <Label
+                                                                        Text="Ficha propuesta"
+                                                                        FontSize="10"
+                                                                        TextColor="#87451F" />
+                                                                </VerticalStackLayout>
+                                                            </Grid>
+                                                        </Border>
+                                                    </FlexLayout>
 
-                                                    <Label
-                                                        Text="↓"
-                                                        Margin="14,-8,0,-8"
-                                                        FontSize="18"
-                                                        TextColor="#B06A3A" />
-
-                                                    <Border
-                                                        Padding="11"
-                                                        BackgroundColor="#FFF8F2"
-                                                        Stroke="#E2B38E"
-                                                        StrokeShape="RoundRectangle 11">
-                                                        <Grid ColumnDefinitions="32,*,Auto" ColumnSpacing="10">
-                                                            <Border
-                                                                WidthRequest="28"
-                                                                HeightRequest="28"
-                                                                BackgroundColor="#9B552C"
-                                                                StrokeThickness="0"
-                                                                StrokeShape="RoundRectangle 14">
-                                                                <Label
-                                                                    Text="3"
-                                                                    HorizontalTextAlignment="Center"
-                                                                    VerticalTextAlignment="Center"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="White" />
-                                                            </Border>
-                                                            <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                <Label
-                                                                    Text="DIAGNÓSTICO ESPECÍFICO"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#8A5A3B" />
-                                                                <Label
-                                                                    Text="{Binding ResultadoIA.ClasificacionAlbumPropuesta}"
-                                                                    FontSize="15"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#263A35" />
-                                                            </VerticalStackLayout>
-                                                            <Border
-                                                                Grid.Column="2"
-                                                                Padding="8,4"
-                                                                VerticalOptions="Center"
-                                                                BackgroundColor="#FCE9DC"
-                                                                Stroke="#E3B797"
-                                                                StrokeShape="RoundRectangle 10">
-                                                                <Label
-                                                                    Text="Ficha propuesta"
-                                                                    FontSize="10"
-                                                                    FontAttributes="Bold"
-                                                                    TextColor="#87451F" />
-                                                            </Border>
-                                                        </Grid>
-                                                    </Border>
-
-                                                    <Border
-                                                        Padding="10"
-                                                        BackgroundColor="#FFF3C4"
-                                                        Stroke="#E6C75C"
-                                                        StrokeShape="RoundRectangle 10">
+                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                                                         <Label
-                                                            Text="Falta definir la subcategoría y aprobar la creación de la ficha propuesta."
-                                                            FontSize="12"
-                                                            FontAttributes="Bold"
-                                                            TextColor="#6B5710" />
-                                                    </Border>
-
-                                                    <Label
-                                                        Text="{Binding ResultadoIA.MotivoAlbumPropuesta}"
-                                                        TextColor="#5E6B67" />
+                                                            Text="⚠"
+                                                            FontSize="14"
+                                                            TextColor="#9A7410"
+                                                            VerticalOptions="Start" />
+                                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                            <Label
+                                                                Text="Falta definir la subcategoría y aprobar la creación de la ficha propuesta."
+                                                                FontSize="11"
+                                                                FontAttributes="Bold"
+                                                                TextColor="#6B5710" />
+                                                            <Label
+                                                                Text="{Binding ResultadoIA.MotivoAlbumPropuesta}"
+                                                                FontSize="11"
+                                                                TextColor="#5E6B67" />
+                                                        </VerticalStackLayout>
+                                                    </Grid>
                                                 </VerticalStackLayout>
                                             </Border>
-                                        </VerticalStackLayout>
 
-                                        <VerticalStackLayout
-                                            Grid.Row="1"
-                                            Grid.Column="1"
-                                            Grid.ColumnSpan="2"
-                                            Spacing="3">
-                                            <Label
-                                                Text="Clasificación humana"
-                                                FontAttributes="Bold"
-                                                TextColor="#263A35"
-                                                IsVisible="{Binding TieneAnalisisHumano}" />
-                                            <Label
-                                                Text="{Binding UltimoAnalisisHumano.Diagnostico}"
-                                                TextColor="#5E6B67" />
-                                            <Label
-                                                Text="{Binding UltimoAnalisisHumano.Observaciones}"
-                                                TextColor="#5E6B67" />
+                                            <VerticalStackLayout Spacing="3">
+                                                <Label
+                                                    Text="Clasificación humana"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35"
+                                                    IsVisible="{Binding TieneAnalisisHumano}" />
+                                                <Label
+                                                    Text="{Binding UltimoAnalisisHumano.Diagnostico}"
+                                                    TextColor="#5E6B67" />
+                                                <Label
+                                                    Text="{Binding UltimoAnalisisHumano.Observaciones}"
+                                                    TextColor="#5E6B67" />
 
-                                            <Label
-                                                Text="Decisión final"
-                                                FontAttributes="Bold"
-                                                TextColor="#263A35"
-                                                Margin="0,5,0,0"
-                                                IsVisible="{Binding TieneAprobacion}" />
-                                            <Label
-                                                Text="{Binding UltimaAprobacion.Decision}"
-                                                TextColor="#5E6B67" />
-                                            <Label
-                                                Text="{Binding UltimaAprobacion.DiagnosticoFinal}"
-                                                TextColor="#5E6B67" />
-                                            <Label
-                                                Text="{Binding MotivoDescarte}"
-                                                TextColor="#B42318" />
+                                                <Label
+                                                    Text="Decisión final"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35"
+                                                    Margin="0,5,0,0"
+                                                    IsVisible="{Binding TieneAprobacion}" />
+                                                <Label
+                                                    Text="{Binding UltimaAprobacion.Decision}"
+                                                    TextColor="#5E6B67" />
+                                                <Label
+                                                    Text="{Binding UltimaAprobacion.DiagnosticoFinal}"
+                                                    TextColor="#5E6B67" />
+                                                <Label
+                                                    Text="{Binding MotivoDescarte}"
+                                                    TextColor="#B42318" />
+                                            </VerticalStackLayout>
                                         </VerticalStackLayout>
                                     </Grid>
                                 </Border>
