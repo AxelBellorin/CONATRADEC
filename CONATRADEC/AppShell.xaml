@@ -3,12 +3,22 @@
     x:Class="CONATRADEC.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:services="clr-namespace:CONATRADEC.Services"
     xmlns:views="clr-namespace:CONATRADEC.Views"
     Title="CONATRADEC"
     FlyoutHeaderBehavior="Fixed"
     Shell.TitleColor="White"
     Shell.DisabledColor="Gray"
     Shell.FlyoutBackgroundColor="LightBlue">
+
+    <!--
+        Garantiza que todas las páginas del módulo de inspección utilicen
+        exclusivamente sus botones propios de navegación. También elimina
+        cualquier flecha heredada agregada por Shell o por formularios antiguos.
+    -->
+    <Shell.Behaviors>
+        <services:InspeccionNavegacionBehavior />
+    </Shell.Behaviors>
 
     <ShellContent
         Title="LoginPage"
