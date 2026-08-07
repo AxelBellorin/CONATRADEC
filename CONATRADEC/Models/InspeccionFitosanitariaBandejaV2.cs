@@ -124,34 +124,35 @@ namespace CONATRADEC.Models
             }
         }
 
-        public string TecnicoTexto
+        /// <summary>
+        /// Nombre del usuario que registró la inspección. La tarjeta muestra el
+        /// nombre completo sin anteponer un rol, porque el responsable es el
+        /// usuario creador del expediente y no necesariamente un rol llamado
+        /// técnico.
+        /// </summary>
+        public string UsuarioCreadorTexto
         {
             get
             {
                 string nombre = TecnicoNombreCompleto?.Trim() ?? string.Empty;
                 string usuario = TecnicoUsuario?.Trim() ?? string.Empty;
 
-                if (string.IsNullOrWhiteSpace(nombre))
-                {
-                    nombre = string.IsNullOrWhiteSpace(usuario)
-                        ? UsuarioTecnicoId > 0
-                            ? $"Técnico #{UsuarioTecnicoId}"
-                            : "Técnico no disponible"
-                        : usuario;
-                }
-
-                if (string.IsNullOrWhiteSpace(usuario) ||
-                    string.Equals(
-                        nombre,
-                        usuario,
-                        StringComparison.OrdinalIgnoreCase))
-                {
+                if (!string.IsNullOrWhiteSpace(nombre))
                     return nombre;
-                }
 
-                return $"{nombre} ({usuario})";
+                if (!string.IsNullOrWhiteSpace(usuario))
+                    return usuario;
+
+                return UsuarioTecnicoId > 0
+                    ? $"Usuario #{UsuarioTecnicoId}"
+                    : "Usuario no disponible";
             }
         }
+
+        /// <summary>
+        /// Alias de compatibilidad para vistas anteriores.
+        /// </summary>
+        public string TecnicoTexto => UsuarioCreadorTexto;
 
         public string EstadoTexto
         {

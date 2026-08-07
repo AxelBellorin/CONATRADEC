@@ -812,7 +812,7 @@
                                                     TextColor="#40544E"
                                                     LineBreakMode="TailTruncation" />
                                                 <Label
-                                                    Text="{Binding TecnicoTexto, StringFormat='Técnico: {0}'}"
+                                                    Text="{Binding UsuarioCreadorTexto}"
                                                     FontSize="12"
                                                     FontAttributes="Bold"
                                                     TextColor="#40544E"

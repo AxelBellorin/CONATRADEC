@@ -213,7 +213,7 @@
                                                     FontSize="13"
                                                     TextColor="#3B655B" />
                                                 <Label
-                                                    Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}, StringFormat='Técnico: {0}'}"
+                                                    Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}}"
                                                     FontSize="12"
                                                     FontAttributes="Bold"
                                                     TextColor="#40544E"

@@ -77,7 +77,7 @@ namespace CONATRADEC.Views
 
             var titulo = new Label
             {
-                Text = "Técnico responsable",
+                Text = "Usuario que registró la inspección",
                 FontSize = 11,
                 TextColor = Color.FromArgb("#5E6B67"),
                 VerticalTextAlignment = TextAlignment.Center
@@ -150,14 +150,21 @@ namespace CONATRADEC.Views
                     await bandejaApi.ObtenerTecnicoResponsableAsync(
                         diagnosticoIdActual);
 
-                tecnicoResponsableLabel.Text = tecnico.TextoMostrar;
+                tecnicoResponsableLabel.Text =
+                    !string.IsNullOrWhiteSpace(tecnico.NombreCompleto)
+                        ? tecnico.NombreCompleto.Trim()
+                        : !string.IsNullOrWhiteSpace(tecnico.NombreUsuario)
+                            ? tecnico.NombreUsuario.Trim()
+                            : tecnico.UsuarioTecnicoId > 0
+                                ? $"Usuario #{tecnico.UsuarioTecnicoId}"
+                                : "Usuario no disponible";
                 tecnicoResponsableBanner.IsVisible = true;
             }
             catch
             {
                 /*
                  * El dato es informativo. Un problema al cargar el nombre del
-                 * técnico no debe bloquear el expediente ni sus decisiones.
+                 * usuario creador no debe bloquear el expediente ni sus decisiones.
                  */
                 tecnicoResponsableBanner.IsVisible = false;
             }

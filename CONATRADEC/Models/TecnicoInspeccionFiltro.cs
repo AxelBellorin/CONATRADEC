@@ -115,7 +115,7 @@ namespace CONATRADEC.Models
                         inspeccionId,
                         out TecnicoInspeccionAsignacionItem? item)
                     ? CrearTexto(item)
-                    : "Técnico no disponible";
+                    : "Usuario no disponible";
             }
         }
 
@@ -125,20 +125,15 @@ namespace CONATRADEC.Models
             string nombre = item.NombreCompleto?.Trim() ?? string.Empty;
             string usuario = item.NombreUsuario?.Trim() ?? string.Empty;
 
-            if (string.IsNullOrWhiteSpace(nombre))
-            {
-                nombre = string.IsNullOrWhiteSpace(usuario)
-                    ? $"Técnico #{item.UsuarioTecnicoId}"
-                    : usuario;
-            }
+            if (!string.IsNullOrWhiteSpace(nombre))
+                return nombre;
 
-            return string.IsNullOrWhiteSpace(usuario) ||
-                   string.Equals(
-                       nombre,
-                       usuario,
-                       StringComparison.OrdinalIgnoreCase)
-                ? nombre
-                : $"{nombre} ({usuario})";
+            if (!string.IsNullOrWhiteSpace(usuario))
+                return usuario;
+
+            return item.UsuarioTecnicoId > 0
+                ? $"Usuario #{item.UsuarioTecnicoId}"
+                : "Usuario no disponible";
         }
     }
 }

@@ -19,7 +19,7 @@ namespace CONATRADEC.Converters
             return int.TryParse(value?.ToString(), out int inspeccionId) &&
                    inspeccionId > 0
                 ? TecnicoInspeccionCacheService.ObtenerTexto(inspeccionId)
-                : "Técnico no disponible";
+                : "Usuario no disponible";
         }
 
         public object ConvertBack(
