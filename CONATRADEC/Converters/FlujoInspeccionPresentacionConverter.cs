@@ -71,8 +71,12 @@ namespace CONATRADEC.Converters
                 "AccionTecnico" =>
                     EsVistaTecnico(origen) && ObtenerBooleano(values, 1),
 
-                "AccionAnalizador" =>
-                    EsVistaAnalizador(origen) && ObtenerBooleano(values, 1),
+                /*
+                 * La acción histórica preguntaba por un envío individual al
+                 * aprobador. El panel nuevo controla el borrador humano y el
+                 * cierre global, por lo que ese botón debe permanecer oculto.
+                 */
+                "AccionAnalizador" => false,
 
                 "AccionAprobador" =>
                     EsVistaAprobador(origen) && ObtenerBooleano(values, 1),
@@ -138,7 +142,8 @@ namespace CONATRADEC.Converters
                     "BORRADOR" or
                     "PENDIENTE_IA" or
                     "ERROR_IA" or
-                    "PENDIENTE_DECISION_TECNICO";
+                    "PENDIENTE_DECISION_TECNICO" or
+                    "DEVUELTA_AL_TECNICO";
             }
 
             if (EsVistaAnalizador(origen))

@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.MotivoDevolucionTecnicoPage"
+    x:Name="PaginaRaiz"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F7F8F7">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
+            RowDefinitions="Auto,Auto,*"
+            RowSpacing="12">
+
+            <controls:ResponsiveCatalogHeader
+                Grid.Row="0"
+                Title="Motivos de devolución al técnico"
+                Subtitle="Catálogo de causas e instrucciones utilizadas por el analizador para solicitar correcciones de evidencia."
+                BackText="Configuración"
+                BackCommand="{Binding RegresarCommand}"
+                PrimaryText="Nuevo motivo"
+                PrimaryCommand="{Binding NuevoCommand}"
+                IsPrimaryVisible="{Binding CanAdd}" />
+
+            <Border
+                Grid.Row="1"
+                Padding="12"
+                BackgroundColor="White"
+                Stroke="#C8DED6"
+                StrokeShape="RoundRectangle 14">
+                <Grid
+                    RowDefinitions="Auto,Auto,Auto"
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="8"
+                    RowSpacing="8">
+                    <Entry
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Text="{Binding Buscar}"
+                        Placeholder="Buscar por código, nombre, descripción o instrucción"
+                        ReturnType="Search"
+                        ReturnCommand="{Binding BuscarCommand}"
+                        ClearButtonVisibility="WhileEditing" />
+                    <Button
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Text="Buscar"
+                        Command="{Binding BuscarCommand}"
+                        BackgroundColor="#3B655B"
+                        TextColor="White"
+                        MinimumWidthRequest="100" />
+                    <HorizontalStackLayout
+                        Grid.Row="1"
+                        Grid.ColumnSpan="2"
+                        Spacing="8">
+                        <CheckBox
+                            IsChecked="{Binding IncluirInactivos}"
+                            Color="#3B655B" />
+                        <Label
+                            Text="Incluir motivos inactivos"
+                            VerticalTextAlignment="Center"
+                            TextColor="#40544E" />
+                        <Button
+                            Text="Actualizar"
+                            Command="{Binding ActualizarCommand}"
+                            BackgroundColor="#EEF2F0"
+                            TextColor="#263A35"
+                            Margin="12,0,0,0" />
+                    </HorizontalStackLayout>
+                    <Label
+                        Grid.Row="2"
+                        Grid.ColumnSpan="2"
+                        Text="Desactivar es una baja lógica: el motivo deja de estar disponible para nuevas devoluciones, pero sus asociaciones permanecen visibles en el historial. Active «Incluir motivos inactivos» para volver a habilitarlo."
+                        FontSize="11"
+                        TextColor="#6B7773"
+                        LineBreakMode="WordWrap" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Border
+                    Padding="14"
+                    VerticalOptions="Start"
+                    ZIndex="2"
+                    BackgroundColor="#FFF9E8"
+                    Stroke="#E2B93B"
+                    StrokeShape="RoundRectangle 13"
+                    IsVisible="{Binding TieneMensajeEstado}">
+                    <HorizontalStackLayout Spacing="10">
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            Color="#9B552C" />
+                        <Label
+                            Text="{Binding MensajeEstado}"
+                            VerticalTextAlignment="Center"
+                            TextColor="#6B5710" />
+                    </HorizontalStackLayout>
+                </Border>
+
+                <CollectionView
+                    ItemsSource="{Binding Items}"
+                    SelectionMode="None">
+                    <CollectionView.ItemsLayout>
+                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                    </CollectionView.ItemsLayout>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:MotivoDevolucionTecnicoItem">
+                            <Border
+                                Padding="14"
+                                BackgroundColor="White"
+                                Stroke="#D9E3DF"
+                                StrokeShape="RoundRectangle 14">
+                                <Grid
+                                    RowDefinitions="Auto,Auto,Auto,Auto"
+                                    ColumnDefinitions="*,Auto"
+                                    ColumnSpacing="12"
+                                    RowSpacing="5">
+                                    <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
+                                        <Label
+                                            Text="{Binding NombreMostrar}"
+                                            FontSize="18"
+                                            FontAttributes="Bold"
+                                            TextColor="#263A35" />
+                                        <Label
+                                            Text="{Binding Codigo}"
+                                            FontSize="11"
+                                            TextColor="#6B7773" />
+                                    </VerticalStackLayout>
+                                    <Border
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Padding="9,4"
+                                        BackgroundColor="#EEF5F2"
+                                        Stroke="Transparent"
+                                        StrokeShape="RoundRectangle 10">
+                                        <Label
+                                            Text="{Binding EstadoTexto}"
+                                            FontAttributes="Bold"
+                                            TextColor="#3B655B" />
+                                    </Border>
+                                    <Label
+                                        Grid.Row="1"
+                                        Grid.ColumnSpan="2"
+                                        Text="{Binding Descripcion}"
+                                        TextColor="#4F5D59"
+                                        LineBreakMode="WordWrap" />
+                                    <Border
+                                        Grid.Row="2"
+                                        Grid.ColumnSpan="2"
+                                        Padding="10"
+                                        BackgroundColor="#FAFCFB"
+                                        Stroke="#E2E9E6"
+                                        StrokeShape="RoundRectangle 10">
+                                        <VerticalStackLayout Spacing="3">
+                                            <Label
+                                                Text="Instrucción sugerida"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="#3B655B" />
+                                            <Label
+                                                Text="{Binding InstruccionSugerida}"
+                                                FontSize="12"
+                                                TextColor="#5E6B67" />
+                                            <Label
+                                                Text="{Binding TipoCorreccionTexto}"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="#9B552C" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                    <FlexLayout
+                                        Grid.Row="3"
+                                        Grid.ColumnSpan="2"
+                                        Direction="Row"
+                                        Wrap="Wrap"
+                                        JustifyContent="End"
+                                        Margin="0,5,0,0">
+                                        <Button
+                                            Text="Editar"
+                                            Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.EditarCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Activo}"
+                                            BackgroundColor="#3B82F6"
+                                            TextColor="White"
+                                            Margin="0,0,8,6" />
+                                        <Button
+                                            Text="Desactivar"
+                                            Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.EliminarCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Activo}"
+                                            BackgroundColor="#FDECEC"
+                                            TextColor="#B42318"
+                                            Margin="0,0,8,6" />
+                                        <Button
+                                            Text="Activar"
+                                            Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.ActivarCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="#E3EFEA"
+                                            TextColor="#3B655B"
+                                            Margin="0,0,0,6">
+                                            <Button.Triggers>
+                                                <DataTrigger TargetType="Button" Binding="{Binding Activo}" Value="True">
+                                                    <Setter Property="IsVisible" Value="False" />
+                                                </DataTrigger>
+                                            </Button.Triggers>
+                                        </Button>
+                                    </FlexLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Border
+                    Padding="18"
+                    VerticalOptions="Start"
+                    BackgroundColor="#F2F6F4"
+                    Stroke="#D9E3DF"
+                    StrokeShape="RoundRectangle 14"
+                    IsVisible="{Binding SinItems}">
+                    <Label
+                        Text="No se encontraron motivos con los filtros seleccionados."
+                        HorizontalTextAlignment="Center"
+                        TextColor="#5E6B67" />
+                </Border>
+            </Grid>
+        </Grid>
+    </ContentView>
+</ContentPage>

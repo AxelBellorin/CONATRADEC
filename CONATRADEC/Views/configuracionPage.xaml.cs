@@ -109,6 +109,13 @@ namespace CONATRADEC.Views
                 AppRoutes.ConfiguracionUnidades,
                 typeof(configuracionUnidadesPage));
 
+            /*
+             * El catálogo de motivos se muestra como una opción normal dentro
+             * del grupo Inteligencia artificial. La ruta se registra una sola
+             * vez antes de que el usuario pueda abrir la tarjeta.
+             */
+            MotivoDevolucionTecnicoRoutes.AsegurarRegistro();
+
             rutasRegistradas = true;
         }
     }

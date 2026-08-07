@@ -5,10 +5,18 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:converters="clr-namespace:CONATRADEC.Converters"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
     BackgroundColor="#F7F8F7">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converters:TecnicoInspeccionTextoConverter
+                x:Key="TecnicoInspeccionTextoConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
@@ -25,7 +33,7 @@
 
             <Grid
                 Grid.Row="1"
-                RowDefinitions="Auto,Auto,*"
+                RowDefinitions="Auto,Auto,Auto,*"
                 RowSpacing="10"
                 MaximumWidthRequest="1180"
                 HorizontalOptions="Fill">
@@ -93,7 +101,46 @@
                         TextColor="#3B655B" />
                 </Grid>
 
-                <Grid Grid.Row="2">
+                <Border
+                    Grid.Row="2"
+                    Padding="{OnIdiom Phone=10, Default=12}"
+                    BackgroundColor="White"
+                    Stroke="#C8DED6"
+                    StrokeShape="RoundRectangle 13">
+                    <Grid
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                        ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,*'}"
+                        RowSpacing="5"
+                        ColumnSpacing="12">
+                        <VerticalStackLayout
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Spacing="1"
+                            VerticalOptions="Center">
+                            <Label
+                                Text="Técnico responsable"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Label
+                                Text="Filtra por identificador, mostrando nombre completo y usuario."
+                                FontSize="11"
+                                TextColor="#6B7773" />
+                        </VerticalStackLayout>
+                        <Picker
+                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                            ItemsSource="{Binding TecnicosFiltro}"
+                            SelectedItem="{Binding TecnicoSeleccionado, Mode=TwoWay}"
+                            ItemDisplayBinding="{Binding TextoMostrar}"
+                            Title="Todos los técnicos"
+                            MinimumWidthRequest="{OnIdiom Phone=260, Default=360}"
+                            HeightRequest="44"
+                            HorizontalOptions="Fill" />
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="3">
                     <Border
                         Padding="14"
                         Margin="0,4"
@@ -165,6 +212,12 @@
                                                     Text="{Binding TerrenoTexto}"
                                                     FontSize="13"
                                                     TextColor="#3B655B" />
+                                                <Label
+                                                    Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}, StringFormat='Técnico: {0}'}"
+                                                    FontSize="12"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#40544E"
+                                                    LineBreakMode="TailTruncation" />
                                                 <Label
                                                     Text="{Binding FechaTexto}"
                                                     FontSize="12"
@@ -285,7 +338,7 @@
                                                 StrokeShape="RoundRectangle 11">
                                                 <VerticalStackLayout Spacing="2">
                                                     <Label
-                                                        Text="Pendientes del técnico"
+                                                        Text="Pendientes/correcciones del técnico"
                                                         FontSize="11"
                                                         TextColor="#705A19" />
                                                     <Label
@@ -321,7 +374,7 @@
                                             FontSize="12"
                                             TextColor="#6B5710"
                                             LineBreakMode="WordWrap"
-                                            Text="Puede revisar las fotografías recibidas. Todavía faltan evidencias bajo responsabilidad del técnico."
+                                            Text="Puede revisar las fotografías recibidas. Todavía faltan evidencias o correcciones bajo responsabilidad del técnico."
                                             IsVisible="True">
                                             <Label.Triggers>
                                                 <DataTrigger

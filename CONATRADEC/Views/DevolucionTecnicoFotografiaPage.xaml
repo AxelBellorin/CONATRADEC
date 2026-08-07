@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.DevolucionTecnicoFotografiaPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F7F8F7">
+
+    <Grid Padding="{OnIdiom Phone=14, Default=22}" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <VerticalStackLayout Spacing="2">
+                <Label Text="Solicitar corrección al técnico" FontSize="23" FontAttributes="Bold" TextColor="#263A35" />
+                <Label Text="{Binding PosicionTexto}" TextColor="#5E6B67" />
+            </VerticalStackLayout>
+            <Button Grid.Column="1" Text="Cerrar" Clicked="OnCerrarClicked" BackgroundColor="#EEF2F0" TextColor="#263A35" />
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="13" MaximumWidthRequest="850" HorizontalOptions="Center">
+                <Border Padding="12" BackgroundColor="#FFF9E8" Stroke="#E2B93B" StrokeShape="RoundRectangle 12" IsVisible="{Binding TieneMensaje}">
+                    <HorizontalStackLayout Spacing="9">
+                        <ActivityIndicator IsRunning="{Binding EstaCargando}" Color="#9B552C" />
+                        <Label Text="{Binding Mensaje}" TextColor="#6B5710" VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+
+                <Border Padding="14" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14">
+                    <Grid ColumnDefinitions="{OnIdiom Phone='120,*', Default='220,*'}" ColumnSpacing="15">
+                        <Image Source="{Binding Fotografia.UrlImagen}" HeightRequest="{OnIdiom Phone=130, Default=220}" Aspect="AspectFill" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="5">
+                            <Label Text="{Binding Fotografia.Titulo}" FontSize="18" FontAttributes="Bold" TextColor="#263A35" />
+                            <Label Text="{Binding Fotografia.ResultadoIA.DiagnosticoVisible}" FontSize="16" FontAttributes="Bold" TextColor="#3B655B" />
+                            <Label Text="{Binding Fotografia.ResultadoIA.ResumenImagen}" TextColor="#5E6B67" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border Padding="16" BackgroundColor="White" Stroke="#C8DED6" StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="11">
+                        <Label Text="Motivo administrable *" FontAttributes="Bold" TextColor="#263A35" />
+                        <Picker
+                            ItemsSource="{Binding Motivos}"
+                            ItemDisplayBinding="{Binding NombreMostrar}"
+                            SelectedItem="{Binding MotivoSeleccionado, Mode=TwoWay}"
+                            Title="Seleccione el motivo" />
+
+                        <Border Padding="11" BackgroundColor="#FAFCFB" Stroke="#E2E9E6" StrokeShape="RoundRectangle 10" IsVisible="{Binding TieneMotivoSeleccionado}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding MotivoSeleccionado.TipoCorreccionTexto}" FontAttributes="Bold" TextColor="#9B552C" />
+                                <Label Text="{Binding MotivoSeleccionado.Descripcion}" TextColor="#5E6B67" />
+                                <Label Text="Instrucción sugerida" FontSize="12" FontAttributes="Bold" TextColor="#3B655B" />
+                                <Label Text="{Binding MotivoSeleccionado.InstruccionSugerida}" FontSize="12" TextColor="#5E6B67" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Label Text="Instrucciones específicas para esta fotografía *" FontAttributes="Bold" TextColor="#263A35" />
+                        <Editor
+                            Text="{Binding Instrucciones}"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="125"
+                            MaxLength="3000"
+                            Placeholder="Explique con precisión qué debe corregir, verificar o volver a fotografiar el técnico." />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Button
+            Grid.Row="2"
+            Text="Devolver al técnico"
+            Clicked="OnGuardarClicked"
+            HeightRequest="50"
+            HorizontalOptions="End"
+            WidthRequest="220"
+            BackgroundColor="#9B552C"
+            TextColor="White" />
+    </Grid>
+</ContentPage>

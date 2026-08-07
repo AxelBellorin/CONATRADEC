@@ -26,6 +26,7 @@ namespace CONATRADEC.Models
         public string Modo { get; set; } = "mis";
         public string Buscar { get; set; } = string.Empty;
         public string Propietario { get; set; } = string.Empty;
+        public int? TecnicoId { get; set; }
         public string Departamento { get; set; } = string.Empty;
         public string TipoFotografia { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
@@ -64,6 +65,9 @@ namespace CONATRADEC.Models
         public string Propietario { get; set; } = string.Empty;
         public string Municipio { get; set; } = string.Empty;
         public string Departamento { get; set; } = string.Empty;
+        public int UsuarioTecnicoId { get; set; }
+        public string TecnicoNombreCompleto { get; set; } = string.Empty;
+        public string TecnicoUsuario { get; set; } = string.Empty;
         public DateTime FechaRegistroSistemaUtc { get; set; }
         public string Estado { get; set; } = string.Empty;
         public int TotalFotografias { get; set; }
@@ -117,6 +121,35 @@ namespace CONATRADEC.Models
                 return string.IsNullOrWhiteSpace(ubicacion)
                     ? "Ubicación no disponible"
                     : ubicacion;
+            }
+        }
+
+        public string TecnicoTexto
+        {
+            get
+            {
+                string nombre = TecnicoNombreCompleto?.Trim() ?? string.Empty;
+                string usuario = TecnicoUsuario?.Trim() ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(nombre))
+                {
+                    nombre = string.IsNullOrWhiteSpace(usuario)
+                        ? UsuarioTecnicoId > 0
+                            ? $"Técnico #{UsuarioTecnicoId}"
+                            : "Técnico no disponible"
+                        : usuario;
+                }
+
+                if (string.IsNullOrWhiteSpace(usuario) ||
+                    string.Equals(
+                        nombre,
+                        usuario,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return nombre;
+                }
+
+                return $"{nombre} ({usuario})";
             }
         }
 

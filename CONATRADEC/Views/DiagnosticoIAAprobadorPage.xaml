@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.DiagnosticoIAAprobadorPage"
+    x:Name="PaginaAprobador"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:converters="clr-namespace:CONATRADEC.Converters"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
     BackgroundColor="#F7F8F7">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converters:TecnicoInspeccionTextoConverter
+                x:Key="TecnicoInspeccionTextoConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
@@ -45,12 +54,53 @@
                         </HorizontalStackLayout>
                     </Border>
 
-                    <Button
-                        Text="Actualizar bandeja"
-                        Command="{Binding ActualizarCommand}"
-                        HorizontalOptions="End"
-                        BackgroundColor="#EEF2F0"
-                        TextColor="#263A35" />
+                    <Border
+                        Padding="{OnIdiom Phone=10, Default=12}"
+                        BackgroundColor="White"
+                        Stroke="#C8DED6"
+                        StrokeShape="RoundRectangle 13">
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,*,Auto'}"
+                            RowSpacing="6"
+                            ColumnSpacing="12">
+                            <VerticalStackLayout
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Spacing="1"
+                                VerticalOptions="Center">
+                                <Label
+                                    Text="Técnico responsable"
+                                    FontSize="13"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="El filtro utiliza el identificador del técnico."
+                                    FontSize="11"
+                                    TextColor="#6B7773" />
+                            </VerticalStackLayout>
+
+                            <Picker
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                ItemsSource="{Binding TecnicosFiltro}"
+                                SelectedItem="{Binding TecnicoSeleccionado, Mode=TwoWay}"
+                                ItemDisplayBinding="{Binding TextoMostrar}"
+                                Title="Todos los técnicos"
+                                MinimumWidthRequest="{OnIdiom Phone=260, Default=360}"
+                                HeightRequest="44"
+                                HorizontalOptions="Fill" />
+
+                            <Button
+                                Grid.Row="{OnIdiom Phone=2, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=2}"
+                                Text="Actualizar"
+                                Command="{Binding ActualizarCommand}"
+                                HeightRequest="44"
+                                BackgroundColor="#EEF2F0"
+                                TextColor="#263A35" />
+                        </Grid>
+                    </Border>
 
                     <CollectionView
                         ItemsSource="{Binding Solicitudes}"
@@ -63,43 +113,68 @@
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:InspeccionFitosanitariaListaItemV2">
                                 <Border
-                                    Padding="14"
+                                    Padding="{OnIdiom Phone=12, Default=14}"
                                     BackgroundColor="White"
                                     Stroke="#D9E3DF"
                                     StrokeShape="RoundRectangle 14">
                                     <Grid
-                                        ColumnDefinitions="86,*,Auto"
-                                        RowDefinitions="Auto,Auto,Auto"
+                                        RowDefinitions="Auto,Auto"
+                                        ColumnDefinitions="{OnIdiom Phone='82,*', Default='86,*,Auto'}"
                                         ColumnSpacing="12"
-                                        RowSpacing="5">
-                                        <Image
-                                            Grid.RowSpan="3"
-                                            Source="{Binding UrlMiniatura}"
-                                            HeightRequest="80"
-                                            WidthRequest="80"
-                                            Aspect="AspectFill" />
-                                        <Label
-                                            Grid.Column="1"
-                                            Text="{Binding TerrenoTexto}"
-                                            FontSize="18"
-                                            FontAttributes="Bold"
-                                            TextColor="#263A35" />
-                                        <Label
-                                            Grid.Row="1"
-                                            Grid.Column="1"
-                                            Text="{Binding Resumen}"
-                                            TextColor="#5E6B67" />
-                                        <Label
-                                            Grid.Row="2"
-                                            Grid.Column="1"
-                                            Text="{Binding FechaTexto}"
-                                            FontSize="12"
-                                            TextColor="#7A8581" />
+                                        RowSpacing="10">
+                                        <Border
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            WidthRequest="{OnIdiom Phone=76, Default=80}"
+                                            HeightRequest="{OnIdiom Phone=76, Default=80}"
+                                            BackgroundColor="#EEF3F1"
+                                            Stroke="#D4E1DC"
+                                            StrokeShape="RoundRectangle 11">
+                                            <Image
+                                                Source="{Binding UrlMiniatura}"
+                                                Aspect="AspectFill" />
+                                        </Border>
+
                                         <VerticalStackLayout
-                                            Grid.Column="2"
-                                            Grid.RowSpan="3"
-                                            Spacing="7"
+                                            Grid.Row="0"
+                                            Grid.Column="1"
+                                            Spacing="3"
                                             VerticalOptions="Center">
+                                            <Label
+                                                Text="{Binding NombreInspeccionTexto}"
+                                                FontSize="{OnIdiom Phone=16, Default=18}"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35"
+                                                LineBreakMode="WordWrap" />
+                                            <Label
+                                                Text="{Binding TerrenoTexto}"
+                                                FontSize="13"
+                                                FontAttributes="Bold"
+                                                TextColor="#3B655B" />
+                                            <Label
+                                                Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}, StringFormat='Técnico: {0}'}"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="#40544E"
+                                                LineBreakMode="TailTruncation" />
+                                            <Label
+                                                Text="{Binding Resumen}"
+                                                FontSize="12"
+                                                TextColor="#5E6B67"
+                                                LineBreakMode="WordWrap" />
+                                            <Label
+                                                Text="{Binding FechaTexto, StringFormat='Registrada: {0}'}"
+                                                FontSize="12"
+                                                TextColor="#7A8581" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                            Grid.Column="{OnIdiom Phone=0, Default=2}"
+                                            Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
+                                            Spacing="7"
+                                            VerticalOptions="Center"
+                                            HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
                                             <Label
                                                 Text="{Binding Estado}"
                                                 FontAttributes="Bold"
@@ -107,8 +182,10 @@
                                                 HorizontalTextAlignment="Center" />
                                             <Button
                                                 Text="Tomar decisión"
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.AbrirCommand}"
+                                                Command="{Binding Source={x:Reference PaginaAprobador}, Path=BindingContext.AbrirCommand}"
                                                 CommandParameter="{Binding .}"
+                                                HeightRequest="46"
+                                                MinimumWidthRequest="{OnIdiom Phone=220, Default=170}"
                                                 BackgroundColor="#263A35"
                                                 TextColor="White" />
                                         </VerticalStackLayout>
@@ -125,7 +202,7 @@
                         StrokeShape="RoundRectangle 14"
                         IsVisible="{Binding SinSolicitudes}">
                         <Label
-                            Text="No hay fotografías pendientes de aprobación."
+                            Text="No hay fotografías pendientes de aprobación para el técnico seleccionado."
                             HorizontalTextAlignment="Center"
                             TextColor="#5E6B67" />
                     </Border>

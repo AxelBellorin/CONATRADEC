@@ -206,8 +206,14 @@
 		<MauiXaml Update="Views\configuracionUnidadesPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\CorreccionTecnicoFotografiaPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\datosSinConexionPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\DevolucionTecnicoFotografiaPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\DiagnosticoIAAnalizadorPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
@@ -265,6 +271,12 @@
 		</MauiXaml>
 		<MauiXaml Update="Views\MapaSeleccionPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\MotivoDevolucionTecnicoFormPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\MotivoDevolucionTecnicoPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\MultiCalculoPage.xaml">
 			<Generator>MSBuild:Compile</Generator>

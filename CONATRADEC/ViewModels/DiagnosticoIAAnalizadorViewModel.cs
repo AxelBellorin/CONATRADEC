@@ -7,10 +7,18 @@ namespace CONATRADEC.ViewModels
     public sealed class DiagnosticoIAAnalizadorViewModel :
         DiagnosticoIAViewModelBase
     {
+        private readonly InspeccionFitosanitariaBandejaApiService filtrosApi =
+            InspeccionFitosanitariaBandejaApiService.Instance;
+        private readonly InspeccionFitosanitariaBandejaOperativaApiService api =
+            new();
+
+        private bool catalogoTecnicosCargado;
+        private TecnicoInspeccionFiltroItem? tecnicoSeleccionado;
+
         public DiagnosticoIAAnalizadorViewModel()
         {
             ActualizarCommand = new Command(
-                async () => await CargarAsync(),
+                async () => await ActualizarAsync(),
                 () => !IsBusy);
 
             AbrirCommand = new Command<InspeccionFitosanitariaListaItemV2>(
@@ -21,13 +29,82 @@ namespace CONATRADEC.ViewModels
         public ObservableCollection<InspeccionFitosanitariaListaItemV2>
             Solicitudes { get; } = [];
 
+        public ObservableCollection<TecnicoInspeccionFiltroItem>
+            TecnicosFiltro { get; } = [];
+
         public Command ActualizarCommand { get; }
         public Command<InspeccionFitosanitariaListaItemV2> AbrirCommand { get; }
+
+        public TecnicoInspeccionFiltroItem? TecnicoSeleccionado
+        {
+            get => tecnicoSeleccionado;
+            set
+            {
+                if (ReferenceEquals(tecnicoSeleccionado, value))
+                    return;
+
+                tecnicoSeleccionado = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TecnicoFiltroTexto));
+
+                if (catalogoTecnicosCargado && !IsBusy)
+                    _ = CargarAsync();
+            }
+        }
+
+        public string TecnicoFiltroTexto =>
+            TecnicoSeleccionado?.TextoMostrar ?? "Todos los técnicos";
 
         public bool SinSolicitudes =>
             !IsBusy && Solicitudes.Count == 0;
 
-        public Task InicializarAsync() => CargarAsync();
+        public async Task InicializarAsync()
+        {
+            await CargarTecnicosAsync();
+            await CargarAsync();
+        }
+
+        private async Task ActualizarAsync()
+        {
+            await CargarTecnicosAsync(forzar: true);
+            await CargarAsync();
+        }
+
+        private async Task CargarTecnicosAsync(bool forzar = false)
+        {
+            if ((!forzar && catalogoTecnicosCargado) ||
+                !ValidarEnLinea(false))
+            {
+                return;
+            }
+
+            try
+            {
+                int tecnicoSeleccionadoId =
+                    tecnicoSeleccionado?.UsuarioTecnicoId ?? 0;
+
+                TecnicoInspeccionFiltroRespuesta respuesta =
+                    await filtrosApi.ObtenerTecnicosAsync(
+                        DiagnosticoIARoutes.ModoAnalizador);
+
+                TecnicosFiltro.Clear();
+                TecnicosFiltro.Add(TecnicoInspeccionFiltroItem.Todos());
+
+                foreach (TecnicoInspeccionFiltroItem item in respuesta.Tecnicos)
+                    TecnicosFiltro.Add(item);
+
+                catalogoTecnicosCargado = true;
+                tecnicoSeleccionado = TecnicosFiltro.FirstOrDefault(item =>
+                    item.UsuarioTecnicoId == tecnicoSeleccionadoId) ??
+                    TecnicosFiltro[0];
+                OnPropertyChanged(nameof(TecnicoSeleccionado));
+                OnPropertyChanged(nameof(TecnicoFiltroTexto));
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorAsync(ex);
+            }
+        }
 
         private async Task CargarAsync()
         {
@@ -37,14 +114,16 @@ namespace CONATRADEC.ViewModels
             IsBusy = true;
             MensajeEstado =
                 "Cargando fotografías pendientes del analizador...";
-            ActualizarCommand.ChangeCanExecute();
-            AbrirCommand.ChangeCanExecute();
+            ActualizarComandos();
 
             try
             {
                 List<InspeccionFitosanitariaListaItemV2> items =
-                    await InspeccionApi.ObtenerBandejaAsync(
-                        DiagnosticoIARoutes.ModoAnalizador);
+                    await api.ObtenerAsync(
+                        DiagnosticoIARoutes.ModoAnalizador,
+                        TecnicoSeleccionado?.UsuarioTecnicoId is > 0
+                            ? TecnicoSeleccionado.UsuarioTecnicoId
+                            : null);
 
                 Solicitudes.Clear();
                 foreach (InspeccionFitosanitariaListaItemV2 item in items)
@@ -61,8 +140,7 @@ namespace CONATRADEC.ViewModels
                 MensajeEstado = string.Empty;
                 IsBusy = false;
                 OnPropertyChanged(nameof(SinSolicitudes));
-                ActualizarCommand.ChangeCanExecute();
-                AbrirCommand.ChangeCanExecute();
+                ActualizarComandos();
             }
         }
 
@@ -76,6 +154,12 @@ namespace CONATRADEC.ViewModels
                 DiagnosticoIARoutes.CrearRutaResultado(
                     item.InspeccionId,
                     DiagnosticoIARoutes.ModoAnalizador));
+        }
+
+        private void ActualizarComandos()
+        {
+            ActualizarCommand.ChangeCanExecute();
+            AbrirCommand.ChangeCanExecute();
         }
     }
 }

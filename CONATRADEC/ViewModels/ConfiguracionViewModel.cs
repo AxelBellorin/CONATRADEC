@@ -442,7 +442,7 @@ namespace CONATRADEC.ViewModels
 
                 Categoria(
                     "Inteligencia artificial",
-                    "Parámetros administrativos del proveedor y sus revisiones.",
+                    "Parámetros administrativos del proveedor, sus revisiones y devoluciones técnicas.",
                     6,
                     Opcion(
                         "Configuración de Diagnóstico IA",
@@ -451,6 +451,14 @@ namespace CONATRADEC.ViewModels
                         DiagnosticoIARoutes.InterfazConfiguracion,
                         DiagnosticoIARoutes.PaginaConfiguracion,
                         1,
+                        amarilloSuave),
+                    Opcion(
+                        "Motivos de devolución al técnico",
+                        "Administrar causas, instrucciones y tipos de corrección solicitados por el analizador.",
+                        "iconsettings.png",
+                        DiagnosticoIARoutes.InterfazConfiguracion,
+                        MotivoDevolucionTecnicoRoutes.Pagina,
+                        2,
                         amarilloSuave)),
 
                 Categoria(

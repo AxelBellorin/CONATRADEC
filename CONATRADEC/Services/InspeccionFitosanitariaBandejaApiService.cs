@@ -6,9 +6,9 @@ using System.Text.Json;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Cliente exclusivo de la bandeja paginada. Se mantiene separado del
-    /// servicio operativo para no alterar los endpoints usados por analizador,
-    /// aprobador y detalle de la inspección.
+    /// Cliente exclusivo de la bandeja paginada. También administra el filtro
+    /// contextual por técnico para reutilizarlo desde las páginas existentes
+    /// sin duplicar la lógica de búsqueda de sus viewmodels.
     /// </summary>
     public sealed class InspeccionFitosanitariaBandejaApiService
     {
@@ -22,6 +22,9 @@ namespace CONATRADEC.Services
             };
 
         private readonly HttpClient client;
+        private readonly object filtrosSync = new();
+        private readonly Dictionary<string, int?> tecnicoContextualPorModo =
+            new(StringComparer.OrdinalIgnoreCase);
 
         public static InspeccionFitosanitariaBandejaApiService Instance =>
             lazy.Value;
@@ -29,6 +32,34 @@ namespace CONATRADEC.Services
         private InspeccionFitosanitariaBandejaApiService()
         {
             client = ApiClientService.Client;
+        }
+
+        public void EstablecerTecnicoContextual(
+            string? modo,
+            int? tecnicoId)
+        {
+            string clave = NormalizarModo(modo);
+
+            lock (filtrosSync)
+            {
+                tecnicoContextualPorModo[clave] = tecnicoId is > 0
+                    ? tecnicoId
+                    : null;
+            }
+        }
+
+        public int? ObtenerTecnicoContextual(string? modo)
+        {
+            string clave = NormalizarModo(modo);
+
+            lock (filtrosSync)
+            {
+                return tecnicoContextualPorModo.TryGetValue(
+                    clave,
+                    out int? tecnicoId)
+                        ? tecnicoId
+                        : null;
+            }
         }
 
         public async Task<InspeccionFitosanitariaBandejaPaginaV2>
@@ -51,21 +82,7 @@ namespace CONATRADEC.Services
                 cancellationToken);
 
             RespuestaApi<InspeccionFitosanitariaBandejaPaginaV2>? envelope =
-                null;
-
-            if (!string.IsNullOrWhiteSpace(contenido))
-            {
-                try
-                {
-                    envelope = JsonSerializer.Deserialize<
-                        RespuestaApi<InspeccionFitosanitariaBandejaPaginaV2>>(
-                        contenido,
-                        JsonOptions);
-                }
-                catch (JsonException)
-                {
-                }
-            }
+                Deserializar<InspeccionFitosanitariaBandejaPaginaV2>(contenido);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -87,7 +104,97 @@ namespace CONATRADEC.Services
                 "El servidor devolvió una página de inspecciones incompleta.");
         }
 
-        private static string ConstruirRuta(
+        public async Task<TecnicoInspeccionFiltroRespuesta>
+            ObtenerTecnicosAsync(
+                string modo,
+                CancellationToken cancellationToken = default)
+        {
+            string ruta =
+                "api/inspecciones-fitosanitarias/bandeja-tecnicos?modo=" +
+                Uri.EscapeDataString(NormalizarModo(modo));
+
+            TecnicoInspeccionFiltroRespuesta respuesta =
+                await GetDataAsync<TecnicoInspeccionFiltroRespuesta>(
+                    ruta,
+                    "No fue posible cargar los técnicos responsables.",
+                    cancellationToken);
+
+            TecnicoInspeccionCacheService.Establecer(
+                respuesta.Asignaciones);
+
+            respuesta.Tecnicos = respuesta.Tecnicos
+                .Where(item => item.UsuarioTecnicoId > 0)
+                .OrderBy(item => item.NombreCompleto)
+                .ThenBy(item => item.NombreUsuario)
+                .ToList();
+
+            return respuesta;
+        }
+
+        public async Task<TecnicoInspeccionFiltroItem>
+            ObtenerTecnicoResponsableAsync(
+                int inspeccionId,
+                CancellationToken cancellationToken = default)
+        {
+            if (inspeccionId <= 0)
+                throw new ArgumentOutOfRangeException(nameof(inspeccionId));
+
+            TecnicoInspeccionFiltroItem tecnico =
+                await GetDataAsync<TecnicoInspeccionFiltroItem>(
+                    $"api/inspecciones-fitosanitarias/{inspeccionId}/tecnico-responsable",
+                    "No fue posible cargar el técnico responsable.",
+                    cancellationToken);
+
+            TecnicoInspeccionCacheService.Establecer(
+                inspeccionId,
+                tecnico);
+
+            return tecnico;
+        }
+
+        private async Task<T> GetDataAsync<T>(
+            string ruta,
+            string mensajePredeterminado,
+            CancellationToken cancellationToken)
+            where T : class
+        {
+            SesionInactividadService.Instance.RegistrarActividad();
+
+            using HttpRequestMessage request = new(HttpMethod.Get, ruta);
+            using HttpResponseMessage response = await client.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+
+            string contenido = await response.Content.ReadAsStringAsync(
+                cancellationToken);
+
+            RespuestaApi<T>? envelope = Deserializar<T>(contenido);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                string mensaje = envelope?.Message ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(mensaje))
+                    mensaje = ExtraerMensaje(contenido);
+
+                if (string.IsNullOrWhiteSpace(mensaje))
+                    mensaje = mensajePredeterminado;
+
+                throw new InspeccionFitosanitariaApiException(
+                    response.StatusCode,
+                    mensaje);
+            }
+
+            if (envelope?.Data is not null)
+                return envelope.Data;
+
+            throw new InspeccionFitosanitariaApiException(
+                HttpStatusCode.BadGateway,
+                mensajePredeterminado);
+        }
+
+        private string ConstruirRuta(
             InspeccionFitosanitariaBandejaFiltroV2 filtro)
         {
             var parametros = new List<string>();
@@ -98,6 +205,17 @@ namespace CONATRADEC.Services
             Agregar(parametros, "departamento", filtro.Departamento);
             Agregar(parametros, "tipoFotografia", filtro.TipoFotografia);
             Agregar(parametros, "estado", filtro.Estado);
+
+            int? tecnicoId = filtro.TecnicoId ??
+                ObtenerTecnicoContextual(filtro.Modo);
+
+            if (tecnicoId is > 0)
+            {
+                Agregar(
+                    parametros,
+                    "tecnicoId",
+                    tecnicoId.Value.ToString(CultureInfo.InvariantCulture));
+            }
 
             if (filtro.FechaDesde.HasValue)
             {
@@ -156,6 +274,24 @@ namespace CONATRADEC.Services
                    string.Join("&", parametros);
         }
 
+        private static RespuestaApi<T>? Deserializar<T>(string contenido)
+            where T : class
+        {
+            if (string.IsNullOrWhiteSpace(contenido))
+                return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<RespuestaApi<T>>(
+                    contenido,
+                    JsonOptions);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
         private static void Agregar(
             ICollection<string> parametros,
             string nombre,
@@ -168,6 +304,11 @@ namespace CONATRADEC.Services
                 Uri.EscapeDataString(nombre) + "=" +
                 Uri.EscapeDataString(valor.Trim()));
         }
+
+        private static string NormalizarModo(string? modo) =>
+            string.IsNullOrWhiteSpace(modo)
+                ? DiagnosticoIARoutes.ModoMisInspecciones
+                : modo.Trim().ToLowerInvariant();
 
         private static string ExtraerMensaje(string contenido)
         {
@@ -202,6 +343,7 @@ namespace CONATRADEC.Services
         }
 
         private sealed class RespuestaApi<T>
+            where T : class
         {
             public bool Success { get; set; }
             public string Message { get; set; } = string.Empty;

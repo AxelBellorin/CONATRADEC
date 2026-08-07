@@ -17,6 +17,8 @@ namespace CONATRADEC.Views
         /// <summary>
         /// Selecciona únicamente fotografías que todavía pertenecen a la etapa
         /// del técnico. Las evidencias enviadas a revisión quedan excluidas.
+        /// Las fotografías devueltas por el analizador sí se incluyen para que
+        /// el técnico pueda atenderlas o descartarlas si fueron sustituidas.
         /// </summary>
         private void OnSeleccionarTodoTecnicoClicked(
             object sender,
@@ -35,7 +37,8 @@ namespace CONATRADEC.Views
                     InspeccionFotoEstados.Borrador or
                     InspeccionFotoEstados.PendienteIA or
                     InspeccionFotoEstados.ErrorIA or
-                    InspeccionFotoEstados.PendienteDecisionTecnico;
+                    InspeccionFotoEstados.PendienteDecisionTecnico or
+                    InspeccionFotoEstadosRevision.DevueltaTecnico;
             }
         }
 
@@ -184,7 +187,10 @@ namespace CONATRADEC.Views
                 finalizandoEtapaTecnica = false;
 
                 if (sender is Button botonFinal)
-                    botonFinal.IsEnabled = !etapaFinalizada;
+                {
+                    botonFinal.IsEnabled =
+                        !etapaFinalizada && viewModel.PuedeCerrarInspeccion;
+                }
             }
         }
 

@@ -550,7 +550,7 @@
                             <Entry
                                 Grid.Column="0"
                                 Text="{Binding BuscarInspeccion}"
-                                Placeholder="Nombre, terreno, propietario, ubicación o archivo"
+                                Placeholder="Nombre, terreno, propietario, técnico, ubicación o archivo"
                                 ReturnType="Search"
                                 ReturnCommand="{Binding BuscarInspeccionesCommand}"
                                 ClearButtonVisibility="WhileEditing"
@@ -570,6 +570,25 @@
                             Wrap="Wrap"
                             AlignItems="End"
                             JustifyContent="Start">
+                            <VerticalStackLayout
+                                Margin="0,0,8,7"
+                                Spacing="3"
+                                WidthRequest="285"
+                                IsVisible="{Binding Source={x:Reference PaginaRaiz}, Path=MostrarFiltroTecnico}">
+                                <Label
+                                    Text="Técnico responsable"
+                                    FontSize="12"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Picker
+                                    x:Name="TecnicoFiltroPicker"
+                                    ItemsSource="{Binding Source={x:Reference PaginaRaiz}, Path=TecnicosFiltro}"
+                                    ItemDisplayBinding="{Binding TextoMostrar}"
+                                    Title="Todos los técnicos"
+                                    SelectedIndexChanged="OnTecnicoFiltroChanged"
+                                    HeightRequest="42" />
+                            </VerticalStackLayout>
+
                             <VerticalStackLayout
                                 Margin="0,0,8,7"
                                 Spacing="3"
@@ -704,10 +723,11 @@
                                 VerticalTextAlignment="Center"
                                 LineBreakMode="WordWrap" />
                             <Button
+                                x:Name="LimpiarFiltrosButton"
                                 Grid.Column="1"
                                 Text="Limpiar filtros"
-                                Command="{Binding LimpiarFiltrosCommand}"
-                                IsVisible="{Binding TieneFiltrosActivos}"
+                                Clicked="OnLimpiarFiltrosClicked"
+                                IsVisible="True"
                                 BackgroundColor="#F5F7F6"
                                 TextColor="#5E6B67"
                                 HeightRequest="40"
@@ -789,6 +809,12 @@
                                                 <Label
                                                     Text="{Binding PropietarioTexto, StringFormat='Propietario: {0}'}"
                                                     FontSize="12"
+                                                    TextColor="#40544E"
+                                                    LineBreakMode="TailTruncation" />
+                                                <Label
+                                                    Text="{Binding TecnicoTexto, StringFormat='Técnico: {0}'}"
+                                                    FontSize="12"
+                                                    FontAttributes="Bold"
                                                     TextColor="#40544E"
                                                     LineBreakMode="TailTruncation" />
                                                 <Label
