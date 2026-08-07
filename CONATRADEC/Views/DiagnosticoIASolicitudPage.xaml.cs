@@ -28,7 +28,13 @@ namespace CONATRADEC.Views
         ContentPage,
         IQueryAttributable
     {
-        private readonly DiagnosticoIASolicitudViewModel viewModel;
+        /*
+         * El XAML consulta propiedades como TituloVista y SubtituloVista
+         * durante InitializeComponent(). Por eso el ViewModel debe existir
+         * antes de que comience la construcción del árbol visual.
+         */
+        private readonly DiagnosticoIASolicitudViewModel viewModel = new();
+
         private readonly InspeccionFitosanitariaBandejaApiService bandejaApi =
             InspeccionFitosanitariaBandejaApiService.Instance;
 
@@ -39,7 +45,6 @@ namespace CONATRADEC.Views
         public DiagnosticoIASolicitudPage()
         {
             InitializeComponent();
-            viewModel = new DiagnosticoIASolicitudViewModel();
             BindingContext = viewModel;
 
             VistasInspecciones.Add(
