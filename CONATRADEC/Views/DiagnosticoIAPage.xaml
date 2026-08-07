@@ -37,55 +37,138 @@
 
                     <Grid
                         ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                        RowDefinitions="Auto,Auto,Auto"
                         ColumnSpacing="14"
                         RowSpacing="14">
 
-                        <Border Grid.Row="0" Grid.Column="0" Padding="18" BackgroundColor="White" Stroke="#C8DED6" StrokeShape="RoundRectangle 15" IsVisible="{Binding PuedeNuevaInspeccion}">
+                        <Border
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 15"
+                            IsVisible="{Binding PuedeNuevaInspeccion}">
                             <VerticalStackLayout Spacing="8">
-                                <Label Text="Nueva inspección" FontSize="20" FontAttributes="Bold" TextColor="#263A35" />
-                                <Label Text="Seleccione un terreno, capture fotografías y comience el análisis individual de cada evidencia." TextColor="#5E6B67" />
-                                <Button Text="Iniciar inspección" Command="{Binding NuevaInspeccionCommand}" BackgroundColor="#3B655B" TextColor="White" CornerRadius="11" />
+                                <Label
+                                    Text="Nueva inspección"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="Seleccione un terreno, capture fotografías y comience el análisis individual de cada evidencia."
+                                    TextColor="#5E6B67" />
+                                <Button
+                                    Text="Iniciar inspección"
+                                    Command="{Binding NuevaInspeccionCommand}"
+                                    BackgroundColor="#3B655B"
+                                    TextColor="White"
+                                    CornerRadius="11" />
                             </VerticalStackLayout>
                         </Border>
 
-                        <Border Grid.Row="{OnPlatform WinUI=0, Default=1}" Grid.Column="{OnPlatform WinUI=1, Default=0}" Padding="18" BackgroundColor="White" Stroke="#C8DED6" StrokeShape="RoundRectangle 15" IsVisible="{Binding PuedeMisInspecciones}">
+                        <Border
+                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                            Padding="18"
+                            BackgroundColor="#FFF9E8"
+                            Stroke="#E2B93B"
+                            StrokeShape="RoundRectangle 15"
+                            IsVisible="{Binding PuedeMisInspecciones}">
                             <VerticalStackLayout Spacing="8">
-                                <Label Text="Mis inspecciones" FontSize="20" FontAttributes="Bold" TextColor="#263A35" />
-                                <Label Text="Consulte solicitudes propias, progreso, errores y resultados en una pantalla independiente." TextColor="#5E6B67" />
-                                <Button Text="Consultar mis inspecciones" Command="{Binding MisInspeccionesCommand}" BackgroundColor="#E3EFEA" TextColor="#3B655B" CornerRadius="11" />
+                                <Label
+                                    Text="Mis inspecciones"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="Consulte el progreso, errores, devoluciones y las fotografías que requieren una decisión técnica desde un solo módulo."
+                                    TextColor="#5E6B67" />
+                                <Button
+                                    Text="Consultar mis inspecciones"
+                                    Command="{Binding MisInspeccionesCommand}"
+                                    BackgroundColor="#F2C94C"
+                                    TextColor="#263A35"
+                                    CornerRadius="11" />
                             </VerticalStackLayout>
                         </Border>
 
-                        <Border Grid.Row="{OnPlatform WinUI=1, Default=2}" Grid.Column="0" Padding="18" BackgroundColor="#FFF9E8" Stroke="#E2B93B" StrokeShape="RoundRectangle 15" IsVisible="{Binding PuedeDecisiones}">
+                        <Border
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#E3D1C6"
+                            StrokeShape="RoundRectangle 15"
+                            IsVisible="{Binding PuedeAnalizador}">
                             <VerticalStackLayout Spacing="8">
-                                <Label Text="Decisiones pendientes" FontSize="20" FontAttributes="Bold" TextColor="#263A35" />
-                                <Label Text="Revise la respuesta preliminar antes de enviarla al analizador, solicitar otra evaluación o cerrar la solicitud." TextColor="#5E6B67" />
-                                <Button Text="Revisar decisiones" Command="{Binding DecisionesPendientesCommand}" BackgroundColor="#F2C94C" TextColor="#263A35" CornerRadius="11" />
+                                <Label
+                                    Text="Bandeja del analizador"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="Revise la evidencia, confirme o corrija cada clasificación y prepare la inspección para aprobación."
+                                    TextColor="#5E6B67" />
+                                <Button
+                                    Text="Abrir bandeja"
+                                    Command="{Binding AbrirAnalizadorCommand}"
+                                    BackgroundColor="#9B552C"
+                                    TextColor="White"
+                                    CornerRadius="11" />
                             </VerticalStackLayout>
                         </Border>
 
-                        <Border Grid.Row="{OnPlatform WinUI=1, Default=3}" Grid.Column="{OnPlatform WinUI=1, Default=0}" Padding="18" BackgroundColor="White" Stroke="#E3D1C6" StrokeShape="RoundRectangle 15" IsVisible="{Binding PuedeAnalizador}">
+                        <Border
+                            Grid.Row="1"
+                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 15"
+                            IsVisible="{Binding PuedeAprobador}">
                             <VerticalStackLayout Spacing="8">
-                                <Label Text="Bandeja del analizador" FontSize="20" FontAttributes="Bold" TextColor="#263A35" />
-                                <Label Text="Revise la evidencia, vincule cada fotografía con el catálogo oficial y prepare el caso para aprobación." TextColor="#5E6B67" />
-                                <Button Text="Abrir bandeja" Command="{Binding AbrirAnalizadorCommand}" BackgroundColor="#9B552C" TextColor="White" CornerRadius="11" />
+                                <Label
+                                    Text="Bandeja del aprobador"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="Apruebe, devuelva o rechace la evaluación humana y autorice la publicación en el álbum."
+                                    TextColor="#5E6B67" />
+                                <Button
+                                    Text="Abrir aprobaciones"
+                                    Command="{Binding AbrirAprobadorCommand}"
+                                    BackgroundColor="#263A35"
+                                    TextColor="White"
+                                    CornerRadius="11" />
                             </VerticalStackLayout>
                         </Border>
 
-                        <Border Grid.Row="{OnPlatform WinUI=2, Default=4}" Grid.Column="0" Padding="18" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 15" IsVisible="{Binding PuedeAprobador}">
+                        <Border
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="{OnPlatform WinUI=2, Default=1}"
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 15"
+                            IsVisible="{Binding PuedeHistorial}">
                             <VerticalStackLayout Spacing="8">
-                                <Label Text="Bandeja del aprobador" FontSize="20" FontAttributes="Bold" TextColor="#263A35" />
-                                <Label Text="Apruebe, devuelva o rechace la evaluación humana y autorice nuevas fichas o fotografías para el álbum." TextColor="#5E6B67" />
-                                <Button Text="Abrir aprobaciones" Command="{Binding AbrirAprobadorCommand}" BackgroundColor="#263A35" TextColor="White" CornerRadius="11" />
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <Border Grid.Row="{OnPlatform WinUI=2, Default=5}" Grid.Column="{OnPlatform WinUI=1, Default=0}" Padding="18" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 15" IsVisible="{Binding PuedeHistorial}">
-                            <VerticalStackLayout Spacing="8">
-                                <Label Text="Historial" FontSize="20" FontAttributes="Bold" TextColor="#263A35" />
-                                <Label Text="Consulte inspecciones aprobadas, rechazadas, canceladas, no concluyentes o publicadas." TextColor="#5E6B67" />
-                                <Button Text="Consultar historial" Command="{Binding HistorialCommand}" BackgroundColor="#EEF2F0" TextColor="#263A35" CornerRadius="11" />
+                                <Label
+                                    Text="Historial"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="Consulte inspecciones aprobadas, rechazadas, canceladas, no concluyentes o publicadas."
+                                    TextColor="#5E6B67" />
+                                <Button
+                                    Text="Consultar historial"
+                                    Command="{Binding HistorialCommand}"
+                                    BackgroundColor="#EEF2F0"
+                                    TextColor="#263A35"
+                                    CornerRadius="11" />
                             </VerticalStackLayout>
                         </Border>
                     </Grid>

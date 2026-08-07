@@ -27,75 +27,79 @@
             RowDefinitions="Auto,*"
             RowSpacing="12">
 
-            <!--
-                Encabezado específico del expediente. No utiliza la detección
-                automática de catálogos eliminados porque esta pantalla no
-                administra terrenos ni otro catálogo configurable.
-            -->
             <Grid
                 Grid.Row="0"
-                RowDefinitions="{OnIdiom Phone='Auto,Auto', Tablet='Auto', Desktop='Auto'}"
-                ColumnDefinitions="{OnIdiom Phone='*,*', Tablet='Auto,*,Auto', Desktop='Auto,*,Auto'}"
+                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                ColumnDefinitions="{OnIdiom Phone='*,*', Default='Auto,*,Auto'}"
                 RowSpacing="10"
                 ColumnSpacing="12"
                 MaximumWidthRequest="1250"
                 HorizontalOptions="Fill">
 
                 <Button
-                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                    Grid.Row="{OnIdiom Phone=1, Default=0}"
                     Grid.Column="0"
                     Text="{Binding TextoRegresar}"
                     Command="{Binding RegresarResultadoCommand}"
-                    WidthRequest="{OnIdiom Phone=150, Tablet=220, Desktop=220}"
+                    WidthRequest="{OnIdiom Phone=150, Default=220}"
                     HeightRequest="48"
                     Padding="12,10"
                     BackgroundColor="#EEF2F0"
-                    TextColor="{StaticResource color_Verde}"
+                    TextColor="#3B655B"
                     CornerRadius="11"
                     FontFamily="MontserratMedium"
-                    FontSize="{OnIdiom Phone=12, Tablet=12, Desktop=13}"
-                    VerticalOptions="Center"
-                    HorizontalOptions="{OnIdiom Phone=Start, Tablet=Start, Desktop=Start}" />
+                    FontSize="{OnIdiom Phone=12, Default=13}">
+                    <Button.Triggers>
+                        <DataTrigger
+                            TargetType="Button"
+                            Binding="{Binding TextoRegresar}"
+                            Value="Decisiones pendientes">
+                            <Setter Property="Text" Value="← Mis inspecciones" />
+                        </DataTrigger>
+                        <DataTrigger
+                            TargetType="Button"
+                            Binding="{Binding TextoRegresar}"
+                            Value="← Decisiones pendientes">
+                            <Setter Property="Text" Value="← Mis inspecciones" />
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
 
                 <VerticalStackLayout
                     Grid.Row="0"
-                    Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                    Grid.ColumnSpan="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
+                    Grid.Column="{OnIdiom Phone=0, Default=1}"
+                    Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
                     Spacing="3"
                     VerticalOptions="Center">
-
                     <Label
                         Text="{Binding TituloResultado}"
                         FontFamily="MontserratBold"
                         FontAttributes="Bold"
-                        FontSize="{OnIdiom Phone=25, Tablet=27, Desktop=30}"
-                        TextColor="{StaticResource color_Verde}"
+                        FontSize="{OnIdiom Phone=25, Default=30}"
+                        TextColor="#3B655B"
                         LineBreakMode="WordWrap" />
-
                     <Label
                         Text="{Binding SubtituloResultado}"
                         FontSize="13"
-                        TextColor="{StaticResource color_GrisOscuro}"
+                        TextColor="#5E6B67"
                         LineBreakMode="WordWrap"
                         MaxLines="3" />
                 </VerticalStackLayout>
 
                 <Button
-                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                    Grid.Column="{OnIdiom Phone=1, Tablet=2, Desktop=2}"
+                    Grid.Row="{OnIdiom Phone=1, Default=0}"
+                    Grid.Column="{OnIdiom Phone=1, Default=2}"
                     Text="Agregar fotografías"
                     Command="{Binding AgregarFotografiasCommand}"
                     IsVisible="{Binding PuedeAgregarFotografias}"
-                    WidthRequest="{OnIdiom Phone=150, Tablet=220, Desktop=220}"
+                    WidthRequest="{OnIdiom Phone=150, Default=220}"
                     HeightRequest="48"
                     Padding="12,10"
-                    BackgroundColor="{StaticResource color_Verde}"
+                    BackgroundColor="#3B655B"
                     TextColor="White"
                     CornerRadius="11"
                     FontFamily="MontserratBold"
-                    FontSize="{OnIdiom Phone=12, Tablet=12, Desktop=13}"
-                    VerticalOptions="Center"
-                    HorizontalOptions="End" />
+                    FontSize="{OnIdiom Phone=12, Default=13}" />
             </Grid>
 
             <ScrollView Grid.Row="1">
@@ -121,6 +125,11 @@
                         </HorizontalStackLayout>
                     </Border>
 
+                    <!--
+                        Este panel pertenece al usuario que registró la inspección.
+                        En la bandeja del analizador se oculta y las acciones se
+                        incorporan dentro de cada tarjeta fotográfica.
+                    -->
                     <Border
                         Padding="16"
                         BackgroundColor="White"
@@ -136,12 +145,6 @@
                         </Border.IsVisible>
 
                         <VerticalStackLayout Spacing="12">
-                            <!--
-                                El encabezado separa la información de selección
-                                de las acciones disponibles. FlexLayout permite
-                                que los controles se adapten sin desordenarse en
-                                Windows, tabletas y teléfonos.
-                            -->
                             <FlexLayout
                                 Direction="Row"
                                 Wrap="Wrap"
@@ -177,18 +180,17 @@
                                         <Button
                                             Text="Seleccionar todo"
                                             Clicked="OnSeleccionarTodoTecnicoClicked"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=165, Desktop=170}"
+                                            WidthRequest="{OnIdiom Phone=148, Default=170}"
                                             HeightRequest="44"
                                             CornerRadius="10"
                                             FontSize="13"
                                             BackgroundColor="#E3EFEA"
                                             TextColor="#3B655B"
-                                            Margin="0,0,6,0"
-                                            IsVisible="{Binding TextoRegresar, Converter={StaticResource FlujoInspeccionPresentacionConverter}, ConverterParameter=VistaTecnico}" />
+                                            Margin="0,0,6,0" />
                                         <Button
                                             Text="Quitar selección"
                                             Command="{Binding QuitarSeleccionCommand}"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=165, Desktop=170}"
+                                            WidthRequest="{OnIdiom Phone=148, Default=170}"
                                             HeightRequest="44"
                                             CornerRadius="10"
                                             FontSize="13"
@@ -198,181 +200,104 @@
                                 </Border>
                             </FlexLayout>
 
-                            <BoxView
-                                HeightRequest="1"
-                                Color="#E5ECE9"
-                                HorizontalOptions="Fill" />
+                            <BoxView HeightRequest="1" Color="#E5ECE9" />
 
-                            <Border
-                                Padding="12"
-                                BackgroundColor="#FAFCFB"
-                                Stroke="#E5ECE9"
-                                StrokeShape="RoundRectangle 12">
-                                <VerticalStackLayout Spacing="9">
-                                    <Label
-                                        Text="Acciones disponibles"
-                                        FontSize="13"
-                                        FontAttributes="Bold"
-                                        TextColor="#5E6B67" />
+                            <FlexLayout
+                                Direction="Row"
+                                Wrap="Wrap"
+                                AlignItems="Center"
+                                JustifyContent="Start">
+                                <Button
+                                    Text="Analizar con IA"
+                                    WidthRequest="{OnIdiom Phone=160, Default=205}"
+                                    HeightRequest="46"
+                                    CornerRadius="11"
+                                    FontSize="13"
+                                    Command="{Binding ProcesarSeleccionCommand}"
+                                    BackgroundColor="#3B655B"
+                                    TextColor="White"
+                                    Margin="0,0,8,8">
+                                    <Button.IsVisible>
+                                        <MultiBinding
+                                            Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
+                                            ConverterParameter="AccionTecnico">
+                                            <Binding Path="TextoRegresar" />
+                                            <Binding Path="PuedeProcesarSeleccion" />
+                                        </MultiBinding>
+                                    </Button.IsVisible>
+                                </Button>
 
-                                    <FlexLayout
-                                        Direction="Row"
-                                        Wrap="Wrap"
-                                        AlignItems="Center"
-                                        JustifyContent="Start">
-                                        <Button
-                                            Text="Analizar con IA"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=170, Desktop=180}"
-                                            HeightRequest="46"
-                                            CornerRadius="11"
-                                            FontSize="13"
-                                            Command="{Binding ProcesarSeleccionCommand}"
-                                            BackgroundColor="#3B655B"
-                                            TextColor="White"
-                                            Margin="0,0,8,8">
-                                            <Button.IsVisible>
-                                                <MultiBinding
-                                                    Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                    ConverterParameter="AccionTecnico">
-                                                    <Binding Path="TextoRegresar" />
-                                                    <Binding Path="PuedeProcesarSeleccion" />
-                                                </MultiBinding>
-                                            </Button.IsVisible>
-                                        </Button>
+                                <Button
+                                    Text="Enviar al analizador"
+                                    WidthRequest="{OnIdiom Phone=160, Default=205}"
+                                    HeightRequest="46"
+                                    CornerRadius="11"
+                                    FontSize="13"
+                                    Command="{Binding EnviarAnalizadorCommand}"
+                                    BackgroundColor="#F2C94C"
+                                    TextColor="#263A35"
+                                    Margin="0,0,8,8">
+                                    <Button.IsVisible>
+                                        <MultiBinding
+                                            Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
+                                            ConverterParameter="AccionTecnico">
+                                            <Binding Path="TextoRegresar" />
+                                            <Binding Path="PuedeEnviarSeleccion" />
+                                        </MultiBinding>
+                                    </Button.IsVisible>
+                                </Button>
 
-                                        <Button
-                                            Text="Enviar a revisión"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=170, Desktop=180}"
-                                            HeightRequest="46"
-                                            CornerRadius="11"
-                                            FontSize="13"
-                                            Command="{Binding EnviarAnalizadorCommand}"
-                                            BackgroundColor="#F2C94C"
-                                            TextColor="#263A35"
-                                            Margin="0,0,8,8">
-                                            <Button.IsVisible>
-                                                <MultiBinding
-                                                    Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                    ConverterParameter="AccionTecnico">
-                                                    <Binding Path="TextoRegresar" />
-                                                    <Binding Path="PuedeEnviarSeleccion" />
-                                                </MultiBinding>
-                                            </Button.IsVisible>
-                                        </Button>
+                                <Button
+                                    Text="Solicitar nueva evaluación IA"
+                                    WidthRequest="{OnIdiom Phone=210, Default=235}"
+                                    HeightRequest="46"
+                                    CornerRadius="11"
+                                    FontSize="13"
+                                    Command="{Binding SolicitarRevisionCommand}"
+                                    BackgroundColor="#E3EFEA"
+                                    TextColor="#3B655B"
+                                    Margin="0,0,8,8">
+                                    <Button.IsVisible>
+                                        <MultiBinding
+                                            Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
+                                            ConverterParameter="AccionTecnico">
+                                            <Binding Path="TextoRegresar" />
+                                            <Binding Path="PuedeSolicitarRevision" />
+                                        </MultiBinding>
+                                    </Button.IsVisible>
+                                </Button>
 
-                                        <Button
-                                            Text="Nueva evaluación IA"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=170, Desktop=180}"
-                                            HeightRequest="46"
-                                            CornerRadius="11"
-                                            FontSize="13"
-                                            Command="{Binding SolicitarRevisionCommand}"
-                                            BackgroundColor="#E3EFEA"
-                                            TextColor="#3B655B"
-                                            Margin="0,0,8,8">
-                                            <Button.IsVisible>
-                                                <MultiBinding
-                                                    Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                    ConverterParameter="AccionTecnico">
-                                                    <Binding Path="TextoRegresar" />
-                                                    <Binding Path="PuedeSolicitarRevision" />
-                                                </MultiBinding>
-                                            </Button.IsVisible>
-                                        </Button>
+                                <Button
+                                    Text="Descartar fotografías"
+                                    WidthRequest="{OnIdiom Phone=175, Default=210}"
+                                    HeightRequest="46"
+                                    CornerRadius="11"
+                                    FontSize="13"
+                                    Command="{Binding DescartarCommand}"
+                                    BackgroundColor="#FDECEC"
+                                    TextColor="#B42318"
+                                    Margin="0,0,8,8">
+                                    <Button.IsVisible>
+                                        <MultiBinding
+                                            Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
+                                            ConverterParameter="AccionTecnico">
+                                            <Binding Path="TextoRegresar" />
+                                            <Binding Path="PuedeDescartarSeleccion" />
+                                        </MultiBinding>
+                                    </Button.IsVisible>
+                                </Button>
 
-                                        <Button
-                                            Text="Clasificación humana"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=170, Desktop=180}"
-                                            HeightRequest="46"
-                                            CornerRadius="11"
-                                            FontSize="13"
-                                            Command="{Binding AnalisisHumanoCommand}"
-                                            BackgroundColor="#9B552C"
-                                            TextColor="White"
-                                            Margin="0,0,8,8">
-                                            <Button.IsVisible>
-                                                <MultiBinding
-                                                    Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                    ConverterParameter="AccionAnalizador">
-                                                    <Binding Path="TextoRegresar" />
-                                                    <Binding Path="PuedeAnalizarSeleccion" />
-                                                </MultiBinding>
-                                            </Button.IsVisible>
-                                        </Button>
-
-                                        <Button
-                                            Text="Registrar aprobación"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=170, Desktop=180}"
-                                            HeightRequest="46"
-                                            CornerRadius="11"
-                                            FontSize="13"
-                                            Command="{Binding AprobarCommand}"
-                                            BackgroundColor="#263A35"
-                                            TextColor="White"
-                                            Margin="0,0,8,8">
-                                            <Button.IsVisible>
-                                                <MultiBinding
-                                                    Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                    ConverterParameter="AccionAprobador">
-                                                    <Binding Path="TextoRegresar" />
-                                                    <Binding Path="PuedeAprobarSeleccion" />
-                                                </MultiBinding>
-                                            </Button.IsVisible>
-                                        </Button>
-
-                                        <Button
-                                            Text="Publicar en álbum"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=170, Desktop=180}"
-                                            HeightRequest="46"
-                                            CornerRadius="11"
-                                            FontSize="13"
-                                            Command="{Binding PublicarAlbumCommand}"
-                                            BackgroundColor="#3B82F6"
-                                            TextColor="White"
-                                            Margin="0,0,8,8">
-                                            <Button.IsVisible>
-                                                <MultiBinding
-                                                    Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                    ConverterParameter="AccionAprobador">
-                                                    <Binding Path="TextoRegresar" />
-                                                    <Binding Path="PuedePublicarSeleccion" />
-                                                </MultiBinding>
-                                            </Button.IsVisible>
-                                        </Button>
-
-                                        <Button
-                                            Text="Descartar evidencia"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=170, Desktop=180}"
-                                            HeightRequest="46"
-                                            CornerRadius="11"
-                                            FontSize="13"
-                                            Command="{Binding DescartarCommand}"
-                                            BackgroundColor="#FDECEC"
-                                            TextColor="#B42318"
-                                            Margin="0,0,8,8">
-                                            <Button.IsVisible>
-                                                <MultiBinding
-                                                    Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                    ConverterParameter="AccionTecnico">
-                                                    <Binding Path="TextoRegresar" />
-                                                    <Binding Path="PuedeDescartarSeleccion" />
-                                                </MultiBinding>
-                                            </Button.IsVisible>
-                                        </Button>
-
-                                        <Button
-                                            Text="Actualizar"
-                                            WidthRequest="{OnIdiom Phone=148, Tablet=170, Desktop=180}"
-                                            HeightRequest="46"
-                                            CornerRadius="11"
-                                            FontSize="13"
-                                            Command="{Binding ActualizarCommand}"
-                                            BackgroundColor="#EEF2F0"
-                                            TextColor="#263A35"
-                                            Margin="0,0,8,8" />
-                                    </FlexLayout>
-                                </VerticalStackLayout>
-                            </Border>
+                                <Button
+                                    Text="Actualizar"
+                                    WidthRequest="{OnIdiom Phone=148, Default=180}"
+                                    HeightRequest="46"
+                                    CornerRadius="11"
+                                    FontSize="13"
+                                    Command="{Binding ActualizarCommand}"
+                                    BackgroundColor="#EEF2F0"
+                                    TextColor="#263A35"
+                                    Margin="0,0,8,8" />
+                            </FlexLayout>
                         </VerticalStackLayout>
                     </Border>
 
@@ -396,7 +321,7 @@
                                 FontAttributes="Bold"
                                 TextColor="#263A35" />
                             <Label
-                                Text="Las fotografías enviadas quedaron bloqueadas para el técnico. La inspección continuará su flujo en las bandejas del analizador y del aprobador."
+                                Text="Las fotografías enviadas quedaron bloqueadas para el usuario creador. La inspección continuará en las bandejas del analizador y del aprobador."
                                 TextColor="#5E6B67" />
                         </VerticalStackLayout>
                     </Border>
@@ -407,10 +332,14 @@
                         Stroke="#C8DED6"
                         StrokeShape="RoundRectangle 14"
                         IsVisible="{Binding MostrarCierreTecnico}">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                            RowSpacing="10"
+                            ColumnSpacing="12">
                             <VerticalStackLayout Grid.Column="0" Spacing="4">
                                 <Label
-                                    Text="Envío de la inspección al analizador"
+                                    Text="Finalización de la etapa técnica"
                                     FontSize="18"
                                     FontAttributes="Bold"
                                     TextColor="#263A35" />
@@ -419,14 +348,17 @@
                                     TextColor="#4D625C" />
                             </VerticalStackLayout>
                             <Button
-                                Grid.Column="1"
-                                Text="Finalizar y enviar inspección"
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Text="Finalizar etapa técnica"
                                 Clicked="OnFinalizarEtapaTecnicaClicked"
-                                WidthRequest="220"
+                                IsEnabled="{Binding PuedeCerrarInspeccion}"
+                                WidthRequest="{OnIdiom Phone=0, Default=220}"
                                 HeightRequest="46"
                                 CornerRadius="11"
                                 BackgroundColor="#9B552C"
-                                TextColor="White" />
+                                TextColor="White"
+                                HorizontalOptions="Fill" />
                         </Grid>
                     </Border>
 
@@ -436,70 +368,52 @@
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="models:InspeccionFotoV2">
                                 <Border
-                                    Padding="14"
+                                    Padding="{OnIdiom Phone=12, Default=16}"
                                     BackgroundColor="White"
                                     Stroke="#D9E3DF"
                                     StrokeShape="RoundRectangle 14">
+                                    <!--
+                                        El Grid de la tarjeta conserva cuatro filas para
+                                        que el flujo de revisión pueda insertar acciones
+                                        independientes del analizador dentro de esta misma
+                                        evidencia.
+                                    -->
                                     <Grid
-                                        RowDefinitions="Auto,Auto,Auto"
-                                        RowSpacing="12">
-
-                                        <!-- Encabezado: identifica la evidencia sin confundir el tipo de foto con la jerarquía. -->
+                                        RowDefinitions="Auto,Auto,Auto,Auto"
+                                        RowSpacing="14">
                                         <Grid
                                             Grid.Row="0"
                                             ColumnDefinitions="Auto,*,Auto"
-                                            ColumnSpacing="12">
+                                            ColumnSpacing="10">
                                             <CheckBox
                                                 Grid.Column="0"
                                                 IsChecked="{Binding Seleccionada}"
-                                                VerticalOptions="Start"
-                                                Color="#3B655B">
-                                                <CheckBox.IsVisible>
-                                                    <MultiBinding
-                                                        Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                        ConverterParameter="PuedeSeleccionarFotografia">
-                                                        <Binding Source="{x:Reference PaginaResultado}" Path="BindingContext.TextoRegresar" />
-                                                        <Binding Source="{x:Reference PaginaResultado}" Path="BindingContext.Detalle.CerradaTecnico" />
-                                                        <Binding Path="Estado" />
-                                                    </MultiBinding>
-                                                </CheckBox.IsVisible>
-                                                <CheckBox.IsEnabled>
-                                                    <MultiBinding
-                                                        Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                                        ConverterParameter="PuedeSeleccionarFotografia">
-                                                        <Binding Source="{x:Reference PaginaResultado}" Path="BindingContext.TextoRegresar" />
-                                                        <Binding Source="{x:Reference PaginaResultado}" Path="BindingContext.Detalle.CerradaTecnico" />
-                                                        <Binding Path="Estado" />
-                                                    </MultiBinding>
-                                                </CheckBox.IsEnabled>
-                                            </CheckBox>
-
-                                            <VerticalStackLayout
-                                                Grid.Column="1"
-                                                Spacing="5">
+                                                IsEnabled="{Binding PuedeSeleccionarse}"
+                                                Color="#3B655B"
+                                                VerticalOptions="Start" />
+                                            <VerticalStackLayout Grid.Column="1" Spacing="4">
                                                 <Label
-                                                    Text="{Binding Orden, StringFormat='Fotografía {0}'}"
+                                                    Text="{Binding Titulo}"
                                                     FontSize="18"
                                                     FontAttributes="Bold"
                                                     TextColor="#263A35" />
                                                 <Border
-                                                    Padding="9,4"
+                                                    Padding="8,4"
                                                     HorizontalOptions="Start"
-                                                    BackgroundColor="#EEF5F2"
+                                                    BackgroundColor="#EAF3EF"
                                                     Stroke="#C8DED6"
                                                     StrokeShape="RoundRectangle 10">
                                                     <Label
-                                                        Text="{Binding TipoFotografia, Converter={StaticResource CodigoLegibleConverter}, ConverterParameter='Tipo de fotografía: '}"
-                                                        FontSize="12"
+                                                        Text="{Binding TipoFotografia, StringFormat='Tipo de fotografía: {0}'}"
+                                                        FontSize="11"
                                                         FontAttributes="Bold"
                                                         TextColor="#3B655B" />
                                                 </Border>
                                                 <Label
                                                     Text="{Binding FechaCampoTexto}"
-                                                    FontSize="13"
+                                                    FontSize="12"
                                                     TextColor="#5E6B67" />
                                             </VerticalStackLayout>
-
                                             <Label
                                                 Grid.Column="2"
                                                 Text="{Binding EstadoTexto}"
@@ -508,18 +422,18 @@
                                                 VerticalOptions="Start" />
                                         </Grid>
 
-                                        <!-- La fotografía vuelve a ser la evidencia principal de la tarjeta. -->
                                         <Grid
                                             Grid.Row="1"
-                                            ColumnDefinitions="Auto,*"
-                                            ColumnSpacing="16">
+                                            ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,*'}"
+                                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                            ColumnSpacing="16"
+                                            RowSpacing="12">
                                             <Border
                                                 Grid.Column="0"
-                                                WidthRequest="{OnIdiom Phone=120, Tablet=190, Desktop=230}"
-                                                HeightRequest="{OnIdiom Phone=120, Tablet=190, Desktop=230}"
+                                                WidthRequest="{OnIdiom Phone=0, Default=230}"
+                                                HeightRequest="{OnIdiom Phone=245, Default=230}"
                                                 BackgroundColor="#F4F7F5"
                                                 Stroke="#C8DED6"
-                                                StrokeThickness="1"
                                                 StrokeShape="RoundRectangle 12">
                                                 <Image
                                                     Source="{Binding UrlImagen}"
@@ -527,7 +441,8 @@
                                             </Border>
 
                                             <VerticalStackLayout
-                                                Grid.Column="1"
+                                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                                Grid.Column="{OnIdiom Phone=0, Default=1}"
                                                 Spacing="8">
                                                 <Label
                                                     Text="{Binding DisponibilidadTexto}"
@@ -542,96 +457,40 @@
                                                     TextColor="#3B655B" />
                                                 <Label
                                                     Text="{Binding ResultadoIA.ResumenImagen}"
-                                                    TextColor="#4F5D59" />
+                                                    TextColor="#4F5D59"
+                                                    LineBreakMode="WordWrap" />
                                                 <Label
                                                     Text="{Binding ErrorProcesamiento}"
                                                     TextColor="#B42318"
                                                     IsVisible="{Binding TieneError}" />
 
-                                                <Grid
-                                                    ColumnDefinitions="*,*"
-                                                    ColumnSpacing="18">
-                                                    <VerticalStackLayout Grid.Column="0" Spacing="3">
+                                                <FlexLayout
+                                                    Direction="Row"
+                                                    Wrap="Wrap"
+                                                    AlignItems="Start">
+                                                    <VerticalStackLayout
+                                                        WidthRequest="260"
+                                                        Margin="0,0,20,8"
+                                                        Spacing="3">
                                                         <Label
                                                             Text="Clasificación IA"
                                                             FontAttributes="Bold"
                                                             TextColor="#263A35" />
                                                         <Label
                                                             Text="{Binding ResultadoIA.CategoriaPrincipal}"
-                                                            TextColor="#5E6B67">
-                                                            <Label.Triggers>
-                                                                <DataTrigger
-                                                                    TargetType="Label"
-                                                                    Binding="{Binding ResultadoIA.CategoriaPrincipal}"
-                                                                    Value="NO_APLICA">
-                                                                    <Setter
-                                                                        Property="Text"
-                                                                        Value="Estado fitosanitario: Aparentemente sana" />
-                                                                </DataTrigger>
-                                                            </Label.Triggers>
-                                                        </Label>
-                                                        <Label
-                                                            Text="Resultado: Sin indicios visibles de plagas o enfermedades"
-                                                            TextColor="#5E6B67"
-                                                            IsVisible="False">
-                                                            <Label.Triggers>
-                                                                <DataTrigger
-                                                                    TargetType="Label"
-                                                                    Binding="{Binding ResultadoIA.CategoriaPrincipal}"
-                                                                    Value="NO_APLICA">
-                                                                    <Setter
-                                                                        Property="IsVisible"
-                                                                        Value="True" />
-                                                                </DataTrigger>
-                                                            </Label.Triggers>
-                                                        </Label>
+                                                            TextColor="#5E6B67" />
                                                         <Label
                                                             Text="{Binding ResultadoIA.SeveridadVisual, StringFormat='Severidad: {0}'}"
-                                                            TextColor="#5E6B67">
-                                                            <Label.Triggers>
-                                                                <DataTrigger
-                                                                    TargetType="Label"
-                                                                    Binding="{Binding ResultadoIA.SeveridadVisual}"
-                                                                    Value="NO_APLICA">
-                                                                    <Setter
-                                                                        Property="IsVisible"
-                                                                        Value="False" />
-                                                                </DataTrigger>
-                                                            </Label.Triggers>
-                                                        </Label>
+                                                            TextColor="#5E6B67" />
                                                         <Label
                                                             Text="{Binding ResultadoIA.NivelCerteza, StringFormat='Certeza: {0}'}"
-                                                            TextColor="#5E6B67">
-                                                            <Label.Triggers>
-                                                                <DataTrigger
-                                                                    TargetType="Label"
-                                                                    Binding="{Binding ResultadoIA.NivelCerteza}"
-                                                                    Value="ALTO">
-                                                                    <Setter Property="Text" Value="Certeza: Alta" />
-                                                                </DataTrigger>
-                                                                <DataTrigger
-                                                                    TargetType="Label"
-                                                                    Binding="{Binding ResultadoIA.NivelCerteza}"
-                                                                    Value="MEDIO">
-                                                                    <Setter Property="Text" Value="Certeza: Media" />
-                                                                </DataTrigger>
-                                                                <DataTrigger
-                                                                    TargetType="Label"
-                                                                    Binding="{Binding ResultadoIA.NivelCerteza}"
-                                                                    Value="BAJO">
-                                                                    <Setter Property="Text" Value="Certeza: Baja" />
-                                                                </DataTrigger>
-                                                                <DataTrigger
-                                                                    TargetType="Label"
-                                                                    Binding="{Binding ResultadoIA.NivelCerteza}"
-                                                                    Value="NO_APLICA">
-                                                                    <Setter Property="IsVisible" Value="False" />
-                                                                </DataTrigger>
-                                                            </Label.Triggers>
-                                                        </Label>
+                                                            TextColor="#5E6B67" />
                                                     </VerticalStackLayout>
 
-                                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                                    <VerticalStackLayout
+                                                        WidthRequest="260"
+                                                        Margin="0,0,0,8"
+                                                        Spacing="3">
                                                         <Label
                                                             Text="Trazabilidad"
                                                             FontAttributes="Bold"
@@ -649,15 +508,12 @@
                                                             Text="{Binding UltimaAprobacion.UsuarioAprobador, StringFormat='Aprobador: {0}'}"
                                                             TextColor="#5E6B67" />
                                                     </VerticalStackLayout>
-                                                </Grid>
+                                                </FlexLayout>
                                             </VerticalStackLayout>
                                         </Grid>
 
-                                        <VerticalStackLayout
-                                            Grid.Row="2"
-                                            Spacing="10">
-
-                                            <!-- Jerarquía ya cargada: siempre conserva visible la categoría que encajó. -->
+                                        <!-- Álbum simplificado: Categoría -> Subcategoría -> Fotografías. -->
+                                        <VerticalStackLayout Grid.Row="2" Spacing="10">
                                             <Border
                                                 Padding="12"
                                                 BackgroundColor="#F7FAF8"
@@ -673,19 +529,18 @@
                                                                 FontAttributes="Bold"
                                                                 TextColor="#31584D" />
                                                             <Label
-                                                                Text="Categoría, subcategoría y diagnóstico que encajaron con esta fotografía."
+                                                                Text="Categoría y subcategoría específica asociadas con esta fotografía."
                                                                 FontSize="11"
                                                                 TextColor="#5E6B67" />
                                                         </VerticalStackLayout>
                                                         <Border
                                                             Grid.Column="1"
                                                             Padding="8,4"
-                                                            VerticalOptions="Center"
                                                             BackgroundColor="#E5F2ED"
                                                             Stroke="#C4DED4"
                                                             StrokeShape="RoundRectangle 10">
                                                             <Label
-                                                                Text="Jerarquía cargada"
+                                                                Text="Clasificación cargada"
                                                                 FontSize="10"
                                                                 FontAttributes="Bold"
                                                                 TextColor="#31584D" />
@@ -700,9 +555,9 @@
                                                         <Border
                                                             Margin="0,0,6,6"
                                                             Padding="10"
-                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Basis="360"
                                                             FlexLayout.Grow="1"
-                                                            BackgroundColor="#FFFFFF"
+                                                            BackgroundColor="White"
                                                             Stroke="#D4E5DE"
                                                             StrokeShape="RoundRectangle 10">
                                                             <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
@@ -729,16 +584,7 @@
                                                                         Text="{Binding JerarquiaAlbum.Categoria}"
                                                                         FontSize="14"
                                                                         FontAttributes="Bold"
-                                                                        TextColor="#263A35">
-                                                                        <Label.Triggers>
-                                                                            <DataTrigger
-                                                                                TargetType="Label"
-                                                                                Binding="{Binding JerarquiaAlbum.Categoria}"
-                                                                                Value="">
-                                                                                <Setter Property="Text" Value="Categoría pendiente" />
-                                                                            </DataTrigger>
-                                                                        </Label.Triggers>
-                                                                    </Label>
+                                                                        TextColor="#263A35" />
                                                                     <Label
                                                                         Text="{Binding JerarquiaAlbum.EstadoCategoria}"
                                                                         FontSize="10"
@@ -748,22 +594,13 @@
                                                         </Border>
 
                                                         <Border
-                                                            Margin="0,0,6,6"
+                                                            Margin="0,0,0,6"
                                                             Padding="10"
-                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Basis="360"
                                                             FlexLayout.Grow="1"
-                                                            BackgroundColor="#FFFFFF"
+                                                            BackgroundColor="White"
                                                             Stroke="#D4E5DE"
                                                             StrokeShape="RoundRectangle 10">
-                                                            <Border.Triggers>
-                                                                <DataTrigger
-                                                                    TargetType="Border"
-                                                                    Binding="{Binding JerarquiaAlbum.Subcategoria}"
-                                                                    Value="">
-                                                                    <Setter Property="BackgroundColor" Value="#FFFDF6" />
-                                                                    <Setter Property="Stroke" Value="#E7C85C" />
-                                                                </DataTrigger>
-                                                            </Border.Triggers>
                                                             <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
                                                                 <Border
                                                                     WidthRequest="26"
@@ -785,70 +622,10 @@
                                                                         FontAttributes="Bold"
                                                                         TextColor="#6A7D76" />
                                                                     <Label
-                                                                        Text="{Binding JerarquiaAlbum.Subcategoria}"
-                                                                        FontSize="14"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="#3B655B">
-                                                                        <Label.Triggers>
-                                                                            <DataTrigger
-                                                                                TargetType="Label"
-                                                                                Binding="{Binding JerarquiaAlbum.Subcategoria}"
-                                                                                Value="">
-                                                                                <Setter Property="Text" Value="Pendiente de definir" />
-                                                                                <Setter Property="TextColor" Value="#6B5710" />
-                                                                            </DataTrigger>
-                                                                        </Label.Triggers>
-                                                                    </Label>
-                                                                    <Label
-                                                                        Text="{Binding JerarquiaAlbum.EstadoSubcategoria}"
-                                                                        FontSize="10"
-                                                                        TextColor="#527066" />
-                                                                </VerticalStackLayout>
-                                                            </Grid>
-                                                        </Border>
-
-                                                        <Border
-                                                            Margin="0,0,0,6"
-                                                            Padding="10"
-                                                            FlexLayout.Basis="280"
-                                                            FlexLayout.Grow="1"
-                                                            BackgroundColor="#FFFFFF"
-                                                            Stroke="#D4E5DE"
-                                                            StrokeShape="RoundRectangle 10">
-                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
-                                                                <Border
-                                                                    WidthRequest="26"
-                                                                    HeightRequest="26"
-                                                                    BackgroundColor="#3B655B"
-                                                                    StrokeThickness="0"
-                                                                    StrokeShape="RoundRectangle 13">
-                                                                    <Label
-                                                                        Text="3"
-                                                                        HorizontalTextAlignment="Center"
-                                                                        VerticalTextAlignment="Center"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="White" />
-                                                                </Border>
-                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                    <Label
-                                                                        Text="DIAGNÓSTICO ESPECÍFICO"
-                                                                        FontSize="9"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="#6A7D76" />
-                                                                    <Label
                                                                         Text="{Binding JerarquiaAlbum.Ficha}"
                                                                         FontSize="14"
                                                                         FontAttributes="Bold"
-                                                                        TextColor="#263A35">
-                                                                        <Label.Triggers>
-                                                                            <DataTrigger
-                                                                                TargetType="Label"
-                                                                                Binding="{Binding JerarquiaAlbum.Ficha}"
-                                                                                Value="">
-                                                                                <Setter Property="Text" Value="Diagnóstico pendiente" />
-                                                                            </DataTrigger>
-                                                                        </Label.Triggers>
-                                                                    </Label>
+                                                                        TextColor="#263A35" />
                                                                     <Label
                                                                         Text="{Binding JerarquiaAlbum.NombreCientifico}"
                                                                         FontSize="10"
@@ -856,9 +633,18 @@
                                                                         TextColor="#5E6B67"
                                                                         IsVisible="{Binding JerarquiaAlbum.TieneNombreCientifico}" />
                                                                     <Label
-                                                                        Text="{Binding JerarquiaAlbum.EstadoFicha}"
+                                                                        Text="Subcategoría existente"
                                                                         FontSize="10"
-                                                                        TextColor="#527066" />
+                                                                        TextColor="#527066">
+                                                                        <Label.Triggers>
+                                                                            <DataTrigger
+                                                                                TargetType="Label"
+                                                                                Binding="{Binding JerarquiaAlbum.FichaEsPropuesta}"
+                                                                                Value="True">
+                                                                                <Setter Property="Text" Value="Subcategoría propuesta" />
+                                                                            </DataTrigger>
+                                                                        </Label.Triggers>
+                                                                    </Label>
                                                                 </VerticalStackLayout>
                                                             </Grid>
                                                         </Border>
@@ -871,7 +657,6 @@
                                                 </VerticalStackLayout>
                                             </Border>
 
-                                            <!-- Propuesta: la tarjeta general es neutral y solo resalta el nivel pendiente. -->
                                             <Border
                                                 Padding="12"
                                                 BackgroundColor="#FBFCFB"
@@ -887,17 +672,15 @@
                                                     </DataTrigger>
                                                 </Border.Triggers>
                                                 <VerticalStackLayout Spacing="8">
-                                                    <VerticalStackLayout Spacing="1">
-                                                        <Label
-                                                            Text="Clasificación propuesta para el Álbum Botánico"
-                                                            FontSize="15"
-                                                            FontAttributes="Bold"
-                                                            TextColor="#31584D" />
-                                                        <Label
-                                                            Text="La categoría identificada permanece visible; únicamente se destaca lo que aún requiere revisión."
-                                                            FontSize="11"
-                                                            TextColor="#5E6B67" />
-                                                    </VerticalStackLayout>
+                                                    <Label
+                                                        Text="Clasificación propuesta para el Álbum Botánico"
+                                                        FontSize="15"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#31584D" />
+                                                    <Label
+                                                        Text="La IA propone únicamente la categoría y la subcategoría específica."
+                                                        FontSize="11"
+                                                        TextColor="#5E6B67" />
 
                                                     <FlexLayout
                                                         Direction="Row"
@@ -907,177 +690,91 @@
                                                         <Border
                                                             Margin="0,0,6,6"
                                                             Padding="10"
-                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Basis="360"
                                                             FlexLayout.Grow="1"
                                                             BackgroundColor="#F7FAFD"
                                                             Stroke="#CCDCE9"
                                                             StrokeShape="RoundRectangle 10">
-                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
-                                                                <Border
-                                                                    WidthRequest="26"
-                                                                    HeightRequest="26"
-                                                                    BackgroundColor="#527A9E"
-                                                                    StrokeThickness="0"
-                                                                    StrokeShape="RoundRectangle 13">
-                                                                    <Label
-                                                                        Text="1"
-                                                                        HorizontalTextAlignment="Center"
-                                                                        VerticalTextAlignment="Center"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="White" />
-                                                                </Border>
-                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                    <Label
-                                                                        Text="CATEGORÍA"
-                                                                        FontSize="9"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="#667A8A" />
-                                                                    <Label
-                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=CategoriaValor}"
-                                                                        FontSize="14"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="#263A35" />
-                                                                    <Label
-                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=CategoriaEstado}"
-                                                                        FontSize="10"
-                                                                        TextColor="#416886" />
-                                                                </VerticalStackLayout>
-                                                            </Grid>
-                                                        </Border>
-
-                                                        <Border
-                                                            Margin="0,0,6,6"
-                                                            Padding="10"
-                                                            FlexLayout.Basis="280"
-                                                            FlexLayout.Grow="1"
-                                                            BackgroundColor="#FFFDF6"
-                                                            Stroke="#E7C85C"
-                                                            StrokeShape="RoundRectangle 10">
-                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
-                                                                <Border
-                                                                    WidthRequest="26"
-                                                                    HeightRequest="26"
-                                                                    BackgroundColor="#C99B18"
-                                                                    StrokeThickness="0"
-                                                                    StrokeShape="RoundRectangle 13">
-                                                                    <Label
-                                                                        Text="2"
-                                                                        HorizontalTextAlignment="Center"
-                                                                        VerticalTextAlignment="Center"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="White" />
-                                                                </Border>
-                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                    <Label
-                                                                        Text="SUBCATEGORÍA"
-                                                                        FontSize="9"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="#806A21" />
-                                                                    <Label
-                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=SubcategoriaValor}"
-                                                                        FontSize="14"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="#6B5710" />
-                                                                    <Label
-                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=SubcategoriaEstado}"
-                                                                        FontSize="10"
-                                                                        TextColor="#755B08" />
-                                                                </VerticalStackLayout>
-                                                            </Grid>
+                                                            <VerticalStackLayout Spacing="1">
+                                                                <Label
+                                                                    Text="CATEGORÍA"
+                                                                    FontSize="9"
+                                                                    FontAttributes="Bold"
+                                                                    TextColor="#667A8A" />
+                                                                <Label
+                                                                    Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=CategoriaValor}"
+                                                                    FontSize="14"
+                                                                    FontAttributes="Bold"
+                                                                    TextColor="#263A35" />
+                                                                <Label
+                                                                    Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=CategoriaEstado}"
+                                                                    FontSize="10"
+                                                                    TextColor="#416886" />
+                                                            </VerticalStackLayout>
                                                         </Border>
 
                                                         <Border
                                                             Margin="0,0,0,6"
                                                             Padding="10"
-                                                            FlexLayout.Basis="280"
+                                                            FlexLayout.Basis="360"
                                                             FlexLayout.Grow="1"
                                                             BackgroundColor="#FFF8F2"
                                                             Stroke="#E2B38E"
                                                             StrokeShape="RoundRectangle 10">
-                                                            <Grid ColumnDefinitions="28,*" ColumnSpacing="8">
-                                                                <Border
-                                                                    WidthRequest="26"
-                                                                    HeightRequest="26"
-                                                                    BackgroundColor="#9B552C"
-                                                                    StrokeThickness="0"
-                                                                    StrokeShape="RoundRectangle 13">
-                                                                    <Label
-                                                                        Text="3"
-                                                                        HorizontalTextAlignment="Center"
-                                                                        VerticalTextAlignment="Center"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="White" />
-                                                                </Border>
-                                                                <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                                                    <Label
-                                                                        Text="DIAGNÓSTICO ESPECÍFICO"
-                                                                        FontSize="9"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="#8A5A3B" />
-                                                                    <Label
-                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=FichaValor}"
-                                                                        FontSize="14"
-                                                                        FontAttributes="Bold"
-                                                                        TextColor="#263A35" />
-                                                                    <Label
-                                                                        Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=FichaEstado}"
-                                                                        FontSize="10"
-                                                                        TextColor="#87451F" />
-                                                                </VerticalStackLayout>
-                                                            </Grid>
+                                                            <VerticalStackLayout Spacing="1">
+                                                                <Label
+                                                                    Text="SUBCATEGORÍA"
+                                                                    FontSize="9"
+                                                                    FontAttributes="Bold"
+                                                                    TextColor="#8A5A3B" />
+                                                                <Label
+                                                                    Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=FichaValor}"
+                                                                    FontSize="14"
+                                                                    FontAttributes="Bold"
+                                                                    TextColor="#263A35" />
+                                                                <Label
+                                                                    Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=FichaEstado}"
+                                                                    FontSize="10"
+                                                                    TextColor="#87451F" />
+                                                            </VerticalStackLayout>
                                                         </Border>
                                                     </FlexLayout>
 
-                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                                                        <Label
-                                                            Text="⚠"
-                                                            FontSize="14"
-                                                            TextColor="#9A7410"
-                                                            VerticalOptions="Start" />
-                                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                                            <Label
-                                                                Text="{Binding ResultadoIA, Converter={StaticResource JerarquiaPropuestaPresentacionConverter}, ConverterParameter=AvisoPendiente}"
-                                                                FontSize="11"
-                                                                FontAttributes="Bold"
-                                                                TextColor="#6B5710" />
-                                                            <Label
-                                                                Text="{Binding ResultadoIA.MotivoAlbumPropuesta}"
-                                                                FontSize="11"
-                                                                TextColor="#5E6B67" />
-                                                        </VerticalStackLayout>
-                                                    </Grid>
+                                                    <Label
+                                                        Text="{Binding ResultadoIA.MotivoAlbumPropuesta}"
+                                                        FontSize="11"
+                                                        TextColor="#5E6B67" />
                                                 </VerticalStackLayout>
                                             </Border>
+                                        </VerticalStackLayout>
 
-                                            <VerticalStackLayout Spacing="3">
-                                                <Label
-                                                    Text="Clasificación humana"
-                                                    FontAttributes="Bold"
-                                                    TextColor="#263A35"
-                                                    IsVisible="{Binding TieneAnalisisHumano}" />
-                                                <Label
-                                                    Text="{Binding UltimoAnalisisHumano.Diagnostico}"
-                                                    TextColor="#5E6B67" />
-                                                <Label
-                                                    Text="{Binding UltimoAnalisisHumano.Observaciones}"
-                                                    TextColor="#5E6B67" />
-
-                                                <Label
-                                                    Text="Decisión final"
-                                                    FontAttributes="Bold"
-                                                    TextColor="#263A35"
-                                                    Margin="0,5,0,0"
-                                                    IsVisible="{Binding TieneAprobacion}" />
-                                                <Label
-                                                    Text="{Binding UltimaAprobacion.Decision}"
-                                                    TextColor="#5E6B67" />
-                                                <Label
-                                                    Text="{Binding UltimaAprobacion.DiagnosticoFinal}"
-                                                    TextColor="#5E6B67" />
-                                                <Label
-                                                    Text="{Binding MotivoDescarte}"
-                                                    TextColor="#B42318" />
-                                            </VerticalStackLayout>
+                                        <VerticalStackLayout Grid.Row="3" Spacing="3">
+                                            <Label
+                                                Text="Clasificación humana"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35"
+                                                IsVisible="{Binding TieneAnalisisHumano}" />
+                                            <Label
+                                                Text="{Binding UltimoAnalisisHumano.Diagnostico}"
+                                                TextColor="#5E6B67" />
+                                            <Label
+                                                Text="{Binding UltimoAnalisisHumano.Observaciones}"
+                                                TextColor="#5E6B67" />
+                                            <Label
+                                                Text="Decisión final"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35"
+                                                Margin="0,5,0,0"
+                                                IsVisible="{Binding TieneAprobacion}" />
+                                            <Label
+                                                Text="{Binding UltimaAprobacion.Decision}"
+                                                TextColor="#5E6B67" />
+                                            <Label
+                                                Text="{Binding UltimaAprobacion.DiagnosticoFinal}"
+                                                TextColor="#5E6B67" />
+                                            <Label
+                                                Text="{Binding MotivoDescarte}"
+                                                TextColor="#B42318" />
                                         </VerticalStackLayout>
                                     </Grid>
                                 </Border>

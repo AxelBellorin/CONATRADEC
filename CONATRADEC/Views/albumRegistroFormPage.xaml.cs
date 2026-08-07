@@ -7,11 +7,9 @@ namespace CONATRADEC.Views
     [QueryProperty(nameof(Mode), "Mode")]
     [QueryProperty(nameof(RegistroId), "RegistroId")]
     [QueryProperty(nameof(CategoriaId), "CategoriaId")]
-    public partial class albumRegistroFormPage :
-        ContentPage
+    public partial class albumRegistroFormPage : ContentPage
     {
-        private readonly AlbumRegistroFormViewModel
-            viewModel = new();
+        private readonly AlbumRegistroFormViewModel viewModel = new();
 
         public FormModeSelect Mode
         {
@@ -31,8 +29,7 @@ namespace CONATRADEC.Views
         public albumRegistroFormPage()
         {
             InitializeComponent();
-            Shell.Current.FlyoutBehavior =
-                FlyoutBehavior.Disabled;
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
             BindingContext = viewModel;
         }
 
@@ -42,30 +39,19 @@ namespace CONATRADEC.Views
 
             viewModel.ActualizarPermisos();
 
-            bool denied =
+            bool accesoDenegado =
                 !viewModel.CanView ||
-                (
-                    viewModel.Mode ==
-                    FormModeSelect.Create &&
-                    !viewModel.CanAdd
-                ) ||
-                (
-                    viewModel.Mode ==
-                    FormModeSelect.Edit &&
-                    !viewModel.CanEdit
-                );
+                (viewModel.Mode == FormModeSelect.Create && !viewModel.CanAdd) ||
+                (viewModel.Mode == FormModeSelect.Edit && !viewModel.CanEdit);
 
-            if (denied)
+            if (accesoDenegado)
             {
                 await DisplayAlert(
                     "Permiso denegado",
                     "No tiene permisos para realizar esta operación.",
                     "Aceptar");
 
-                await Shell.Current.GoToAsync(
-                    AppRoutes.Regresar,
-                    false);
-
+                await Shell.Current.GoToAsync(AppRoutes.Regresar, false);
                 return;
             }
 

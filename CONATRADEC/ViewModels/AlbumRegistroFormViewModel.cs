@@ -4,30 +4,24 @@ using System.Collections.ObjectModel;
 
 namespace CONATRADEC.ViewModels
 {
-    public sealed class AlbumRegistroFormViewModel :
-        GlobalService
+    /// <summary>
+    /// Administra una subcategoría específica del Álbum Botánico.
+    /// La estructura oficial es Categoría -> Subcategoría -> Fotografías.
+    /// AlbumBotanicoCafe representa directamente la subcategoría y conserva
+    /// toda su información técnica.
+    /// </summary>
+    public sealed class AlbumRegistroFormViewModel : GlobalService
     {
         private readonly AlbumBotanicoApiService apiService = new();
-        private readonly AlbumJerarquiaApiService jerarquiaApiService = new();
 
         private ObservableCollection<CategoriaAlbumBotanicoResponse>
             categorias = new();
 
-        private ObservableCollection<SubcategoriaAlbumBotanicoResponse>
-            subcategorias = new();
-
-        private CategoriaAlbumBotanicoResponse?
-            categoriaSeleccionada;
-
-        private SubcategoriaAlbumBotanicoResponse?
-            subcategoriaSeleccionada;
-
+        private CategoriaAlbumBotanicoResponse? categoriaSeleccionada;
         private FormMode.FormModeSelect mode;
         private int registroId;
         private int categoriaInicialId;
         private bool inicializado;
-        private bool suspendiendoCargaCategoria;
-        private int versionCargaSubcategorias;
         private string titulo = string.Empty;
         private string nombreCientifico = string.Empty;
         private string descripcion = string.Empty;
@@ -38,13 +32,11 @@ namespace CONATRADEC.ViewModels
         private string observaciones = string.Empty;
 
         private string errorCategoria = string.Empty;
-        private string errorSubcategoria = string.Empty;
         private string errorTitulo = string.Empty;
         private string errorNombreCientifico = string.Empty;
         private string errorDescripcion = string.Empty;
 
-        public ObservableCollection<CategoriaAlbumBotanicoResponse>
-            Categorias
+        public ObservableCollection<CategoriaAlbumBotanicoResponse> Categorias
         {
             get => categorias;
             private set
@@ -54,21 +46,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public ObservableCollection<SubcategoriaAlbumBotanicoResponse>
-            Subcategorias
-        {
-            get => subcategorias;
-            private set
-            {
-                subcategorias = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(HaySubcategorias));
-                OnPropertyChanged(nameof(SinSubcategorias));
-            }
-        }
-
-        public CategoriaAlbumBotanicoResponse?
-            CategoriaSeleccionada
+        public CategoriaAlbumBotanicoResponse? CategoriaSeleccionada
         {
             get => categoriaSeleccionada;
             set
@@ -81,40 +59,8 @@ namespace CONATRADEC.ViewModels
 
                 if (categoriaSeleccionada != null)
                     ErrorCategoria = string.Empty;
-
-                if (!suspendiendoCargaCategoria)
-                {
-                    _ = CargarSubcategoriasAsync(
-                        categoriaSeleccionada?
-                            .CategoriaAlbumBotanicoId,
-                        subcategoriaPreferidaId: null,
-                        mostrarError: true);
-                }
             }
         }
-
-        public SubcategoriaAlbumBotanicoResponse?
-            SubcategoriaSeleccionada
-        {
-            get => subcategoriaSeleccionada;
-            set
-            {
-                if (ReferenceEquals(subcategoriaSeleccionada, value))
-                    return;
-
-                subcategoriaSeleccionada = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(PuedeEditarSubcategoria));
-
-                if (subcategoriaSeleccionada != null)
-                    ErrorSubcategoria = string.Empty;
-            }
-        }
-
-        public bool HaySubcategorias => Subcategorias.Count > 0;
-        public bool SinSubcategorias => !HaySubcategorias;
-        public bool PuedeEditarSubcategoria =>
-            SubcategoriaSeleccionada != null;
 
         public FormMode.FormModeSelect Mode
         {
@@ -256,23 +202,6 @@ namespace CONATRADEC.ViewModels
         public bool TieneErrorCategoria =>
             !string.IsNullOrWhiteSpace(ErrorCategoria);
 
-        public string ErrorSubcategoria
-        {
-            get => errorSubcategoria;
-            private set
-            {
-                if (errorSubcategoria == value)
-                    return;
-
-                errorSubcategoria = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(TieneErrorSubcategoria));
-            }
-        }
-
-        public bool TieneErrorSubcategoria =>
-            !string.IsNullOrWhiteSpace(ErrorSubcategoria);
-
         public string ErrorTitulo
         {
             get => errorTitulo;
@@ -300,14 +229,12 @@ namespace CONATRADEC.ViewModels
 
                 errorNombreCientifico = value;
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TieneErrorNombreCientifico));
+                OnPropertyChanged(nameof(TieneErrorNombreCientifico));
             }
         }
 
         public bool TieneErrorNombreCientifico =>
-            !string.IsNullOrWhiteSpace(
-                ErrorNombreCientifico);
+            !string.IsNullOrWhiteSpace(ErrorNombreCientifico);
 
         public string ErrorDescripcion
         {
@@ -328,41 +255,21 @@ namespace CONATRADEC.ViewModels
 
         public string TituloPagina =>
             Mode == FormMode.FormModeSelect.Create
-                ? "Nuevo registro botánico"
-                : "Editar registro botánico";
+                ? "Nueva subcategoría"
+                : "Editar subcategoría";
 
         public Command GuardarCommand { get; }
         public Command CancelarCommand { get; }
-        public Command CrearSubcategoriaCommand { get; }
-        public Command EditarSubcategoriaCommand { get; }
-        public Command CambiarEstadoSubcategoriaCommand { get; }
 
         public AlbumRegistroFormViewModel()
         {
-            GuardarCommand =
-                new Command(
-                    async () => await GuardarAsync(),
-                    () => !IsBusy);
+            GuardarCommand = new Command(
+                async () => await GuardarAsync(),
+                () => !IsBusy);
 
-            CancelarCommand =
-                new Command(
-                    async () => await CancelarAsync(),
-                    () => !IsBusy);
-
-            CrearSubcategoriaCommand =
-                new Command(
-                    async () => await CrearSubcategoriaAsync(),
-                    () => !IsBusy && CategoriaSeleccionada != null);
-
-            EditarSubcategoriaCommand =
-                new Command(
-                    async () => await EditarSubcategoriaAsync(),
-                    () => !IsBusy && PuedeEditarSubcategoria);
-
-            CambiarEstadoSubcategoriaCommand =
-                new Command(
-                    async () => await CambiarEstadoSubcategoriaAsync(),
-                    () => !IsBusy && PuedeEditarSubcategoria);
+            CancelarCommand = new Command(
+                async () => await CancelarAsync(),
+                () => !IsBusy);
         }
 
         public void ActualizarPermisos()
@@ -382,99 +289,63 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                ApiResult<List<CategoriaAlbumBotanicoResponse>>
-                    categoryResult =
-                        await apiService.GetCategoriasAsync(false);
+                ApiResult<List<CategoriaAlbumBotanicoResponse>> resultado =
+                    await apiService.GetCategoriasAsync(false);
 
-                if (!categoryResult.Success)
+                if (!resultado.Success)
                 {
-                    await MostrarErrorAsync(categoryResult.Message);
+                    await MostrarErrorAsync(resultado.Message);
                     inicializado = false;
                     return;
                 }
 
                 Categorias = new ObservableCollection<
-                    CategoriaAlbumBotanicoResponse>(
-                        categoryResult.Data ?? []);
+                    CategoriaAlbumBotanicoResponse>(resultado.Data ?? []);
 
-                int? subcategoriaInicialId = null;
-
-                suspendiendoCargaCategoria = true;
-
-                try
+                if (Mode == FormMode.FormModeSelect.Edit && RegistroId > 0)
                 {
-                    if (Mode == FormMode.FormModeSelect.Edit &&
-                        RegistroId > 0)
+                    ApiResult<AlbumDetalleResponse> detalleResultado =
+                        await apiService.GetDetalleAsync(
+                            RegistroId,
+                            incluirInactivos: true);
+
+                    if (!detalleResultado.Success ||
+                        detalleResultado.Data == null)
                     {
-                        ApiResult<AlbumDetalleResponse> detailResult =
-                            await apiService.GetDetalleAsync(
-                                RegistroId,
-                                true);
-
-                        if (!detailResult.Success ||
-                            detailResult.Data == null)
-                        {
-                            await MostrarErrorAsync(detailResult.Message);
-                            inicializado = false;
-                            return;
-                        }
-
-                        AlbumDetalleResponse detail = detailResult.Data;
-
-                        CategoriaSeleccionada = Categorias.FirstOrDefault(x =>
-                            x.CategoriaAlbumBotanicoId ==
-                                detail.CategoriaAlbumBotanicoId);
-
-                        Titulo = detail.Titulo;
-                        NombreCientifico = detail.NombreCientifico ?? string.Empty;
-                        Descripcion = detail.Descripcion;
-                        Caracteristicas = detail.Caracteristicas ?? string.Empty;
-                        Sintomas = detail.Sintomas ?? string.Empty;
-                        Causas = detail.Causas ?? string.Empty;
-                        Recomendaciones = detail.Recomendaciones ?? string.Empty;
-                        Observaciones = detail.Observaciones ?? string.Empty;
-
-                        ApiResult<List<AlbumRegistroJerarquiaResponse>>
-                            jerarquiaResult =
-                                await jerarquiaApiService
-                                    .GetJerarquiaRegistrosAsync(
-                                        [RegistroId],
-                                        incluirInactivos: true);
-
-                        if (jerarquiaResult.Success)
-                        {
-                            subcategoriaInicialId = jerarquiaResult.Data?
-                                .FirstOrDefault()?
-                                .SubcategoriaAlbumBotanicoId;
-                        }
+                        await MostrarErrorAsync(detalleResultado.Message);
+                        inicializado = false;
+                        return;
                     }
-                    else
-                    {
-                        CategoriaSeleccionada =
-                            Categorias.FirstOrDefault(x =>
-                                x.CategoriaAlbumBotanicoId ==
-                                    CategoriaInicialId) ??
-                            Categorias.FirstOrDefault();
-                    }
+
+                    AlbumDetalleResponse detalle = detalleResultado.Data;
+
+                    CategoriaSeleccionada = Categorias.FirstOrDefault(item =>
+                        item.CategoriaAlbumBotanicoId ==
+                            detalle.CategoriaAlbumBotanicoId);
+
+                    Titulo = detalle.Titulo;
+                    NombreCientifico = detalle.NombreCientifico ?? string.Empty;
+                    Descripcion = detalle.Descripcion;
+                    Caracteristicas = detalle.Caracteristicas ?? string.Empty;
+                    Sintomas = detalle.Sintomas ?? string.Empty;
+                    Causas = detalle.Causas ?? string.Empty;
+                    Recomendaciones = detalle.Recomendaciones ?? string.Empty;
+                    Observaciones = detalle.Observaciones ?? string.Empty;
                 }
-                finally
+                else
                 {
-                    suspendiendoCargaCategoria = false;
+                    CategoriaSeleccionada = Categorias.FirstOrDefault(item =>
+                        item.CategoriaAlbumBotanicoId == CategoriaInicialId)
+                        ?? Categorias.FirstOrDefault();
                 }
-
-                await CargarSubcategoriasAsync(
-                    CategoriaSeleccionada?.CategoriaAlbumBotanicoId,
-                    subcategoriaInicialId,
-                    mostrarError: true);
 
                 LimpiarErrores();
             }
             catch (Exception ex)
             {
                 inicializado = false;
-
                 await MostrarErrorInesperadoAsync(
-                    "cargar el registro botánico",
+                    "cargar la subcategoría del álbum",
                     ex);
             }
             finally
@@ -482,56 +353,6 @@ namespace CONATRADEC.ViewModels
                 IsBusy = false;
                 RefrescarComandos();
             }
-        }
-
-        private async Task CargarSubcategoriasAsync(
-            int? categoriaId,
-            int? subcategoriaPreferidaId,
-            bool mostrarError)
-        {
-            int version = Interlocked.Increment(
-                ref versionCargaSubcategorias);
-
-            if (!categoriaId.HasValue || categoriaId.Value <= 0)
-            {
-                Subcategorias = [];
-                SubcategoriaSeleccionada = null;
-                RefrescarComandos();
-                return;
-            }
-
-            ApiResult<List<SubcategoriaAlbumBotanicoResponse>> result =
-                await jerarquiaApiService.GetSubcategoriasAsync(
-                    categoriaId,
-                    incluirInactivas: false);
-
-            if (version != versionCargaSubcategorias)
-                return;
-
-            if (!result.Success)
-            {
-                Subcategorias = [];
-                SubcategoriaSeleccionada = null;
-
-                if (mostrarError)
-                    await MostrarToastAsync(result.Message);
-
-                RefrescarComandos();
-                return;
-            }
-
-            Subcategorias = new ObservableCollection<
-                SubcategoriaAlbumBotanicoResponse>(
-                    result.Data ?? []);
-
-            SubcategoriaSeleccionada =
-                subcategoriaPreferidaId.HasValue
-                    ? Subcategorias.FirstOrDefault(item =>
-                        item.SubcategoriaAlbumBotanicoId ==
-                            subcategoriaPreferidaId.Value)
-                    : Subcategorias.FirstOrDefault();
-
-            RefrescarComandos();
         }
 
         private async Task GuardarAsync()
@@ -546,11 +367,12 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            bool confirm = Mode == FormMode.FormModeSelect.Create
-                ? await ConfirmarGuardadoAsync("el registro botánico")
-                : await ConfirmarActualizacionAsync("el registro botánico");
+            bool esCreacion = Mode == FormMode.FormModeSelect.Create;
+            bool confirmar = esCreacion
+                ? await ConfirmarGuardadoAsync("la subcategoría")
+                : await ConfirmarActualizacionAsync("la subcategoría");
 
-            if (!confirm)
+            if (!confirmar)
                 return;
 
             var request = new AlbumRegistroRequest
@@ -573,62 +395,45 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                string mensajeGuardado;
+                string mensaje;
 
-                if (Mode == FormMode.FormModeSelect.Create)
+                if (esCreacion)
                 {
-                    ApiResult<RegistroAlbumCreadoData> result =
+                    ApiResult<RegistroAlbumCreadoData> resultado =
                         await apiService.CrearRegistroAsync(request);
 
-                    if (!result.Success || result.Data == null)
+                    if (!resultado.Success || resultado.Data == null)
                     {
-                        await MostrarErrorAsync(result.Message);
+                        await MostrarErrorAsync(resultado.Message);
                         return;
                     }
 
-                    RegistroId = result.Data.AlbumBotanicoCafeId;
+                    RegistroId = resultado.Data.AlbumBotanicoCafeId;
                     Mode = FormMode.FormModeSelect.Edit;
-                    mensajeGuardado = result.Message;
+                    mensaje = resultado.Message;
                 }
                 else
                 {
-                    ApiResult<bool> result =
+                    ApiResult<bool> resultado =
                         await apiService.ActualizarRegistroAsync(request);
 
-                    if (!result.Success)
+                    if (!resultado.Success)
                     {
-                        await MostrarErrorAsync(result.Message);
+                        await MostrarErrorAsync(resultado.Message);
                         return;
                     }
 
-                    mensajeGuardado = result.Message;
-                }
-
-                ApiResult<bool> asignacion =
-                    await jerarquiaApiService
-                        .AsignarSubcategoriaRegistroAsync(
-                            RegistroId,
-                            SubcategoriaSeleccionada!
-                                .SubcategoriaAlbumBotanicoId);
-
-                if (!asignacion.Success)
-                {
-                    await MostrarErrorAsync(
-                        "El registro fue guardado, pero no fue posible " +
-                        "asignar su subcategoría. " +
-                        asignacion.Message);
-                    return;
+                    mensaje = resultado.Message;
                 }
 
                 AlbumBotanicoRefreshState.MarcarCambio();
 
                 await MostrarExitoAsync(
-                    string.IsNullOrWhiteSpace(mensajeGuardado)
-                        ? "Registro botánico guardado correctamente."
-                        : mensajeGuardado);
+                    string.IsNullOrWhiteSpace(mensaje)
+                        ? "Subcategoría guardada correctamente."
+                        : mensaje);
 
-                if (Mode == FormMode.FormModeSelect.Edit &&
-                    request.AlbumBotanicoCafeId == 0)
+                if (esCreacion)
                 {
                     await GoToAsyncParameters(
                         $"{AppRoutes.Regresar}/" +
@@ -646,218 +451,8 @@ namespace CONATRADEC.ViewModels
             catch (Exception ex)
             {
                 await MostrarErrorInesperadoAsync(
-                    "guardar el registro botánico",
+                    "guardar la subcategoría del álbum",
                     ex);
-            }
-            finally
-            {
-                IsBusy = false;
-                RefrescarComandos();
-            }
-        }
-
-        private async Task CrearSubcategoriaAsync()
-        {
-            if (IsBusy || CategoriaSeleccionada == null)
-                return;
-
-            if (!CanAdd)
-            {
-                await MostrarToastAsync(
-                    "No tiene permiso para crear subcategorías.");
-                return;
-            }
-
-            Page? page = Application.Current?.MainPage;
-            if (page == null)
-                return;
-
-            string? nombre = await page.DisplayPromptAsync(
-                "Nueva subcategoría",
-                $"Categoría: {CategoriaSeleccionada.NombreCategoria}\n" +
-                "Ingrese el nombre del nivel intermedio.",
-                "Crear",
-                "Cancelar",
-                "Ejemplo: Insectos",
-                maxLength: 120);
-
-            if (string.IsNullOrWhiteSpace(nombre))
-                return;
-
-            string? descripcionNueva = await page.DisplayPromptAsync(
-                "Descripción",
-                "Describa brevemente qué fichas pertenecen a esta subcategoría.",
-                "Continuar",
-                "Omitir",
-                maxLength: 600);
-
-            IsBusy = true;
-            RefrescarComandos();
-
-            try
-            {
-                ApiResult<SubcategoriaAlbumBotanicoResponse> result =
-                    await jerarquiaApiService.CrearSubcategoriaAsync(
-                        new GuardarSubcategoriaAlbumRequest
-                        {
-                            CategoriaAlbumBotanicoId =
-                                CategoriaSeleccionada
-                                    .CategoriaAlbumBotanicoId,
-                            NombreSubcategoria = nombre.Trim(),
-                            Descripcion =
-                                string.IsNullOrWhiteSpace(descripcionNueva)
-                                    ? null
-                                    : descripcionNueva.Trim()
-                        });
-
-                if (!result.Success || result.Data == null)
-                {
-                    await MostrarErrorAsync(result.Message);
-                    return;
-                }
-
-                await CargarSubcategoriasAsync(
-                    CategoriaSeleccionada.CategoriaAlbumBotanicoId,
-                    result.Data.SubcategoriaAlbumBotanicoId,
-                    mostrarError: true);
-
-                AlbumBotanicoRefreshState.MarcarCambio();
-                await MostrarToastAsync(result.Message);
-            }
-            finally
-            {
-                IsBusy = false;
-                RefrescarComandos();
-            }
-        }
-
-        private async Task EditarSubcategoriaAsync()
-        {
-            if (IsBusy ||
-                CategoriaSeleccionada == null ||
-                SubcategoriaSeleccionada == null)
-            {
-                return;
-            }
-
-            if (!CanEdit)
-            {
-                await MostrarToastAsync(
-                    "No tiene permiso para editar subcategorías.");
-                return;
-            }
-
-            Page? page = Application.Current?.MainPage;
-            if (page == null)
-                return;
-
-            string? nombre = await page.DisplayPromptAsync(
-                "Editar subcategoría",
-                "Actualice el nombre.",
-                "Guardar",
-                "Cancelar",
-                initialValue: SubcategoriaSeleccionada.NombreSubcategoria,
-                maxLength: 120);
-
-            if (string.IsNullOrWhiteSpace(nombre))
-                return;
-
-            int id = SubcategoriaSeleccionada.SubcategoriaAlbumBotanicoId;
-
-            IsBusy = true;
-            RefrescarComandos();
-
-            try
-            {
-                ApiResult<bool> result =
-                    await jerarquiaApiService.ActualizarSubcategoriaAsync(
-                        id,
-                        new GuardarSubcategoriaAlbumRequest
-                        {
-                            CategoriaAlbumBotanicoId =
-                                CategoriaSeleccionada
-                                    .CategoriaAlbumBotanicoId,
-                            NombreSubcategoria = nombre.Trim(),
-                            Descripcion = SubcategoriaSeleccionada.Descripcion
-                        });
-
-                if (!result.Success)
-                {
-                    await MostrarErrorAsync(result.Message);
-                    return;
-                }
-
-                await CargarSubcategoriasAsync(
-                    CategoriaSeleccionada.CategoriaAlbumBotanicoId,
-                    id,
-                    mostrarError: true);
-
-                AlbumBotanicoRefreshState.MarcarCambio();
-                await MostrarToastAsync(result.Message);
-            }
-            finally
-            {
-                IsBusy = false;
-                RefrescarComandos();
-            }
-        }
-
-        private async Task CambiarEstadoSubcategoriaAsync()
-        {
-            if (IsBusy || SubcategoriaSeleccionada == null)
-                return;
-
-            if (!CanDelete)
-            {
-                await MostrarToastAsync(
-                    "No tiene permiso para cambiar el estado de subcategorías.");
-                return;
-            }
-
-            Page? page = Application.Current?.MainPage;
-            if (page == null)
-                return;
-
-            bool nuevoEstado = !SubcategoriaSeleccionada.Activo;
-
-            bool confirmar = await page.DisplayAlert(
-                nuevoEstado
-                    ? "Activar subcategoría"
-                    : "Desactivar subcategoría",
-                $"¿Desea {(nuevoEstado ? "activar" : "desactivar")} " +
-                $"'{SubcategoriaSeleccionada.NombreSubcategoria}'?",
-                "Sí",
-                "No");
-
-            if (!confirmar)
-                return;
-
-            int id = SubcategoriaSeleccionada.SubcategoriaAlbumBotanicoId;
-            int categoriaId =
-                SubcategoriaSeleccionada.CategoriaAlbumBotanicoId;
-
-            IsBusy = true;
-            RefrescarComandos();
-
-            try
-            {
-                ApiResult<bool> result =
-                    await jerarquiaApiService
-                        .CambiarEstadoSubcategoriaAsync(id, nuevoEstado);
-
-                if (!result.Success)
-                {
-                    await MostrarErrorAsync(result.Message);
-                    return;
-                }
-
-                await CargarSubcategoriasAsync(
-                    categoriaId,
-                    subcategoriaPreferidaId: null,
-                    mostrarError: true);
-
-                AlbumBotanicoRefreshState.MarcarCambio();
-                await MostrarToastAsync(result.Message);
             }
             finally
             {
@@ -885,21 +480,14 @@ namespace CONATRADEC.ViewModels
             if (CategoriaSeleccionada == null)
                 ErrorCategoria = "Seleccione una categoría.";
 
-            if (SubcategoriaSeleccionada == null)
-            {
-                ErrorSubcategoria = HaySubcategorias
-                    ? "Seleccione una subcategoría."
-                    : "Cree una subcategoría para continuar.";
-            }
-
             if (string.IsNullOrWhiteSpace(Titulo))
             {
-                ErrorTitulo = "Ingrese el título del registro.";
+                ErrorTitulo = "Ingrese el nombre de la subcategoría.";
             }
             else if (Titulo.Length > 200)
             {
                 ErrorTitulo =
-                    "El título no puede superar los 200 caracteres.";
+                    "El nombre no puede superar los 200 caracteres.";
             }
 
             if (NombreCientifico.Length > 200)
@@ -913,7 +501,6 @@ namespace CONATRADEC.ViewModels
 
             return
                 !TieneErrorCategoria &&
-                !TieneErrorSubcategoria &&
                 !TieneErrorTitulo &&
                 !TieneErrorNombreCientifico &&
                 !TieneErrorDescripcion;
@@ -922,7 +509,6 @@ namespace CONATRADEC.ViewModels
         private void LimpiarErrores()
         {
             ErrorCategoria = string.Empty;
-            ErrorSubcategoria = string.Empty;
             ErrorTitulo = string.Empty;
             ErrorNombreCientifico = string.Empty;
             ErrorDescripcion = string.Empty;
@@ -937,9 +523,6 @@ namespace CONATRADEC.ViewModels
         {
             GuardarCommand.ChangeCanExecute();
             CancelarCommand.ChangeCanExecute();
-            CrearSubcategoriaCommand.ChangeCanExecute();
-            EditarSubcategoriaCommand.ChangeCanExecute();
-            CambiarEstadoSubcategoriaCommand.ChangeCanExecute();
         }
     }
 }

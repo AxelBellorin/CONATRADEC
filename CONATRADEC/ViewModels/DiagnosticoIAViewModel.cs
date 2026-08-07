@@ -5,12 +5,13 @@ namespace CONATRADEC.ViewModels
 {
     /// <summary>
     /// Panel principal del módulo operativo de inspección fitosanitaria.
+    /// Las decisiones técnicas forman parte de Mis inspecciones y ya no se
+    /// exponen como un módulo independiente.
     /// </summary>
     public sealed class DiagnosticoIAViewModel : GlobalService
     {
         private bool puedeNuevaInspeccion;
         private bool puedeMisInspecciones;
-        private bool puedeDecisiones;
         private bool puedeAnalizador;
         private bool puedeAprobador;
         private bool puedeHistorial;
@@ -28,10 +29,6 @@ namespace CONATRADEC.ViewModels
             MisInspeccionesCommand = CrearComandoModo(
                 DiagnosticoIARoutes.ModoMisInspecciones,
                 () => PuedeMisInspecciones);
-
-            DecisionesPendientesCommand = CrearComandoModo(
-                DiagnosticoIARoutes.ModoDecisionesPendientes,
-                () => PuedeDecisiones);
 
             HistorialCommand = CrearComandoModo(
                 DiagnosticoIARoutes.ModoHistorial,
@@ -51,7 +48,6 @@ namespace CONATRADEC.ViewModels
         public Command RegresarCommand { get; }
         public Command NuevaInspeccionCommand { get; }
         public Command MisInspeccionesCommand { get; }
-        public Command DecisionesPendientesCommand { get; }
         public Command AbrirAnalizadorCommand { get; }
         public Command AbrirAprobadorCommand { get; }
         public Command HistorialCommand { get; }
@@ -66,12 +62,6 @@ namespace CONATRADEC.ViewModels
         {
             get => puedeMisInspecciones;
             private set => Asignar(ref puedeMisInspecciones, value);
-        }
-
-        public bool PuedeDecisiones
-        {
-            get => puedeDecisiones;
-            private set => Asignar(ref puedeDecisiones, value);
         }
 
         public bool PuedeAnalizador
@@ -95,7 +85,6 @@ namespace CONATRADEC.ViewModels
         public bool TieneAlgunaOpcion =>
             PuedeNuevaInspeccion ||
             PuedeMisInspecciones ||
-            PuedeDecisiones ||
             PuedeAnalizador ||
             PuedeAprobador ||
             PuedeHistorial;
@@ -115,7 +104,6 @@ namespace CONATRADEC.ViewModels
                     DiagnosticoIARoutes.InterfazSolicitud);
 
             PuedeMisInspecciones = puedeLeerSolicitud;
-            PuedeDecisiones = puedeLeerSolicitud;
             PuedeHistorial = puedeLeerSolicitud;
             PuedeAnalizador = PermissionService.Instance.HasRead(
                 DiagnosticoIARoutes.InterfazAnalizador);
@@ -159,11 +147,6 @@ namespace CONATRADEC.ViewModels
             try
             {
                 DiagnosticoIARoutes.AsegurarRegistro();
-
-                /*
-                 * Toda navegación del módulo pasa por GlobalService para evitar
-                 * dos Shell.GoToAsync simultáneos al hacer doble clic.
-                 */
                 await GoToAsyncParameters(ruta);
             }
             finally
@@ -178,7 +161,6 @@ namespace CONATRADEC.ViewModels
             RegresarCommand.ChangeCanExecute();
             NuevaInspeccionCommand.ChangeCanExecute();
             MisInspeccionesCommand.ChangeCanExecute();
-            DecisionesPendientesCommand.ChangeCanExecute();
             AbrirAnalizadorCommand.ChangeCanExecute();
             AbrirAprobadorCommand.ChangeCanExecute();
             HistorialCommand.ChangeCanExecute();

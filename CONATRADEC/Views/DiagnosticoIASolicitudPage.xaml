@@ -56,8 +56,8 @@
 
             <controls:ResponsiveCatalogHeader
                 Grid.Row="0"
-                Title="{Binding TituloPagina}"
-                Subtitle="{Binding SubtituloPagina}"
+                Title="{Binding Source={x:Reference PaginaRaiz}, Path=TituloVista}"
+                Subtitle="{Binding Source={x:Reference PaginaRaiz}, Path=SubtituloVista}"
                 BackText="← Inspección fitosanitaria"
                 BackCommand="{Binding RegresarSolicitudCommand}"
                 IsPrimaryVisible="False"
@@ -428,11 +428,56 @@
             <Grid
                 x:Name="ListadoGrid"
                 Grid.Row="1"
-                RowDefinitions="Auto,Auto,Auto,*,Auto"
+                RowDefinitions="Auto,Auto,Auto,Auto,*,Auto"
                 RowSpacing="8"
                 MaximumWidthRequest="1150"
                 HorizontalOptions="Fill"
                 IsVisible="{Binding EsModoListado}">
+
+                <!--
+                    Mis inspecciones reúne el seguimiento completo y las
+                    decisiones técnicas en una sola pantalla. La ruta antigua
+                    de Decisiones pendientes abre este mismo filtro.
+                -->
+                <Border
+                    Grid.Row="0"
+                    Padding="{OnIdiom Phone=10, Default=12}"
+                    IsVisible="{Binding Source={x:Reference PaginaRaiz}, Path=MostrarSelectorMisInspecciones}"
+                    BackgroundColor="#F2F7F5"
+                    Stroke="#C8DED6"
+                    StrokeShape="RoundRectangle 14">
+                    <FlexLayout
+                        Direction="Row"
+                        Wrap="Wrap"
+                        AlignItems="Center"
+                        JustifyContent="SpaceBetween">
+                        <VerticalStackLayout
+                            Margin="0,0,12,8"
+                            Spacing="2"
+                            FlexLayout.Grow="1"
+                            MinimumWidthRequest="230">
+                            <Label
+                                Text="Vista de mis inspecciones"
+                                FontAttributes="Bold"
+                                FontSize="15"
+                                TextColor="#263A35" />
+                            <Label
+                                Text="Consulte todas o muestre únicamente las que requieren una decisión sobre resultados de IA."
+                                FontSize="11"
+                                TextColor="#5E6B67"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <Picker
+                            x:Name="VistaInspeccionesPicker"
+                            Margin="0,0,0,8"
+                            WidthRequest="{OnIdiom Phone=260, Default=315}"
+                            HeightRequest="44"
+                            ItemsSource="{Binding Source={x:Reference PaginaRaiz}, Path=VistasInspecciones}"
+                            ItemDisplayBinding="{Binding Nombre}"
+                            SelectedIndexChanged="OnVistaInspeccionesChanged"
+                            Title="Seleccione una vista" />
+                    </FlexLayout>
+                </Border>
 
                 <!--
                     Esta guía aparece únicamente en Decisiones pendientes. El
@@ -440,7 +485,7 @@
                     por fotografías en PENDIENTE_DECISION_TECNICO.
                 -->
                 <Border
-                    Grid.Row="0"
+                    Grid.Row="1"
                     Padding="{OnIdiom Phone=12, Default=14}"
                     BackgroundColor="#FFF8E2"
                     Stroke="#E4C765"
@@ -493,7 +538,7 @@
                     necesita y se vuelve a cerrar después de ejecutar la búsqueda.
                 -->
                 <Grid
-                    Grid.Row="1"
+                    Grid.Row="2"
                     RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
                     ColumnDefinitions="{OnIdiom Phone='*,Auto', Default='*,Auto,Auto'}"
                     RowSpacing="7"
@@ -539,7 +584,7 @@
                 </Grid>
 
                 <Border
-                    Grid.Row="2"
+                    Grid.Row="3"
                     Padding="{OnIdiom Phone=10, Default=12}"
                     IsVisible="{Binding FiltrosExpandidos}"
                     BackgroundColor="White"
@@ -736,7 +781,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Grid Grid.Row="3">
+                <Grid Grid.Row="4">
                     <Border
                         Padding="14"
                         Margin="0,8"
@@ -923,7 +968,7 @@
                 </Grid>
 
                 <Grid
-                    Grid.Row="4"
+                    Grid.Row="5"
                     ColumnDefinitions="*,Auto,*"
                     IsVisible="{Binding MostrarCargarMas}">
                     <ActivityIndicator

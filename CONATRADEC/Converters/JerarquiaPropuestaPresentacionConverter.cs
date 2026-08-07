@@ -1,16 +1,13 @@
 using CONATRADEC.Models;
 using Microsoft.Maui.Controls;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 
 namespace CONATRADEC.Converters
 {
     /// <summary>
-    /// Construye los textos de presentación de la jerarquía propuesta según
-    /// los identificadores que realmente existen en el Álbum Botánico.
-    /// No modifica los valores internos ni la información enviada a la API.
+    /// Presenta la clasificación simplificada del Álbum Botánico. La ficha
+    /// histórica se muestra al usuario como subcategoría específica y el nivel
+    /// técnico intermedio deja de formar parte de la experiencia visible.
     /// </summary>
     public sealed class JerarquiaPropuestaPresentacionConverter : IValueConverter
     {
@@ -27,9 +24,7 @@ namespace CONATRADEC.Converters
 
             bool categoriaExiste =
                 resultado.CategoriaAlbumBotanicoIdSugerida is > 0;
-            bool subcategoriaExiste =
-                resultado.SubcategoriaAlbumBotanicoIdSugerida is > 0;
-            bool fichaExiste =
+            bool subcategoriaEspecificaExiste =
                 resultado.AlbumBotanicoCafeIdSugerido is > 0;
 
             return opcion switch
@@ -41,24 +36,20 @@ namespace CONATRADEC.Converters
                         ? "Categoría propuesta"
                         : "Pendiente de definir",
 
-                "SubcategoriaValor" => subcategoriaExiste
-                    ? "Subcategoría identificada"
-                    : "Pendiente de definir",
-                "SubcategoriaEstado" => subcategoriaExiste
-                    ? "Subcategoría existente"
-                    : "Requiere analizador",
-
-                "FichaValor" => ObtenerFicha(resultado),
-                "FichaEstado" => fichaExiste
-                    ? "Ficha existente"
-                    : TieneTexto(resultado.ClasificacionAlbumPropuesta)
-                        ? "Ficha propuesta"
-                        : "Pendiente de definir",
+                // Compatibilidad con XAML anterior. Ambos parámetros exponen
+                // ahora la subcategoría específica visible.
+                "SubcategoriaValor" or "FichaValor" =>
+                    ObtenerSubcategoria(resultado),
+                "SubcategoriaEstado" or "FichaEstado" =>
+                    subcategoriaEspecificaExiste
+                        ? "Subcategoría existente"
+                        : TieneTexto(resultado.ClasificacionAlbumPropuesta)
+                            ? "Subcategoría propuesta"
+                            : "Pendiente de definir",
 
                 "AvisoPendiente" => ConstruirAviso(
                     categoriaExiste,
-                    subcategoriaExiste,
-                    fichaExiste),
+                    subcategoriaEspecificaExiste),
 
                 _ => string.Empty
             };
@@ -77,7 +68,7 @@ namespace CONATRADEC.Converters
                 ? resultado.CategoriaAlbumPropuesta.Trim()
                 : "Pendiente de definir";
 
-        private static string ObtenerFicha(
+        private static string ObtenerSubcategoria(
             InspeccionFotoResultadoIAV2 resultado) =>
             TieneTexto(resultado.ClasificacionAlbumPropuesta)
                 ? resultado.ClasificacionAlbumPropuesta.Trim()
@@ -85,39 +76,21 @@ namespace CONATRADEC.Converters
 
         private static string ConstruirAviso(
             bool categoriaExiste,
-            bool subcategoriaExiste,
-            bool fichaExiste)
+            bool subcategoriaExiste)
         {
-            if (categoriaExiste && subcategoriaExiste && fichaExiste)
+            if (categoriaExiste && subcategoriaExiste)
             {
-                return "La fotografía coincide con una clasificación existente del Álbum Botánico.";
+                return "La fotografía coincide con una categoría y una subcategoría existentes del Álbum Botánico.";
             }
 
-            var pendientes = new List<string>();
-
-            if (!categoriaExiste)
-                pendientes.Add("aprobar la categoría propuesta");
-
-            if (!subcategoriaExiste)
-                pendientes.Add("definir la subcategoría");
-
-            if (!fichaExiste)
-                pendientes.Add("aprobar la creación de la ficha propuesta");
-
-            return $"Falta {UnirPendientes(pendientes)}.";
-        }
-
-        private static string UnirPendientes(
-            IReadOnlyList<string> pendientes)
-        {
-            return pendientes.Count switch
+            if (!categoriaExiste && !subcategoriaExiste)
             {
-                0 => "completar la clasificación jerárquica",
-                1 => pendientes[0],
-                2 => $"{pendientes[0]} y {pendientes[1]}",
-                _ => string.Join(", ", pendientes.Take(pendientes.Count - 1)) +
-                     $" y {pendientes[^1]}"
-            };
+                return "Falta aprobar la categoría y la subcategoría propuestas.";
+            }
+
+            return !categoriaExiste
+                ? "Falta aprobar la categoría propuesta."
+                : "Falta aprobar la subcategoría propuesta.";
         }
 
         private static bool TieneTexto(string? texto) =>

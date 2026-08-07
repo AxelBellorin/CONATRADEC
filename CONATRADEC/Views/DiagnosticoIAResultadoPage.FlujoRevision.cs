@@ -335,6 +335,10 @@ namespace CONATRADEC.Views
                     {
                         if (string.Equals(
                                 boton.Text,
+                                "Finalizar etapa técnica",
+                                StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(
+                                boton.Text,
                                 "Finalizar y enviar inspección",
                                 StringComparison.OrdinalIgnoreCase))
                         {

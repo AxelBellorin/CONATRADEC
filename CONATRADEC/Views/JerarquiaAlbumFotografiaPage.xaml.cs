@@ -6,12 +6,10 @@ using System.Runtime.CompilerServices;
 namespace CONATRADEC.Views
 {
     /// <summary>
-    /// Resuelve los tres niveles del Álbum Botánico para una sola fotografía.
-    /// El analizador puede seleccionar o proponer; el aprobador confirma y,
-    /// cuando corresponde, crea los niveles propuestos desde el mismo flujo.
+    /// Clasifica una fotografía con la estructura oficial del Álbum Botánico:
+    /// Categoría -> Subcategoría específica -> Fotografías.
     /// </summary>
-    public partial class JerarquiaAlbumFotografiaPage :
-        ContentPage
+    public partial class JerarquiaAlbumFotografiaPage : ContentPage
     {
         private readonly int diagnosticoId;
         private readonly string etapa;
@@ -20,20 +18,19 @@ namespace CONATRADEC.Views
         private readonly TaskCompletionSource<bool> resultadoTcs = new();
 
         private CategoriaAlbumBotanicoResponse? categoriaSeleccionada;
-        private SubcategoriaAlbumBotanicoResponse? subcategoriaSeleccionada;
-        private AlbumRegistroJerarquiaResponse? fichaSeleccionada;
+        private AlbumRegistroJerarquiaResponse? subcategoriaSeleccionada;
         private bool proponerCategoria;
         private bool proponerSubcategoria;
-        private bool proponerFicha;
         private bool isBusy;
+        private bool inicializada;
+        private int versionCarga;
+
         private string categoriaPropuesta = string.Empty;
         private string subcategoriaPropuesta = string.Empty;
-        private string fichaPropuesta = string.Empty;
         private string nombreCientifico = string.Empty;
         private string descripcion = string.Empty;
         private string sintomas = string.Empty;
         private string motivo = string.Empty;
-        private bool inicializada;
 
         public JerarquiaAlbumFotografiaPage(
             int diagnosticoId,
@@ -60,23 +57,29 @@ namespace CONATRADEC.Views
 
         public InspeccionFotoV2 Fotografia { get; }
         public JerarquiaDiagnosticoFotoResponse? JerarquiaActual { get; }
-        public ObservableCollection<CategoriaAlbumBotanicoResponse> Categorias { get; } = [];
-        public ObservableCollection<SubcategoriaAlbumBotanicoResponse> Subcategorias { get; } = [];
-        public ObservableCollection<AlbumRegistroJerarquiaResponse> Fichas { get; } = [];
+        public ObservableCollection<CategoriaAlbumBotanicoResponse>
+            Categorias { get; } = [];
+        public ObservableCollection<AlbumRegistroJerarquiaResponse>
+            SubcategoriasEspecificas { get; } = [];
+
         public Command GuardarCommand { get; }
         public Command CancelarCommand { get; }
         public Task<bool> ResultadoTask => resultadoTcs.Task;
 
         public bool EsAprobador => etapa == "APROBADOR";
-        public bool TieneJerarquiaActual => JerarquiaActual?.TieneClasificacion == true;
+        public bool TieneJerarquiaActual =>
+            JerarquiaActual?.TieneClasificacion == true;
+
         public string EtapaTexto => EsAprobador
-            ? "Decisión del aprobador · los niveles propuestos pueden convertirse en catálogo oficial"
-            : "Análisis humano · seleccione niveles existentes o proponga únicamente los que falten";
+            ? "Decisión del aprobador · las propuestas pueden convertirse en catálogo oficial"
+            : "Análisis humano · seleccione una subcategoría existente o proponga la que falta";
+
         public string AyudaEtapa => EsAprobador
-            ? "Al guardar, el sistema dejará una categoría, una subcategoría y una ficha oficiales. Si un nivel fue propuesto y usted tiene permiso para administrar el álbum, se creará dentro de esta misma operación."
-            : "La propuesta no crea catálogos automáticamente. El aprobador revisará los niveles faltantes antes de incorporarlos al Álbum Botánico.";
+            ? "Al guardar, el sistema dejará una categoría y una subcategoría específica oficiales. Las fotografías aprobadas podrán asociarse a esa subcategoría."
+            : "La propuesta no crea catálogos automáticamente. El aprobador revisará la categoría y la subcategoría antes de incorporarlas al Álbum Botánico.";
+
         public string TextoGuardar => EsAprobador
-            ? "Confirmar jerarquía"
+            ? "Confirmar clasificación"
             : "Guardar clasificación";
 
         public new bool IsBusy
@@ -86,6 +89,7 @@ namespace CONATRADEC.Views
             {
                 if (isBusy == value)
                     return;
+
                 isBusy = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(NotIsBusy));
@@ -97,8 +101,8 @@ namespace CONATRADEC.Views
         public bool NotIsBusy => !IsBusy;
         public bool UsarCategoriaExistente => !ProponerCategoria;
         public bool UsarSubcategoriaExistente => !ProponerSubcategoria;
-        public bool UsarFichaExistente => !ProponerFicha;
-        public bool RequiereDescripcionCreacion => EsAprobador && ProponerFicha;
+        public bool RequiereDescripcionCreacion =>
+            EsAprobador && ProponerSubcategoria;
 
         public CategoriaAlbumBotanicoResponse? CategoriaSeleccionada
         {
@@ -107,38 +111,34 @@ namespace CONATRADEC.Views
             {
                 if (ReferenceEquals(categoriaSeleccionada, value))
                     return;
+
                 categoriaSeleccionada = value;
                 OnPropertyChanged();
-                _ = CargarSubcategoriasAsync(value?.CategoriaAlbumBotanicoId);
+
+                if (!ProponerCategoria)
+                {
+                    _ = CargarSubcategoriasEspecificasAsync(
+                        value?.CategoriaAlbumBotanicoId);
+                }
             }
         }
 
-        public SubcategoriaAlbumBotanicoResponse? SubcategoriaSeleccionada
+        public AlbumRegistroJerarquiaResponse? SubcategoriaSeleccionada
         {
             get => subcategoriaSeleccionada;
             set
             {
                 if (ReferenceEquals(subcategoriaSeleccionada, value))
                     return;
+
                 subcategoriaSeleccionada = value;
                 OnPropertyChanged();
-                _ = CargarFichasAsync(
-                    CategoriaSeleccionada?.CategoriaAlbumBotanicoId,
-                    value?.SubcategoriaAlbumBotanicoId);
-            }
-        }
 
-        public AlbumRegistroJerarquiaResponse? FichaSeleccionada
-        {
-            get => fichaSeleccionada;
-            set
-            {
-                if (ReferenceEquals(fichaSeleccionada, value))
-                    return;
-                fichaSeleccionada = value;
-                OnPropertyChanged();
-                if (value != null && string.IsNullOrWhiteSpace(NombreCientifico))
+                if (value != null)
+                {
+                    ProponerSubcategoria = false;
                     NombreCientifico = value.NombreCientifico ?? string.Empty;
+                }
             }
         }
 
@@ -149,14 +149,17 @@ namespace CONATRADEC.Views
             {
                 if (proponerCategoria == value)
                     return;
+
                 proponerCategoria = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(UsarCategoriaExistente));
+
                 if (value)
                 {
-                    CategoriaSeleccionada = null;
+                    categoriaSeleccionada = null;
+                    OnPropertyChanged(nameof(CategoriaSeleccionada));
+                    SubcategoriasEspecificas.Clear();
                     ProponerSubcategoria = true;
-                    ProponerFicha = true;
                 }
             }
         }
@@ -168,44 +171,60 @@ namespace CONATRADEC.Views
             {
                 if (proponerSubcategoria == value)
                     return;
+
                 proponerSubcategoria = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(UsarSubcategoriaExistente));
+                OnPropertyChanged(nameof(RequiereDescripcionCreacion));
+
                 if (value)
                 {
-                    SubcategoriaSeleccionada = null;
-                    ProponerFicha = true;
+                    subcategoriaSeleccionada = null;
+                    OnPropertyChanged(nameof(SubcategoriaSeleccionada));
                 }
             }
         }
 
-        public bool ProponerFicha
+        public string CategoriaPropuesta
         {
-            get => proponerFicha;
-            set
-            {
-                if (proponerFicha == value)
-                    return;
-                proponerFicha = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(UsarFichaExistente));
-                OnPropertyChanged(nameof(RequiereDescripcionCreacion));
-                if (value)
-                    FichaSeleccionada = null;
-            }
+            get => categoriaPropuesta;
+            set => Set(ref categoriaPropuesta, value);
         }
 
-        public string CategoriaPropuesta { get => categoriaPropuesta; set => Set(ref categoriaPropuesta, value); }
-        public string SubcategoriaPropuesta { get => subcategoriaPropuesta; set => Set(ref subcategoriaPropuesta, value); }
-        public string FichaPropuesta { get => fichaPropuesta; set => Set(ref fichaPropuesta, value); }
-        public string NombreCientifico { get => nombreCientifico; set => Set(ref nombreCientifico, value); }
-        public string Descripcion { get => descripcion; set => Set(ref descripcion, value); }
-        public string Sintomas { get => sintomas; set => Set(ref sintomas, value); }
-        public string Motivo { get => motivo; set => Set(ref motivo, value); }
+        public string SubcategoriaPropuesta
+        {
+            get => subcategoriaPropuesta;
+            set => Set(ref subcategoriaPropuesta, value);
+        }
+
+        public string NombreCientifico
+        {
+            get => nombreCientifico;
+            set => Set(ref nombreCientifico, value);
+        }
+
+        public string Descripcion
+        {
+            get => descripcion;
+            set => Set(ref descripcion, value);
+        }
+
+        public string Sintomas
+        {
+            get => sintomas;
+            set => Set(ref sintomas, value);
+        }
+
+        public string Motivo
+        {
+            get => motivo;
+            set => Set(ref motivo, value);
+        }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
             if (!inicializada)
                 await InicializarAsync();
         }
@@ -233,12 +252,16 @@ namespace CONATRADEC.Views
                     throw new InvalidOperationException(resultado.Message);
 
                 Categorias.Clear();
-                foreach (CategoriaAlbumBotanicoResponse item in resultado.Data ?? [])
+                foreach (CategoriaAlbumBotanicoResponse item in
+                         resultado.Data ?? [])
+                {
                     Categorias.Add(item);
+                }
 
                 PrecargarTextos();
 
-                int? categoriaId = JerarquiaActual?.CategoriaAlbumBotanicoId ??
+                int? categoriaId =
+                    JerarquiaActual?.CategoriaAlbumBotanicoId ??
                     Fotografia.ResultadoIA?.CategoriaAlbumBotanicoIdSugerida;
 
                 CategoriaAlbumBotanicoResponse? categoria = Categorias
@@ -250,12 +273,14 @@ namespace CONATRADEC.Views
                 {
                     categoriaSeleccionada = categoria;
                     OnPropertyChanged(nameof(CategoriaSeleccionada));
-                    await CargarSubcategoriasAsync(categoria.CategoriaAlbumBotanicoId);
+                    await CargarSubcategoriasEspecificasAsync(
+                        categoria.CategoriaAlbumBotanicoId);
                 }
                 else if (!string.IsNullOrWhiteSpace(
                              JerarquiaActual?.Categoria))
                 {
-                    ProponerCategoria = JerarquiaActual.CategoriaEsPropuesta;
+                    ProponerCategoria =
+                        JerarquiaActual.CategoriaEsPropuesta;
                     CategoriaPropuesta = JerarquiaActual.Categoria;
                 }
                 else
@@ -266,7 +291,7 @@ namespace CONATRADEC.Views
             catch (Exception ex)
             {
                 await DisplayAlert(
-                    "No fue posible cargar la jerarquía",
+                    "No fue posible cargar la clasificación",
                     ex.Message,
                     "Aceptar");
                 await CerrarAsync(false);
@@ -284,9 +309,7 @@ namespace CONATRADEC.Views
 
             CategoriaPropuesta = actual?.Categoria ??
                 ia?.CategoriaAlbumPropuesta ?? string.Empty;
-            SubcategoriaPropuesta = actual?.Subcategoria ??
-                SugerirSubcategoria(ia) ?? string.Empty;
-            FichaPropuesta = actual?.Ficha ??
+            SubcategoriaPropuesta = actual?.Ficha ??
                 ia?.ClasificacionAlbumPropuesta ??
                 ia?.DiagnosticoVisible ?? string.Empty;
             NombreCientifico = actual?.NombreCientifico ??
@@ -299,116 +322,78 @@ namespace CONATRADEC.Views
                 ia?.SintomasVisibles ?? []);
 
             ProponerCategoria = actual?.CategoriaEsPropuesta == true;
-            ProponerSubcategoria = actual?.SubcategoriaEsPropuesta == true;
-            ProponerFicha = actual?.FichaEsPropuesta == true ||
+            ProponerSubcategoria =
+                actual?.FichaEsPropuesta == true ||
                 ia?.RequiereGestionAlbum == true;
         }
 
-        private async Task CargarSubcategoriasAsync(int? categoriaId)
+        private async Task CargarSubcategoriasEspecificasAsync(
+            int? categoriaId)
         {
-            Subcategorias.Clear();
-            Fichas.Clear();
+            int version = Interlocked.Increment(ref versionCarga);
+
+            SubcategoriasEspecificas.Clear();
             subcategoriaSeleccionada = null;
-            fichaSeleccionada = null;
             OnPropertyChanged(nameof(SubcategoriaSeleccionada));
-            OnPropertyChanged(nameof(FichaSeleccionada));
 
             if (ProponerCategoria || categoriaId is not > 0)
                 return;
 
             try
             {
-                ApiResult<List<SubcategoriaAlbumBotanicoResponse>> resultado =
-                    await jerarquiaApi.GetSubcategoriasAsync(categoriaId, false);
+                ApiResult<List<AlbumRegistroJerarquiaResponse>> resultado =
+                    await jerarquiaApi.GetJerarquiaRegistrosAsync(
+                        categoriaId: categoriaId,
+                        subcategoriaId: null,
+                        incluirInactivos: false);
+
+                if (version != versionCarga)
+                    return;
 
                 if (!resultado.Success)
                     throw new InvalidOperationException(resultado.Message);
 
-                foreach (SubcategoriaAlbumBotanicoResponse item in resultado.Data ?? [])
-                    Subcategorias.Add(item);
+                foreach (AlbumRegistroJerarquiaResponse item in
+                         resultado.Data ?? [])
+                {
+                    SubcategoriasEspecificas.Add(item);
+                }
 
-                int? subcategoriaId =
-                    JerarquiaActual?.SubcategoriaAlbumBotanicoId;
+                int? id = JerarquiaActual?.AlbumBotanicoCafeId ??
+                    Fotografia.ResultadoIA?.AlbumBotanicoCafeIdSugerido;
 
-                SubcategoriaAlbumBotanicoResponse? seleccion =
-                    Subcategorias.FirstOrDefault(item =>
-                        item.SubcategoriaAlbumBotanicoId == subcategoriaId);
+                AlbumRegistroJerarquiaResponse? seleccion =
+                    SubcategoriasEspecificas.FirstOrDefault(item =>
+                        item.AlbumBotanicoCafeId == id);
 
                 if (seleccion != null &&
-                    JerarquiaActual?.SubcategoriaEsPropuesta != true)
+                    JerarquiaActual?.FichaEsPropuesta != true)
                 {
                     subcategoriaSeleccionada = seleccion;
                     OnPropertyChanged(nameof(SubcategoriaSeleccionada));
-                    await CargarFichasAsync(
-                        categoriaId,
-                        seleccion.SubcategoriaAlbumBotanicoId);
+                    NombreCientifico =
+                        seleccion.NombreCientifico ?? string.Empty;
+                    ProponerSubcategoria = false;
                 }
-                else if (Subcategorias.Count == 0)
+                else if (SubcategoriasEspecificas.Count == 0)
                 {
                     ProponerSubcategoria = true;
                 }
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Subcategorías", ex.Message, "Aceptar");
-            }
-        }
-
-        private async Task CargarFichasAsync(
-            int? categoriaId,
-            int? subcategoriaId)
-        {
-            Fichas.Clear();
-            fichaSeleccionada = null;
-            OnPropertyChanged(nameof(FichaSeleccionada));
-
-            if (ProponerCategoria || ProponerSubcategoria ||
-                categoriaId is not > 0 || subcategoriaId is not > 0)
-            {
-                return;
-            }
-
-            try
-            {
-                ApiResult<List<AlbumRegistroJerarquiaResponse>> resultado =
-                    await jerarquiaApi.GetJerarquiaRegistrosAsync(
-                        categoriaId: categoriaId,
-                        subcategoriaId: subcategoriaId,
-                        incluirInactivos: false);
-
-                if (!resultado.Success)
-                    throw new InvalidOperationException(resultado.Message);
-
-                foreach (AlbumRegistroJerarquiaResponse item in resultado.Data ?? [])
-                    Fichas.Add(item);
-
-                int? fichaId = JerarquiaActual?.AlbumBotanicoCafeId ??
-                    Fotografia.ResultadoIA?.AlbumBotanicoCafeIdSugerido;
-
-                AlbumRegistroJerarquiaResponse? seleccion = Fichas
-                    .FirstOrDefault(item => item.AlbumBotanicoCafeId == fichaId);
-
-                if (seleccion != null &&
-                    JerarquiaActual?.FichaEsPropuesta != true)
-                {
-                    fichaSeleccionada = seleccion;
-                    OnPropertyChanged(nameof(FichaSeleccionada));
-                    ProponerFicha = false;
-                }
-                else if (Fichas.Count == 0)
-                {
-                    ProponerFicha = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("Fichas", ex.Message, "Aceptar");
+                await DisplayAlert(
+                    "Subcategorías",
+                    ex.Message,
+                    "Aceptar");
             }
         }
 
         private void SugerirCategoriaDesdeIA()
         {
-            string categoriaIa = Fotografia.ResultadoIA?.CategoriaPrincipal ?? string.Empty;
+            string categoriaIa =
+                Fotografia.ResultadoIA?.CategoriaPrincipal ?? string.Empty;
+
             string buscada = categoriaIa switch
             {
                 "ENFERMEDAD" => "Enfermedades",
@@ -416,7 +401,9 @@ namespace CONATRADEC.Views
                 "ALTERACION_NUTRICIONAL" => "Alteraciones nutricionales",
                 "ESTRES_ABIOTICO" => "Estrés abiótico",
                 "DANO_MECANICO" => "Daños mecánicos",
-                "NO_APLICA" when Fotografia.ResultadoIA?.EsAparentementeSana == true => "Plantas sanas",
+                "NO_APLICA" when
+                    Fotografia.ResultadoIA?.EsAparentementeSana == true =>
+                        "Plantas sanas",
                 _ => string.Empty
             };
 
@@ -426,68 +413,17 @@ namespace CONATRADEC.Views
                     StringComparison.OrdinalIgnoreCase));
 
             if (categoria != null)
+            {
                 CategoriaSeleccionada = categoria;
+            }
             else
             {
                 ProponerCategoria = true;
                 CategoriaPropuesta = string.IsNullOrWhiteSpace(buscada)
-                    ? Fotografia.ResultadoIA?.CategoriaAlbumPropuesta ?? string.Empty
+                    ? Fotografia.ResultadoIA?.CategoriaAlbumPropuesta ??
+                        string.Empty
                     : buscada;
             }
-        }
-
-        private static string? SugerirSubcategoria(
-            InspeccionFotoResultadoIAV2? ia)
-        {
-            if (ia == null)
-                return null;
-
-            string texto = string.Join(
-                " ",
-                new[]
-                {
-                    ia.DiagnosticoProbable,
-                    ia.TipoDiagnostico,
-                    string.Join(" ", ia.CategoriasSecundarias)
-                }).ToLowerInvariant();
-
-            if (ia.EsAparentementeSana)
-            {
-                return ia.PartePlanta.ToUpperInvariant() switch
-                {
-                    "HOJA" or "HOJAS" => "Hojas sanas",
-                    "FRUTO" or "FRUTOS" => "Frutos sanos",
-                    "TALLO" or "RAMA" or "RAMAS" => "Tallos y ramas sanos",
-                    _ => "Planta completa sana"
-                };
-            }
-
-            if (ia.CategoriaPrincipal == "PLAGA")
-            {
-                if (texto.Contains("ácar") || texto.Contains("acar")) return "Ácaros";
-                if (texto.Contains("nematod")) return "Nematodos";
-                if (texto.Contains("babosa") || texto.Contains("caracol")) return "Moluscos";
-                return "Insectos";
-            }
-
-            if (ia.CategoriaPrincipal == "ENFERMEDAD")
-            {
-                if (texto.Contains("bacter")) return "Enfermedades bacterianas";
-                if (texto.Contains("virus") || texto.Contains("viral")) return "Enfermedades virales";
-                return "Enfermedades fúngicas";
-            }
-
-            if (ia.CategoriaPrincipal == "ALTERACION_NUTRICIONAL")
-            {
-                string micro = "hierro zinc boro cobre manganeso molibdeno cloro niquel";
-                return micro.Split(' ').Any(texto.Contains)
-                    ? "Deficiencias de micronutrientes"
-                    : "Deficiencias de macronutrientes";
-            }
-
-            return ia.CategoriaPrincipal == "ESTRES_ABIOTICO"
-                ? "Otros estreses abióticos"
-                : null;
         }
 
         private async Task GuardarAsync()
@@ -509,10 +445,12 @@ namespace CONATRADEC.Views
             }
 
             bool confirmar = await DisplayAlert(
-                EsAprobador ? "Confirmar jerarquía" : "Guardar propuesta",
                 EsAprobador
-                    ? "La fotografía quedará vinculada con una categoría, subcategoría y ficha oficiales. Los niveles propuestos se crearán únicamente si aún no existen."
-                    : "La clasificación quedará registrada para que el aprobador revise los niveles propuestos.",
+                    ? "Confirmar clasificación"
+                    : "Guardar propuesta",
+                EsAprobador
+                    ? "La fotografía quedará vinculada con una categoría y una subcategoría específica oficiales."
+                    : "La clasificación quedará registrada para que el aprobador revise la categoría y la subcategoría propuestas.",
                 "Continuar",
                 "Cancelar");
 
@@ -522,24 +460,24 @@ namespace CONATRADEC.Views
             IsBusy = true;
             try
             {
+                int? subcategoriaId = ProponerSubcategoria
+                    ? null
+                    : SubcategoriaSeleccionada?.AlbumBotanicoCafeId;
+
                 var request = new ResolverJerarquiaAlbumRequest
                 {
                     Etapa = etapa,
                     CategoriaAlbumBotanicoId = ProponerCategoria
                         ? null
                         : CategoriaSeleccionada?.CategoriaAlbumBotanicoId,
-                    SubcategoriaAlbumBotanicoId = ProponerSubcategoria
-                        ? null
-                        : SubcategoriaSeleccionada?.SubcategoriaAlbumBotanicoId,
-                    AlbumBotanicoCafeId = ProponerFicha
-                        ? null
-                        : FichaSeleccionada?.AlbumBotanicoCafeId,
+                    SubcategoriaAlbumBotanicoId = subcategoriaId,
+                    AlbumBotanicoCafeId = subcategoriaId,
                     ProponerCategoria = ProponerCategoria,
                     ProponerSubcategoria = ProponerSubcategoria,
-                    ProponerFicha = ProponerFicha,
+                    ProponerFicha = false,
                     CategoriaPropuesta = CategoriaPropuesta.Trim(),
                     SubcategoriaPropuesta = SubcategoriaPropuesta.Trim(),
-                    FichaPropuesta = FichaPropuesta.Trim(),
+                    FichaPropuesta = SubcategoriaPropuesta.Trim(),
                     NombreCientifico = NombreCientifico.Trim(),
                     Descripcion = Descripcion.Trim(),
                     Sintomas = Sintomas.Trim(),
@@ -558,7 +496,7 @@ namespace CONATRADEC.Views
                 await DisplayAlert(
                     "Clasificación guardada",
                     string.IsNullOrWhiteSpace(resultado.Message)
-                        ? "La jerarquía de la fotografía fue actualizada."
+                        ? "La clasificación de la fotografía fue actualizada."
                         : resultado.Message,
                     "Aceptar");
 
@@ -566,7 +504,10 @@ namespace CONATRADEC.Views
             }
             catch (Exception ex)
             {
-                await DisplayAlert("No fue posible guardar", ex.Message, "Aceptar");
+                await DisplayAlert(
+                    "No fue posible guardar",
+                    ex.Message,
+                    "Aceptar");
             }
             finally
             {
@@ -584,36 +525,38 @@ namespace CONATRADEC.Views
                     error = "Ingrese el nombre de la categoría propuesta.";
             }
             else if (CategoriaSeleccionada == null)
+            {
                 error = "Seleccione una categoría.";
+            }
 
             if (string.IsNullOrEmpty(error))
             {
                 if (ProponerSubcategoria)
                 {
                     if (SubcategoriaPropuesta.Trim().Length < 3)
-                        error = "Ingrese el nombre de la subcategoría propuesta.";
+                    {
+                        error =
+                            "Ingrese el nombre de la subcategoría propuesta.";
+                    }
+                    else if (EsAprobador &&
+                             Descripcion.Trim().Length < 8)
+                    {
+                        error =
+                            "Ingrese una descripción de al menos 8 caracteres para crear la subcategoría.";
+                    }
                 }
                 else if (SubcategoriaSeleccionada == null)
-                    error = "Seleccione una subcategoría.";
-            }
-
-            if (string.IsNullOrEmpty(error))
-            {
-                if (ProponerFicha)
                 {
-                    if (FichaPropuesta.Trim().Length < 3)
-                        error = "Ingrese el nombre de la ficha propuesta.";
-                    else if (EsAprobador && Descripcion.Trim().Length < 8)
-                        error = "Ingrese una descripción de al menos 8 caracteres para crear la ficha.";
+                    error = "Seleccione una subcategoría específica.";
                 }
-                else if (FichaSeleccionada == null)
-                    error = "Seleccione una ficha específica.";
             }
 
             if (string.IsNullOrEmpty(error) &&
-                !EsAprobador && Motivo.Trim().Length < 8)
+                !EsAprobador &&
+                Motivo.Trim().Length < 8)
             {
-                error = "Explique la clasificación con al menos 8 caracteres.";
+                error =
+                    "Explique la clasificación con al menos 8 caracteres.";
             }
 
             return string.IsNullOrEmpty(error);
@@ -631,16 +574,22 @@ namespace CONATRADEC.Views
         }
 
         private static string NormalizarEtapa(string? valor) =>
-            string.Equals(valor, "APROBADOR", StringComparison.OrdinalIgnoreCase)
+            string.Equals(
+                valor,
+                "APROBADOR",
+                StringComparison.OrdinalIgnoreCase)
                 ? "APROBADOR"
                 : "ANALIZADOR";
 
-        private void Set(ref string campo, string? valor,
+        private void Set(
+            ref string campo,
+            string? valor,
             [CallerMemberName] string? nombre = null)
         {
             string nuevo = valor ?? string.Empty;
             if (campo == nuevo)
                 return;
+
             campo = nuevo;
             OnPropertyChanged(nombre);
         }

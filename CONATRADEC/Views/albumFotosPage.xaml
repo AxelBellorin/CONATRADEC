@@ -42,10 +42,11 @@
                                 FontAttributes="Bold"
                                 TextColor="{StaticResource color_Negro}" />
                             <Label
-                                Text="Categoría → subcategoría → ficha específica → fotografías aprobadas"
+                                Text="Categoría → subcategoría específica → fotografías aprobadas"
                                 FontSize="{OnPlatform WinUI=13, Default=11}"
                                 TextColor="{StaticResource color_GrisOscuro}" />
                         </VerticalStackLayout>
+
                         <Button
                             Grid.Row="{OnPlatform WinUI=0, Default=1}"
                             Grid.Column="{OnPlatform WinUI=1, Default=0}"
@@ -60,10 +61,11 @@
                             CornerRadius="12"
                             Padding="15,11"
                             FontAttributes="Bold" />
+
                         <Button
                             Grid.Row="{OnPlatform WinUI=0, Default=1}"
                             Grid.Column="{OnPlatform WinUI=2, Default=1}"
-                            Text="Nueva ficha"
+                            Text="Nueva subcategoría"
                             Command="{Binding AgregarRegistroCommand}"
                             IsVisible="{Binding CanAdd}"
                             Style="{x:Null}"
@@ -87,7 +89,7 @@
                             <SearchBar
                                 Text="{Binding TextoBusqueda}"
                                 SearchButtonPressed="OnBuscarPresionado"
-                                Placeholder="Buscar categoría, subcategoría, ficha o nombre científico"
+                                Placeholder="Buscar categoría, subcategoría o nombre científico"
                                 BackgroundColor="Transparent"
                                 TextColor="{StaticResource color_Negro}" />
                             <Button
@@ -131,6 +133,7 @@
                                 IsVisible="{Binding IsBusy}"
                                 Color="#9B552C" />
                         </Grid>
+
                         <CollectionView
                             ItemsSource="{Binding Categorias}"
                             ItemsLayout="HorizontalList"
@@ -150,8 +153,17 @@
                                         <TapGestureRecognizer Command="{Binding SeleccionarTodasCommand}" />
                                     </Border.GestureRecognizers>
                                     <VerticalStackLayout VerticalOptions="Center" Spacing="5">
-                                        <Label Text="Todas" FontSize="15" FontAttributes="Bold" TextColor="{Binding TextoTodas}" HorizontalTextAlignment="Center" />
-                                        <Label Text="Galería completa" FontSize="10" TextColor="{Binding TextoTodas}" HorizontalTextAlignment="Center" />
+                                        <Label
+                                            Text="Todas"
+                                            FontSize="15"
+                                            FontAttributes="Bold"
+                                            TextColor="{Binding TextoTodas}"
+                                            HorizontalTextAlignment="Center" />
+                                        <Label
+                                            Text="Galería completa"
+                                            FontSize="10"
+                                            TextColor="{Binding TextoTodas}"
+                                            HorizontalTextAlignment="Center" />
                                     </VerticalStackLayout>
                                 </Border>
                             </CollectionView.Header>
@@ -171,8 +183,17 @@
                                                 CommandParameter="{Binding .}" />
                                         </Border.GestureRecognizers>
                                         <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
-                                            <Label Text="{Binding NombreCategoria}" FontAttributes="Bold" FontSize="13" TextColor="#263A35" MaxLines="2" />
-                                            <Label Grid.Row="1" Text="{Binding TotalTexto}" FontSize="10" TextColor="#5E6B67" />
+                                            <Label
+                                                Text="{Binding NombreCategoria}"
+                                                FontAttributes="Bold"
+                                                FontSize="13"
+                                                TextColor="#263A35"
+                                                MaxLines="2" />
+                                            <Label
+                                                Grid.Row="1"
+                                                Text="{Binding TotalRegistros, StringFormat='{0} subcategorías'}"
+                                                FontSize="10"
+                                                TextColor="#5E6B67" />
                                             <HorizontalStackLayout Grid.Row="2" Spacing="5">
                                                 <Button
                                                     Text="Editar"
@@ -203,103 +224,36 @@
                     </VerticalStackLayout>
 
                     <Border
-                        IsVisible="{Binding MostrarSeccionSubcategorias}"
                         Padding="12"
-                        BackgroundColor="#F8FBF9"
+                        BackgroundColor="#F2F7F5"
                         Stroke="#C8DED6"
-                        StrokeShape="RoundRectangle 15">
-                        <VerticalStackLayout Spacing="9">
-                            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="7">
-                                <VerticalStackLayout>
-                                    <Label Text="Subcategorías" FontSize="18" FontAttributes="Bold" TextColor="#3B655B" />
-                                    <Label Text="{Binding CategoriaSeleccionada.NombreCategoria, StringFormat='Dentro de {0}'}" FontSize="10" TextColor="#5E6B67" />
-                                </VerticalStackLayout>
-                                <Button
-                                    Grid.Column="1"
-                                    Text="Nueva"
-                                    Command="{Binding CrearSubcategoriaCommand}"
-                                    IsVisible="{Binding CanAdd}"
-                                    Style="{x:Null}"
-                                    BackgroundColor="#3B655B"
-                                    TextColor="White"
-                                    Padding="10,6"
-                                    CornerRadius="9" />
-                                <Button
-                                    Grid.Column="2"
-                                    Text="Editar"
-                                    Command="{Binding EditarSubcategoriaCommand}"
-                                    IsEnabled="{Binding TieneSubcategoriaSeleccionada}"
-                                    IsVisible="{Binding CanEdit}"
-                                    Style="{x:Null}"
-                                    BackgroundColor="#EAF0FF"
-                                    TextColor="#2D5A9E"
-                                    Padding="10,6"
-                                    CornerRadius="9" />
-                                <Button
-                                    Grid.Column="3"
-                                    Text="{Binding TextoCambiarEstadoSubcategoria}"
-                                    Command="{Binding CambiarEstadoSubcategoriaCommand}"
-                                    IsEnabled="{Binding TieneSubcategoriaSeleccionada}"
-                                    IsVisible="{Binding CanDelete}"
-                                    Style="{x:Null}"
-                                    BackgroundColor="#FFF4E8"
-                                    TextColor="#9B552C"
-                                    Padding="10,6"
-                                    CornerRadius="9" />
-                            </Grid>
-                            <CollectionView
-                                ItemsSource="{Binding Subcategorias}"
-                                ItemsLayout="HorizontalList"
-                                SelectionMode="None"
-                                HeightRequest="84"
-                                ItemSizingStrategy="MeasureFirstItem">
-                                <CollectionView.Header>
-                                    <Border
-                                        WidthRequest="128"
-                                        HeightRequest="74"
-                                        Margin="0,0,8,0"
-                                        Padding="10"
-                                        BackgroundColor="{Binding FondoTodasSubcategorias}"
-                                        Stroke="{Binding BordeTodasSubcategorias}"
-                                        StrokeShape="RoundRectangle 12">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SeleccionarTodasSubcategoriasCommand}" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="Todas" VerticalOptions="Center" HorizontalTextAlignment="Center" FontAttributes="Bold" TextColor="{Binding TextoTodasSubcategorias}" />
-                                    </Border>
-                                </CollectionView.Header>
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border
-                                            WidthRequest="210"
-                                            HeightRequest="74"
-                                            Margin="0,0,8,0"
-                                            Padding="10"
-                                            BackgroundColor="{Binding FondoSeleccion}"
-                                            Stroke="{Binding BordeSeleccion}"
-                                            StrokeShape="RoundRectangle 12">
-                                            <Border.GestureRecognizers>
-                                                <TapGestureRecognizer
-                                                    Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.SeleccionarSubcategoriaCommand}"
-                                                    CommandParameter="{Binding .}" />
-                                            </Border.GestureRecognizers>
-                                            <VerticalStackLayout VerticalOptions="Center" Spacing="2">
-                                                <Label Text="{Binding NombreSubcategoria}" FontAttributes="Bold" FontSize="12" TextColor="#263A35" MaxLines="2" />
-                                                <Label Text="{Binding TotalTexto}" FontSize="9" TextColor="#5E6B67" />
-                                            </VerticalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-                        </VerticalStackLayout>
+                        StrokeShape="RoundRectangle 14">
+                        <Label
+                            Text="Seleccione una categoría para ver sus diagnósticos o subcategorías específicas. Cada subcategoría conserva su información técnica y sus fotografías aprobadas."
+                            FontSize="11"
+                            TextColor="#365A50"
+                            LineBreakMode="WordWrap" />
                     </Border>
 
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout Spacing="2">
-                            <Label Text="{Binding TituloGaleria}" FontFamily="MontserratBold" FontSize="20" FontAttributes="Bold" TextColor="#263A35" />
-                            <Label Text="Cada tarjeta muestra la ruta jerárquica completa de la ficha." FontSize="10" TextColor="#5E6B67" />
+                            <Label
+                                Text="{Binding TituloGaleria}"
+                                FontFamily="MontserratBold"
+                                FontSize="20"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Label
+                                Text="Cada tarjeta representa una subcategoría específica del álbum."
+                                FontSize="10"
+                                TextColor="#5E6B67" />
                         </VerticalStackLayout>
-                        <Label Grid.Column="1" Text="{Binding TotalRegistrosTexto}" VerticalOptions="Center" FontSize="11" TextColor="#5E6B67" />
+                        <Label
+                            Grid.Column="1"
+                            Text="{Binding Registros.Count, StringFormat='{0} cargadas'}"
+                            VerticalOptions="Center"
+                            FontSize="11"
+                            TextColor="#5E6B67" />
                     </Grid>
 
                     <Border
@@ -308,7 +262,11 @@
                         BackgroundColor="White"
                         Stroke="#DDE7E3"
                         StrokeShape="RoundRectangle 15">
-                        <Label Text="No se encontraron fichas para los filtros seleccionados." HorizontalTextAlignment="Center" FontAttributes="Bold" TextColor="#5E6B67" />
+                        <Label
+                            Text="No se encontraron subcategorías para los filtros seleccionados."
+                            HorizontalTextAlignment="Center"
+                            FontAttributes="Bold"
+                            TextColor="#5E6B67" />
                     </Border>
                 </VerticalStackLayout>
             </CollectionView.Header>
@@ -322,19 +280,59 @@
                         StrokeShape="RoundRectangle 18">
                         <Grid RowDefinitions="{OnPlatform WinUI='175,Auto', Default='220,Auto'}">
                             <Grid>
-                                <Image Source="{Binding FotoPortadaUrl}" Aspect="AspectFill" IsVisible="{Binding TieneFoto}" />
-                                <Grid IsVisible="{Binding SinFoto}" BackgroundColor="#EEF5F2">
-                                    <Label Text="Sin fotografía de portada" HorizontalOptions="Center" VerticalOptions="Center" TextColor="#5E6B67" />
+                                <Image
+                                    Source="{Binding FotoPortadaUrl}"
+                                    Aspect="AspectFill"
+                                    IsVisible="{Binding TieneFoto}" />
+                                <Grid
+                                    IsVisible="{Binding SinFoto}"
+                                    BackgroundColor="#EEF5F2">
+                                    <Label
+                                        Text="Sin fotografía de portada"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center"
+                                        TextColor="#5E6B67" />
                                 </Grid>
-                                <Border Margin="10" Padding="8,4" HorizontalOptions="End" VerticalOptions="Start" BackgroundColor="#E8FFFFFF" StrokeThickness="0" StrokeShape="RoundRectangle 9">
-                                    <Label Text="{Binding TotalFotosTexto}" FontSize="10" FontAttributes="Bold" TextColor="#3B655B" />
+                                <Border
+                                    Margin="10"
+                                    Padding="8,4"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Start"
+                                    BackgroundColor="#E8FFFFFF"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 9">
+                                    <Label
+                                        Text="{Binding TotalFotosTexto}"
+                                        FontSize="10"
+                                        FontAttributes="Bold"
+                                        TextColor="#3B655B" />
                                 </Border>
                             </Grid>
+
                             <VerticalStackLayout Grid.Row="1" Padding="14" Spacing="7">
-                                <Label Text="{Binding RutaJerarquica}" FontSize="11" FontAttributes="Bold" TextColor="#9B552C" />
-                                <Label Text="{Binding Titulo}" FontFamily="MontserratBold" FontSize="17" FontAttributes="Bold" TextColor="#263A35" MaxLines="2" />
-                                <Label Text="{Binding NombreCientifico}" IsVisible="{Binding TieneNombreCientifico}" FontAttributes="Italic" FontSize="12" TextColor="#3B655B" />
-                                <Label Text="{Binding DescripcionCorta}" FontSize="11" TextColor="#5E6B67" MaxLines="3" />
+                                <Label
+                                    Text="{Binding Categoria}"
+                                    FontSize="11"
+                                    FontAttributes="Bold"
+                                    TextColor="#9B552C" />
+                                <Label
+                                    Text="{Binding Titulo}"
+                                    FontFamily="MontserratBold"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35"
+                                    MaxLines="2" />
+                                <Label
+                                    Text="{Binding NombreCientifico}"
+                                    IsVisible="{Binding TieneNombreCientifico}"
+                                    FontAttributes="Italic"
+                                    FontSize="12"
+                                    TextColor="#3B655B" />
+                                <Label
+                                    Text="{Binding DescripcionCorta}"
+                                    FontSize="11"
+                                    TextColor="#5E6B67"
+                                    MaxLines="3" />
                                 <Button
                                     Text="Ver detalle"
                                     Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.AbrirDetalleCommand}"
@@ -373,9 +371,21 @@
             </CollectionView.ItemTemplate>
 
             <CollectionView.Footer>
-                <VerticalStackLayout Padding="0,12" Spacing="6">
-                    <ActivityIndicator IsRunning="{Binding IsLoadingMore}" IsVisible="{Binding IsLoadingMore}" Color="#9B552C" />
-                    <BoxView HeightRequest="12" Color="Transparent" />
+                <VerticalStackLayout Padding="0,16" Spacing="8">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsLoadingMore}"
+                        IsVisible="{Binding IsLoadingMore}"
+                        Color="#9B552C" />
+                    <Button
+                        Text="Cargar más"
+                        Command="{Binding CargarMasCommand}"
+                        IsVisible="{Binding TieneMas}"
+                        Style="{x:Null}"
+                        HorizontalOptions="Center"
+                        BackgroundColor="#E8F1ED"
+                        TextColor="#3B655B"
+                        CornerRadius="11"
+                        Padding="18,10" />
                 </VerticalStackLayout>
             </CollectionView.Footer>
         </CollectionView>
