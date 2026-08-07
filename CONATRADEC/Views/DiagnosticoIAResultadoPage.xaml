@@ -189,6 +189,17 @@
                                             TextColor="#3B655B"
                                             Margin="0,0,6,0" />
                                         <Button
+                                            Text="Seleccionar todas"
+                                            Clicked="OnSeleccionarTodoAnalizadorClicked"
+                                            IsVisible="{Binding TextoRegresar, Converter={StaticResource FlujoInspeccionPresentacionConverter}, ConverterParameter=VistaAnalizador}"
+                                            WidthRequest="{OnIdiom Phone=148, Default=170}"
+                                            HeightRequest="44"
+                                            CornerRadius="10"
+                                            FontSize="13"
+                                            BackgroundColor="#E3EFEA"
+                                            TextColor="#3B655B"
+                                            Margin="0,0,6,0" />
+                                        <Button
                                             Text="Quitar selección"
                                             Command="{Binding QuitarSeleccionCommand}"
                                             WidthRequest="{OnIdiom Phone=148, Default=170}"
@@ -202,6 +213,72 @@
                             </FlexLayout>
 
                             <BoxView HeightRequest="1" Color="#E5ECE9" />
+
+                            <Border
+                                Padding="12"
+                                BackgroundColor="#F8FBFA"
+                                Stroke="#C8DED6"
+                                StrokeShape="RoundRectangle 12"
+                                IsVisible="{Binding TextoRegresar, Converter={StaticResource FlujoInspeccionPresentacionConverter}, ConverterParameter=VistaAnalizador}">
+                                <Grid
+                                    RowDefinitions="Auto,Auto"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                                    RowSpacing="10"
+                                    ColumnSpacing="12">
+                                    <VerticalStackLayout
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Spacing="3">
+                                        <Label
+                                            Text="Revisión guiada del analizador"
+                                            FontSize="17"
+                                            FontAttributes="Bold"
+                                            TextColor="#263A35" />
+                                        <Label
+                                            x:Name="EstadoRevisionAnalizadorLabel"
+                                            Text="Seleccione una o varias fotografías para revisarlas individualmente."
+                                            FontSize="12"
+                                            TextColor="#4F5D59"
+                                            LineBreakMode="WordWrap" />
+                                        <Label
+                                            x:Name="AyudaRevisionAnalizadorLabel"
+                                            FontSize="11"
+                                            TextColor="#6B5710"
+                                            LineBreakMode="WordWrap" />
+                                    </VerticalStackLayout>
+
+                                    <FlexLayout
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        Direction="Row"
+                                        Wrap="Wrap"
+                                        AlignItems="Center"
+                                        JustifyContent="End">
+                                        <Button
+                                            x:Name="RevisarSeleccionAnalizadorButton"
+                                            Text="Revisar seleccionadas"
+                                            Clicked="OnRevisarSeleccionAnalizadorClicked"
+                                            IsEnabled="{Binding TieneSeleccion}"
+                                            HeightRequest="46"
+                                            MinimumWidthRequest="{OnIdiom Phone=180, Default=190}"
+                                            CornerRadius="11"
+                                            BackgroundColor="#3B655B"
+                                            TextColor="White"
+                                            Margin="0,0,8,8" />
+                                        <Button
+                                            x:Name="FinalizarRevisionAnalizadorButton"
+                                            Text="Finalizar revisión y enviar al aprobador"
+                                            Clicked="OnFinalizarRevisionAnalizadorClicked"
+                                            IsEnabled="False"
+                                            HeightRequest="46"
+                                            MinimumWidthRequest="{OnIdiom Phone=250, Default=270}"
+                                            CornerRadius="11"
+                                            BackgroundColor="#263A35"
+                                            TextColor="White"
+                                            Margin="0,0,8,8" />
+                                    </FlexLayout>
+                                </Grid>
+                            </Border>
 
                             <FlexLayout
                                 Direction="Row"
@@ -500,9 +577,31 @@
                                                 BackgroundColor="#F4F7F5"
                                                 Stroke="#C8DED6"
                                                 StrokeShape="RoundRectangle 12">
-                                                <Image
-                                                    Source="{Binding UrlImagen}"
-                                                    Aspect="AspectFill" />
+                                                <Grid>
+                                                    <Image
+                                                        Source="{Binding UrlImagen}"
+                                                        Aspect="AspectFill">
+                                                        <Image.GestureRecognizers>
+                                                            <TapGestureRecognizer
+                                                                Tapped="OnFotografiaResultadoTapped"
+                                                                CommandParameter="{Binding .}" />
+                                                        </Image.GestureRecognizers>
+                                                    </Image>
+                                                    <Border
+                                                        Padding="7,4"
+                                                        Margin="8"
+                                                        HorizontalOptions="End"
+                                                        VerticalOptions="End"
+                                                        BackgroundColor="#CC263A35"
+                                                        StrokeThickness="0"
+                                                        InputTransparent="True"
+                                                        StrokeShape="RoundRectangle 8">
+                                                        <Label
+                                                            Text="🔍 Ampliar"
+                                                            FontSize="10"
+                                                            TextColor="White" />
+                                                    </Border>
+                                                </Grid>
                                             </Border>
 
                                             <VerticalStackLayout

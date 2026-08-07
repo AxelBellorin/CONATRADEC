@@ -295,28 +295,12 @@ namespace CONATRADEC.Views
 
                 if (EsVistaAnalizadorRevision)
                 {
-                    Label? titulo = elementos
-                        .OfType<Label>()
-                        .FirstOrDefault(item => string.Equals(
-                            item.Text,
-                            "Acciones por fotografía",
-                            StringComparison.OrdinalIgnoreCase));
-
-                    Border? panel = titulo == null
-                        ? null
-                        : BuscarAncestro<Border>(titulo);
-
-                    if (panel != null)
-                        panel.IsVisible = false;
-
-                    foreach (CheckBox check in elementos.OfType<CheckBox>()
-                                 .Where(item =>
-                                     item.BindingContext is InspeccionFotoV2))
-                    {
-                        check.IsVisible = false;
-                        check.IsChecked = false;
-                    }
-
+                    /*
+                     * La selección múltiple vuelve a estar visible en la vista
+                     * del analizador. El panel superior funciona como centro de
+                     * revisión guiada y las decisiones de cada fotografía se
+                     * mantienen separadas dentro de su tarjeta.
+                     */
                     foreach (Button boton in elementos.OfType<Button>())
                     {
                         if (string.Equals(
@@ -327,6 +311,8 @@ namespace CONATRADEC.Views
                             boton.IsVisible = false;
                         }
                     }
+
+                    ActualizarPanelGlobalAnalizador();
                 }
 
                 if (EsVistaTecnicoRevision)
@@ -458,31 +444,31 @@ namespace CONATRADEC.Views
             Label estado = CrearEtiquetaAyuda();
             Label bloqueo = CrearEtiquetaBloqueo();
 
-            Button clasificar = CrearBotonTarjeta(
-                "Confirmar o corregir clasificación",
+            Button confirmar = CrearBotonTarjeta(
+                "✓ Confirmar diagnóstico IA",
+                "#3B655B",
+                Colors.White);
+            confirmar.CommandParameter = foto;
+            confirmar.Clicked += OnConfirmarTarjetaClicked;
+
+            Button corregir = CrearBotonTarjeta(
+                "✎ Corregir diagnóstico",
                 "#9B552C",
                 Colors.White);
-            clasificar.CommandParameter = foto;
-            clasificar.Clicked += OnClasificarTarjetaClicked;
+            corregir.CommandParameter = foto;
+            corregir.Clicked += OnCorregirTarjetaClicked;
 
             Button devolver = CrearBotonTarjeta(
-                "Solicitar corrección al técnico",
+                "↩ Devolver al técnico",
                 "#FFF4EA",
                 Color.FromArgb("#9B552C"));
             devolver.CommandParameter = foto;
             devolver.Clicked += OnDevolverTarjetaClicked;
 
-            Button finalizar = CrearBotonTarjeta(
-                "Finalizar revisión y enviar al aprobador",
-                "#263A35",
-                Colors.White);
-            finalizar.CommandParameter = foto;
-            finalizar.Clicked += OnFinalizarRevisionTarjetaClicked;
-
             Microsoft.Maui.Controls.Layout botones = CrearContenedorBotones(
-                clasificar,
-                devolver,
-                finalizar);
+                confirmar,
+                corregir,
+                devolver);
 
             var contenido = new VerticalStackLayout
             {
@@ -491,7 +477,7 @@ namespace CONATRADEC.Views
                 {
                     new Label
                     {
-                        Text = "Acciones del analizador",
+                        Text = "Acciones de esta fotografía",
                         FontSize = 15,
                         FontAttributes = FontAttributes.Bold,
                         TextColor = Color.FromArgb("#263A35")
@@ -511,9 +497,9 @@ namespace CONATRADEC.Views
                 true,
                 estado,
                 bloqueo,
-                clasificar,
+                confirmar,
+                corregir,
                 devolver,
-                finalizar,
                 null);
 
             accionesPorFoto[foto.FotografiaId] = acciones;
@@ -727,37 +713,27 @@ namespace CONATRADEC.Views
             ResumenRevisionAnalizadorV2 resumen = contextoRevision!.Resumen;
             acciones.Panel.IsVisible = true;
             acciones.Estado.Text = foto.TieneAnalisisHumano
-                ? "La clasificación humana está guardada como borrador y puede corregirse antes del cierre."
-                : "Esta fotografía todavía necesita una clasificación humana.";
+                ? "Esta fotografía ya tiene una clasificación humana guardada. Puede confirmarse nuevamente o corregirse antes del cierre global."
+                : "Revise el resultado de la IA y decida si lo confirma, lo corrige o devuelve la evidencia al técnico.";
 
-            if (acciones.Clasificar != null)
-            {
-                acciones.Clasificar.Text = foto.TieneAnalisisHumano
-                    ? "Revisar o corregir clasificación"
-                    : "Confirmar o corregir clasificación";
-                acciones.Clasificar.IsEnabled =
-                    !operacionRevisionActiva &&
-                    EsEstadoVisibleAnalizador(foto.Estado);
-            }
+            bool disponible =
+                !operacionRevisionActiva &&
+                EsEstadoVisibleAnalizador(foto.Estado);
+
+            if (acciones.Confirmar != null)
+                acciones.Confirmar.IsEnabled = disponible;
+
+            if (acciones.Corregir != null)
+                acciones.Corregir.IsEnabled = disponible;
 
             if (acciones.Devolver != null)
-            {
-                acciones.Devolver.IsEnabled =
-                    !operacionRevisionActiva &&
-                    EsEstadoVisibleAnalizador(foto.Estado);
-            }
+                acciones.Devolver.IsEnabled = disponible;
 
-            if (acciones.Finalizar != null)
-            {
-                acciones.Finalizar.IsEnabled =
-                    !operacionRevisionActiva &&
-                    resumen.PuedeFinalizarRevision &&
-                    !resumen.EtapaAnalizadorFinalizada;
-            }
+            acciones.Bloqueo.Text = foto.TieneAnalisisHumano
+                ? "Clasificación humana lista. El envío al aprobador se realiza una sola vez desde el botón global de finalización."
+                : "Las acciones afectan únicamente esta fotografía.";
 
-            acciones.Bloqueo.Text = resumen.PuedeFinalizarRevision
-                ? "Todas las fotografías están listas. Este botón finaliza la revisión completa de la inspección."
-                : resumen.MotivoNoPuedeFinalizarRevision;
+            ActualizarPanelGlobalAnalizador();
         }
 
         private static void ActualizarAccionesTecnico(
@@ -780,7 +756,193 @@ namespace CONATRADEC.Views
             }
         }
 
-        private async void OnClasificarTarjetaClicked(
+        private void OnSeleccionarTodoAnalizadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (!EsVistaAnalizadorRevision || operacionRevisionActiva)
+                return;
+
+            foreach (InspeccionFotoV2 foto in viewModel.Fotografias)
+            {
+                foto.Seleccionada =
+                    foto.PuedeSeleccionarse &&
+                    EsEstadoVisibleAnalizador(foto.Estado);
+            }
+
+            ActualizarPanelGlobalAnalizador();
+        }
+
+        private async void OnRevisarSeleccionAnalizadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (!EsVistaAnalizadorRevision || operacionRevisionActiva)
+                return;
+
+            List<InspeccionFotoV2> seleccionadas = viewModel.Fotografias
+                .Where(item =>
+                    item.Seleccionada &&
+                    EsEstadoVisibleAnalizador(item.Estado))
+                .OrderBy(item => item.Orden)
+                .ToList();
+
+            if (seleccionadas.Count == 0)
+            {
+                await DisplayAlert(
+                    "Seleccione fotografías",
+                    "Seleccione una o varias fotografías antes de iniciar la revisión guiada.",
+                    "Aceptar");
+                return;
+            }
+
+            operacionRevisionActiva = true;
+            ActualizarEstadoBotonesTarjetas();
+
+            bool cancelarSecuencia = false;
+            int completadas = 0;
+
+            try
+            {
+                for (int indice = 0; indice < seleccionadas.Count; indice++)
+                {
+                    InspeccionFotoV2 foto = seleccionadas[indice];
+                    var pagina = new RevisionAnalizadorFotografiaPage(
+                        seleccionadas,
+                        indice);
+
+                    await Navigation.PushModalAsync(pagina, animated: false);
+                    RevisionAnalizadorAccion accion =
+                        await pagina.ResultadoTask;
+
+                    if (accion == RevisionAnalizadorAccion.Cancelar)
+                    {
+                        cancelarSecuencia = true;
+                        break;
+                    }
+
+                    if (accion == RevisionAnalizadorAccion.Omitir)
+                        continue;
+
+                    try
+                    {
+                        bool realizada = accion switch
+                        {
+                            RevisionAnalizadorAccion.Confirmar =>
+                                await ConfirmarDiagnosticoIaAsync(foto),
+                            RevisionAnalizadorAccion.Corregir =>
+                                await CorregirDiagnosticoAsync(foto),
+                            RevisionAnalizadorAccion.DevolverTecnico =>
+                                await SolicitarDevolucionTecnicoAsync(foto),
+                            _ => false
+                        };
+
+                        if (realizada)
+                        {
+                            foto.Seleccionada = false;
+                            completadas++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        await DisplayAlert(
+                            $"{foto.Titulo}",
+                            ex.Message,
+                            "Aceptar");
+                    }
+                }
+
+                if (completadas > 0)
+                    await RecargarDespuesOperacionRevisionAsync();
+
+                if (!cancelarSecuencia)
+                {
+                    await DisplayAlert(
+                        "Revisión guiada",
+                        $"Se atendieron {completadas} de {seleccionadas.Count} fotografía(s) seleccionadas. Las omitidas permanecen pendientes.",
+                        "Aceptar");
+                }
+            }
+            finally
+            {
+                operacionRevisionActiva = false;
+                ActualizarEstadoBotonesTarjetas();
+            }
+        }
+
+        private async void OnFotografiaResultadoTapped(
+            object? sender,
+            TappedEventArgs e)
+        {
+            InspeccionFotoV2? foto = e.Parameter as InspeccionFotoV2;
+            if (foto == null)
+                return;
+
+            List<InspeccionFotoV2> fotos = viewModel.Fotografias
+                .Where(item => !string.IsNullOrWhiteSpace(item.UrlImagen))
+                .OrderBy(item => item.Orden)
+                .ToList();
+
+            int indice = fotos.FindIndex(item =>
+                item.FotografiaId == foto.FotografiaId);
+
+            if (indice < 0)
+                return;
+
+            var visor = new VisorFotografiaFitosanitariaPage(fotos, indice);
+            await Navigation.PushModalAsync(visor, animated: false);
+        }
+
+        private void ActualizarPanelGlobalAnalizador()
+        {
+            if (!EsVistaAnalizadorRevision)
+                return;
+
+            try
+            {
+                int seleccionadas = viewModel.Fotografias.Count(item =>
+                    item.Seleccionada &&
+                    EsEstadoVisibleAnalizador(item.Estado));
+
+                ResumenRevisionAnalizadorV2? resumen = contextoRevision?.Resumen;
+
+                if (EstadoRevisionAnalizadorLabel != null)
+                {
+                    EstadoRevisionAnalizadorLabel.Text = resumen == null
+                        ? $"{seleccionadas} fotografía(s) seleccionadas."
+                        : $"{resumen.TotalClasificadasHumano} de {resumen.TotalRecibidasAnalizador} fotografía(s) recibidas ya tienen clasificación humana · {seleccionadas} seleccionada(s).";
+                }
+
+                if (AyudaRevisionAnalizadorLabel != null)
+                {
+                    AyudaRevisionAnalizadorLabel.Text = resumen == null
+                        ? string.Empty
+                        : resumen.PuedeFinalizarRevision
+                            ? "Todas las fotografías están listas. Ya puede finalizar la revisión completa."
+                            : resumen.MotivoNoPuedeFinalizarRevision;
+                }
+
+                if (RevisarSeleccionAnalizadorButton != null)
+                {
+                    RevisarSeleccionAnalizadorButton.IsEnabled =
+                        !operacionRevisionActiva && seleccionadas > 0;
+                }
+
+                if (FinalizarRevisionAnalizadorButton != null)
+                {
+                    FinalizarRevisionAnalizadorButton.IsEnabled =
+                        !operacionRevisionActiva &&
+                        resumen?.PuedeFinalizarRevision == true &&
+                        resumen.EtapaAnalizadorFinalizada == false;
+                }
+            }
+            catch
+            {
+                // La capa visual no sustituye las validaciones del backend.
+            }
+        }
+
+        private async void OnConfirmarTarjetaClicked(
             object? sender,
             EventArgs e)
         {
@@ -797,21 +959,20 @@ namespace CONATRADEC.Views
 
             try
             {
-                bool guardada = await ClasificarFotografiaAsync(foto);
-                if (!guardada)
-                    return;
+                if (await ConfirmarDiagnosticoIaAsync(foto))
+                {
+                    await DisplayAlert(
+                        "Diagnóstico confirmado",
+                        "La clasificación de la IA quedó registrada como clasificación humana de esta fotografía.",
+                        "Aceptar");
 
-                await DisplayAlert(
-                    "Clasificación humana",
-                    "La clasificación de esta fotografía fue guardada como borrador.",
-                    "Aceptar");
-
-                await RecargarDespuesOperacionRevisionAsync();
+                    await RecargarDespuesOperacionRevisionAsync();
+                }
             }
             catch (Exception ex)
             {
                 await DisplayAlert(
-                    "Clasificación humana",
+                    "Confirmar diagnóstico",
                     ex.Message,
                     "Aceptar");
             }
@@ -822,76 +983,65 @@ namespace CONATRADEC.Views
             }
         }
 
-        private async Task<bool> ClasificarFotografiaAsync(
+        private async void OnCorregirTarjetaClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (operacionRevisionActiva ||
+                sender is not Button boton ||
+                boton.CommandParameter is not InspeccionFotoV2 foto ||
+                !EsEstadoVisibleAnalizador(foto.Estado))
+            {
+                return;
+            }
+
+            operacionRevisionActiva = true;
+            ActualizarEstadoBotonesTarjetas();
+
+            try
+            {
+                if (await CorregirDiagnosticoAsync(foto))
+                {
+                    await DisplayAlert(
+                        "Diagnóstico corregido",
+                        "La clasificación humana quedó guardada con la categoría y subcategoría seleccionadas del catálogo.",
+                        "Aceptar");
+
+                    await RecargarDespuesOperacionRevisionAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert(
+                    "Corregir diagnóstico",
+                    ex.Message,
+                    "Aceptar");
+            }
+            finally
+            {
+                operacionRevisionActiva = false;
+                ActualizarEstadoBotonesTarjetas();
+            }
+        }
+
+        private async Task<bool> ConfirmarDiagnosticoIaAsync(
             InspeccionFotoV2 foto)
         {
-            string? diagnostico = await DisplayPromptAsync(
-                "Diagnóstico humano",
-                $"Confirme o corrija el diagnóstico de {foto.Titulo}.",
-                "Continuar",
-                "Cancelar",
-                "Diagnóstico obligatorio",
-                300,
-                Keyboard.Default,
-                foto.UltimoAnalisisHumano?.Diagnostico ??
-                foto.ResultadoIA?.DiagnosticoProbable ?? string.Empty);
-
-            if (string.IsNullOrWhiteSpace(diagnostico))
+            InspeccionFotoResultadoIAV2? ia = foto.ResultadoIA;
+            if (ia == null || string.IsNullOrWhiteSpace(ia.DiagnosticoProbable))
+            {
+                await DisplayAlert(
+                    "Resultado IA no disponible",
+                    "Esta fotografía no tiene un diagnóstico de IA que pueda confirmarse.",
+                    "Aceptar");
                 return false;
+            }
 
-            string? categoria = await DisplayActionSheet(
-                "Categoría principal",
-                "Cancelar",
-                null,
-                "ENFERMEDAD",
-                "PLAGA",
-                "ALTERACION_NUTRICIONAL",
-                "ESTRES_ABIOTICO",
-                "DANO_MECANICO",
-                "AFECTACION_NO_DETERMINADA",
-                "NO_APLICA");
-
-            if (string.IsNullOrWhiteSpace(categoria) || categoria == "Cancelar")
-                return false;
-
-            string? severidad = await DisplayActionSheet(
-                "Severidad visual",
-                "Cancelar",
-                null,
-                "LEVE",
-                "MODERADA",
-                "SEVERA",
-                "NO_EVALUABLE",
-                "NO_APLICA");
-
-            if (string.IsNullOrWhiteSpace(severidad) || severidad == "Cancelar")
-                return false;
-
-            string? certeza = await DisplayActionSheet(
-                "Nivel de certeza",
-                "Cancelar",
-                null,
-                "ALTO",
-                "MEDIO",
-                "BAJO",
-                "NO_DETERMINADO");
-
-            if (string.IsNullOrWhiteSpace(certeza) || certeza == "Cancelar")
-                return false;
-
-            string? observaciones = await DisplayPromptAsync(
-                "Observaciones",
-                "Documente la confirmación o las diferencias respecto al resultado de la IA.",
-                "Guardar borrador",
-                "Cancelar",
-                "Opcional",
-                3000,
-                Keyboard.Default,
-                foto.UltimoAnalisisHumano?.Observaciones ?? string.Empty);
-
-            if (observaciones == null)
-                return false;
-
+            /*
+             * Si la IA propuso una subcategoría que aún no existe, primero se
+             * obliga a revisar el catálogo. La categoría nunca se escribe
+             * libremente desde la inspección.
+             */
             if (!foto.TieneClasificacionAlbumCompleta)
             {
                 var paginaJerarquia = new JerarquiaAlbumFotografiaPage(
@@ -899,24 +1049,108 @@ namespace CONATRADEC.Views
                     foto,
                     "ANALIZADOR");
                 await Navigation.PushModalAsync(paginaJerarquia);
-                bool guardado = await paginaJerarquia.ResultadoTask;
-                if (!guardado)
+                bool guardada = await paginaJerarquia.ResultadoTask;
+                if (!guardada)
                     return false;
             }
 
+            await GuardarClasificacionHumanaAsync(
+                foto,
+                ia.DiagnosticoProbable,
+                ia.CategoriaPrincipal,
+                "Diagnóstico de IA confirmado por el analizador sin cambios.");
+
+            return true;
+        }
+
+        private async Task<bool> CorregirDiagnosticoAsync(
+            InspeccionFotoV2 foto)
+        {
+            var paginaJerarquia = new JerarquiaAlbumFotografiaPage(
+                idRevision,
+                foto,
+                "ANALIZADOR");
+            await Navigation.PushModalAsync(paginaJerarquia);
+            bool guardada = await paginaJerarquia.ResultadoTask;
+            if (!guardada)
+                return false;
+
+            JerarquiaDiagnosticoFotoResponse? jerarquia =
+                await ObtenerJerarquiaActualizadaAsync(foto.FotografiaId);
+
+            string diagnostico =
+                !string.IsNullOrWhiteSpace(jerarquia?.Ficha)
+                    ? jerarquia.Ficha.Trim()
+                    : foto.ResultadoIA?.DiagnosticoProbable?.Trim() ??
+                      string.Empty;
+
+            if (string.IsNullOrWhiteSpace(diagnostico))
+            {
+                await DisplayAlert(
+                    "Clasificación incompleta",
+                    "No fue posible determinar la subcategoría corregida.",
+                    "Aceptar");
+                return false;
+            }
+
+            string categoriaPrincipal = MapearCategoriaPrincipalHumana(
+                jerarquia?.Categoria,
+                foto.ResultadoIA?.CategoriaPrincipal);
+
+            string diagnosticoIa =
+                foto.ResultadoIA?.DiagnosticoProbable?.Trim() ??
+                "Sin diagnóstico IA";
+
+            await GuardarClasificacionHumanaAsync(
+                foto,
+                diagnostico,
+                categoriaPrincipal,
+                $"Clasificación corregida por el analizador. IA sugirió: {diagnosticoIa}. Clasificación humana: {diagnostico}.");
+
+            return true;
+        }
+
+        private async Task GuardarClasificacionHumanaAsync(
+            InspeccionFotoV2 foto,
+            string diagnostico,
+            string? categoriaPrincipal,
+            string observacion)
+        {
             InspeccionFotoResultadoIAV2? ia = foto.ResultadoIA;
+            InspeccionFotoAnalisisHumanoV2? anterior =
+                foto.UltimoAnalisisHumano;
+
             var item = new InspeccionFotoAnalisisHumanoRequestV2
             {
                 FotografiaId = foto.FotografiaId,
-                CalidadEvaluacion = ia?.CalidadEvaluacion ?? "NO_EVALUABLE",
-                EstadoGeneral = ia?.EstadoGeneral ?? "INDETERMINADA",
-                CategoriaPrincipal = categoria,
-                CategoriasSecundarias = ia?.CategoriasSecundarias ?? [],
+                CalidadEvaluacion = PrimerValor(
+                    ia?.CalidadEvaluacion,
+                    anterior?.CalidadEvaluacion,
+                    "NO_EVALUABLE"),
+                EstadoGeneral = PrimerValor(
+                    ia?.EstadoGeneral,
+                    anterior?.EstadoGeneral,
+                    "INDETERMINADA"),
+                CategoriaPrincipal = PrimerValor(
+                    categoriaPrincipal,
+                    anterior?.CategoriaPrincipal,
+                    "NO_APLICA"),
+                CategoriasSecundarias = ia?.CategoriasSecundarias ??
+                    anterior?.CategoriasSecundarias ?? [],
                 Diagnostico = diagnostico.Trim(),
-                TipoDiagnostico = ia?.TipoDiagnostico ?? string.Empty,
-                Severidad = severidad,
-                NivelCerteza = certeza,
-                Observaciones = observaciones.Trim()
+                TipoDiagnostico = PrimerValor(
+                    ia?.TipoDiagnostico,
+                    anterior?.TipoDiagnostico,
+                    string.Empty),
+                Severidad = PrimerValor(
+                    ia?.SeveridadVisual,
+                    anterior?.Severidad,
+                    "NO_EVALUABLE"),
+                NivelCerteza = PrimerValor(
+                    ia?.NivelCerteza,
+                    anterior?.NivelCerteza,
+                    "NO_DETERMINADO"),
+                Observaciones = observacion
             };
 
             await InspeccionFitosanitariaApiService.Instance
@@ -924,9 +1158,57 @@ namespace CONATRADEC.Views
                     idRevision,
                     [item],
                     enviarAprobacion: false);
-
-            return true;
         }
+
+        private async Task<JerarquiaDiagnosticoFotoResponse?>
+            ObtenerJerarquiaActualizadaAsync(int fotografiaId)
+        {
+            var servicio = new AlbumJerarquiaApiService();
+            ApiResult<List<JerarquiaDiagnosticoFotoResponse>> resultado =
+                await servicio.GetJerarquiaDiagnosticoAsync(idRevision);
+
+            if (!resultado.Success)
+                throw new InvalidOperationException(resultado.Message);
+
+            return resultado.Data?.FirstOrDefault(item =>
+                item.FotografiaId == fotografiaId);
+        }
+
+        private static string MapearCategoriaPrincipalHumana(
+            string? categoriaAlbum,
+            string? categoriaIa)
+        {
+            string normalizada = (categoriaAlbum ?? string.Empty)
+                .Trim()
+                .ToUpperInvariant();
+
+            if (normalizada.Contains("ENFERMED"))
+                return "ENFERMEDAD";
+            if (normalizada.Contains("PLAGA"))
+                return "PLAGA";
+            if (normalizada.Contains("NUTRIC"))
+                return "ALTERACION_NUTRICIONAL";
+            if (normalizada.Contains("ESTRÉS") ||
+                normalizada.Contains("ESTRES"))
+            {
+                return "ESTRES_ABIOTICO";
+            }
+            if (normalizada.Contains("MECÁNIC") ||
+                normalizada.Contains("MECANIC"))
+            {
+                return "DANO_MECANICO";
+            }
+            if (normalizada.Contains("SANA"))
+                return "NO_APLICA";
+
+            return PrimerValor(
+                categoriaIa,
+                "AFECTACION_NO_DETERMINADA");
+        }
+
+        private static string PrimerValor(params string?[] valores) =>
+            valores.FirstOrDefault(valor =>
+                !string.IsNullOrWhiteSpace(valor))?.Trim() ?? string.Empty;
 
         private async void OnDevolverTarjetaClicked(
             object? sender,
@@ -940,41 +1222,20 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            var formulario = new DevolucionTecnicoFotografiaPage(foto, 1, 1);
-            Task<DevolucionTecnicoFormularioResultado?> espera =
-                formulario.EsperarResultadoAsync();
-            await Navigation.PushModalAsync(formulario, animated: false);
-            DevolucionTecnicoFormularioResultado? resultado = await espera;
-
-            if (resultado == null)
-                return;
-
-            bool confirmar = await DisplayAlert(
-                "Solicitar corrección",
-                "La fotografía saldrá temporalmente de la bandeja del analizador y la etapa técnica se reabrirá para que el técnico atienda la solicitud. ¿Desea continuar?",
-                "Devolver",
-                "Cancelar");
-
-            if (!confirmar)
-                return;
-
             operacionRevisionActiva = true;
             ActualizarEstadoBotonesTarjetas();
 
             try
             {
-                await revisionApi.DevolverTecnicoAsync(
-                    idRevision,
-                    foto.FotografiaId,
-                    resultado.MotivoId,
-                    resultado.Instrucciones);
+                if (await SolicitarDevolucionTecnicoAsync(foto))
+                {
+                    await DisplayAlert(
+                        "Corrección solicitada",
+                        "La fotografía fue devuelta al técnico. Los demás borradores humanos se conservaron.",
+                        "Aceptar");
 
-                await DisplayAlert(
-                    "Corrección solicitada",
-                    "La fotografía fue devuelta al técnico. Los demás borradores humanos se conservaron.",
-                    "Aceptar");
-
-                await RecargarDespuesOperacionRevisionAsync();
+                    await RecargarDespuesOperacionRevisionAsync();
+                }
             }
             catch (Exception ex)
             {
@@ -988,6 +1249,36 @@ namespace CONATRADEC.Views
                 operacionRevisionActiva = false;
                 ActualizarEstadoBotonesTarjetas();
             }
+        }
+
+        private async Task<bool> SolicitarDevolucionTecnicoAsync(
+            InspeccionFotoV2 foto)
+        {
+            var formulario = new DevolucionTecnicoFotografiaPage(foto, 1, 1);
+            Task<DevolucionTecnicoFormularioResultado?> espera =
+                formulario.EsperarResultadoAsync();
+            await Navigation.PushModalAsync(formulario, animated: false);
+            DevolucionTecnicoFormularioResultado? resultado = await espera;
+
+            if (resultado == null)
+                return false;
+
+            bool confirmar = await DisplayAlert(
+                "Devolver al técnico",
+                "La fotografía saldrá temporalmente de la bandeja del analizador y la etapa técnica se reabrirá para que el usuario creador atienda la solicitud. ¿Desea continuar?",
+                "Devolver",
+                "Cancelar");
+
+            if (!confirmar)
+                return false;
+
+            await revisionApi.DevolverTecnicoAsync(
+                idRevision,
+                foto.FotografiaId,
+                resultado.MotivoId,
+                resultado.Instrucciones);
+
+            return true;
         }
 
         private async void OnAtenderDevolucionTarjetaClicked(
@@ -1048,9 +1339,23 @@ namespace CONATRADEC.Views
             }
         }
 
+        private async void OnFinalizarRevisionAnalizadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            await FinalizarRevisionAnalizadorAsync();
+        }
+
+        /* Compatibilidad con versiones anteriores que todavía referencien el
+         * manejador desde controles generados dinámicamente. */
         private async void OnFinalizarRevisionTarjetaClicked(
             object? sender,
             EventArgs e)
+        {
+            await FinalizarRevisionAnalizadorAsync();
+        }
+
+        private async Task FinalizarRevisionAnalizadorAsync()
         {
             if (operacionRevisionActiva ||
                 contextoRevision?.Resumen.PuedeFinalizarRevision != true)
@@ -1060,7 +1365,7 @@ namespace CONATRADEC.Views
 
             bool confirmar = await DisplayAlert(
                 "Finalizar revisión humana",
-                "Esta acción pertenece a la inspección completa. Todas las últimas clasificaciones humanas se enviarán juntas al aprobador. ¿Desea continuar?",
+                "Todas las fotografías clasificadas se enviarán juntas al aprobador. Después de continuar, cualquier devolución del aprobador reabrirá únicamente lo necesario para el analizador. ¿Desea continuar?",
                 "Finalizar y enviar",
                 "Cancelar");
 
@@ -1133,6 +1438,8 @@ namespace CONATRADEC.Views
                         acciones.Atender.IsEnabled = !operacionRevisionActiva;
                 }
             }
+
+            ActualizarPanelGlobalAnalizador();
         }
 
         private async Task EsperarActualizacionViewModelAsync()
@@ -1153,9 +1460,9 @@ namespace CONATRADEC.Views
                 bool esAnalizador,
                 Label estado,
                 Label bloqueo,
-                Button? clasificar,
+                Button? confirmar,
+                Button? corregir,
                 Button? devolver,
-                Button? finalizar,
                 Button? atender)
             {
                 Tarjeta = tarjeta;
@@ -1163,9 +1470,9 @@ namespace CONATRADEC.Views
                 EsAnalizador = esAnalizador;
                 Estado = estado;
                 Bloqueo = bloqueo;
-                Clasificar = clasificar;
+                Confirmar = confirmar;
+                Corregir = corregir;
                 Devolver = devolver;
-                Finalizar = finalizar;
                 Atender = atender;
             }
 
@@ -1174,9 +1481,9 @@ namespace CONATRADEC.Views
             public bool EsAnalizador { get; }
             public Label Estado { get; }
             public Label Bloqueo { get; }
-            public Button? Clasificar { get; }
+            public Button? Confirmar { get; }
+            public Button? Corregir { get; }
             public Button? Devolver { get; }
-            public Button? Finalizar { get; }
             public Button? Atender { get; }
         }
     }

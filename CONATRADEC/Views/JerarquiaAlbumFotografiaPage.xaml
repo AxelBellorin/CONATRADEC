@@ -3,6 +3,7 @@
     x:Class="CONATRADEC.Views.JerarquiaAlbumFotografiaPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     BackgroundColor="#F4F7F5">
 
@@ -57,9 +58,29 @@
                             BackgroundColor="#EDF2F0"
                             Stroke="#D7E2DD"
                             StrokeShape="RoundRectangle 13">
-                            <Image
-                                Source="{Binding Fotografia.UrlImagen}"
-                                Aspect="AspectFit" />
+                            <Grid>
+                                <Image
+                                    Source="{Binding Fotografia.UrlImagen}"
+                                    Aspect="AspectFit">
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnImagenTapped" />
+                                    </Image.GestureRecognizers>
+                                </Image>
+                                <Border
+                                    Padding="8,4"
+                                    Margin="8"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="End"
+                                    BackgroundColor="#CC263A35"
+                                    StrokeThickness="0"
+                                    InputTransparent="True"
+                                    StrokeShape="RoundRectangle 9">
+                                    <Label
+                                        Text="🔍 Ampliar"
+                                        FontSize="11"
+                                        TextColor="White" />
+                                </Border>
+                            </Grid>
                         </Border>
                         <VerticalStackLayout
                             Grid.Column="{OnPlatform WinUI=1, Default=0}"
@@ -81,7 +102,8 @@
                                 TextColor="#4F5D59" />
                             <Label
                                 Text="{Binding Fotografia.ResultadoIA.ResumenImagen}"
-                                TextColor="#4F5D59" />
+                                TextColor="#4F5D59"
+                                LineBreakMode="WordWrap" />
 
                             <Border
                                 Padding="10"
@@ -114,32 +136,21 @@
                     <VerticalStackLayout Spacing="15">
                         <VerticalStackLayout Spacing="3">
                             <Label
-                                Text="1. Categoría fitosanitaria"
+                                Text="1. Categoría"
                                 FontSize="18"
                                 FontAttributes="Bold"
                                 TextColor="#263A35" />
                             <Label
-                                Text="Ejemplos: Enfermedades, Plagas, Alteraciones nutricionales o Plantas sanas."
+                                Text="La categoría siempre se selecciona del catálogo oficial. No se permite escribirla libremente desde una inspección."
                                 FontSize="11"
                                 TextColor="#5E6B67" />
                         </VerticalStackLayout>
-
-                        <HorizontalStackLayout Spacing="8">
-                            <CheckBox
-                                IsChecked="{Binding ProponerCategoria}"
-                                Color="#3B655B" />
-                            <Label
-                                Text="No existe una categoría adecuada; proponer una nueva"
-                                VerticalOptions="Center"
-                                TextColor="#374A44" />
-                        </HorizontalStackLayout>
 
                         <Border
                             Padding="11,2"
                             BackgroundColor="#F7F9F8"
                             Stroke="#D4E0DB"
-                            StrokeShape="RoundRectangle 11"
-                            IsVisible="{Binding UsarCategoriaExistente}">
+                            StrokeShape="RoundRectangle 11">
                             <Picker
                                 ItemsSource="{Binding Categorias}"
                                 SelectedItem="{Binding CategoriaSeleccionada}"
@@ -149,16 +160,14 @@
                         </Border>
 
                         <Border
-                            Padding="12,3"
-                            BackgroundColor="#FFF9ED"
-                            Stroke="#E9CF9B"
-                            StrokeShape="RoundRectangle 11"
-                            IsVisible="{Binding ProponerCategoria}">
-                            <Entry
-                                Text="{Binding CategoriaPropuesta}"
-                                MaxLength="100"
-                                Placeholder="Nombre de la categoría propuesta"
-                                TextColor="#263A35" />
+                            Padding="10"
+                            BackgroundColor="#EEF5F2"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 10">
+                            <Label
+                                Text="Si la categoría necesaria no existe, debe crearse desde la administración del Álbum Botánico antes de continuar."
+                                FontSize="11"
+                                TextColor="#365A50" />
                         </Border>
 
                         <BoxView HeightRequest="1" Color="#E5ECE9" />
@@ -170,38 +179,103 @@
                                 FontAttributes="Bold"
                                 TextColor="#263A35" />
                             <Label
-                                Text="Seleccione el diagnóstico o clasificación concreta, por ejemplo Mancha de hierro, Roya del café o Broca."
+                                Text="Busque primero en el catálogo para evitar duplicados. Solo proponga una nueva cuando realmente no exista."
                                 FontSize="11"
                                 TextColor="#5E6B67" />
                         </VerticalStackLayout>
 
-                        <HorizontalStackLayout Spacing="8">
-                            <CheckBox
-                                IsChecked="{Binding ProponerSubcategoria}"
-                                Color="#3B655B" />
-                            <Label
-                                Text="No existe una subcategoría adecuada; proponer una nueva"
-                                VerticalOptions="Center"
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            ColumnSpacing="8"
+                            IsVisible="{Binding UsarSubcategoriaExistente}">
+                            <Border
+                                Grid.Column="0"
+                                Padding="10,2"
+                                BackgroundColor="#F7F9F8"
+                                Stroke="#D4E0DB"
+                                StrokeShape="RoundRectangle 11">
+                                <SearchBar
+                                    Text="{Binding BuscarSubcategoria}"
+                                    Placeholder="Buscar por nombre común o científico"
+                                    TextColor="#263A35"
+                                    PlaceholderColor="#82908B"
+                                    BackgroundColor="Transparent" />
+                            </Border>
+                            <Button
+                                Grid.Column="1"
+                                Text="Limpiar"
+                                Command="{Binding LimpiarBusquedaCommand}"
+                                HeightRequest="46"
+                                CornerRadius="10"
+                                BackgroundColor="#EEF2F0"
                                 TextColor="#374A44" />
-                        </HorizontalStackLayout>
+                        </Grid>
 
                         <Border
-                            Padding="11,2"
-                            BackgroundColor="#F7F9F8"
+                            Padding="6"
+                            BackgroundColor="#FBFCFB"
                             Stroke="#D4E0DB"
                             StrokeShape="RoundRectangle 11"
                             IsVisible="{Binding UsarSubcategoriaExistente}">
-                            <Picker
+                            <CollectionView
                                 ItemsSource="{Binding SubcategoriasEspecificas}"
                                 SelectedItem="{Binding SubcategoriaSeleccionada}"
-                                ItemDisplayBinding="{Binding Titulo}"
-                                Title="Seleccione una subcategoría"
-                                TextColor="#263A35" />
+                                SelectionMode="Single"
+                                MaximumHeightRequest="280">
+                                <CollectionView.EmptyView>
+                                    <Label
+                                        Padding="12"
+                                        Text="No se encontraron subcategorías con ese criterio."
+                                        HorizontalTextAlignment="Center"
+                                        TextColor="#6A7773" />
+                                </CollectionView.EmptyView>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:AlbumRegistroJerarquiaResponse">
+                                        <Border
+                                            Margin="3"
+                                            Padding="12,9"
+                                            BackgroundColor="White"
+                                            Stroke="#E0E8E5"
+                                            StrokeShape="RoundRectangle 9">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label
+                                                    Text="{Binding Titulo}"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35" />
+                                                <Label
+                                                    Text="{Binding NombreCientifico}"
+                                                    FontSize="11"
+                                                    FontAttributes="Italic"
+                                                    TextColor="#5E6B67" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
                         </Border>
+
+                        <Button
+                            Text="{Binding TextoAlternarPropuesta}"
+                            Command="{Binding AlternarPropuestaCommand}"
+                            HeightRequest="46"
+                            CornerRadius="11"
+                            HorizontalOptions="Start"
+                            BackgroundColor="#FFF4EA"
+                            TextColor="#8A4D27" />
 
                         <VerticalStackLayout
                             Spacing="8"
                             IsVisible="{Binding ProponerSubcategoria}">
+                            <Border
+                                Padding="12"
+                                BackgroundColor="#FFF8E5"
+                                Stroke="#E4C45D"
+                                StrokeShape="RoundRectangle 11">
+                                <Label
+                                    Text="La nueva subcategoría quedará como propuesta. El sistema buscará coincidencias antes de guardarla para evitar duplicados accidentales."
+                                    FontSize="11"
+                                    TextColor="#6B5710" />
+                            </Border>
                             <Border
                                 Padding="12,3"
                                 BackgroundColor="#FFF9ED"
@@ -210,7 +284,7 @@
                                 <Entry
                                     Text="{Binding SubcategoriaPropuesta}"
                                     MaxLength="200"
-                                    Placeholder="Nombre común o diagnóstico específico"
+                                    Placeholder="Nombre de la nueva subcategoría"
                                     TextColor="#263A35" />
                             </Border>
                             <Border
@@ -275,10 +349,10 @@
                                 StrokeShape="RoundRectangle 11">
                                 <Editor
                                     Text="{Binding Motivo}"
-                                    MinimumHeightRequest="100"
+                                    MinimumHeightRequest="90"
                                     AutoSize="TextChanges"
                                     MaxLength="1200"
-                                    Placeholder="Explique por qué la categoría y la subcategoría representan la fotografía."
+                                    Placeholder="Explique por qué esta clasificación representa la fotografía."
                                     TextColor="#263A35" />
                             </Border>
                         </VerticalStackLayout>
