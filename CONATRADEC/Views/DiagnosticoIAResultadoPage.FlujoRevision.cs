@@ -259,7 +259,12 @@ namespace CONATRADEC.Views
                             InspeccionFotoEstados.Descartada,
                             StringComparison.OrdinalIgnoreCase) ||
                         (EsVistaAnalizadorRevision &&
-                         !EsEstadoVisibleAnalizador(foto.Estado)))
+                         !EsEstadoVisibleAnalizador(foto.Estado)) ||
+                        (EsVistaAprobadorRevision &&
+                         !string.Equals(
+                             foto.Estado,
+                             InspeccionFotoEstados.PendienteAprobacion,
+                             StringComparison.OrdinalIgnoreCase)))
                     .ToList();
 
                 foreach (InspeccionFotoV2 foto in quitar)
@@ -279,7 +284,25 @@ namespace CONATRADEC.Views
             estado is
                 InspeccionFotoEstados.PendienteAnalizador or
                 InspeccionFotoEstados.EnAnalisisHumano or
+                InspeccionFotoEstados.DevueltaAnalizador or
+                InspeccionFotoEstados.PendienteAprobacion;
+
+        private static bool EsEstadoPendienteRevisionAnalizador(string? estado) =>
+            estado is
+                InspeccionFotoEstados.PendienteAnalizador or
                 InspeccionFotoEstados.DevueltaAnalizador;
+
+        private static bool EsEstadoRevisadoSinEnviar(string? estado) =>
+            string.Equals(
+                estado,
+                InspeccionFotoEstados.EnAnalisisHumano,
+                StringComparison.OrdinalIgnoreCase);
+
+        private static bool EsEstadoEnviadoAprobador(string? estado) =>
+            string.Equals(
+                estado,
+                InspeccionFotoEstados.PendienteAprobacion,
+                StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// El panel superior histórico dependía de seleccionar fotografías y
@@ -465,10 +488,18 @@ namespace CONATRADEC.Views
             devolver.CommandParameter = foto;
             devolver.Clicked += OnDevolverTarjetaClicked;
 
+            Button enviarAprobador = CrearBotonTarjeta(
+                "Enviar al aprobador",
+                "#263A35",
+                Colors.White);
+            enviarAprobador.CommandParameter = foto;
+            enviarAprobador.Clicked += OnEnviarAprobadorTarjetaClicked;
+
             Microsoft.Maui.Controls.Layout botones = CrearContenedorBotones(
                 confirmar,
                 corregir,
-                devolver);
+                devolver,
+                enviarAprobador);
 
             var contenido = new VerticalStackLayout
             {
@@ -500,6 +531,7 @@ namespace CONATRADEC.Views
                 confirmar,
                 corregir,
                 devolver,
+                enviarAprobador,
                 null);
 
             accionesPorFoto[foto.FotografiaId] = acciones;
@@ -560,6 +592,7 @@ namespace CONATRADEC.Views
                 false,
                 estado,
                 bloqueo,
+                null,
                 null,
                 null,
                 null,
@@ -712,26 +745,77 @@ namespace CONATRADEC.Views
         {
             ResumenRevisionAnalizadorV2 resumen = contextoRevision!.Resumen;
             acciones.Panel.IsVisible = true;
-            acciones.Estado.Text = foto.TieneAnalisisHumano
-                ? "Esta fotografía ya tiene una clasificación humana guardada. Puede confirmarse nuevamente o corregirse antes del cierre global."
-                : "Revise el resultado de la IA y decida si lo confirma, lo corrige o devuelve la evidencia al técnico.";
 
-            bool disponible =
+            bool pendienteRevision =
+                EsEstadoPendienteRevisionAnalizador(foto.Estado);
+            bool revisadaSinEnviar =
+                EsEstadoRevisadoSinEnviar(foto.Estado) &&
+                foto.TieneAnalisisHumano;
+            bool enviadaAprobador =
+                EsEstadoEnviadoAprobador(foto.Estado);
+
+            foreach (CheckBox selector in acciones.Tarjeta
+                         .GetVisualTreeDescendants()
+                         .OfType<CheckBox>())
+            {
+                selector.IsEnabled = !enviadaAprobador;
+                if (enviadaAprobador)
+                    selector.IsChecked = false;
+            }
+
+            if (enviadaAprobador)
+            {
+                acciones.Estado.Text =
+                    "✓ Esta fotografía fue enviada al aprobador y quedó bloqueada para el analizador.";
+                acciones.Bloqueo.Text =
+                    "El aprobador ya puede revisarla. Si la devuelve, se habilitará nuevamente solo esta fotografía.";
+            }
+            else if (revisadaSinEnviar)
+            {
+                acciones.Estado.Text =
+                    "✓ Revisión humana completada. La fotografía está lista para enviarse al aprobador.";
+                acciones.Bloqueo.Text = resumen.EtapaTecnicaFinalizada
+                    ? "Puede enviarla individualmente o seleccionarla junto con otras fotografías revisadas."
+                    : "El envío al aprobador se habilitará cuando el técnico finalice su etapa.";
+            }
+            else
+            {
+                acciones.Estado.Text =
+                    "Revise el resultado de la IA y decida si lo confirma, lo corrige o devuelve la evidencia al técnico.";
+                acciones.Bloqueo.Text =
+                    "Las acciones afectan únicamente esta fotografía.";
+            }
+
+            bool puedeRevisar =
                 !operacionRevisionActiva &&
-                EsEstadoVisibleAnalizador(foto.Estado);
+                pendienteRevision;
 
             if (acciones.Confirmar != null)
-                acciones.Confirmar.IsEnabled = disponible;
+            {
+                acciones.Confirmar.IsVisible = pendienteRevision;
+                acciones.Confirmar.IsEnabled = puedeRevisar;
+            }
 
             if (acciones.Corregir != null)
-                acciones.Corregir.IsEnabled = disponible;
+            {
+                acciones.Corregir.IsVisible = pendienteRevision;
+                acciones.Corregir.IsEnabled = puedeRevisar;
+            }
 
             if (acciones.Devolver != null)
-                acciones.Devolver.IsEnabled = disponible;
+            {
+                acciones.Devolver.IsVisible = pendienteRevision;
+                acciones.Devolver.IsEnabled = puedeRevisar;
+            }
 
-            acciones.Bloqueo.Text = foto.TieneAnalisisHumano
-                ? "Clasificación humana lista. El envío al aprobador se realiza una sola vez desde el botón global de finalización."
-                : "Las acciones afectan únicamente esta fotografía.";
+            if (acciones.EnviarAprobador != null)
+            {
+                acciones.EnviarAprobador.IsVisible = revisadaSinEnviar;
+                acciones.EnviarAprobador.IsEnabled =
+                    !operacionRevisionActiva &&
+                    resumen.EtapaTecnicaFinalizada &&
+                    !resumen.EtapaAnalizadorFinalizada;
+            }
 
             ActualizarPanelGlobalAnalizador();
         }
@@ -767,7 +851,8 @@ namespace CONATRADEC.Views
             {
                 foto.Seleccionada =
                     foto.PuedeSeleccionarse &&
-                    EsEstadoVisibleAnalizador(foto.Estado);
+                    (EsEstadoPendienteRevisionAnalizador(foto.Estado) ||
+                     EsEstadoRevisadoSinEnviar(foto.Estado));
             }
 
             ActualizarPanelGlobalAnalizador();
@@ -783,7 +868,7 @@ namespace CONATRADEC.Views
             List<InspeccionFotoV2> seleccionadas = viewModel.Fotografias
                 .Where(item =>
                     item.Seleccionada &&
-                    EsEstadoVisibleAnalizador(item.Estado))
+                    EsEstadoPendienteRevisionAnalizador(item.Estado))
                 .OrderBy(item => item.Orden)
                 .ToList();
 
@@ -900,40 +985,93 @@ namespace CONATRADEC.Views
 
             try
             {
-                int seleccionadas = viewModel.Fotografias.Count(item =>
+                int seleccionadasRevision = viewModel.Fotografias.Count(item =>
                     item.Seleccionada &&
-                    EsEstadoVisibleAnalizador(item.Estado));
+                    EsEstadoPendienteRevisionAnalizador(item.Estado));
+                int seleccionadasEnvio = viewModel.Fotografias.Count(item =>
+                    item.Seleccionada &&
+                    EsEstadoRevisadoSinEnviar(item.Estado) &&
+                    item.TieneAnalisisHumano);
+                int revisadasSinEnviar = viewModel.Fotografias.Count(item =>
+                    EsEstadoRevisadoSinEnviar(item.Estado) &&
+                    item.TieneAnalisisHumano);
+                int enviadasAprobador = viewModel.Fotografias.Count(item =>
+                    EsEstadoEnviadoAprobador(item.Estado));
+                int pendientesRevision = viewModel.Fotografias.Count(item =>
+                    EsEstadoPendienteRevisionAnalizador(item.Estado));
 
                 ResumenRevisionAnalizadorV2? resumen = contextoRevision?.Resumen;
+                int recibidas = resumen?.TotalRecibidasAnalizador ??
+                    viewModel.Fotografias.Count;
 
                 if (EstadoRevisionAnalizadorLabel != null)
                 {
-                    EstadoRevisionAnalizadorLabel.Text = resumen == null
-                        ? $"{seleccionadas} fotografía(s) seleccionadas."
-                        : $"{resumen.TotalClasificadasHumano} de {resumen.TotalRecibidasAnalizador} fotografía(s) recibidas ya tienen clasificación humana · {seleccionadas} seleccionada(s).";
+                    EstadoRevisionAnalizadorLabel.Text =
+                        $"Recibidas: {recibidas} · Revisadas sin enviar: {revisadasSinEnviar} · " +
+                        $"Enviadas al aprobador: {enviadasAprobador} · Pendientes de revisar: {pendientesRevision}.";
                 }
 
                 if (AyudaRevisionAnalizadorLabel != null)
                 {
-                    AyudaRevisionAnalizadorLabel.Text = resumen == null
-                        ? string.Empty
-                        : resumen.PuedeFinalizarRevision
-                            ? "Todas las fotografías están listas. Ya puede finalizar la revisión completa."
-                            : resumen.MotivoNoPuedeFinalizarRevision;
+                    if (resumen == null)
+                    {
+                        AyudaRevisionAnalizadorLabel.Text = string.Empty;
+                    }
+                    else if (!resumen.EtapaTecnicaFinalizada)
+                    {
+                        AyudaRevisionAnalizadorLabel.Text =
+                            "Puede revisar fotografías recibidas, pero el envío al aprobador se habilitará cuando el técnico finalice su etapa.";
+                    }
+                    else if (pendientesRevision > 0)
+                    {
+                        AyudaRevisionAnalizadorLabel.Text = pendientesRevision == 1
+                            ? "Falta revisar 1 fotografía."
+                            : $"Faltan revisar {pendientesRevision} fotografías.";
+                    }
+                    else if (revisadasSinEnviar > 0)
+                    {
+                        AyudaRevisionAnalizadorLabel.Text = revisadasSinEnviar == 1
+                            ? "Hay 1 fotografía revisada pendiente de envío al aprobador."
+                            : $"Hay {revisadasSinEnviar} fotografías revisadas pendientes de envío al aprobador.";
+                    }
+                    else if (enviadasAprobador > 0)
+                    {
+                        AyudaRevisionAnalizadorLabel.Text =
+                            "Todas las fotografías disponibles fueron enviadas al aprobador.";
+                    }
+                    else
+                    {
+                        AyudaRevisionAnalizadorLabel.Text =
+                            resumen.MotivoNoPuedeFinalizarRevision;
+                    }
                 }
 
                 if (RevisarSeleccionAnalizadorButton != null)
                 {
+                    RevisarSeleccionAnalizadorButton.Text = seleccionadasRevision > 0
+                        ? $"Revisar seleccionadas ({seleccionadasRevision})"
+                        : "Revisar seleccionadas";
                     RevisarSeleccionAnalizadorButton.IsEnabled =
-                        !operacionRevisionActiva && seleccionadas > 0;
+                        !operacionRevisionActiva && seleccionadasRevision > 0;
                 }
 
                 if (FinalizarRevisionAnalizadorButton != null)
                 {
-                    FinalizarRevisionAnalizadorButton.IsEnabled =
+                    FinalizarRevisionAnalizadorButton.Text = seleccionadasEnvio > 0
+                        ? $"Enviar seleccionadas al aprobador ({seleccionadasEnvio})"
+                        : "Enviar seleccionadas al aprobador";
+                    bool puedeEnviarSeleccion =
                         !operacionRevisionActiva &&
-                        resumen?.PuedeFinalizarRevision == true &&
-                        resumen.EtapaAnalizadorFinalizada == false;
+                        resumen?.EtapaTecnicaFinalizada == true &&
+                        resumen.EtapaAnalizadorFinalizada == false &&
+                        seleccionadasEnvio > 0;
+
+                    FinalizarRevisionAnalizadorButton.IsEnabled =
+                        puedeEnviarSeleccion;
+                    FinalizarRevisionAnalizadorButton.BackgroundColor =
+                        puedeEnviarSeleccion
+                            ? Color.FromArgb("#263A35")
+                            : Color.FromArgb("#B0B0B0");
                 }
             }
             catch
@@ -949,7 +1087,7 @@ namespace CONATRADEC.Views
             if (operacionRevisionActiva ||
                 sender is not Button boton ||
                 boton.CommandParameter is not InspeccionFotoV2 foto ||
-                !EsEstadoVisibleAnalizador(foto.Estado))
+                !EsEstadoPendienteRevisionAnalizador(foto.Estado))
             {
                 return;
             }
@@ -990,7 +1128,7 @@ namespace CONATRADEC.Views
             if (operacionRevisionActiva ||
                 sender is not Button boton ||
                 boton.CommandParameter is not InspeccionFotoV2 foto ||
-                !EsEstadoVisibleAnalizador(foto.Estado))
+                !EsEstadoPendienteRevisionAnalizador(foto.Estado))
             {
                 return;
             }
@@ -1217,7 +1355,7 @@ namespace CONATRADEC.Views
             if (operacionRevisionActiva ||
                 sender is not Button boton ||
                 boton.CommandParameter is not InspeccionFotoV2 foto ||
-                !EsEstadoVisibleAnalizador(foto.Estado))
+                !EsEstadoPendienteRevisionAnalizador(foto.Estado))
             {
                 return;
             }
@@ -1339,11 +1477,38 @@ namespace CONATRADEC.Views
             }
         }
 
+        private async void OnEnviarAprobadorTarjetaClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (operacionRevisionActiva ||
+                sender is not Button boton ||
+                boton.CommandParameter is not InspeccionFotoV2 foto ||
+                !EsEstadoRevisadoSinEnviar(foto.Estado) ||
+                !foto.TieneAnalisisHumano)
+            {
+                return;
+            }
+
+            bool confirmar = await DisplayAlert(
+                "Enviar al aprobador",
+                "La fotografía quedará bloqueada para el analizador y estará disponible inmediatamente en la bandeja del aprobador. ¿Desea continuar?",
+                "Enviar",
+                "Cancelar");
+
+            if (!confirmar)
+                return;
+
+            await EnviarFotografiasAprobadorAsync(
+                [foto.FotografiaId],
+                mostrarResumen: false);
+        }
+
         private async void OnFinalizarRevisionAnalizadorClicked(
             object? sender,
             EventArgs e)
         {
-            await FinalizarRevisionAnalizadorAsync();
+            await EnviarSeleccionadasAprobadorAsync();
         }
 
         /* Compatibilidad con versiones anteriores que todavía referencien el
@@ -1352,24 +1517,56 @@ namespace CONATRADEC.Views
             object? sender,
             EventArgs e)
         {
-            await FinalizarRevisionAnalizadorAsync();
+            await EnviarSeleccionadasAprobadorAsync();
         }
 
-        private async Task FinalizarRevisionAnalizadorAsync()
+        private async Task EnviarSeleccionadasAprobadorAsync()
         {
-            if (operacionRevisionActiva ||
-                contextoRevision?.Resumen.PuedeFinalizarRevision != true)
+            if (operacionRevisionActiva)
+                return;
+
+            List<int> fotografiaIds = viewModel.Fotografias
+                .Where(item =>
+                    item.Seleccionada &&
+                    EsEstadoRevisadoSinEnviar(item.Estado) &&
+                    item.TieneAnalisisHumano)
+                .OrderBy(item => item.Orden)
+                .Select(item => item.FotografiaId)
+                .Distinct()
+                .ToList();
+
+            if (fotografiaIds.Count == 0)
             {
+                await DisplayAlert(
+                    "Seleccione fotografías revisadas",
+                    "Seleccione una o varias fotografías que ya tengan revisión humana antes de enviarlas al aprobador.",
+                    "Aceptar");
                 return;
             }
 
+            string detalle = fotografiaIds.Count == 1
+                ? "Se enviará 1 fotografía al aprobador y quedará bloqueada para el analizador."
+                : $"Se enviarán {fotografiaIds.Count} fotografías al aprobador y quedarán bloqueadas para el analizador.";
+
             bool confirmar = await DisplayAlert(
-                "Finalizar revisión humana",
-                "Todas las fotografías clasificadas se enviarán juntas al aprobador. Después de continuar, cualquier devolución del aprobador reabrirá únicamente lo necesario para el analizador. ¿Desea continuar?",
-                "Finalizar y enviar",
+                "Enviar seleccionadas al aprobador",
+                detalle + " ¿Desea continuar?",
+                "Enviar",
                 "Cancelar");
 
             if (!confirmar)
+                return;
+
+            await EnviarFotografiasAprobadorAsync(
+                fotografiaIds,
+                mostrarResumen: true);
+        }
+
+        private async Task EnviarFotografiasAprobadorAsync(
+            IReadOnlyCollection<int> fotografiaIds,
+            bool mostrarResumen)
+        {
+            if (fotografiaIds.Count == 0 || operacionRevisionActiva)
                 return;
 
             operacionRevisionActiva = true;
@@ -1377,21 +1574,31 @@ namespace CONATRADEC.Views
 
             try
             {
-                contextoRevision = await revisionApi.FinalizarAnalizadorAsync(
-                    idRevision);
+                contextoRevision = await revisionApi.EnviarAprobadorAsync(
+                    idRevision,
+                    fotografiaIds);
+
+                foreach (InspeccionFotoV2 foto in viewModel.Fotografias
+                             .Where(item => fotografiaIds.Contains(item.FotografiaId)))
+                {
+                    foto.Seleccionada = false;
+                }
 
                 await DisplayAlert(
-                    "Revisión finalizada",
-                    "Todas las fotografías evaluables quedaron pendientes de aprobación.",
+                    "Envío realizado",
+                    mostrarResumen
+                        ? fotografiaIds.Count == 1
+                            ? "La fotografía seleccionada quedó disponible para el aprobador."
+                            : $"Las {fotografiaIds.Count} fotografías seleccionadas quedaron disponibles para el aprobador."
+                        : "La fotografía quedó disponible para el aprobador.",
                     "Aceptar");
 
-                if (viewModel.RegresarResultadoCommand.CanExecute(null))
-                    viewModel.RegresarResultadoCommand.Execute(null);
+                await RecargarDespuesOperacionRevisionAsync();
             }
             catch (Exception ex)
             {
                 await DisplayAlert(
-                    "Finalizar revisión",
+                    "Enviar al aprobador",
                     ex.Message,
                     "Aceptar");
             }
@@ -1463,6 +1670,7 @@ namespace CONATRADEC.Views
                 Button? confirmar,
                 Button? corregir,
                 Button? devolver,
+                Button? enviarAprobador,
                 Button? atender)
             {
                 Tarjeta = tarjeta;
@@ -1473,6 +1681,7 @@ namespace CONATRADEC.Views
                 Confirmar = confirmar;
                 Corregir = corregir;
                 Devolver = devolver;
+                EnviarAprobador = enviarAprobador;
                 Atender = atender;
             }
 
@@ -1484,6 +1693,7 @@ namespace CONATRADEC.Views
             public Button? Confirmar { get; }
             public Button? Corregir { get; }
             public Button? Devolver { get; }
+            public Button? EnviarAprobador { get; }
             public Button? Atender { get; }
         }
     }

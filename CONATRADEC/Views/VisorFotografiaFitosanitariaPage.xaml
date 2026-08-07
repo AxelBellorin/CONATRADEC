@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.VisorFotografiaFitosanitariaPage"
+    x:Name="PaginaVisorFitosanitario"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="Black">
+
+    <Grid
+        Padding="{OnIdiom Phone='12,10,12,14', Tablet='18,14,18,18', Desktop='24,18,24,22'}"
+        RowDefinitions="Auto,*,Auto,Auto"
+        RowSpacing="10">
+
+        <Grid
+            Grid.Row="0"
+            ColumnDefinitions="*,Auto,Auto"
+            ColumnSpacing="10">
+
+            <Label
+                x:Name="TituloFotografiaLabel"
+                Grid.Column="0"
+                FontSize="{OnIdiom Phone=15, Tablet=16, Desktop=17}"
+                FontAttributes="Bold"
+                TextColor="White"
+                VerticalTextAlignment="Center"
+                LineBreakMode="TailTruncation" />
+
+            <Label
+                x:Name="ContadorFotografiaLabel"
+                Grid.Column="1"
+                FontSize="13"
+                TextColor="#CDD5D2"
+                HorizontalTextAlignment="End"
+                VerticalTextAlignment="Center" />
+
+            <Button
+                Grid.Column="2"
+                Text="✕"
+                Clicked="OnCerrarClicked"
+                BackgroundColor="#2B2F2E"
+                TextColor="White"
+                CornerRadius="22"
+                WidthRequest="44"
+                HeightRequest="44"
+                Padding="0"
+                FontSize="18" />
+        </Grid>
+
+        <Grid
+            Grid.Row="1"
+            MaximumWidthRequest="1500"
+            HorizontalOptions="Fill"
+            VerticalOptions="Fill">
+
+            <Image
+                x:Name="FotografiaImage"
+                Aspect="AspectFit"
+                HorizontalOptions="Fill"
+                VerticalOptions="Fill" />
+        </Grid>
+
+        <Border
+            Grid.Row="2"
+            Padding="12,9"
+            MaximumWidthRequest="1500"
+            HorizontalOptions="Fill"
+            BackgroundColor="#222725"
+            Stroke="#3C4441"
+            StrokeShape="RoundRectangle 11">
+
+            <Label
+                x:Name="DiagnosticoFotografiaLabel"
+                FontSize="13"
+                TextColor="#E0E6E4"
+                MaxLines="3"
+                LineBreakMode="TailTruncation" />
+        </Border>
+
+        <Grid
+            Grid.Row="3"
+            MaximumWidthRequest="900"
+            HorizontalOptions="Fill"
+            ColumnDefinitions="*,*"
+            ColumnSpacing="10">
+
+            <Button
+                x:Name="AnteriorButton"
+                Grid.Column="0"
+                Text="‹ Anterior"
+                Clicked="OnAnteriorClicked"
+                BackgroundColor="#263A35"
+                TextColor="White"
+                CornerRadius="10"
+                HeightRequest="46"
+                FontAttributes="Bold" />
+
+            <Button
+                x:Name="SiguienteButton"
+                Grid.Column="1"
+                Text="Siguiente ›"
+                Clicked="OnSiguienteClicked"
+                BackgroundColor="#263A35"
+                TextColor="White"
+                CornerRadius="10"
+                HeightRequest="46"
+                FontAttributes="Bold" />
+        </Grid>
+    </Grid>
+</ContentPage>

@@ -89,6 +89,42 @@ namespace CONATRADEC.Services
                 },
                 cancellationToken);
 
+        public Task<ContextoRevisionAnalizadorV2> EnviarAprobadorAsync(
+            int inspeccionId,
+            IReadOnlyCollection<int> fotografiaIds,
+            CancellationToken cancellationToken = default)
+        {
+            if (fotografiaIds == null || fotografiaIds.Count == 0)
+            {
+                throw new ArgumentException(
+                    "Seleccione al menos una fotografía revisada.",
+                    nameof(fotografiaIds));
+            }
+
+            int[] ids = fotografiaIds
+                .Where(id => id > 0)
+                .Distinct()
+                .ToArray();
+
+            if (ids.Length == 0)
+            {
+                throw new ArgumentException(
+                    "La selección de fotografías no es válida.",
+                    nameof(fotografiaIds));
+            }
+
+            return EnviarAsync<ContextoRevisionAnalizadorV2>(
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    $"api/revision-fitosanitaria/{inspeccionId}/enviar-aprobador")
+                {
+                    Content = JsonContent.Create(
+                        new { fotografiaIds = ids },
+                        options: JsonOptions)
+                },
+                cancellationToken);
+        }
+
         private async Task<T> EnviarAsync<T>(
             HttpRequestMessage request,
             CancellationToken cancellationToken)

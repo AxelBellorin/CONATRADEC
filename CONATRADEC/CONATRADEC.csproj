@@ -173,6 +173,25 @@
 		<Compile Update="Views\departamentoPage.xaml.cs">
 			<DependentUpon>departamentoPage.xaml</DependentUpon>
 		</Compile>
+
+		<!-- Organización visual de la pantalla de resultado y sus flujos parciales. -->
+		<Compile Update="Views\DiagnosticoIAResultadoPage.xaml.cs">
+			<DependentUpon>DiagnosticoIAResultadoPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Views\DiagnosticoIAResultadoPage.FlujoTecnico.cs">
+			<DependentUpon>DiagnosticoIAResultadoPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Views\DiagnosticoIAResultadoPage.FlujoRevision.cs">
+			<DependentUpon>DiagnosticoIAResultadoPage.xaml</DependentUpon>
+		</Compile>
+
+		<!-- Code-behind de las nuevas pantallas del analizador. -->
+		<Compile Update="Views\RevisionAnalizadorFotografiaPage.xaml.cs">
+			<DependentUpon>RevisionAnalizadorFotografiaPage.xaml</DependentUpon>
+		</Compile>
+		<Compile Update="Views\VisorFotografiaFitosanitariaPage.xaml.cs">
+			<DependentUpon>VisorFotografiaFitosanitariaPage.xaml</DependentUpon>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -323,6 +342,15 @@
 		<MauiXaml Update="Views\RevisionIAFotografiaPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+
+		<!-- XAML de las nuevas pantallas del flujo del analizador. -->
+		<MauiXaml Update="Views\RevisionAnalizadorFotografiaPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\VisorFotografiaFitosanitariaPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+
 		<MauiXaml Update="Views\rolFormPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

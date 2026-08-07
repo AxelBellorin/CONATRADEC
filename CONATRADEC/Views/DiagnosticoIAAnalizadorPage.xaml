@@ -327,7 +327,7 @@
                                                         FontSize="11"
                                                         TextColor="#527066" />
                                                     <Label
-                                                        Text="{Binding Finalizadas}"
+                                                        Text="{Binding EnviadasRevision}"
                                                         FontSize="18"
                                                         FontAttributes="Bold"
                                                         TextColor="#315E52" />
@@ -347,7 +347,7 @@
                                                         FontSize="11"
                                                         TextColor="#705A19" />
                                                     <Label
-                                                        Text="{Binding Pendientes}"
+                                                        Text="{Binding RequierenDecisionTecnico}"
                                                         FontSize="18"
                                                         FontAttributes="Bold"
                                                         TextColor="#705A19" />

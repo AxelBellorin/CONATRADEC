@@ -153,7 +153,7 @@
                             StrokeShape="RoundRectangle 11">
                             <Picker
                                 ItemsSource="{Binding Categorias}"
-                                SelectedItem="{Binding CategoriaSeleccionada}"
+                                SelectedItem="{Binding CategoriaSeleccionada, Mode=TwoWay}"
                                 ItemDisplayBinding="{Binding NombreCategoria}"
                                 Title="Seleccione una categoría"
                                 TextColor="#263A35" />
@@ -179,7 +179,7 @@
                                 FontAttributes="Bold"
                                 TextColor="#263A35" />
                             <Label
-                                Text="Busque primero en el catálogo para evitar duplicados. Solo proponga una nueva cuando realmente no exista."
+                                Text="Busque primero en el catálogo para evitar duplicados. Toque una subcategoría para seleccionarla; la opción elegida quedará resaltada."
                                 FontSize="11"
                                 TextColor="#5E6B67" />
                         </VerticalStackLayout>
@@ -219,7 +219,7 @@
                             IsVisible="{Binding UsarSubcategoriaExistente}">
                             <CollectionView
                                 ItemsSource="{Binding SubcategoriasEspecificas}"
-                                SelectedItem="{Binding SubcategoriaSeleccionada}"
+                                SelectedItem="{Binding SubcategoriaSeleccionada, Mode=TwoWay}"
                                 SelectionMode="Single"
                                 MaximumHeightRequest="280">
                                 <CollectionView.EmptyView>
@@ -236,7 +236,26 @@
                                             Padding="12,9"
                                             BackgroundColor="White"
                                             Stroke="#E0E8E5"
+                                            StrokeThickness="1"
                                             StrokeShape="RoundRectangle 9">
+                                            <VisualStateManager.VisualStateGroups>
+                                                <VisualStateGroup Name="CommonStates">
+                                                    <VisualState Name="Normal" />
+                                                    <VisualState Name="Selected">
+                                                        <VisualState.Setters>
+                                                            <Setter
+                                                                Property="BackgroundColor"
+                                                                Value="#E8F3EE" />
+                                                            <Setter
+                                                                Property="Stroke"
+                                                                Value="#3B655B" />
+                                                            <Setter
+                                                                Property="StrokeThickness"
+                                                                Value="2" />
+                                                        </VisualState.Setters>
+                                                    </VisualState>
+                                                </VisualStateGroup>
+                                            </VisualStateManager.VisualStateGroups>
                                             <VerticalStackLayout Spacing="2">
                                                 <Label
                                                     Text="{Binding Titulo}"
@@ -394,7 +413,36 @@
                         CornerRadius="12"
                         BackgroundColor="#3B655B"
                         TextColor="White"
-                        FontAttributes="Bold" />
+                        FontAttributes="Bold">
+                        <Button.Triggers>
+                            <MultiTrigger TargetType="Button">
+                                <MultiTrigger.Conditions>
+                                    <BindingCondition
+                                        Binding="{Binding JerarquiaActual.Estado}"
+                                        Value="PROPUESTA_ANALIZADOR" />
+                                    <BindingCondition
+                                        Binding="{Binding EsAprobador}"
+                                        Value="False" />
+                                </MultiTrigger.Conditions>
+                                <Setter
+                                    Property="Text"
+                                    Value="Actualizar propuesta" />
+                            </MultiTrigger>
+                            <MultiTrigger TargetType="Button">
+                                <MultiTrigger.Conditions>
+                                    <BindingCondition
+                                        Binding="{Binding JerarquiaActual.Estado}"
+                                        Value="RESUELTA_ANALIZADOR" />
+                                    <BindingCondition
+                                        Binding="{Binding EsAprobador}"
+                                        Value="False" />
+                                </MultiTrigger.Conditions>
+                                <Setter
+                                    Property="Text"
+                                    Value="Actualizar clasificación" />
+                            </MultiTrigger>
+                        </Button.Triggers>
+                    </Button>
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
