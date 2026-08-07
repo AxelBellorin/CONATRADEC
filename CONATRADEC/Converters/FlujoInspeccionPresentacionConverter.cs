@@ -32,7 +32,7 @@ namespace CONATRADEC.Converters
                 if (viewModel.Detalle == null)
                     return "Cargando expediente...";
 
-                string etapa = viewModel.Detalle.CerradaTecnico
+                string etapa = viewModel.Detalle.EtapaTecnicaFinalizada
                     ? "Etapa técnica finalizada"
                     : "Etapa técnica abierta";
 
@@ -65,7 +65,7 @@ namespace CONATRADEC.Converters
                     origen,
                     ObtenerBooleano(values, 1)),
 
-                "EtapaTecnicaFinalizadaTecnico" =>
+                "EtapaTecnicaFinalizada" =>
                     EsVistaTecnico(origen) && ObtenerBooleano(values, 1),
 
                 "AccionTecnico" =>

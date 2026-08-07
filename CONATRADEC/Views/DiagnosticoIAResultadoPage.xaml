@@ -140,7 +140,7 @@
                                 Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
                                 ConverterParameter="PanelAcciones">
                                 <Binding Path="TextoRegresar" />
-                                <Binding Path="Detalle.CerradaTecnico" />
+                                <Binding Path="Detalle.EtapaTecnicaFinalizada" />
                             </MultiBinding>
                         </Border.IsVisible>
 
@@ -180,6 +180,7 @@
                                         <Button
                                             Text="Seleccionar todo"
                                             Clicked="OnSeleccionarTodoTecnicoClicked"
+                                            IsVisible="{Binding TextoRegresar, Converter={StaticResource FlujoInspeccionPresentacionConverter}, ConverterParameter=VistaTecnico}"
                                             WidthRequest="{OnIdiom Phone=148, Default=170}"
                                             HeightRequest="44"
                                             CornerRadius="10"
@@ -288,6 +289,30 @@
                                 </Button>
 
                                 <Button
+                                    Text="Registrar decisión"
+                                    WidthRequest="{OnIdiom Phone=175, Default=210}"
+                                    HeightRequest="46"
+                                    CornerRadius="11"
+                                    FontSize="13"
+                                    Command="{Binding AprobarCommand}"
+                                    IsVisible="{Binding PuedeAprobarSeleccion}"
+                                    BackgroundColor="#263A35"
+                                    TextColor="White"
+                                    Margin="0,0,8,8" />
+
+                                <Button
+                                    Text="Cerrar definitivamente"
+                                    WidthRequest="{OnIdiom Phone=190, Default=225}"
+                                    HeightRequest="46"
+                                    CornerRadius="11"
+                                    FontSize="13"
+                                    Command="{Binding CerrarDefinitivoCommand}"
+                                    IsVisible="{Binding PuedeCerrarDefinitivamente}"
+                                    BackgroundColor="#9B552C"
+                                    TextColor="White"
+                                    Margin="0,0,8,8" />
+
+                                <Button
                                     Text="Actualizar"
                                     WidthRequest="{OnIdiom Phone=148, Default=180}"
                                     HeightRequest="46"
@@ -303,15 +328,55 @@
 
                     <Border
                         Padding="14"
+                        BackgroundColor="#EEF6F2"
+                        Stroke="#B9D7CB"
+                        StrokeShape="RoundRectangle 14"
+                        IsVisible="{Binding PuedePublicarSeleccion}">
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                            RowSpacing="8"
+                            ColumnSpacing="12">
+                            <VerticalStackLayout
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Spacing="3">
+                                <Label
+                                    Text="Publicación autorizada"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    TextColor="#294A42" />
+                                <Label
+                                    Text="La fotografía seleccionada puede copiarse al Álbum Botánico aun cuando el expediente ya esté cerrado. La evidencia original permanecerá inalterada."
+                                    FontSize="12"
+                                    TextColor="#4D625C"
+                                    LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Text="Copiar al Álbum Botánico"
+                                Command="{Binding PublicarAlbumCommand}"
+                                HeightRequest="46"
+                                MinimumWidthRequest="{OnIdiom Phone=230, Default=220}"
+                                BackgroundColor="#3B655B"
+                                TextColor="White"
+                                CornerRadius="11"
+                                HorizontalOptions="{OnIdiom Phone=Fill, Default=End}" />
+                        </Grid>
+                    </Border>
+
+                    <Border
+                        Padding="14"
                         BackgroundColor="#EEF2F0"
                         Stroke="#B8C7C1"
                         StrokeShape="RoundRectangle 14">
                         <Border.IsVisible>
                             <MultiBinding
                                 Converter="{StaticResource FlujoInspeccionPresentacionConverter}"
-                                ConverterParameter="EtapaTecnicaFinalizadaTecnico">
+                                ConverterParameter="EtapaTecnicaFinalizada">
                                 <Binding Path="TextoRegresar" />
-                                <Binding Path="Detalle.CerradaTecnico" />
+                                <Binding Path="Detalle.EtapaTecnicaFinalizada" />
                             </MultiBinding>
                         </Border.IsVisible>
                         <VerticalStackLayout Spacing="4">
@@ -748,33 +813,55 @@
                                             </Border>
                                         </VerticalStackLayout>
 
-                                        <VerticalStackLayout Grid.Row="3" Spacing="3">
-                                            <Label
-                                                Text="Clasificación humana"
-                                                FontAttributes="Bold"
-                                                TextColor="#263A35"
-                                                IsVisible="{Binding TieneAnalisisHumano}" />
-                                            <Label
-                                                Text="{Binding UltimoAnalisisHumano.Diagnostico}"
-                                                TextColor="#5E6B67" />
-                                            <Label
-                                                Text="{Binding UltimoAnalisisHumano.Observaciones}"
-                                                TextColor="#5E6B67" />
-                                            <Label
-                                                Text="Decisión final"
-                                                FontAttributes="Bold"
-                                                TextColor="#263A35"
-                                                Margin="0,5,0,0"
-                                                IsVisible="{Binding TieneAprobacion}" />
-                                            <Label
-                                                Text="{Binding UltimaAprobacion.Decision}"
-                                                TextColor="#5E6B67" />
-                                            <Label
-                                                Text="{Binding UltimaAprobacion.DiagnosticoFinal}"
-                                                TextColor="#5E6B67" />
+                                        <VerticalStackLayout Grid.Row="3" Spacing="8">
+                                            <VerticalStackLayout
+                                                Spacing="3"
+                                                IsVisible="{Binding TieneAnalisisHumano}">
+                                                <Label
+                                                    Text="Clasificación humana"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35" />
+                                                <Label
+                                                    Text="{Binding UltimoAnalisisHumano.Diagnostico}"
+                                                    TextColor="#5E6B67" />
+                                                <Label
+                                                    Text="{Binding UltimoAnalisisHumano.Observaciones}"
+                                                    TextColor="#5E6B67" />
+                                            </VerticalStackLayout>
+
+                                            <VerticalStackLayout
+                                                Spacing="3"
+                                                IsVisible="{Binding TieneAprobacion}">
+                                                <Label
+                                                    Text="Decisión final"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35" />
+                                                <Label
+                                                    Text="{Binding UltimaAprobacion.Decision}"
+                                                    TextColor="#5E6B67" />
+                                                <Label
+                                                    Text="{Binding UltimaAprobacion.DiagnosticoFinal}"
+                                                    TextColor="#5E6B67" />
+                                            </VerticalStackLayout>
+
                                             <Label
                                                 Text="{Binding MotivoDescarte}"
-                                                TextColor="#B42318" />
+                                                TextColor="#B42318">
+                                                <Label.Triggers>
+                                                    <DataTrigger
+                                                        TargetType="Label"
+                                                        Binding="{Binding MotivoDescarte}"
+                                                        Value="">
+                                                        <Setter Property="IsVisible" Value="False" />
+                                                    </DataTrigger>
+                                                    <DataTrigger
+                                                        TargetType="Label"
+                                                        Binding="{Binding MotivoDescarte}"
+                                                        Value="{x:Null}">
+                                                        <Setter Property="IsVisible" Value="False" />
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
                                         </VerticalStackLayout>
                                     </Grid>
                                 </Border>

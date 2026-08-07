@@ -9,13 +9,16 @@ namespace CONATRADEC.Models
         public const string PendienteIA = "PENDIENTE_IA";
         public const string AnalizandoIA = "ANALIZANDO_IA";
         public const string ErrorIA = "ERROR_IA";
-        public const string PendienteDecisionTecnico = "PENDIENTE_DECISION_TECNICO";
+        public const string PendienteDecisionTecnico =
+            "PENDIENTE_DECISION_TECNICO";
         public const string PendienteAnalizador = "PENDIENTE_ANALIZADOR";
         public const string EnAnalisisHumano = "EN_ANALISIS_HUMANO";
         public const string PendienteAprobacion = "PENDIENTE_APROBACION";
         public const string DevueltaAnalizador = "DEVUELTA_AL_ANALIZADOR";
+        public const string DevueltaTecnico = "DEVUELTA_AL_TECNICO";
         public const string Aprobada = "APROBADA";
-        public const string AprobadaConCorreccion = "APROBADA_CON_CORRECCION";
+        public const string AprobadaConCorreccion =
+            "APROBADA_CON_CORRECCION";
         public const string Rechazada = "RECHAZADA";
         public const string NoConcluyente = "NO_CONCLUYENTE";
         public const string Descartada = "DESCARTADA";
@@ -30,7 +33,8 @@ namespace CONATRADEC.Models
         public const string PendienteRevision = "PENDIENTE_REVISION";
         public const string PendienteAprobacion = "PENDIENTE_APROBACION";
         public const string Finalizada = "FINALIZADA";
-        public const string FinalizadaParcialmente = "FINALIZADA_PARCIALMENTE";
+        public const string FinalizadaParcialmente =
+            "FINALIZADA_PARCIALMENTE";
 
         public static string ObtenerTexto(string? estado) => estado switch
         {
@@ -85,7 +89,6 @@ namespace CONATRADEC.Models
             }
         }
 
-
         public TipoFotografiaIAItem? TipoFotografiaSeleccionada
         {
             get => tipoFotografiaSeleccionada;
@@ -115,10 +118,17 @@ namespace CONATRADEC.Models
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        private void OnPropertyChanged([CallerMemberName] string? name = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        private void OnPropertyChanged(
+            [CallerMemberName] string? name = null) =>
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(name));
     }
 
+    /// <summary>
+    /// Modelo de compatibilidad para listados que todavía no usan la bandeja
+    /// paginada. Todos los nombres de cierre corresponden al flujo moderno.
+    /// </summary>
     public sealed class InspeccionFitosanitariaListaItemV2
     {
         public int InspeccionId { get; set; }
@@ -126,13 +136,19 @@ namespace CONATRADEC.Models
         public string CodigoTerreno { get; set; } = string.Empty;
         public DateTime FechaRegistroSistemaUtc { get; set; }
         public string Estado { get; set; } = string.Empty;
-        public bool CerradaTecnico { get; set; }
-        public DateTime? FechaCierreTecnicoUtc { get; set; }
+        public bool EtapaTecnicaFinalizada { get; set; }
+        public DateTime? FechaFinEtapaTecnicaUtc { get; set; }
+        public bool CerradaDefinitiva { get; set; }
+        public DateTime? FechaCierreDefinitivoUtc { get; set; }
         public int TotalFotografias { get; set; }
         public int Pendientes { get; set; }
         public int ConError { get; set; }
         public int Finalizadas { get; set; }
         public string UrlMiniatura { get; set; } = string.Empty;
+        public int? UsuarioAnalizadorAsignadoId { get; set; }
+        public string AnalizadorAsignado { get; set; } = string.Empty;
+        public int? UsuarioAprobadorAsignadoId { get; set; }
+        public string AprobadorAsignado { get; set; } = string.Empty;
 
         public string NombreInspeccionTexto =>
             string.IsNullOrWhiteSpace(NombreInspeccion)
@@ -143,18 +159,22 @@ namespace CONATRADEC.Models
             ? "Terreno no disponible (registro anterior)"
             : $"Terreno {CodigoTerreno}";
 
-        public string EstadoTexto => InspeccionEstadosV2.ObtenerTexto(Estado);
+        public string EstadoTexto =>
+            InspeccionEstadosV2.ObtenerTexto(Estado);
 
-        public string CierreTexto => CerradaTecnico
+        public string CierreTexto => CerradaDefinitiva
             ? "Inspección cerrada definitivamente"
-            : "Inspección abierta";
+            : EtapaTecnicaFinalizada
+                ? "Etapa técnica finalizada"
+                : "Etapa técnica abierta";
 
         public string Resumen =>
             $"{TotalFotografias} fotos · {Pendientes} pendientes · " +
             $"{ConError} con error · {Finalizadas} finalizadas";
 
         public string FechaTexto =>
-            FechaRegistroSistemaUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+            FechaRegistroSistemaUtc.ToLocalTime()
+                .ToString("dd/MM/yyyy HH:mm");
     }
 
     public sealed class InspeccionFotoResultadoIAV2
@@ -172,7 +192,6 @@ namespace CONATRADEC.Models
         public string SeveridadVisual { get; set; } = string.Empty;
         public string NivelCerteza { get; set; } = string.Empty;
         public int? CategoriaAlbumBotanicoIdSugerida { get; set; }
-        public int? SubcategoriaAlbumBotanicoIdSugerida { get; set; }
         public int? AlbumBotanicoCafeIdSugerido { get; set; }
         public string CategoriaAlbumSugerida { get; set; } = string.Empty;
         public string ClasificacionAlbumSugerida { get; set; } = string.Empty;
@@ -190,15 +209,11 @@ namespace CONATRADEC.Models
         public List<string> Advertencias { get; set; } = [];
         public DateTime? FechaAnalisisIAUtc { get; set; }
 
-        public string DiagnosticoVisible => string.IsNullOrWhiteSpace(DiagnosticoProbable)
-            ? "Sin diagnóstico preliminar"
-            : DiagnosticoProbable;
+        public string DiagnosticoVisible =>
+            string.IsNullOrWhiteSpace(DiagnosticoProbable)
+                ? "Sin diagnóstico preliminar"
+                : DiagnosticoProbable;
 
-        /// <summary>
-        /// Las plantas aparentemente sanas también forman parte del Álbum
-        /// Botánico. La categoría fitosanitaria continúa siendo NO_APLICA,
-        /// pero la evidencia puede requerir una ficha dentro de Plantas sanas.
-        /// </summary>
         public bool EsAparentementeSana
         {
             get
@@ -211,12 +226,6 @@ namespace CONATRADEC.Models
                     return true;
                 }
 
-                /*
-                 * Compatibilidad con resultados históricos: algunas respuestas
-                 * anteriores no devolvían EstadoGeneral al cliente, aunque el
-                 * diagnóstico sí indicaba expresamente que la planta estaba
-                 * aparentemente sana.
-                 */
                 bool categoriaNoAplica = string.Equals(
                     CategoriaPrincipal,
                     "NO_APLICA",
@@ -258,14 +267,14 @@ namespace CONATRADEC.Models
                     ? DiagnosticoProbable.Trim()
                     : EsAparentementeSana
                         ? "Planta de café aparentemente sana"
-                        : "Nueva ficha por definir";
+                        : "Nueva subcategoría por definir";
 
         public string MotivoAlbumPropuesta =>
             !string.IsNullOrWhiteSpace(MotivoClasificacionAlbum)
                 ? MotivoClasificacionAlbum.Trim()
                 : EsAparentementeSana
-                    ? "La fotografía corresponde a una planta de café aparentemente sana, pero no existe una ficha compatible dentro del capítulo Plantas sanas."
-                    : "La IA no encontró una ficha activa del Álbum Botánico que represente de forma segura este hallazgo.";
+                    ? "La fotografía corresponde a una planta de café aparentemente sana, pero no existe una subcategoría compatible dentro de Plantas sanas."
+                    : "La IA no encontró una subcategoría activa del Álbum Botánico que represente de forma segura este hallazgo.";
     }
 
     public sealed class InspeccionFotoAnalisisHumanoV2
@@ -340,10 +349,6 @@ namespace CONATRADEC.Models
         public InspeccionFotoAprobacionV2? UltimaAprobacion { get; set; }
         public List<InspeccionFotoHistorialV2> Historial { get; set; } = [];
 
-        /// <summary>
-        /// Clasificación jerárquica oficial o propuesta para el Álbum Botánico.
-        /// Se carga en una sola consulta por inspección para evitar N+1.
-        /// </summary>
         public JerarquiaDiagnosticoFotoResponse? JerarquiaAlbum
         {
             get => jerarquiaAlbum;
@@ -362,12 +367,15 @@ namespace CONATRADEC.Models
         public bool TieneJerarquiaAlbum =>
             JerarquiaAlbum?.TieneClasificacion == true;
 
+        /// <summary>
+        /// El Álbum Botánico tiene tres niveles reales: categoría,
+        /// subcategoría específica y fotografías. AlbumBotanicoCafeId es el
+        /// identificador de la subcategoría específica.
+        /// </summary>
         public bool TieneClasificacionAlbumCompleta =>
             JerarquiaAlbum?.CategoriaAlbumBotanicoId is > 0 &&
-            JerarquiaAlbum?.SubcategoriaAlbumBotanicoId is > 0 &&
             JerarquiaAlbum?.AlbumBotanicoCafeId is > 0 &&
             JerarquiaAlbum.CategoriaEsPropuesta == false &&
-            JerarquiaAlbum.SubcategoriaEsPropuesta == false &&
             JerarquiaAlbum.FichaEsPropuesta == false;
 
         public bool Seleccionada
@@ -375,11 +383,6 @@ namespace CONATRADEC.Models
             get => seleccionada;
             set
             {
-                /*
-                 * Una fotografía bloqueada nunca puede conservar selección.
-                 * Esto evita que un estado final o una evidencia en proceso sea
-                 * enviada accidentalmente en una operación posterior.
-                 */
                 bool nuevoValor = value && PuedeSeleccionarse;
 
                 if (seleccionada == nuevoValor)
@@ -396,7 +399,8 @@ namespace CONATRADEC.Models
             !PublicadaAlbum &&
             !TieneAprobacion &&
             ResultadoIA?.RequiereGestionAlbum == true;
-        public bool TieneError => !string.IsNullOrWhiteSpace(ErrorProcesamiento);
+        public bool TieneError =>
+            !string.IsNullOrWhiteSpace(ErrorProcesamiento);
         public bool TieneAnalisisHumano => UltimoAnalisisHumano != null;
         public bool TieneAprobacion => UltimaAprobacion != null;
 
@@ -411,11 +415,6 @@ namespace CONATRADEC.Models
         public bool EstaProcesando =>
             Estado == InspeccionFotoEstados.AnalizandoIA;
 
-        /*
-         * Una foto aprobada y autorizada conserva una única acción posible:
-         * publicarla en el álbum. No puede volver a analizarse, descartarse ni
-         * recibir otra decisión.
-         */
         public bool PuedePublicarseEnAlbum =>
             !PublicadaAlbum &&
             UltimaAprobacion?.AutorizaPublicacionAlbum == true &&
@@ -427,11 +426,10 @@ namespace CONATRADEC.Models
             Descartada || EstaProcesando ||
             (EsEstadoFinal && !PuedePublicarseEnAlbum);
 
-        public bool PuedeSeleccionarse =>
-            !EsSoloConsulta;
+        public bool PuedeSeleccionarse => !EsSoloConsulta;
 
         public string DisponibilidadTexto => PuedePublicarseEnAlbum
-            ? "Proceso finalizado · disponible únicamente para publicar en el álbum"
+            ? "Proceso finalizado · disponible para copiar al Álbum Botánico"
             : EsEstadoFinal || Descartada
                 ? "Proceso finalizado · solo consulta"
                 : EstaProcesando
@@ -440,18 +438,26 @@ namespace CONATRADEC.Models
 
         public bool TieneMensajeDisponibilidad =>
             !string.IsNullOrWhiteSpace(DisponibilidadTexto);
-        public string Titulo => $"Fotografía {Orden} · {TipoFotografia.Replace('_', ' ')}";
+
+        public string Titulo =>
+            $"Fotografía {Orden} · {TipoFotografia.Replace('_', ' ')}";
+
         public string FechaCampoTexto => FechaIdentificacionCampo.HasValue
             ? $"Identificación en campo: {FechaIdentificacionCampo:dd/MM/yyyy}"
             : "Fecha de campo no indicada";
+
         public string DiagnosticoTexto => ResultadoIA?.DiagnosticoVisible ??
             "Pendiente de análisis IA";
+
         public string EstadoTexto => Estado.Replace('_', ' ');
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        private void OnPropertyChanged([CallerMemberName] string? name = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        private void OnPropertyChanged(
+            [CallerMemberName] string? name = null) =>
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(name));
     }
 
     public sealed class InspeccionFitosanitariaDetalleV2
@@ -465,9 +471,15 @@ namespace CONATRADEC.Models
         public string Observacion { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;
         public DateTime FechaRegistroSistemaUtc { get; set; }
-        public bool CerradaTecnico { get; set; }
-        public DateTime? FechaCierreTecnicoUtc { get; set; }
-        public int? UsuarioCierreTecnicoId { get; set; }
+        public bool EtapaTecnicaFinalizada { get; set; }
+        public DateTime? FechaFinEtapaTecnicaUtc { get; set; }
+        public int? UsuarioFinEtapaTecnicaId { get; set; }
+        public bool CerradaDefinitiva { get; set; }
+        public DateTime? FechaCierreDefinitivoUtc { get; set; }
+        public int? UsuarioCierreDefinitivoId { get; set; }
+        public int? UsuarioAnalizadorAsignadoId { get; set; }
+        public int? UsuarioAprobadorAsignadoId { get; set; }
+        public string VersionAsignacion { get; set; } = string.Empty;
         public List<InspeccionFotoV2> Fotografias { get; set; } = [];
         public bool PuedeGestionarSolicitud { get; set; }
         public bool PuedeCerrarInspeccion { get; set; }
@@ -479,15 +491,19 @@ namespace CONATRADEC.Models
         public string Titulo => string.IsNullOrWhiteSpace(NombreInspeccion)
             ? $"Inspección #{InspeccionId}"
             : NombreInspeccion.Trim();
+
         public string TerrenoTexto => string.IsNullOrWhiteSpace(CodigoTerreno)
             ? "Terreno no disponible (registro anterior)"
             : $"Terreno {CodigoTerreno}";
 
-        public string EstadoTexto => InspeccionEstadosV2.ObtenerTexto(Estado);
+        public string EstadoTexto =>
+            InspeccionEstadosV2.ObtenerTexto(Estado);
 
-        public string CierreTexto => CerradaTecnico
+        public string CierreTexto => CerradaDefinitiva
             ? "Inspección cerrada definitivamente"
-            : "Inspección abierta";
+            : EtapaTecnicaFinalizada
+                ? "Etapa técnica finalizada"
+                : "Etapa técnica abierta";
     }
 
     public sealed class InspeccionOperacionItemV2
@@ -544,14 +560,13 @@ namespace CONATRADEC.Models
     {
         public int AlbumBotanicoCafeId { get; set; }
         public int CategoriaAlbumBotanicoId { get; set; }
-        public int? SubcategoriaAlbumBotanicoId { get; set; }
-        public string Subcategoria { get; set; } = string.Empty;
         public string Titulo { get; set; } = string.Empty;
         public string NombreCientifico { get; set; } = string.Empty;
 
-        public string TextoSeleccion => string.IsNullOrWhiteSpace(NombreCientifico)
-            ? $"{AlbumBotanicoCafeId} · {Titulo}"
-            : $"{AlbumBotanicoCafeId} · {Titulo} ({NombreCientifico})";
+        public string TextoSeleccion =>
+            string.IsNullOrWhiteSpace(NombreCientifico)
+                ? $"{AlbumBotanicoCafeId} · {Titulo}"
+                : $"{AlbumBotanicoCafeId} · {Titulo} ({NombreCientifico})";
     }
 
     public sealed class InspeccionAlbumCategoriaV2

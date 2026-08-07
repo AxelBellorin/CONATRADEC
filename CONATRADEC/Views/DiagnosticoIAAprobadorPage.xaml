@@ -31,77 +31,63 @@
                 BackText="Inspección fitosanitaria"
                 BackCommand="{Binding RegresarCommand}" />
 
-            <ScrollView Grid.Row="1">
-                <VerticalStackLayout
-                    Spacing="12"
-                    MaximumWidthRequest="1100"
-                    HorizontalOptions="Center">
+            <Grid
+                Grid.Row="1"
+                RowDefinitions="Auto,*"
+                RowSpacing="12"
+                MaximumWidthRequest="1100"
+                HorizontalOptions="Fill">
 
-                    <Border
-                        Padding="14"
-                        BackgroundColor="#FFF9E8"
-                        Stroke="#E2B93B"
-                        StrokeShape="RoundRectangle 13"
-                        IsVisible="{Binding TieneMensajeEstado}">
-                        <HorizontalStackLayout Spacing="10">
-                            <ActivityIndicator
-                                IsRunning="{Binding IsBusy}"
-                                Color="#263A35" />
+                <Border
+                    Grid.Row="0"
+                    Padding="{OnIdiom Phone=10, Default=12}"
+                    BackgroundColor="White"
+                    Stroke="#C8DED6"
+                    StrokeShape="RoundRectangle 13">
+                    <Grid
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto,Auto', Default='Auto'}"
+                        ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,*,Auto'}"
+                        RowSpacing="6"
+                        ColumnSpacing="12">
+                        <VerticalStackLayout
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Spacing="1"
+                            VerticalOptions="Center">
                             <Label
-                                Text="{Binding MensajeEstado}"
-                                VerticalTextAlignment="Center"
-                                TextColor="#6B5710" />
-                        </HorizontalStackLayout>
-                    </Border>
-
-                    <Border
-                        Padding="{OnIdiom Phone=10, Default=12}"
-                        BackgroundColor="White"
-                        Stroke="#C8DED6"
-                        StrokeShape="RoundRectangle 13">
-                        <Grid
-                            RowDefinitions="{OnIdiom Phone='Auto,Auto,Auto', Default='Auto'}"
-                            ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,*,Auto'}"
-                            RowSpacing="6"
-                            ColumnSpacing="12">
-                            <VerticalStackLayout
-                                Grid.Row="0"
-                                Grid.Column="0"
-                                Spacing="1"
-                                VerticalOptions="Center">
-                                <Label
-                                    Text="Técnico responsable"
-                                    FontSize="13"
-                                    FontAttributes="Bold"
-                                    TextColor="#263A35" />
-                                <Label
-                                    Text="El filtro utiliza el identificador del técnico."
-                                    FontSize="11"
-                                    TextColor="#6B7773" />
-                            </VerticalStackLayout>
-
-                            <Picker
-                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                ItemsSource="{Binding TecnicosFiltro}"
-                                SelectedItem="{Binding TecnicoSeleccionado, Mode=TwoWay}"
-                                ItemDisplayBinding="{Binding TextoMostrar}"
-                                Title="Todos los técnicos"
-                                MinimumWidthRequest="{OnIdiom Phone=260, Default=360}"
-                                HeightRequest="44"
-                                HorizontalOptions="Fill" />
-
-                            <Button
-                                Grid.Row="{OnIdiom Phone=2, Default=0}"
-                                Grid.Column="{OnIdiom Phone=0, Default=2}"
-                                Text="Actualizar"
-                                Command="{Binding ActualizarCommand}"
-                                HeightRequest="44"
-                                BackgroundColor="#EEF2F0"
+                                Text="Técnico responsable"
+                                FontSize="13"
+                                FontAttributes="Bold"
                                 TextColor="#263A35" />
-                        </Grid>
-                    </Border>
+                            <Label
+                                Text="El filtro utiliza el identificador del técnico."
+                                FontSize="11"
+                                TextColor="#6B7773" />
+                        </VerticalStackLayout>
 
+                        <Picker
+                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                            ItemsSource="{Binding TecnicosFiltro}"
+                            SelectedItem="{Binding TecnicoSeleccionado, Mode=TwoWay}"
+                            ItemDisplayBinding="{Binding TextoMostrar}"
+                            Title="Todos los técnicos"
+                            MinimumWidthRequest="{OnIdiom Phone=260, Default=360}"
+                            HeightRequest="44"
+                            HorizontalOptions="Fill" />
+
+                        <Button
+                            Grid.Row="{OnIdiom Phone=2, Default=0}"
+                            Grid.Column="{OnIdiom Phone=0, Default=2}"
+                            Text="Actualizar"
+                            Command="{Binding ActualizarCommand}"
+                            HeightRequest="44"
+                            BackgroundColor="#EEF2F0"
+                            TextColor="#263A35" />
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="1">
                     <CollectionView
                         ItemsSource="{Binding Solicitudes}"
                         SelectionMode="None">
@@ -110,8 +96,9 @@
                                 Orientation="Vertical"
                                 ItemSpacing="10" />
                         </CollectionView.ItemsLayout>
+
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="models:InspeccionFitosanitariaListaItemV2">
+                            <DataTemplate x:DataType="models:InspeccionFitosanitariaBandejaItemV2">
                                 <Border
                                     Padding="{OnIdiom Phone=12, Default=14}"
                                     BackgroundColor="White"
@@ -152,7 +139,7 @@
                                                 FontAttributes="Bold"
                                                 TextColor="#3B655B" />
                                             <Label
-                                                Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}}"
+                                                Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}, StringFormat='Técnico: {0}'}"
                                                 FontSize="12"
                                                 FontAttributes="Bold"
                                                 TextColor="#40544E"
@@ -166,6 +153,11 @@
                                                 Text="{Binding FechaTexto, StringFormat='Registrada: {0}'}"
                                                 FontSize="12"
                                                 TextColor="#7A8581" />
+                                            <Label
+                                                Text="{Binding AsignacionTexto}"
+                                                FontSize="11"
+                                                TextColor="#52665F"
+                                                LineBreakMode="WordWrap" />
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
@@ -193,10 +185,32 @@
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
+
+                        <CollectionView.Footer>
+                            <VerticalStackLayout
+                                Padding="0,14,0,4"
+                                Spacing="8">
+                                <ActivityIndicator
+                                    IsRunning="{Binding CargandoMas}"
+                                    IsVisible="{Binding CargandoMas}"
+                                    Color="#3B655B" />
+                                <Button
+                                    Text="{Binding TextoCargarMas}"
+                                    Command="{Binding CargarMasCommand}"
+                                    IsVisible="{Binding HayMas}"
+                                    HeightRequest="46"
+                                    MaximumWidthRequest="360"
+                                    HorizontalOptions="Center"
+                                    BackgroundColor="#EAF3EF"
+                                    TextColor="#315E52"
+                                    CornerRadius="11" />
+                            </VerticalStackLayout>
+                        </CollectionView.Footer>
                     </CollectionView>
 
                     <Border
                         Padding="18"
+                        VerticalOptions="Start"
                         BackgroundColor="#F2F6F4"
                         Stroke="#D9E3DF"
                         StrokeShape="RoundRectangle 14"
@@ -206,8 +220,28 @@
                             HorizontalTextAlignment="Center"
                             TextColor="#5E6B67" />
                     </Border>
-                </VerticalStackLayout>
-            </ScrollView>
+
+                    <Border
+                        Padding="14"
+                        Margin="0,4"
+                        VerticalOptions="Start"
+                        ZIndex="5"
+                        BackgroundColor="#FFF9E8"
+                        Stroke="#E2B93B"
+                        StrokeShape="RoundRectangle 13"
+                        IsVisible="{Binding TieneMensajeEstado}">
+                        <HorizontalStackLayout Spacing="10">
+                            <ActivityIndicator
+                                IsRunning="{Binding IsBusy}"
+                                Color="#263A35" />
+                            <Label
+                                Text="{Binding MensajeEstado}"
+                                VerticalTextAlignment="Center"
+                                TextColor="#6B5710" />
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>

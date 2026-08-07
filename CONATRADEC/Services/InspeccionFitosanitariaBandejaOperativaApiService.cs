@@ -5,8 +5,9 @@ using System.Text.Json;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Cliente liviano para las bandejas del analizador y del aprobador. El
-    /// filtro se envía por identificador del técnico, nunca por texto.
+    /// Cliente paginado para las bandejas del analizador y aprobador. Utiliza
+    /// cursor por fecha e identificador, por lo que no vuelve a leer las páginas
+    /// anteriores al solicitar más registros.
     /// </summary>
     public sealed class InspeccionFitosanitariaBandejaOperativaApiService
     {
@@ -18,23 +19,47 @@ namespace CONATRADEC.Services
 
         private readonly HttpClient client = ApiClientService.Client;
 
-        public async Task<List<InspeccionFitosanitariaListaItemV2>> ObtenerAsync(
-            string modo,
-            int? tecnicoId,
-            CancellationToken cancellationToken = default)
+        public async Task<InspeccionFitosanitariaBandejaPaginaV2>
+            ObtenerPaginaAsync(
+                string modo,
+                int? tecnicoId,
+                DateTime? ultimaFechaUtc,
+                int? ultimoId,
+                int tamanoPagina = 20,
+                CancellationToken cancellationToken = default)
         {
-            string ruta =
-                "api/inspecciones-fitosanitarias-flujo/bandeja?modo=" +
-                Uri.EscapeDataString(
+            tamanoPagina = Math.Clamp(tamanoPagina, 10, 50);
+
+            var parametros = new List<string>
+            {
+                "modo=" + Uri.EscapeDataString(
                     string.IsNullOrWhiteSpace(modo)
                         ? DiagnosticoIARoutes.ModoAnalizador
-                        : modo.Trim().ToLowerInvariant());
+                        : modo.Trim().ToLowerInvariant()),
+                "tamanoPagina=" + tamanoPagina,
+                "desfaseHorarioMinutos=" +
+                    (int)TimeZoneInfo.Local.GetUtcOffset(DateTime.Now)
+                        .TotalMinutes
+            };
 
             if (tecnicoId is > 0)
             {
-                ruta += "&tecnicoId=" +
-                        Uri.EscapeDataString(tecnicoId.Value.ToString());
+                parametros.Add(
+                    "tecnicoId=" + tecnicoId.Value);
             }
+
+            if (ultimaFechaUtc.HasValue && ultimoId is > 0)
+            {
+                parametros.Add(
+                    "ultimaFechaUtc=" + Uri.EscapeDataString(
+                        ultimaFechaUtc.Value.ToUniversalTime()
+                            .ToString("O")));
+                parametros.Add("ultimoId=" + ultimoId.Value);
+            }
+
+            string ruta =
+                "api/inspecciones-fitosanitarias/bandeja-paginada?" +
+                string.Join("&", parametros);
 
             SesionInactividadService.Instance.RegistrarActividad();
 
@@ -47,7 +72,7 @@ namespace CONATRADEC.Services
             string contenido = await response.Content.ReadAsStringAsync(
                 cancellationToken);
 
-            RespuestaApi<List<InspeccionFitosanitariaListaItemV2>>? envelope =
+            RespuestaApi<InspeccionFitosanitariaBandejaPaginaV2>? envelope =
                 null;
 
             if (!string.IsNullOrWhiteSpace(contenido))
@@ -55,7 +80,7 @@ namespace CONATRADEC.Services
                 try
                 {
                     envelope = JsonSerializer.Deserialize<
-                        RespuestaApi<List<InspeccionFitosanitariaListaItemV2>>>(
+                        RespuestaApi<InspeccionFitosanitariaBandejaPaginaV2>>(
                         contenido,
                         JsonOptions);
                 }
@@ -78,7 +103,7 @@ namespace CONATRADEC.Services
 
             throw new InspeccionFitosanitariaApiException(
                 HttpStatusCode.BadGateway,
-                "El servidor devolvió una bandeja incompleta.");
+                "El servidor devolvió una página de bandeja incompleta.");
         }
 
         private sealed class RespuestaApi<T>

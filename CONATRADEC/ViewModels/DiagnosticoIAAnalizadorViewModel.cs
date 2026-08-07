@@ -4,36 +4,46 @@ using System.Collections.ObjectModel;
 
 namespace CONATRADEC.ViewModels
 {
-    public sealed class DiagnosticoIAAnalizadorViewModel :
-        DiagnosticoIAViewModelBase
+    public sealed class DiagnosticoIAAnalizadorViewModel : DiagnosticoIAViewModelBase
     {
+        private const int TamanoPagina = 20;
+
         private readonly InspeccionFitosanitariaBandejaApiService filtrosApi =
             InspeccionFitosanitariaBandejaApiService.Instance;
         private readonly InspeccionFitosanitariaBandejaOperativaApiService api =
             new();
 
         private bool catalogoTecnicosCargado;
+        private bool cargandoMas;
         private TecnicoInspeccionFiltroItem? tecnicoSeleccionado;
+        private DateTime? siguienteFechaUtc;
+        private int? siguienteId;
+        private bool hayMas;
 
         public DiagnosticoIAAnalizadorViewModel()
         {
             ActualizarCommand = new Command(
                 async () => await ActualizarAsync(),
-                () => !IsBusy);
+                () => !IsBusy && !cargandoMas);
 
-            AbrirCommand = new Command<InspeccionFitosanitariaListaItemV2>(
+            CargarMasCommand = new Command(
+                async () => await CargarMasAsync(),
+                () => !IsBusy && !cargandoMas && HayMas);
+
+            AbrirCommand = new Command<InspeccionFitosanitariaBandejaItemV2>(
                 async item => await AbrirAsync(item),
-                item => item != null && !IsBusy);
+                item => item != null && !IsBusy && !cargandoMas);
         }
 
-        public ObservableCollection<InspeccionFitosanitariaListaItemV2>
+        public ObservableCollection<InspeccionFitosanitariaBandejaItemV2>
             Solicitudes { get; } = [];
 
         public ObservableCollection<TecnicoInspeccionFiltroItem>
             TecnicosFiltro { get; } = [];
 
         public Command ActualizarCommand { get; }
-        public Command<InspeccionFitosanitariaListaItemV2> AbrirCommand { get; }
+        public Command CargarMasCommand { get; }
+        public Command<InspeccionFitosanitariaBandejaItemV2> AbrirCommand { get; }
 
         public TecnicoInspeccionFiltroItem? TecnicoSeleccionado
         {
@@ -48,7 +58,7 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(TecnicoFiltroTexto));
 
                 if (catalogoTecnicosCargado && !IsBusy)
-                    _ = CargarAsync();
+                    _ = CargarPrimeraPaginaAsync();
             }
         }
 
@@ -56,18 +66,50 @@ namespace CONATRADEC.ViewModels
             TecnicoSeleccionado?.TextoMostrar ?? "Todos los técnicos";
 
         public bool SinSolicitudes =>
-            !IsBusy && Solicitudes.Count == 0;
+            !IsBusy && !cargandoMas && Solicitudes.Count == 0;
+
+        public bool HayMas
+        {
+            get => hayMas;
+            private set
+            {
+                if (hayMas == value)
+                    return;
+
+                hayMas = value;
+                OnPropertyChanged();
+                CargarMasCommand.ChangeCanExecute();
+            }
+        }
+
+        public bool CargandoMas
+        {
+            get => cargandoMas;
+            private set
+            {
+                if (cargandoMas == value)
+                    return;
+
+                cargandoMas = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TextoCargarMas));
+                ActualizarComandos();
+            }
+        }
+
+        public string TextoCargarMas =>
+            CargandoMas ? "Cargando..." : "Cargar más inspecciones";
 
         public async Task InicializarAsync()
         {
             await CargarTecnicosAsync();
-            await CargarAsync();
+            await CargarPrimeraPaginaAsync();
         }
 
         private async Task ActualizarAsync()
         {
             await CargarTecnicosAsync(forzar: true);
-            await CargarAsync();
+            await CargarPrimeraPaginaAsync();
         }
 
         private async Task CargarTecnicosAsync(bool forzar = false)
@@ -106,29 +148,71 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CargarAsync()
+        private async Task CargarPrimeraPaginaAsync()
         {
-            if (IsBusy || !ValidarEnLinea(false))
+            siguienteFechaUtc = null;
+            siguienteId = null;
+            HayMas = false;
+            await CargarPaginaAsync(reemplazar: true);
+        }
+
+        private async Task CargarMasAsync()
+        {
+            if (!HayMas || CargandoMas || IsBusy)
                 return;
 
-            IsBusy = true;
-            MensajeEstado =
-                "Cargando fotografías pendientes del analizador...";
-            ActualizarComandos();
+            CargandoMas = true;
+            try
+            {
+                await CargarPaginaAsync(reemplazar: false);
+            }
+            finally
+            {
+                CargandoMas = false;
+            }
+        }
+
+        private async Task CargarPaginaAsync(bool reemplazar)
+        {
+            if ((IsBusy && reemplazar) || !ValidarEnLinea(false))
+                return;
+
+            if (reemplazar)
+            {
+                IsBusy = true;
+                MensajeEstado = "Cargando inspecciones pendientes del analizador...";
+                ActualizarComandos();
+            }
 
             try
             {
-                List<InspeccionFitosanitariaListaItemV2> items =
-                    await api.ObtenerAsync(
+                InspeccionFitosanitariaBandejaPaginaV2 pagina =
+                    await api.ObtenerPaginaAsync(
                         DiagnosticoIARoutes.ModoAnalizador,
                         TecnicoSeleccionado?.UsuarioTecnicoId is > 0
                             ? TecnicoSeleccionado.UsuarioTecnicoId
-                            : null);
+                            : null,
+                        reemplazar ? null : siguienteFechaUtc,
+                        reemplazar ? null : siguienteId,
+                        TamanoPagina);
 
-                Solicitudes.Clear();
-                foreach (InspeccionFitosanitariaListaItemV2 item in items)
-                    Solicitudes.Add(item);
+                if (reemplazar)
+                    Solicitudes.Clear();
 
+                HashSet<int> existentes = Solicitudes
+                    .Select(item => item.InspeccionId)
+                    .ToHashSet();
+
+                foreach (InspeccionFitosanitariaBandejaItemV2 item
+                         in pagina.Items)
+                {
+                    if (existentes.Add(item.InspeccionId))
+                        Solicitudes.Add(item);
+                }
+
+                siguienteFechaUtc = pagina.SiguienteFechaUtc;
+                siguienteId = pagina.SiguienteId;
+                HayMas = pagina.HayMas;
                 OnPropertyChanged(nameof(SinSolicitudes));
             }
             catch (Exception ex)
@@ -137,17 +221,21 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                MensajeEstado = string.Empty;
-                IsBusy = false;
+                if (reemplazar)
+                {
+                    MensajeEstado = string.Empty;
+                    IsBusy = false;
+                }
+
                 OnPropertyChanged(nameof(SinSolicitudes));
                 ActualizarComandos();
             }
         }
 
         private async Task AbrirAsync(
-            InspeccionFitosanitariaListaItemV2? item)
+            InspeccionFitosanitariaBandejaItemV2? item)
         {
-            if (item == null || IsBusy)
+            if (item == null || IsBusy || CargandoMas)
                 return;
 
             await GoToAsyncParameters(
@@ -159,6 +247,7 @@ namespace CONATRADEC.ViewModels
         private void ActualizarComandos()
         {
             ActualizarCommand.ChangeCanExecute();
+            CargarMasCommand.ChangeCanExecute();
             AbrirCommand.ChangeCanExecute();
         }
     }

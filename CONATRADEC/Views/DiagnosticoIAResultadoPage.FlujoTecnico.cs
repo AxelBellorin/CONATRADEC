@@ -26,7 +26,7 @@ namespace CONATRADEC.Views
         {
             if (BindingContext is not DiagnosticoIAResultadoViewModel viewModel ||
                 viewModel.IsBusy ||
-                viewModel.Detalle?.CerradaTecnico == true)
+                viewModel.Detalle?.EtapaTecnicaFinalizada == true)
             {
                 return;
             }

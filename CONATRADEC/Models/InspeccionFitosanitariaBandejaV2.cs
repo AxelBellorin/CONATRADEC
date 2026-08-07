@@ -53,12 +53,6 @@ namespace CONATRADEC.Models
         public int InspeccionId { get; set; }
         public string NombreInspeccion { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Compatibilidad con respuestas anteriores. En la bandeja nueva este
-        /// valor representa la finalización de la etapa técnica.
-        /// </summary>
-        public bool CerradaTecnico { get; set; }
-
         public bool EtapaTecnicaFinalizada { get; set; }
         public bool CerradaDefinitiva { get; set; }
         public string CodigoTerreno { get; set; } = string.Empty;
@@ -79,13 +73,33 @@ namespace CONATRADEC.Models
         public int Procesando { get; set; }
         public int Descartadas { get; set; }
         public string UrlMiniatura { get; set; } = string.Empty;
+        public int? UsuarioAnalizadorAsignadoId { get; set; }
+        public string AnalizadorAsignado { get; set; } = string.Empty;
+        public int? UsuarioAprobadorAsignadoId { get; set; }
+        public string AprobadorAsignado { get; set; } = string.Empty;
+        public string VersionAsignacion { get; set; } = string.Empty;
 
-        public bool EtapaTecnicaFinalizadaEfectiva =>
-            EtapaTecnicaFinalizada || CerradaTecnico;
+        public string AsignacionTexto
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(AprobadorAsignado))
+                    return $"Aprobador asignado: {AprobadorAsignado.Trim()}";
+
+                if (!string.IsNullOrWhiteSpace(AnalizadorAsignado))
+                    return $"Analizador asignado: {AnalizadorAsignado.Trim()}";
+
+                return "Sin asignación; el primer usuario que actúe tomará el expediente";
+            }
+        }
+
+        public bool TieneAsignacion =>
+            UsuarioAnalizadorAsignadoId is > 0 ||
+            UsuarioAprobadorAsignadoId is > 0;
 
         public bool TieneDecisionesTecnicas =>
             !CerradaDefinitiva &&
-            !EtapaTecnicaFinalizadaEfectiva &&
+            !EtapaTecnicaFinalizada &&
             RequierenDecisionTecnico > 0;
 
         public bool TieneProcesamientoActivo =>
@@ -161,7 +175,7 @@ namespace CONATRADEC.Models
                 if (CerradaDefinitiva)
                     return "Cerrada definitivamente";
 
-                if (EtapaTecnicaFinalizadaEfectiva)
+                if (EtapaTecnicaFinalizada)
                 {
                     return Estado switch
                     {
@@ -204,7 +218,7 @@ namespace CONATRADEC.Models
                     ? "#FFF5D6"
                     : ConError > 0
                         ? "#FDECEC"
-                        : EtapaTecnicaFinalizadaEfectiva
+                        : EtapaTecnicaFinalizada
                             ? "#EAF3EF"
                             : TieneProcesamientoActivo
                                 ? "#EDF4FF"
@@ -217,7 +231,7 @@ namespace CONATRADEC.Models
                     ? "#7A5A13"
                     : ConError > 0
                         ? "#B42318"
-                        : EtapaTecnicaFinalizadaEfectiva
+                        : EtapaTecnicaFinalizada
                             ? "#315E52"
                             : TieneProcesamientoActivo
                                 ? "#315B86"
@@ -228,7 +242,7 @@ namespace CONATRADEC.Models
                 ? "Consultar expediente"
                 : TieneDecisionesTecnicas
                     ? "Atender decisiones"
-                    : EtapaTecnicaFinalizadaEfectiva
+                    : EtapaTecnicaFinalizada
                         ? "Ver avance de revisión"
                         : "Abrir inspección";
 
@@ -257,7 +271,7 @@ namespace CONATRADEC.Models
                     return decisiones;
                 }
 
-                if (EtapaTecnicaFinalizadaEfectiva)
+                if (EtapaTecnicaFinalizada)
                     return "La etapa técnica ya fue enviada al analizador";
 
                 if (Procesando > 0)

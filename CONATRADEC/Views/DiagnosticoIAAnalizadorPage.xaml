@@ -171,7 +171,7 @@
                         </CollectionView.ItemsLayout>
 
                         <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="models:InspeccionFitosanitariaListaItemV2">
+                            <DataTemplate x:DataType="models:InspeccionFitosanitariaBandejaItemV2">
                                 <Border
                                     Padding="{OnIdiom Phone=12, Default=15}"
                                     BackgroundColor="White"
@@ -213,7 +213,7 @@
                                                     FontSize="13"
                                                     TextColor="#3B655B" />
                                                 <Label
-                                                    Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}}"
+                                                    Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}, StringFormat='Técnico: {0}'}"
                                                     FontSize="12"
                                                     FontAttributes="Bold"
                                                     TextColor="#40544E"
@@ -222,6 +222,11 @@
                                                     Text="{Binding FechaTexto}"
                                                     FontSize="12"
                                                     TextColor="#7A8581" />
+                                                <Label
+                                                    Text="{Binding AsignacionTexto}"
+                                                    FontSize="11"
+                                                    TextColor="#52665F"
+                                                    LineBreakMode="WordWrap" />
                                             </VerticalStackLayout>
 
                                             <VerticalStackLayout
@@ -239,7 +244,7 @@
                                                     <Border.Triggers>
                                                         <DataTrigger
                                                             TargetType="Border"
-                                                            Binding="{Binding CerradaTecnico}"
+                                                            Binding="{Binding EtapaTecnicaFinalizada}"
                                                             Value="True">
                                                             <Setter Property="IsVisible" Value="False" />
                                                         </DataTrigger>
@@ -260,7 +265,7 @@
                                                     <Border.Triggers>
                                                         <DataTrigger
                                                             TargetType="Border"
-                                                            Binding="{Binding CerradaTecnico}"
+                                                            Binding="{Binding EtapaTecnicaFinalizada}"
                                                             Value="True">
                                                             <Setter Property="IsVisible" Value="True" />
                                                         </DataTrigger>
@@ -379,7 +384,7 @@
                                             <Label.Triggers>
                                                 <DataTrigger
                                                     TargetType="Label"
-                                                    Binding="{Binding CerradaTecnico}"
+                                                    Binding="{Binding EtapaTecnicaFinalizada}"
                                                     Value="True">
                                                     <Setter Property="IsVisible" Value="False" />
                                                 </DataTrigger>
@@ -395,7 +400,7 @@
                                             <Label.Triggers>
                                                 <DataTrigger
                                                     TargetType="Label"
-                                                    Binding="{Binding CerradaTecnico}"
+                                                    Binding="{Binding EtapaTecnicaFinalizada}"
                                                     Value="True">
                                                     <Setter Property="IsVisible" Value="True" />
                                                 </DataTrigger>
@@ -405,6 +410,26 @@
                                 </Border>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
+                        <CollectionView.Footer>
+                            <VerticalStackLayout
+                                Padding="0,14,0,4"
+                                Spacing="8">
+                                <ActivityIndicator
+                                    IsRunning="{Binding CargandoMas}"
+                                    IsVisible="{Binding CargandoMas}"
+                                    Color="#3B655B" />
+                                <Button
+                                    Text="{Binding TextoCargarMas}"
+                                    Command="{Binding CargarMasCommand}"
+                                    IsVisible="{Binding HayMas}"
+                                    HeightRequest="46"
+                                    MaximumWidthRequest="360"
+                                    HorizontalOptions="Center"
+                                    BackgroundColor="#EAF3EF"
+                                    TextColor="#315E52"
+                                    CornerRadius="11" />
+                            </VerticalStackLayout>
+                        </CollectionView.Footer>
                     </CollectionView>
 
                     <Border
