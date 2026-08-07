@@ -37,6 +37,12 @@ namespace CONATRADEC.Models
             }
         }
 
+        /// <summary>
+        /// Picker de WinUI presenta de forma más consistente el elemento
+        /// seleccionado cuando puede obtener directamente su texto visible.
+        /// </summary>
+        public override string ToString() => TextoMostrar;
+
         public static TecnicoInspeccionFiltroItem Todos() =>
             new()
             {

@@ -57,8 +57,13 @@ namespace CONATRADEC.Services
                 parametros.Add("ultimoId=" + ultimoId.Value);
             }
 
+            /*
+             * Analizador y aprobador utilizan una consulta operativa propia.
+             * De esta forma el flujo individual por fotografía no depende de
+             * filtros históricos de la bandeja general.
+             */
             string ruta =
-                "api/inspecciones-fitosanitarias/bandeja-paginada?" +
+                "api/revision-fitosanitaria/bandeja-paginada?" +
                 string.Join("&", parametros);
 
             SesionInactividadService.Instance.RegistrarActividad();

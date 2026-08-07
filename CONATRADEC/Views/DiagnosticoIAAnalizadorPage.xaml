@@ -29,7 +29,8 @@
                 Title="Bandeja del analizador"
                 Subtitle="Revise las fotografías recibidas mientras el técnico completa el envío de la inspección."
                 BackText="Inspección fitosanitaria"
-                BackCommand="{Binding RegresarCommand}" />
+                BackCommand="{Binding RegresarCommand}"
+                IsPrimaryVisible="False" />
 
             <Grid
                 Grid.Row="1"
@@ -72,7 +73,7 @@
                                 FontAttributes="Bold"
                                 TextColor="#294A42" />
                             <Label
-                                Text="Puede clasificar las fotografías que el técnico ya envió. La revisión no avanzará al aprobador hasta que el técnico complete su etapa y todas las fotografías recibidas tengan clasificación humana."
+                                Text="Puede revisar las fotografías que el técnico ya envió y pasar al aprobador cada evidencia conforme quede lista. El técnico debe finalizar su etapa antes del primer envío al aprobador."
                                 FontSize="12"
                                 TextColor="#4D625C"
                                 LineBreakMode="WordWrap" />
@@ -127,16 +128,21 @@
                                 FontSize="11"
                                 TextColor="#6B7773" />
                         </VerticalStackLayout>
-                        <Picker
+                        <Button
+                            x:Name="TecnicoSelectorButton"
                             Grid.Row="{OnIdiom Phone=1, Default=0}"
                             Grid.Column="{OnIdiom Phone=0, Default=1}"
-                            ItemsSource="{Binding TecnicosFiltro}"
-                            SelectedItem="{Binding TecnicoSeleccionado, Mode=TwoWay}"
-                            ItemDisplayBinding="{Binding TextoMostrar}"
-                            Title="Todos los técnicos"
+                            Text="{Binding TecnicoFiltroTexto}"
+                            Clicked="OnSeleccionarTecnicoClicked"
                             MinimumWidthRequest="{OnIdiom Phone=260, Default=360}"
                             HeightRequest="44"
-                            HorizontalOptions="Fill" />
+                            Padding="14,8"
+                            HorizontalOptions="Fill"
+                            BackgroundColor="White"
+                            BorderColor="#C9D4D0"
+                            BorderWidth="1"
+                            TextColor="#263A35"
+                            CornerRadius="8" />
                     </Grid>
                 </Border>
 
@@ -289,8 +295,8 @@
                                         </FlexLayout>
 
                                         <Grid
-                                            ColumnDefinitions="{OnIdiom Phone='*,*', Default='*,*,*,*'}"
-                                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                            ColumnDefinitions="{OnIdiom Phone='*,*', Default='*,*,*,*,*'}"
+                                            RowDefinitions="{OnIdiom Phone='Auto,Auto,Auto', Default='Auto'}"
                                             ColumnSpacing="8"
                                             RowSpacing="8">
 
@@ -338,6 +344,26 @@
                                                 Grid.Row="{OnIdiom Phone=1, Default=0}"
                                                 Grid.Column="{OnIdiom Phone=0, Default=2}"
                                                 Padding="10"
+                                                BackgroundColor="#EDF4FF"
+                                                Stroke="#C8D9EE"
+                                                StrokeShape="RoundRectangle 11">
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label
+                                                        Text="Enviadas al aprobador"
+                                                        FontSize="11"
+                                                        TextColor="#315B86" />
+                                                    <Label
+                                                        Text="{Binding EnviadasAprobador}"
+                                                        FontSize="18"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#315B86" />
+                                                </VerticalStackLayout>
+                                            </Border>
+
+                                            <Border
+                                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                                Grid.Column="{OnIdiom Phone=1, Default=3}"
+                                                Padding="10"
                                                 BackgroundColor="#FFF8E2"
                                                 Stroke="#E4C765"
                                                 StrokeShape="RoundRectangle 11">
@@ -355,8 +381,9 @@
                                             </Border>
 
                                             <Border
-                                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                                Grid.Column="{OnIdiom Phone=1, Default=3}"
+                                                Grid.Row="{OnIdiom Phone=2, Default=0}"
+                                                Grid.Column="{OnIdiom Phone=0, Default=4}"
+                                                Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
                                                 Padding="10"
                                                 BackgroundColor="#FDECEC"
                                                 Stroke="#F0C8C4"
@@ -395,7 +422,7 @@
                                             FontSize="12"
                                             TextColor="#315E52"
                                             LineBreakMode="WordWrap"
-                                            Text="El técnico completó el envío. La revisión podrá avanzar al aprobador cuando todas las fotografías recibidas tengan clasificación humana."
+                                            Text="El técnico completó el envío. Cada fotografía revisada puede enviarse al aprobador de forma individual o mediante selección múltiple."
                                             IsVisible="False">
                                             <Label.Triggers>
                                                 <DataTrigger

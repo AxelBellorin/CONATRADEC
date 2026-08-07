@@ -2,6 +2,7 @@ using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using System.Collections.ObjectModel;
+using Microsoft.Maui.Devices;
 
 namespace CONATRADEC.Views
 {
@@ -41,11 +42,23 @@ namespace CONATRADEC.Views
         private string modoActual = DiagnosticoIARoutes.ModoMisInspecciones;
         private bool cargandoTecnicos;
         private bool cambiandoVista;
+        private bool selectorVistaAbierto;
+        private Button? selectorVistaButton;
 
         public DiagnosticoIASolicitudPage()
         {
             InitializeComponent();
+
+            /*
+             * WinUI puede dejar vacío el texto visible del Picker cuando usa
+             * ItemDisplayBinding con objetos. Ambos modelos implementan
+             * ToString(), por lo que se usa directamente ese texto estable.
+             */
+            VistaInspeccionesPicker.ItemDisplayBinding = null;
+            TecnicoFiltroPicker.ItemDisplayBinding = null;
+
             BindingContext = viewModel;
+            PrepararSelectorVistaPersonalizado();
 
             VistasInspecciones.Add(
                 new VistaMisInspeccionesItem(
@@ -94,6 +107,83 @@ namespace CONATRADEC.Views
         public bool MostrarSelectorMisInspecciones =>
             !viewModel.EsModoNueva && !MostrarFiltroTecnico;
 
+        /// <summary>
+        /// En Windows el Picker nativo puede desplegar correctamente sus
+        /// opciones y, aun así, no conservar el texto seleccionado. Para esta
+        /// vista se reemplaza visualmente por un botón estable que abre un
+        /// selector nativo y conserva siempre la opción elegida.
+        /// </summary>
+        private void PrepararSelectorVistaPersonalizado()
+        {
+            if (VistaInspeccionesPicker?.Parent is not Layout contenedor ||
+                selectorVistaButton != null)
+            {
+                return;
+            }
+
+            VistaInspeccionesPicker.IsVisible = false;
+
+            selectorVistaButton = new Button
+            {
+                Text = "Todas mis inspecciones",
+                WidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone ? 260 : 315,
+                HeightRequest = 44,
+                Padding = new Thickness(14, 8),
+                HorizontalOptions = LayoutOptions.End,
+                BackgroundColor = Colors.White,
+                BorderColor = Color.FromArgb("#C9D4D0"),
+                BorderWidth = 1,
+                TextColor = Color.FromArgb("#263A35"),
+                CornerRadius = 8
+            };
+            selectorVistaButton.Clicked += OnSelectorVistaPersonalizadoClicked;
+            contenedor.Children.Add(selectorVistaButton);
+        }
+
+        private async void OnSelectorVistaPersonalizadoClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (selectorVistaAbierto || viewModel.IsBusy ||
+                VistasInspecciones.Count == 0 ||
+                viewModel.EsModoNueva || MostrarFiltroTecnico)
+            {
+                return;
+            }
+
+            selectorVistaAbierto = true;
+            try
+            {
+                string? opcion = await DisplayActionSheet(
+                    "Vista de mis inspecciones",
+                    "Cancelar",
+                    null,
+                    VistasInspecciones.Select(item => item.Nombre).ToArray());
+
+                if (string.IsNullOrWhiteSpace(opcion) ||
+                    string.Equals(opcion, "Cancelar", StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                VistaMisInspeccionesItem? seleccionada =
+                    VistasInspecciones.FirstOrDefault(item =>
+                        string.Equals(
+                            item.Nombre,
+                            opcion,
+                            StringComparison.Ordinal));
+
+                if (seleccionada == null)
+                    return;
+
+                await CambiarVistaAsync(seleccionada);
+            }
+            finally
+            {
+                selectorVistaAbierto = false;
+            }
+        }
+
         public void ApplyQueryAttributes(
             IDictionary<string, object> query)
         {
@@ -140,8 +230,7 @@ namespace CONATRADEC.Views
 
         private void SincronizarSelectorVista()
         {
-            if (VistaInspeccionesPicker == null ||
-                VistasInspecciones.Count == 0 ||
+            if (VistasInspecciones.Count == 0 ||
                 viewModel.EsModoNueva ||
                 MostrarFiltroTecnico)
             {
@@ -162,6 +251,11 @@ namespace CONATRADEC.Views
                     .First();
 
                 VistaInspeccionesPicker.SelectedIndex = indice;
+                VistaInspeccionesPicker.SelectedItem =
+                    VistasInspecciones[indice];
+
+                if (selectorVistaButton != null)
+                    selectorVistaButton.Text = VistasInspecciones[indice].Nombre;
             }
             finally
             {
@@ -174,15 +268,25 @@ namespace CONATRADEC.Views
             EventArgs e)
         {
             if (cambiandoVista ||
-                viewModel.EsModoNueva ||
-                MostrarFiltroTecnico ||
                 VistaInspeccionesPicker.SelectedItem is not
-                    VistaMisInspeccionesItem seleccionada ||
+                    VistaMisInspeccionesItem seleccionada)
+            {
+                return;
+            }
+
+            await CambiarVistaAsync(seleccionada);
+        }
+
+        private async Task CambiarVistaAsync(
+            VistaMisInspeccionesItem seleccionada)
+        {
+            if (viewModel.EsModoNueva || MostrarFiltroTecnico ||
                 string.Equals(
                     modoActual,
                     seleccionada.Modo,
                     StringComparison.OrdinalIgnoreCase))
             {
+                SincronizarSelectorVista();
                 return;
             }
 
@@ -196,6 +300,7 @@ namespace CONATRADEC.Views
             OnPropertyChanged(nameof(MostrarSelectorMisInspecciones));
 
             await viewModel.InicializarAsync();
+            SincronizarSelectorVista();
         }
 
         private async Task CargarTecnicosAsync()
@@ -236,6 +341,10 @@ namespace CONATRADEC.Views
                 }
 
                 TecnicoFiltroPicker.SelectedIndex = indice;
+                TecnicoFiltroPicker.SelectedItem =
+                    TecnicosFiltro.Count > indice
+                        ? TecnicosFiltro[indice]
+                        : null;
             }
             catch (Exception ex)
             {

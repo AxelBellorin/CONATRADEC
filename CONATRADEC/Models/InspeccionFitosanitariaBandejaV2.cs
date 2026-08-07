@@ -70,6 +70,8 @@ namespace CONATRADEC.Models
         public int Finalizadas { get; set; }
         public int RequierenDecisionTecnico { get; set; }
         public int EnviadasRevision { get; set; }
+        public int PendientesAprobacion { get; set; }
+        public int EnviadasAprobador { get; set; }
         public int Procesando { get; set; }
         public int Descartadas { get; set; }
         public string UrlMiniatura { get; set; } = string.Empty;

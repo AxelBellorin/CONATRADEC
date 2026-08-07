@@ -3,6 +3,7 @@ using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace CONATRADEC.ViewModels
 {
@@ -473,7 +474,7 @@ namespace CONATRADEC.ViewModels
             if (!CanDelete)
             {
                 await MostrarToastAsync(
-                    "No tiene permisos para eliminar fotografías.");
+                    "No tiene permisos para desactivar fotografías.");
                 return;
             }
 
@@ -483,9 +484,9 @@ namespace CONATRADEC.ViewModels
                 return;
 
             bool confirm = await page.DisplayAlert(
-                "Eliminar fotografía",
-                "¿Desea eliminar esta fotografía del álbum?",
-                "Eliminar",
+                "Desactivar fotografía",
+                "¿Desea desactivar esta fotografía del Álbum Botánico?",
+                "Desactivar",
                 "Cancelar");
 
             if (!confirm)
@@ -501,6 +502,28 @@ namespace CONATRADEC.ViewModels
 
                 if (!result.Success)
                 {
+                    if (TryParsearBloqueoInspeccion(
+                            result.Message,
+                            out int inspeccionId,
+                            out string mensajeVisible))
+                    {
+                        bool irInspeccion = await page.DisplayAlert(
+                            "Fotografía vinculada a inspección",
+                            mensajeVisible,
+                            "Ir a la inspección",
+                            "Cerrar");
+
+                        if (irInspeccion)
+                        {
+                            await GoToAsyncParameters(
+                                DiagnosticoIARoutes.CrearRutaResultado(
+                                    inspeccionId,
+                                    DiagnosticoIARoutes.ModoAprobador));
+                        }
+
+                        return;
+                    }
+
                     await page.DisplayAlert(
                         "No fue posible",
                         result.Message,
@@ -516,6 +539,40 @@ namespace CONATRADEC.ViewModels
             {
                 IsBusy = false;
             }
+        }
+
+        /// <summary>
+        /// El backend antepone un marcador interno únicamente cuando la foto
+        /// proviene de una inspección. El marcador se elimina antes de mostrar
+        /// el texto al usuario y conserva el identificador necesario para abrir
+        /// directamente el expediente que controla la publicación.
+        /// </summary>
+        private static bool TryParsearBloqueoInspeccion(
+            string? mensaje,
+            out int inspeccionId,
+            out string mensajeVisible)
+        {
+            inspeccionId = 0;
+            mensajeVisible = mensaje?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(mensaje))
+                return false;
+
+            Match match = Regex.Match(
+                mensaje,
+                @"^\[\[INSPECCION_FITOSANITARIA:(\d+)\]\]\s*",
+                RegexOptions.CultureInvariant);
+
+            if (!match.Success ||
+                !int.TryParse(match.Groups[1].Value, out inspeccionId) ||
+                inspeccionId <= 0)
+            {
+                inspeccionId = 0;
+                return false;
+            }
+
+            mensajeVisible = mensaje[match.Length..].Trim();
+            return true;
         }
 
         private Task RegresarAsync() =>

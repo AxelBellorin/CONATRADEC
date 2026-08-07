@@ -12,10 +12,22 @@ namespace CONATRADEC.Views
     public partial class DiagnosticoIAResultadoPage
     {
         private readonly InspeccionRevisionApiService revisionApi = new();
+        private readonly InspeccionAlbumAprobadorApiService albumAprobadorApi = new();
         private readonly Dictionary<int, DevolucionTecnicoFotografiaV2>
             devolucionesPorFoto = [];
         private readonly Dictionary<int, AccionesTarjetaRevision>
             accionesPorFoto = [];
+        private readonly Dictionary<int, AccionesTarjetaAprobador>
+            accionesAprobadorPorFoto = [];
+        private readonly Dictionary<int, EstadoAlbumAprobador>
+            estadosAlbumAprobadorPorFoto = [];
+
+        private Border? panelGlobalAprobador;
+        private Label? estadoGlobalAprobadorLabel;
+        private Label? ayudaGlobalAprobadorLabel;
+        private Button? aprobarSeleccionAprobadorButton;
+        private Button? devolverSeleccionAprobadorButton;
+        private Button? rechazarSeleccionAprobadorButton;
 
         private ContextoRevisionAnalizadorV2? contextoRevision;
         private bool flujoRevisionConectado;
@@ -72,6 +84,10 @@ namespace CONATRADEC.Views
 
                 errorContextoMostrado = false;
                 ActualizarMapaDevoluciones(contextoRevision.Devoluciones);
+
+                if (EsVistaAprobadorRevision)
+                    await CargarEstadosAlbumAprobadorAsync();
+
                 NormalizarPresentacionFotografias();
                 FiltrarFotografiasPorRol();
                 OcultarAccionesGlobalesAnteriores();
@@ -122,6 +138,14 @@ namespace CONATRADEC.Views
             refrescoContextoCts?.Dispose();
             refrescoContextoCts = null;
             accionesPorFoto.Clear();
+            accionesAprobadorPorFoto.Clear();
+            estadosAlbumAprobadorPorFoto.Clear();
+            panelGlobalAprobador = null;
+            estadoGlobalAprobadorLabel = null;
+            ayudaGlobalAprobadorLabel = null;
+            aprobarSeleccionAprobadorButton = null;
+            devolverSeleccionAprobadorButton = null;
+            rechazarSeleccionAprobadorButton = null;
             flujoRevisionConectado = false;
         }
 
@@ -195,6 +219,84 @@ namespace CONATRADEC.Views
             }
         }
 
+        /// <summary>
+        /// Consulta el estado real de la publicación de cada fotografía
+        /// aprobada. El backend reconcilia también desactivaciones realizadas
+        /// directamente desde la administración del Álbum Botánico.
+        /// </summary>
+        private async Task CargarEstadosAlbumAprobadorAsync()
+        {
+            estadosAlbumAprobadorPorFoto.Clear();
+
+            foreach (InspeccionFotoV2 foto in viewModel.Fotografias)
+            {
+                bool requiereEstado = foto.TieneAprobacion ||
+                    foto.Estado is
+                        InspeccionFotoEstados.Aprobada or
+                        InspeccionFotoEstados.AprobadaConCorreccion or
+                        InspeccionFotoEstados.PublicadaAlbum ||
+                    foto.PublicadaAlbum;
+
+                if (!requiereEstado)
+                    continue;
+
+                try
+                {
+                    EstadoAlbumAprobador estado =
+                        await albumAprobadorApi.ObtenerEstadoAsync(
+                            idRevision,
+                            foto.FotografiaId);
+                    estadosAlbumAprobadorPorFoto[foto.FotografiaId] = estado;
+                }
+                catch
+                {
+                    /*
+                     * Si el endpoint de estado no responde, la pantalla conserva
+                     * el último estado incluido en el detalle de la inspección.
+                     */
+                    estadosAlbumAprobadorPorFoto[foto.FotografiaId] =
+                        new EstadoAlbumAprobador
+                        {
+                            FotografiaId = foto.FotografiaId,
+                            Aprobada = foto.Estado is
+                                InspeccionFotoEstados.Aprobada or
+                                InspeccionFotoEstados.AprobadaConCorreccion or
+                                InspeccionFotoEstados.PublicadaAlbum,
+                            Autorizada =
+                                foto.UltimaAprobacion?.AutorizaPublicacionAlbum == true,
+                            PublicadaActiva = foto.PublicadaAlbum,
+                            TuvoPublicacion = foto.PublicadaAlbum,
+                            EstadoEvidencia = foto.Estado
+                        };
+                }
+            }
+        }
+
+        private EstadoAlbumAprobador ObtenerEstadoAlbumAprobador(
+            InspeccionFotoV2 foto)
+        {
+            if (estadosAlbumAprobadorPorFoto.TryGetValue(
+                    foto.FotografiaId,
+                    out EstadoAlbumAprobador? estado))
+            {
+                return estado;
+            }
+
+            return new EstadoAlbumAprobador
+            {
+                FotografiaId = foto.FotografiaId,
+                Aprobada = foto.Estado is
+                    InspeccionFotoEstados.Aprobada or
+                    InspeccionFotoEstados.AprobadaConCorreccion or
+                    InspeccionFotoEstados.PublicadaAlbum,
+                Autorizada =
+                    foto.UltimaAprobacion?.AutorizaPublicacionAlbum == true,
+                PublicadaActiva = foto.PublicadaAlbum,
+                TuvoPublicacion = foto.PublicadaAlbum,
+                EstadoEvidencia = foto.Estado
+            };
+        }
+
         private void ActualizarSuscripcionesFotografias()
         {
             foreach (InspeccionFotoV2 foto in viewModel.Fotografias)
@@ -261,10 +363,7 @@ namespace CONATRADEC.Views
                         (EsVistaAnalizadorRevision &&
                          !EsEstadoVisibleAnalizador(foto.Estado)) ||
                         (EsVistaAprobadorRevision &&
-                         !string.Equals(
-                             foto.Estado,
-                             InspeccionFotoEstados.PendienteAprobacion,
-                             StringComparison.OrdinalIgnoreCase)))
+                         !EsEstadoVisibleAprobador(foto.Estado)))
                     .ToList();
 
                 foreach (InspeccionFotoV2 foto in quitar)
@@ -304,6 +403,22 @@ namespace CONATRADEC.Views
                 InspeccionFotoEstados.PendienteAprobacion,
                 StringComparison.OrdinalIgnoreCase);
 
+        private static bool EsEstadoPendienteAprobador(string? estado) =>
+            string.Equals(
+                estado,
+                InspeccionFotoEstados.PendienteAprobacion,
+                StringComparison.OrdinalIgnoreCase);
+
+        private static bool EsEstadoVisibleAprobador(string? estado) =>
+            estado is
+                InspeccionFotoEstados.PendienteAprobacion or
+                InspeccionFotoEstados.Aprobada or
+                InspeccionFotoEstados.AprobadaConCorreccion or
+                InspeccionFotoEstados.DevueltaAnalizador or
+                InspeccionFotoEstados.Rechazada or
+                InspeccionFotoEstados.NoConcluyente or
+                InspeccionFotoEstados.PublicadaAlbum;
+
         /// <summary>
         /// El panel superior histórico dependía de seleccionar fotografías y
         /// duplicaba acciones. En la vista del analizador se oculta por completo
@@ -336,6 +451,31 @@ namespace CONATRADEC.Views
                     }
 
                     ActualizarPanelGlobalAnalizador();
+                }
+
+                if (EsVistaAprobadorRevision)
+                {
+                    foreach (Button boton in elementos.OfType<Button>())
+                    {
+                        if (string.Equals(
+                                boton.Text,
+                                "Registrar decisión",
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            boton.IsVisible = false;
+                        }
+
+                        if (string.Equals(
+                                boton.Text,
+                                "Seleccionar todas",
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            boton.IsVisible = true;
+                        }
+                    }
+
+                    AsegurarPanelGlobalAprobador(elementos);
+                    ActualizarPanelGlobalAprobador();
                 }
 
                 if (EsVistaTecnicoRevision)
@@ -410,6 +550,14 @@ namespace CONATRADEC.Views
                 accionesPorFoto.Remove(id);
             }
 
+            foreach (int id in accionesAprobadorPorFoto
+                         .Where(item => !visibles.Contains(item.Value.Panel))
+                         .Select(item => item.Key)
+                         .ToList())
+            {
+                accionesAprobadorPorFoto.Remove(id);
+            }
+
             foreach (InspeccionFotoV2 foto in viewModel.Fotografias)
             {
                 if (EsVistaAnalizadorRevision &&
@@ -419,6 +567,16 @@ namespace CONATRADEC.Views
                         ObtenerOCrearAccionesAnalizador(foto, elementos);
                     if (acciones != null)
                         ActualizarAccionesAnalizador(acciones, foto);
+                    continue;
+                }
+
+                if (EsVistaAprobadorRevision &&
+                    EsEstadoVisibleAprobador(foto.Estado))
+                {
+                    AccionesTarjetaAprobador? acciones =
+                        ObtenerOCrearAccionesAprobador(foto, elementos);
+                    if (acciones != null)
+                        ActualizarAccionesAprobador(acciones, foto);
                     continue;
                 }
 
@@ -536,6 +694,253 @@ namespace CONATRADEC.Views
 
             accionesPorFoto[foto.FotografiaId] = acciones;
             return acciones;
+        }
+
+        private AccionesTarjetaAprobador? ObtenerOCrearAccionesAprobador(
+            InspeccionFotoV2 foto,
+            IReadOnlyList<IVisualTreeElement> elementos)
+        {
+            if (accionesAprobadorPorFoto.TryGetValue(
+                    foto.FotografiaId,
+                    out AccionesTarjetaAprobador? existente) &&
+                elementos.Contains(existente.Panel))
+            {
+                return existente;
+            }
+
+            Border? tarjeta = EncontrarTarjetaFotografia(foto, elementos);
+            if (tarjeta == null)
+                return null;
+
+            Label estado = CrearEtiquetaAyuda();
+            Label ayuda = CrearEtiquetaBloqueo();
+
+            Button aprobar = CrearBotonTarjeta(
+                "✓ Aprobar",
+                "#3B655B",
+                Colors.White);
+            aprobar.CommandParameter = foto;
+            aprobar.Clicked += OnAprobarTarjetaAprobadorClicked;
+
+            Button corregir = CrearBotonTarjeta(
+                "✎ Aprobar con corrección",
+                "#9B552C",
+                Colors.White);
+            corregir.CommandParameter = foto;
+            corregir.Clicked += OnAprobarCorreccionTarjetaAprobadorClicked;
+
+            Button devolver = CrearBotonTarjeta(
+                "↩ Devolver al analizador",
+                "#FFF4EA",
+                Color.FromArgb("#9B552C"));
+            devolver.CommandParameter = foto;
+            devolver.Clicked += OnDevolverAnalizadorTarjetaAprobadorClicked;
+
+            Button rechazar = CrearBotonTarjeta(
+                "✕ Rechazar",
+                "#FDECEC",
+                Color.FromArgb("#B42318"));
+            rechazar.CommandParameter = foto;
+            rechazar.Clicked += OnRechazarTarjetaAprobadorClicked;
+
+            Button noConcluyente = CrearBotonTarjeta(
+                "? No concluyente",
+                "#EEF2F0",
+                Color.FromArgb("#52625D"));
+            noConcluyente.CommandParameter = foto;
+            noConcluyente.Clicked += OnNoConcluyenteTarjetaAprobadorClicked;
+
+            Button autorizarAlbum = CrearBotonTarjeta(
+                "Autorizar para Álbum",
+                "#E3EFEA",
+                Color.FromArgb("#315E52"));
+            autorizarAlbum.CommandParameter = foto;
+            autorizarAlbum.Clicked +=
+                OnAutorizarAlbumTarjetaAprobadorClicked;
+
+            Button publicar = CrearBotonTarjeta(
+                "Publicar en Álbum Botánico",
+                "#F2C94C",
+                Color.FromArgb("#263A35"));
+            publicar.CommandParameter = foto;
+            publicar.Clicked += OnPublicarAlbumTarjetaAprobadorClicked;
+
+            Button cancelarAlbum = CrearBotonTarjeta(
+                "Cancelar autorización",
+                "#FDECEC",
+                Color.FromArgb("#B42318"));
+            cancelarAlbum.CommandParameter = foto;
+            cancelarAlbum.Clicked +=
+                OnCancelarAutorizacionAlbumTarjetaAprobadorClicked;
+
+            Microsoft.Maui.Controls.Layout botones = CrearContenedorBotones(
+                aprobar,
+                corregir,
+                devolver,
+                rechazar,
+                noConcluyente,
+                autorizarAlbum,
+                publicar,
+                cancelarAlbum);
+
+            var contenido = new VerticalStackLayout
+            {
+                Spacing = 7,
+                Children =
+                {
+                    new Label
+                    {
+                        Text = "Decisión del aprobador",
+                        FontSize = 15,
+                        FontAttributes = FontAttributes.Bold,
+                        TextColor = Color.FromArgb("#263A35")
+                    },
+                    estado,
+                    botones,
+                    ayuda
+                }
+            };
+
+            Border panel = CrearPanelTarjeta(contenido, "#F8FBFA", "#C8DED6");
+            IntegrarPanelEnTarjeta(tarjeta, panel);
+
+            var acciones = new AccionesTarjetaAprobador(
+                tarjeta,
+                panel,
+                estado,
+                ayuda,
+                aprobar,
+                corregir,
+                devolver,
+                rechazar,
+                noConcluyente,
+                autorizarAlbum,
+                publicar,
+                cancelarAlbum);
+
+            accionesAprobadorPorFoto[foto.FotografiaId] = acciones;
+            return acciones;
+        }
+
+        private void ActualizarAccionesAprobador(
+            AccionesTarjetaAprobador acciones,
+            InspeccionFotoV2 foto)
+        {
+            acciones.Panel.IsVisible = true;
+
+            bool pendiente = EsEstadoPendienteAprobador(foto.Estado);
+            bool aprobada = foto.Estado is
+                InspeccionFotoEstados.Aprobada or
+                InspeccionFotoEstados.AprobadaConCorreccion or
+                InspeccionFotoEstados.PublicadaAlbum;
+            bool devuelta = string.Equals(
+                foto.Estado,
+                InspeccionFotoEstados.DevueltaAnalizador,
+                StringComparison.OrdinalIgnoreCase);
+            bool rechazada = foto.Estado is
+                InspeccionFotoEstados.Rechazada or
+                InspeccionFotoEstados.NoConcluyente;
+
+            EstadoAlbumAprobador estadoAlbum =
+                ObtenerEstadoAlbumAprobador(foto);
+            bool autorizada = aprobada && estadoAlbum.Autorizada;
+            bool publicada = aprobada && estadoAlbum.PublicadaActiva;
+
+            if (pendiente)
+            {
+                acciones.Estado.Text =
+                    "Revise la clasificación humana y registre la decisión técnica de esta fotografía.";
+                acciones.Ayuda.Text =
+                    "La decisión sobre el Álbum Botánico se toma después de aprobar. Aprobar una evidencia no la publica ni la autoriza automáticamente.";
+            }
+            else if (publicada)
+            {
+                acciones.Estado.Text =
+                    "✓ Fotografía aprobada y publicada activamente en el Álbum Botánico.";
+                acciones.Ayuda.Text =
+                    "Puede retirar la copia del álbum y cancelar su autorización sin alterar la evidencia original ni la aprobación técnica.";
+            }
+            else if (aprobada && autorizada)
+            {
+                acciones.Estado.Text = estadoAlbum.TuvoPublicacion
+                    ? "✓ Fotografía aprobada y autorizada. La copia anterior del Álbum Botánico ya no está activa."
+                    : "✓ Fotografía aprobada y autorizada para el Álbum Botánico.";
+                acciones.Ayuda.Text = estadoAlbum.TuvoPublicacion
+                    ? "La administración del álbum pudo haber desactivado la copia anterior. Puede publicarla nuevamente o cancelar la autorización."
+                    : "Puede publicarla cuando lo considere conveniente o cancelar la autorización antes de hacerlo.";
+            }
+            else if (aprobada)
+            {
+                acciones.Estado.Text =
+                    "✓ Fotografía aprobada. Aún no está autorizada para el Álbum Botánico.";
+                acciones.Ayuda.Text =
+                    "La aprobación técnica ya terminó. Si más adelante decide incorporarla al álbum, autorícela desde este mismo expediente.";
+            }
+            else if (devuelta)
+            {
+                acciones.Estado.Text =
+                    "↩ Fotografía devuelta al analizador para corrección.";
+                acciones.Ayuda.Text =
+                    "Volverá a estar pendiente de aprobación cuando el analizador la envíe nuevamente.";
+            }
+            else if (rechazada)
+            {
+                acciones.Estado.Text = string.Equals(
+                        foto.Estado,
+                        InspeccionFotoEstados.NoConcluyente,
+                        StringComparison.OrdinalIgnoreCase)
+                    ? "? La fotografía fue cerrada como no concluyente."
+                    : "✕ La fotografía fue rechazada.";
+                acciones.Ayuda.Text =
+                    "La decisión queda registrada en la trazabilidad del expediente.";
+            }
+
+            bool habilitada =
+                !operacionRevisionActiva &&
+                pendiente &&
+                foto.TieneAnalisisHumano;
+
+            foreach (CheckBox selector in acciones.Tarjeta
+                         .GetVisualTreeDescendants()
+                         .OfType<CheckBox>())
+            {
+                selector.IsEnabled = habilitada;
+                if (!pendiente)
+                    selector.IsChecked = false;
+            }
+
+            acciones.Aprobar.IsVisible = pendiente;
+            acciones.Corregir.IsVisible = pendiente;
+            acciones.Devolver.IsVisible = pendiente;
+            acciones.Rechazar.IsVisible = pendiente;
+            acciones.NoConcluyente.IsVisible = pendiente;
+
+            acciones.Aprobar.IsEnabled = habilitada;
+            acciones.Corregir.IsEnabled = habilitada;
+            acciones.Devolver.IsEnabled = habilitada;
+            acciones.Rechazar.IsEnabled = habilitada;
+            acciones.NoConcluyente.IsEnabled = habilitada;
+
+            acciones.AutorizarAlbum.IsVisible =
+                aprobada && !autorizada && !publicada;
+            acciones.AutorizarAlbum.IsEnabled =
+                acciones.AutorizarAlbum.IsVisible && !operacionRevisionActiva;
+
+            acciones.Publicar.IsVisible =
+                aprobada && autorizada && !publicada;
+            acciones.Publicar.Text = estadoAlbum.TuvoPublicacion
+                ? "Publicar nuevamente en Álbum Botánico"
+                : "Publicar en Álbum Botánico";
+            acciones.Publicar.IsEnabled =
+                acciones.Publicar.IsVisible && !operacionRevisionActiva;
+
+            acciones.CancelarAlbum.IsVisible =
+                aprobada && autorizada;
+            acciones.CancelarAlbum.Text = publicada
+                ? "Retirar del Álbum y cancelar autorización"
+                : "Cancelar autorización";
+            acciones.CancelarAlbum.IsEnabled =
+                acciones.CancelarAlbum.IsVisible && !operacionRevisionActiva;
         }
 
         private AccionesTarjetaRevision? ObtenerOCrearAccionesTecnico(
@@ -844,7 +1249,23 @@ namespace CONATRADEC.Views
             object? sender,
             EventArgs e)
         {
-            if (!EsVistaAnalizadorRevision || operacionRevisionActiva)
+            if (operacionRevisionActiva)
+                return;
+
+            if (EsVistaAprobadorRevision)
+            {
+                foreach (InspeccionFotoV2 foto in viewModel.Fotografias)
+                {
+                    foto.Seleccionada =
+                        foto.PuedeSeleccionarse &&
+                        EsEstadoPendienteAprobador(foto.Estado);
+                }
+
+                ActualizarPanelGlobalAprobador();
+                return;
+            }
+
+            if (!EsVistaAnalizadorRevision)
                 return;
 
             foreach (InspeccionFotoV2 foto in viewModel.Fotografias)
@@ -856,6 +1277,684 @@ namespace CONATRADEC.Views
             }
 
             ActualizarPanelGlobalAnalizador();
+        }
+
+        private void AsegurarPanelGlobalAprobador(
+            IReadOnlyList<IVisualTreeElement> elementos)
+        {
+            if (!EsVistaAprobadorRevision)
+                return;
+
+            if (panelGlobalAprobador?.Parent != null)
+                return;
+
+            Label? titulo = elementos
+                .OfType<Label>()
+                .FirstOrDefault(item => string.Equals(
+                    item.Text,
+                    "Acciones por fotografía",
+                    StringComparison.OrdinalIgnoreCase));
+
+            Border? contenedorPrincipal = BuscarAncestro<Border>(titulo);
+            if (contenedorPrincipal?.Content is not VerticalStackLayout stack)
+                return;
+
+            estadoGlobalAprobadorLabel = CrearEtiquetaAyuda();
+            estadoGlobalAprobadorLabel.FontSize = 13;
+            estadoGlobalAprobadorLabel.FontAttributes = FontAttributes.Bold;
+            estadoGlobalAprobadorLabel.TextColor = Color.FromArgb("#315E52");
+
+            ayudaGlobalAprobadorLabel = CrearEtiquetaBloqueo();
+
+            aprobarSeleccionAprobadorButton = CrearBotonTarjeta(
+                "✓ Aprobar seleccionadas",
+                "#3B655B",
+                Colors.White);
+            aprobarSeleccionAprobadorButton.Clicked +=
+                OnAprobarSeleccionAprobadorClicked;
+
+            devolverSeleccionAprobadorButton = CrearBotonTarjeta(
+                "↩ Devolver seleccionadas",
+                "#FFF4EA",
+                Color.FromArgb("#9B552C"));
+            devolverSeleccionAprobadorButton.Clicked +=
+                OnDevolverSeleccionAprobadorClicked;
+
+            rechazarSeleccionAprobadorButton = CrearBotonTarjeta(
+                "✕ Rechazar seleccionadas",
+                "#FDECEC",
+                Color.FromArgb("#B42318"));
+            rechazarSeleccionAprobadorButton.Clicked +=
+                OnRechazarSeleccionAprobadorClicked;
+
+            Microsoft.Maui.Controls.Layout botones = CrearContenedorBotones(
+                aprobarSeleccionAprobadorButton,
+                devolverSeleccionAprobadorButton,
+                rechazarSeleccionAprobadorButton);
+
+            panelGlobalAprobador = CrearPanelTarjeta(
+                new VerticalStackLayout
+                {
+                    Spacing = 7,
+                    Children =
+                    {
+                        new Label
+                        {
+                            Text = "Decisión para fotografías seleccionadas",
+                            FontSize = 16,
+                            FontAttributes = FontAttributes.Bold,
+                            TextColor = Color.FromArgb("#263A35")
+                        },
+                        estadoGlobalAprobadorLabel,
+                        botones,
+                        ayudaGlobalAprobadorLabel
+                    }
+                },
+                "#F8FBFA",
+                "#C8DED6");
+
+            int indice = Math.Min(2, stack.Children.Count);
+            stack.Children.Insert(indice, panelGlobalAprobador);
+        }
+
+        private void ActualizarPanelGlobalAprobador()
+        {
+            if (!EsVistaAprobadorRevision || panelGlobalAprobador == null)
+                return;
+
+            int pendientes = viewModel.Fotografias.Count(item =>
+                EsEstadoPendienteAprobador(item.Estado));
+            int aprobadas = viewModel.Fotografias.Count(item =>
+                item.Estado is
+                    InspeccionFotoEstados.Aprobada or
+                    InspeccionFotoEstados.AprobadaConCorreccion or
+                    InspeccionFotoEstados.PublicadaAlbum);
+            int devueltas = viewModel.Fotografias.Count(item =>
+                string.Equals(
+                    item.Estado,
+                    InspeccionFotoEstados.DevueltaAnalizador,
+                    StringComparison.OrdinalIgnoreCase));
+            int rechazadas = viewModel.Fotografias.Count(item =>
+                item.Estado is
+                    InspeccionFotoEstados.Rechazada or
+                    InspeccionFotoEstados.NoConcluyente);
+            int seleccionadas = viewModel.Fotografias.Count(item =>
+                item.Seleccionada && EsEstadoPendienteAprobador(item.Estado));
+            int autorizadasAlbum = estadosAlbumAprobadorPorFoto.Values.Count(
+                item => item.Autorizada);
+            int publicadasAlbum = estadosAlbumAprobadorPorFoto.Values.Count(
+                item => item.PublicadaActiva);
+
+            if (estadoGlobalAprobadorLabel != null)
+            {
+                estadoGlobalAprobadorLabel.Text =
+                    $"Pendientes: {pendientes} · Aprobadas: {aprobadas} · Devueltas: {devueltas} · Rechazadas/no concluyentes: {rechazadas} · Álbum autorizadas: {autorizadasAlbum} · Publicadas: {publicadasAlbum} · Seleccionadas: {seleccionadas}.";
+            }
+
+            if (ayudaGlobalAprobadorLabel != null)
+            {
+                ayudaGlobalAprobadorLabel.Text = seleccionadas == 0
+                    ? "Seleccione una o varias fotografías pendientes. Aprobar no autoriza ni publica en el álbum: esa decisión se administra después, por fotografía."
+                    : "Las acciones masivas resuelven únicamente la decisión técnica. Aprobar con corrección y la gestión del Álbum Botánico se mantienen como acciones individuales.";
+            }
+
+            bool habilitar = !operacionRevisionActiva && seleccionadas > 0;
+            if (aprobarSeleccionAprobadorButton != null)
+            {
+                aprobarSeleccionAprobadorButton.Text = seleccionadas > 0
+                    ? $"✓ Aprobar seleccionadas ({seleccionadas})"
+                    : "✓ Aprobar seleccionadas";
+                aprobarSeleccionAprobadorButton.IsEnabled = habilitar;
+            }
+
+            if (devolverSeleccionAprobadorButton != null)
+                devolverSeleccionAprobadorButton.IsEnabled = habilitar;
+            if (rechazarSeleccionAprobadorButton != null)
+                rechazarSeleccionAprobadorButton.IsEnabled = habilitar;
+        }
+
+        private async void OnAprobarTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is Button boton &&
+                boton.CommandParameter is InspeccionFotoV2 foto)
+            {
+                await EjecutarDecisionAprobadorIndividualAsync(foto, "APROBAR");
+            }
+        }
+
+        private async void OnAprobarCorreccionTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is Button boton &&
+                boton.CommandParameter is InspeccionFotoV2 foto)
+            {
+                await EjecutarDecisionAprobadorIndividualAsync(
+                    foto,
+                    "APROBAR_CON_CORRECCION");
+            }
+        }
+
+        private async void OnDevolverAnalizadorTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is Button boton &&
+                boton.CommandParameter is InspeccionFotoV2 foto)
+            {
+                await EjecutarDecisionAprobadorIndividualAsync(
+                    foto,
+                    "DEVOLVER_AL_ANALIZADOR");
+            }
+        }
+
+        private async void OnRechazarTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is Button boton &&
+                boton.CommandParameter is InspeccionFotoV2 foto)
+            {
+                await EjecutarDecisionAprobadorIndividualAsync(foto, "RECHAZAR");
+            }
+        }
+
+        private async void OnNoConcluyenteTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is Button boton &&
+                boton.CommandParameter is InspeccionFotoV2 foto)
+            {
+                await EjecutarDecisionAprobadorIndividualAsync(
+                    foto,
+                    "NO_CONCLUYENTE");
+            }
+        }
+
+        private async void OnAutorizarAlbumTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (operacionRevisionActiva ||
+                sender is not Button boton ||
+                boton.CommandParameter is not InspeccionFotoV2 foto)
+            {
+                return;
+            }
+
+            EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
+            if (!estado.Aprobada || estado.Autorizada)
+                return;
+
+            bool confirmar = await DisplayAlert(
+                "Autorizar para Álbum Botánico",
+                "La aprobación técnica no cambiará. Esta autorización permitirá publicar la fotografía ahora o más adelante. ¿Desea autorizarla?",
+                "Autorizar",
+                "Cancelar");
+
+            if (!confirmar)
+                return;
+
+            operacionRevisionActiva = true;
+            ActualizarEstadoBotonesTarjetas();
+            try
+            {
+                EstadoAlbumAprobador actualizado =
+                    await albumAprobadorApi.CambiarAutorizacionAsync(
+                        idRevision,
+                        foto.FotografiaId,
+                        autorizar: true);
+                estadosAlbumAprobadorPorFoto[foto.FotografiaId] = actualizado;
+                await RecargarDespuesOperacionRevisionAsync();
+
+                await DisplayAlert(
+                    "Autorización registrada",
+                    "La fotografía quedó autorizada para el Álbum Botánico. Puede publicarla ahora o hacerlo posteriormente.",
+                    "Aceptar");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert(
+                    "Autorizar para Álbum Botánico",
+                    ex.Message,
+                    "Aceptar");
+            }
+            finally
+            {
+                operacionRevisionActiva = false;
+                ActualizarEstadoBotonesTarjetas();
+            }
+        }
+
+        private async void OnCancelarAutorizacionAlbumTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (operacionRevisionActiva ||
+                sender is not Button boton ||
+                boton.CommandParameter is not InspeccionFotoV2 foto)
+            {
+                return;
+            }
+
+            EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
+            if (!estado.Autorizada)
+                return;
+
+            string mensaje = estado.PublicadaActiva
+                ? "La copia activa será retirada lógicamente del Álbum Botánico y la autorización quedará cancelada. La aprobación técnica y la evidencia original no se modificarán."
+                : "La autorización para incorporar esta fotografía al Álbum Botánico quedará cancelada. La aprobación técnica no se modificará.";
+
+            bool confirmar = await DisplayAlert(
+                estado.PublicadaActiva
+                    ? "Retirar del Álbum Botánico"
+                    : "Cancelar autorización",
+                mensaje,
+                estado.PublicadaActiva ? "Retirar" : "Cancelar autorización",
+                "Volver");
+
+            if (!confirmar)
+                return;
+
+            operacionRevisionActiva = true;
+            ActualizarEstadoBotonesTarjetas();
+            try
+            {
+                EstadoAlbumAprobador actualizado =
+                    await albumAprobadorApi.CambiarAutorizacionAsync(
+                        idRevision,
+                        foto.FotografiaId,
+                        autorizar: false);
+                estadosAlbumAprobadorPorFoto[foto.FotografiaId] = actualizado;
+                await RecargarDespuesOperacionRevisionAsync();
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert(
+                    "Álbum Botánico",
+                    ex.Message,
+                    "Aceptar");
+            }
+            finally
+            {
+                operacionRevisionActiva = false;
+                ActualizarEstadoBotonesTarjetas();
+            }
+        }
+
+        private async void OnPublicarAlbumTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (operacionRevisionActiva ||
+                sender is not Button boton ||
+                boton.CommandParameter is not InspeccionFotoV2 foto)
+            {
+                return;
+            }
+
+            EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
+            if (!estado.Aprobada || !estado.Autorizada || estado.PublicadaActiva)
+            {
+                return;
+            }
+
+            operacionRevisionActiva = true;
+            ActualizarEstadoBotonesTarjetas();
+            try
+            {
+                await PublicarFotografiaAprobadaAsync(foto);
+                await RecargarDespuesOperacionRevisionAsync();
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert(
+                    "Publicar en Álbum Botánico",
+                    ex.Message,
+                    "Aceptar");
+            }
+            finally
+            {
+                operacionRevisionActiva = false;
+                ActualizarEstadoBotonesTarjetas();
+            }
+        }
+
+        private async void OnAprobarSeleccionAprobadorClicked(
+            object? sender,
+            EventArgs e) =>
+            await EjecutarDecisionMasivaAprobadorAsync("APROBAR");
+
+        private async void OnDevolverSeleccionAprobadorClicked(
+            object? sender,
+            EventArgs e) =>
+            await EjecutarDecisionMasivaAprobadorAsync(
+                "DEVOLVER_AL_ANALIZADOR");
+
+        private async void OnRechazarSeleccionAprobadorClicked(
+            object? sender,
+            EventArgs e) =>
+            await EjecutarDecisionMasivaAprobadorAsync("RECHAZAR");
+
+        private async Task EjecutarDecisionAprobadorIndividualAsync(
+            InspeccionFotoV2 foto,
+            string decision)
+        {
+            if (operacionRevisionActiva ||
+                !EsVistaAprobadorRevision ||
+                !EsEstadoPendienteAprobador(foto.Estado) ||
+                foto.UltimoAnalisisHumano == null)
+            {
+                return;
+            }
+
+            bool positiva = decision is "APROBAR" or "APROBAR_CON_CORRECCION";
+
+            InspeccionFotoAnalisisHumanoV2 humano = foto.UltimoAnalisisHumano;
+            string diagnosticoFinal = humano.Diagnostico;
+
+            if (decision == "APROBAR_CON_CORRECCION")
+            {
+                string? correccion = await DisplayPromptAsync(
+                    "Diagnóstico final corregido",
+                    "Indique el diagnóstico final que quedará en el expediente.",
+                    "Continuar",
+                    "Cancelar",
+                    humano.Diagnostico,
+                    300,
+                    Keyboard.Text);
+
+                if (string.IsNullOrWhiteSpace(correccion))
+                    return;
+
+                diagnosticoFinal = correccion.Trim();
+            }
+
+            bool requiereMotivo = decision is
+                "DEVOLVER_AL_ANALIZADOR" or "RECHAZAR" or "NO_CONCLUYENTE";
+
+            string? observaciones = await DisplayPromptAsync(
+                "Observaciones del aprobador",
+                requiereMotivo
+                    ? "Explique el motivo de la decisión."
+                    : "Observación opcional para la aprobación.",
+                "Continuar",
+                "Cancelar",
+                string.Empty,
+                2000,
+                Keyboard.Text);
+
+            if (observaciones == null)
+                return;
+
+            if (requiereMotivo && observaciones.Trim().Length < 8)
+            {
+                await DisplayAlert(
+                    "Motivo requerido",
+                    "Indique un motivo de al menos 8 caracteres.",
+                    "Aceptar");
+                return;
+            }
+
+            bool confirmar = await DisplayAlert(
+                "Confirmar decisión",
+                $"Se registrará la decisión {decision.Replace('_', ' ')} para {foto.Titulo}. ¿Desea continuar?",
+                "Confirmar",
+                "Cancelar");
+
+            if (!confirmar)
+                return;
+
+            operacionRevisionActiva = true;
+            ActualizarEstadoBotonesTarjetas();
+
+            try
+            {
+                await InspeccionFitosanitariaApiService.Instance
+                    .RegistrarAprobacionesAsync(
+                        idRevision,
+                        [CrearSolicitudAprobacion(
+                            foto,
+                            humano,
+                            decision,
+                            diagnosticoFinal,
+                            observaciones.Trim(),
+                            autorizaAlbum: false)]);
+
+                await RecargarDespuesOperacionRevisionAsync();
+
+                if (positiva)
+                {
+                    await DisplayAlert(
+                        "Fotografía aprobada",
+                        "La decisión técnica quedó registrada. El Álbum Botánico se administra por separado: puede autorizar esta fotografía ahora o en cualquier momento posterior.",
+                        "Aceptar");
+                }
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert(
+                    "Decisión del aprobador",
+                    ex.Message,
+                    "Aceptar");
+            }
+            finally
+            {
+                operacionRevisionActiva = false;
+                ActualizarEstadoBotonesTarjetas();
+            }
+        }
+
+        private async Task EjecutarDecisionMasivaAprobadorAsync(
+            string decision)
+        {
+            if (operacionRevisionActiva || !EsVistaAprobadorRevision)
+                return;
+
+            List<InspeccionFotoV2> seleccionadas = viewModel.Fotografias
+                .Where(item =>
+                    item.Seleccionada &&
+                    EsEstadoPendienteAprobador(item.Estado))
+                .OrderBy(item => item.Orden)
+                .ToList();
+
+            if (seleccionadas.Count == 0)
+            {
+                await DisplayAlert(
+                    "Seleccione fotografías",
+                    "Seleccione una o varias fotografías pendientes de aprobación.",
+                    "Aceptar");
+                return;
+            }
+
+            if (seleccionadas.Any(item => item.UltimoAnalisisHumano == null))
+            {
+                await DisplayAlert(
+                    "Clasificación humana requerida",
+                    "Todas las fotografías seleccionadas deben tener una clasificación humana enviada.",
+                    "Aceptar");
+                return;
+            }
+
+            bool requiereMotivo = decision is
+                "DEVOLVER_AL_ANALIZADOR" or "RECHAZAR";
+
+            string? observaciones = await DisplayPromptAsync(
+                "Observación para las seleccionadas",
+                requiereMotivo
+                    ? "Indique el motivo que se registrará en todas las fotografías seleccionadas."
+                    : "Observación opcional para la aprobación masiva.",
+                "Continuar",
+                "Cancelar",
+                string.Empty,
+                2000,
+                Keyboard.Text);
+
+            if (observaciones == null)
+                return;
+
+            if (requiereMotivo && observaciones.Trim().Length < 8)
+            {
+                await DisplayAlert(
+                    "Motivo requerido",
+                    "Indique un motivo de al menos 8 caracteres.",
+                    "Aceptar");
+                return;
+            }
+
+            bool confirmar = await DisplayAlert(
+                "Confirmar decisión masiva",
+                $"Se aplicará {decision.Replace('_', ' ')} a {seleccionadas.Count} fotografía(s). ¿Desea continuar?",
+                "Aplicar",
+                "Cancelar");
+
+            if (!confirmar)
+                return;
+
+            operacionRevisionActiva = true;
+            ActualizarEstadoBotonesTarjetas();
+
+            int exitosas = 0;
+            var errores = new List<string>();
+
+            try
+            {
+                foreach (InspeccionFotoV2 foto in seleccionadas)
+                {
+                    try
+                    {
+                        InspeccionFotoAnalisisHumanoV2 humano =
+                            foto.UltimoAnalisisHumano!;
+
+                        await InspeccionFitosanitariaApiService.Instance
+                            .RegistrarAprobacionesAsync(
+                                idRevision,
+                                [CrearSolicitudAprobacion(
+                                    foto,
+                                    humano,
+                                    decision,
+                                    humano.Diagnostico,
+                                    observaciones.Trim(),
+                                    autorizaAlbum: false)]);
+                        exitosas++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errores.Add($"{foto.Titulo}: {ex.Message}");
+                    }
+                }
+
+                await RecargarDespuesOperacionRevisionAsync();
+
+                string resumen =
+                    $"Se procesaron correctamente {exitosas} de {seleccionadas.Count} fotografía(s).";
+                if (decision == "APROBAR" && exitosas > 0)
+                {
+                    resumen +=
+                        " Las fotografías quedaron aprobadas técnicamente. La autorización y publicación en el Álbum Botánico se deciden posteriormente por fotografía.";
+                }
+
+                if (errores.Count > 0)
+                    resumen += $" Hubo {errores.Count} error(es).";
+
+                await DisplayAlert(
+                    "Decisión masiva",
+                    resumen,
+                    "Aceptar");
+            }
+            finally
+            {
+                operacionRevisionActiva = false;
+                ActualizarEstadoBotonesTarjetas();
+            }
+        }
+
+        private static InspeccionFotoAprobacionRequestV2
+            CrearSolicitudAprobacion(
+                InspeccionFotoV2 foto,
+                InspeccionFotoAnalisisHumanoV2 humano,
+                string decision,
+                string diagnosticoFinal,
+                string observaciones,
+                bool autorizaAlbum) =>
+            new()
+            {
+                FotografiaId = foto.FotografiaId,
+                Decision = decision,
+                CalidadEvaluacionFinal = humano.CalidadEvaluacion,
+                EstadoGeneralFinal = humano.EstadoGeneral,
+                CategoriaPrincipalFinal = humano.CategoriaPrincipal,
+                CategoriasSecundariasFinales = humano.CategoriasSecundarias,
+                DiagnosticoFinal = diagnosticoFinal,
+                TipoDiagnosticoFinal = humano.TipoDiagnostico,
+                SeveridadFinal = humano.Severidad,
+                NivelCertezaFinal = humano.NivelCerteza,
+                Observaciones = observaciones,
+                AutorizaPublicacionAlbum = autorizaAlbum
+            };
+
+        private async Task PublicarFotografiaAprobadaAsync(
+            InspeccionFotoV2 foto)
+        {
+            JerarquiaDiagnosticoFotoResponse? jerarquia =
+                foto.JerarquiaAlbum ??
+                await ObtenerJerarquiaActualizadaAsync(foto.FotografiaId);
+
+            if (jerarquia?.CategoriaAlbumBotanicoId is not > 0 ||
+                jerarquia.AlbumBotanicoCafeId is not > 0 ||
+                jerarquia.CategoriaEsPropuesta ||
+                jerarquia.FichaEsPropuesta)
+            {
+                var paginaJerarquia = new JerarquiaAlbumFotografiaPage(
+                    idRevision,
+                    foto,
+                    "APROBADOR");
+
+                await Navigation.PushModalAsync(paginaJerarquia);
+                bool guardada = await paginaJerarquia.ResultadoTask;
+                if (!guardada)
+                    return;
+
+                jerarquia = await ObtenerJerarquiaActualizadaAsync(
+                    foto.FotografiaId);
+                foto.JerarquiaAlbum = jerarquia;
+
+                if (jerarquia?.CategoriaAlbumBotanicoId is not > 0 ||
+                    jerarquia.AlbumBotanicoCafeId is not > 0 ||
+                    jerarquia.CategoriaEsPropuesta ||
+                    jerarquia.FichaEsPropuesta)
+                {
+                    await DisplayAlert(
+                        "Clasificación pendiente",
+                        "Para publicar debe quedar vinculada a una categoría y subcategoría oficiales del Álbum Botánico.",
+                        "Aceptar");
+                    return;
+                }
+            }
+
+            string? descripcion = await DisplayPromptAsync(
+                "Publicar en Álbum Botánico",
+                $"Se copiará en {jerarquia.Categoria} → {jerarquia.Ficha}. Puede agregar una descripción opcional.",
+                "Publicar",
+                "Cancelar",
+                string.Empty,
+                500,
+                Keyboard.Text);
+
+            if (descripcion == null)
+                return;
+
+            await InspeccionFitosanitariaApiService.Instance.PublicarAlbumAsync(
+                idRevision,
+                foto.FotografiaId,
+                jerarquia.CategoriaAlbumBotanicoId.Value,
+                jerarquia.AlbumBotanicoCafeId.Value,
+                descripcion,
+                esPortada: false,
+                orden: 0);
         }
 
         private async void OnRevisarSeleccionAnalizadorClicked(
@@ -1646,7 +2745,17 @@ namespace CONATRADEC.Views
                 }
             }
 
+            foreach (KeyValuePair<int, AccionesTarjetaAprobador> par in
+                     accionesAprobadorPorFoto)
+            {
+                InspeccionFotoV2? foto = viewModel.Fotografias
+                    .FirstOrDefault(item => item.FotografiaId == par.Key);
+                if (foto != null)
+                    ActualizarAccionesAprobador(par.Value, foto);
+            }
+
             ActualizarPanelGlobalAnalizador();
+            ActualizarPanelGlobalAprobador();
         }
 
         private async Task EsperarActualizacionViewModelAsync()
@@ -1657,6 +2766,50 @@ namespace CONATRADEC.Views
                 if (!viewModel.IsBusy)
                     return;
             }
+        }
+
+        private sealed class AccionesTarjetaAprobador
+        {
+            public AccionesTarjetaAprobador(
+                Border tarjeta,
+                Border panel,
+                Label estado,
+                Label ayuda,
+                Button aprobar,
+                Button corregir,
+                Button devolver,
+                Button rechazar,
+                Button noConcluyente,
+                Button autorizarAlbum,
+                Button publicar,
+                Button cancelarAlbum)
+            {
+                Tarjeta = tarjeta;
+                Panel = panel;
+                Estado = estado;
+                Ayuda = ayuda;
+                Aprobar = aprobar;
+                Corregir = corregir;
+                Devolver = devolver;
+                Rechazar = rechazar;
+                NoConcluyente = noConcluyente;
+                AutorizarAlbum = autorizarAlbum;
+                Publicar = publicar;
+                CancelarAlbum = cancelarAlbum;
+            }
+
+            public Border Tarjeta { get; }
+            public Border Panel { get; }
+            public Label Estado { get; }
+            public Label Ayuda { get; }
+            public Button Aprobar { get; }
+            public Button Corregir { get; }
+            public Button Devolver { get; }
+            public Button Rechazar { get; }
+            public Button NoConcluyente { get; }
+            public Button AutorizarAlbum { get; }
+            public Button Publicar { get; }
+            public Button CancelarAlbum { get; }
         }
 
         private sealed class AccionesTarjetaRevision

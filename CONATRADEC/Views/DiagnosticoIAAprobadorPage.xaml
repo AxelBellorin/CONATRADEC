@@ -29,7 +29,8 @@
                 Title="Bandeja del aprobador"
                 Subtitle="Apruebe, devuelva, rechace o declare inconclusa cada fotografía de manera independiente."
                 BackText="Inspección fitosanitaria"
-                BackCommand="{Binding RegresarCommand}" />
+                BackCommand="{Binding RegresarCommand}"
+                IsPrimaryVisible="False" />
 
             <Grid
                 Grid.Row="1"
@@ -65,16 +66,21 @@
                                 TextColor="#6B7773" />
                         </VerticalStackLayout>
 
-                        <Picker
+                        <Button
+                            x:Name="TecnicoSelectorButton"
                             Grid.Row="{OnIdiom Phone=1, Default=0}"
                             Grid.Column="{OnIdiom Phone=0, Default=1}"
-                            ItemsSource="{Binding TecnicosFiltro}"
-                            SelectedItem="{Binding TecnicoSeleccionado, Mode=TwoWay}"
-                            ItemDisplayBinding="{Binding TextoMostrar}"
-                            Title="Todos los técnicos"
+                            Text="{Binding TecnicoFiltroTexto}"
+                            Clicked="OnSeleccionarTecnicoClicked"
                             MinimumWidthRequest="{OnIdiom Phone=260, Default=360}"
                             HeightRequest="44"
-                            HorizontalOptions="Fill" />
+                            Padding="14,8"
+                            HorizontalOptions="Fill"
+                            BackgroundColor="White"
+                            BorderColor="#C9D4D0"
+                            BorderWidth="1"
+                            TextColor="#263A35"
+                            CornerRadius="8" />
 
                         <Button
                             Grid.Row="{OnIdiom Phone=2, Default=0}"
@@ -168,7 +174,7 @@
                                             VerticalOptions="Center"
                                             HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
                                             <Label
-                                                Text="{Binding Estado}"
+                                                Text="{Binding EstadoTexto}"
                                                 FontAttributes="Bold"
                                                 TextColor="#263A35"
                                                 HorizontalTextAlignment="Center" />
