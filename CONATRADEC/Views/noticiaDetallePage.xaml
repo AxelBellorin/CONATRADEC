@@ -4,224 +4,242 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Title="Detalle de publicación"
-    BackgroundColor="#FFF5FF"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}"
     ControlTemplate="{StaticResource FooterTemplate}">
 
     <Grid>
-        <Grid
-            x:Name="ContenidoPrincipal"
-            RowDefinitions="Auto,*"
-            Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
-            RowSpacing="14">
-
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                <Button
-                    Text="‹ Regresar"
-                    Command="{Binding RegresarCommand}"
-                    BackgroundColor="Transparent"
-                    TextColor="#3B655B"
-                    FontFamily="MontserratBold" />
-
-                <Label
-                    Grid.Column="1"
-                    Text="Detalle de publicación"
-                    FontFamily="MontserratBold"
-                    FontSize="22"
-                    TextColor="#3B655B"
-                    VerticalOptions="Center" />
-
-                <Button
-                    Grid.Column="2"
-                    Text="Editar"
-                    Command="{Binding EditarCommand}"
-                    IsVisible="{Binding CanEdit}"
-                    BackgroundColor="#9B552C"
-                    TextColor="White"
-                    FontFamily="MontserratBold"
-                    CornerRadius="10" />
-            </Grid>
-
-            <ScrollView Grid.Row="1">
+        <Grid x:Name="ContenidoPrincipal">
+            <ScrollView>
                 <VerticalStackLayout
-                    MaximumWidthRequest="920"
+                    MaximumWidthRequest="1040"
                     HorizontalOptions="Center"
-                    Spacing="16">
+                    Padding="{OnIdiom Phone='12,12,12,28', Tablet='20,18,20,32', Desktop='28,22,28,36'}"
+                    Spacing="14">
+
+                    <Border Style="{StaticResource ModernHeroCard}">
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                            RowSpacing="12"
+                            ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Button
+                                    Text="← Noticias"
+                                    Command="{Binding RegresarCommand}"
+                                    Style="{StaticResource ModernLinkButton}"
+                                    HorizontalOptions="Start"
+                                    Margin="-8,-5,0,0" />
+                                <Label
+                                    Text="Detalle de publicación"
+                                    Style="{StaticResource ModernPageTitle}" />
+                                <Label
+                                    Text="Consulte el contenido completo y la información de vigencia."
+                                    Style="{StaticResource ModernPageSubtitle}" />
+                            </VerticalStackLayout>
+
+                            <Button
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Text="Editar publicación"
+                                Command="{Binding EditarCommand}"
+                                IsVisible="{Binding CanEdit}"
+                                Style="{StaticResource ModernCoffeeButton}"
+                                HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                                VerticalOptions="End" />
+                        </Grid>
+                    </Border>
 
                     <Border
                         IsVisible="{Binding TieneMensaje}"
-                        Padding="14"
-                        BackgroundColor="#FFF7ED"
-                        Stroke="#FDBA74"
-                        StrokeShape="RoundRectangle 12">
+                        Style="{StaticResource ModernWarningBanner}">
                         <Label
                             Text="{Binding Mensaje}"
-                            FontFamily="MontserratMedium"
-                            TextColor="#9A3412" />
+                            Style="{StaticResource ModernPageSubtitle}" />
                     </Border>
 
                     <Border
                         IsVisible="{Binding TienePublicacion}"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 20"
+                        Style="{StaticResource ModernCard}"
                         Padding="0">
 
                         <VerticalStackLayout Spacing="0">
                             <Grid
-                                HeightRequest="{OnPlatform WinUI=390, Default=240}"
-                                BackgroundColor="#EEF5F2">
-                                <Label
-                                    Text="CONATRADEC"
+                                HeightRequest="{OnIdiom Phone=230, Tablet=320, Desktop=390}"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}">
+                                <VerticalStackLayout
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center"
-                                    FontFamily="MontserratBold"
-                                    FontSize="22"
-                                    TextColor="#3B655B" />
+                                    Spacing="5">
+                                    <Label
+                                        Text="CONATRADEC"
+                                        FontFamily="MontserratBold"
+                                        FontSize="24"
+                                        TextColor="{StaticResource color_Verde}" />
+                                    <Label
+                                        Text="Centro de noticias"
+                                        Style="{StaticResource ModernCaption}" />
+                                </VerticalStackLayout>
                                 <Image
                                     Source="{Binding Publicacion.ImagenPortadaUrl}"
                                     IsVisible="{Binding Publicacion.TieneImagen}"
                                     Aspect="AspectFill" />
                             </Grid>
 
-                            <VerticalStackLayout Padding="22" Spacing="13">
-                                <HorizontalStackLayout Spacing="8">
+                            <VerticalStackLayout
+                                Padding="{OnIdiom Phone=16, Tablet=22, Desktop=26}"
+                                Spacing="14">
+
+                                <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Center">
                                     <Border
-                                        Padding="11,5"
+                                        Margin="0,0,7,6"
+                                        Padding="10,5"
                                         BackgroundColor="{Binding Publicacion.CategoriaColor}"
                                         StrokeThickness="0"
                                         StrokeShape="RoundRectangle 10">
                                         <Label
                                             Text="{Binding Publicacion.Categoria}"
                                             FontFamily="MontserratBold"
-                                            FontSize="12"
+                                            FontSize="11"
                                             TextColor="White" />
                                     </Border>
 
                                     <Border
+                                        Margin="0,0,7,6"
                                         IsVisible="{Binding Publicacion.Destacada}"
-                                        Padding="11,5"
-                                        BackgroundColor="#FFF3CD"
-                                        StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 10">
+                                        Style="{StaticResource ModernBadgeYellow}">
                                         <Label
                                             Text="Destacada"
                                             FontFamily="MontserratBold"
-                                            FontSize="12"
-                                            TextColor="#8A5A00" />
+                                            FontSize="10.5"
+                                            TextColor="{StaticResource color_Cafe}" />
                                     </Border>
-                                </HorizontalStackLayout>
+                                </FlexLayout>
 
                                 <Label
                                     Text="{Binding Publicacion.Titulo}"
                                     FontFamily="MontserratBold"
                                     FontAttributes="Bold"
-                                    FontSize="{OnPlatform WinUI=30, Default=24}"
-                                    TextColor="#1F2937"
+                                    FontSize="{OnIdiom Phone=25, Tablet=29, Desktop=32}"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                     LineBreakMode="WordWrap" />
 
                                 <Label
                                     Text="{Binding Publicacion.Resumen}"
                                     FontFamily="MontserratMedium"
-                                    FontSize="16"
-                                    TextColor="#4B5563"
+                                    FontSize="{OnIdiom Phone=14, Tablet=15, Desktop=16}"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                     LineBreakMode="WordWrap" />
 
-                                <BoxView HeightRequest="1" Color="#E5E7EB" />
+                                <BoxView
+                                    HeightRequest="1"
+                                    Color="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
 
                                 <Grid
-                                    ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                                    RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
-                                    ColumnSpacing="18"
-                                    RowSpacing="8">
+                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                    ColumnSpacing="12"
+                                    RowSpacing="10">
 
-                                    <VerticalStackLayout Spacing="5">
-                                        <Label
-                                            Text="{Binding Publicacion.FechaPublicacionTexto}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="12"
-                                            TextColor="#6B7280" />
-                                        <Label
-                                            Text="{Binding Publicacion.VigenciaTexto}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="12"
-                                            TextColor="#6B7280" />
-                                    </VerticalStackLayout>
+                                    <Border Style="{StaticResource ModernSoftPanel}">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="PUBLICACIÓN" Style="{StaticResource ModernCaption}" />
+                                            <Label
+                                                Text="{Binding Publicacion.FechaPublicacionTexto}"
+                                                Style="{StaticResource ModernFieldLabel}" />
+                                            <Label
+                                                Text="{Binding Publicacion.VigenciaTexto}"
+                                                Style="{StaticResource ModernCaption}" />
+                                        </VerticalStackLayout>
+                                    </Border>
 
-                                    <VerticalStackLayout
-                                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                        Spacing="5">
-                                        <Label
-                                            Text="{Binding Publicacion.FechaEventoTexto}"
-                                            IsVisible="{Binding Publicacion.TieneEvento}"
-                                            FontFamily="MontserratBold"
-                                            FontSize="13"
-                                            TextColor="#9B552C" />
-                                        <Label
-                                            Text="{Binding Publicacion.Ubicacion, StringFormat='Ubicación: {0}'}"
-                                            IsVisible="{Binding Publicacion.TieneUbicacion}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="12"
-                                            TextColor="#6B7280" />
-                                    </VerticalStackLayout>
+                                    <Border
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        IsVisible="{Binding Publicacion.TieneEvento}"
+                                        Style="{StaticResource ModernSoftPanel}">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="EVENTO" Style="{StaticResource ModernCaption}" />
+                                            <Label
+                                                Text="{Binding Publicacion.FechaEventoTexto}"
+                                                FontFamily="MontserratBold"
+                                                FontSize="12"
+                                                TextColor="{StaticResource color_Cafe}" />
+                                            <Label
+                                                Text="{Binding Publicacion.Ubicacion, StringFormat='Ubicación: {0}'}"
+                                                IsVisible="{Binding Publicacion.TieneUbicacion}"
+                                                Style="{StaticResource ModernCaption}" />
+                                        </VerticalStackLayout>
+                                    </Border>
                                 </Grid>
 
                                 <Label
                                     Text="{Binding Publicacion.Contenido}"
                                     FontFamily="MontserratMedium"
-                                    FontSize="15"
-                                    TextColor="#27313B"
-                                    LineBreakMode="WordWrap" />
+                                    FontSize="{OnIdiom Phone=14, Tablet=14.5, Desktop=15}"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                    LineBreakMode="WordWrap"
+                                    LineHeight="1.35" />
 
                                 <Button
                                     Text="{Binding Publicacion.TextoBotonEnlace}"
                                     Command="{Binding AbrirEnlaceCommand}"
                                     IsVisible="{Binding Publicacion.TieneEnlace}"
-                                    HorizontalOptions="Start"
-                                    BackgroundColor="#3B655B"
-                                    TextColor="White"
-                                    FontFamily="MontserratBold"
-                                    CornerRadius="12"
-                                    Padding="18,11" />
+                                    HorizontalOptions="{OnIdiom Phone=Fill, Default=Start}"
+                                    Style="{StaticResource ModernPrimaryButton}"
+                                    MinimumWidthRequest="{OnIdiom Phone=0, Default=180}" />
 
                                 <Label
                                     Text="Publicado por CONATRADEC"
                                     FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="#3B655B" />
+                                    FontSize="11"
+                                    TextColor="{StaticResource color_Verde}"
+                                    Margin="0,4,0,0" />
                             </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
             </ScrollView>
 
-            <ActivityIndicator
-                Grid.RowSpan="2"
-                IsRunning="{Binding IsBusy}"
+            <Grid
                 IsVisible="{Binding IsBusy}"
-                Color="#3B655B"
-                HorizontalOptions="Center"
-                VerticalOptions="Center" />
+                BackgroundColor="#52000000"
+                InputTransparent="False">
+                <Border
+                    Style="{StaticResource ModernCard}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Padding="22,18">
+                    <HorizontalStackLayout Spacing="12">
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            Color="{StaticResource color_Verde}"
+                            WidthRequest="28"
+                            HeightRequest="28" />
+                        <Label
+                            Text="Cargando publicación..."
+                            Style="{StaticResource ModernSectionTitle}"
+                            VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
 
         <Grid
             x:Name="ContenidoSinPermiso"
             IsVisible="False"
             Padding="24">
-            <Border
-                MaximumWidthRequest="540"
-                Padding="28"
-                BackgroundColor="White"
-                Stroke="#DDE7E3"
-                StrokeShape="RoundRectangle 20"
-                HorizontalOptions="Center"
-                VerticalOptions="Center">
-                <Label
-                    Text="No tiene permiso para consultar esta publicación."
-                    FontFamily="MontserratBold"
-                    FontSize="20"
-                    TextColor="#3B655B"
-                    HorizontalTextAlignment="Center" />
+            <Border Style="{StaticResource ModernAccessDeniedCard}">
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        Text="Sin permiso"
+                        Style="{StaticResource ModernPageTitle}"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="No tiene permiso para consultar esta publicación."
+                        Style="{StaticResource ModernPageSubtitle}"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
             </Border>
         </Grid>
     </Grid>

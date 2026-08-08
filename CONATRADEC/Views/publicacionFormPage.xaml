@@ -4,498 +4,524 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Title="Publicación"
-    BackgroundColor="#FFF5FF"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}"
     ControlTemplate="{StaticResource FooterTemplate}">
 
     <Grid>
-        <Grid
-            x:Name="ContenidoPrincipal"
-            RowDefinitions="Auto,*"
-            Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
-            RowSpacing="14">
-
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                <Button
-                    Text="‹ Cancelar"
-                    Command="{Binding CancelarCommand}"
-                    BackgroundColor="Transparent"
-                    TextColor="#3B655B"
-                    FontFamily="MontserratBold" />
-
-                <Label
-                    Grid.Column="1"
-                    Text="{Binding TituloPagina}"
-                    FontFamily="MontserratBold"
-                    FontSize="{OnPlatform WinUI=27, Default=21}"
-                    TextColor="#3B655B"
-                    VerticalOptions="Center" />
-
-                <Button
-                    Grid.Column="2"
-                    Text="{Binding TextoBotonGuardar}"
-                    Command="{Binding GuardarCommand}"
-                    BackgroundColor="#3B655B"
-                    TextColor="White"
-                    FontFamily="MontserratBold"
-                    CornerRadius="11"
-                    Padding="16,10" />
-            </Grid>
-
-            <ScrollView Grid.Row="1">
+        <Grid x:Name="ContenidoPrincipal">
+            <ScrollView>
                 <VerticalStackLayout
-                    MaximumWidthRequest="940"
+                    MaximumWidthRequest="1180"
                     HorizontalOptions="Center"
+                    Padding="{OnIdiom Phone='12,12,12,28', Tablet='20,18,20,32', Desktop='28,22,28,36'}"
                     Spacing="14">
+
+                    <Border Style="{StaticResource ModernHeroCard}">
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                            RowSpacing="12"
+                            ColumnSpacing="14">
+                            <VerticalStackLayout Spacing="4">
+                                <Button
+                                    Text="← Cancelar"
+                                    Command="{Binding CancelarCommand}"
+                                    Style="{StaticResource ModernLinkButton}"
+                                    HorizontalOptions="Start"
+                                    Margin="-8,-5,0,0" />
+                                <Label
+                                    Text="{Binding TituloPagina}"
+                                    Style="{StaticResource ModernPageTitle}" />
+                                <Label
+                                    Text="Prepare el contenido, vigencia, portada y datos opcionales del evento."
+                                    Style="{StaticResource ModernPageSubtitle}" />
+                            </VerticalStackLayout>
+
+                            <Button
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Text="{Binding TextoBotonGuardar}"
+                                Command="{Binding GuardarCommand}"
+                                Style="{StaticResource ModernPrimaryButton}"
+                                HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                                VerticalOptions="End"
+                                MinimumWidthRequest="{OnIdiom Phone=0, Default=170}" />
+                        </Grid>
+                    </Border>
 
                     <Border
                         IsVisible="{Binding TieneMensaje}"
-                        Padding="13"
-                        BackgroundColor="#FFF7ED"
-                        Stroke="#FDBA74"
-                        StrokeShape="RoundRectangle 12">
+                        Style="{StaticResource ModernWarningBanner}">
                         <Label
                             Text="{Binding Mensaje}"
-                            FontFamily="MontserratMedium"
-                            TextColor="#9A3412" />
+                            Style="{StaticResource ModernPageSubtitle}" />
                     </Border>
 
-                    <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 18">
-                        <VerticalStackLayout Spacing="13">
-                            <Label
-                                Text="Información principal"
-                                FontFamily="MontserratBold"
-                                FontSize="18"
-                                TextColor="#3B655B" />
+                    <Grid
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Desktop='Auto', Default='Auto,Auto'}"
+                        ColumnDefinitions="{OnIdiom Desktop='1.25*,0.75*', Default='*'}"
+                        ColumnSpacing="14"
+                        RowSpacing="14">
 
-                            <Label
-                                Text="Categoría *"
-                                FontFamily="MontserratBold"
-                                FontSize="12"
-                                TextColor="#374151" />
-                            <Picker
-                                Title="Seleccione una categoría"
-                                ItemsSource="{Binding Categorias}"
-                                ItemDisplayBinding="{Binding Nombre}"
-                                SelectedItem="{Binding CategoriaSeleccionada}"
-                                FontFamily="MontserratMedium" />
+                        <Border Style="{StaticResource ModernFormCard}">
+                            <VerticalStackLayout Spacing="14">
+                                <Label Text="Información principal" Style="{StaticResource ModernSectionTitle}" />
 
-                            <Grid ColumnDefinitions="*,Auto">
-                                <Label
-                                    Text="Título *"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="#374151" />
-                                <Label
-                                    Grid.Column="1"
-                                    Text="{Binding CaracteresTitulo}"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="11"
-                                    TextColor="#6B7280" />
-                            </Grid>
-                            <Entry
-                                Text="{Binding Titulo}"
-                                Placeholder="Título de la publicación"
-                                MaxLength="180"
-                                FontFamily="MontserratMedium" />
-
-                            <Grid ColumnDefinitions="*,Auto">
-                                <Label
-                                    Text="Resumen *"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="#374151" />
-                                <Label
-                                    Grid.Column="1"
-                                    Text="{Binding CaracteresResumen}"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="11"
-                                    TextColor="#6B7280" />
-                            </Grid>
-                            <Editor
-                                Text="{Binding Resumen}"
-                                Placeholder="Texto breve que aparecerá en la tarjeta"
-                                MaxLength="500"
-                                AutoSize="TextChanges"
-                                MinimumHeightRequest="90"
-                                FontFamily="MontserratMedium" />
-
-                            <Label
-                                Text="Contenido completo *"
-                                FontFamily="MontserratBold"
-                                FontSize="12"
-                                TextColor="#374151" />
-                            <Editor
-                                Text="{Binding Contenido}"
-                                Placeholder="Desarrolle aquí toda la información de la publicación"
-                                AutoSize="TextChanges"
-                                MinimumHeightRequest="220"
-                                FontFamily="MontserratMedium" />
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 18">
-                        <VerticalStackLayout Spacing="13">
-                            <Label
-                                Text="Imagen de portada"
-                                FontFamily="MontserratBold"
-                                FontSize="18"
-                                TextColor="#3B655B" />
-
-                            <Grid
-                                HeightRequest="{OnPlatform WinUI=320, Default=220}"
-                                BackgroundColor="#EEF5F2">
-                                <Label
-                                    Text="Seleccione una imagen para la portada"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center"
-                                    HorizontalTextAlignment="Center"
-                                    FontFamily="MontserratMedium"
-                                    TextColor="#6B7280"
-                                    Margin="20" />
-                                <Image
-                                    Source="{Binding PortadaPreview}"
-                                    IsVisible="{Binding TienePortada}"
-                                    Aspect="AspectFill" />
-                            </Grid>
-
-                            <FlexLayout
-                                Direction="Row"
-                                Wrap="Wrap"
-                                AlignItems="Center">
-                                <Button
-                                    Margin="0,0,8,6"
-                                    Text="Seleccionar imagen"
-                                    Clicked="OnSeleccionarPortadaClicked"
-                                    BackgroundColor="#3B655B"
-                                    TextColor="White"
-                                    FontFamily="MontserratBold"
-                                    CornerRadius="10" />
-                                <Button
-                                    Margin="0,0,8,6"
-                                    Text="Quitar portada"
-                                    Command="{Binding EliminarPortadaCommand}"
-                                    IsVisible="{Binding TienePortada}"
-                                    BackgroundColor="#B42318"
-                                    TextColor="White"
-                                    FontFamily="MontserratBold"
-                                    CornerRadius="10" />
-                            </FlexLayout>
-
-                            <Label
-                                Text="Formatos permitidos: JPG, JPEG, PNG y WEBP. Máximo 8 MB."
-                                FontFamily="MontserratMedium"
-                                FontSize="11"
-                                TextColor="#6B7280" />
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 18">
-                        <VerticalStackLayout Spacing="13">
-                            <Label
-                                Text="Publicación y vigencia"
-                                FontFamily="MontserratBold"
-                                FontSize="18"
-                                TextColor="#3B655B" />
-
-                            <Grid
-                                ColumnDefinitions="*,*"
-                                RowDefinitions="Auto,Auto"
-                                ColumnSpacing="12"
-                                RowSpacing="8">
-                                <Label
-                                    Text="Fecha de inicio *"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="#374151" />
-                                <Label
-                                    Grid.Column="1"
-                                    Text="Hora de inicio *"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="#374151" />
-                                <DatePicker
-                                    Grid.Row="1"
-                                    Date="{Binding FechaInicioPublicacion}"
-                                    FontFamily="MontserratMedium" />
-                                <TimePicker
-                                    Grid.Row="1"
-                                    Grid.Column="1"
-                                    Time="{Binding HoraInicioPublicacion}"
-                                    FontFamily="MontserratMedium" />
-                            </Grid>
-
-                            <HorizontalStackLayout Spacing="9">
-                                <Switch
-                                    IsToggled="{Binding TieneFechaFinPublicacion}"
-                                    OnColor="#3B655B" />
-                                <Label
-                                    Text="La publicación tiene fecha de vencimiento"
-                                    VerticalOptions="Center"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="12" />
-                            </HorizontalStackLayout>
-
-                            <Grid
-                                IsVisible="{Binding TieneFechaFinPublicacion}"
-                                ColumnDefinitions="*,*"
-                                RowDefinitions="Auto,Auto"
-                                ColumnSpacing="12"
-                                RowSpacing="8">
-                                <Label
-                                    Text="Fecha final"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="#374151" />
-                                <Label
-                                    Grid.Column="1"
-                                    Text="Hora final"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="#374151" />
-                                <DatePicker
-                                    Grid.Row="1"
-                                    Date="{Binding FechaFinPublicacion}"
-                                    FontFamily="MontserratMedium" />
-                                <TimePicker
-                                    Grid.Row="1"
-                                    Grid.Column="1"
-                                    Time="{Binding HoraFinPublicacion}"
-                                    FontFamily="MontserratMedium" />
-                            </Grid>
-
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                                 <VerticalStackLayout Spacing="6">
-                                    <Label
-                                        Text="Estado"
-                                        FontFamily="MontserratBold"
-                                        FontSize="12"
-                                        TextColor="#374151" />
-                                    <Picker
-                                        ItemsSource="{Binding Estados}"
-                                        SelectedItem="{Binding EstadoSeleccionado}"
-                                        FontFamily="MontserratMedium" />
+                                    <Label Text="Categoría *" Style="{StaticResource ModernFieldLabel}" />
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <Picker
+                                            Title="Seleccione una categoría"
+                                            ItemsSource="{Binding Categorias}"
+                                            ItemDisplayBinding="{Binding Nombre}"
+                                            SelectedItem="{Binding CategoriaSeleccionada}"
+                                            Style="{StaticResource ModernPicker}" />
+                                    </Border>
                                 </VerticalStackLayout>
 
-                                <HorizontalStackLayout
-                                    Grid.Column="1"
-                                    Spacing="9"
-                                    VerticalOptions="End"
-                                    Padding="0,0,0,8">
-                                    <Switch
-                                        IsToggled="{Binding Destacada}"
-                                        OnColor="#F2C94C" />
-                                    <Label
-                                        Text="Publicación destacada"
-                                        VerticalOptions="Center"
-                                        FontFamily="MontserratMedium"
-                                        FontSize="12" />
-                                </HorizontalStackLayout>
-                            </Grid>
-                        </VerticalStackLayout>
-                    </Border>
+                                <VerticalStackLayout Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="Título *" Style="{StaticResource ModernFieldLabel}" />
+                                        <Label
+                                            Grid.Column="1"
+                                            Text="{Binding CaracteresTitulo}"
+                                            Style="{StaticResource ModernCaption}" />
+                                    </Grid>
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <Entry
+                                            Text="{Binding Titulo}"
+                                            Placeholder="Título de la publicación"
+                                            MaxLength="180"
+                                            Style="{StaticResource ModernEntry}" />
+                                    </Border>
+                                </VerticalStackLayout>
 
-                    <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 18">
-                        <VerticalStackLayout Spacing="13">
-                            <HorizontalStackLayout Spacing="9">
-                                <Switch
-                                    IsToggled="{Binding TieneEvento}"
-                                    OnColor="#3B655B" />
-                                <Label
-                                    Text="Esta publicación corresponde a un evento"
-                                    VerticalOptions="Center"
-                                    FontFamily="MontserratBold"
-                                    FontSize="14"
-                                    TextColor="#3B655B" />
-                            </HorizontalStackLayout>
+                                <VerticalStackLayout Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Text="Resumen *" Style="{StaticResource ModernFieldLabel}" />
+                                        <Label
+                                            Grid.Column="1"
+                                            Text="{Binding CaracteresResumen}"
+                                            Style="{StaticResource ModernCaption}" />
+                                    </Grid>
+                                    <Border
+                                        Style="{StaticResource ModernInputBorder}"
+                                        Padding="10,8"
+                                        MinimumHeightRequest="112">
+                                        <Editor
+                                            Text="{Binding Resumen}"
+                                            Placeholder="Texto breve que aparecerá en la tarjeta"
+                                            MaxLength="500"
+                                            AutoSize="TextChanges"
+                                            MinimumHeightRequest="92"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="13"
+                                            BackgroundColor="Transparent"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                            PlaceholderColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+                                    </Border>
+                                </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                IsVisible="{Binding TieneEvento}"
-                                Spacing="12">
-                                <Grid
-                                    ColumnDefinitions="*,*"
-                                    RowDefinitions="Auto,Auto"
-                                    ColumnSpacing="12"
-                                    RowSpacing="8">
-                                    <Label
-                                        Text="Fecha de inicio del evento"
-                                        FontFamily="MontserratBold"
-                                        FontSize="12"
-                                        TextColor="#374151" />
-                                    <Label
-                                        Grid.Column="1"
-                                        Text="Hora de inicio"
-                                        FontFamily="MontserratBold"
-                                        FontSize="12"
-                                        TextColor="#374151" />
-                                    <DatePicker
-                                        Grid.Row="1"
-                                        Date="{Binding FechaEventoInicio}"
-                                        FontFamily="MontserratMedium" />
-                                    <TimePicker
-                                        Grid.Row="1"
-                                        Grid.Column="1"
-                                        Time="{Binding HoraEventoInicio}"
-                                        FontFamily="MontserratMedium" />
-                                </Grid>
-
-                                <HorizontalStackLayout Spacing="9">
-                                    <Switch
-                                        IsToggled="{Binding TieneFechaFinEvento}"
-                                        OnColor="#3B655B" />
-                                    <Label
-                                        Text="El evento tiene fecha y hora final"
-                                        VerticalOptions="Center"
-                                        FontFamily="MontserratMedium"
-                                        FontSize="12" />
-                                </HorizontalStackLayout>
-
-                                <Grid
-                                    IsVisible="{Binding TieneFechaFinEvento}"
-                                    ColumnDefinitions="*,*"
-                                    RowDefinitions="Auto,Auto"
-                                    ColumnSpacing="12"
-                                    RowSpacing="8">
-                                    <Label
-                                        Text="Fecha final del evento"
-                                        FontFamily="MontserratBold"
-                                        FontSize="12"
-                                        TextColor="#374151" />
-                                    <Label
-                                        Grid.Column="1"
-                                        Text="Hora final"
-                                        FontFamily="MontserratBold"
-                                        FontSize="12"
-                                        TextColor="#374151" />
-                                    <DatePicker
-                                        Grid.Row="1"
-                                        Date="{Binding FechaEventoFin}"
-                                        FontFamily="MontserratMedium" />
-                                    <TimePicker
-                                        Grid.Row="1"
-                                        Grid.Column="1"
-                                        Time="{Binding HoraEventoFin}"
-                                        FontFamily="MontserratMedium" />
-                                </Grid>
-
-                                <Label
-                                    Text="Ubicación"
-                                    FontFamily="MontserratBold"
-                                    FontSize="12"
-                                    TextColor="#374151" />
-                                <Entry
-                                    Text="{Binding Ubicacion}"
-                                    Placeholder="Lugar donde se realizará el evento"
-                                    MaxLength="300"
-                                    FontFamily="MontserratMedium" />
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="Contenido completo *" Style="{StaticResource ModernFieldLabel}" />
+                                    <Border
+                                        Style="{StaticResource ModernInputBorder}"
+                                        Padding="10,8"
+                                        MinimumHeightRequest="235">
+                                        <Editor
+                                            Text="{Binding Contenido}"
+                                            Placeholder="Desarrolle aquí toda la información de la publicación"
+                                            AutoSize="TextChanges"
+                                            MinimumHeightRequest="215"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="13"
+                                            BackgroundColor="Transparent"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                            PlaceholderColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+                                    </Border>
+                                </VerticalStackLayout>
                             </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </Border>
+                        </Border>
 
-                    <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 18">
-                        <VerticalStackLayout Spacing="12">
-                            <Label
-                                Text="Enlace externo opcional"
-                                FontFamily="MontserratBold"
-                                FontSize="18"
-                                TextColor="#3B655B" />
+                        <Border
+                            Grid.Row="{OnIdiom Desktop=0, Default=1}"
+                            Grid.Column="{OnIdiom Desktop=1, Default=0}"
+                            Style="{StaticResource ModernFormCard}">
+                            <VerticalStackLayout Spacing="13">
+                                <Label Text="Imagen de portada" Style="{StaticResource ModernSectionTitle}" />
+                                <Label
+                                    Text="La vista previa utiliza la imagen seleccionada sin cambiar la lógica de almacenamiento."
+                                    Style="{StaticResource ModernPageSubtitle}" />
 
-                            <Label
-                                Text="Dirección web"
-                                FontFamily="MontserratBold"
-                                FontSize="12"
-                                TextColor="#374151" />
-                            <Entry
-                                Text="{Binding EnlaceExterno}"
-                                Placeholder="https://..."
-                                Keyboard="Url"
-                                MaxLength="1000"
-                                FontFamily="MontserratMedium" />
+                                <Border
+                                    Padding="0"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                                    Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                                    StrokeShape="RoundRectangle 15"
+                                    HeightRequest="{OnIdiom Phone=220, Tablet=260, Desktop=310}">
+                                    <Grid>
+                                        <VerticalStackLayout
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            Spacing="6"
+                                            Margin="20">
+                                            <Label
+                                                Text="PORTADA"
+                                                FontFamily="MontserratBold"
+                                                FontSize="17"
+                                                TextColor="{StaticResource color_Verde}"
+                                                HorizontalTextAlignment="Center" />
+                                            <Label
+                                                Text="Seleccione una imagen para la publicación"
+                                                Style="{StaticResource ModernCaption}"
+                                                HorizontalTextAlignment="Center" />
+                                        </VerticalStackLayout>
+                                        <Image
+                                            Source="{Binding PortadaPreview}"
+                                            IsVisible="{Binding TienePortada}"
+                                            Aspect="AspectFill" />
+                                    </Grid>
+                                </Border>
 
-                            <Label
-                                Text="Texto del botón"
-                                FontFamily="MontserratBold"
-                                FontSize="12"
-                                TextColor="#374151" />
-                            <Entry
-                                Text="{Binding TextoEnlace}"
-                                Placeholder="Ejemplo: Más información"
-                                MaxLength="120"
-                                FontFamily="MontserratMedium" />
+                                <Grid
+                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                    ColumnSpacing="8"
+                                    RowSpacing="8">
+                                    <Button
+                                        Text="Seleccionar imagen"
+                                        Clicked="OnSeleccionarPortadaClicked"
+                                        Style="{StaticResource ModernSecondaryButton}" />
+                                    <Button
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        Text="Quitar portada"
+                                        Command="{Binding EliminarPortadaCommand}"
+                                        IsVisible="{Binding TienePortada}"
+                                        Style="{StaticResource ModernDangerSoftButton}" />
+                                </Grid>
+
+                                <Label
+                                    Text="JPG, JPEG, PNG o WEBP · máximo 8 MB"
+                                    Style="{StaticResource ModernCaption}"
+                                    HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <Grid
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Desktop='Auto', Default='Auto,Auto'}"
+                        ColumnDefinitions="{OnIdiom Desktop='*,*', Default='*'}"
+                        ColumnSpacing="14"
+                        RowSpacing="14">
+
+                        <Border Style="{StaticResource ModernFormCard}">
+                            <VerticalStackLayout Spacing="14">
+                                <Label Text="Publicación y vigencia" Style="{StaticResource ModernSectionTitle}" />
+
+                                <Grid
+                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                    ColumnSpacing="10"
+                                    RowSpacing="10">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="Fecha de inicio *" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <DatePicker
+                                                Date="{Binding FechaInicioPublicacion}"
+                                                Style="{StaticResource ModernDatePicker}" />
+                                        </Border>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        Spacing="6">
+                                        <Label Text="Hora de inicio *" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <TimePicker
+                                                Time="{Binding HoraInicioPublicacion}"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="13"
+                                                BackgroundColor="Transparent"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        </Border>
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <Border Style="{StaticResource ModernSoftPanel}">
+                                    <HorizontalStackLayout Spacing="9">
+                                        <Switch
+                                            IsToggled="{Binding TieneFechaFinPublicacion}"
+                                            OnColor="{StaticResource color_Verde}" />
+                                        <Label
+                                            Text="La publicación tiene fecha de vencimiento"
+                                            Style="{StaticResource ModernPageSubtitle}"
+                                            VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
+                                </Border>
+
+                                <Grid
+                                    IsVisible="{Binding TieneFechaFinPublicacion}"
+                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                    ColumnSpacing="10"
+                                    RowSpacing="10">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="Fecha final" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <DatePicker
+                                                Date="{Binding FechaFinPublicacion}"
+                                                Style="{StaticResource ModernDatePicker}" />
+                                        </Border>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        Spacing="6">
+                                        <Label Text="Hora final" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <TimePicker
+                                                Time="{Binding HoraFinPublicacion}"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="13"
+                                                BackgroundColor="Transparent"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        </Border>
+                                    </VerticalStackLayout>
+                                </Grid>
+
+                                <Grid
+                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                    ColumnSpacing="10"
+                                    RowSpacing="10">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="Estado" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                ItemsSource="{Binding Estados}"
+                                                SelectedItem="{Binding EstadoSeleccionado}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
+                                    </VerticalStackLayout>
+
+                                    <Border
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        Style="{StaticResource ModernSoftPanel}"
+                                        VerticalOptions="End">
+                                        <HorizontalStackLayout Spacing="9">
+                                            <Switch
+                                                IsToggled="{Binding Destacada}"
+                                                OnColor="{StaticResource color_Amarillo}" />
+                                            <Label
+                                                Text="Publicación destacada"
+                                                Style="{StaticResource ModernPageSubtitle}"
+                                                VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border
+                            Grid.Row="{OnIdiom Desktop=0, Default=1}"
+                            Grid.Column="{OnIdiom Desktop=1, Default=0}"
+                            Style="{StaticResource ModernFormCard}">
+                            <VerticalStackLayout Spacing="14">
+                                <Border Style="{StaticResource ModernSoftPanel}">
+                                    <HorizontalStackLayout Spacing="9">
+                                        <Switch
+                                            IsToggled="{Binding TieneEvento}"
+                                            OnColor="{StaticResource color_Verde}" />
+                                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                            <Label
+                                                Text="Evento"
+                                                Style="{StaticResource ModernSectionTitle}" />
+                                            <Label
+                                                Text="Active esta opción cuando la publicación corresponda a una actividad con fecha y lugar."
+                                                Style="{StaticResource ModernCaption}" />
+                                        </VerticalStackLayout>
+                                    </HorizontalStackLayout>
+                                </Border>
+
+                                <VerticalStackLayout IsVisible="{Binding TieneEvento}" Spacing="12">
+                                    <Grid
+                                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                        ColumnSpacing="10"
+                                        RowSpacing="10">
+                                        <VerticalStackLayout Spacing="6">
+                                            <Label Text="Fecha de inicio del evento" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <DatePicker Date="{Binding FechaEventoInicio}" Style="{StaticResource ModernDatePicker}" />
+                                            </Border>
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout
+                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                            Spacing="6">
+                                            <Label Text="Hora de inicio" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <TimePicker
+                                                    Time="{Binding HoraEventoInicio}"
+                                                    FontFamily="MontserratMedium"
+                                                    FontSize="13"
+                                                    BackgroundColor="Transparent"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                            </Border>
+                                        </VerticalStackLayout>
+                                    </Grid>
+
+                                    <Border Style="{StaticResource ModernSoftPanel}">
+                                        <HorizontalStackLayout Spacing="9">
+                                            <Switch
+                                                IsToggled="{Binding TieneFechaFinEvento}"
+                                                OnColor="{StaticResource color_Verde}" />
+                                            <Label
+                                                Text="El evento tiene fecha y hora final"
+                                                Style="{StaticResource ModernPageSubtitle}"
+                                                VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </Border>
+
+                                    <Grid
+                                        IsVisible="{Binding TieneFechaFinEvento}"
+                                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                        ColumnSpacing="10"
+                                        RowSpacing="10">
+                                        <VerticalStackLayout Spacing="6">
+                                            <Label Text="Fecha final del evento" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <DatePicker Date="{Binding FechaEventoFin}" Style="{StaticResource ModernDatePicker}" />
+                                            </Border>
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout
+                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                            Spacing="6">
+                                            <Label Text="Hora final" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <TimePicker
+                                                    Time="{Binding HoraEventoFin}"
+                                                    FontFamily="MontserratMedium"
+                                                    FontSize="13"
+                                                    BackgroundColor="Transparent"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                            </Border>
+                                        </VerticalStackLayout>
+                                    </Grid>
+
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="Ubicación" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <Entry
+                                                Text="{Binding Ubicacion}"
+                                                Placeholder="Lugar donde se realizará el evento"
+                                                MaxLength="300"
+                                                Style="{StaticResource ModernEntry}" />
+                                        </Border>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <Border Style="{StaticResource ModernFormCard}">
+                        <VerticalStackLayout Spacing="13">
+                            <Label Text="Enlace externo opcional" Style="{StaticResource ModernSectionTitle}" />
+
+                            <Grid
+                                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                ColumnDefinitions="{OnIdiom Phone='*', Default='1.4*,0.6*'}"
+                                ColumnSpacing="10"
+                                RowSpacing="10">
+                                <VerticalStackLayout Spacing="6">
+                                    <Label Text="Dirección web" Style="{StaticResource ModernFieldLabel}" />
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <Entry
+                                            Text="{Binding EnlaceExterno}"
+                                            Placeholder="https://..."
+                                            Keyboard="Url"
+                                            MaxLength="1000"
+                                            Style="{StaticResource ModernEntry}" />
+                                    </Border>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout
+                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                    Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                    Spacing="6">
+                                    <Label Text="Texto del botón" Style="{StaticResource ModernFieldLabel}" />
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <Entry
+                                            Text="{Binding TextoEnlace}"
+                                            Placeholder="Ejemplo: Más información"
+                                            MaxLength="120"
+                                            Style="{StaticResource ModernEntry}" />
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
                         </VerticalStackLayout>
                     </Border>
 
                     <Grid
                         ColumnDefinitions="*,*"
-                        ColumnSpacing="12"
-                        Padding="0,4,0,24">
+                        ColumnSpacing="10"
+                        Padding="0,2,0,0">
                         <Button
                             Text="Cancelar"
                             Command="{Binding CancelarCommand}"
-                            BackgroundColor="#E5E7EB"
-                            TextColor="#374151"
-                            FontFamily="MontserratBold"
-                            CornerRadius="12"
-                            Padding="16,12" />
+                            Style="{StaticResource ModernNeutralButton}" />
                         <Button
                             Grid.Column="1"
                             Text="{Binding TextoBotonGuardar}"
                             Command="{Binding GuardarCommand}"
-                            BackgroundColor="#3B655B"
-                            TextColor="White"
-                            FontFamily="MontserratBold"
-                            CornerRadius="12"
-                            Padding="16,12" />
+                            Style="{StaticResource ModernPrimaryButton}" />
                     </Grid>
                 </VerticalStackLayout>
             </ScrollView>
 
-            <ActivityIndicator
-                Grid.RowSpan="2"
-                IsRunning="{Binding IsBusy}"
+            <Grid
                 IsVisible="{Binding IsBusy}"
-                Color="#3B655B"
-                HorizontalOptions="Center"
-                VerticalOptions="Center" />
+                BackgroundColor="#52000000"
+                InputTransparent="False">
+                <Border
+                    Style="{StaticResource ModernCard}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Padding="22,18">
+                    <HorizontalStackLayout Spacing="12">
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            Color="{StaticResource color_Verde}"
+                            WidthRequest="28"
+                            HeightRequest="28" />
+                        <Label
+                            Text="Procesando publicación..."
+                            Style="{StaticResource ModernSectionTitle}"
+                            VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
 
         <Grid
             x:Name="ContenidoSinPermiso"
             IsVisible="False"
             Padding="24">
-            <Border
-                MaximumWidthRequest="560"
-                Padding="28"
-                BackgroundColor="White"
-                Stroke="#DDE7E3"
-                StrokeShape="RoundRectangle 20"
-                HorizontalOptions="Center"
-                VerticalOptions="Center">
-                <Label
-                    Text="No tiene permiso para crear o editar publicaciones."
-                    FontFamily="MontserratBold"
-                    FontSize="20"
-                    TextColor="#3B655B"
-                    HorizontalTextAlignment="Center" />
+            <Border Style="{StaticResource ModernAccessDeniedCard}">
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        Text="Sin permiso"
+                        Style="{StaticResource ModernPageTitle}"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="No tiene permiso para crear o editar publicaciones."
+                        Style="{StaticResource ModernPageSubtitle}"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
             </Border>
         </Grid>
     </Grid>

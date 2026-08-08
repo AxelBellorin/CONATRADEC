@@ -4,338 +4,489 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Title="Datos sin conexión"
-    BackgroundColor="#FFF7FF">
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid RowDefinitions="Auto,*">
-        <Grid
-            Grid.Row="0"
-            Padding="20,16"
-            ColumnDefinitions="Auto,*,Auto"
-            ColumnSpacing="12"
-            BackgroundColor="White">
+    <ScrollView>
+        <VerticalStackLayout
+            MaximumWidthRequest="1120"
+            HorizontalOptions="Center"
+            Padding="{OnIdiom Phone='12,12,12,30', Tablet='20,18,20,34', Desktop='28,22,28,38'}"
+            Spacing="14">
 
-            <Button
-                Grid.Column="0"
-                Text="←"
-                Clicked="VolverButton_Clicked"
-                WidthRequest="48"
-                HeightRequest="48"
-                Padding="0"
-                CornerRadius="14"
-                FontSize="22"
-                BackgroundColor="#F3F5F4"
-                TextColor="#263238"
-                SemanticProperties.Description="Volver a la interfaz principal" />
+            <Border Style="{StaticResource ModernHeroCard}">
+                <Grid
+                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                    RowSpacing="12"
+                    ColumnSpacing="14">
 
-            <VerticalStackLayout
-                Grid.Column="1"
-                Spacing="2"
-                VerticalOptions="Center">
-                <Label
-                    Text="Preparar datos sin conexión"
-                    FontFamily="MontserratBold"
-                    FontAttributes="Bold"
-                    FontSize="25"
-                    TextColor="#3B655B" />
-                <Label
-                    Text="Descarga manual y completa del contenido autorizado"
-                    FontSize="12"
-                    TextColor="#5F6368" />
-            </VerticalStackLayout>
+                    <VerticalStackLayout Spacing="4">
+                        <Button
+                            Text="← Volver"
+                            Clicked="VolverButton_Clicked"
+                            Style="{StaticResource ModernLinkButton}"
+                            HorizontalOptions="Start"
+                            Margin="-8,-5,0,0"
+                            SemanticProperties.Description="Volver a la interfaz principal" />
+                        <Label
+                            Text="Preparar datos sin conexión"
+                            Style="{StaticResource ModernPageTitle}" />
+                        <Label
+                            Text="Descargue una copia completa del contenido autorizado antes de salir a campo."
+                            Style="{StaticResource ModernPageSubtitle}" />
+                    </VerticalStackLayout>
+
+                    <Border
+                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                        Style="{StaticResource ModernBadgeGreen}"
+                        HorizontalOptions="{OnIdiom Phone=Start, Default=End}"
+                        VerticalOptions="End">
+                        <Label
+                            x:Name="ModoSesionLabel"
+                            Text="Sesión en línea"
+                            FontFamily="MontserratBold"
+                            FontSize="10.5"
+                            TextColor="{StaticResource color_Verde}" />
+                    </Border>
+                </Grid>
+            </Border>
 
             <Border
-                Grid.Column="2"
-                Padding="10,6"
-                BackgroundColor="#EEF5F2"
-                Stroke="#B7D3C8"
+                x:Name="EstadoPrincipalBorder"
+                Padding="{OnIdiom Phone=15, Tablet=18, Desktop=20}"
+                BackgroundColor="#F3F7FF"
+                Stroke="#C9D7F2"
                 StrokeThickness="1"
-                StrokeShape="RoundRectangle 10">
-                <Label
-                    x:Name="ModoSesionLabel"
-                    Text="Sesión en línea"
-                    FontFamily="MontserratBold"
-                    FontAttributes="Bold"
-                    FontSize="11"
-                    TextColor="#3B655B" />
-            </Border>
-        </Grid>
+                StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
+                        <Border
+                            WidthRequest="42"
+                            HeightRequest="42"
+                            Padding="0"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                            Stroke="Transparent"
+                            StrokeShape="RoundRectangle 12">
+                            <Grid>
+                                <Label
+                                    Text="↻"
+                                    FontSize="22"
+                                    FontAttributes="Bold"
+                                    TextColor="{StaticResource color_Verde}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
+                                <ActivityIndicator
+                                    x:Name="ComprobacionActivityIndicator"
+                                    IsVisible="False"
+                                    IsRunning="False"
+                                    WidthRequest="25"
+                                    HeightRequest="25"
+                                    Color="{StaticResource color_Verde}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
 
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout
-                Padding="20"
-                Spacing="14"
-                MaximumWidthRequest="1050">
-
-                <Border
-                    x:Name="EstadoPrincipalBorder"
-                    Padding="16"
-                    BackgroundColor="#F3F7FF"
-                    Stroke="#C9D7F2"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 14">
-                    <VerticalStackLayout Spacing="7">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <ActivityIndicator
-                                x:Name="ComprobacionActivityIndicator"
-                                IsVisible="False"
-                                IsRunning="False"
-                                WidthRequest="24"
-                                HeightRequest="24"
-                                Color="#3B655B"
-                                VerticalOptions="Center" />
-
+                        <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
                             <Label
                                 x:Name="EstadoTituloLabel"
-                                Grid.Column="1"
                                 Text="Los datos todavía no están preparados"
                                 FontFamily="MontserratBold"
                                 FontAttributes="Bold"
-                                FontSize="16"
-                                TextColor="#263238"
-                                VerticalOptions="Center" />
-                        </Grid>
+                                FontSize="{OnIdiom Phone=15, Tablet=16, Desktop=17}"
+                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                LineBreakMode="WordWrap" />
+                            <Label
+                                x:Name="EstadoDetalleLabel"
+                                Text="Use Descargar todo durante una sesión en línea."
+                                FontFamily="MontserratMedium"
+                                FontSize="11"
+                                LineBreakMode="WordWrap"
+                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                        </VerticalStackLayout>
+                    </Grid>
 
+                    <ProgressBar
+                        x:Name="ProgresoGlobal"
+                        IsVisible="False"
+                        Progress="0"
+                        HeightRequest="7"
+                        ProgressColor="{StaticResource color_Verde}" />
+
+                    <Button
+                        x:Name="ComprobarActualizacionesButton"
+                        Text="Comprobar nuevamente"
+                        Clicked="ComprobarActualizacionesButton_Clicked"
+                        IsVisible="False"
+                        HorizontalOptions="{OnIdiom Phone=Fill, Default=Start}"
+                        Style="{StaticResource ModernSecondaryButton}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource ModernInfoBanner}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Label
+                        Text="ⓘ"
+                        FontSize="21"
+                        TextColor="{StaticResource color_Verde}"
+                        VerticalOptions="Start" />
+                    <VerticalStackLayout Grid.Column="1" Spacing="3">
                         <Label
-                            x:Name="EstadoDetalleLabel"
-                            Text="Use Descargar todo durante una sesión en línea."
-                            FontSize="11"
-                            LineBreakMode="WordWrap"
-                            TextColor="#546E7A" />
-
-                        <Button
-                            x:Name="ComprobarActualizacionesButton"
-                            Text="Comprobar nuevamente"
-                            Clicked="ComprobarActualizacionesButton_Clicked"
-                            IsVisible="False"
-                            HorizontalOptions="Start"
-                            HeightRequest="38"
-                            Padding="14,0"
-                            CornerRadius="10"
-                            FontSize="11"
-                            BackgroundColor="#EEF5F2"
-                            TextColor="#3B655B" />
-
-                        <ProgressBar
-                            x:Name="ProgresoGlobal"
-                            IsVisible="False"
-                            Progress="0"
-                            ProgressColor="#3B655B" />
+                            Text="Comprobación automática, descarga manual"
+                            FontFamily="MontserratBold"
+                            FontSize="11.5"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                        <Label
+                            Text="Al entrar en línea se comprueba si existen cambios. La copia del dispositivo solo se reemplaza cuando una descarga nueva finaliza correctamente; en modo sin conexión no se consulta la API."
+                            Style="{StaticResource ModernCaption}"
+                            LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
-                </Border>
+                </Grid>
+            </Border>
+
+            <VerticalStackLayout Spacing="5" Margin="0,2,0,0">
+                <Label Text="Contenido disponible para campo" Style="{StaticResource ModernSectionTitle}" />
+                <Label
+                    Text="Cada tarjeta muestra el estado real del paquete que utilizará la aplicación sin Internet."
+                    Style="{StaticResource ModernPageSubtitle}" />
+            </VerticalStackLayout>
+
+            <Grid
+                x:Name="ModulosGrid"
+                ColumnDefinitions="*,*"
+                RowDefinitions="Auto,Auto,Auto"
+                ColumnSpacing="12"
+                RowSpacing="12">
 
                 <Border
-                    Padding="14"
-                    BackgroundColor="#FFF8E8"
-                    Stroke="#EBCB78"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 14">
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                        <Label Text="ⓘ" FontSize="22" TextColor="#9B552C" />
-                        <Label
+                    x:Name="MotorCalculoBorder"
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Style="{StaticResource ModernCatalogCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Motor de cálculo" Style="{StaticResource ModernSectionTitle}" />
+                            <Label
+                                x:Name="MotorCalculoEstadoLabel"
+                                Text="Pendiente"
+                                FontFamily="MontserratBold"
+                                FontSize="11"
+                                TextColor="{StaticResource color_Cafe}" />
+                            <Label
+                                x:Name="MotorCalculoDetalleLabel"
+                                Text="Reglas, precios y parámetros."
+                                Style="{StaticResource ModernCaption}"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <Border
                             Grid.Column="1"
-                            Text="Al visitar esta página durante una sesión en línea, se comprueba si existen actualizaciones disponibles. La descarga continúa siendo manual y durante una sesión sin conexión no se consulta la API."
-                            FontSize="11"
-                            LineBreakMode="WordWrap"
-                            TextColor="#6B4D32" />
+                            WidthRequest="42"
+                            HeightRequest="42"
+                            Style="{StaticResource ModernBadgeGreen}"
+                            Padding="0"
+                            VerticalOptions="Start">
+                            <Label
+                                Text="∑"
+                                FontSize="19"
+                                FontAttributes="Bold"
+                                TextColor="{StaticResource color_Verde}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                        </Border>
                     </Grid>
                 </Border>
 
-                <Grid
-                    x:Name="ModulosGrid"
-                    ColumnDefinitions="*,*"
-                    RowDefinitions="Auto,Auto,Auto"
-                    ColumnSpacing="12"
-                    RowSpacing="12">
-
-                    <Border
-                        x:Name="MotorCalculoBorder"
-                        Grid.Row="0"
-                        Grid.Column="0"
-                        Padding="14"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 13">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="Motor de cálculo" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
-                            <Label x:Name="MotorCalculoEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
-                            <Label x:Name="MotorCalculoDetalleLabel" Text="Reglas, precios y parámetros." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
+                <Border
+                    x:Name="CatalogosBorder"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Style="{StaticResource ModernCatalogCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Interfaces y terrenos" Style="{StaticResource ModernSectionTitle}" />
+                            <Label
+                                x:Name="CatalogosEstadoLabel"
+                                Text="Pendiente"
+                                FontFamily="MontserratBold"
+                                FontSize="11"
+                                TextColor="{StaticResource color_Cafe}" />
+                            <Label
+                                x:Name="CatalogosDetalleLabel"
+                                Text="Se indicarán las interfaces específicas que tengan cambios."
+                                Style="{StaticResource ModernCaption}"
+                                LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
-                    </Border>
+                        <Border
+                            Grid.Column="1"
+                            WidthRequest="42"
+                            HeightRequest="42"
+                            Style="{StaticResource ModernBadgeCoffee}"
+                            Padding="0"
+                            VerticalOptions="Start">
+                            <Label
+                                Text="⌂"
+                                FontSize="19"
+                                TextColor="{StaticResource color_Cafe}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border
+                    x:Name="AnalisisBorder"
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="2"
+                    Style="{StaticResource ModernCatalogCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Historial completo de análisis" Style="{StaticResource ModernSectionTitle}" />
+                            <Label
+                                x:Name="AnalisisEstadoLabel"
+                                Text="Pendiente"
+                                FontFamily="MontserratBold"
+                                FontSize="11"
+                                TextColor="{StaticResource color_Cafe}" />
+                            <Label
+                                x:Name="AnalisisDetalleLabel"
+                                Text="Encabezados, detalles, edición y datos para PDF/Excel."
+                                Style="{StaticResource ModernCaption}"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <Border
+                            Grid.Column="1"
+                            WidthRequest="42"
+                            HeightRequest="42"
+                            Style="{StaticResource ModernBadgeCoffee}"
+                            Padding="0"
+                            VerticalOptions="Start">
+                            <Label
+                                Text="▤"
+                                FontSize="21"
+                                TextColor="{StaticResource color_Cafe}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border
+                    x:Name="NoticiasBorder"
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Style="{StaticResource ModernCatalogCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Noticias" Style="{StaticResource ModernSectionTitle}" />
+                            <Label
+                                x:Name="NoticiasEstadoLabel"
+                                Text="Pendiente"
+                                FontFamily="MontserratBold"
+                                FontSize="11"
+                                TextColor="{StaticResource color_Cafe}" />
+                            <Label
+                                x:Name="NoticiasDetalleLabel"
+                                Text="Publicaciones, categorías e imágenes."
+                                Style="{StaticResource ModernCaption}"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <Border
+                            Grid.Column="1"
+                            WidthRequest="42"
+                            HeightRequest="42"
+                            Style="{StaticResource ModernBadgeGreen}"
+                            Padding="0"
+                            VerticalOptions="Start">
+                            <Label
+                                Text="N"
+                                FontFamily="MontserratBold"
+                                FontSize="16"
+                                TextColor="{StaticResource color_Verde}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border
+                    x:Name="AlbumBorder"
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Style="{StaticResource ModernCatalogCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Álbum botánico" Style="{StaticResource ModernSectionTitle}" />
+                            <Label
+                                x:Name="AlbumEstadoLabel"
+                                Text="Pendiente"
+                                FontFamily="MontserratBold"
+                                FontSize="11"
+                                TextColor="{StaticResource color_Cafe}" />
+                            <Label
+                                x:Name="AlbumDetalleLabel"
+                                Text="Galerías, detalles y fotografías."
+                                Style="{StaticResource ModernCaption}"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <Border
+                            Grid.Column="1"
+                            WidthRequest="42"
+                            HeightRequest="42"
+                            Style="{StaticResource ModernBadgeGreen}"
+                            Padding="0"
+                            VerticalOptions="Start">
+                            <Label
+                                Text="▧"
+                                FontSize="20"
+                                TextColor="{StaticResource color_Verde}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border
+                x:Name="FitosanitariaOfflineBorder"
+                Style="{StaticResource ModernCatalogCard}"
+                Loaded="FitosanitariaOfflineBorder_Loaded"
+                Unloaded="FitosanitariaOfflineBorder_Unloaded">
+                <Grid
+                    RowDefinitions="Auto,Auto"
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="12"
+                    RowSpacing="10">
+                    <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="5">
+                        <Label Text="Inspección fitosanitaria" Style="{StaticResource ModernSectionTitle}" />
+                        <Label
+                            x:Name="FitosanitariaOfflineEstadoLabel"
+                            Text="Comprobando..."
+                            FontFamily="MontserratBold"
+                            FontSize="11"
+                            TextColor="{StaticResource color_Cafe}" />
+                        <Label
+                            x:Name="FitosanitariaOfflineDetalleLabel"
+                            Text="Captura de campo, fotografías y cola de sincronización."
+                            Style="{StaticResource ModernCaption}"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
 
                     <Border
-                        x:Name="CatalogosBorder"
                         Grid.Row="0"
                         Grid.Column="1"
-                        Padding="14"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 13">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="Interfaces y terrenos" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
-                            <Label x:Name="CatalogosEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
-                            <Label x:Name="CatalogosDetalleLabel" Text="Se indicarán las interfaces específicas que tengan cambios." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Style="{StaticResource ModernBadgeGreen}"
+                        Padding="0"
+                        VerticalOptions="Start">
+                        <Label
+                            Text="🌿"
+                            FontSize="23"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
                     </Border>
 
-                    <Border
-                        x:Name="AnalisisBorder"
+                    <Button
+                        x:Name="FitosanitariaOfflineActualizarButton"
                         Grid.Row="1"
                         Grid.Column="0"
                         Grid.ColumnSpan="2"
-                        Padding="14"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 13">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="Historial completo de análisis" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
-                                <Label x:Name="AnalisisEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
-                                <Label x:Name="AnalisisDetalleLabel" Text="Encabezados, detalles, edición y datos para PDF/Excel." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
-                            </VerticalStackLayout>
-                            <Label Grid.Column="1" Text="▤" FontSize="30" TextColor="#9B552C" VerticalOptions="Center" />
-                        </Grid>
-                    </Border>
-
-                    <Border
-                        x:Name="NoticiasBorder"
-                        Grid.Row="2"
-                        Grid.Column="0"
-                        Padding="14"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 13">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="Noticias" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
-                            <Label x:Name="NoticiasEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
-                            <Label x:Name="NoticiasDetalleLabel" Text="Publicaciones, categorías e imágenes." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <Border
-                        x:Name="AlbumBorder"
-                        Grid.Row="2"
-                        Grid.Column="1"
-                        Padding="14"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 13">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="Álbum de fotos" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="14" TextColor="#3B655B" />
-                            <Label x:Name="AlbumEstadoLabel" Text="Pendiente" FontAttributes="Bold" FontSize="11" />
-                            <Label x:Name="AlbumDetalleLabel" Text="Galerías, detalles y fotografías." FontSize="10" TextColor="#60736B" LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
-                    </Border>
+                        Text="Preparar / sincronizar fitosanitaria"
+                        Clicked="FitosanitariaOfflineActualizarButton_Clicked"
+                        Style="{StaticResource ModernSecondaryButton}" />
                 </Grid>
+            </Border>
 
-                <!--
-                    La captura fitosanitaria reutiliza los terrenos descargados
-                    por el paquete global. Este panel prepara su cola local y
-                    conserva las fotografías hasta poder enviarlas al servidor.
-                -->
-                <Border
-                    x:Name="FitosanitariaOfflineBorder"
-                    Padding="14"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 13"
-                    Loaded="FitosanitariaOfflineBorder_Loaded"
-                    Unloaded="FitosanitariaOfflineBorder_Unloaded">
-                    <Grid
-                        RowDefinitions="Auto,Auto"
-                        ColumnDefinitions="*,Auto"
-                        ColumnSpacing="12"
-                        RowSpacing="8">
-                        <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="4">
-                            <Label
-                                Text="Inspección fitosanitaria"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                FontSize="14"
-                                TextColor="#3B655B" />
-                            <Label
-                                x:Name="FitosanitariaOfflineEstadoLabel"
-                                Text="Comprobando..."
-                                FontAttributes="Bold"
-                                FontSize="11" />
-                            <Label
-                                x:Name="FitosanitariaOfflineDetalleLabel"
-                                Text="Captura de campo, fotografías y cola de sincronización."
-                                FontSize="10"
-                                TextColor="#60736B"
-                                LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
+            <Grid
+                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                ColumnSpacing="12"
+                RowSpacing="10">
+                <Border Style="{StaticResource ModernMetricSurface}">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="Última descarga completa" Style="{StaticResource ModernCaption}" />
                         <Label
-                            Grid.Row="0"
-                            Grid.Column="1"
-                            Text="🌿"
-                            FontSize="28"
-                            VerticalOptions="Center" />
-                        <Button
-                            x:Name="FitosanitariaOfflineActualizarButton"
-                            Grid.Row="1"
-                            Grid.Column="0"
-                            Grid.ColumnSpan="2"
-                            Text="Preparar / sincronizar fitosanitaria"
-                            Clicked="FitosanitariaOfflineActualizarButton_Clicked"
-                            HeightRequest="42"
-                            BackgroundColor="#EEF5F2"
-                            TextColor="#3B655B"
-                            CornerRadius="10" />
-                    </Grid>
+                            x:Name="FechaSincronizacionLabel"
+                            Text="Todavía no disponible"
+                            FontFamily="MontserratBold"
+                            FontSize="11.5"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                    </VerticalStackLayout>
                 </Border>
-
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <Border Padding="12" BackgroundColor="White" Stroke="#E2E8E5" StrokeShape="RoundRectangle 12">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Última descarga completa" FontSize="9" TextColor="#60736B" />
-                            <Label x:Name="FechaSincronizacionLabel" Text="Todavía no disponible" FontAttributes="Bold" FontSize="11" TextColor="#263238" />
-                        </VerticalStackLayout>
-                    </Border>
-                    <Border Grid.Column="1" Padding="12" BackgroundColor="White" Stroke="#E2E8E5" StrokeShape="RoundRectangle 12">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Espacio utilizado" FontSize="9" TextColor="#60736B" />
-                            <Label x:Name="TamanoTotalLabel" Text="0 MB" FontAttributes="Bold" FontSize="11" TextColor="#263238" />
-                        </VerticalStackLayout>
-                    </Border>
-                </Grid>
-
                 <Border
-                    x:Name="ResumenPendientesBorder"
-                    Padding="14"
-                    BackgroundColor="#F7F9F8"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 13">
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="3">
-                            <Label Text="Análisis pendientes de enviar" FontSize="10" TextColor="#60736B" />
-                            <Label x:Name="PendientesAnalisisLabel" Text="0" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="18" TextColor="#3B655B" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" Spacing="3">
-                            <Label Text="Requieren revisión" FontSize="10" TextColor="#60736B" />
-                            <Label x:Name="RevisionAnalisisLabel" Text="0" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="18" TextColor="#9B552C" />
-                        </VerticalStackLayout>
-                    </Grid>
+                    Grid.Row="{OnIdiom Phone=1, Default=0}"
+                    Grid.Column="{OnIdiom Phone=0, Default=1}"
+                    Style="{StaticResource ModernMetricSurface}">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="Espacio utilizado" Style="{StaticResource ModernCaption}" />
+                        <Label
+                            x:Name="TamanoTotalLabel"
+                            Text="0 MB"
+                            FontFamily="MontserratBold"
+                            FontSize="11.5"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                    </VerticalStackLayout>
                 </Border>
+            </Grid>
 
-                <Button
-                    x:Name="DescargarTodoButton"
-                    Text="Descargar todo"
-                    Clicked="DescargarTodoButton_Clicked"
-                    HeightRequest="52"
-                    CornerRadius="14"
-                    FontFamily="MontserratBold"
-                    FontAttributes="Bold"
-                    BackgroundColor="#3B655B"
-                    TextColor="White" />
+            <Border
+                x:Name="ResumenPendientesBorder"
+                Style="{StaticResource ModernSoftPanel}">
+                <Grid
+                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                    ColumnSpacing="12"
+                    RowSpacing="10">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="Análisis pendientes de enviar" Style="{StaticResource ModernCaption}" />
+                        <Label
+                            x:Name="PendientesAnalisisLabel"
+                            Text="0"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            FontSize="20"
+                            TextColor="{StaticResource color_Verde}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout
+                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                        Spacing="3">
+                        <Label Text="Requieren revisión" Style="{StaticResource ModernCaption}" />
+                        <Label
+                            x:Name="RevisionAnalisisLabel"
+                            Text="0"
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            FontSize="20"
+                            TextColor="{StaticResource color_Cafe}" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
 
-                <Label
-                    Text="La copia anterior solo se reemplaza cuando la nueva descarga finaliza correctamente."
-                    HorizontalTextAlignment="Center"
-                    FontSize="9"
-                    TextColor="#78908A" />
-            </VerticalStackLayout>
-        </ScrollView>
-    </Grid>
+            <Border Style="{StaticResource ModernFormCard}">
+                <VerticalStackLayout Spacing="10">
+                    <Label
+                        Text="Preparar dispositivo"
+                        Style="{StaticResource ModernSectionTitle}" />
+                    <Label
+                        Text="Mantenga la aplicación abierta hasta finalizar. El botón se deshabilita durante la descarga para impedir ejecuciones duplicadas."
+                        Style="{StaticResource ModernPageSubtitle}" />
+                    <Button
+                        x:Name="DescargarTodoButton"
+                        Text="Descargar todo"
+                        Clicked="DescargarTodoButton_Clicked"
+                        Style="{StaticResource ModernPrimaryButton}"
+                        HeightRequest="54"
+                        FontSize="14" />
+                    <Label
+                        Text="La copia anterior solo se reemplaza cuando la nueva descarga finaliza correctamente."
+                        Style="{StaticResource ModernCaption}"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

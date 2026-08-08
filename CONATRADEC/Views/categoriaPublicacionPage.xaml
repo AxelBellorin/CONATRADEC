@@ -6,290 +6,263 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Title="Tipos de publicación"
-    BackgroundColor="#FFF5FF"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}"
     ControlTemplate="{StaticResource FooterTemplate}">
 
     <Grid>
-        <Grid
-            x:Name="ContenidoPrincipal"
-            RowDefinitions="Auto,*"
-            Padding="{OnPlatform WinUI='24,20', Default='14,12'}"
-            RowSpacing="12">
-
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <Button
-                    Text="‹ Regresar"
-                    Command="{Binding RegresarCommand}"
-                    BackgroundColor="Transparent"
-                    TextColor="#3B655B"
-                    FontFamily="MontserratBold" />
-
-                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                    <Label
-                        Text="Tipos de publicación"
-                        FontFamily="MontserratBold"
-                        FontSize="{OnPlatform WinUI=27, Default=21}"
-                        TextColor="#3B655B" />
-                    <Label
-                        Text="Administre las categorías de noticias, ofertas y eventos."
-                        FontFamily="MontserratMedium"
-                        FontSize="11"
-                        TextColor="#6B7280" />
-                </VerticalStackLayout>
-
-                <Button
-                    Grid.Column="2"
-                    Text="Nuevo tipo"
-                    Command="{Binding NuevoCommand}"
-                    IsVisible="{Binding CanAdd}"
-                    BackgroundColor="#3B655B"
-                    TextColor="White"
-                    FontFamily="MontserratBold"
-                    CornerRadius="10"
-                    Padding="13,9" />
-            </Grid>
-
+        <Grid x:Name="ContenidoPrincipal">
             <RefreshView
-                Grid.Row="1"
                 IsRefreshing="{Binding IsRefreshing}"
-                Command="{Binding RefrescarCommand}">
+                Command="{Binding RefrescarCommand}"
+                RefreshColor="{StaticResource color_Verde}">
 
                 <CollectionView
+                    Margin="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}"
                     ItemsSource="{Binding Categorias}"
                     SelectionMode="None"
                     ItemSizingStrategy="MeasureFirstItem">
 
                     <CollectionView.ItemsLayout>
-                        <LinearItemsLayout
+                        <GridItemsLayout
                             Orientation="Vertical"
-                            ItemSpacing="10" />
+                            Span="{OnIdiom Phone=1, Tablet=2, Desktop=3}"
+                            HorizontalItemSpacing="14"
+                            VerticalItemSpacing="14" />
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.Header>
-                        <VerticalStackLayout Spacing="10" Padding="0,0,0,10">
-                            <Border
-                                Padding="12"
-                                BackgroundColor="White"
-                                Stroke="#DDE7E3"
-                                StrokeShape="RoundRectangle 15">
-                                <VerticalStackLayout Spacing="9">
-                                    <SearchBar
-                                        Placeholder="Buscar por nombre o descripción"
-                                        Text="{Binding TextoBusqueda}"
-                                        SearchCommand="{Binding BuscarCommand}"
-                                        FontFamily="MontserratMedium"
-                                        BackgroundColor="#F8FAF9" />
-
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                                            <Switch
-                                                IsToggled="{Binding IncluirInactivas}"
-                                                OnColor="#3B655B" />
-                                            <Label
-                                                Text="Mostrar inactivos"
-                                                FontFamily="MontserratMedium"
-                                                FontSize="11"
-                                                VerticalOptions="Center" />
-                                        </HorizontalStackLayout>
+                        <VerticalStackLayout Spacing="14" Margin="0,0,0,14">
+                            <Border Style="{StaticResource ModernHeroCard}">
+                                <Grid
+                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                                    RowSpacing="12"
+                                    ColumnSpacing="14">
+                                    <VerticalStackLayout Spacing="4">
                                         <Button
-                                            Grid.Column="1"
+                                            Text="← Publicaciones"
+                                            Command="{Binding RegresarCommand}"
+                                            Style="{StaticResource ModernLinkButton}"
+                                            HorizontalOptions="Start"
+                                            Margin="-8,-5,0,0" />
+                                        <Label
+                                            Text="Tipos de publicación"
+                                            Style="{StaticResource ModernPageTitle}" />
+                                        <Label
+                                            Text="Administre las categorías utilizadas para noticias, ofertas y eventos."
+                                            Style="{StaticResource ModernPageSubtitle}" />
+                                    </VerticalStackLayout>
+
+                                    <Button
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        Text="Nuevo tipo"
+                                        Command="{Binding NuevoCommand}"
+                                        IsVisible="{Binding CanAdd}"
+                                        Style="{StaticResource ModernPrimaryButton}"
+                                        HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                                        VerticalOptions="End"
+                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=150}" />
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource ModernCard}">
+                                <VerticalStackLayout Spacing="10">
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <SearchBar
+                                            Placeholder="Buscar por nombre o descripción"
+                                            Text="{Binding TextoBusqueda}"
+                                            SearchCommand="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernSearchBar}" />
+                                    </Border>
+
+                                    <Grid
+                                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                        ColumnDefinitions="{OnIdiom Phone='*,*', Default='*,Auto,Auto'}"
+                                        ColumnSpacing="8"
+                                        RowSpacing="8">
+                                        <Border Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}" Style="{StaticResource ModernSoftPanel}" Padding="10,7">
+                                            <HorizontalStackLayout Spacing="7" VerticalOptions="Center">
+                                                <Switch
+                                                    IsToggled="{Binding IncluirInactivas}"
+                                                    OnColor="{StaticResource color_Verde}" />
+                                                <Label
+                                                    Text="Mostrar inactivos"
+                                                    Style="{StaticResource ModernCaption}"
+                                                    VerticalOptions="Center" />
+                                            </HorizontalStackLayout>
+                                        </Border>
+                                        <Button
+                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                            Grid.Column="{OnIdiom Phone=0, Default=1}"
                                             Text="Buscar"
                                             Command="{Binding BuscarCommand}"
-                                            BackgroundColor="#3B655B"
-                                            TextColor="White"
-                                            FontFamily="MontserratBold"
-                                            CornerRadius="9" />
+                                            Style="{StaticResource ModernPrimaryButton}" />
                                         <Button
-                                            Grid.Column="2"
+                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                            Grid.Column="{OnIdiom Phone=1, Default=2}"
                                             Text="Limpiar"
                                             Command="{Binding LimpiarCommand}"
-                                            BackgroundColor="Transparent"
-                                            TextColor="#9B552C"
-                                            FontFamily="MontserratBold" />
+                                            Style="{StaticResource ModernNeutralButton}" />
                                     </Grid>
                                 </VerticalStackLayout>
                             </Border>
 
                             <Border
                                 IsVisible="{Binding TieneMensaje}"
-                                Padding="11"
-                                BackgroundColor="#FFF7ED"
-                                Stroke="#FDBA74"
-                                StrokeShape="RoundRectangle 11">
+                                Style="{StaticResource ModernWarningBanner}">
                                 <Label
                                     Text="{Binding Mensaje}"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="12"
-                                    TextColor="#9A3412" />
+                                    Style="{StaticResource ModernPageSubtitle}" />
                             </Border>
                         </VerticalStackLayout>
                     </CollectionView.Header>
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:CategoriaPublicacionCatalogoResponse">
-                            <Border
-                                Padding="13"
-                                BackgroundColor="White"
-                                Stroke="#E3EAE7"
-                                StrokeShape="RoundRectangle 14">
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="11">
-                                    <Border
-                                        WidthRequest="46"
-                                        HeightRequest="46"
-                                        Padding="7"
-                                        BackgroundColor="#F8FAF9"
-                                        Stroke="#DDE7E3"
-                                        StrokeShape="RoundRectangle 12">
+                            <Border Style="{StaticResource ModernCatalogCard}">
+                                <VerticalStackLayout Spacing="10">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
                                         <Border
-                                            BackgroundColor="{Binding ColorMuestra}"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 7" />
-                                    </Border>
+                                            WidthRequest="52"
+                                            HeightRequest="52"
+                                            Padding="7"
+                                            Style="{StaticResource ModernSoftPanel}">
+                                            <Border
+                                                BackgroundColor="{Binding ColorMuestra}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 9" />
+                                        </Border>
 
-                                    <VerticalStackLayout Grid.Column="1" Spacing="5">
-                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                        <VerticalStackLayout Grid.Column="1" Spacing="5">
                                             <Label
                                                 Text="{Binding NombreCategoriaPublicacion}"
                                                 FontFamily="MontserratBold"
-                                                FontSize="17"
-                                                TextColor="#1F2937"
-                                                MaxLines="1"
+                                                FontSize="16"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                                MaxLines="2"
                                                 LineBreakMode="TailTruncation" />
-                                            <Border
-                                                Grid.Column="1"
-                                                Padding="7,3"
-                                                BackgroundColor="{Binding EstadoFondo}"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 7">
-                                                <Label
-                                                    Text="{Binding EstadoTexto}"
-                                                    FontFamily="MontserratBold"
-                                                    FontSize="9"
-                                                    TextColor="{Binding EstadoTextoColor}" />
-                                            </Border>
-                                            <Border
-                                                Grid.Column="2"
-                                                Padding="7,3"
-                                                BackgroundColor="#F7F1EC"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 7">
-                                                <Label
-                                                    Text="{Binding Orden, StringFormat='Orden {0}'}"
-                                                    FontFamily="MontserratBold"
-                                                    FontSize="9"
-                                                    TextColor="#9B552C" />
-                                            </Border>
-                                        </Grid>
 
-                                        <Label
-                                            Text="{Binding DescripcionCategoriaPublicacion}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="11"
-                                            TextColor="#4B5563"
-                                            MaxLines="2"
-                                            LineBreakMode="TailTruncation" />
-
-                                        <Label
-                                            Text="{Binding PublicacionesTexto}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="10"
-                                            TextColor="#6B7280" />
-
-                                        <HorizontalStackLayout Spacing="6">
-                                            <Button
-                                                Text="Editar"
-                                                Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.EditarCommand}"
-                                                CommandParameter="{Binding .}"
-                                                IsVisible="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.CanEdit}"
-                                                BackgroundColor="#3B655B"
-                                                TextColor="White"
-                                                FontFamily="MontserratBold"
-                                                FontSize="9"
-                                                CornerRadius="8"
-                                                Padding="10,6" />
-                                            <Button
-                                                Text="Desactivar"
-                                                Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.DesactivarCommand}"
-                                                CommandParameter="{Binding .}"
-                                                IsVisible="{Binding PuedeDesactivar}"
-                                                BackgroundColor="#B42318"
-                                                TextColor="White"
-                                                FontFamily="MontserratBold"
-                                                FontSize="9"
-                                                CornerRadius="8"
-                                                Padding="10,6" />
-                                            <Button
-                                                Text="Reactivar"
-                                                Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.ReactivarCommand}"
-                                                CommandParameter="{Binding .}"
-                                                IsVisible="{Binding PuedeReactivar}"
-                                                BackgroundColor="#F2C94C"
-                                                TextColor="#4B3B00"
-                                                FontFamily="MontserratBold"
-                                                FontSize="9"
-                                                CornerRadius="8"
-                                                Padding="10,6" />
-                                        </HorizontalStackLayout>
-                                    </VerticalStackLayout>
+                                            <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Center">
+                                                <Border
+                                                    Margin="0,0,5,4"
+                                                    Padding="7,3"
+                                                    BackgroundColor="{Binding EstadoFondo}"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 8">
+                                                    <Label
+                                                        Text="{Binding EstadoTexto}"
+                                                        FontFamily="MontserratBold"
+                                                        FontSize="9"
+                                                        TextColor="{Binding EstadoTextoColor}" />
+                                                </Border>
+                                                <Border
+                                                    Margin="0,0,5,4"
+                                                    Style="{StaticResource ModernBadgeCoffee}">
+                                                    <Label
+                                                        Text="{Binding Orden, StringFormat='Orden {0}'}"
+                                                        FontFamily="MontserratBold"
+                                                        FontSize="9"
+                                                        TextColor="{StaticResource color_Cafe}" />
+                                                </Border>
+                                            </FlexLayout>
+                                        </VerticalStackLayout>
+                                    </Grid>
 
                                     <Label
-                                        Grid.Column="2"
-                                        Text="›"
-                                        FontSize="25"
-                                        TextColor="#3B655B"
-                                        VerticalOptions="Center" />
-                                </Grid>
+                                        Text="{Binding DescripcionCategoriaPublicacion}"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="11"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                                        MaxLines="3"
+                                        LineBreakMode="TailTruncation" />
+
+                                    <Label
+                                        Text="{Binding PublicacionesTexto}"
+                                        Style="{StaticResource ModernCaption}" />
+
+                                    <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Center">
+                                        <Button
+                                            Margin="0,0,6,6"
+                                            Text="Editar"
+                                            Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.EditarCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.CanEdit}"
+                                            Style="{StaticResource ModernUpdateButton}"
+                                            MinimumWidthRequest="96" />
+                                        <Button
+                                            Margin="0,0,6,6"
+                                            Text="Desactivar"
+                                            Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.DesactivarCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding PuedeDesactivar}"
+                                            Style="{StaticResource ModernDangerSoftButton}"
+                                            MinimumWidthRequest="105" />
+                                        <Button
+                                            Margin="0,0,6,6"
+                                            Text="Reactivar"
+                                            Command="{Binding Source={x:Reference CategoriaPublicacionRoot}, Path=BindingContext.ReactivarCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding PuedeReactivar}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="105" />
+                                    </FlexLayout>
+                                </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
 
                     <CollectionView.EmptyView>
-                        <VerticalStackLayout
+                        <Border
                             IsVisible="{Binding MostrarVacio}"
-                            Padding="30"
-                            HorizontalOptions="Center">
+                            Style="{StaticResource ModernEmptyStateCard}">
                             <Label
                                 Text="No hay tipos de publicación"
-                                FontFamily="MontserratBold"
-                                FontSize="17"
-                                TextColor="#3B655B" />
-                        </VerticalStackLayout>
+                                Style="{StaticResource ModernSectionTitle}"
+                                HorizontalTextAlignment="Center" />
+                        </Border>
                     </CollectionView.EmptyView>
                 </CollectionView>
             </RefreshView>
 
-            <ActivityIndicator
-                Grid.RowSpan="2"
-                IsRunning="{Binding IsBusy}"
+            <Grid
                 IsVisible="{Binding IsBusy}"
-                Color="#3B655B"
-                HorizontalOptions="Center"
-                VerticalOptions="Center" />
+                BackgroundColor="#52000000"
+                InputTransparent="False">
+                <Border
+                    Style="{StaticResource ModernCard}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Padding="22,18">
+                    <HorizontalStackLayout Spacing="12">
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            Color="{StaticResource color_Verde}"
+                            WidthRequest="28"
+                            HeightRequest="28" />
+                        <Label
+                            Text="Actualizando categorías..."
+                            Style="{StaticResource ModernSectionTitle}"
+                            VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
 
         <Grid
             x:Name="ContenidoSinPermiso"
             IsVisible="False"
             Padding="24">
-            <Border
-                MaximumWidthRequest="560"
-                Padding="26"
-                BackgroundColor="White"
-                Stroke="#DDE7E3"
-                StrokeShape="RoundRectangle 18"
-                HorizontalOptions="Center"
-                VerticalOptions="Center">
-                <VerticalStackLayout Spacing="12">
+            <Border Style="{StaticResource ModernAccessDeniedCard}">
+                <VerticalStackLayout Spacing="10">
                     <Label
                         Text="Sin permiso"
-                        FontFamily="MontserratBold"
-                        FontSize="22"
-                        TextColor="#3B655B"
+                        Style="{StaticResource ModernPageTitle}"
                         HorizontalTextAlignment="Center" />
                     <Label
                         Text="No tiene permiso para consultar los tipos de publicación."
-                        FontFamily="MontserratMedium"
-                        TextColor="#4B5563"
+                        Style="{StaticResource ModernPageSubtitle}"
                         HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Border>
