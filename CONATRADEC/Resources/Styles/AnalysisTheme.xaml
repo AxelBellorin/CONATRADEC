@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+﻿<?xml version="1.0" encoding="UTF-8" ?>
 <?xaml-comp compile="true" ?>
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -177,6 +177,120 @@
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="HeightRequest" Value="46" />
         <Setter Property="Padding" Value="8,7" />
+    </Style>
+
+
+    <!-- =========================================================
+         HISTÓRICO DE ANÁLISIS
+         Estilos explícitos para el detalle guardado. Se mantienen
+         separados para no alterar de forma implícita otras pantallas.
+         ========================================================= -->
+
+    <Style x:Key="HistoryCard" TargetType="Border" BasedOn="{StaticResource AnalysisPanel}">
+        <Setter Property="Padding" Value="{OnIdiom Phone=14, Tablet=18, Desktop=20}" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+    </Style>
+
+    <Style x:Key="HistorySoftPanel" TargetType="Border" BasedOn="{StaticResource ModernSoftPanel}">
+        <Setter Property="Padding" Value="{OnIdiom Phone=12, Tablet=14, Desktop=15}" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 14" />
+    </Style>
+
+    <Style x:Key="HistoryMetric" TargetType="Border" BasedOn="{StaticResource ModernMetricSurface}">
+        <Setter Property="Padding" Value="11,9" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 13" />
+    </Style>
+
+    <Style x:Key="HistoryCoffeeMetric" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandCoffeeSoft}, Dark={StaticResource BrandCoffeeSoftDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 13" />
+        <Setter Property="Padding" Value="11,9" />
+    </Style>
+
+    <Style x:Key="HistoryWarningPanel" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFF7ED, Dark={StaticResource BrandCoffeeSoftDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light=#FED7AA, Dark={StaticResource BorderStrongDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 14" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style x:Key="HistorySuccessPanel" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 14" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style x:Key="HistoryYellowPanel" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandYellowSoft}, Dark={StaticResource BrandYellowSoftDark}}" />
+        <Setter Property="Stroke" Value="{StaticResource color_Amarillo}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 14" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style x:Key="HistorySectionHero" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{StaticResource color_Verde}" />
+        <Setter Property="Stroke" Value="Transparent" />
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+        <Setter Property="Padding" Value="{OnIdiom Phone=14, Tablet=17, Desktop=18}" />
+    </Style>
+
+    <Style x:Key="HistoryListRow" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 13" />
+        <Setter Property="Padding" Value="11" />
+    </Style>
+
+    <Style x:Key="HistoryValueLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <Style x:Key="HistoryTableHeader" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="Padding" Value="8" />
+        <Setter Property="VerticalTextAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="HistoryTableHeaderRight" TargetType="Label" BasedOn="{StaticResource HistoryTableHeader}">
+        <Setter Property="HorizontalTextAlignment" Value="End" />
+    </Style>
+
+    <Style x:Key="HistoryTableCellRight" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="HorizontalTextAlignment" Value="End" />
+        <Setter Property="VerticalTextAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="HistoryTableCellRightStrong" TargetType="Label" BasedOn="{StaticResource HistoryTableCellRight}">
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+
+    <Style x:Key="HistoryTableCellStrong" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="VerticalTextAlignment" Value="Center" />
     </Style>
 
 </ResourceDictionary>
