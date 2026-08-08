@@ -35,9 +35,14 @@
                     MaximumWidthRequest="1100"
                     HorizontalOptions="Center">
 
+                    <!--
+                        Windows conserva la distribución en dos columnas.
+                        Android/iOS/MacCatalyst usan una sola columna y una fila
+                        independiente para cada opción, evitando superposición.
+                    -->
                     <Grid
                         ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                        RowDefinitions="Auto,Auto,Auto"
+                        RowDefinitions="{OnPlatform WinUI='Auto,Auto,Auto', Default='Auto,Auto,Auto,Auto,Auto'}"
                         ColumnSpacing="14"
                         RowSpacing="14">
 
@@ -94,7 +99,7 @@
                         </Border>
 
                         <Border
-                            Grid.Row="1"
+                            Grid.Row="{OnPlatform WinUI=1, Default=2}"
                             Grid.Column="0"
                             Padding="18"
                             BackgroundColor="White"
@@ -120,7 +125,7 @@
                         </Border>
 
                         <Border
-                            Grid.Row="1"
+                            Grid.Row="{OnPlatform WinUI=1, Default=3}"
                             Grid.Column="{OnPlatform WinUI=1, Default=0}"
                             Padding="18"
                             BackgroundColor="White"
@@ -146,7 +151,7 @@
                         </Border>
 
                         <Border
-                            Grid.Row="2"
+                            Grid.Row="{OnPlatform WinUI=2, Default=4}"
                             Grid.Column="0"
                             Grid.ColumnSpan="{OnPlatform WinUI=2, Default=1}"
                             Padding="18"
