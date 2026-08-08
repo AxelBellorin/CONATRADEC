@@ -164,11 +164,10 @@ namespace CONATRADEC.Views
             try
             {
                 /*
-                 * Permite que el indicador quede visible antes de crear o medir
-                 * la primera interfaz de cálculo.
+                 * Cede un ciclo al renderizado sin agregar una espera fija.
+                 * Después se construye únicamente la pestaña activa.
                  */
                 await Task.Yield();
-                await Task.Delay(60);
 
                 if (version != versionCargaVisual ||
                     !paginaVisible)
@@ -230,8 +229,6 @@ namespace CONATRADEC.Views
                  */
                 await EsperarTabActualListaAsync(
                     CancellationToken.None);
-
-                await Task.Delay(80);
             }
             catch (Exception ex)
             {
@@ -473,10 +470,10 @@ namespace CONATRADEC.Views
                 if (cargaFinalizada)
                 {
                     /*
-                     * Permite que finalice el bloque finally de la tarea de
-                     * inicialización antes de reconstruir los temporales.
+                     * Cede el control una vez para que finalice el bloque
+                     * finally de la inicialización, sin imponer una espera.
                      */
-                    await Task.Delay(75);
+                    await Task.Yield();
                     return;
                 }
 
@@ -549,13 +546,11 @@ namespace CONATRADEC.Views
                     "Preparando los datos...");
 
                 /*
-                 * Garantiza que el overlay se pinte antes de construir por
-                 * primera vez la vista seleccionada.
+                 * Cede un ciclo para que el overlay pueda pintarse antes de
+                 * construir por primera vez la vista seleccionada.
                  */
                 await Task.Yield();
-                await Task.Delay(
-                    55,
-                    token);
+                token.ThrowIfCancellationRequested();
 
                 await MainThread.InvokeOnMainThreadAsync(
                     ActualizarVistaTab);
@@ -563,13 +558,9 @@ namespace CONATRADEC.Views
                 await EsperarTabActualListaAsync(
                     token);
 
-                /*
-                 * Concede un ciclo adicional para que MAUI termine de medir
-                 * la nueva vista antes de retirar el overlay.
-                 */
-                await Task.Delay(
-                    90,
-                    token);
+                // Un ciclo de renderizado es suficiente; no se agrega retardo fijo.
+                await Task.Yield();
+                token.ThrowIfCancellationRequested();
             }
             catch (OperationCanceledException)
             {

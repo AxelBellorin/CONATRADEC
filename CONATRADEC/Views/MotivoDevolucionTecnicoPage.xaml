@@ -7,224 +7,291 @@
     xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="#F7F8F7">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
-        <Grid
-            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-            RowDefinitions="Auto,Auto,*"
-            RowSpacing="12">
+        <Grid>
+            <CollectionView
+                ItemsSource="{Binding Items}"
+                SelectionMode="None">
 
-            <controls:ResponsiveCatalogHeader
-                Grid.Row="0"
-                Title="Motivos de devolución al técnico"
-                Subtitle="Catálogo de causas e instrucciones utilizadas por el analizador para solicitar correcciones de evidencia."
-                BackText="Configuración"
-                BackCommand="{Binding RegresarCommand}"
-                PrimaryText="Nuevo motivo"
-                PrimaryCommand="{Binding NuevoCommand}"
-                IsPrimaryVisible="{Binding CanAdd}" />
+                <CollectionView.Header>
+                    <VerticalStackLayout
+                        Padding="{OnIdiom Phone='12,12,12,10', Tablet='18,16,18,12', Desktop='24,20,24,14'}"
+                        Spacing="12">
 
-            <Border
-                Grid.Row="1"
-                Padding="12"
-                BackgroundColor="White"
-                Stroke="#C8DED6"
-                StrokeShape="RoundRectangle 14">
-                <Grid
-                    RowDefinitions="Auto,Auto,Auto"
-                    ColumnDefinitions="*,Auto"
-                    ColumnSpacing="8"
-                    RowSpacing="8">
-                    <Entry
-                        Grid.Row="0"
-                        Grid.Column="0"
-                        Text="{Binding Buscar}"
-                        Placeholder="Buscar por código, nombre, descripción o instrucción"
-                        ReturnType="Search"
-                        ReturnCommand="{Binding BuscarCommand}"
-                        ClearButtonVisibility="WhileEditing" />
-                    <Button
-                        Grid.Row="0"
-                        Grid.Column="1"
-                        Text="Buscar"
-                        Command="{Binding BuscarCommand}"
-                        BackgroundColor="#3B655B"
-                        TextColor="White"
-                        MinimumWidthRequest="100" />
-                    <HorizontalStackLayout
-                        Grid.Row="1"
-                        Grid.ColumnSpan="2"
-                        Spacing="8">
-                        <CheckBox
-                            IsChecked="{Binding IncluirInactivos}"
-                            Color="#3B655B" />
-                        <Label
-                            Text="Incluir motivos inactivos"
-                            VerticalTextAlignment="Center"
-                            TextColor="#40544E" />
-                        <Button
-                            Text="Actualizar"
-                            Command="{Binding ActualizarCommand}"
-                            BackgroundColor="#EEF2F0"
-                            TextColor="#263A35"
-                            Margin="12,0,0,0" />
-                    </HorizontalStackLayout>
-                    <Label
-                        Grid.Row="2"
-                        Grid.ColumnSpan="2"
-                        Text="Desactivar es una baja lógica: el motivo deja de estar disponible para nuevas devoluciones, pero sus asociaciones permanecen visibles en el historial. Active «Incluir motivos inactivos» para volver a habilitarlo."
-                        FontSize="11"
-                        TextColor="#6B7773"
-                        LineBreakMode="WordWrap" />
-                </Grid>
-            </Border>
+                        <controls:ResponsiveCatalogHeader
+                            Title="Motivos de devolución al técnico"
+                            Subtitle="Administre las causas e instrucciones utilizadas por el analizador para solicitar correcciones de evidencia."
+                            BackText="← Configuración"
+                            BackCommand="{Binding RegresarCommand}"
+                            PrimaryText="+ Nuevo motivo"
+                            PrimaryCommand="{Binding NuevoCommand}"
+                            IsPrimaryVisible="{Binding CanAdd}" />
 
-            <Grid Grid.Row="2">
+                        <Border Style="{StaticResource ModernFormCard}">
+                            <VerticalStackLayout Spacing="11">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="9">
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <Entry
+                                            Text="{Binding Buscar}"
+                                            Placeholder="Código, nombre, descripción o instrucción"
+                                            ReturnType="Search"
+                                            ReturnCommand="{Binding BuscarCommand}"
+                                            ClearButtonVisibility="WhileEditing"
+                                            Style="{StaticResource ModernEntry}" />
+                                    </Border>
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Buscar"
+                                        Command="{Binding BuscarCommand}"
+                                        Style="{StaticResource ModernPrimaryButton}" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                    <CheckBox
+                                        IsChecked="{Binding IncluirInactivos}"
+                                        Color="{StaticResource color_Verde}"
+                                        VerticalOptions="Center" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="Incluir motivos inactivos"
+                                        VerticalTextAlignment="Center"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="12"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Text="Actualizar"
+                                        Command="{Binding ActualizarCommand}"
+                                        Style="{StaticResource ModernNeutralButton}" />
+                                </Grid>
+
+                                <Label
+                                    Text="Desactivar realiza una baja lógica. El motivo deja de estar disponible para nuevas devoluciones, pero continúa visible en el historial y puede reactivarse posteriormente."
+                                    Style="{StaticResource ModernCaption}"
+                                    LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border
+                            IsVisible="{Binding TieneMensajeEstado}"
+                            Style="{StaticResource ModernWarningBanner}">
+                            <HorizontalStackLayout Spacing="10">
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsBusy}"
+                                    IsVisible="{Binding IsBusy}"
+                                    Color="{StaticResource color_Cafe}"
+                                    WidthRequest="20"
+                                    HeightRequest="20" />
+                                <Label
+                                    Text="{Binding MensajeEstado}"
+                                    VerticalTextAlignment="Center"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                    LineBreakMode="WordWrap" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout
+                        Orientation="Vertical"
+                        ItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.EmptyView>
+                    <Grid Padding="{OnIdiom Phone='12,20', Tablet='18,24', Desktop='24,28'}">
+                        <Border
+                            IsVisible="{Binding SinItems}"
+                            Style="{StaticResource ModernEmptyStateCard}">
+                            <VerticalStackLayout
+                                Spacing="8"
+                                HorizontalOptions="Center">
+                                <Border
+                                    Style="{StaticResource ModernIconTile}"
+                                    WidthRequest="56"
+                                    HeightRequest="56">
+                                    <Label
+                                        Text="↩"
+                                        FontSize="25"
+                                        TextColor="{StaticResource color_Verde}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+                                <Label
+                                    Text="No se encontraron motivos"
+                                    Style="{StaticResource ModernSectionTitle}"
+                                    FontSize="17"
+                                    HorizontalTextAlignment="Center" />
+                                <Label
+                                    Text="Cambie la búsqueda o active la opción para incluir registros inactivos."
+                                    Style="{StaticResource ModernPageSubtitle}"
+                                    HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:MotivoDevolucionTecnicoItem">
+                        <Border
+                            Margin="{OnIdiom Phone='12,0', Tablet='18,0', Desktop='24,0'}"
+                            Style="{StaticResource ModernCatalogCard}">
+                            <Grid
+                                RowDefinitions="Auto,Auto,Auto,Auto"
+                                ColumnDefinitions="*,Auto"
+                                ColumnSpacing="12"
+                                RowSpacing="8">
+
+                                <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
+                                    <Label
+                                        Text="{Binding NombreMostrar}"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        FontSize="17"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                        LineBreakMode="WordWrap" />
+                                    <Label
+                                        Text="{Binding Codigo}"
+                                        FontFamily="MontserratBold"
+                                        FontSize="10.5"
+                                        TextColor="{StaticResource color_Verde}"
+                                        LineBreakMode="CharacterWrap" />
+                                </VerticalStackLayout>
+
+                                <Border
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Padding="9,4"
+                                    Stroke="Transparent"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 9"
+                                    VerticalOptions="Start">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding Activo}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Border" Binding="{Binding Activo}" Value="False">
+                                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandCoffeeSoft}, Dark={StaticResource BrandCoffeeSoftDark}}" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Label
+                                        Text="{Binding EstadoTexto}"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        FontSize="10">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding Activo}" Value="True">
+                                                <Setter Property="TextColor" Value="{StaticResource color_Verde}" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding Activo}" Value="False">
+                                                <Setter Property="TextColor" Value="{StaticResource color_Cafe}" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
+
+                                <Label
+                                    Grid.Row="1"
+                                    Grid.ColumnSpan="2"
+                                    Text="{Binding Descripcion}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12.5"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                                    LineBreakMode="WordWrap" />
+
+                                <Border
+                                    Grid.Row="2"
+                                    Grid.ColumnSpan="2"
+                                    Style="{StaticResource ModernSoftPanel}">
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label
+                                            Text="Instrucción sugerida"
+                                            Style="{StaticResource ModernFieldLabel}"
+                                            TextColor="{StaticResource color_Verde}" />
+                                        <Label
+                                            Text="{Binding InstruccionSugerida}"
+                                            Style="{StaticResource ModernCaption}"
+                                            FontSize="11.5"
+                                            LineBreakMode="WordWrap" />
+                                        <Label
+                                            Text="{Binding TipoCorreccionTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            FontSize="11"
+                                            TextColor="{StaticResource color_Cafe}"
+                                            LineBreakMode="WordWrap" />
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <HorizontalStackLayout
+                                    Grid.Row="3"
+                                    Grid.ColumnSpan="2"
+                                    Spacing="8"
+                                    HorizontalOptions="End">
+                                    <Button
+                                        Text="Editar"
+                                        Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.EditarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding Activo}"
+                                        Style="{StaticResource ModernUpdateButton}" />
+                                    <Button
+                                        Text="Desactivar"
+                                        Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.EliminarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding Activo}"
+                                        Style="{StaticResource ModernDangerSoftButton}" />
+                                    <Button
+                                        Text="Activar"
+                                        Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.ActivarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource ModernSecondaryButton}">
+                                        <Button.Triggers>
+                                            <DataTrigger TargetType="Button" Binding="{Binding Activo}" Value="True">
+                                                <Setter Property="IsVisible" Value="False" />
+                                            </DataTrigger>
+                                        </Button.Triggers>
+                                    </Button>
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="{OnIdiom Phone=24, Tablet=28, Desktop=32}" Opacity="0" />
+                </CollectionView.Footer>
+            </CollectionView>
+
+            <Grid
+                IsVisible="{Binding IsBusy}"
+                BackgroundColor="#66000000"
+                InputTransparent="False">
                 <Border
-                    Padding="14"
-                    VerticalOptions="Start"
-                    ZIndex="2"
-                    BackgroundColor="#FFF9E8"
-                    Stroke="#E2B93B"
-                    StrokeShape="RoundRectangle 13"
-                    IsVisible="{Binding TieneMensajeEstado}">
+                    Padding="20,16"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 15">
                     <HorizontalStackLayout Spacing="10">
                         <ActivityIndicator
                             IsRunning="{Binding IsBusy}"
-                            Color="#9B552C" />
+                            Color="{StaticResource color_Naranja}"
+                            WidthRequest="24"
+                            HeightRequest="24" />
                         <Label
-                            Text="{Binding MensajeEstado}"
-                            VerticalTextAlignment="Center"
-                            TextColor="#6B5710" />
+                            Text="Actualizando motivos..."
+                            VerticalOptions="Center"
+                            FontFamily="MontserratBold"
+                            FontSize="11.5"
+                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
                     </HorizontalStackLayout>
-                </Border>
-
-                <CollectionView
-                    ItemsSource="{Binding Items}"
-                    SelectionMode="None">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:MotivoDevolucionTecnicoItem">
-                            <Border
-                                Padding="14"
-                                BackgroundColor="White"
-                                Stroke="#D9E3DF"
-                                StrokeShape="RoundRectangle 14">
-                                <Grid
-                                    RowDefinitions="Auto,Auto,Auto,Auto"
-                                    ColumnDefinitions="*,Auto"
-                                    ColumnSpacing="12"
-                                    RowSpacing="5">
-                                    <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
-                                        <Label
-                                            Text="{Binding NombreMostrar}"
-                                            FontSize="18"
-                                            FontAttributes="Bold"
-                                            TextColor="#263A35" />
-                                        <Label
-                                            Text="{Binding Codigo}"
-                                            FontSize="11"
-                                            TextColor="#6B7773" />
-                                    </VerticalStackLayout>
-                                    <Border
-                                        Grid.Row="0"
-                                        Grid.Column="1"
-                                        Padding="9,4"
-                                        BackgroundColor="#EEF5F2"
-                                        Stroke="Transparent"
-                                        StrokeShape="RoundRectangle 10">
-                                        <Label
-                                            Text="{Binding EstadoTexto}"
-                                            FontAttributes="Bold"
-                                            TextColor="#3B655B" />
-                                    </Border>
-                                    <Label
-                                        Grid.Row="1"
-                                        Grid.ColumnSpan="2"
-                                        Text="{Binding Descripcion}"
-                                        TextColor="#4F5D59"
-                                        LineBreakMode="WordWrap" />
-                                    <Border
-                                        Grid.Row="2"
-                                        Grid.ColumnSpan="2"
-                                        Padding="10"
-                                        BackgroundColor="#FAFCFB"
-                                        Stroke="#E2E9E6"
-                                        StrokeShape="RoundRectangle 10">
-                                        <VerticalStackLayout Spacing="3">
-                                            <Label
-                                                Text="Instrucción sugerida"
-                                                FontSize="12"
-                                                FontAttributes="Bold"
-                                                TextColor="#3B655B" />
-                                            <Label
-                                                Text="{Binding InstruccionSugerida}"
-                                                FontSize="12"
-                                                TextColor="#5E6B67" />
-                                            <Label
-                                                Text="{Binding TipoCorreccionTexto}"
-                                                FontSize="12"
-                                                FontAttributes="Bold"
-                                                TextColor="#9B552C" />
-                                        </VerticalStackLayout>
-                                    </Border>
-                                    <FlexLayout
-                                        Grid.Row="3"
-                                        Grid.ColumnSpan="2"
-                                        Direction="Row"
-                                        Wrap="Wrap"
-                                        JustifyContent="End"
-                                        Margin="0,5,0,0">
-                                        <Button
-                                            Text="Editar"
-                                            Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.EditarCommand}"
-                                            CommandParameter="{Binding .}"
-                                            IsVisible="{Binding Activo}"
-                                            BackgroundColor="#3B82F6"
-                                            TextColor="White"
-                                            Margin="0,0,8,6" />
-                                        <Button
-                                            Text="Desactivar"
-                                            Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.EliminarCommand}"
-                                            CommandParameter="{Binding .}"
-                                            IsVisible="{Binding Activo}"
-                                            BackgroundColor="#FDECEC"
-                                            TextColor="#B42318"
-                                            Margin="0,0,8,6" />
-                                        <Button
-                                            Text="Activar"
-                                            Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.ActivarCommand}"
-                                            CommandParameter="{Binding .}"
-                                            BackgroundColor="#E3EFEA"
-                                            TextColor="#3B655B"
-                                            Margin="0,0,0,6">
-                                            <Button.Triggers>
-                                                <DataTrigger TargetType="Button" Binding="{Binding Activo}" Value="True">
-                                                    <Setter Property="IsVisible" Value="False" />
-                                                </DataTrigger>
-                                            </Button.Triggers>
-                                        </Button>
-                                    </FlexLayout>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <Border
-                    Padding="18"
-                    VerticalOptions="Start"
-                    BackgroundColor="#F2F6F4"
-                    Stroke="#D9E3DF"
-                    StrokeShape="RoundRectangle 14"
-                    IsVisible="{Binding SinItems}">
-                    <Label
-                        Text="No se encontraron motivos con los filtros seleccionados."
-                        HorizontalTextAlignment="Center"
-                        TextColor="#5E6B67" />
                 </Border>
             </Grid>
         </Grid>

@@ -4,8 +4,6 @@ using Microsoft.Maui;
 using Microsoft.Maui.Controls.Shapes;
 using System;
 using System.ComponentModel;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CONATRADEC.Views
 {
@@ -18,8 +16,9 @@ namespace CONATRADEC.Views
         private Label? textoProcesamiento;
         private ActivityIndicator? actividadProcesamiento;
         private Button? botonContinuar;
-        private CancellationTokenSource? indicadorCts;
-        private bool procesamientoDetectado;
+        private bool operacionSolicitada;
+        private string mensajeProcesamientoPendiente =
+            "Preparando los cálculos complementarios...";
 
         public ResultadoAnalisisSueloPage()
         {
@@ -56,7 +55,7 @@ namespace CONATRADEC.Views
         {
             base.OnDisappearing();
 
-            CancelarVigilanciaIndicador();
+            operacionSolicitada = false;
             OcultarIndicadorProcesamiento();
         }
 
@@ -185,27 +184,30 @@ namespace CONATRADEC.Views
             if (indicadorProcesamiento?.IsVisible == true)
                 return;
 
-            string mensaje =
-                viewModel.TieneSeleccionCalculo
-                    ? "Preparando los cálculos complementarios..."
-                    : viewModel.EsModoEdicion
-                        ? "Actualizando el requerimiento anual..."
-                        : "Guardando el requerimiento anual...";
+            mensajeProcesamientoPendiente =
+                ObtenerMensajeProcesamiento();
 
-            procesamientoDetectado = viewModel.IsBusy;
-            MostrarIndicadorProcesamiento(mensaje);
-
-            CancelarVigilanciaIndicador();
-
-            indicadorCts = new CancellationTokenSource();
+            operacionSolicitada = true;
 
             /*
-             * El comando puede validar antes de activar IsBusy. Se utiliza un
-             * único fallback corto en vez de consultar el estado cada 100 ms.
-             * Si el proceso real comienza, PropertyChanged se encarga del relay.
+             * No se muestra un spinner por tiempo fijo. El comando se ejecuta
+             * después del clic y el relay aparece únicamente si IsBusy cambia
+             * realmente a true. Si una validación detiene la operación antes
+             * de comenzar, el siguiente ciclo limpia esta intención.
              */
-            _ = OcultarSiOperacionNoInicioAsync(indicadorCts.Token);
+            Dispatcher.Dispatch(() =>
+            {
+                if (!viewModel.IsBusy)
+                    operacionSolicitada = false;
+            });
         }
+
+        private string ObtenerMensajeProcesamiento() =>
+            viewModel.TieneSeleccionCalculo
+                ? "Preparando los cálculos complementarios..."
+                : viewModel.EsModoEdicion
+                    ? "Actualizando el requerimiento anual..."
+                    : "Guardando el requerimiento anual...";
 
         private void ViewModel_PropertyChanged(
             object? sender,
@@ -216,35 +218,24 @@ namespace CONATRADEC.Views
 
             if (viewModel.IsBusy)
             {
-                procesamientoDetectado = true;
+                if (operacionSolicitada &&
+                    Shell.Current?.CurrentPage == this)
+                {
+                    Dispatcher.Dispatch(() =>
+                        MostrarIndicadorProcesamiento(
+                            mensajeProcesamientoPendiente));
+                }
+
                 return;
             }
 
-            if (procesamientoDetectado &&
-                Shell.Current?.CurrentPage == this)
-            {
+            if (!operacionSolicitada)
+                return;
+
+            operacionSolicitada = false;
+
+            if (Shell.Current?.CurrentPage == this)
                 Dispatcher.Dispatch(OcultarIndicadorProcesamiento);
-            }
-        }
-
-        private async Task OcultarSiOperacionNoInicioAsync(
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                await Task.Delay(1200, cancellationToken);
-
-                if (Shell.Current?.CurrentPage != this)
-                    return;
-
-                if (!viewModel.IsBusy && !procesamientoDetectado)
-                {
-                    OcultarIndicadorProcesamiento();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-            }
         }
 
         private void MostrarIndicadorProcesamiento(string mensaje)
@@ -261,34 +252,11 @@ namespace CONATRADEC.Views
 
         private void OcultarIndicadorProcesamiento()
         {
-            procesamientoDetectado = false;
-
             if (actividadProcesamiento != null)
                 actividadProcesamiento.IsRunning = false;
 
             if (indicadorProcesamiento != null)
                 indicadorProcesamiento.IsVisible = false;
-        }
-
-        private void CancelarVigilanciaIndicador()
-        {
-            CancellationTokenSource? anterior =
-                Interlocked.Exchange(ref indicadorCts, null);
-
-            if (anterior == null)
-                return;
-
-            try
-            {
-                anterior.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            finally
-            {
-                anterior.Dispose();
-            }
         }
 
         private Button? BuscarBotonContinuar(IVisualTreeElement elemento)

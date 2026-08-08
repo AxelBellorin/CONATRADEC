@@ -1,6 +1,5 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
-using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
 using System;
 using System.Collections.Generic;
@@ -132,7 +131,11 @@ namespace CONATRADEC
             /*
              * Las páginas declaradas como ShellContent conservan su instancia.
              * Antes de volver a NuevoAnalisisFormPage desde MainPage se limpia
-             * explícitamente el formulario y el cálculo temporal anterior.
+             * explícitamente el contexto y el cálculo temporal anterior.
+             *
+             * La carga visual del formulario se realiza exclusivamente en
+             * NuevoAnalisisFormPage.OnAppearing. De esta forma no se inicializan
+             * los mismos catálogos dos veces antes y después de navegar.
              */
             Navigating += AppShell_Navigating;
 
@@ -385,25 +388,15 @@ namespace CONATRADEC
             {
                 AnalisisEdicionService.Instance.Limpiar();
 
+                /*
+                 * Solo se limpia el cálculo temporal antes de navegar.
+                 * NuevoAnalisisFormPage es la única responsable de inicializar
+                 * sus catálogos en OnAppearing. Antes se ejecutaba aquí una
+                 * segunda InicializarPaginaAsync(true), incluida una espera de
+                 * hasta 10 segundos si el ViewModel estaba ocupado.
+                 */
                 await CalculoAnalisisTemporalService.Instance
                     .LimpiarTodoAsync();
-
-                NuevoAnalisisFormPage? pagina =
-                    BuscarPaginaNuevoAnalisis();
-
-                if (pagina?.BindingContext
-                    is NuevoAnalisisFormEdicionViewModel viewModel)
-                {
-                    for (int intento = 0;
-                         intento < 200 && viewModel.IsBusy;
-                         intento++)
-                    {
-                        await Task.Delay(50);
-                    }
-
-                    await viewModel
-                        .InicializarPaginaAsync(true);
-                }
             }
             catch (Exception ex)
             {
@@ -443,34 +436,6 @@ namespace CONATRADEC
                 vieneDePrincipal &&
                 vaAlFormulario &&
                 !AnalisisEdicionService.Instance.EsModoEdicion;
-        }
-
-        private NuevoAnalisisFormPage?
-            BuscarPaginaNuevoAnalisis()
-        {
-            foreach (ShellItem item in Items)
-            {
-                foreach (ShellSection seccion in item.Items)
-                {
-                    foreach (ShellContent contenido in seccion.Items)
-                    {
-                        if (!string.Equals(
-                                contenido.Route,
-                                "NuevoAnalisisFormPage",
-                                StringComparison.OrdinalIgnoreCase))
-                        {
-                            continue;
-                        }
-
-                        return
-                            ((IShellContentController)contenido)
-                                .GetOrCreateContent()
-                            as NuevoAnalisisFormPage;
-                    }
-                }
-            }
-
-            return null;
         }
 
         /// <summary>

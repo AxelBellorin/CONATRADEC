@@ -4,298 +4,270 @@
     x:Name="PaginaEliminadas"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="#F6F8F7">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid RowDefinitions="Auto,Auto,*" Padding="{OnPlatform WinUI='26,22,26,26', Default='16,16,16,22'}" RowSpacing="14">
+    <Grid Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
+        <RefreshView
+            IsVisible="{Binding CanView}"
+            IsRefreshing="{Binding IsRefreshing}"
+            Command="{Binding RefrescarCommand}">
 
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <VerticalStackLayout Spacing="3">
-                <Label
-                    Text="Fuentes eliminadas"
-                    FontSize="{OnPlatform WinUI=28, Default=24}"
-                    FontFamily="MontserratBold"
-                    FontAttributes="Bold"
-                    TextColor="{StaticResource color_Verde}" />
-                <Label
-                    Text="Reactive registros conservando sus datos y clasificación anteriores."
-                    FontSize="13"
-                    TextColor="{StaticResource color_GrisOscuro}" />
-            </VerticalStackLayout>
+            <CollectionView
+                ItemsSource="{Binding Fuentes}"
+                SelectionMode="None">
 
-            <Button
-                Grid.Column="1"
-                Text="Cerrar"
-                Padding="16,10"
-                BackgroundColor="#EEF2F0"
-                TextColor="{StaticResource color_Verde}"
-                CornerRadius="11"
-                Command="{Binding CerrarCommand}" />
-        </Grid>
+                <CollectionView.Header>
+                    <VerticalStackLayout Spacing="12" Padding="0,0,0,12">
+                        <controls:ResponsiveCatalogHeader
+                            Title="Fuentes eliminadas"
+                            Subtitle="Reactive fuentes de nutrientes conservando sus datos, clasificación, precio y aportes anteriores."
+                            BackText="← Cerrar"
+                            BackCommand="{Binding CerrarCommand}"
+                            IsPrimaryVisible="False" />
 
-        <Border
-            Grid.Row="1"
-            Padding="12"
-            BackgroundColor="White"
-            Stroke="#DDE7E3"
-            StrokeThickness="1"
-            StrokeShape="RoundRectangle 15">
+                        <Border Style="{StaticResource ModernFormCard}">
+                            <VerticalStackLayout Spacing="10">
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <SearchBar
+                                        Placeholder="Buscar una fuente eliminada"
+                                        Text="{Binding TextoBusqueda}"
+                                        SearchCommand="{Binding BuscarCommand}"
+                                        Style="{StaticResource ModernSearchBar}" />
+                                </Border>
 
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
-                <SearchBar
-                    Grid.Row="0"
-                    Placeholder="Buscar una fuente eliminada"
-                    Text="{Binding TextoBusqueda}"
-                    SearchCommand="{Binding BuscarCommand}"
-                    BackgroundColor="#F8FAF9"
-                    CancelButtonColor="{StaticResource color_Verde}" />
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <Label
+                                        Text="{Binding Resumen}"
+                                        VerticalOptions="Center"
+                                        Style="{StaticResource ModernCaption}"
+                                        FontSize="11.5" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Buscar"
+                                        Command="{Binding BuscarCommand}"
+                                        Style="{StaticResource ModernPrimaryButton}" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Text="Limpiar"
+                                        Command="{Binding LimpiarCommand}"
+                                        Style="{StaticResource ModernNeutralButton}" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
 
-                <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
-                    <Label
-                        Text="{Binding Resumen}"
-                        VerticalOptions="Center"
-                        FontSize="12"
-                        TextColor="{StaticResource color_GrisOscuro}" />
-                    <Button
-                        Grid.Column="1"
-                        Text="Buscar"
-                        Padding="14,8"
-                        BackgroundColor="{StaticResource color_Verde}"
-                        TextColor="White"
-                        CornerRadius="10"
-                        Command="{Binding BuscarCommand}" />
-                    <Button
-                        Grid.Column="2"
-                        Text="Limpiar"
-                        Padding="14,8"
-                        BackgroundColor="#EEF2F0"
-                        TextColor="{StaticResource color_Verde}"
-                        CornerRadius="10"
-                        Command="{Binding LimpiarCommand}" />
-                </Grid>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="2">
-            <Grid IsVisible="{Binding MostrarAccesoDenegado}" Padding="24">
-                <Border
-                    MaximumWidthRequest="620"
-                    Padding="26"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    BackgroundColor="White"
-                    Stroke="#E5E7EB"
-                    StrokeShape="RoundRectangle 18">
-                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
-                        <Label
-                            Text="Sin permiso de lectura"
-                            FontSize="20"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}" />
-                        <Label
-                            Text="Su usuario no puede consultar las fuentes eliminadas."
-                            HorizontalTextAlignment="Center"
-                            TextColor="{StaticResource color_GrisOscuro}" />
-                        <Button
-                            Text="Cerrar"
-                            Command="{Binding CerrarCommand}"
-                            BackgroundColor="{StaticResource color_Verde}"
-                            TextColor="White"
-                            CornerRadius="10" />
+                        <Border
+                            IsVisible="{Binding TieneMensaje}"
+                            Style="{StaticResource ModernWarningBanner}">
+                            <Label
+                                Text="{Binding Mensaje}"
+                                FontFamily="MontserratMedium"
+                                FontSize="12"
+                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                LineBreakMode="WordWrap" />
+                        </Border>
                     </VerticalStackLayout>
-                </Border>
-            </Grid>
+                </CollectionView.Header>
 
-            <RefreshView
-                IsVisible="{Binding CanView}"
-                IsRefreshing="{Binding IsRefreshing}"
-                Command="{Binding RefrescarCommand}">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout
+                        x:Name="FuentesEliminadasGrid"
+                        Orientation="Vertical"
+                        Span="1"
+                        HorizontalItemSpacing="12"
+                        VerticalItemSpacing="12" />
+                </CollectionView.ItemsLayout>
 
-                <CollectionView
-                    ItemsSource="{Binding Fuentes}"
-                    SelectionMode="None">
-
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout
-                            x:Name="FuentesEliminadasGrid"
-                            Orientation="Vertical"
-                            Span="1"
-                            HorizontalItemSpacing="12"
-                            VerticalItemSpacing="12" />
-                    </CollectionView.ItemsLayout>
-
-                    <CollectionView.EmptyView>
-                        <Grid Padding="30">
+                <CollectionView.EmptyView>
+                    <Grid Padding="12,24">
+                        <Border
+                            IsVisible="{Binding MostrarVacio}"
+                            Style="{StaticResource ModernEmptyStateCard}">
                             <VerticalStackLayout
-                                IsVisible="{Binding MostrarVacio}"
                                 HorizontalOptions="Center"
-                                VerticalOptions="Center"
                                 Spacing="8">
                                 <Border
-                                    WidthRequest="64"
-                                    HeightRequest="64"
-                                    BackgroundColor="#EAF7EF"
-                                    StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 18">
+                                    Style="{StaticResource ModernIconTile}"
+                                    WidthRequest="58"
+                                    HeightRequest="58">
                                     <Label
                                         Text="✓"
-                                        FontSize="28"
+                                        FontSize="27"
                                         TextColor="{StaticResource color_Verde}"
                                         HorizontalOptions="Center"
                                         VerticalOptions="Center" />
                                 </Border>
                                 <Label
                                     Text="No hay fuentes eliminadas"
+                                    Style="{StaticResource ModernSectionTitle}"
                                     FontSize="18"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Negro}"
                                     HorizontalTextAlignment="Center" />
                                 <Label
-                                    Text="Todos los registros se encuentran activos o no coinciden con la búsqueda."
-                                    FontSize="13"
-                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    Text="Todas las fuentes están activas o no coinciden con la búsqueda actual."
+                                    Style="{StaticResource ModernPageSubtitle}"
                                     HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
-                        </Grid>
-                    </CollectionView.EmptyView>
+                        </Border>
+                    </Grid>
+                </CollectionView.EmptyView>
 
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:FuenteNutrienteResponse">
-                            <Border
-                                Padding="16"
-                                MinimumHeightRequest="210"
-                                BackgroundColor="White"
-                                Stroke="#E5D8D0"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 16">
-
-                                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-                                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                        <Border
-                                            WidthRequest="54"
-                                            HeightRequest="54"
-                                            BackgroundColor="#F7EEE9"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 14">
-                                            <Label
-                                                Text="FN"
-                                                FontSize="17"
-                                                FontFamily="MontserratBold"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Cafe}"
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center" />
-                                        </Border>
-
-                                        <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
-                                            <Label
-                                                Text="{Binding NombreNutriente}"
-                                                FontSize="17"
-                                                FontFamily="MontserratBold"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Negro}"
-                                                LineBreakMode="TailTruncation" />
-                                            <Label
-                                                Text="{Binding CategoriaFuenteMostrar}"
-                                                FontSize="11"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Cafe}" />
-                                            <Label
-                                                Text="{Binding DescripcionNutriente}"
-                                                FontSize="12"
-                                                TextColor="{StaticResource color_GrisOscuro}"
-                                                MaxLines="2"
-                                                LineBreakMode="TailTruncation" />
-                                        </VerticalStackLayout>
-
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:FuenteNutrienteResponse">
+                        <Border
+                            Style="{StaticResource ModernCatalogCard}"
+                            MinimumHeightRequest="205">
+                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <Border
+                                        WidthRequest="54"
+                                        HeightRequest="54"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource BrandCoffeeSoft}, Dark={StaticResource BrandCoffeeSoftDark}}"
+                                        Stroke="Transparent"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 14">
                                         <Label
-                                            Grid.Column="2"
-                                            Text="Eliminada"
-                                            Padding="9,5"
-                                            FontSize="11"
-                                            TextColor="#B42318"
-                                            BackgroundColor="#FEECEB"
-                                            VerticalOptions="Start" />
-                                    </Grid>
+                                            Text="FN"
+                                            FontSize="17"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Cafe}"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Border>
 
-                                    <VerticalStackLayout Grid.Row="1" Spacing="7">
-                                        <Border
-                                            Padding="10,7"
-                                            BackgroundColor="#FFF7E6"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 9">
-                                            <Label
-                                                Text="{Binding PrecioMostrar}"
-                                                FontSize="12"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Cafe}"
-                                                HorizontalTextAlignment="Center" />
-                                        </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
                                         <Label
-                                            Text="{Binding AportesMostrar}"
-                                            FontSize="11"
-                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            Text="{Binding NombreNutriente}"
+                                            FontSize="16"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                            LineBreakMode="TailTruncation" />
+                                        <Label
+                                            Text="{Binding CategoriaFuenteMostrar}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="10.5"
+                                            TextColor="{StaticResource color_Cafe}" />
+                                        <Label
+                                            Text="{Binding DescripcionNutriente}"
+                                            Style="{StaticResource ModernCaption}"
+                                            FontSize="11.5"
                                             MaxLines="2"
                                             LineBreakMode="TailTruncation" />
                                     </VerticalStackLayout>
 
-                                    <Button
-                                        Grid.Row="2"
-                                        Text="Reactivar registro"
-                                        Padding="12,10"
-                                        BackgroundColor="{StaticResource color_Verde}"
-                                        TextColor="White"
-                                        CornerRadius="10"
-                                        IsVisible="{Binding Source={x:Reference PaginaEliminadas}, Path=BindingContext.CanEdit}"
-                                        Command="{Binding Source={x:Reference PaginaEliminadas}, Path=BindingContext.ReactivarCommand}"
-                                        CommandParameter="{Binding .}" />
+                                    <Border
+                                        Grid.Column="2"
+                                        Style="{StaticResource ModernDangerBanner}"
+                                        Padding="8,4"
+                                        VerticalOptions="Start">
+                                        <Label
+                                            Text="Eliminada"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            FontSize="9.5"
+                                            TextColor="{StaticResource RedDelete}" />
+                                    </Border>
                                 </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </RefreshView>
 
-            <Border
-                IsVisible="{Binding TieneMensaje}"
-                Padding="14"
-                Margin="16"
-                HorizontalOptions="Fill"
-                VerticalOptions="Start"
-                BackgroundColor="#FFF7E6"
-                Stroke="#F2C94C"
-                StrokeShape="RoundRectangle 12">
-                <Label
-                    Text="{Binding Mensaje}"
-                    FontSize="13"
-                    TextColor="{StaticResource color_Negro}" />
+                                <VerticalStackLayout Grid.Row="1" Spacing="7">
+                                    <Border
+                                        Style="{StaticResource ModernBadgeYellow}"
+                                        Padding="9,6">
+                                        <Label
+                                            Text="{Binding PrecioMostrar}"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            FontSize="11"
+                                            TextColor="{StaticResource color_Cafe}"
+                                            HorizontalTextAlignment="Center" />
+                                    </Border>
+                                    <Label
+                                        Text="{Binding AportesMostrar}"
+                                        Style="{StaticResource ModernCaption}"
+                                        FontSize="11"
+                                        MaxLines="2"
+                                        LineBreakMode="TailTruncation" />
+                                </VerticalStackLayout>
+
+                                <Button
+                                    Grid.Row="2"
+                                    Text="Reactivar registro"
+                                    IsVisible="{Binding Source={x:Reference PaginaEliminadas}, Path=BindingContext.CanEdit}"
+                                    Command="{Binding Source={x:Reference PaginaEliminadas}, Path=BindingContext.ReactivarCommand}"
+                                    CommandParameter="{Binding .}"
+                                    Style="{StaticResource ModernSecondaryButton}"
+                                    HorizontalOptions="Fill" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <BoxView HeightRequest="{OnIdiom Phone=18, Tablet=22, Desktop=26}" Opacity="0" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+
+        <Grid
+            IsVisible="{Binding MostrarAccesoDenegado}"
+            Padding="{OnIdiom Phone=12, Tablet=20, Desktop=24}"
+            BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
+            <Border Style="{StaticResource ModernAccessDeniedCard}">
+                <VerticalStackLayout
+                    Spacing="10"
+                    HorizontalOptions="Center">
+                    <Image
+                        Source="iconpermission.png"
+                        WidthRequest="62"
+                        HeightRequest="62"
+                        Opacity="0.68" />
+                    <Label
+                        Text="Sin permiso de lectura"
+                        Style="{StaticResource ModernSectionTitle}"
+                        FontSize="20"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="Su usuario no puede consultar las fuentes de nutrientes eliminadas."
+                        Style="{StaticResource ModernPageSubtitle}"
+                        HorizontalTextAlignment="Center" />
+                    <Button
+                        Text="Cerrar"
+                        Command="{Binding CerrarCommand}"
+                        Style="{StaticResource ModernPrimaryButton}"
+                        HorizontalOptions="Center" />
+                </VerticalStackLayout>
             </Border>
+        </Grid>
 
-            <Grid
-                IsVisible="{Binding IsBusy}"
-                InputTransparent="True"
-                BackgroundColor="#40FFFFFF">
-                <Border
-                    Padding="18"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 14">
-                    <HorizontalStackLayout Spacing="10">
-                        <ActivityIndicator
-                            IsRunning="True"
-                            Color="{StaticResource color_Naranja}" />
-                        <Label
-                            Text="Cargando registros eliminados..."
-                            VerticalOptions="Center"
-                            TextColor="{StaticResource color_Negro}" />
-                    </HorizontalStackLayout>
-                </Border>
-            </Grid>
+        <Grid
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#66000000">
+            <Border
+                Padding="20,16"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 15">
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Naranja}"
+                        WidthRequest="24"
+                        HeightRequest="24" />
+                    <Label
+                        Text="Cargando fuentes eliminadas..."
+                        VerticalOptions="Center"
+                        FontFamily="MontserratBold"
+                        FontSize="11.5"
+                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                </HorizontalStackLayout>
+            </Border>
         </Grid>
     </Grid>
 </ContentPage>

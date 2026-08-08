@@ -4,124 +4,76 @@
     x:Name="BitacoraPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+        Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
-        <Grid RowDefinitions="Auto,*">
-
-            <Grid
-                Padding="18,14"
-                ColumnDefinitions="Auto,*,Auto"
-                BackgroundColor="{StaticResource color_Verde}">
-
-                <Button
-                    Text="‹"
-                    FontSize="30"
-                    WidthRequest="46"
-                    HeightRequest="42"
-                    Padding="0"
-                    BackgroundColor="Transparent"
-                    TextColor="White"
-                    Command="{Binding goToBack}" />
-
-                <VerticalStackLayout Grid.Column="1" Spacing="0" Margin="10,0">
-                    <Label
-                        Text="Bitácora del sistema"
-                        FontSize="22"
-                        FontFamily="MontserratBold"
-                        TextColor="White" />
-                    <Label
-                        Text="Trazabilidad de consultas, cambios y errores"
-                        FontSize="12"
-                        TextColor="#E4F0EC" />
-                </VerticalStackLayout>
-
-                <Button
-                    Grid.Column="2"
-                    Text="Actualizar"
-                    Padding="16,9"
-                    FontFamily="MontserratBold"
-                    BackgroundColor="White"
-                    TextColor="{StaticResource color_Verde}"
-                    IsEnabled="{Binding NotIsBusy}"
-                    SemanticProperties.Description="Actualizar los registros de la bitácora"
-                    Command="{Binding BuscarCommand}">
-                    <VisualStateManager.VisualStateGroups>
-                        <VisualStateGroupList>
-                            <VisualStateGroup x:Name="CommonStates">
-                                <VisualState x:Name="Normal">
-                                    <VisualState.Setters>
-                                        <Setter Property="BackgroundColor" Value="White" />
-                                        <Setter Property="TextColor" Value="{StaticResource color_Verde}" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="PointerOver">
-                                    <VisualState.Setters>
-                                        <Setter Property="BackgroundColor" Value="#E8F1EE" />
-                                        <Setter Property="TextColor" Value="{StaticResource color_Verde}" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Pressed">
-                                    <VisualState.Setters>
-                                        <Setter Property="BackgroundColor" Value="#D5E5DF" />
-                                        <Setter Property="TextColor" Value="{StaticResource color_Verde}" />
-                                        <Setter Property="Scale" Value="0.98" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Disabled">
-                                    <VisualState.Setters>
-                                        <Setter Property="BackgroundColor" Value="#C8D6D1" />
-                                        <Setter Property="TextColor" Value="#64736E" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateGroupList>
-                    </VisualStateManager.VisualStateGroups>
-                </Button>
-            </Grid>
-
+        <Grid>
             <CollectionView
-                Grid.Row="1"
                 ItemsSource="{Binding Registros}"
                 SelectionMode="None"
-                Margin="0,0,0,70">
+                ItemSizingStrategy="MeasureFirstItem">
 
                 <CollectionView.Header>
                     <VerticalStackLayout
-                        Padding="18,18,18,8"
-                        Spacing="14"
+                        Padding="{OnIdiom Phone='12,12,12,10', Tablet='18,16,18,12', Desktop='24,20,24,14'}"
+                        Spacing="12"
                         MaximumWidthRequest="1280"
                         HorizontalOptions="Center">
 
-                        <Border
-                            Padding="16"
-                            BackgroundColor="White"
-                            Stroke="#DDE7E3"
-                            StrokeShape="RoundRectangle 16">
-
+                        <!--
+                            Encabezado propio para Bitácora. Se evita el solapamiento
+                            del botón primario en móvil dejando cada acción en su
+                            propia fila dentro del contenido desplazable.
+                        -->
+                        <Border Style="{StaticResource ModernHeroCard}">
                             <VerticalStackLayout Spacing="12">
-                                <Grid ColumnDefinitions="*,Auto">
+                                <Button
+                                    Text="← Configuración"
+                                    Style="{StaticResource ModernLinkButton}"
+                                    HorizontalOptions="Start"
+                                    Command="{Binding goToBack}" />
+
+                                <VerticalStackLayout Spacing="4">
+                                    <Label
+                                        Text="Bitácora del sistema"
+                                        Style="{StaticResource ModernPageTitle}" />
+                                    <Label
+                                        Text="Consulte la trazabilidad de operaciones, cambios, errores y tiempos de respuesta."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        MaxLines="3" />
+                                </VerticalStackLayout>
+
+                                <Button
+                                    Text="Actualizar"
+                                    Style="{StaticResource ModernPrimaryButton}"
+                                    HorizontalOptions="Fill"
+                                    IsEnabled="{Binding NotIsBusy}"
+                                    Command="{Binding BuscarCommand}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource ModernFormCard}">
+                            <VerticalStackLayout Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                     <VerticalStackLayout Spacing="2">
                                         <Label
                                             Text="Filtros de consulta"
-                                            FontFamily="MontserratBold"
-                                            FontSize="17"
-                                            TextColor="{StaticResource color_Negro}" />
+                                            Style="{StaticResource ModernSectionTitle}"
+                                            FontSize="17" />
                                         <Label
-                                            Text="Puede combinar fechas, usuario, módulo, acción y estado."
-                                            FontSize="12"
-                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                            Text="Combine fechas, usuario, módulo, acción y estado para localizar operaciones específicas."
+                                            Style="{StaticResource ModernPageSubtitle}"
+                                            MaxLines="3" />
                                     </VerticalStackLayout>
 
                                     <Button
                                         Grid.Column="1"
                                         Text="Limpiar"
-                                        Padding="14,7"
-                                        BackgroundColor="#F2F4F3"
-                                        TextColor="{StaticResource color_Verde}"
+                                        Style="{StaticResource ModernNeutralButton}"
                                         IsEnabled="{Binding NotIsBusy}"
-                                        Command="{Binding LimpiarCommand}" />
+                                        Command="{Binding LimpiarCommand}"
+                                        VerticalOptions="Start" />
                                 </Grid>
 
                                 <FlexLayout
@@ -133,131 +85,153 @@
                                         FlexLayout.Basis="190"
                                         Padding="0,0,10,10"
                                         Spacing="4">
-                                        <Label Text="Desde" FontSize="12" FontFamily="MontserratBold" />
-                                        <DatePicker Date="{Binding FechaDesde}" Format="dd/MM/yyyy" IsEnabled="{Binding NotIsBusy}" />
+                                        <Label Text="Desde" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <DatePicker
+                                                Date="{Binding FechaDesde}"
+                                                Format="dd/MM/yyyy"
+                                                IsEnabled="{Binding NotIsBusy}"
+                                                Style="{StaticResource ModernDatePicker}" />
+                                        </Border>
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
                                         FlexLayout.Basis="190"
                                         Padding="0,0,10,10"
                                         Spacing="4">
-                                        <Label Text="Hasta" FontSize="12" FontFamily="MontserratBold" />
-                                        <DatePicker Date="{Binding FechaHasta}" Format="dd/MM/yyyy" IsEnabled="{Binding NotIsBusy}" />
+                                        <Label Text="Hasta" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <DatePicker
+                                                Date="{Binding FechaHasta}"
+                                                Format="dd/MM/yyyy"
+                                                IsEnabled="{Binding NotIsBusy}"
+                                                Style="{StaticResource ModernDatePicker}" />
+                                        </Border>
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
                                         FlexLayout.Basis="220"
                                         Padding="0,0,10,10"
                                         Spacing="4">
-                                        <Label Text="Usuario" FontSize="12" FontFamily="MontserratBold" />
-                                        <Picker
-                                            Title="Todos"
-                                            ItemsSource="{Binding Usuarios}"
-                                            SelectedIndex="{Binding UsuarioSeleccionadoIndex, Mode=TwoWay}"
-                                            IsEnabled="{Binding NotIsBusy}" />
+                                        <Label Text="Usuario" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                Title="Todos"
+                                                ItemsSource="{Binding Usuarios}"
+                                                SelectedIndex="{Binding UsuarioSeleccionadoIndex, Mode=TwoWay}"
+                                                IsEnabled="{Binding NotIsBusy}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
                                         FlexLayout.Basis="210"
                                         Padding="0,0,10,10"
                                         Spacing="4">
-                                        <Label Text="Módulo" FontSize="12" FontFamily="MontserratBold" />
-                                        <Picker
-                                            ItemsSource="{Binding Modulos}"
-                                            SelectedItem="{Binding ModuloSeleccionado}"
-                                            IsEnabled="{Binding NotIsBusy}" />
+                                        <Label Text="Módulo" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                ItemsSource="{Binding Modulos}"
+                                                SelectedItem="{Binding ModuloSeleccionado}"
+                                                IsEnabled="{Binding NotIsBusy}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
                                         FlexLayout.Basis="210"
                                         Padding="0,0,10,10"
                                         Spacing="4">
-                                        <Label Text="Acción" FontSize="12" FontFamily="MontserratBold" />
-                                        <Picker
-                                            ItemsSource="{Binding Acciones}"
-                                            SelectedItem="{Binding AccionSeleccionada}"
-                                            IsEnabled="{Binding NotIsBusy}" />
+                                        <Label Text="Acción" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                ItemsSource="{Binding Acciones}"
+                                                SelectedItem="{Binding AccionSeleccionada}"
+                                                IsEnabled="{Binding NotIsBusy}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
                                         FlexLayout.Basis="190"
                                         Padding="0,0,10,10"
                                         Spacing="4">
-                                        <Label Text="Estado" FontSize="12" FontFamily="MontserratBold" />
-                                        <Picker
-                                            ItemsSource="{Binding Estados}"
-                                            SelectedItem="{Binding EstadoSeleccionado}"
-                                            IsEnabled="{Binding NotIsBusy}" />
+                                        <Label Text="Estado" Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                ItemsSource="{Binding Estados}"
+                                                SelectedItem="{Binding EstadoSeleccionado}"
+                                                IsEnabled="{Binding NotIsBusy}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
                                     </VerticalStackLayout>
                                 </FlexLayout>
 
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                    <Entry
-                                        Placeholder="Buscar por usuario, endpoint, descripción o correlación"
-                                        Text="{Binding TextoBusqueda}"
-                                        ReturnType="Search"
-                                        IsEnabled="{Binding NotIsBusy}"
-                                        ReturnCommand="{Binding BuscarCommand}" />
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <Entry
+                                            Placeholder="Usuario, endpoint, descripción o correlación"
+                                            Text="{Binding TextoBusqueda}"
+                                            ReturnType="Search"
+                                            IsEnabled="{Binding NotIsBusy}"
+                                            ReturnCommand="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernEntry}" />
+                                    </Border>
 
                                     <Button
                                         Grid.Column="1"
                                         Text="Buscar"
-                                        Padding="22,10"
-                                        BackgroundColor="{StaticResource color_Verde}"
-                                        TextColor="White"
+                                        Style="{StaticResource ModernPrimaryButton}"
                                         IsEnabled="{Binding NotIsBusy}"
                                         Command="{Binding BuscarCommand}" />
                                 </Grid>
                             </VerticalStackLayout>
                         </Border>
 
-                        <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="2">
                             <Label
                                 Text="{Binding ResumenResultados}"
                                 FontFamily="MontserratBold"
-                                TextColor="{StaticResource color_Negro}" />
+                                FontAttributes="Bold"
+                                FontSize="13"
+                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                             <Label
-                                Grid.Column="1"
-                                Text="Seleccione un registro para ver todos sus detalles"
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}"
-                                IsVisible="{Binding MostrarAyudaDetalle}" />
-                        </Grid>
+                                Text="Seleccione un registro para consultar toda la información técnica y los cambios asociados."
+                                IsVisible="{Binding MostrarAyudaDetalle}"
+                                Style="{StaticResource ModernCaption}"
+                                MaxLines="2" />
+                        </VerticalStackLayout>
 
                         <!--
-                            Se muestra dentro del encabezado y no como
-                            CollectionView.EmptyView. Esto evita el bloqueo
-                            de medición/renderizado observado en WinUI cuando
-                            ItemsSource queda vacío y existen Header y Footer.
+                            Se conserva fuera de EmptyView por compatibilidad con
+                            WinUI cuando el origen queda vacío con Header y Footer.
                         -->
                         <Border
                             IsVisible="{Binding MostrarSinResultados}"
-                            Padding="28,34"
-                            BackgroundColor="White"
-                            Stroke="#DDE7E3"
-                            StrokeShape="RoundRectangle 16">
-
+                            Style="{StaticResource ModernEmptyStateCard}"
+                            HorizontalOptions="Fill">
                             <VerticalStackLayout
                                 HorizontalOptions="Center"
                                 Spacing="8">
-
+                                <Border
+                                    Style="{StaticResource ModernIconTile}"
+                                    WidthRequest="56"
+                                    HeightRequest="56">
+                                    <Label
+                                        Text="≡"
+                                        FontSize="25"
+                                        TextColor="{StaticResource color_Verde}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
                                 <Label
                                     Text="No se encontraron registros"
-                                    FontFamily="MontserratBold"
+                                    Style="{StaticResource ModernSectionTitle}"
                                     FontSize="18"
-                                    TextColor="{StaticResource color_Negro}"
                                     HorizontalTextAlignment="Center" />
-
                                 <Label
-                                    Text="No existen operaciones que coincidan con los filtros seleccionados."
-                                    FontSize="13"
-                                    TextColor="{StaticResource color_GrisOscuro}"
-                                    HorizontalTextAlignment="Center" />
-
-                                <Label
-                                    Text="Cambie los filtros o amplíe el rango de fechas."
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    Text="Cambie los filtros o amplíe el rango de fechas para realizar otra consulta."
+                                    Style="{StaticResource ModernPageSubtitle}"
                                     HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
                         </Border>
@@ -267,13 +241,13 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Border
-                            Margin="18,6"
-                            Padding="15"
+                            Margin="{OnIdiom Phone='12,5', Tablet='18,6', Desktop='24,6'}"
+                            HeightRequest="{OnIdiom Phone=218, Tablet=222, Desktop=224}"
+                            MinimumHeightRequest="{OnIdiom Phone=218, Tablet=222, Desktop=224}"
+                            MaximumHeightRequest="{OnIdiom Phone=218, Tablet=222, Desktop=224}"
                             MaximumWidthRequest="1280"
-                            HorizontalOptions="Center"
-                            BackgroundColor="White"
-                            Stroke="#DDE7E3"
-                            StrokeShape="RoundRectangle 15">
+                            HorizontalOptions="Fill"
+                            Style="{StaticResource ModernCatalogCard}">
 
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer
@@ -282,152 +256,223 @@
                             </Border.GestureRecognizers>
 
                             <Grid
-                                ColumnDefinitions="Auto,*,Auto"
-                                RowDefinitions="Auto,Auto,Auto"
-                                ColumnSpacing="13"
-                                RowSpacing="7">
+                                RowDefinitions="56,40,74"
+                                RowSpacing="8">
 
-                                <Border
-                                    Grid.RowSpan="3"
-                                    WidthRequest="50"
-                                    HeightRequest="50"
-                                    BackgroundColor="#EEF5F2"
-                                    StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 14"
-                                    VerticalOptions="Start">
-                                    <Label
-                                        Text="≡"
-                                        FontSize="25"
-                                        TextColor="{StaticResource color_Verde}"
-                                        HorizontalOptions="Center"
-                                        VerticalOptions="Center" />
-                                </Border>
+                                <!--
+                                    Encabezado de altura fija. Los valores variables se recortan
+                                    visualmente sin modificar la geometría del registro.
+                                -->
+                                <Grid
+                                    Grid.Row="0"
+                                    ColumnDefinitions="Auto,*,Auto"
+                                    ColumnSpacing="12">
+                                    <Border
+                                        WidthRequest="50"
+                                        HeightRequest="50"
+                                        Style="{StaticResource ModernIconTile}"
+                                        VerticalOptions="Start">
+                                        <Label
+                                            Text="≡"
+                                            FontSize="24"
+                                            TextColor="{StaticResource color_Verde}"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Border>
 
-                                <HorizontalStackLayout Grid.Column="1" Spacing="8">
-                                    <Label
-                                        Text="{Binding Accion}"
-                                        FontFamily="MontserratBold"
-                                        FontSize="15"
-                                        TextColor="{StaticResource color_Verde}" />
-                                    <Label Text="·" TextColor="#9AA6A1" />
-                                    <Label
-                                        Text="{Binding Modulo}"
-                                        FontFamily="MontserratBold"
-                                        FontSize="15"
-                                        TextColor="{StaticResource color_Negro}" />
-                                </HorizontalStackLayout>
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="2"
+                                        VerticalOptions="Center">
+                                        <Label
+                                            Text="{Binding Accion}"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            FontSize="15"
+                                            TextColor="{StaticResource color_Verde}"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation" />
+                                        <Label
+                                            Text="{Binding Modulo}"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            FontSize="13"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
 
-                                <Border
-                                    Grid.Column="2"
-                                    Padding="10,5"
-                                    StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 12">
-                                    <Border.Triggers>
-                                        <DataTrigger
-                                            TargetType="Border"
-                                            Binding="{Binding Exitoso}"
-                                            Value="True">
-                                            <Setter Property="BackgroundColor" Value="#E5F5EA" />
-                                        </DataTrigger>
-                                        <DataTrigger
-                                            TargetType="Border"
-                                            Binding="{Binding Exitoso}"
-                                            Value="False">
-                                            <Setter Property="BackgroundColor" Value="#FCE8E6" />
-                                        </DataTrigger>
-                                    </Border.Triggers>
-                                    <Label
-                                        Text="{Binding EstadoTexto}"
-                                        FontSize="11"
-                                        FontFamily="MontserratBold">
-                                        <Label.Triggers>
-                                            <DataTrigger
-                                                TargetType="Label"
-                                                Binding="{Binding Exitoso}"
-                                                Value="True">
-                                                <Setter Property="TextColor" Value="#267A42" />
+                                    <Border
+                                        Grid.Column="2"
+                                        Padding="9,4"
+                                        MinimumWidthRequest="{OnIdiom Phone=112, Tablet=118, Desktop=120}"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 9"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Start">
+                                        <Border.Triggers>
+                                            <DataTrigger TargetType="Border" Binding="{Binding Exitoso}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E5F5EA, Dark=#183A28}" />
                                             </DataTrigger>
-                                            <DataTrigger
-                                                TargetType="Label"
-                                                Binding="{Binding Exitoso}"
-                                                Value="False">
-                                                <Setter Property="TextColor" Value="#B3261E" />
+                                            <DataTrigger TargetType="Border" Binding="{Binding Exitoso}" Value="False">
+                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource DangerSoft}, Dark={StaticResource DangerSoftDark}}" />
                                             </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
-                                </Border>
+                                        </Border.Triggers>
+                                        <Label
+                                            Text="{Binding EstadoTexto}"
+                                            FontSize="10"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation"
+                                            HorizontalTextAlignment="Center">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Exitoso}" Value="True">
+                                                    <Setter Property="TextColor" Value="#267A42" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Exitoso}" Value="False">
+                                                    <Setter Property="TextColor" Value="{StaticResource RedDelete}" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Border>
+                                </Grid>
 
+                                <!--
+                                    Se reserva exactamente el mismo bloque para la descripción.
+                                    El texto completo continúa disponible en el detalle.
+                                -->
                                 <Label
                                     Grid.Row="1"
-                                    Grid.Column="1"
-                                    Grid.ColumnSpan="2"
                                     Text="{Binding Descripcion}"
-                                    FontSize="13"
-                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12.5"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                     LineBreakMode="TailTruncation"
-                                    MaxLines="2" />
+                                    MaxLines="2"
+                                    VerticalTextAlignment="Start" />
 
-                                <FlexLayout
+                                <!--
+                                    Rejilla fija de metadatos. Ningún valor puede aumentar la
+                                    altura de la tarjeta; los textos extensos se truncan en la lista.
+                                -->
+                                <Grid
                                     Grid.Row="2"
-                                    Grid.Column="1"
-                                    Grid.ColumnSpan="2"
-                                    Direction="Row"
-                                    Wrap="Wrap">
-                                    <Label Text="{Binding FechaHoraTexto}" FontSize="11" Margin="0,0,14,0" />
-                                    <Label Text="{Binding UsuarioTexto}" FontSize="11" Margin="0,0,14,0" />
-                                    <Label Text="{Binding RolTexto}" FontSize="11" Margin="0,0,14,0" />
-                                    <Label Text="{Binding DuracionTexto}" FontSize="11" Margin="0,0,14,0" />
-                                    <Label Text="{Binding CambiosTexto}" FontSize="11" />
-                                </FlexLayout>
+                                    ColumnDefinitions="*,*"
+                                    RowDefinitions="24,24,24"
+                                    ColumnSpacing="12"
+                                    RowSpacing="1"
+                                    VerticalOptions="Fill">
+
+                                    <Label
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Text="{Binding FechaHoraTexto}"
+                                        Style="{StaticResource ModernCaption}"
+                                        MaxLines="1"
+                                        LineBreakMode="TailTruncation"
+                                        VerticalTextAlignment="Center" />
+
+                                    <Label
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Text="{Binding UsuarioTexto}"
+                                        Style="{StaticResource ModernCaption}"
+                                        MaxLines="1"
+                                        LineBreakMode="TailTruncation"
+                                        VerticalTextAlignment="Center" />
+
+                                    <Label
+                                        Grid.Row="1"
+                                        Grid.Column="0"
+                                        Text="{Binding RolTexto}"
+                                        Style="{StaticResource ModernCaption}"
+                                        MaxLines="1"
+                                        LineBreakMode="TailTruncation"
+                                        VerticalTextAlignment="Center" />
+
+                                    <Label
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Text="{Binding DuracionTexto}"
+                                        Style="{StaticResource ModernCaption}"
+                                        MaxLines="1"
+                                        LineBreakMode="TailTruncation"
+                                        VerticalTextAlignment="Center" />
+
+                                    <Label
+                                        Grid.Row="2"
+                                        Grid.Column="0"
+                                        Grid.ColumnSpan="2"
+                                        Text="{Binding CambiosTexto}"
+                                        Style="{StaticResource ModernCaption}"
+                                        MaxLines="1"
+                                        LineBreakMode="TailTruncation"
+                                        VerticalTextAlignment="Center" />
+                                </Grid>
                             </Grid>
                         </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
 
-<CollectionView.Footer>
+                <CollectionView.Footer>
                     <Grid
                         IsVisible="{Binding MostrarPaginacion}"
-                        Padding="18,18,18,30"
+                        Padding="{OnIdiom Phone='12,16,12,28', Tablet='18,18,18,30', Desktop='24,20,24,32'}"
                         ColumnDefinitions="Auto,*,Auto"
-                        MaximumWidthRequest="600"
+                        ColumnSpacing="10"
+                        MaximumWidthRequest="620"
                         HorizontalOptions="Center">
                         <Button
                             Text="Anterior"
                             IsEnabled="{Binding PuedeAnterior}"
-                            Command="{Binding AnteriorCommand}" />
+                            Command="{Binding AnteriorCommand}"
+                            Style="{StaticResource ModernNeutralButton}" />
                         <Label
                             Grid.Column="1"
                             Text="{Binding ResumenPagina}"
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
-                            FontFamily="MontserratBold" />
+                            FontFamily="MontserratBold"
+                            FontAttributes="Bold"
+                            FontSize="11"
+                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
                         <Button
                             Grid.Column="2"
                             Text="Siguiente"
                             IsEnabled="{Binding PuedeSiguiente}"
-                            Command="{Binding SiguienteCommand}" />
+                            Command="{Binding SiguienteCommand}"
+                            Style="{StaticResource ModernSecondaryButton}" />
                     </Grid>
                 </CollectionView.Footer>
             </CollectionView>
 
+            <!-- Relay real: sólo anima mientras el ViewModel está ocupado. -->
             <Grid
-                Grid.RowSpan="2"
                 IsVisible="{Binding IsBusy}"
                 BackgroundColor="#66000000"
                 InputTransparent="False">
                 <Border
-                    Padding="24"
-                    BackgroundColor="White"
-                    StrokeThickness="0"
-                    StrokeShape="RoundRectangle 16"
+                    Padding="20,16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 15"
                     HorizontalOptions="Center"
                     VerticalOptions="Center">
-                    <VerticalStackLayout Spacing="10">
+                    <HorizontalStackLayout Spacing="10">
                         <ActivityIndicator
-                            IsRunning="True"
-                            Color="{StaticResource color_Verde}" />
-                        <Label Text="Consultando bitácora..." />
-                    </VerticalStackLayout>
+                            IsRunning="{Binding IsBusy}"
+                            Color="{StaticResource color_Naranja}"
+                            WidthRequest="24"
+                            HeightRequest="24" />
+                        <Label
+                            Text="Consultando bitácora..."
+                            VerticalOptions="Center"
+                            FontFamily="MontserratBold"
+                            FontSize="11.5"
+                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                    </HorizontalStackLayout>
                 </Border>
             </Grid>
         </Grid>
