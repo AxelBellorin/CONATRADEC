@@ -45,13 +45,11 @@
                                 HeightRequest="36" />
 
                             <Grid
-                                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                                ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
-                                RowSpacing="10"
-                                ColumnSpacing="16">
+                                RowDefinitions="Auto,Auto"
+                                ColumnDefinitions="*"
+                                RowSpacing="12">
                                 <VerticalStackLayout
                                     Grid.Row="0"
-                                    Grid.Column="0"
                                     Spacing="3">
                                     <Label
                                         Text="Detalle del álbum"
@@ -61,32 +59,40 @@
                                         Style="{StaticResource ModernPageSubtitle}" />
                                 </VerticalStackLayout>
 
+                                <!--
+                                    Las acciones usan todo el ancho del encabezado.
+                                    En Windows se alinean a la derecha sin quedar
+                                    atrapadas en una columna Auto demasiado estrecha;
+                                    en móvil permanecen alineadas a la izquierda.
+                                -->
                                 <FlexLayout
-                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                    Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                    Grid.Row="1"
                                     Direction="Row"
                                     Wrap="Wrap"
                                     AlignItems="Center"
-                                    JustifyContent="{OnIdiom Phone=Start, Default=End}"
-                                    HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
+                                    JustifyContent="{OnIdiom Phone=Start, Tablet=End, Desktop=End}"
+                                    HorizontalOptions="Fill">
                                     <Button
-                                        Margin="0,0,7,7"
+                                        Margin="0,0,8,8"
                                         Text="Editar"
                                         Command="{Binding EditarCommand}"
                                         IsVisible="{Binding CanEdit}"
-                                        Style="{StaticResource ModernUpdateButton}" />
+                                        Style="{StaticResource ModernUpdateButton}"
+                                        MinimumWidthRequest="110" />
                                     <Button
-                                        Margin="0,0,7,7"
+                                        Margin="0,0,8,8"
                                         Text="Fotografías"
                                         Command="{Binding AdministrarFotosCommand}"
                                         IsVisible="{Binding PuedeAdministrarFotos}"
-                                        Style="{StaticResource ModernSecondaryButton}" />
+                                        Style="{StaticResource ModernSecondaryButton}"
+                                        MinimumWidthRequest="128" />
                                     <Button
-                                        Margin="0,0,0,7"
+                                        Margin="0,0,0,8"
                                         Text="{Binding Detalle.AccionEstadoTexto}"
                                         Command="{Binding CambiarEstadoCommand}"
                                         IsVisible="{Binding CanDelete}"
-                                        Style="{StaticResource ModernCoffeeButton}" />
+                                        Style="{StaticResource ModernCoffeeButton}"
+                                        MinimumWidthRequest="128" />
                                 </FlexLayout>
                             </Grid>
                         </VerticalStackLayout>
