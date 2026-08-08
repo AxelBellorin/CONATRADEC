@@ -13,6 +13,8 @@ namespace CONATRADEC.Views
     {
         private readonly InspeccionRevisionApiService revisionApi = new();
         private readonly InspeccionAlbumAprobadorApiService albumAprobadorApi = new();
+        private readonly InspeccionRevisionBloqueoApiService bloqueoRevisionApi =
+            new();
         private readonly Dictionary<int, DevolucionTecnicoFotografiaV2>
             devolucionesPorFoto = [];
         private readonly Dictionary<int, AccionesTarjetaRevision>
@@ -35,6 +37,10 @@ namespace CONATRADEC.Views
         private bool operacionRevisionActiva;
         private bool errorContextoMostrado;
         private CancellationTokenSource? refrescoContextoCts;
+        private CancellationTokenSource? bloqueoHeartbeatCts;
+        private InspeccionRevisionBloqueo? bloqueoRevision;
+        private bool mantenerBloqueoDuranteNavegacionInterna;
+        private bool avisoBloqueoPerdidoMostrado;
         private int idRevision;
         private string modoRevision = DiagnosticoIARoutes.ModoMisInspecciones;
 
@@ -59,6 +65,246 @@ namespace CONATRADEC.Views
         {
             idRevision = id;
             modoRevision = DiagnosticoIARoutes.NormalizarModo(modo);
+        }
+
+
+        private bool RequiereBloqueoRevision =>
+            EsVistaAnalizadorRevision || EsVistaAprobadorRevision;
+
+        private bool DebeMantenerBloqueoRevisionAlOcultarse =>
+            RequiereBloqueoRevision && mantenerBloqueoDuranteNavegacionInterna;
+
+        /// <summary>
+        /// Reserva la inspección antes de cargar las herramientas del analizador
+        /// o aprobador. Existe un bloqueo independiente por etapa para permitir
+        /// que ambos roles trabajen sobre fotografías distintas, pero nunca dos
+        /// analistas o dos aprobadores simultáneamente en la misma inspección.
+        /// </summary>
+        private async Task<bool> PrepararBloqueoRevisionAsync()
+        {
+            if (!RequiereBloqueoRevision || idRevision <= 0)
+                return true;
+
+            avisoBloqueoPerdidoMostrado = false;
+
+            InspeccionRevisionBloqueo? bloqueoExistente = bloqueoRevision;
+            if (bloqueoExistente != null &&
+                bloqueoExistente.Adquirido &&
+                !string.IsNullOrWhiteSpace(bloqueoExistente.Token) &&
+                bloqueoExistente.InspeccionId == idRevision &&
+                string.Equals(
+                    bloqueoExistente.Modo,
+                    modoRevision,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    bloqueoRevision = await bloqueoRevisionApi.RenovarAsync(
+                        idRevision,
+                        modoRevision,
+                        bloqueoExistente.Token);
+
+                    IniciarHeartbeatBloqueoRevision();
+                    return true;
+                }
+                catch (InspeccionRevisionBloqueoException)
+                {
+                    DetenerHeartbeatBloqueoRevision();
+                    bloqueoRevision = null;
+                }
+                catch
+                {
+                    /*
+                     * Una interrupción de red al volver de una ventana modal no
+                     * revoca inmediatamente la sesión local. El heartbeat hará
+                     * nuevos intentos mientras el bloqueo siga vigente.
+                     */
+                    IniciarHeartbeatBloqueoRevision();
+                    return true;
+                }
+            }
+
+            try
+            {
+                bloqueoRevision = await bloqueoRevisionApi.AdquirirAsync(
+                    idRevision,
+                    modoRevision);
+
+                IniciarHeartbeatBloqueoRevision();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                bloqueoRevision = null;
+                DetenerHeartbeatBloqueoRevision();
+
+                await DisplayAlert(
+                    ex is InspeccionRevisionBloqueoException
+                        ? "Ficha en uso"
+                        : "No se pudo abrir la ficha",
+                    string.IsNullOrWhiteSpace(ex.Message)
+                        ? "No fue posible reservar esta inspección para trabajar de forma exclusiva."
+                        : ex.Message,
+                    "Volver");
+
+                if (viewModel.RegresarResultadoCommand.CanExecute(null))
+                    viewModel.RegresarResultadoCommand.Execute(null);
+
+                return false;
+            }
+        }
+
+        private void IniciarHeartbeatBloqueoRevision()
+        {
+            if (!RequiereBloqueoRevision ||
+                bloqueoRevision == null ||
+                !bloqueoRevision.Adquirido ||
+                string.IsNullOrWhiteSpace(bloqueoRevision.Token))
+            {
+                return;
+            }
+
+            DetenerHeartbeatBloqueoRevision();
+            bloqueoHeartbeatCts = new CancellationTokenSource();
+            CancellationToken token = bloqueoHeartbeatCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                int erroresConexionConsecutivos = 0;
+
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(45), token);
+                        if (token.IsCancellationRequested)
+                            break;
+
+                        InspeccionRevisionBloqueo? actual = bloqueoRevision;
+                        if (actual == null ||
+                            !actual.Adquirido ||
+                            string.IsNullOrWhiteSpace(actual.Token))
+                        {
+                            break;
+                        }
+
+                        bloqueoRevision = await bloqueoRevisionApi.RenovarAsync(
+                            idRevision,
+                            modoRevision,
+                            actual.Token,
+                            token);
+
+                        erroresConexionConsecutivos = 0;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (InspeccionRevisionBloqueoException ex)
+                    {
+                        await NotificarBloqueoRevisionPerdidoAsync(ex.Message);
+                        break;
+                    }
+                    catch
+                    {
+                        erroresConexionConsecutivos++;
+
+                        /*
+                         * Dos fallos consecutivos dejan margen para una caída
+                         * breve de red, pero evitan seguir editando cuando el
+                         * lease está cerca de vencer sin poder renovarse.
+                         */
+                        if (erroresConexionConsecutivos >= 2)
+                        {
+                            await NotificarBloqueoRevisionPerdidoAsync(
+                                "No fue posible renovar el bloqueo exclusivo de la inspección. Para evitar trabajo duplicado debe volver a abrirla desde la bandeja.");
+                            break;
+                        }
+                    }
+                }
+            }, token);
+        }
+
+        private async Task NotificarBloqueoRevisionPerdidoAsync(string mensaje)
+        {
+            if (avisoBloqueoPerdidoMostrado)
+                return;
+
+            avisoBloqueoPerdidoMostrado = true;
+            DetenerHeartbeatBloqueoRevision();
+            bloqueoRevision = null;
+
+            Dispatcher.Dispatch(async () =>
+            {
+                await DisplayAlert(
+                    "Bloqueo de inspección perdido",
+                    string.IsNullOrWhiteSpace(mensaje)
+                        ? "La sesión exclusiva de esta ficha ya no está disponible."
+                        : mensaje,
+                    "Volver");
+
+                if (viewModel.RegresarResultadoCommand.CanExecute(null))
+                    viewModel.RegresarResultadoCommand.Execute(null);
+            });
+        }
+
+        private void DetenerHeartbeatBloqueoRevision()
+        {
+            bloqueoHeartbeatCts?.Cancel();
+            bloqueoHeartbeatCts?.Dispose();
+            bloqueoHeartbeatCts = null;
+        }
+
+        private async Task LiberarBloqueoRevisionAsync()
+        {
+            DetenerHeartbeatBloqueoRevision();
+
+            InspeccionRevisionBloqueo? actual = bloqueoRevision;
+            bloqueoRevision = null;
+
+            if (actual == null ||
+                !actual.Adquirido ||
+                string.IsNullOrWhiteSpace(actual.Token) ||
+                actual.InspeccionId <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                using var timeout = new CancellationTokenSource(
+                    TimeSpan.FromSeconds(5));
+
+                await bloqueoRevisionApi.LiberarAsync(
+                    actual.InspeccionId,
+                    actual.Modo,
+                    actual.Token,
+                    timeout.Token);
+            }
+            catch
+            {
+                /*
+                 * Si la aplicación se cierra o la red falla, el backend libera
+                 * automáticamente el bloqueo al vencer su lease.
+                 */
+            }
+        }
+
+        private async Task MostrarModalManteniendoBloqueoAsync(
+            Page pagina,
+            bool animated = true)
+        {
+            bool valorAnterior = mantenerBloqueoDuranteNavegacionInterna;
+            mantenerBloqueoDuranteNavegacionInterna = true;
+
+            try
+            {
+                await Navigation.PushModalAsync(pagina, animated);
+            }
+            finally
+            {
+                mantenerBloqueoDuranteNavegacionInterna = valorAnterior;
+            }
         }
 
         /// <summary>
@@ -2004,7 +2250,7 @@ namespace CONATRADEC.Views
                     foto,
                     "APROBADOR");
 
-                await Navigation.PushModalAsync(paginaJerarquia);
+                await MostrarModalManteniendoBloqueoAsync(paginaJerarquia);
                 bool guardada = await paginaJerarquia.ResultadoTask;
                 if (!guardada)
                     return;
@@ -2086,7 +2332,7 @@ namespace CONATRADEC.Views
                         seleccionadas,
                         indice);
 
-                    await Navigation.PushModalAsync(pagina, animated: false);
+                    await MostrarModalManteniendoBloqueoAsync(pagina, animated: false);
                     RevisionAnalizadorAccion accion =
                         await pagina.ResultadoTask;
 
@@ -2165,7 +2411,7 @@ namespace CONATRADEC.Views
                 return;
 
             var visor = new VisorFotografiaFitosanitariaPage(fotos, indice);
-            await Navigation.PushModalAsync(visor, animated: false);
+            await MostrarModalManteniendoBloqueoAsync(visor, animated: false);
         }
 
         private void ActualizarPanelGlobalAnalizador()
@@ -2376,7 +2622,7 @@ namespace CONATRADEC.Views
                     idRevision,
                     foto,
                     "ANALIZADOR");
-                await Navigation.PushModalAsync(paginaJerarquia);
+                await MostrarModalManteniendoBloqueoAsync(paginaJerarquia);
                 bool guardada = await paginaJerarquia.ResultadoTask;
                 if (!guardada)
                     return false;
@@ -2398,7 +2644,7 @@ namespace CONATRADEC.Views
                 idRevision,
                 foto,
                 "ANALIZADOR");
-            await Navigation.PushModalAsync(paginaJerarquia);
+            await MostrarModalManteniendoBloqueoAsync(paginaJerarquia);
             bool guardada = await paginaJerarquia.ResultadoTask;
             if (!guardada)
                 return false;
@@ -2585,7 +2831,7 @@ namespace CONATRADEC.Views
             var formulario = new DevolucionTecnicoFotografiaPage(foto, 1, 1);
             Task<DevolucionTecnicoFormularioResultado?> espera =
                 formulario.EsperarResultadoAsync();
-            await Navigation.PushModalAsync(formulario, animated: false);
+            await MostrarModalManteniendoBloqueoAsync(formulario, animated: false);
             DevolucionTecnicoFormularioResultado? resultado = await espera;
 
             if (resultado == null)
@@ -2628,7 +2874,7 @@ namespace CONATRADEC.Views
                 devolucion);
             Task<CorreccionTecnicoFormularioResultado?> espera =
                 formulario.EsperarResultadoAsync();
-            await Navigation.PushModalAsync(formulario, animated: false);
+            await MostrarModalManteniendoBloqueoAsync(formulario, animated: false);
             CorreccionTecnicoFormularioResultado? resultado = await espera;
 
             if (resultado == null)

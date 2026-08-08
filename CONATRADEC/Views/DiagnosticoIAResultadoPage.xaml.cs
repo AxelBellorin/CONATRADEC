@@ -51,13 +51,31 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            /*
+             * Analizador y aprobador deben reservar la ficha antes de cargar
+             * sus herramientas de trabajo. Si otra sesión ya la tiene abierta,
+             * esta página regresa a la bandeja sin permitir una revisión doble.
+             */
+            if (!await PrepararBloqueoRevisionAsync())
+                return;
+
             await viewModel.InicializarAsync();
             await CargarTecnicoResponsableAsync();
             await AplicarFlujoRevisionAsync();
         }
 
-        protected override void OnDisappearing()
+        protected override async void OnDisappearing()
         {
+            /*
+             * Las ventanas modales que forman parte de la misma revisión no
+             * liberan el bloqueo. Al abandonar realmente el expediente sí se
+             * libera de inmediato; si la aplicación termina abruptamente, el
+             * backend lo libera automáticamente al vencer el lease.
+             */
+            if (!DebeMantenerBloqueoRevisionAlOcultarse)
+                await LiberarBloqueoRevisionAsync();
+
             DesconectarFlujoRevision();
             viewModel.DetenerSeguimiento();
             base.OnDisappearing();
