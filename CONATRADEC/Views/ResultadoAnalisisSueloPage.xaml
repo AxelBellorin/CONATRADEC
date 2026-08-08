@@ -4,96 +4,106 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Title="Resultado del análisis"
-    BackgroundColor="#FFF5FF">
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="18" Spacing="16">
+    <ScrollView HorizontalScrollBarVisibility="Never">
+        <VerticalStackLayout
+            Padding="{OnIdiom Phone='14,14,14,24', Tablet='22,18,22,28', Desktop='28,22,28,32'}"
+            Spacing="14"
+            MaximumWidthRequest="1120"
+            HorizontalOptions="Center">
 
             <!-- Encabezado -->
-            <Border
-                BackgroundColor="#3B655B"
-                StrokeThickness="0"
-                Padding="18"
-                StrokeShape="RoundRectangle 18">
+            <Border Style="{StaticResource ModernHeroCard}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="13">
+                    <Border
+                        WidthRequest="50"
+                        HeightRequest="50"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                        Stroke="Transparent"
+                        StrokeShape="RoundRectangle 15"
+                        VerticalOptions="Start">
+                        <Image
+                            Source="iconrequerimentoanual.png"
+                            WidthRequest="26"
+                            HeightRequest="26"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
 
-                <VerticalStackLayout Spacing="6">
-                    <Label
-                        Text="{Binding TituloResultado}"
-                        TextColor="White"
-                        FontSize="22"
-                        FontAttributes="Bold"
-                        LineBreakMode="WordWrap" />
+                    <VerticalStackLayout Grid.Column="1" Spacing="4">
+                        <Label
+                            Text="{Binding TituloResultado}"
+                            Style="{StaticResource ModernPageTitle}" />
 
-                    <Label
-                        Text="Resultado generado desde el cálculo preliminar del análisis de suelo."
-                        TextColor="White"
-                        FontSize="14"
-                        Opacity="0.9"
-                        LineBreakMode="WordWrap" />
-                </VerticalStackLayout>
+                        <Label
+                            Text="Resultado preliminar del análisis de suelo y requerimientos utilizados por los cálculos complementarios."
+                            Style="{StaticResource ModernPageSubtitle}" />
+                    </VerticalStackLayout>
+                </Grid>
             </Border>
 
             <!-- Recomendación general -->
-            <Border
-                BackgroundColor="White"
-                Stroke="#E5E7EB"
-                Padding="16"
-                StrokeShape="RoundRectangle 16">
-
-                <VerticalStackLayout Spacing="10">
-
+            <Border Style="{StaticResource AnalysisPanel}">
+                <VerticalStackLayout Spacing="11">
                     <Label
                         Text="Recomendación general"
-                        FontSize="18"
-                        FontAttributes="Bold"
-                        TextColor="#3B655B" />
+                        Style="{StaticResource ModernSectionTitle}" />
 
                     <Label
                         Text="{Binding RecomendacionGeneral}"
-                        FontSize="14"
-                        TextColor="#333333"
+                        FontSize="13"
+                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                         LineBreakMode="WordWrap" />
 
-                    <Border
-                        BackgroundColor="#F0FDF4"
-                        Stroke="#BBF7D0"
-                        Padding="12"
-                        StrokeShape="RoundRectangle 12">
+                    <Border Style="{StaticResource ModernInfoBanner}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Border
+                                WidthRequest="30"
+                                HeightRequest="30"
+                                BackgroundColor="{StaticResource color_Verde}"
+                                Stroke="Transparent"
+                                StrokeShape="RoundRectangle 9">
+                                <Label
+                                    Text="i"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    TextColor="White"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
+                            </Border>
 
-                        <Label
-                            Text="{Binding SugerenciaSiguienteCalculo}"
-                            FontSize="14"
-                            TextColor="#14532D"
-                            LineBreakMode="WordWrap" />
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding SugerenciaSiguienteCalculo}"
+                                FontSize="13"
+                                TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}"
+                                VerticalOptions="Center"
+                                LineBreakMode="WordWrap" />
+                        </Grid>
                     </Border>
 
                     <VerticalStackLayout
                         IsVisible="{Binding TieneObservaciones}"
-                        Spacing="8">
-
+                        Spacing="7">
                         <Label
                             Text="Observaciones"
-                            FontSize="16"
+                            FontFamily="MontserratBold"
                             FontAttributes="Bold"
-                            TextColor="#9B552C" />
+                            FontSize="14"
+                            TextColor="{StaticResource color_Cafe}" />
 
                         <VerticalStackLayout
-                            Spacing="0"
+                            Spacing="7"
                             BindableLayout.ItemsSource="{Binding Observaciones}">
-
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate>
-                                    <Border
-                                        BackgroundColor="#FFF7ED"
-                                        Stroke="#FED7AA"
-                                        Padding="10"
-                                        Margin="0,4"
-                                        StrokeShape="RoundRectangle 10">
-
+                                    <Border Style="{StaticResource ModernWarningBanner}">
                                         <Label
                                             Text="{Binding .}"
-                                            TextColor="#7C2D12"
-                                            FontSize="14"
+                                            TextColor="{AppThemeBinding Light=#7C4A24, Dark=#F1C7A8}"
+                                            FontSize="12"
                                             LineBreakMode="WordWrap" />
                                     </Border>
                                 </DataTemplate>
@@ -104,472 +114,315 @@
             </Border>
 
             <!-- Datos base -->
-            <Border
-                BackgroundColor="White"
-                Stroke="#E5E7EB"
-                Padding="16"
-                StrokeShape="RoundRectangle 16">
-
-                <VerticalStackLayout Spacing="12">
-
-                    <Label
-                        Text="Datos base del cálculo"
-                        FontSize="18"
-                        FontAttributes="Bold"
-                        TextColor="#3B655B" />
+            <Border Style="{StaticResource AnalysisPanel}">
+                <VerticalStackLayout Spacing="13">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="Datos base del cálculo" Style="{StaticResource ModernSectionTitle}" />
+                        <Label Text="Resumen de los valores generales recibidos para este análisis." Style="{StaticResource ModernCaption}" />
+                    </VerticalStackLayout>
 
                     <Grid
                         ColumnDefinitions="*,*"
                         RowDefinitions="Auto,Auto,Auto"
-                        RowSpacing="10"
-                        ColumnSpacing="12">
+                        RowSpacing="9"
+                        ColumnSpacing="9">
 
-                        <VerticalStackLayout Grid.Row="0" Grid.Column="0">
-                            <Label Text="Tipo de cultivo" FontSize="12" TextColor="#6B7280" />
-                            <Label
-                                Text="{Binding TipoCultivo}"
-                                FontSize="15"
-                                FontAttributes="Bold"
-                                LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
+                        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource AnalysisMetric}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Tipo de cultivo" Style="{StaticResource ModernFieldLabel}" />
+                                <Label Text="{Binding TipoCultivo}" FontFamily="MontserratBold" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                        </Border>
 
-                        <VerticalStackLayout Grid.Row="0" Grid.Column="1">
-                            <Label Text="Tipo de análisis" FontSize="12" TextColor="#6B7280" />
-                            <Label
-                                Text="{Binding TipoAnalisisSuelo}"
-                                FontSize="15"
-                                FontAttributes="Bold"
-                                LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
+                        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource AnalysisMetric}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Tipo de análisis" Style="{StaticResource ModernFieldLabel}" />
+                                <Label Text="{Binding TipoAnalisisSuelo}" FontFamily="MontserratBold" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                        </Border>
 
-                        <VerticalStackLayout Grid.Row="1" Grid.Column="0">
-                            <Label Text="QQ oro" FontSize="12" TextColor="#6B7280" />
-                            <Label
-                                Text="{Binding CantidadQuintalesOro, StringFormat='{0:N2}'}"
-                                FontSize="15"
-                                FontAttributes="Bold" />
-                        </VerticalStackLayout>
+                        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource AnalysisMetric}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="QQ oro" Style="{StaticResource ModernFieldLabel}" />
+                                <Label Text="{Binding CantidadQuintalesOro, StringFormat='{0:N2}'}" FontFamily="MontserratBold" FontSize="14" TextColor="{StaticResource color_Verde}" />
+                            </VerticalStackLayout>
+                        </Border>
 
-                        <VerticalStackLayout Grid.Row="1" Grid.Column="1">
-                            <Label Text="Tamaño finca" FontSize="12" TextColor="#6B7280" />
-                            <Label
-                                Text="{Binding TamanoFinca, StringFormat='{0:N2} mz'}"
-                                FontSize="15"
-                                FontAttributes="Bold" />
-                        </VerticalStackLayout>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource AnalysisMetric}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Tamaño finca" Style="{StaticResource ModernFieldLabel}" />
+                                <Label Text="{Binding TamanoFinca, StringFormat='{0:N2} mz'}" FontFamily="MontserratBold" FontSize="14" TextColor="{StaticResource color_Verde}" />
+                            </VerticalStackLayout>
+                        </Border>
 
-                        <VerticalStackLayout Grid.Row="2" Grid.Column="0">
-                            <Label Text="pH" FontSize="12" TextColor="#6B7280" />
-                            <Label
-                                Text="{Binding Ph, StringFormat='{0:N2}'}"
-                                FontSize="15"
-                                FontAttributes="Bold" />
-                        </VerticalStackLayout>
+                        <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource AnalysisMetric}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="pH" Style="{StaticResource ModernFieldLabel}" />
+                                <Label Text="{Binding Ph, StringFormat='{0:N2}'}" FontFamily="MontserratBold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                            </VerticalStackLayout>
+                        </Border>
 
-                        <VerticalStackLayout Grid.Row="2" Grid.Column="1">
-                            <Label Text="Acidez total" FontSize="12" TextColor="#6B7280" />
-                            <Label
-                                Text="{Binding AcidezTotal, StringFormat='{0:N2}'}"
-                                FontSize="15"
-                                FontAttributes="Bold" />
-                        </VerticalStackLayout>
+                        <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource AnalysisMetric}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Acidez total" Style="{StaticResource ModernFieldLabel}" />
+                                <Label Text="{Binding AcidezTotal, StringFormat='{0:N2}'}" FontFamily="MontserratBold" FontSize="14" TextColor="{StaticResource color_Cafe}" />
+                            </VerticalStackLayout>
+                        </Border>
                     </Grid>
                 </VerticalStackLayout>
             </Border>
 
             <!-- Requerimientos por elemento -->
-            <Label
-                Text="Requerimientos por elemento"
-                FontSize="19"
-                FontAttributes="Bold"
-                TextColor="#3B655B"
-                Margin="0,4,0,0"
-                IsVisible="{Binding TieneElementos}" />
-
-            <!-- Acciones globales para no marcar uno por uno -->
-            <Border
-                IsVisible="{Binding TieneElementos}"
-                BackgroundColor="#EEF5F2"
-                Stroke="#C7DDD6"
-                Padding="12"
-                StrokeShape="RoundRectangle 14">
-
-                <VerticalStackLayout Spacing="10">
-
-                    <Label
-                        Text="{Binding TextoElementosIncluidos}"
-                        FontSize="13"
-                        TextColor="#3B655B"
-                        LineBreakMode="WordWrap" />
-
-                    <Grid
-                        ColumnDefinitions="*,*"
-                        ColumnSpacing="10">
-
-                        <Button
-                            Grid.Column="0"
-                            Text="Incluir todos"
-                            Command="{Binding IncluirTodosElementosCommand}"
-                            BackgroundColor="#3B655B"
-                            TextColor="White"
-                            CornerRadius="10"
-                            HeightRequest="42"
-                            FontSize="13" />
-
-                        <Button
-                            Grid.Column="1"
-                            Text="Excluir todos"
-                            Command="{Binding ExcluirTodosElementosCommand}"
-                            BackgroundColor="#E5E7EB"
-                            TextColor="#111827"
-                            CornerRadius="10"
-                            HeightRequest="42"
-                            FontSize="13" />
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
-
             <VerticalStackLayout
-                Spacing="0"
-                BindableLayout.ItemsSource="{Binding Elementos}"
-                IsVisible="{Binding TieneElementos}">
+                IsVisible="{Binding TieneElementos}"
+                Spacing="10">
 
-                <BindableLayout.ItemTemplate>
-                    <DataTemplate>
+                <VerticalStackLayout Spacing="3">
+                    <Label Text="Requerimientos por elemento" Style="{StaticResource ModernSectionTitle}" />
+                    <Label Text="Ordenados según la prioridad calculada para el suelo y la producción." Style="{StaticResource ModernCaption}" />
+                </VerticalStackLayout>
 
-                        <Border
-                            BackgroundColor="White"
-                            Stroke="#E5E7EB"
-                            Padding="14"
-                            Margin="0,0,0,12"
-                            StrokeShape="RoundRectangle 16">
+                <Border Style="{StaticResource ModernInfoBanner}">
+                    <VerticalStackLayout Spacing="9">
+                        <Label
+                            Text="{Binding TextoElementosIncluidos}"
+                            FontSize="12"
+                            TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}"
+                            LineBreakMode="WordWrap" />
 
-                            <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Button
+                                Grid.Column="0"
+                                Text="Incluir todos"
+                                Command="{Binding IncluirTodosElementosCommand}"
+                                Style="{StaticResource ModernPrimaryButton}" />
 
-                                <Grid
-                                    ColumnDefinitions="Auto,*,Auto"
-                                    ColumnSpacing="12">
+                            <Button
+                                Grid.Column="1"
+                                Text="Excluir todos"
+                                Command="{Binding ExcluirTodosElementosCommand}"
+                                Style="{StaticResource ModernNeutralButton}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
-                                    <Border
-                                        Grid.Column="0"
-                                        WidthRequest="48"
-                                        HeightRequest="48"
-                                        BackgroundColor="#3B655B"
-                                        StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 24">
+                <!-- Son pocos elementos químicos; se conserva BindableLayout para evitar una lista anidada. -->
+                <VerticalStackLayout
+                    Spacing="10"
+                    BindableLayout.ItemsSource="{Binding Elementos}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource ModernCatalogCard}">
+                                <VerticalStackLayout Spacing="11">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="11">
+                                        <Border
+                                            Grid.Column="0"
+                                            WidthRequest="46"
+                                            HeightRequest="46"
+                                            BackgroundColor="{StaticResource color_Verde}"
+                                            Stroke="Transparent"
+                                            StrokeShape="RoundRectangle 14">
+                                            <Label
+                                                Text="{Binding SimboloElementoQuimico}"
+                                                TextColor="White"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                FontSize="16"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                            <Label
+                                                Text="{Binding NombreElementoQuimico}"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                FontSize="15"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                                LineBreakMode="TailTruncation" />
+                                            <Label
+                                                Text="{Binding SimboloElementoQuimico}"
+                                                Style="{StaticResource ModernCaption}" />
+                                        </VerticalStackLayout>
 
                                         <Label
-                                            Text="{Binding SimboloElementoQuimico}"
+                                            Grid.Column="2"
+                                            Text="{Binding Clasificacion}"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            FontSize="10"
+                                            Padding="8,4"
                                             TextColor="White"
-                                            FontAttributes="Bold"
-                                            FontSize="18"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
-                                    </Border>
-
-                                    <VerticalStackLayout
-                                        Grid.Column="1"
-                                        Spacing="2">
-
-                                        <Label
-                                            Text="{Binding NombreElementoQuimico}"
-                                            FontSize="16"
-                                            FontAttributes="Bold"
-                                            TextColor="#111827"
-                                            LineBreakMode="WordWrap" />
-
-                                        <Label
-                                            Text="{Binding SimboloElementoQuimico}"
-                                            FontSize="13"
-                                            TextColor="#6B7280" />
-                                    </VerticalStackLayout>
-
-                                    <Label
-                                        Grid.Column="2"
-                                        Text="{Binding Clasificacion}"
-                                        FontSize="11"
-                                        FontAttributes="Bold"
-                                        Padding="8,4"
-                                        TextColor="White"
-                                        BackgroundColor="#6B7280"
-                                        VerticalOptions="Center">
-
-                                        <Label.Triggers>
-                                            <DataTrigger
-                                                TargetType="Label"
-                                                Binding="{Binding Clasificacion}"
-                                                Value="MUY_BAJO">
-                                                <Setter Property="BackgroundColor" Value="#DC2626" />
-                                            </DataTrigger>
-
-                                            <DataTrigger
-                                                TargetType="Label"
-                                                Binding="{Binding Clasificacion}"
-                                                Value="MEDIO_BAJO">
-                                                <Setter Property="BackgroundColor" Value="#F59E0B" />
-                                            </DataTrigger>
-
-                                            <DataTrigger
-                                                TargetType="Label"
-                                                Binding="{Binding Clasificacion}"
-                                                Value="EXCESIVO">
-                                                <Setter Property="BackgroundColor" Value="#7C3AED" />
-                                            </DataTrigger>
-
-                                            <DataTrigger
-                                                TargetType="Label"
-                                                Binding="{Binding Clasificacion}"
-                                                Value="ADECUADO">
-                                                <Setter Property="BackgroundColor" Value="#16A34A" />
-                                            </DataTrigger>
-                                        </Label.Triggers>
-                                    </Label>
-                                </Grid>
-
-                                <Grid
-                                    ColumnDefinitions="*,*"
-                                    RowDefinitions="Auto,Auto,Auto"
-                                    RowSpacing="8"
-                                    ColumnSpacing="12">
-
-                                    <VerticalStackLayout Grid.Row="0" Grid.Column="0">
-                                        <Label Text="Cantidad en el suelo" FontSize="12" TextColor="#6B7280" />
-                                        <Label
-                                            Text="{Binding CantidadConvertidaLbMz, StringFormat='{0:N2} lb/Mz'}"
-                                            FontSize="14"
-                                            FontAttributes="Bold" />
-                                    </VerticalStackLayout>
-
-                                    <VerticalStackLayout Grid.Row="0" Grid.Column="1">
-                                        <Label Text="Requerimiento" FontSize="12" TextColor="#6B7280" />
-                                        <Label
-                                            Text="{Binding RequerimientoCalculado, StringFormat='{0:N2} lb/Mz'}"
-                                            FontSize="14"
-                                            FontAttributes="Bold" />
-                                    </VerticalStackLayout>
-
-                                    <VerticalStackLayout Grid.Row="1" Grid.Column="0">
-                                        <Label Text="Rango mínimo" FontSize="12" TextColor="#6B7280" />
-                                        <Label
-                                            Text="{Binding RangoMinimoLbMz, StringFormat='{0:N2} lb/Mz'}"
-                                            FontSize="14" />
-                                    </VerticalStackLayout>
-
-                                    <VerticalStackLayout Grid.Row="1" Grid.Column="1">
-                                        <Label Text="Rango máximo" FontSize="12" TextColor="#6B7280" />
-                                        <Label
-                                            Text="{Binding RangoMaximoLbMz, StringFormat='{0:N2} lb/Mz'}"
-                                            FontSize="14" />
-                                    </VerticalStackLayout>
-
-                                    <VerticalStackLayout Grid.Row="2" Grid.Column="0">
-                                        <Label Text="Extracción por QQ" FontSize="12" TextColor="#6B7280" />
-                                        <Label
-                                            Text="{Binding ExtraccionPorQQOro, StringFormat='{0:N2}'}"
-                                            FontSize="14" />
-                                    </VerticalStackLayout>
-
-                                    <VerticalStackLayout Grid.Row="2" Grid.Column="1">
-                                        <Label Text="Extracción producción" FontSize="12" TextColor="#6B7280" />
-                                        <Label
-                                            Text="{Binding ExtraccionPorProduccion, StringFormat='{0:N2}'}"
-                                            FontSize="14" />
-                                    </VerticalStackLayout>
-                                </Grid>
-
-                                <Label
-                                    Text="{Binding Observacion}"
-                                    FontSize="13"
-                                    TextColor="#374151"
-                                    LineBreakMode="WordWrap" />
-
-                                <Border
-                                    BackgroundColor="#F9FAFB"
-                                    Stroke="#D1D5DB"
-                                    Padding="10"
-                                    StrokeShape="RoundRectangle 12">
+                                            BackgroundColor="#6B7280"
+                                            VerticalOptions="Center">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Clasificacion}" Value="MUY_BAJO">
+                                                    <Setter Property="BackgroundColor" Value="#DC2626" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Clasificacion}" Value="MEDIO_BAJO">
+                                                    <Setter Property="BackgroundColor" Value="#F59E0B" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Clasificacion}" Value="EXCESIVO">
+                                                    <Setter Property="BackgroundColor" Value="#7C3AED" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label" Binding="{Binding Clasificacion}" Value="ADECUADO">
+                                                    <Setter Property="BackgroundColor" Value="#16A34A" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Grid>
 
                                     <Grid
-                                        ColumnDefinitions="Auto,*"
-                                        ColumnSpacing="10">
+                                        ColumnDefinitions="*,*"
+                                        RowDefinitions="Auto,Auto,Auto"
+                                        RowSpacing="8"
+                                        ColumnSpacing="8">
 
-                                        <CheckBox
-                                            Grid.Column="0"
-                                            Color="#3B655B"
-                                            IsChecked="{Binding IncluirEnCalculosComplementarios, Mode=TwoWay}"
-                                            VerticalOptions="Center" />
+                                        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource AnalysisMetric}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="Cantidad en suelo" Style="{StaticResource ModernFieldLabel}" />
+                                                <Label Text="{Binding CantidadConvertidaLbMz, StringFormat='{0:N2} lb/Mz'}" FontFamily="MontserratBold" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                            </VerticalStackLayout>
+                                        </Border>
 
-                                        <VerticalStackLayout
-                                            Grid.Column="1"
-                                            Spacing="2">
+                                        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource AnalysisMetric}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="Requerimiento" Style="{StaticResource ModernFieldLabel}" />
+                                                <Label Text="{Binding RequerimientoCalculado, StringFormat='{0:N2} lb/Mz'}" FontFamily="MontserratBold" FontSize="12" TextColor="{StaticResource color_Verde}" />
+                                            </VerticalStackLayout>
+                                        </Border>
 
-                                            <Label
-                                                Text="Incluir en los cálculos complementarios"
-                                                FontSize="13"
-                                                FontAttributes="Bold"
-                                                TextColor="#111827"
-                                                LineBreakMode="WordWrap" />
+                                        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource AnalysisMetric}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="Rango mínimo" Style="{StaticResource ModernFieldLabel}" />
+                                                <Label Text="{Binding RangoMinimoLbMz, StringFormat='{0:N2} lb/Mz'}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                            </VerticalStackLayout>
+                                        </Border>
 
-                                            <Label
-                                                Text="Afecta Balance y Fertilización mixta. El elemento siempre permanece en el requerimiento anual."
-                                                FontSize="12"
-                                                TextColor="#6B7280"
-                                                LineBreakMode="WordWrap" />
-                                        </VerticalStackLayout>
+                                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource AnalysisMetric}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="Rango máximo" Style="{StaticResource ModernFieldLabel}" />
+                                                <Label Text="{Binding RangoMaximoLbMz, StringFormat='{0:N2} lb/Mz'}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                            </VerticalStackLayout>
+                                        </Border>
+
+                                        <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource AnalysisMetric}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="Extracción / QQ" Style="{StaticResource ModernFieldLabel}" />
+                                                <Label Text="{Binding ExtraccionPorQQOro, StringFormat='{0:N2}'}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                            </VerticalStackLayout>
+                                        </Border>
+
+                                        <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource AnalysisMetric}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="Extracción producción" Style="{StaticResource ModernFieldLabel}" />
+                                                <Label Text="{Binding ExtraccionPorProduccion, StringFormat='{0:N2}'}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                            </VerticalStackLayout>
+                                        </Border>
                                     </Grid>
-                                </Border>
-                            </VerticalStackLayout>
-                        </Border>
-                    </DataTemplate>
-                </BindableLayout.ItemTemplate>
+
+                                    <Label
+                                        Text="{Binding Observacion}"
+                                        FontSize="12"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                                        LineBreakMode="WordWrap" />
+
+                                    <Border Style="{StaticResource AnalysisSoftPanel}">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                                            <CheckBox
+                                                Grid.Column="0"
+                                                Color="{StaticResource color_Verde}"
+                                                IsChecked="{Binding IncluirEnCalculosComplementarios, Mode=TwoWay}"
+                                                VerticalOptions="Center" />
+
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                <Label
+                                                    Text="Incluir en cálculos complementarios"
+                                                    FontFamily="MontserratBold"
+                                                    FontAttributes="Bold"
+                                                    FontSize="12"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                                    LineBreakMode="WordWrap" />
+                                                <Label
+                                                    Text="Afecta Balance y Fertilización mixta; el elemento permanece en el requerimiento anual."
+                                                    Style="{StaticResource ModernCaption}" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
             </VerticalStackLayout>
 
             <!-- Selección de cálculos opcionales -->
-            <Border
-                BackgroundColor="White"
-                Stroke="#E5E7EB"
-                Padding="16"
-                StrokeShape="RoundRectangle 16">
-
-                <VerticalStackLayout Spacing="14">
-
-                    <VerticalStackLayout Spacing="4">
+            <Border Style="{StaticResource AnalysisPanel}">
+                <VerticalStackLayout Spacing="12">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="Cálculos opcionales" Style="{StaticResource ModernSectionTitle}" />
                         <Label
-                            Text="Cálculos opcionales"
-                            FontSize="18"
-                            FontAttributes="Bold"
-                            TextColor="#3B655B" />
-
-                        <Label
-                            Text="Seleccione uno o varios cálculos que desea procesar. Si no selecciona ninguno, se guardará solamente el requerimiento anual."
-                            FontSize="14"
-                            TextColor="#6B7280"
-                            LineBreakMode="WordWrap" />
+                            Text="Seleccione uno o varios cálculos. Si no selecciona ninguno, se guardará únicamente el requerimiento anual."
+                            Style="{StaticResource ModernPageSubtitle}" />
                     </VerticalStackLayout>
 
-                    <!-- Balance de fórmula -->
-                    <Border
-                        BackgroundColor="#F9FAFB"
-                        Stroke="#E5E7EB"
-                        Padding="12"
-                        StrokeShape="RoundRectangle 14">
-
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <CheckBox
-                                Grid.Column="0"
-                                Color="#3B655B"
-                                IsChecked="{Binding CalcularBalanceFormula}"
-                                VerticalOptions="Center" />
-
+                    <Border Style="{StaticResource AnalysisSoftPanel}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                            <CheckBox Grid.Column="0" Color="{StaticResource color_Verde}" IsChecked="{Binding CalcularBalanceFormula}" VerticalOptions="Center" />
                             <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                <Label
-                                    Text="Balance de fórmula"
-                                    FontSize="15"
-                                    FontAttributes="Bold"
-                                    TextColor="#111827" />
-
-                                <Label
-                                    Text="Permite calcular la fórmula de fertilización según los requerimientos detectados."
-                                    FontSize="13"
-                                    TextColor="#6B7280"
-                                    LineBreakMode="WordWrap" />
+                                <Label Text="Balance de fórmula" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                <Label Text="Calcula la fórmula comercial según los requerimientos detectados." Style="{StaticResource ModernCaption}" />
                             </VerticalStackLayout>
                         </Grid>
                     </Border>
 
-                    <!-- Enmienda calcárea -->
-                    <Border
-                        BackgroundColor="#F9FAFB"
-                        Stroke="#E5E7EB"
-                        Padding="12"
-                        StrokeShape="RoundRectangle 14">
-
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <CheckBox
-                                Grid.Column="0"
-                                Color="#9B552C"
-                                IsChecked="{Binding CalcularEnmiendaCalcarea}"
-                                VerticalOptions="Center" />
-
+                    <Border Style="{StaticResource AnalysisSoftPanel}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                            <CheckBox Grid.Column="0" Color="{StaticResource color_Cafe}" IsChecked="{Binding CalcularEnmiendaCalcarea}" VerticalOptions="Center" />
                             <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                <Label
-                                    Text="Enmienda calcárea"
-                                    FontSize="15"
-                                    FontAttributes="Bold"
-                                    TextColor="#111827" />
-
-                                <Label
-                                    Text="Recomendado cuando el pH o la acidez indican necesidad de corrección del suelo."
-                                    FontSize="13"
-                                    TextColor="#6B7280"
-                                    LineBreakMode="WordWrap" />
+                                <Label Text="Enmienda calcárea" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                <Label Text="Permite evaluar y corregir la acidez del suelo cuando corresponda." Style="{StaticResource ModernCaption}" />
                             </VerticalStackLayout>
                         </Grid>
                     </Border>
 
-                    <!-- Fertilización mixta -->
-                    <Border
-                        BackgroundColor="#F9FAFB"
-                        Stroke="#E5E7EB"
-                        Padding="12"
-                        StrokeShape="RoundRectangle 14">
-
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                            <CheckBox
-                                Grid.Column="0"
-                                Color="#F2C94C"
-                                IsChecked="{Binding CalcularFertilizacionMixta}"
-                                VerticalOptions="Center" />
-
+                    <Border Style="{StaticResource AnalysisSoftPanel}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                            <CheckBox Grid.Column="0" Color="{StaticResource color_Amarillo}" IsChecked="{Binding CalcularFertilizacionMixta}" VerticalOptions="Center" />
                             <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                <Label
-                                    Text="Fertilización mixta"
-                                    FontSize="15"
-                                    FontAttributes="Bold"
-                                    TextColor="#111827" />
-
-                                <Label
-                                    Text="Permite combinar diferentes criterios de fertilización según el análisis obtenido."
-                                    FontSize="13"
-                                    TextColor="#6B7280"
-                                    LineBreakMode="WordWrap" />
+                                <Label Text="Fertilización mixta" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                <Label Text="Combina fuentes y criterios de fertilización según el análisis obtenido." Style="{StaticResource ModernCaption}" />
                             </VerticalStackLayout>
                         </Grid>
                     </Border>
 
                     <Border
                         IsVisible="{Binding TieneMensajeSeleccionCalculo}"
-                        BackgroundColor="#FEF2F2"
-                        Stroke="#FECACA"
-                        Padding="10"
-                        StrokeShape="RoundRectangle 10">
-
+                        Style="{StaticResource ModernDangerBanner}">
                         <Label
                             Text="{Binding MensajeSeleccionCalculo}"
-                            TextColor="#991B1B"
-                            FontSize="14"
+                            TextColor="{StaticResource RedDelete}"
+                            FontSize="12"
                             LineBreakMode="WordWrap" />
                     </Border>
 
-                    <Button
-                        Text="{Binding TextoBotonContinuar}"
-                        BackgroundColor="#3B655B"
-                        TextColor="White"
-                        CornerRadius="12"
-                        HeightRequest="48"
-                        Command="{Binding ProcesarSeleccionCommand}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button
+                            Grid.Column="0"
+                            Text="Volver"
+                            Command="{Binding VolverCommand}"
+                            Style="{StaticResource ModernNeutralButton}" />
 
-                    <Button
-                        Text="Volver"
-                        BackgroundColor="#E5E7EB"
-                        TextColor="Black"
-                        CornerRadius="12"
-                        HeightRequest="45"
-                        Command="{Binding VolverCommand}" />
+                        <Button
+                            Grid.Column="1"
+                            Text="{Binding TextoBotonContinuar}"
+                            Command="{Binding ProcesarSeleccionCommand}"
+                            Style="{StaticResource ModernPrimaryButton}" />
+                    </Grid>
                 </VerticalStackLayout>
             </Border>
 
-            <BoxView HeightRequest="12" Color="Transparent" />
+            <BoxView HeightRequest="8" Color="Transparent" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

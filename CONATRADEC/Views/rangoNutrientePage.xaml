@@ -7,55 +7,32 @@
     xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid>
-
             <Grid
                 IsVisible="{Binding MostrarAccesoDenegado}"
                 Padding="24">
-
-                <Border
-                    MaximumWidthRequest="620"
-                    Padding="28"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center"
-                    BackgroundColor="White"
-                    Stroke="#E5E7EB"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout
-                        Spacing="10"
-                        HorizontalOptions="Center">
-
+                <Border Style="{StaticResource ModernAccessDeniedCard}">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Image
                             Source="iconpermission.png"
-                            WidthRequest="64"
-                            HeightRequest="64"
-                            Opacity="0.65" />
-
+                            WidthRequest="62"
+                            HeightRequest="62"
+                            Opacity="0.68" />
                         <Label
                             Text="Sin permiso de lectura"
-                            FontSize="21"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}"
+                            Style="{StaticResource ModernSectionTitle}"
+                            FontSize="20"
                             HorizontalTextAlignment="Center" />
-
                         <Label
                             Text="Su usuario no tiene permiso para consultar los rangos nutricionales."
-                            FontSize="14"
-                            TextColor="{StaticResource color_GrisOscuro}"
+                            Style="{StaticResource ModernPageSubtitle}"
                             HorizontalTextAlignment="Center" />
-
                         <Button
                             Text="Regresar a configuración"
-                            Padding="16,10"
-                            BackgroundColor="{StaticResource color_Verde}"
-                            TextColor="White"
-                            CornerRadius="11"
+                            Style="{StaticResource ModernPrimaryButton}"
                             Command="{Binding RegresarConfiguracionCommand}" />
                     </VerticalStackLayout>
                 </Border>
@@ -63,46 +40,10 @@
 
             <Grid
                 IsVisible="{Binding CanView}"
-                Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-                RowDefinitions="Auto,Auto,Auto,*"
-                RowSpacing="14">
-
-                <controls:ResponsiveCatalogHeader
-                    Grid.Row="0"
-                    Title="Rangos nutricionales"
-                    Subtitle="Seleccione un cultivo para administrar sus intervalos por elemento químico."
-                    BackText="← Configuración"
-                    BackCommand="{Binding RegresarConfiguracionCommand}"
-                    PrimaryText="+ Nuevo cultivo"
-                    PrimaryCommand="{Binding AddCategoryCommand}"
-                    IsPrimaryVisible="{Binding CanAdd}" />
-                <controls:ResponsiveSearchPanel
-                    Grid.Row="1"
-                    Placeholder="Buscar por cultivo o descripción"
-                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
-                    SummaryText="{Binding ResumenResultados}"
-                    SearchCommand="{Binding BuscarCommand}"
-                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
-                <Border
-                    Grid.Row="2"
-                    IsVisible="{Binding TieneMensaje}"
-                    Padding="12"
-                    BackgroundColor="#FFF7E6"
-                    Stroke="#F2C94C"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 12">
-
-                    <Label
-                        Text="{Binding Mensaje}"
-                        FontSize="13"
-                        TextColor="{StaticResource color_Negro}" />
-                </Border>
-
+                Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
                 <RefreshView
-                    Grid.Row="3"
                     IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
-
                     <CollectionView
                         ItemsSource="{Binding List}"
                         SelectionMode="None"
@@ -118,156 +59,126 @@
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
 
+                        <CollectionView.Header>
+                            <VerticalStackLayout Padding="0,0,0,14" Spacing="12">
+                                <controls:ResponsiveCatalogHeader
+                                    Title="Rangos nutricionales"
+                                    Subtitle="Seleccione un cultivo para administrar sus intervalos por elemento químico."
+                                    BackText="← Configuración"
+                                    BackCommand="{Binding RegresarConfiguracionCommand}"
+                                    PrimaryText="+ Nuevo cultivo"
+                                    PrimaryCommand="{Binding AddCategoryCommand}"
+                                    IsPrimaryVisible="{Binding CanAdd}" />
+
+                                <controls:ResponsiveSearchPanel
+                                    Placeholder="Buscar por cultivo o descripción"
+                                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                                    SummaryText="{Binding ResumenResultados}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
+
+                                <Border
+                                    IsVisible="{Binding TieneMensaje}"
+                                    Style="{StaticResource ModernWarningBanner}">
+                                    <Label Text="{Binding Mensaje}" Style="{StaticResource ModernPageSubtitle}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </CollectionView.Header>
+
                         <CollectionView.EmptyView>
-                            <Grid Padding="30">
-
-                                <VerticalStackLayout
+                            <Grid Padding="20,30">
+                                <Border
                                     IsVisible="{Binding MostrarVacio}"
-                                    Spacing="8"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center">
-
-                                    <Border
-                                        WidthRequest="64"
-                                        HeightRequest="64"
-                                        BackgroundColor="#EEF5F2"
-                                        StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 18">
-
+                                    Style="{StaticResource ModernEmptyStateCard}">
+                                    <VerticalStackLayout Spacing="9" HorizontalOptions="Center">
+                                        <Border Style="{StaticResource ModernIconTile}">
+                                            <Label
+                                                Text="RN"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                FontSize="18"
+                                                TextColor="{StaticResource color_Verde}"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center" />
+                                        </Border>
                                         <Label
-                                            Text="RN"
-                                            FontSize="21"
-                                            FontFamily="MontserratBold"
-                                            FontAttributes="Bold"
-                                            TextColor="{StaticResource color_Verde}"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
-                                    </Border>
-
-                                    <Label
-                                        Text="No se encontraron cultivos"
-                                        FontSize="18"
-                                        FontFamily="MontserratBold"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource color_Negro}"
-                                        HorizontalTextAlignment="Center" />
-
-                                    <Label
-                                        Text="Cambie la búsqueda o registre un nuevo tipo de cultivo."
-                                        FontSize="13"
-                                        TextColor="{StaticResource color_GrisOscuro}"
-                                        HorizontalTextAlignment="Center" />
-                                </VerticalStackLayout>
+                                            Text="No se encontraron cultivos"
+                                            Style="{StaticResource ModernSectionTitle}"
+                                            HorizontalTextAlignment="Center" />
+                                        <Label
+                                            Text="Cambie la búsqueda o registre un nuevo tipo de cultivo."
+                                            Style="{StaticResource ModernPageSubtitle}"
+                                            HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </Border>
                             </Grid>
                         </CollectionView.EmptyView>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:RangoNutrienteCategoriaItem">
-
                                 <Border
-                                    Padding="16"
-                                    MinimumHeightRequest="220"
-                                    BackgroundColor="White"
-                                    Stroke="#DDE7E3"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 16">
-
-                                    <Grid
-                                        RowDefinitions="Auto,Auto,Auto"
-                                        RowSpacing="12">
-
-                                        <Grid
-                                            Grid.Row="0"
-                                            ColumnDefinitions="Auto,*"
-                                            ColumnSpacing="12">
-
+                                    Style="{StaticResource ModernCatalogCard}"
+                                    MinimumHeightRequest="204">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="11">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="11">
                                             <Border
-                                                WidthRequest="56"
-                                                HeightRequest="56"
-                                                BackgroundColor="#EEF5F2"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 14">
-
+                                                Style="{StaticResource ModernIconTile}"
+                                                WidthRequest="52"
+                                                HeightRequest="52">
                                                 <Label
                                                     Text="TC"
-                                                    FontSize="18"
                                                     FontFamily="MontserratBold"
                                                     FontAttributes="Bold"
+                                                    FontSize="16"
                                                     TextColor="{StaticResource color_Verde}"
                                                     HorizontalOptions="Center"
                                                     VerticalOptions="Center" />
                                             </Border>
-
-                                            <VerticalStackLayout
-                                                Grid.Column="1"
-                                                Spacing="4"
-                                                VerticalOptions="Center">
-
+                                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
                                                 <Label
                                                     Text="{Binding NombreCategoria}"
-                                                    FontSize="17"
-                                                    FontFamily="MontserratBold"
-                                                    FontAttributes="Bold"
-                                                    TextColor="{StaticResource color_Negro}"
+                                                    Style="{StaticResource ModernSectionTitle}"
+                                                    FontSize="15"
                                                     LineBreakMode="TailTruncation" />
-
                                                 <Label
                                                     Text="{Binding DescripcionMostrar}"
-                                                    FontSize="12"
-                                                    TextColor="{StaticResource color_GrisOscuro}"
+                                                    Style="{StaticResource ModernCaption}"
                                                     MaxLines="2"
                                                     LineBreakMode="TailTruncation" />
                                             </VerticalStackLayout>
                                         </Grid>
 
-                                        <Border
-                                            Grid.Row="1"
-                                            Padding="10,8"
-                                            BackgroundColor="#EEF4FF"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 9">
-
-                                            <Label
-                                                Text="{Binding AportesTexto}"
-                                                FontSize="12"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Negro}"
-                                                HorizontalTextAlignment="Center" />
+                                        <Border Grid.Row="1" Style="{StaticResource ModernMetricSurface}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label Text="RANGOS CONFIGURADOS" Style="{StaticResource ModernCaption}" FontSize="9.5" />
+                                                <Label
+                                                    Text="{Binding AportesTexto}"
+                                                    FontFamily="MontserratBold"
+                                                    FontAttributes="Bold"
+                                                    FontSize="12"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                                    HorizontalTextAlignment="Center" />
+                                            </VerticalStackLayout>
                                         </Border>
 
-                                        <Grid
-                                            Grid.Row="2"
-                                            ColumnDefinitions="2*,*,*"
-                                            ColumnSpacing="8">
-
+                                        <Grid Grid.Row="2" ColumnDefinitions="2*,*,*" ColumnSpacing="7">
                                             <Button
-                                                Grid.Column="0"
                                                 Text="Abrir rangos"
-                                                Padding="8,9"
-                                                BackgroundColor="{StaticResource color_Verde}"
-                                                TextColor="White"
-                                                CornerRadius="10"
+                                                Style="{StaticResource ModernPrimaryButton}"
+                                                HeightRequest="44"
                                                 Command="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.OpenCategoryCommand}"
                                                 CommandParameter="{Binding .}" />
-
                                             <Button
                                                 Grid.Column="1"
                                                 Text="Editar"
-                                                Padding="8,9"
-                                                BackgroundColor="{StaticResource BlueUpdate}"
-                                                TextColor="White"
-                                                CornerRadius="10"
+                                                Style="{StaticResource ModernUpdateButton}"
                                                 IsVisible="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.CanEdit}"
                                                 Command="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.EditCategoryCommand}"
                                                 CommandParameter="{Binding .}" />
-
                                             <Button
                                                 Grid.Column="2"
                                                 Text="Eliminar"
-                                                Padding="8,9"
-                                                BackgroundColor="{StaticResource RedDelete}"
-                                                TextColor="White"
-                                                CornerRadius="10"
+                                                Style="{StaticResource ModernDangerButton}"
                                                 IsVisible="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.CanDelete}"
                                                 Command="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.DeleteCategoryCommand}"
                                                 CommandParameter="{Binding .}" />
@@ -278,50 +189,45 @@
                         </CollectionView.ItemTemplate>
 
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="10,16,10,24"
-                                Spacing="8"
-                                HorizontalOptions="Center">
-
+                            <VerticalStackLayout Padding="10,16,10,24" Spacing="8" HorizontalOptions="Center">
                                 <ActivityIndicator
                                     IsRunning="{Binding CargandoMas}"
                                     IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Naranja}" />
-
+                                    Color="{StaticResource color_Verde}" />
                                 <Label
                                     IsVisible="{Binding MostrarFinLista}"
                                     Text="Fin del listado"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
+                                    Style="{StaticResource ModernCaption}" />
                             </VerticalStackLayout>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>
 
                 <Grid
-                    Grid.RowSpan="4"
+                    ZIndex="100"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="False"
-                    BackgroundColor="#40FFFFFF">
-
+                    BackgroundColor="#28000000">
                     <Border
-                        Padding="18"
+                        Padding="18,14"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
-                        BackgroundColor="White"
-                        Stroke="#DDE7E3"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                        StrokeThickness="1"
                         StrokeShape="RoundRectangle 14">
-
                         <HorizontalStackLayout Spacing="10">
-
                             <ActivityIndicator
-                                IsRunning="True"
-                                Color="{StaticResource color_Naranja}" />
-
+                                IsRunning="{Binding IsBusy}"
+                                Color="{StaticResource color_Verde}"
+                                WidthRequest="24"
+                                HeightRequest="24" />
                             <Label
                                 Text="Cargando cultivos..."
                                 VerticalOptions="Center"
-                                TextColor="{StaticResource color_Negro}" />
+                                FontFamily="MontserratBold"
+                                FontSize="12"
+                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                         </HorizontalStackLayout>
                     </Border>
                 </Grid>

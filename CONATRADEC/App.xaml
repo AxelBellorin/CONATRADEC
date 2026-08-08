@@ -27,6 +27,29 @@
                 <ResourceDictionary
                     Source="/Resources/Styles/Template.xaml" />
 
+                <!--
+                    Sistema visual moderno de CONATRADEC.
+                    Se carga al final para que las páginas nuevas puedan reutilizar
+                    los estilos sin alterar la lógica existente.
+                -->
+                <ResourceDictionary
+                    Source="Resources/Styles/ModernTheme.xaml" />
+
+                <!--
+                    Compatibilidad visual para las pantallas históricas del
+                    flujo de análisis y cálculos. Se carga al final para que
+                    las claves antiguas adopten el sistema visual moderno.
+                -->
+                <ResourceDictionary
+                    Source="Resources/Styles/AnalysisTheme.xaml" />
+
+                <!--
+                    Estilos específicos del flujo de inspección fitosanitaria.
+                    No utiliza estilos implícitos para no afectar otros módulos.
+                -->
+                <ResourceDictionary
+                    Source="Resources/Styles/InspectionTheme.xaml" />
+
             </ResourceDictionary.MergedDictionaries>
 
         </ResourceDictionary>

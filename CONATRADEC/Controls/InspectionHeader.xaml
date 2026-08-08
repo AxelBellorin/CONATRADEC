@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="CONATRADEC.Controls.InspectionHeader"
+    x:Name="HeaderRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!--
+        Encabezado específico del módulo fitosanitario.
+        La navegación vive en una fila independiente del título para evitar
+        superposiciones en teléfonos y con tamaños de fuente del sistema altos.
+    -->
+    <Border
+        Style="{StaticResource ModernHeroCard}"
+        Padding="{OnIdiom Phone='14,12', Tablet='18,15', Desktop='22,18'}">
+        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{OnIdiom Phone=7, Default=9}">
+            <Grid
+                Grid.Row="0"
+                ColumnDefinitions="*,*"
+                ColumnSpacing="10">
+                <Button
+                    Grid.Column="0"
+                    Text="{Binding BackText, Source={x:Reference HeaderRoot}}"
+                    Command="{Binding BackCommand, Source={x:Reference HeaderRoot}}"
+                    IsVisible="{Binding IsBackVisible, Source={x:Reference HeaderRoot}}"
+                    Style="{StaticResource ModernNeutralButton}"
+                    HeightRequest="38"
+                    MinimumHeightRequest="38"
+                    Padding="12,5"
+                    FontSize="{OnIdiom Phone=11, Default=12}"
+                    HorizontalOptions="Start" />
+
+                <Button
+                    Grid.Column="1"
+                    Text="{Binding PrimaryText, Source={x:Reference HeaderRoot}}"
+                    Command="{Binding PrimaryCommand, Source={x:Reference HeaderRoot}}"
+                    IsVisible="{Binding IsPrimaryVisible, Source={x:Reference HeaderRoot}}"
+                    Style="{StaticResource ModernPrimaryButton}"
+                    BackgroundColor="{Binding PrimaryBackgroundColor, Source={x:Reference HeaderRoot}}"
+                    TextColor="{Binding PrimaryTextColor, Source={x:Reference HeaderRoot}}"
+                    HeightRequest="38"
+                    MinimumHeightRequest="38"
+                    Padding="12,5"
+                    FontSize="{OnIdiom Phone=11, Default=12}"
+                    HorizontalOptions="End" />
+            </Grid>
+
+            <Label
+                Grid.Row="1"
+                Text="{Binding Title, Source={x:Reference HeaderRoot}}"
+                Style="{StaticResource ModernPageTitle}"
+                FontSize="{OnIdiom Phone=24, Tablet=27, Desktop=30}"
+                LineBreakMode="WordWrap"
+                MaxLines="2" />
+
+            <Label
+                Grid.Row="2"
+                Text="{Binding Subtitle, Source={x:Reference HeaderRoot}}"
+                IsVisible="{Binding HasSubtitle, Source={x:Reference HeaderRoot}}"
+                Style="{StaticResource ModernPageSubtitle}"
+                FontSize="{OnIdiom Phone=13, Default=14}"
+                LineBreakMode="WordWrap"
+                MaxLines="3" />
+        </Grid>
+    </Border>
+</ContentView>

@@ -11,289 +11,326 @@
     BackgroundColor="#F7F8F7">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
-        <Grid
-            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-            RowDefinitions="Auto,*"
-            RowSpacing="14">
+        <Grid>
+            <!--
+                Encabezado, selector de vista y filtros forman parte del mismo
+                CollectionView. En móvil desaparecen al desplazarse y dejan la
+                mayor parte de la pantalla disponible para las fichas.
+            -->
+            <CollectionView
+                ItemsSource="{Binding Solicitudes}"
+                SelectionMode="None"
+                MaximumWidthRequest="1180"
+                HorizontalOptions="Fill"
+                Margin="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
-            <controls:ResponsiveCatalogHeader
-                Grid.Row="0"
-                Title="Bandeja del aprobador"
-                Subtitle="{Binding SubtituloVista}"
-                BackText="Inspección fitosanitaria"
-                BackCommand="{Binding RegresarCommand}"
-                IsPrimaryVisible="False" />
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.Header>
+                    <VerticalStackLayout Spacing="10" Padding="0,0,0,12">
+                        <controls:InspectionHeader
+                            Title="Bandeja del aprobador"
+                            Subtitle="{Binding SubtituloVista}"
+                            BackText="← Volver"
+                            BackCommand="{Binding RegresarCommand}"
+                            IsPrimaryVisible="False" />
+
+                        <Border
+                            Padding="{OnIdiom Phone=10, Default=12}"
+                            BackgroundColor="#F2F7F5"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 13">
+                            <Grid
+                                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                                RowSpacing="8"
+                                ColumnSpacing="12">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Vista de revisión" FontSize="14" FontAttributes="Bold" TextColor="#263A35" />
+                                    <Label
+                                        Text="Pendientes muestra el trabajo activo. Revisadas conserva el acceso posterior para autorización y publicación."
+                                        FontSize="11"
+                                        TextColor="#5E6B67"
+                                        LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                                <Grid
+                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                    Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                    ColumnDefinitions="*,*"
+                                    ColumnSpacing="8"
+                                    HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
+                                    <Button
+                                        Grid.Column="0"
+                                        Text="Pendientes"
+                                        Command="{Binding VerPendientesCommand}"
+                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
+                                        HeightRequest="42"
+                                        BackgroundColor="#E3EFEA"
+                                        TextColor="#315E52"
+                                        CornerRadius="9">
+                                        <Button.Triggers>
+                                            <DataTrigger TargetType="Button" Binding="{Binding MostrandoPendientes}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="#263A35" />
+                                                <Setter Property="TextColor" Value="White" />
+                                            </DataTrigger>
+                                        </Button.Triggers>
+                                    </Button>
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Revisadas"
+                                        Command="{Binding VerRevisadasCommand}"
+                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
+                                        HeightRequest="42"
+                                        BackgroundColor="#E3EFEA"
+                                        TextColor="#315E52"
+                                        CornerRadius="9">
+                                        <Button.Triggers>
+                                            <DataTrigger TargetType="Button" Binding="{Binding MostrandoRevisadas}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="#263A35" />
+                                                <Setter Property="TextColor" Value="White" />
+                                            </DataTrigger>
+                                        </Button.Triggers>
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*,*', Default='*,Auto,Auto'}"
+                            RowSpacing="7"
+                            ColumnSpacing="7">
+                            <VerticalStackLayout
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
+                                Spacing="0"
+                                VerticalOptions="Center">
+                                <Label Text="{Binding SubtituloVista}" FontAttributes="Bold" TextColor="#3B655B" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding ResumenFiltrosActivos}" FontSize="11" TextColor="#6B7773" LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Text="{Binding TextoBotonFiltros}"
+                                Command="{Binding AlternarFiltrosCommand}"
+                                HeightRequest="44"
+                                BackgroundColor="#E3EFEA"
+                                TextColor="#3B655B" />
+                            <Button
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=1, Default=2}"
+                                Text="Actualizar"
+                                Command="{Binding ActualizarCommand}"
+                                HeightRequest="44"
+                                BackgroundColor="#EEF2F0"
+                                TextColor="#263A35" />
+                        </Grid>
+
+                        <!-- El panel amplio solo aparece bajo demanda y también se desplaza. -->
+                        <Border
+                            Padding="{OnIdiom Phone=10, Default=12}"
+                            IsVisible="{Binding FiltrosExpandidos}"
+                            BackgroundColor="White"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 13">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <Entry
+                                        Grid.Column="0"
+                                        Text="{Binding BuscarInspeccion}"
+                                        Placeholder="Nombre, terreno, propietario, técnico, ubicación o archivo"
+                                        ReturnType="Search"
+                                        ReturnCommand="{Binding BuscarCommand}"
+                                        ClearButtonVisibility="WhileEditing"
+                                        HeightRequest="44" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Buscar"
+                                        Command="{Binding BuscarCommand}"
+                                        BackgroundColor="#263A35"
+                                        TextColor="White"
+                                        HeightRequest="44"
+                                        MinimumWidthRequest="{OnIdiom Phone=92, Default=120}" />
+                                </Grid>
+
+                                <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="End" JustifyContent="Start">
+                                    <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="{OnIdiom Phone=280, Default=285}">
+                                        <Label Text="Técnico responsable" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
+                                        <Button
+                                            x:Name="TecnicoSelectorButton"
+                                            Text="{Binding TecnicoFiltroTexto}"
+                                            Clicked="OnSeleccionarTecnicoClicked"
+                                            HeightRequest="42"
+                                            Padding="12,6"
+                                            HorizontalOptions="Fill"
+                                            BackgroundColor="White"
+                                            BorderColor="#C9D4D0"
+                                            BorderWidth="1"
+                                            TextColor="#263A35"
+                                            CornerRadius="8" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="{OnIdiom Phone=280, Default=225}">
+                                        <Label Text="Propietario" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
+                                        <Entry Text="{Binding PropietarioFiltro}" Placeholder="Nombre o identificación" ReturnType="Search" ReturnCommand="{Binding BuscarCommand}" HeightRequest="42" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="{OnIdiom Phone=280, Default=190}">
+                                        <Label Text="Departamento" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
+                                        <Entry Text="{Binding DepartamentoFiltro}" Placeholder="Ej. Matagalpa" ReturnType="Search" ReturnCommand="{Binding BuscarCommand}" HeightRequest="42" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="{OnIdiom Phone=280, Default=205}">
+                                        <Label Text="Tipo de fotografía" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
+                                        <Picker ItemsSource="{Binding TiposFotografiaFiltro}" ItemDisplayBinding="{Binding Nombre}" SelectedItem="{Binding TipoFotografiaFiltroSeleccionado}" HeightRequest="42" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="{OnIdiom Phone=280, Default=215}">
+                                        <Label Text="Estado" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
+                                        <Picker ItemsSource="{Binding EstadosFiltro}" ItemDisplayBinding="{Binding Nombre}" SelectedItem="{Binding EstadoFiltroSeleccionado}" HeightRequest="42" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="{OnIdiom Phone=280, Default=210}">
+                                        <HorizontalStackLayout Spacing="4">
+                                            <CheckBox IsChecked="{Binding UsarFechaDesde}" Color="#3B655B" VerticalOptions="Center" />
+                                            <Label Text="Registro desde" FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center" TextColor="#263A35" />
+                                        </HorizontalStackLayout>
+                                        <DatePicker Date="{Binding FechaDesde}" IsVisible="{Binding UsarFechaDesde}" MinimumDate="{Binding FechaMinimaFiltro}" MaximumDate="{Binding FechaMaximaFiltro}" Format="dd/MM/yyyy" HeightRequest="42" />
+                                    </VerticalStackLayout>
+
+                                    <VerticalStackLayout Margin="0,0,0,7" Spacing="3" WidthRequest="{OnIdiom Phone=280, Default=210}">
+                                        <HorizontalStackLayout Spacing="4">
+                                            <CheckBox IsChecked="{Binding UsarFechaHasta}" Color="#3B655B" VerticalOptions="Center" />
+                                            <Label Text="Registro hasta" FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center" TextColor="#263A35" />
+                                        </HorizontalStackLayout>
+                                        <DatePicker Date="{Binding FechaHasta}" IsVisible="{Binding UsarFechaHasta}" MinimumDate="{Binding FechaMinimaFiltro}" MaximumDate="{Binding FechaMaximaFiltro}" Format="dd/MM/yyyy" HeightRequest="42" />
+                                    </VerticalStackLayout>
+                                </FlexLayout>
+
+                                <Grid
+                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                                    RowSpacing="8"
+                                    ColumnSpacing="8">
+                                    <Label
+                                        Grid.Column="0"
+                                        Text="Los filtros se aplican tanto a Pendientes como a Revisadas. Las fechas usan la zona horaria del dispositivo."
+                                        FontSize="11"
+                                        TextColor="#6B7773"
+                                        VerticalTextAlignment="Center"
+                                        LineBreakMode="WordWrap" />
+                                    <Button
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        Text="Limpiar filtros"
+                                        Command="{Binding LimpiarFiltrosCommand}"
+                                        BackgroundColor="#F5F7F6"
+                                        TextColor="#5E6B67"
+                                        HeightRequest="40"
+                                        Padding="10,5" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border
+                            Padding="12"
+                            BackgroundColor="#FFF9E8"
+                            Stroke="#E2B93B"
+                            StrokeShape="RoundRectangle 13"
+                            IsVisible="{Binding TieneMensajeEstado}">
+                            <Label Text="{Binding MensajeEstado}" TextColor="#6B5710" LineBreakMode="WordWrap" />
+                        </Border>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:InspeccionFitosanitariaBandejaItemV2">
+                        <Border Padding="{OnIdiom Phone=12, Default=14}" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14">
+                            <Grid
+                                RowDefinitions="Auto,Auto"
+                                ColumnDefinitions="{OnIdiom Phone='82,*', Default='86,*,Auto'}"
+                                ColumnSpacing="12"
+                                RowSpacing="10">
+                                <Border Grid.Row="0" Grid.Column="0" WidthRequest="{OnIdiom Phone=76, Default=80}" HeightRequest="{OnIdiom Phone=76, Default=80}" BackgroundColor="#EEF3F1" Stroke="#D4E1DC" StrokeShape="RoundRectangle 11">
+                                    <Image Source="{Binding UrlMiniatura}" Aspect="AspectFill" />
+                                </Border>
+                                <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                    <Label Text="{Binding NombreInspeccionTexto}" FontSize="{OnIdiom Phone=16, Default=18}" FontAttributes="Bold" TextColor="#263A35" LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding TerrenoTexto}" FontSize="13" FontAttributes="Bold" TextColor="#3B655B" />
+                                    <Label Text="{Binding TecnicoTexto, StringFormat='Técnico: {0}'}" FontSize="12" FontAttributes="Bold" TextColor="#40544E" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding PropietarioTexto, StringFormat='Propietario: {0}'}" FontSize="12" TextColor="#5E6B67" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding UbicacionTexto}" FontSize="11" TextColor="#6B7773" />
+                                    <Label Text="{Binding Resumen}" FontSize="12" TextColor="#5E6B67" LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding FechaTexto, StringFormat='Registrada: {0}'}" FontSize="12" TextColor="#7A8581" />
+                                    <Label Text="{Binding AsignacionTexto}" FontSize="11" TextColor="#52665F" LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout
+                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                    Grid.Column="{OnIdiom Phone=0, Default=2}"
+                                    Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
+                                    Spacing="7"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
+                                    <Border Padding="10,6" BackgroundColor="{Binding EstadoFondo}" Stroke="#D9E3DF" StrokeShape="RoundRectangle 10">
+                                        <Label Text="{Binding EstadoTexto}" FontAttributes="Bold" TextColor="{Binding EstadoColor}" HorizontalTextAlignment="Center" />
+                                    </Border>
+                                    <Button
+                                        Text="Abrir revisión"
+                                        Command="{Binding Source={x:Reference PaginaAprobador}, Path=BindingContext.AbrirCommand}"
+                                        CommandParameter="{Binding .}"
+                                        HeightRequest="46"
+                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=170}"
+                                        HorizontalOptions="Fill"
+                                        BackgroundColor="#263A35"
+                                        TextColor="White" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <VerticalStackLayout Padding="0,14,0,4" Spacing="8">
+                        <Border Padding="18" BackgroundColor="#F2F6F4" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14" IsVisible="{Binding SinSolicitudes}">
+                            <Label Text="{Binding TextoSinSolicitudes}" HorizontalTextAlignment="Center" TextColor="#5E6B67" />
+                        </Border>
+                        <ActivityIndicator IsRunning="{Binding CargandoMas}" IsVisible="{Binding CargandoMas}" Color="#3B655B" />
+                        <Button
+                            Text="{Binding TextoCargarMas}"
+                            Command="{Binding CargarMasCommand}"
+                            IsVisible="{Binding HayMas}"
+                            HeightRequest="46"
+                            MaximumWidthRequest="360"
+                            HorizontalOptions="Center"
+                            BackgroundColor="#EAF3EF"
+                            TextColor="#315E52"
+                            CornerRadius="11" />
+                    </VerticalStackLayout>
+                </CollectionView.Footer>
+            </CollectionView>
 
             <Grid
-                Grid.Row="1"
-                RowDefinitions="Auto,Auto,Auto,*"
-                RowSpacing="10"
-                MaximumWidthRequest="1180"
-                HorizontalOptions="Fill">
-
+                ZIndex="50"
+                IsVisible="{Binding IsBusy}"
+                BackgroundColor="#55000000"
+                InputTransparent="False">
                 <Border
-                    Grid.Row="0"
-                    Padding="{OnIdiom Phone=10, Default=12}"
-                    BackgroundColor="#F2F7F5"
-                    Stroke="#C8DED6"
-                    StrokeShape="RoundRectangle 13">
-                    <Grid
-                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
-                        RowSpacing="8"
-                        ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="2">
-                            <Label Text="Vista de revisión" FontSize="14" FontAttributes="Bold" TextColor="#263A35" />
-                            <Label
-                                Text="Pendientes muestra el trabajo activo. Revisadas conserva el acceso posterior para administrar autorización y publicación en el Álbum Botánico."
-                                FontSize="11"
-                                TextColor="#5E6B67"
-                                LineBreakMode="WordWrap" />
-                        </VerticalStackLayout>
-                        <Grid
-                            Grid.Row="{OnIdiom Phone=1, Default=0}"
-                            Grid.Column="{OnIdiom Phone=0, Default=1}"
-                            ColumnDefinitions="*,*"
-                            ColumnSpacing="8"
-                            HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
-                            <Button
-                                Grid.Column="0"
-                                Text="Pendientes"
-                                Command="{Binding VerPendientesCommand}"
-                                MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
-                                HeightRequest="42"
-                                BackgroundColor="#E3EFEA"
-                                TextColor="#315E52"
-                                CornerRadius="9">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding MostrandoPendientes}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="#263A35" />
-                                        <Setter Property="TextColor" Value="White" />
-                                    </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
-                            <Button
-                                Grid.Column="1"
-                                Text="Revisadas"
-                                Command="{Binding VerRevisadasCommand}"
-                                MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
-                                HeightRequest="42"
-                                BackgroundColor="#E3EFEA"
-                                TextColor="#315E52"
-                                CornerRadius="9">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding MostrandoRevisadas}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="#263A35" />
-                                        <Setter Property="TextColor" Value="White" />
-                                    </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
-                        </Grid>
-                    </Grid>
-                </Border>
-
-                <Grid
-                    Grid.Row="1"
-                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                    ColumnDefinitions="{OnIdiom Phone='*,Auto', Default='*,Auto,Auto'}"
-                    RowSpacing="7"
-                    ColumnSpacing="7">
-                    <VerticalStackLayout
-                        Grid.Row="0"
-                        Grid.Column="0"
-                        Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
-                        Spacing="0"
-                        VerticalOptions="Center">
-                        <Label Text="{Binding SubtituloVista}" FontAttributes="Bold" TextColor="#3B655B" LineBreakMode="TailTruncation" />
-                        <Label Text="{Binding ResumenFiltrosActivos}" FontSize="11" TextColor="#6B7773" />
-                    </VerticalStackLayout>
-                    <Button
-                        Grid.Row="{OnIdiom Phone=1, Default=0}"
-                        Grid.Column="{OnIdiom Phone=0, Default=1}"
-                        Text="{Binding TextoBotonFiltros}"
-                        Command="{Binding AlternarFiltrosCommand}"
-                        HeightRequest="44"
-                        BackgroundColor="#E3EFEA"
-                        TextColor="#3B655B" />
-                    <Button
-                        Grid.Row="{OnIdiom Phone=1, Default=0}"
-                        Grid.Column="{OnIdiom Phone=1, Default=2}"
-                        Text="Actualizar"
-                        Command="{Binding ActualizarCommand}"
-                        HeightRequest="44"
-                        BackgroundColor="#EEF2F0"
-                        TextColor="#263A35" />
-                </Grid>
-
-                <Border
-                    Grid.Row="2"
-                    Padding="{OnIdiom Phone=10, Default=12}"
-                    IsVisible="{Binding FiltrosExpandidos}"
+                    Padding="22"
                     BackgroundColor="White"
                     Stroke="#C8DED6"
-                    StrokeShape="RoundRectangle 13">
+                    StrokeShape="RoundRectangle 16"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    MaximumWidthRequest="320">
                     <VerticalStackLayout Spacing="10">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <Entry
-                                Grid.Column="0"
-                                Text="{Binding BuscarInspeccion}"
-                                Placeholder="Nombre, terreno, propietario, técnico, ubicación o archivo"
-                                ReturnType="Search"
-                                ReturnCommand="{Binding BuscarCommand}"
-                                ClearButtonVisibility="WhileEditing"
-                                HeightRequest="44" />
-                            <Button
-                                Grid.Column="1"
-                                Text="Buscar"
-                                Command="{Binding BuscarCommand}"
-                                BackgroundColor="#263A35"
-                                TextColor="White"
-                                HeightRequest="44"
-                                MinimumWidthRequest="{OnIdiom Phone=92, Default=120}" />
-                        </Grid>
-
-                        <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="End" JustifyContent="Start">
-                            <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="285">
-                                <Label Text="Técnico responsable" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
-                                <Button
-                                    x:Name="TecnicoSelectorButton"
-                                    Text="{Binding TecnicoFiltroTexto}"
-                                    Clicked="OnSeleccionarTecnicoClicked"
-                                    HeightRequest="42"
-                                    Padding="12,6"
-                                    HorizontalOptions="Fill"
-                                    BackgroundColor="White"
-                                    BorderColor="#C9D4D0"
-                                    BorderWidth="1"
-                                    TextColor="#263A35"
-                                    CornerRadius="8" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="225">
-                                <Label Text="Propietario" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
-                                <Entry Text="{Binding PropietarioFiltro}" Placeholder="Nombre o identificación" ReturnType="Search" ReturnCommand="{Binding BuscarCommand}" HeightRequest="42" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="190">
-                                <Label Text="Departamento" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
-                                <Entry Text="{Binding DepartamentoFiltro}" Placeholder="Ej. Matagalpa" ReturnType="Search" ReturnCommand="{Binding BuscarCommand}" HeightRequest="42" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="205">
-                                <Label Text="Tipo de fotografía" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
-                                <Picker ItemsSource="{Binding TiposFotografiaFiltro}" ItemDisplayBinding="{Binding Nombre}" SelectedItem="{Binding TipoFotografiaFiltroSeleccionado}" HeightRequest="42" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="215">
-                                <Label Text="Estado" FontSize="12" FontAttributes="Bold" TextColor="#263A35" />
-                                <Picker ItemsSource="{Binding EstadosFiltro}" ItemDisplayBinding="{Binding Nombre}" SelectedItem="{Binding EstadoFiltroSeleccionado}" HeightRequest="42" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Margin="0,0,8,7" Spacing="3" WidthRequest="210">
-                                <HorizontalStackLayout Spacing="4">
-                                    <CheckBox IsChecked="{Binding UsarFechaDesde}" Color="#3B655B" VerticalOptions="Center" />
-                                    <Label Text="Registro desde" FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center" TextColor="#263A35" />
-                                </HorizontalStackLayout>
-                                <DatePicker Date="{Binding FechaDesde}" IsVisible="{Binding UsarFechaDesde}" MinimumDate="{Binding FechaMinimaFiltro}" MaximumDate="{Binding FechaMaximaFiltro}" Format="dd/MM/yyyy" HeightRequest="42" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout Margin="0,0,0,7" Spacing="3" WidthRequest="210">
-                                <HorizontalStackLayout Spacing="4">
-                                    <CheckBox IsChecked="{Binding UsarFechaHasta}" Color="#3B655B" VerticalOptions="Center" />
-                                    <Label Text="Registro hasta" FontSize="12" FontAttributes="Bold" VerticalTextAlignment="Center" TextColor="#263A35" />
-                                </HorizontalStackLayout>
-                                <DatePicker Date="{Binding FechaHasta}" IsVisible="{Binding UsarFechaHasta}" MinimumDate="{Binding FechaMinimaFiltro}" MaximumDate="{Binding FechaMaximaFiltro}" Format="dd/MM/yyyy" HeightRequest="42" />
-                            </VerticalStackLayout>
-                        </FlexLayout>
-
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <Label
-                                Grid.Column="0"
-                                Text="Los filtros se aplican tanto a Pendientes como a Revisadas. Las fechas usan la zona horaria del dispositivo."
-                                FontSize="11"
-                                TextColor="#6B7773"
-                                VerticalTextAlignment="Center"
-                                LineBreakMode="WordWrap" />
-                            <Button
-                                Grid.Column="1"
-                                Text="Limpiar filtros"
-                                Command="{Binding LimpiarFiltrosCommand}"
-                                BackgroundColor="#F5F7F6"
-                                TextColor="#5E6B67"
-                                HeightRequest="40"
-                                Padding="10,5" />
-                        </Grid>
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" Color="#263A35" WidthRequest="40" HeightRequest="40" />
+                        <Label Text="Actualizando aprobaciones..." FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="#263A35" />
+                        <Label Text="{Binding MensajeEstado}" FontSize="12" HorizontalTextAlignment="Center" TextColor="#5E6B67" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
                 </Border>
-
-                <Grid Grid.Row="3">
-                    <CollectionView ItemsSource="{Binding Solicitudes}" SelectionMode="None">
-                        <CollectionView.ItemsLayout>
-                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
-                        </CollectionView.ItemsLayout>
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="models:InspeccionFitosanitariaBandejaItemV2">
-                                <Border Padding="{OnIdiom Phone=12, Default=14}" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14">
-                                    <Grid
-                                        RowDefinitions="Auto,Auto"
-                                        ColumnDefinitions="{OnIdiom Phone='82,*', Default='86,*,Auto'}"
-                                        ColumnSpacing="12"
-                                        RowSpacing="10">
-                                        <Border Grid.Row="0" Grid.Column="0" WidthRequest="{OnIdiom Phone=76, Default=80}" HeightRequest="{OnIdiom Phone=76, Default=80}" BackgroundColor="#EEF3F1" Stroke="#D4E1DC" StrokeShape="RoundRectangle 11">
-                                            <Image Source="{Binding UrlMiniatura}" Aspect="AspectFill" />
-                                        </Border>
-                                        <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="3" VerticalOptions="Center">
-                                            <Label Text="{Binding NombreInspeccionTexto}" FontSize="{OnIdiom Phone=16, Default=18}" FontAttributes="Bold" TextColor="#263A35" LineBreakMode="WordWrap" />
-                                            <Label Text="{Binding TerrenoTexto}" FontSize="13" FontAttributes="Bold" TextColor="#3B655B" />
-                                            <Label Text="{Binding TecnicoTexto, StringFormat='Técnico: {0}'}" FontSize="12" FontAttributes="Bold" TextColor="#40544E" LineBreakMode="TailTruncation" />
-                                            <Label Text="{Binding PropietarioTexto, StringFormat='Propietario: {0}'}" FontSize="12" TextColor="#5E6B67" LineBreakMode="TailTruncation" />
-                                            <Label Text="{Binding UbicacionTexto}" FontSize="11" TextColor="#6B7773" />
-                                            <Label Text="{Binding Resumen}" FontSize="12" TextColor="#5E6B67" LineBreakMode="WordWrap" />
-                                            <Label Text="{Binding FechaTexto, StringFormat='Registrada: {0}'}" FontSize="12" TextColor="#7A8581" />
-                                            <Label Text="{Binding AsignacionTexto}" FontSize="11" TextColor="#52665F" LineBreakMode="WordWrap" />
-                                        </VerticalStackLayout>
-                                        <VerticalStackLayout
-                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                            Grid.Column="{OnIdiom Phone=0, Default=2}"
-                                            Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
-                                            Spacing="7"
-                                            VerticalOptions="Center"
-                                            HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
-                                            <Border Padding="10,6" BackgroundColor="{Binding EstadoFondo}" Stroke="#D9E3DF" StrokeShape="RoundRectangle 10">
-                                                <Label Text="{Binding EstadoTexto}" FontAttributes="Bold" TextColor="{Binding EstadoColor}" HorizontalTextAlignment="Center" />
-                                            </Border>
-                                            <Button
-                                                Text="Abrir revisión"
-                                                Command="{Binding Source={x:Reference PaginaAprobador}, Path=BindingContext.AbrirCommand}"
-                                                CommandParameter="{Binding .}"
-                                                HeightRequest="46"
-                                                MinimumWidthRequest="{OnIdiom Phone=220, Default=170}"
-                                                BackgroundColor="#263A35"
-                                                TextColor="White" />
-                                        </VerticalStackLayout>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                        <CollectionView.Footer>
-                            <VerticalStackLayout Padding="0,14,0,4" Spacing="8">
-                                <ActivityIndicator IsRunning="{Binding CargandoMas}" IsVisible="{Binding CargandoMas}" Color="#3B655B" />
-                                <Button Text="{Binding TextoCargarMas}" Command="{Binding CargarMasCommand}" IsVisible="{Binding HayMas}" HeightRequest="46" MaximumWidthRequest="360" HorizontalOptions="Center" BackgroundColor="#EAF3EF" TextColor="#315E52" CornerRadius="11" />
-                            </VerticalStackLayout>
-                        </CollectionView.Footer>
-                    </CollectionView>
-
-                    <Border Padding="18" VerticalOptions="Start" BackgroundColor="#F2F6F4" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14" IsVisible="{Binding SinSolicitudes}">
-                        <Label Text="{Binding TextoSinSolicitudes}" HorizontalTextAlignment="Center" TextColor="#5E6B67" />
-                    </Border>
-
-                    <Border Padding="14" Margin="0,4" VerticalOptions="Start" ZIndex="5" BackgroundColor="#FFF9E8" Stroke="#E2B93B" StrokeShape="RoundRectangle 13" IsVisible="{Binding TieneMensajeEstado}">
-                        <HorizontalStackLayout Spacing="10">
-                            <ActivityIndicator IsRunning="{Binding IsBusy}" Color="#263A35" />
-                            <Label Text="{Binding MensajeEstado}" VerticalTextAlignment="Center" TextColor="#6B5710" />
-                        </HorizontalStackLayout>
-                    </Border>
-                </Grid>
             </Grid>
         </Grid>
     </ContentView>

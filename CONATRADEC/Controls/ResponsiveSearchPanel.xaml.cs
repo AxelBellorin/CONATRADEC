@@ -5,6 +5,7 @@ namespace CONATRADEC.Controls
 {
     /// <summary>
     /// Panel de búsqueda adaptable para teléfono, tablet y escritorio.
+    /// Mantiene los mismos comandos y únicamente reorganiza la presentación.
     /// </summary>
     public partial class ResponsiveSearchPanel : ContentView
     {
@@ -118,10 +119,10 @@ namespace CONATRADEC.Controls
 
             ContainerBorder.Padding =
                 width < 600
-                    ? new Thickness(11)
+                    ? new Thickness(12)
                     : width < 1000
-                        ? new Thickness(14, 12)
-                        : new Thickness(16, 14);
+                        ? new Thickness(14)
+                        : new Thickness(16);
 
             if (compactMode == compact)
                 return;
@@ -158,8 +159,8 @@ namespace CONATRADEC.Controls
                 Grid.SetColumn(ClearButton, 1);
                 Grid.SetColumnSpan(ClearButton, 1);
 
-                SearchButton.Padding = new Thickness(12, 9);
-                ClearButton.Padding = new Thickness(12, 9);
+                SearchButton.HorizontalOptions = LayoutOptions.Fill;
+                ClearButton.HorizontalOptions = LayoutOptions.Fill;
                 return;
             }
 
@@ -184,8 +185,8 @@ namespace CONATRADEC.Controls
             Grid.SetColumn(ClearButton, 2);
             Grid.SetColumnSpan(ClearButton, 1);
 
-            SearchButton.Padding = new Thickness(16, 9);
-            ClearButton.Padding = new Thickness(16, 9);
+            SearchButton.HorizontalOptions = LayoutOptions.End;
+            ClearButton.HorizontalOptions = LayoutOptions.End;
         }
     }
 }

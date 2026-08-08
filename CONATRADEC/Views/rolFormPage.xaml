@@ -4,202 +4,185 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid Padding="{OnIdiom Phone='14,16,14,22', Tablet='22,20,22,26', Desktop='28,24,28,30'}">
-
+    <Grid Padding="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}">
         <ScrollView HorizontalScrollBarVisibility="Never">
-
             <VerticalStackLayout
                 x:Name="FormularioContainer"
-                MaximumWidthRequest="1100"
+                MaximumWidthRequest="900"
                 HorizontalOptions="Center"
-                Spacing="18">
+                Spacing="14">
 
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-
-                    <VerticalStackLayout Spacing="4">
-
-                        <Label
-                            Text="{Binding Title}"
-                            FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
-
-                        <Label
-                            Text="Defina el nombre y propósito del perfil que será utilizado por los usuarios."
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}"
-                            LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-
-                    <ActivityIndicator
-                        Grid.Column="1"
-                        IsRunning="{Binding IsBusy}"
-                        IsVisible="{Binding IsBusy}"
-                        Color="{StaticResource color_Naranja}"
-                        VerticalOptions="Center" />
-                </Grid>
-
-                <Border
-                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout Spacing="17">
-
-                        <VerticalStackLayout Spacing="3">
-
+                <Border Style="{StaticResource ModernHeroCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="4">
                             <Label
-                                Text="Información del rol"
-                                FontSize="19"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
+                                Text="{Binding Title}"
+                                Style="{StaticResource ModernPageTitle}"
                                 TextColor="{StaticResource color_Verde}" />
+                            <Label
+                                Text="Defina el nombre y propósito del perfil que será utilizado por los usuarios."
+                                Style="{StaticResource ModernPageSubtitle}" />
+                        </VerticalStackLayout>
 
+                        <ActivityIndicator
+                            Grid.Column="1"
+                            IsRunning="{Binding IsBusy}"
+                            IsVisible="{Binding IsBusy}"
+                            Color="{StaticResource color_Naranja}"
+                            VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="16">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Información del rol" Style="{StaticResource ModernSectionTitle}" />
                             <Label
                                 Text="Los permisos se administran posteriormente desde la matriz de permisos."
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                                Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="6">
-
-                            <Label
-                                Text="Nombre del rol"
-                                FontSize="13"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Border
-                                Padding="3"
-                                BackgroundColor="#FAFBFA"
-                                Stroke="#D1D5DB"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 11">
-
+                            <Label Text="Nombre del rol" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource ModernInputBorder}">
                                 <Border.Triggers>
                                     <DataTrigger
                                         TargetType="Border"
                                         Binding="{Binding TieneErrorNombreRol}"
                                         Value="True">
-
-                                        <Setter
-                                            Property="Stroke"
-                                            Value="{StaticResource RedDelete}" />
-
-                                        <Setter
-                                            Property="StrokeThickness"
-                                            Value="2" />
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
                                 </Border.Triggers>
-
                                 <Entry
                                     Placeholder="Ejemplo: SUPERVISOR"
                                     Text="{Binding NombreRol}"
                                     MaxLength="50"
                                     IsReadOnly="{Binding IsReadOnly}"
-                                    BackgroundColor="Transparent" />
+                                    Style="{StaticResource ModernEntry}" />
                             </Border>
-
                             <Label
                                 Text="{Binding ErrorNombreRol}"
                                 IsVisible="{Binding TieneErrorNombreRol}"
-                                FontSize="12"
+                                FontSize="11"
                                 TextColor="{StaticResource RedDelete}" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="6">
-
-                            <Label
-                                Text="Descripción"
-                                FontSize="13"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
+                            <Label Text="Descripción" Style="{StaticResource ModernFieldLabel}" />
                             <Border
-                                Padding="3"
-                                BackgroundColor="#FAFBFA"
-                                Stroke="#D1D5DB"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}"
+                                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                                 StrokeThickness="1"
-                                StrokeShape="RoundRectangle 11">
-
+                                StrokeShape="RoundRectangle 12"
+                                Padding="10,6">
                                 <Border.Triggers>
                                     <DataTrigger
                                         TargetType="Border"
                                         Binding="{Binding TieneErrorDescripcionRol}"
                                         Value="True">
-
-                                        <Setter
-                                            Property="Stroke"
-                                            Value="{StaticResource RedDelete}" />
-
-                                        <Setter
-                                            Property="StrokeThickness"
-                                            Value="2" />
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
                                 </Border.Triggers>
-
                                 <Editor
                                     Placeholder="Descripción del rol"
                                     Text="{Binding DescripcionRol}"
                                     MaxLength="500"
                                     AutoSize="TextChanges"
-                                    MinimumHeightRequest="130"
+                                    MinimumHeightRequest="120"
                                     IsReadOnly="{Binding IsReadOnly}"
                                     BackgroundColor="Transparent"
-                                    TextColor="{StaticResource color_Negro}" />
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                    PlaceholderColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="13" />
                             </Border>
-
-                            <Label
-                                Text="Máximo 500 caracteres."
-                                FontSize="11"
-                                TextColor="{StaticResource color_GrisOscuro}" />
-
-                            <Label
-                                Text="{Binding ErrorDescripcionRol}"
-                                IsVisible="{Binding TieneErrorDescripcionRol}"
-                                FontSize="12"
-                                TextColor="{StaticResource RedDelete}" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <Label Text="Máximo 500 caracteres." Style="{StaticResource ModernCaption}" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="{Binding ErrorDescripcionRol}"
+                                    IsVisible="{Binding TieneErrorDescripcionRol}"
+                                    FontSize="11"
+                                    TextColor="{StaticResource RedDelete}" />
+                            </Grid>
                         </VerticalStackLayout>
+
+                        <Border Style="{StaticResource ModernInfoBanner}">
+                            <Label
+                                Text="Este formulario administra únicamente la identidad del rol. Las acciones permitidas continúan configurándose desde la matriz de permisos."
+                                FontSize="11"
+                                TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark={StaticResource TextSecondaryDark}}"
+                                LineBreakMode="WordWrap" />
+                        </Border>
                     </VerticalStackLayout>
                 </Border>
 
-                <Grid
-                    ColumnDefinitions="*,*"
-                    ColumnSpacing="12"
-                    Margin="0,2,0,16">
-
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,2,0,16">
                     <Button
                         Grid.Column="0"
                         Text="Guardar"
-                        Style="{StaticResource UpdateButton}"
+                        Style="{StaticResource ModernPrimaryButton}"
                         IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding SaveCommand}" />
-
                     <Button
                         Grid.Column="1"
                         Text="Cancelar"
-                        Style="{StaticResource CancelButton}"
+                        Style="{StaticResource ModernNeutralButton}"
                         IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding CancelCommand}" />
-
                     <Button
                         Grid.Column="0"
                         Grid.ColumnSpan="2"
                         Text="Regresar"
-                        Style="{StaticResource CancelButton}"
+                        Style="{StaticResource ModernNeutralButton}"
                         IsVisible="{Binding IsReadOnly}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding CancelCommand}" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
+
+        <!--
+            Capa de carga de la operación actual.
+            Bloquea temporalmente la interacción para evitar dobles acciones
+            y deja claro que la aplicación continúa trabajando.
+        -->
+        <Grid
+            ZIndex="100"
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#4A0B1511">
+
+            <Border
+                Padding="18,14"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 14">
+
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}"
+                        WidthRequest="24"
+                        HeightRequest="24" />
+
+                    <Label
+                        Text="Procesando rol..."
+                        VerticalOptions="Center"
+                        FontFamily="MontserratBold"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

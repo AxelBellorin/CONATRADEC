@@ -6,180 +6,62 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
-    BackgroundColor="#F6F8F7">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid
-        Padding="{OnIdiom Phone='12,12,12,16', Tablet='20,18,20,22', Desktop='28,22,28,26'}">
-
-        <ScrollView
-            HorizontalScrollBarVisibility="Never"
-            VerticalScrollBarVisibility="Default">
-
-            <Border
-                Padding="{OnIdiom Phone=14, Tablet=18, Desktop=22}"
-                MaximumWidthRequest="1050"
-                HorizontalOptions="Fill"
-                BackgroundColor="White"
-                Stroke="#D7E2DE"
-                StrokeShape="RoundRectangle 18">
-
-                <VerticalStackLayout Spacing="15">
-                    <VerticalStackLayout Spacing="4">
-                        <Label
-                            x:Name="TituloRevisionLabel"
-                            FontSize="{OnIdiom Phone=21, Tablet=25, Desktop=27}"
-                            FontAttributes="Bold"
-                            TextColor="#263A35"
-                            LineBreakMode="WordWrap" />
-
-                        <Label
-                            x:Name="SubtituloFotografiaLabel"
-                            FontSize="14"
-                            TextColor="#60706B"
-                            LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-
-                    <Border
-                        HeightRequest="{OnIdiom Phone=280, Tablet=360, Desktop=440}"
-                        BackgroundColor="Black"
-                        Stroke="#D7DEDB"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 14">
-
-                        <Grid Padding="8">
-                            <Image
-                                x:Name="FotografiaImage"
-                                Aspect="AspectFit"
-                                HorizontalOptions="Fill"
-                                VerticalOptions="Fill">
-                                <Image.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnAmpliarImagenTapped" />
-                                </Image.GestureRecognizers>
-                            </Image>
-
-                            <Button
-                                Margin="8"
-                                Padding="14,8"
-                                Text="Ver imagen completa"
-                                Clicked="OnAmpliarImagenClicked"
-                                HorizontalOptions="End"
-                                VerticalOptions="End"
-                                BackgroundColor="#435B54"
-                                TextColor="White"
-                                CornerRadius="10" />
-                        </Grid>
-                    </Border>
-
-                    <Label
-                        Text="Toque la imagen para verla a pantalla completa."
-                        FontSize="12"
-                        TextColor="#7B8884"
-                        HorizontalTextAlignment="Center" />
-
-                    <Border
-                        Padding="16"
-                        BackgroundColor="#F8FBFA"
-                        Stroke="#D7E2DE"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 14">
-
-                        <VerticalStackLayout Spacing="8">
-                            <Label
-                                Text="Resultado de la IA"
-                                FontSize="13"
-                                FontAttributes="Bold"
-                                TextColor="#3B655B" />
-
-                            <Label
-                                x:Name="DiagnosticoIaLabel"
-                                FontSize="18"
-                                FontAttributes="Bold"
-                                TextColor="#263A35"
-                                LineBreakMode="WordWrap" />
-
-                            <Label
-                                x:Name="ResumenIaLabel"
-                                FontSize="14"
-                                TextColor="#475B55"
-                                LineBreakMode="WordWrap" />
-
-                            <Label
-                                x:Name="DetalleIaLabel"
-                                FontSize="13"
-                                TextColor="#6C7975"
-                                LineBreakMode="WordWrap" />
+    <Grid Padding="{OnIdiom Phone='12,12,12,16', Tablet='20,18,20,22', Desktop='28,22,28,26'}">
+        <ScrollView HorizontalScrollBarVisibility="Never" VerticalScrollBarVisibility="Default">
+            <VerticalStackLayout Spacing="14" MaximumWidthRequest="1050" HorizontalOptions="Center">
+                <Border Style="{StaticResource InspectionCard}">
+                    <VerticalStackLayout Spacing="15">
+                        <VerticalStackLayout Spacing="4">
+                            <Label x:Name="TituloRevisionLabel" Style="{StaticResource ModernPageTitle}" LineBreakMode="WordWrap" />
+                            <Label x:Name="SubtituloFotografiaLabel" Style="{StaticResource InspectionSubtitle}" />
                         </VerticalStackLayout>
-                    </Border>
 
-                    <VerticalStackLayout Spacing="9">
-                        <Label
-                            Text="Decisión del analizador"
-                            FontSize="16"
-                            FontAttributes="Bold"
-                            TextColor="#263A35" />
+                        <Border
+                            HeightRequest="{OnIdiom Phone=280, Tablet=360, Desktop=440}"
+                            BackgroundColor="Black"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                            StrokeShape="RoundRectangle 16"
+                           >
+                            <Grid Padding="8">
+                                <Image x:Name="FotografiaImage" Aspect="AspectFit" HorizontalOptions="Fill" VerticalOptions="Fill">
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnAmpliarImagenTapped" />
+                                    </Image.GestureRecognizers>
+                                </Image>
+                                <Button Margin="8" Padding="14,8" Text="Ver imagen completa" Clicked="OnAmpliarImagenClicked" HorizontalOptions="End" VerticalOptions="End" BackgroundColor="#435B54" TextColor="White" CornerRadius="10" FontSize="12" />
+                            </Grid>
+                        </Border>
+                        <Label Text="Toque la imagen para verla a pantalla completa." FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
 
-                        <Label
-                            Text="La decisión seleccionada se aplicará únicamente a esta fotografía."
-                            FontSize="12"
-                            TextColor="#697773"
-                            LineBreakMode="WordWrap" />
+                <Border Style="{StaticResource InspectionGreenPanel}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Resultado de la IA" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                        <Label x:Name="DiagnosticoIaLabel" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" LineBreakMode="WordWrap" />
+                        <Label x:Name="ResumenIaLabel" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" LineBreakMode="WordWrap" />
+                        <Label x:Name="DetalleIaLabel" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Border>
 
-                        <Button
-                            Text="✓ Confirmar diagnóstico IA"
-                            Clicked="OnConfirmarClicked"
-                            BackgroundColor="#3B655B"
-                            TextColor="White"
-                            CornerRadius="11"
-                            HeightRequest="48"
-                            FontAttributes="Bold" />
+                <Border Style="{StaticResource InspectionCard}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Decisión del analizador" Style="{StaticResource InspectionTitle}" />
+                        <Label Text="La decisión seleccionada se aplicará únicamente a esta fotografía." Style="{StaticResource InspectionSubtitle}" />
 
-                        <Button
-                            Text="✎ Corregir diagnóstico"
-                            Clicked="OnCorregirClicked"
-                            BackgroundColor="#9B552C"
-                            TextColor="White"
-                            CornerRadius="11"
-                            HeightRequest="48"
-                            FontAttributes="Bold" />
+                        <Button Text="✓ Confirmar diagnóstico IA" Clicked="OnConfirmarClicked" Style="{StaticResource InspectionPrimaryButton}" />
+                        <Button Text="✎ Corregir diagnóstico" Clicked="OnCorregirClicked" Style="{StaticResource InspectionCoffeeButton}" />
+                        <Button Text="↩ Devolver al técnico" Clicked="OnDevolverTecnicoClicked" BackgroundColor="{StaticResource BrandCoffeeSoft}" TextColor="#8A4325" CornerRadius="13" HeightRequest="48" FontAttributes="Bold" />
 
-                        <Button
-                            Text="↩ Devolver al técnico"
-                            Clicked="OnDevolverTecnicoClicked"
-                            BackgroundColor="#FFF4EA"
-                            TextColor="#8A4325"
-                            CornerRadius="11"
-                            HeightRequest="48"
-                            FontAttributes="Bold" />
-
-                        <Grid
-                            ColumnDefinitions="*,*"
-                            ColumnSpacing="9">
-
-                            <Button
-                                Grid.Column="0"
-                                Text="Omitir por ahora"
-                                Clicked="OnOmitirClicked"
-                                BackgroundColor="#EEF2F0"
-                                TextColor="#43534E"
-                                CornerRadius="11"
-                                HeightRequest="48"
-                                FontAttributes="Bold" />
-
-                            <Button
-                                Grid.Column="1"
-                                Text="Cancelar revisión"
-                                Clicked="OnCancelarClicked"
-                                BackgroundColor="White"
-                                TextColor="#6B7471"
-                                BorderColor="#CFD7D4"
-                                BorderWidth="1"
-                                CornerRadius="11"
-                                HeightRequest="48"
-                                FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="9">
+                            <Button Grid.Column="0" Text="Omitir por ahora" Clicked="OnOmitirClicked" Style="{StaticResource InspectionNeutralButton}" />
+                            <Button Grid.Column="1" Text="Cancelar revisión" Clicked="OnCancelarClicked" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" BorderColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" BorderWidth="1" CornerRadius="13" HeightRequest="48" FontAttributes="Bold" />
                         </Grid>
                     </VerticalStackLayout>
-                </VerticalStackLayout>
-            </Border>
+                </Border>
+            </VerticalStackLayout>
         </ScrollView>
     </Grid>
 </ContentPage>

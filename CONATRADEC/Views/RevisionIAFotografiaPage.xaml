@@ -6,7 +6,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
-    BackgroundColor="#F8F3FA">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Grid
         Padding="{OnIdiom Phone='12,12,12,16', Tablet='20,18,20,22', Desktop='28,22,28,26'}"
@@ -14,228 +14,132 @@
         RowSpacing="12">
 
         <ScrollView Grid.Row="0">
-            <Border
-                Padding="{OnIdiom Phone=14, Tablet=18, Desktop=22}"
+            <VerticalStackLayout
+                Spacing="14"
                 MaximumWidthRequest="1100"
-                HorizontalOptions="Fill"
-                BackgroundColor="White"
-                Stroke="#C8DED6"
-                StrokeShape="RoundRectangle 18">
+                HorizontalOptions="Center">
 
-                <VerticalStackLayout Spacing="16">
-                    <VerticalStackLayout Spacing="4">
-                        <Label
-                            Text="{Binding TituloFormulario}"
-                            FontSize="{OnIdiom Phone=22, Tablet=26, Desktop=28}"
-                            FontAttributes="Bold"
-                            TextColor="#263A35" />
-                        <Label
-                            Text="{Binding SubtituloFotografia}"
-                            FontSize="15"
-                            TextColor="#5E6B67" />
-                    </VerticalStackLayout>
-
-                    <Border
-                        HeightRequest="{OnIdiom Phone=260, Tablet=340, Desktop=420}"
-                        BackgroundColor="#EDF3F0"
-                        Stroke="#D4E2DD"
-                        StrokeShape="RoundRectangle 14">
-                        <Grid>
-                            <Image
-                                Source="{Binding UrlImagen}"
-                                Aspect="AspectFit">
-                                <Image.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnAmpliarImagenTapped" />
-                                </Image.GestureRecognizers>
-                            </Image>
-
-                            <Button
-                                Margin="10"
-                                Padding="14,8"
-                                Text="Ver imagen completa"
-                                Clicked="OnAmpliarImagenClicked"
-                                HorizontalOptions="End"
-                                VerticalOptions="End"
-                                BackgroundColor="#435B54"
-                                TextColor="White"
-                                CornerRadius="10" />
-                        </Grid>
-                    </Border>
-
-                    <Border
-                        Padding="14"
-                        BackgroundColor="#EEF6F2"
-                        Stroke="#D2E4DC"
-                        StrokeShape="RoundRectangle 13"
-                        IsVisible="{Binding TieneResultadoAnterior}">
-                        <VerticalStackLayout Spacing="6">
-                            <Label
-                                Text="Resultado anterior de la IA"
-                                FontSize="16"
-                                FontAttributes="Bold"
-                                TextColor="#315E52" />
-                            <Label
-                                Text="{Binding DiagnosticoAnterior}"
-                                FontSize="17"
-                                FontAttributes="Bold"
-                                TextColor="#263A35" />
-                            <Label
-                                Text="{Binding ResumenAnterior}"
-                                TextColor="#52625D"
-                                LineBreakMode="WordWrap" />
-                            <Label
-                                Text="{Binding DetalleAnterior}"
-                                FontSize="13"
-                                TextColor="#6A7773"
-                                LineBreakMode="WordWrap" />
+                <Border Style="{StaticResource InspectionCard}">
+                    <VerticalStackLayout Spacing="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding TituloFormulario}" Style="{StaticResource ModernPageTitle}" />
+                            <Label Text="{Binding SubtituloFotografia}" Style="{StaticResource InspectionSubtitle}" />
                         </VerticalStackLayout>
-                    </Border>
 
-                    <Border
-                        Padding="14"
-                        BackgroundColor="#F4F6F5"
-                        Stroke="#DCE4E1"
-                        StrokeShape="RoundRectangle 13"
-                        IsVisible="{Binding SinResultadoAnterior}">
-                        <Label
-                            Text="Esta fotografía todavía no tiene un resultado concluyente. Describa con claridad qué detalle debe revisar la IA."
-                            TextColor="#5E6B67"
-                            LineBreakMode="WordWrap" />
-                    </Border>
-
-                    <VerticalStackLayout Spacing="7">
-                        <Label
-                            Text="¿Qué deseas que revise la IA? *"
-                            FontSize="17"
-                            FontAttributes="Bold"
-                            TextColor="#263A35" />
-                        <Label
-                            Text="Explique qué detalle fue omitido, qué resultado parece incorrecto o qué parte de la fotografía debe analizarse con mayor atención."
-                            FontSize="13"
-                            TextColor="#65716D"
-                            LineBreakMode="WordWrap" />
+                        <!-- Se renderiza una sola imagen de trabajo. -->
                         <Border
-                            Padding="10"
-                            BackgroundColor="White"
-                            Stroke="#BFCFC9"
-                            StrokeShape="RoundRectangle 11">
+                            HeightRequest="{OnIdiom Phone=260, Tablet=340, Desktop=420}"
+                            BackgroundColor="#EDF3F0"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                            StrokeShape="RoundRectangle 16"
+                           >
+                            <Grid>
+                                <Image Source="{Binding UrlImagen}" Aspect="AspectFit">
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnAmpliarImagenTapped" />
+                                    </Image.GestureRecognizers>
+                                </Image>
+                                <Button
+                                    Margin="10"
+                                    Padding="14,8"
+                                    Text="Ver imagen completa"
+                                    Clicked="OnAmpliarImagenClicked"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="End"
+                                    BackgroundColor="#435B54"
+                                    TextColor="White"
+                                    CornerRadius="11"
+                                    FontSize="12" />
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource InspectionGreenPanel}" IsVisible="{Binding TieneResultadoAnterior}">
+                    <VerticalStackLayout Spacing="7">
+                        <Label Text="Resultado anterior de la IA" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                        <Label Text="{Binding DiagnosticoAnterior}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                        <Label Text="{Binding ResumenAnterior}" Style="{StaticResource InspectionSubtitle}" />
+                        <Label Text="{Binding DetalleAnterior}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource InspectionSoftPanel}" IsVisible="{Binding SinResultadoAnterior}">
+                    <Label
+                        Text="Esta fotografía todavía no tiene un resultado concluyente. Describa con claridad qué detalle debe revisar la IA."
+                        Style="{StaticResource InspectionSubtitle}" />
+                </Border>
+
+                <Border Style="{StaticResource InspectionCard}">
+                    <VerticalStackLayout Spacing="13">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="¿Qué desea que revise la IA? *" Style="{StaticResource InspectionTitle}" />
+                            <Label
+                                Text="Explique qué detalle fue omitido, qué resultado parece incorrecto o qué parte de la fotografía debe analizarse con mayor atención."
+                                Style="{StaticResource InspectionSubtitle}" />
+                        </VerticalStackLayout>
+
+                        <Border Style="{StaticResource InspectionInputBorder}" Padding="10">
                             <Editor
                                 Text="{Binding Motivo, Mode=TwoWay}"
                                 Placeholder="Ej. Revise las manchas amarillas del borde de la hoja; el análisis anterior las interpretó como daño mecánico."
                                 MaxLength="2000"
                                 AutoSize="TextChanges"
                                 MinimumHeightRequest="120"
-                                TextColor="#263A35" />
+                                BackgroundColor="Transparent"
+                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                         </Border>
-                        <Label
-                            Text="{Binding TextoLongitudMotivo}"
-                            FontSize="12"
-                            HorizontalTextAlignment="End"
-                            TextColor="#7A8581" />
-                    </VerticalStackLayout>
+                        <Label Text="{Binding TextoLongitudMotivo}" FontSize="12" HorizontalTextAlignment="End" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
 
-                    <Border
-                        Padding="14"
-                        BackgroundColor="#FAF7F0"
-                        Stroke="#E5D8BD"
-                        StrokeShape="RoundRectangle 13">
-                        <VerticalStackLayout Spacing="10">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                <VerticalStackLayout Grid.Column="0" Spacing="3">
-                                    <Label
-                                        Text="Tengo un diagnóstico que deseo confirmar o descartar"
-                                        FontAttributes="Bold"
-                                        TextColor="#4B4030"
-                                        LineBreakMode="WordWrap" />
-                                    <Label
-                                        Text="Es opcional. Actívelo solamente cuando tenga una hipótesis concreta."
-                                        FontSize="12"
-                                        TextColor="#766B58"
-                                        LineBreakMode="WordWrap" />
+                        <Border Style="{StaticResource InspectionWarningPanel}">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Spacing="3">
+                                        <Label Text="Tengo un diagnóstico que deseo confirmar o descartar" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" LineBreakMode="WordWrap" />
+                                        <Label Text="Es opcional. Actívelo solamente cuando tenga una hipótesis concreta." Style="{StaticResource InspectionSubtitle}" />
+                                    </VerticalStackLayout>
+                                    <Switch Grid.Column="1" IsToggled="{Binding TieneDiagnosticoPropuesto, Mode=TwoWay}" OnColor="{StaticResource color_Verde}" VerticalOptions="Center" />
+                                </Grid>
+
+                                <VerticalStackLayout Spacing="6" IsVisible="{Binding TieneDiagnosticoPropuesto}">
+                                    <Label Text="Diagnóstico sospechado *" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                    <Border Style="{StaticResource InspectionInputBorder}">
+                                        <Entry
+                                            Text="{Binding DiagnosticoPropuesto, Mode=TwoWay}"
+                                            Placeholder="Ej. Cercospora"
+                                            MaxLength="300"
+                                            ClearButtonVisibility="WhileEditing"
+                                            ReturnType="Done"
+                                            BackgroundColor="Transparent" />
+                                    </Border>
+                                    <Label Text="La IA deberá indicar si la evidencia lo respalda, lo contradice o no permite confirmarlo." FontSize="12" TextColor="#766B58" LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
-                                <Switch
-                                    Grid.Column="1"
-                                    IsToggled="{Binding TieneDiagnosticoPropuesto, Mode=TwoWay}"
-                                    OnColor="#3B655B"
-                                    VerticalOptions="Center" />
-                            </Grid>
-
-                            <VerticalStackLayout
-                                Spacing="6"
-                                IsVisible="{Binding TieneDiagnosticoPropuesto}">
-                                <Label
-                                    Text="Diagnóstico sospechado *"
-                                    FontAttributes="Bold"
-                                    TextColor="#4B4030" />
-                                <Entry
-                                    Text="{Binding DiagnosticoPropuesto, Mode=TwoWay}"
-                                    Placeholder="Ej. Cercospora"
-                                    MaxLength="300"
-                                    ClearButtonVisibility="WhileEditing"
-                                    ReturnType="Done" />
-                                <Label
-                                    Text="La IA deberá indicar si la evidencia lo respalda, lo contradice o no permite confirmarlo."
-                                    FontSize="12"
-                                    TextColor="#766B58"
-                                    LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </Border>
+                        </Border>
 
-                    <Border
-                        Padding="12"
-                        BackgroundColor="#FFF0EF"
-                        Stroke="#E5B7B2"
-                        StrokeShape="RoundRectangle 11"
-                        IsVisible="{Binding MostrarError}">
-                        <Label
-                            Text="{Binding MensajeError}"
-                            TextColor="#A83228"
-                            LineBreakMode="WordWrap" />
-                    </Border>
-                </VerticalStackLayout>
-            </Border>
+                        <Border Style="{StaticResource InspectionDangerPanel}" IsVisible="{Binding MostrarError}">
+                            <Label Text="{Binding MensajeError}" TextColor="#A83228" LineBreakMode="WordWrap" />
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
         </ScrollView>
 
-        <Border
-            Grid.Row="1"
-            Padding="12"
-            MaximumWidthRequest="1100"
-            HorizontalOptions="Fill"
-            BackgroundColor="White"
-            Stroke="#D5E1DD"
-            StrokeShape="RoundRectangle 14">
-            <Grid
-                ColumnDefinitions="*,*"
-                ColumnSpacing="10">
-                <Button
-                    Grid.Column="0"
-                    Text="Cancelar"
-                    Clicked="OnCancelarClicked"
-                    BackgroundColor="#EEF2F0"
-                    TextColor="#435B54"
-                    CornerRadius="11" />
-                <Button
-                    Grid.Column="1"
-                    Text="Solicitar nueva evaluación"
-                    Clicked="OnConfirmarClicked"
-                    BackgroundColor="#3B655B"
-                    TextColor="White"
-                    CornerRadius="11" />
+        <Border Grid.Row="1" Style="{StaticResource InspectionCard}" Padding="10">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" MaximumWidthRequest="1100" HorizontalOptions="Center">
+                <Button Grid.Column="0" Text="Cancelar" Clicked="OnCancelarClicked" Style="{StaticResource InspectionNeutralButton}" />
+                <Button Grid.Column="1" Text="Solicitar nueva evaluación" Clicked="OnConfirmarClicked" Style="{StaticResource InspectionPrimaryButton}" />
             </Grid>
         </Border>
 
+        <!-- Visor modal interno: no crea una segunda página ni una segunda descarga. -->
         <Grid
             Grid.RowSpan="2"
             ZIndex="20"
             Padding="12"
             BackgroundColor="#E6000000"
             IsVisible="{Binding ImagenAmpliadaVisible}">
-            <Image
-                Source="{Binding UrlImagen}"
-                Aspect="AspectFit"
-                HorizontalOptions="Fill"
-                VerticalOptions="Fill" />
+            <Image Source="{Binding UrlImagen}" Aspect="AspectFit" HorizontalOptions="Fill" VerticalOptions="Fill" />
             <Button
                 Margin="8"
                 Padding="18,10"

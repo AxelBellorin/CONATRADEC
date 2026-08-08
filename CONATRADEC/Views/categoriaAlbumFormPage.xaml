@@ -1,272 +1,234 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.categoriaAlbumFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='#F4F7F5', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid RowDefinitions="Auto,*">
-
-        <Grid
-            Grid.Row="0"
-            Padding="{OnPlatform WinUI='26,18', Default='16,12'}"
-            ColumnDefinitions="Auto,*"
-            ColumnSpacing="10"
-            BackgroundColor="White">
-
-            <Button
-                Grid.Column="0"
-                Text="← Regresar"
-                Command="{Binding CancelarCommand}"
-                BackgroundColor="Transparent"
-                TextColor="{StaticResource color_Verde}"
-                FontAttributes="Bold" />
-
-            <Label
-                Grid.Column="1"
-                Text="{Binding TituloPagina}"
-                VerticalOptions="Center"
-                FontFamily="MontserratBold"
-                FontSize="21"
-                FontAttributes="Bold"
-                TextColor="{StaticResource color_Negro}" />
-
-        </Grid>
-
-        <ScrollView Grid.Row="1">
-
+    <Grid>
+        <ScrollView>
             <VerticalStackLayout
-                Padding="{OnPlatform WinUI='30,26,30,38', Default='16,18,16,28'}"
-                MaximumWidthRequest="780"
+                Padding="{OnIdiom Phone='12,10,12,26', Tablet='20,16,20,32', Desktop='28,20,28,38'}"
+                MaximumWidthRequest="900"
                 HorizontalOptions="Center"
-                Spacing="18">
+                Spacing="14">
 
-                <Border
-                    Padding="{OnPlatform WinUI=28, Default=20}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 20">
+                <Border Style="{StaticResource ModernHeroCard}">
+                    <VerticalStackLayout Spacing="8">
+                        <Button
+                            Text="← Regresar"
+                            Command="{Binding CancelarCommand}"
+                            Style="{StaticResource ModernLinkButton}"
+                            HorizontalOptions="Start"
+                            HeightRequest="36"
+                            Padding="4,4" />
+                        <Label
+                            Text="{Binding TituloPagina}"
+                            Style="{StaticResource ModernPageTitle}" />
+                        <Label
+                            Text="Organice el Álbum Botánico mediante capítulos principales fáciles de identificar."
+                            Style="{StaticResource ModernPageSubtitle}" />
+                    </VerticalStackLayout>
+                </Border>
 
-                    <VerticalStackLayout Spacing="18">
-
-                        <VerticalStackLayout Spacing="5">
-
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="15">
+                        <VerticalStackLayout Spacing="3">
                             <Label
                                 Text="Información del capítulo"
-                                FontFamily="MontserratBold"
-                                FontSize="21"
-                                FontAttributes="Bold"
+                                Style="{StaticResource ModernSectionTitle}"
                                 TextColor="{StaticResource color_Verde}" />
-
                             <Label
                                 Text="La categoría funciona como un capítulo principal del álbum."
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
-
+                                Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Spacing="6">
-
+                        <VerticalStackLayout Spacing="5">
                             <Label
                                 Text="Nombre de la categoría *"
-                                FontSize="13"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Border
-                                Padding="13,3"
-                                BackgroundColor="#F8FAF9"
-                                Stroke="#D6E1DC"
-                                StrokeShape="RoundRectangle 12">
-
+                                Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource ModernInputBorder}">
                                 <Border.Triggers>
                                     <DataTrigger
                                         TargetType="Border"
                                         Binding="{Binding TieneErrorNombre}"
                                         Value="True">
-                                        <Setter
-                                            Property="Stroke"
-                                            Value="{StaticResource RedDelete}" />
-                                        <Setter
-                                            Property="StrokeThickness"
-                                            Value="2" />
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
                                 </Border.Triggers>
-
                                 <Entry
                                     Text="{Binding Nombre}"
                                     Placeholder="Ejemplo: Enfermedades"
                                     MaxLength="100"
-                                    BackgroundColor="Transparent"
-                                    TextColor="{StaticResource color_Negro}" />
-
+                                    Style="{StaticResource ModernEntry}" />
                             </Border>
-
                             <Label
                                 Text="{Binding ErrorNombre}"
                                 IsVisible="{Binding TieneErrorNombre}"
                                 Style="{StaticResource ValidationMessageStyle}" />
-
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Spacing="6">
-
+                        <VerticalStackLayout Spacing="5">
                             <Label
                                 Text="Introducción del capítulo"
-                                FontSize="13"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Border
-                                Padding="10"
-                                BackgroundColor="#F8FAF9"
-                                Stroke="#D6E1DC"
-                                StrokeShape="RoundRectangle 12">
-
+                                Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource ModernInputBorder}" Padding="10">
                                 <Border.Triggers>
                                     <DataTrigger
                                         TargetType="Border"
                                         Binding="{Binding TieneErrorDescripcion}"
                                         Value="True">
-                                        <Setter
-                                            Property="Stroke"
-                                            Value="{StaticResource RedDelete}" />
-                                        <Setter
-                                            Property="StrokeThickness"
-                                            Value="2" />
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
                                 </Border.Triggers>
-
                                 <Editor
                                     Text="{Binding Descripcion}"
                                     Placeholder="Explique qué encontrará el usuario dentro de esta categoría."
                                     MaxLength="500"
                                     AutoSize="TextChanges"
-                                    MinimumHeightRequest="130"
+                                    MinimumHeightRequest="120"
                                     BackgroundColor="Transparent"
-                                    TextColor="{StaticResource color_Negro}" />
-
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                             </Border>
-
-                            <Label
-                                Text="{Binding ErrorDescripcion}"
-                                IsVisible="{Binding TieneErrorDescripcion}"
-                                Style="{StaticResource ValidationMessageStyle}" />
-
-                            <Label
-                                Text="Máximo 500 caracteres."
-                                FontSize="10"
-                                TextColor="{StaticResource color_GrisOscuro}" />
-
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label
+                                    Text="{Binding ErrorDescripcion}"
+                                    IsVisible="{Binding TieneErrorDescripcion}"
+                                    Style="{StaticResource ValidationMessageStyle}" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Máximo 500 caracteres"
+                                    Style="{StaticResource ModernCaption}" />
+                            </Grid>
                         </VerticalStackLayout>
-
                     </VerticalStackLayout>
-
                 </Border>
 
-                <Border
-                    Padding="{OnPlatform WinUI=28, Default=20}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 20">
-
-                    <VerticalStackLayout Spacing="14">
-
-                        <Label
-                            Text="Imagen de portada"
-                            FontFamily="MontserratBold"
-                            FontSize="19"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
-
-                        <Image
-                            Source="{Binding ImagenActual}"
-                            IsVisible="{Binding TieneImagenActual}"
-                            HeightRequest="220"
-                            Aspect="AspectFit" />
-
+                <Border Style="{StaticResource ModernFormCard}">
+                    <Grid
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                        ColumnDefinitions="{OnIdiom Phone='*', Default='0.9*,1.1*'}"
+                        RowSpacing="12"
+                        ColumnSpacing="18">
                         <Border
-                            IsVisible="{Binding TieneImagenActual}"
-                            Padding="10"
-                            BackgroundColor="#F2F8F5"
-                            Stroke="#C8DED6"
-                            StrokeShape="RoundRectangle 10">
-
-                            <Label
-                                Text="La nueva imagen reemplazará la portada actual."
-                                FontSize="11"
-                                TextColor="{StaticResource color_Verde}" />
-
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            HeightRequest="{OnIdiom Phone=210, Tablet=230, Desktop=250}"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                            StrokeShape="RoundRectangle 15">
+                            <Grid>
+                                <Image
+                                    Source="iconalbum.png"
+                                    WidthRequest="72"
+                                    HeightRequest="72"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    />
+                                <Image
+                                    Source="{Binding ImagenActual}"
+                                    IsVisible="{Binding TieneImagenActual}"
+                                    Aspect="AspectFit"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill" />
+                            </Grid>
                         </Border>
 
-                        <Button
-                            Text="Seleccionar imagen"
-                            Command="{Binding SeleccionarPortadaCommand}"
-                            IsEnabled="{Binding NotIsBusy}"
-                            BackgroundColor="#EEF5F2"
-                            TextColor="{StaticResource color_Verde}"
-                            BorderColor="#C8DED6"
-                            BorderWidth="1"
-                            CornerRadius="12"
-                            HeightRequest="48"
-                            FontAttributes="Bold" />
-
-                        <Label
-                            Text="{Binding ArchivoSeleccionadoTexto}"
-                            FontSize="11"
-                            TextColor="{StaticResource color_GrisOscuro}"
-                            HorizontalTextAlignment="Center" />
-
-                        <Label
-                            Text="Formatos permitidos: JPG, JPEG, PNG y WEBP. Tamaño máximo: 8 MB."
-                            FontSize="10"
-                            TextColor="{StaticResource color_GrisOscuro}"
-                            HorizontalTextAlignment="Center" />
-
-                    </VerticalStackLayout>
-
+                        <VerticalStackLayout
+                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                            Spacing="10">
+                            <Label
+                                Text="Imagen de portada"
+                                Style="{StaticResource ModernSectionTitle}"
+                                TextColor="{StaticResource color_Verde}" />
+                            <Label
+                                Text="Seleccione una imagen representativa para identificar rápidamente la categoría."
+                                Style="{StaticResource ModernCaption}" />
+                            <Border
+                                IsVisible="{Binding TieneImagenActual}"
+                                Style="{StaticResource ModernInfoBanner}">
+                                <Label
+                                    Text="La nueva imagen reemplazará la portada actual."
+                                    FontSize="11"
+                                    TextColor="{StaticResource color_Verde}" />
+                            </Border>
+                            <Button
+                                Text="Seleccionar imagen"
+                                Command="{Binding SeleccionarPortadaCommand}"
+                                IsEnabled="{Binding NotIsBusy}"
+                                Style="{StaticResource ModernSecondaryButton}" />
+                            <Label
+                                Text="{Binding ArchivoSeleccionadoTexto}"
+                                Style="{StaticResource ModernCaption}"
+                                HorizontalTextAlignment="Center"
+                                LineBreakMode="MiddleTruncation"
+                                MaxLines="1" />
+                            <Label
+                                Text="JPG, JPEG, PNG o WEBP · Máximo 8 MB"
+                                Style="{StaticResource ModernCaption}"
+                                HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Grid>
                 </Border>
 
-                <ActivityIndicator
-                    IsRunning="{Binding IsBusy}"
-                    IsVisible="{Binding IsBusy}"
-                    Color="{StaticResource color_Naranja}" />
-
                 <Grid
-                    ColumnDefinitions="*,*"
+                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                    RowSpacing="8"
                     ColumnSpacing="10">
-
                     <Button
-                        Grid.Column="0"
                         Text="Cancelar"
                         Command="{Binding CancelarCommand}"
                         IsEnabled="{Binding NotIsBusy}"
-                        BackgroundColor="#F3F4F6"
-                        TextColor="{StaticResource color_GrisOscuro}"
-                        CornerRadius="12"
-                        HeightRequest="52" />
-
+                        Style="{StaticResource ModernNeutralButton}"
+                        HeightRequest="50" />
                     <Button
-                        Grid.Column="1"
+                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                        Grid.Column="{OnIdiom Phone=0, Default=1}"
                         Text="Guardar categoría"
                         Command="{Binding GuardarCommand}"
                         IsEnabled="{Binding NotIsBusy}"
-                        BackgroundColor="{StaticResource color_Verde}"
-                        TextColor="White"
-                        CornerRadius="12"
-                        HeightRequest="52"
-                        FontAttributes="Bold" />
-
+                        Style="{StaticResource ModernPrimaryButton}"
+                        HeightRequest="50" />
                 </Grid>
-
             </VerticalStackLayout>
-
         </ScrollView>
 
+        <Grid
+            ZIndex="100"
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#520B1511">
+            <Border
+                Padding="22,18"
+                MaximumWidthRequest="350"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}"
+                        WidthRequest="38"
+                        HeightRequest="38" />
+                    <Label
+                        Text="Procesando categoría..."
+                        FontFamily="MontserratBold"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                    <Label
+                        Text="Guardando información y portada."
+                        HorizontalTextAlignment="Center"
+                        Style="{StaticResource ModernCaption}" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
-
 </ContentPage>

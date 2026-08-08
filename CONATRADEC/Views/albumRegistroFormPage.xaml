@@ -4,71 +4,53 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='#F4F7F5', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid RowDefinitions="Auto,*">
-        <Grid
-            Grid.Row="0"
-            Padding="{OnPlatform WinUI='26,18', Default='16,12'}"
-            ColumnDefinitions="Auto,*"
-            ColumnSpacing="10"
-            BackgroundColor="White">
-            <Button
-                Grid.Column="0"
-                Text="← Regresar"
-                Command="{Binding CancelarCommand}"
-                IsEnabled="{Binding NotIsBusy}"
-                BackgroundColor="Transparent"
-                TextColor="{StaticResource color_Verde}"
-                FontAttributes="Bold" />
-            <Label
-                Grid.Column="1"
-                Text="{Binding TituloPagina}"
-                VerticalOptions="Center"
-                FontFamily="MontserratBold"
-                FontSize="21"
-                FontAttributes="Bold"
-                TextColor="{StaticResource color_Negro}" />
-        </Grid>
-
-        <ScrollView Grid.Row="1">
+    <Grid>
+        <ScrollView>
             <VerticalStackLayout
-                Padding="{OnPlatform WinUI='30,26,30,38', Default='16,18,16,28'}"
-                MaximumWidthRequest="920"
+                Padding="{OnIdiom Phone='12,10,12,26', Tablet='20,16,20,32', Desktop='28,20,28,38'}"
+                MaximumWidthRequest="1040"
                 HorizontalOptions="Center"
-                Spacing="18">
+                Spacing="14">
 
-                <Border
-                    Padding="{OnPlatform WinUI=28, Default=20}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 20">
-                    <VerticalStackLayout Spacing="17">
-                        <VerticalStackLayout Spacing="5">
+                <!-- Encabezado desplazable para no consumir altura permanente. -->
+                <Border Style="{StaticResource ModernHeroCard}">
+                    <VerticalStackLayout Spacing="8">
+                        <Button
+                            Text="← Regresar"
+                            Command="{Binding CancelarCommand}"
+                            IsEnabled="{Binding NotIsBusy}"
+                            Style="{StaticResource ModernLinkButton}"
+                            HorizontalOptions="Start"
+                            HeightRequest="36"
+                            Padding="4,4" />
+                        <Label
+                            Text="{Binding TituloPagina}"
+                            Style="{StaticResource ModernPageTitle}" />
+                        <Label
+                            Text="Defina la identificación y la información técnica. Las fotografías se administran después de guardar."
+                            Style="{StaticResource ModernPageSubtitle}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="15">
+                        <VerticalStackLayout Spacing="3">
                             <Label
                                 Text="Identificación"
-                                FontFamily="MontserratBold"
-                                FontSize="21"
-                                FontAttributes="Bold"
+                                Style="{StaticResource ModernSectionTitle}"
                                 TextColor="{StaticResource color_Verde}" />
                             <Label
-                                Text="Defina la categoría y la subcategoría específica. Las fotografías se administran después de guardar."
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                                Text="Datos principales de la subcategoría del álbum."
+                                Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Spacing="6">
+                        <VerticalStackLayout Spacing="5">
                             <Label
                                 Text="Categoría *"
-                                FontSize="13"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-                            <Border
-                                Padding="12,2"
-                                BackgroundColor="#F8FAF9"
-                                Stroke="#D6E1DC"
-                                StrokeShape="RoundRectangle 12">
+                                Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource ModernInputBorder}">
                                 <Border.Triggers>
                                     <DataTrigger
                                         TargetType="Border"
@@ -83,8 +65,7 @@
                                     SelectedItem="{Binding CategoriaSeleccionada}"
                                     ItemDisplayBinding="{Binding NombreCategoria}"
                                     Title="Seleccione una categoría"
-                                    BackgroundColor="Transparent"
-                                    TextColor="{StaticResource color_Negro}" />
+                                    Style="{StaticResource ModernPicker}" />
                             </Border>
                             <Label
                                 Text="{Binding ErrorCategoria}"
@@ -93,21 +74,15 @@
                         </VerticalStackLayout>
 
                         <Grid
-                            ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
-                            RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
                             ColumnSpacing="12"
                             RowSpacing="12">
-                            <VerticalStackLayout Grid.Column="0" Grid.Row="0" Spacing="6">
+                            <VerticalStackLayout Spacing="5">
                                 <Label
                                     Text="Subcategoría específica *"
-                                    FontSize="13"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Negro}" />
-                                <Border
-                                    Padding="13,3"
-                                    BackgroundColor="#F8FAF9"
-                                    Stroke="#D6E1DC"
-                                    StrokeShape="RoundRectangle 12">
+                                    Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
                                     <Border.Triggers>
                                         <DataTrigger
                                             TargetType="Border"
@@ -121,8 +96,7 @@
                                         Text="{Binding Titulo}"
                                         MaxLength="200"
                                         Placeholder="Ejemplo: Mancha de hierro"
-                                        BackgroundColor="Transparent"
-                                        TextColor="{StaticResource color_Negro}" />
+                                        Style="{StaticResource ModernEntry}" />
                                 </Border>
                                 <Label
                                     Text="{Binding ErrorTitulo}"
@@ -131,19 +105,13 @@
                             </VerticalStackLayout>
 
                             <VerticalStackLayout
-                                Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                                Spacing="6">
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Spacing="5">
                                 <Label
                                     Text="Nombre científico"
-                                    FontSize="13"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Negro}" />
-                                <Border
-                                    Padding="13,3"
-                                    BackgroundColor="#F8FAF9"
-                                    Stroke="#D6E1DC"
-                                    StrokeShape="RoundRectangle 12">
+                                    Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
                                     <Border.Triggers>
                                         <DataTrigger
                                             TargetType="Border"
@@ -157,8 +125,7 @@
                                         Text="{Binding NombreCientifico}"
                                         MaxLength="200"
                                         Placeholder="Ejemplo: Cercospora coffeicola"
-                                        BackgroundColor="Transparent"
-                                        TextColor="{StaticResource color_Negro}" />
+                                        Style="{StaticResource ModernEntry}" />
                                 </Border>
                                 <Label
                                     Text="{Binding ErrorNombreCientifico}"
@@ -167,17 +134,11 @@
                             </VerticalStackLayout>
                         </Grid>
 
-                        <VerticalStackLayout Spacing="6">
+                        <VerticalStackLayout Spacing="5">
                             <Label
                                 Text="Descripción general *"
-                                FontSize="13"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-                            <Border
-                                Padding="10"
-                                BackgroundColor="#F8FAF9"
-                                Stroke="#D6E1DC"
-                                StrokeShape="RoundRectangle 12">
+                                Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource ModernInputBorder}" Padding="10">
                                 <Border.Triggers>
                                     <DataTrigger
                                         TargetType="Border"
@@ -190,10 +151,10 @@
                                 <Editor
                                     Text="{Binding Descripcion}"
                                     Placeholder="Explique de forma general este diagnóstico o clasificación."
-                                    MinimumHeightRequest="130"
+                                    MinimumHeightRequest="115"
                                     AutoSize="TextChanges"
                                     BackgroundColor="Transparent"
-                                    TextColor="{StaticResource color_Negro}" />
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                             </Border>
                             <Label
                                 Text="{Binding ErrorDescripcion}"
@@ -203,86 +164,151 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Border
-                    Padding="{OnPlatform WinUI=28, Default=20}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 20">
-                    <VerticalStackLayout Spacing="17">
-                        <VerticalStackLayout Spacing="5">
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="14">
+                        <VerticalStackLayout Spacing="3">
                             <Label
                                 Text="Información técnica"
-                                FontFamily="MontserratBold"
-                                FontSize="21"
-                                FontAttributes="Bold"
+                                Style="{StaticResource ModernSectionTitle}"
                                 TextColor="{StaticResource color_Cafe}" />
                             <Label
                                 Text="Estos campos se mostrarán en el detalle de la subcategoría."
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                                Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Características" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                            <Border Padding="10" BackgroundColor="#F8FAF9" Stroke="#D6E1DC" StrokeShape="RoundRectangle 12">
-                                <Editor Text="{Binding Caracteristicas}" MinimumHeightRequest="100" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
-                            </Border>
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Síntomas" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                            <Border Padding="10" BackgroundColor="#F8FAF9" Stroke="#D6E1DC" StrokeShape="RoundRectangle 12">
-                                <Editor Text="{Binding Sintomas}" MinimumHeightRequest="100" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
-                            </Border>
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Causas" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                            <Border Padding="10" BackgroundColor="#F8FAF9" Stroke="#D6E1DC" StrokeShape="RoundRectangle 12">
-                                <Editor Text="{Binding Causas}" MinimumHeightRequest="100" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
-                            </Border>
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Recomendaciones" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                            <Border Padding="10" BackgroundColor="#F2F8F5" Stroke="#C8DED6" StrokeShape="RoundRectangle 12">
-                                <Editor Text="{Binding Recomendaciones}" MinimumHeightRequest="110" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
-                            </Border>
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Observaciones" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" />
-                            <Border Padding="10" BackgroundColor="#FFF8ED" Stroke="#F1D7AF" StrokeShape="RoundRectangle 12">
-                                <Editor Text="{Binding Observaciones}" MinimumHeightRequest="90" AutoSize="TextChanges" BackgroundColor="Transparent" TextColor="{StaticResource color_Negro}" />
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                            ColumnSpacing="12"
+                            RowSpacing="12">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Características" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}" Padding="10">
+                                    <Editor
+                                        Text="{Binding Caracteristicas}"
+                                        MinimumHeightRequest="95"
+                                        AutoSize="TextChanges"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Spacing="5">
+                                <Label Text="Síntomas" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}" Padding="10">
+                                    <Editor
+                                        Text="{Binding Sintomas}"
+                                        MinimumHeightRequest="95"
+                                        AutoSize="TextChanges"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                            ColumnSpacing="12"
+                            RowSpacing="12">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Causas" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}" Padding="10">
+                                    <Editor
+                                        Text="{Binding Causas}"
+                                        MinimumHeightRequest="95"
+                                        AutoSize="TextChanges"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Spacing="5">
+                                <Label Text="Recomendaciones" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInfoBanner}" Padding="10">
+                                    <Editor
+                                        Text="{Binding Recomendaciones}"
+                                        MinimumHeightRequest="95"
+                                        AutoSize="TextChanges"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Observaciones" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource ModernWarningBanner}" Padding="10">
+                                <Editor
+                                    Text="{Binding Observaciones}"
+                                    MinimumHeightRequest="90"
+                                    AutoSize="TextChanges"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                             </Border>
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
-                <ActivityIndicator
-                    IsRunning="{Binding IsBusy}"
-                    IsVisible="{Binding IsBusy}"
-                    Color="{StaticResource color_Naranja}" />
-
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Grid
+                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                    RowSpacing="8"
+                    ColumnSpacing="10">
                     <Button
-                        Grid.Column="0"
                         Text="Cancelar"
                         Command="{Binding CancelarCommand}"
                         IsEnabled="{Binding NotIsBusy}"
-                        BackgroundColor="#F3F4F6"
-                        TextColor="{StaticResource color_GrisOscuro}"
-                        CornerRadius="12"
-                        HeightRequest="52" />
+                        Style="{StaticResource ModernNeutralButton}"
+                        HeightRequest="50" />
                     <Button
-                        Grid.Column="1"
+                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                        Grid.Column="{OnIdiom Phone=0, Default=1}"
                         Text="Guardar subcategoría"
                         Command="{Binding GuardarCommand}"
                         IsEnabled="{Binding NotIsBusy}"
-                        BackgroundColor="{StaticResource color_Verde}"
-                        TextColor="White"
-                        CornerRadius="12"
-                        HeightRequest="52"
-                        FontAttributes="Bold" />
+                        Style="{StaticResource ModernPrimaryButton}"
+                        HeightRequest="50" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
+
+        <!-- Relay para carga inicial y guardado. -->
+        <Grid
+            ZIndex="100"
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#520B1511">
+            <Border
+                Padding="22,18"
+                MaximumWidthRequest="350"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}"
+                        WidthRequest="38"
+                        HeightRequest="38" />
+                    <Label
+                        Text="Procesando subcategoría..."
+                        FontFamily="MontserratBold"
+                        FontAttributes="Bold"
+                        HorizontalTextAlignment="Center"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                    <Label
+                        Text="Espere mientras se completa la operación."
+                        HorizontalTextAlignment="Center"
+                        Style="{StaticResource ModernCaption}" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

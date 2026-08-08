@@ -7,39 +7,60 @@
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
     NavigationPage.HasBackButton="False"
-    BackgroundColor="#F7F8F7">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Shell.BackButtonBehavior>
         <BackButtonBehavior IsVisible="False" IsEnabled="False" />
     </Shell.BackButtonBehavior>
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
-        <Grid
-            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-            RowDefinitions="Auto,*"
-            RowSpacing="14">
-
-            <controls:ResponsiveCatalogHeader
-                Grid.Row="0"
-                Title="Inspección fitosanitaria"
-                Subtitle="Recorridos de campo, análisis visual por fotografía y validación humana."
-                BackText="← Inicio"
-                BackCommand="{Binding RegresarCommand}"
-                PrimaryText="Nueva inspección"
-                PrimaryCommand="{Binding NuevaInspeccionCommand}"
-                IsPrimaryVisible="{Binding PuedeNuevaInspeccion}" />
-
-            <ScrollView Grid.Row="1">
+        <Grid>
+            <ScrollView>
                 <VerticalStackLayout
+                    Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
                     Spacing="16"
-                    MaximumWidthRequest="1100"
+                    MaximumWidthRequest="1160"
                     HorizontalOptions="Center">
 
-                    <!--
-                        Windows conserva la distribución en dos columnas.
-                        Android/iOS/MacCatalyst usan una sola columna y una fila
-                        independiente para cada opción, evitando superposición.
-                    -->
+                    <!-- El encabezado forma parte del scroll para liberar espacio en móvil. -->
+                    <controls:InspectionHeader
+                        Title="Inspección fitosanitaria"
+                        Subtitle="Recorridos de campo, análisis visual por fotografía y validación humana."
+                        BackText="← Inicio"
+                        BackCommand="{Binding RegresarCommand}"
+                        PrimaryText="Nueva inspección"
+                        PrimaryCommand="{Binding NuevaInspeccionCommand}"
+                        IsPrimaryVisible="{Binding PuedeNuevaInspeccion}" />
+
+                    <Border Style="{StaticResource InspectionGreenPanel}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="13">
+                            <Border
+                                WidthRequest="42"
+                                HeightRequest="42"
+                                BackgroundColor="{StaticResource color_Verde}"
+                                Stroke="Transparent"
+                                StrokeShape="RoundRectangle 13">
+                                <Label
+                                    Text="✓"
+                                    TextColor="White"
+                                    FontSize="20"
+                                    FontAttributes="Bold"
+                                    HorizontalTextAlignment="Center"
+                                    VerticalTextAlignment="Center" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                <Label
+                                    Text="Flujo fitosanitario"
+                                    FontAttributes="Bold"
+                                    FontSize="14"
+                                    TextColor="{StaticResource color_Verde}" />
+                                <Label
+                                    Text="Capture evidencia en campo, dé seguimiento al diagnóstico y complete las revisiones humanas desde un mismo módulo."
+                                    Style="{StaticResource InspectionSubtitle}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
                     <Grid
                         ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
                         RowDefinitions="{OnPlatform WinUI='Auto,Auto,Auto', Default='Auto,Auto,Auto,Auto,Auto'}"
@@ -47,150 +68,161 @@
                         RowSpacing="14">
 
                         <Border
-                            Grid.Row="0"
-                            Grid.Column="0"
-                            Padding="18"
-                            BackgroundColor="White"
-                            Stroke="#C8DED6"
-                            StrokeShape="RoundRectangle 15"
+                            Grid.Row="{Binding FilaNuevaInspeccion}"
+                            Grid.Column="{Binding ColumnaNuevaInspeccion}"
+                            Style="{StaticResource InspectionCard}"
                             IsVisible="{Binding PuedeNuevaInspeccion}">
-                            <VerticalStackLayout Spacing="8">
-                                <Label
-                                    Text="Nueva inspección"
-                                    FontSize="20"
-                                    FontAttributes="Bold"
-                                    TextColor="#263A35" />
-                                <Label
-                                    Text="Seleccione un terreno, capture fotografías y comience el análisis individual de cada evidencia."
-                                    TextColor="#5E6B67" />
-                                <Button
-                                    Text="Iniciar inspección"
-                                    Command="{Binding NuevaInspeccionCommand}"
-                                    BackgroundColor="#3B655B"
-                                    TextColor="White"
-                                    CornerRadius="11" />
+                            <VerticalStackLayout Spacing="12">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <Border WidthRequest="42" HeightRequest="42" BackgroundColor="{StaticResource BrandGreenSoft}" Stroke="Transparent" StrokeShape="RoundRectangle 13">
+                                        <Label Text="{Binding NumeroNuevaInspeccion}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                        <Label Text="Nueva inspección" Style="{StaticResource InspectionTitle}" />
+                                        <Label Text="Seleccione un terreno, capture fotografías y comience el análisis individual de cada evidencia." Style="{StaticResource InspectionSubtitle}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                                <Button Text="Iniciar inspección" Command="{Binding NuevaInspeccionCommand}" Style="{StaticResource InspectionPrimaryButton}" />
                             </VerticalStackLayout>
                         </Border>
 
                         <Border
-                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
-                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                            Padding="18"
-                            BackgroundColor="#FFF9E8"
-                            Stroke="#E2B93B"
-                            StrokeShape="RoundRectangle 15"
+                            Grid.Row="{Binding FilaMisInspecciones}"
+                            Grid.Column="{Binding ColumnaMisInspecciones}"
+                            Style="{StaticResource InspectionWarningPanel}"
                             IsVisible="{Binding PuedeMisInspecciones}">
-                            <VerticalStackLayout Spacing="8">
-                                <Label
-                                    Text="Mis inspecciones"
-                                    FontSize="20"
-                                    FontAttributes="Bold"
-                                    TextColor="#263A35" />
-                                <Label
-                                    Text="Consulte el progreso, errores, devoluciones y las fotografías que requieren una decisión técnica desde un solo módulo."
-                                    TextColor="#5E6B67" />
+                            <VerticalStackLayout Spacing="12">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <Border WidthRequest="42" HeightRequest="42" BackgroundColor="{StaticResource color_Amarillo}" Stroke="Transparent" StrokeShape="RoundRectangle 13">
+                                        <Label Text="{Binding NumeroMisInspecciones}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                        <Label Text="Mis inspecciones" Style="{StaticResource InspectionTitle}" />
+                                        <Label Text="Consulte progreso, resultados, errores, devoluciones y decisiones técnicas pendientes." Style="{StaticResource InspectionSubtitle}" />
+                                    </VerticalStackLayout>
+                                </Grid>
                                 <Button
                                     Text="Consultar mis inspecciones"
                                     Command="{Binding MisInspeccionesCommand}"
-                                    BackgroundColor="#F2C94C"
-                                    TextColor="#263A35"
-                                    CornerRadius="11" />
+                                    HeightRequest="48"
+                                    CornerRadius="13"
+                                    BackgroundColor="{StaticResource color_Amarillo}"
+                                    TextColor="{StaticResource TextPrimary}"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    FontSize="13" />
                             </VerticalStackLayout>
                         </Border>
 
                         <Border
-                            Grid.Row="{OnPlatform WinUI=1, Default=2}"
-                            Grid.Column="0"
-                            Padding="18"
-                            BackgroundColor="White"
-                            Stroke="#E3D1C6"
-                            StrokeShape="RoundRectangle 15"
+                            Grid.Row="{Binding FilaAnalizador}"
+                            Grid.Column="{Binding ColumnaAnalizador}"
+                            Style="{StaticResource InspectionCoffeePanel}"
                             IsVisible="{Binding PuedeAnalizador}">
-                            <VerticalStackLayout Spacing="8">
-                                <Label
-                                    Text="Bandeja del analizador"
-                                    FontSize="20"
-                                    FontAttributes="Bold"
-                                    TextColor="#263A35" />
-                                <Label
-                                    Text="Revise la evidencia, confirme o corrija cada clasificación y prepare la inspección para aprobación."
-                                    TextColor="#5E6B67" />
-                                <Button
-                                    Text="Abrir bandeja"
-                                    Command="{Binding AbrirAnalizadorCommand}"
-                                    BackgroundColor="#9B552C"
-                                    TextColor="White"
-                                    CornerRadius="11" />
+                            <VerticalStackLayout Spacing="12">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <Border WidthRequest="42" HeightRequest="42" BackgroundColor="{StaticResource color_Cafe}" Stroke="Transparent" StrokeShape="RoundRectangle 13">
+                                        <Label Text="{Binding NumeroAnalizador}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" TextColor="White" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                        <Label Text="Bandeja del analizador" Style="{StaticResource InspectionTitle}" />
+                                        <Label Text="Revise la evidencia, confirme o corrija cada clasificación y prepare las fotografías para aprobación." Style="{StaticResource InspectionSubtitle}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                                <Button Text="Abrir bandeja" Command="{Binding AbrirAnalizadorCommand}" Style="{StaticResource InspectionCoffeeButton}" />
                             </VerticalStackLayout>
                         </Border>
 
                         <Border
-                            Grid.Row="{OnPlatform WinUI=1, Default=3}"
-                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                            Padding="18"
-                            BackgroundColor="White"
-                            Stroke="#D9E3DF"
-                            StrokeShape="RoundRectangle 15"
+                            Grid.Row="{Binding FilaAprobador}"
+                            Grid.Column="{Binding ColumnaAprobador}"
+                            Style="{StaticResource InspectionCard}"
                             IsVisible="{Binding PuedeAprobador}">
-                            <VerticalStackLayout Spacing="8">
-                                <Label
-                                    Text="Bandeja del aprobador"
-                                    FontSize="20"
-                                    FontAttributes="Bold"
-                                    TextColor="#263A35" />
-                                <Label
-                                    Text="Apruebe, devuelva o rechace la evaluación humana y autorice la publicación en el álbum."
-                                    TextColor="#5E6B67" />
+                            <VerticalStackLayout Spacing="12">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <Border WidthRequest="42" HeightRequest="42" BackgroundColor="#263A35" Stroke="Transparent" StrokeShape="RoundRectangle 13">
+                                        <Label Text="{Binding NumeroAprobador}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" TextColor="White" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                        <Label Text="Bandeja del aprobador" Style="{StaticResource InspectionTitle}" />
+                                        <Label Text="Apruebe, devuelva o rechace la evaluación humana y autorice su publicación." Style="{StaticResource InspectionSubtitle}" />
+                                    </VerticalStackLayout>
+                                </Grid>
                                 <Button
                                     Text="Abrir aprobaciones"
                                     Command="{Binding AbrirAprobadorCommand}"
+                                    HeightRequest="48"
+                                    CornerRadius="13"
                                     BackgroundColor="#263A35"
                                     TextColor="White"
-                                    CornerRadius="11" />
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    FontSize="13" />
                             </VerticalStackLayout>
                         </Border>
 
                         <Border
-                            Grid.Row="{OnPlatform WinUI=2, Default=4}"
-                            Grid.Column="0"
-                            Grid.ColumnSpan="{OnPlatform WinUI=2, Default=1}"
-                            Padding="18"
-                            BackgroundColor="White"
-                            Stroke="#D9E3DF"
-                            StrokeShape="RoundRectangle 15"
+                            Grid.Row="{Binding FilaHistorial}"
+                            Grid.Column="{Binding ColumnaHistorial}"
+                            Style="{StaticResource InspectionCard}"
                             IsVisible="{Binding PuedeHistorial}">
-                            <VerticalStackLayout Spacing="8">
-                                <Label
-                                    Text="Historial"
-                                    FontSize="20"
-                                    FontAttributes="Bold"
-                                    TextColor="#263A35" />
-                                <Label
-                                    Text="Consulte inspecciones aprobadas, rechazadas, canceladas, no concluyentes o publicadas."
-                                    TextColor="#5E6B67" />
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                <Border WidthRequest="42" HeightRequest="42" BackgroundColor="{StaticResource SurfaceMuted}" Stroke="{StaticResource BorderSoft}" StrokeShape="RoundRectangle 13">
+                                    <Label Text="{Binding NumeroHistorial}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" FontAttributes="Bold" TextColor="{StaticResource TextSecondary}" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                    <Label Text="Historial" Style="{StaticResource InspectionTitle}" />
+                                    <Label Text="Consulte inspecciones aprobadas, rechazadas, canceladas, no concluyentes o publicadas." Style="{StaticResource InspectionSubtitle}" />
+                                </VerticalStackLayout>
                                 <Button
-                                    Text="Consultar historial"
+                                    Grid.Column="2"
+                                    Text="Consultar"
                                     Command="{Binding HistorialCommand}"
-                                    BackgroundColor="#EEF2F0"
-                                    TextColor="#263A35"
-                                    CornerRadius="11" />
-                            </VerticalStackLayout>
+                                    Style="{StaticResource InspectionNeutralButton}"
+                                    MinimumWidthRequest="{OnIdiom Phone=104, Default=140}"
+                                    VerticalOptions="Center" />
+                            </Grid>
                         </Border>
                     </Grid>
 
                     <Border
-                        Padding="18"
-                        BackgroundColor="#FFF9E8"
-                        Stroke="#E2B93B"
-                        StrokeShape="RoundRectangle 14"
+                        Style="{StaticResource InspectionWarningPanel}"
                         IsVisible="{Binding SinOpciones}">
                         <Label
                             Text="Su rol no tiene opciones disponibles dentro de este módulo. Solicite los permisos correspondientes al administrador."
                             TextColor="#6B5710"
-                            HorizontalTextAlignment="Center" />
+                            HorizontalTextAlignment="Center"
+                            LineBreakMode="WordWrap" />
                     </Border>
                 </VerticalStackLayout>
             </ScrollView>
+
+            <!-- Relay real: se muestra únicamente mientras el ViewModel navega. -->
+            <Grid
+                BackgroundColor="#66000000"
+                IsVisible="{Binding IsBusy}"
+                InputTransparent="False"
+                ZIndex="50">
+                <Border Style="{StaticResource InspectionOverlayCard}">
+                    <VerticalStackLayout Spacing="12">
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            Color="{StaticResource color_Verde}"
+                            WidthRequest="42"
+                            HeightRequest="42" />
+                        <Label
+                            Text="Abriendo opción..."
+                            HorizontalTextAlignment="Center"
+                            FontAttributes="Bold"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                        <Label
+                            Text="La aplicación está preparando el flujo fitosanitario."
+                            HorizontalTextAlignment="Center"
+                            FontSize="12"
+                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>

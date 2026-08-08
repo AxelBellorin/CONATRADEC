@@ -36,6 +36,7 @@ namespace CONATRADEC.Views
             AjustarCantidadColumnas(
                 Width);
 
+            ActualizarAccionesSistema();
             viewModel.ActualizarOpciones();
         }
 
@@ -90,6 +91,63 @@ namespace CONATRADEC.Views
 
             OpcionesGridLayout.Span =
                 nuevasColumnas;
+        }
+
+        /// <summary>
+        /// Datos sin conexión continúa respetando su permiso original.
+        /// Cerrar sesión permanece siempre disponible dentro de Configuración.
+        /// Si el usuario no puede trabajar sin conexión, la tarjeta de salida
+        /// ocupa el ancho completo para no dejar un espacio vacío.
+        /// </summary>
+        private void ActualizarAccionesSistema()
+        {
+            if (DatosSinConexionCard == null ||
+                CerrarSesionCard == null)
+            {
+                return;
+            }
+
+            bool mostrarSinConexion =
+                DatosSinConexionPermisos.TienePermiso;
+
+            DatosSinConexionCard.IsVisible =
+                mostrarSinConexion;
+
+            if (mostrarSinConexion)
+            {
+                Grid.SetColumn(
+                    CerrarSesionCard,
+                    1);
+
+                Grid.SetColumnSpan(
+                    CerrarSesionCard,
+                    1);
+            }
+            else
+            {
+                Grid.SetColumn(
+                    CerrarSesionCard,
+                    0);
+
+                Grid.SetColumnSpan(
+                    CerrarSesionCard,
+                    2);
+            }
+        }
+
+        private async void DatosSinConexionCard_Tapped(
+            object? sender,
+            TappedEventArgs e)
+        {
+            if (!DatosSinConexionPermisos.TienePermiso)
+            {
+                DatosSinConexionCard.IsVisible = false;
+                ActualizarAccionesSistema();
+                return;
+            }
+
+            await viewModel.GoToAsyncParameters(
+                "//DatosSinConexionPage");
         }
 
         private static void RegistrarRutas()

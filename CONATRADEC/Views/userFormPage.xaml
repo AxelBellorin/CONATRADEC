@@ -1,74 +1,64 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.userFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:sys="clr-namespace:System;assembly=netstandard"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid Padding="{OnIdiom Phone='14,16,14,22', Tablet='22,20,22,26', Desktop='28,24,28,30'}">
-
+    <Grid Padding="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}">
         <ScrollView HorizontalScrollBarVisibility="Never">
-
             <VerticalStackLayout
                 x:Name="FormularioContainer"
                 MaximumWidthRequest="1100"
                 HorizontalOptions="Center"
-                Spacing="18">
+                Spacing="14">
 
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <Border Style="{StaticResource ModernHeroCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="4">
+                            <Label
+                                Text="{Binding Title}"
+                                Style="{StaticResource ModernPageTitle}"
+                                TextColor="{StaticResource color_Verde}" />
+                            <Label
+                                Text="Administre los datos de acceso, ubicación, rol e imagen del usuario."
+                                Style="{StaticResource ModernPageSubtitle}" />
+                        </VerticalStackLayout>
 
-                    <VerticalStackLayout Spacing="4">
-                        <Label
-                            Text="{Binding Title}"
-                            FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
+                        <ActivityIndicator
+                            Grid.Column="1"
+                            IsRunning="{Binding IsBusy}"
+                            IsVisible="{Binding IsBusy}"
+                            Color="{StaticResource color_Naranja}"
+                            VerticalOptions="Center" />
+                    </Grid>
+                </Border>
 
-                        <Label
-                            Text="Administre los datos de acceso, ubicación, rol e imagen del usuario."
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}" />
-                    </VerticalStackLayout>
-
-                    <ActivityIndicator
-                        Grid.Column="1"
-                        IsRunning="{Binding IsBusy}"
-                        IsVisible="{Binding IsBusy}"
-                        Color="{StaticResource color_Naranja}" />
-                </Grid>
-
-                <Border
-                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout Spacing="16">
-
-                        <Label
-                            Text="Acceso e identificación"
-                            FontSize="19"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="15">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Acceso e identificación" Style="{StaticResource ModernSectionTitle}" />
+                            <Label Text="Información principal utilizada para identificar y autenticar la cuenta." Style="{StaticResource ModernCaption}" />
+                        </VerticalStackLayout>
 
                         <Grid
                             x:Name="AccesoGrid"
                             ColumnDefinitions="*"
                             RowDefinitions="Auto,Auto,Auto,Auto"
                             ColumnSpacing="14"
-                            RowSpacing="14">
+                            RowSpacing="13">
 
                             <VerticalStackLayout x:Name="UsuarioSection" Spacing="6">
-                                <Label Text="Usuario" FontAttributes="Bold" />
-                                <Entry
-                                    Placeholder="Nombre de usuario"
-                                    Text="{Binding NombreUsuario}"
-                                    IsReadOnly="{Binding IsUserNameReadOnly}"
-                                    BackgroundColor="#FAFBFA" />
+                                <Label Text="Usuario" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Entry
+                                        Placeholder="Nombre de usuario"
+                                        Text="{Binding NombreUsuario}"
+                                        IsReadOnly="{Binding IsUserNameReadOnly}"
+                                        Style="{StaticResource ModernEntry}" />
+                                </Border>
                             </VerticalStackLayout>
 
                             <VerticalStackLayout
@@ -76,163 +66,126 @@
                                 Grid.Row="1"
                                 IsVisible="{Binding ShowPasswordField}"
                                 Spacing="6">
+                                <Label Text="Contraseña" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
+                                        <!-- IsPassword conserva el comportamiento actual en Android. -->
+                                        <Entry
+                                            Text="{Binding ClaveUsuario}"
+                                            Placeholder="{Binding PasswordPlaceholder}"
+                                            IsPassword="{Binding IsPasswordHidden}"
+                                            Style="{StaticResource ModernEntry}" />
+                                        <ImageButton
+                                            Grid.Column="1"
+                                            Source="{Binding PasswordToggleIcon}"
+                                            Command="{Binding TogglePasswordCommand}"
+                                            WidthRequest="34"
+                                            HeightRequest="34"
+                                            Padding="6"
+                                            BackgroundColor="Transparent"
+                                            VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
+                                <Label Text="{Binding PasswordHelpText}" Style="{StaticResource ModernCaption}" />
+                            </VerticalStackLayout>
 
-                                <Label Text="Contraseña" FontAttributes="Bold" />
-
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <!--
-                                        No se fuerza el teclado de contraseña porque Android
-                                        mantenía el texto oculto aun después de tocar
-                                        el botón del ojo. IsPassword controla por sí
-                                        solo la visibilidad.
-                                    -->
+                            <VerticalStackLayout x:Name="NombreSection" Grid.Row="2" Spacing="6">
+                                <Label Text="Nombre completo" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
                                     <Entry
-                                        Text="{Binding ClaveUsuario}"
-                                        Placeholder="{Binding PasswordPlaceholder}"
-                                        IsPassword="{Binding IsPasswordHidden}"
-                                        BackgroundColor="#FAFBFA" />
-
-                                    <ImageButton
-                                        Grid.Column="1"
-                                        Source="{Binding PasswordToggleIcon}"
-                                        Command="{Binding TogglePasswordCommand}"
-                                        WidthRequest="34"
-                                        HeightRequest="34"
-                                        BackgroundColor="Transparent" />
-                                </Grid>
-
-                                <Label
-                                    Text="{Binding PasswordHelpText}"
-                                    FontSize="11"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
+                                        Text="{Binding NombreCompletoUsuario}"
+                                        Placeholder="Nombre completo"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        Style="{StaticResource ModernEntry}" />
+                                </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                x:Name="NombreSection"
-                                Grid.Row="2"
-                                Spacing="6">
-
-                                <Label Text="Nombre completo" FontAttributes="Bold" />
-                                <Entry
-                                    Text="{Binding NombreCompletoUsuario}"
-                                    Placeholder="Nombre completo"
-                                    IsReadOnly="{Binding IsReadOnly}"
-                                    BackgroundColor="#FAFBFA" />
-                            </VerticalStackLayout>
-
-                            <VerticalStackLayout
-                                x:Name="IdentificacionSection"
-                                Grid.Row="3"
-                                Spacing="6">
-
-                                <Label Text="Identificación" FontAttributes="Bold" />
-                                <Entry
-                                    Text="{Binding IdentificacionUsuario}"
-                                    Placeholder="001-080701-1050R"
-                                    MaxLength="18"
-                                    IsReadOnly="{Binding IsReadOnly}"
-                                    BackgroundColor="#FAFBFA" />
+                            <VerticalStackLayout x:Name="IdentificacionSection" Grid.Row="3" Spacing="6">
+                                <Label Text="Identificación" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Entry
+                                        Text="{Binding IdentificacionUsuario}"
+                                        Placeholder="001-080701-1050R"
+                                        MaxLength="18"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        Style="{StaticResource ModernEntry}" />
+                                </Border>
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-                <Border
-                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout Spacing="16">
-
-                        <Label
-                            Text="Contacto y asignación"
-                            FontSize="19"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="15">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Contacto y asignación" Style="{StaticResource ModernSectionTitle}" />
+                            <Label Text="Datos de contacto, fecha de nacimiento y rol asignado." Style="{StaticResource ModernCaption}" />
+                        </VerticalStackLayout>
 
                         <Grid
                             x:Name="ContactoGrid"
                             ColumnDefinitions="*"
                             RowDefinitions="Auto,Auto,Auto,Auto"
                             ColumnSpacing="14"
-                            RowSpacing="14">
+                            RowSpacing="13">
 
                             <VerticalStackLayout x:Name="CorreoSection" Spacing="6">
-                                <Label Text="Correo electrónico" FontAttributes="Bold" />
-                                <Entry
-                                    Text="{Binding CorreoUsuario}"
-                                    Placeholder="usuario@dominio.com"
-                                    Keyboard="Email"
-                                    IsReadOnly="{Binding IsReadOnly}"
-                                    BackgroundColor="#FAFBFA" />
+                                <Label Text="Correo electrónico" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Entry
+                                        Text="{Binding CorreoUsuario}"
+                                        Placeholder="usuario@dominio.com"
+                                        Keyboard="Email"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        Style="{StaticResource ModernEntry}" />
+                                </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                x:Name="TelefonoSection"
-                                Grid.Row="1"
-                                Spacing="6">
-                                <Label Text="Teléfono" FontAttributes="Bold" />
-                                <Entry
-                                    Text="{Binding TelefonoUsuario}"
-                                    Placeholder="8 dígitos"
-                                    Keyboard="Telephone"
-                                    MaxLength="8"
-                                    IsReadOnly="{Binding IsReadOnly}"
-                                    BackgroundColor="#FAFBFA" />
+                            <VerticalStackLayout x:Name="TelefonoSection" Grid.Row="1" Spacing="6">
+                                <Label Text="Teléfono" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Entry
+                                        Text="{Binding TelefonoUsuario}"
+                                        Placeholder="8 dígitos"
+                                        Keyboard="Telephone"
+                                        MaxLength="8"
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        Style="{StaticResource ModernEntry}" />
+                                </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                x:Name="FechaSection"
-                                Grid.Row="2"
-                                Spacing="6">
-
-                                <Label
-                                    Text="Fecha de nacimiento"
-                                    FontAttributes="Bold" />
-
+                            <VerticalStackLayout x:Name="FechaSection" Grid.Row="2" Spacing="6">
+                                <Label Text="Fecha de nacimiento" Style="{StaticResource ModernFieldLabel}" />
                                 <!--
-                                    La parte visible se dibuja debajo.
-                                    El DatePicker transparente se coloca al final,
-                                    por lo que queda encima y recibe la interacción.
-                                    Su Format siempre es una fecha válida.
+                                    El DatePicker transparente se conserva para no alterar la
+                                    lógica ya probada de selección de fecha en Android y WinUI.
                                 -->
                                 <Grid
                                     x:Name="FechaNacimientoField"
                                     HeightRequest="48"
                                     HorizontalOptions="Fill"
                                     SizeChanged="FechaNacimientoField_SizeChanged">
-
                                     <Border
-                                        BackgroundColor="#FAFBFA"
-                                        Stroke="#D9D9D9"
-                                        StrokeThickness="1"
-                                        StrokeShape="RoundRectangle 4"
+                                        Style="{StaticResource ModernInputBorder}"
                                         InputTransparent="True">
-
-                                        <Grid
-                                            Padding="12,0"
-                                            ColumnDefinitions="*,Auto"
-                                            InputTransparent="True">
-
+                                        <Grid Padding="2,0" ColumnDefinitions="*,Auto" InputTransparent="True">
                                             <Label
                                                 x:Name="FechaNacimientoTexto"
                                                 Text="Seleccione una fecha"
                                                 VerticalTextAlignment="Center"
-                                                TextColor="{StaticResource color_GrisOscuro}"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="13"
                                                 InputTransparent="True" />
-
                                             <Label
                                                 Grid.Column="1"
                                                 Text="▾"
                                                 Margin="10,0,2,0"
                                                 VerticalTextAlignment="Center"
-                                                TextColor="{StaticResource color_GrisOscuro}"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                                 InputTransparent="True" />
                                         </Grid>
                                     </Border>
-
                                     <DatePicker
                                         x:Name="FechaNacimientoPicker"
                                         Date="{Binding FechaNacimientoDate}"
@@ -249,150 +202,169 @@
                                 </Grid>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                x:Name="RolSection"
-                                Grid.Row="3"
-                                Spacing="6">
-                                <Label Text="Rol" FontAttributes="Bold" />
-                                <Picker
-                                    Title="Seleccione un rol"
-                                    ItemsSource="{Binding Roles}"
-                                    ItemDisplayBinding="{Binding NombreRol}"
-                                    SelectedItem="{Binding RolSeleccionado}"
-                                    IsEnabled="{Binding IsEnabled}"
-                                    BackgroundColor="#FAFBFA" />
+                            <VerticalStackLayout x:Name="RolSection" Grid.Row="3" Spacing="6">
+                                <Label Text="Rol" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Picker
+                                        Title="Seleccione un rol"
+                                        ItemsSource="{Binding Roles}"
+                                        ItemDisplayBinding="{Binding NombreRol}"
+                                        SelectedItem="{Binding RolSeleccionado}"
+                                        IsEnabled="{Binding IsEnabled}"
+                                        Style="{StaticResource ModernPicker}" />
+                                </Border>
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-                <Border
-                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout Spacing="16">
-                        <Label
-                            Text="Ubicación"
-                            FontSize="19"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="15">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Ubicación" Style="{StaticResource ModernSectionTitle}" />
+                            <Label Text="Seleccione la ubicación administrativa vinculada al usuario." Style="{StaticResource ModernCaption}" />
+                        </VerticalStackLayout>
 
                         <Grid
                             x:Name="UbicacionGrid"
                             ColumnDefinitions="*"
                             RowDefinitions="Auto,Auto,Auto"
                             ColumnSpacing="14"
-                            RowSpacing="14">
+                            RowSpacing="13">
 
                             <VerticalStackLayout x:Name="PaisSection" Spacing="6">
-                                <Label Text="País" FontAttributes="Bold" />
-                                <Picker
-                                    Title="Seleccione un país"
-                                    ItemsSource="{Binding Paises}"
-                                    ItemDisplayBinding="{Binding NombrePais}"
-                                    SelectedItem="{Binding PaisSeleccionado}"
-                                    IsEnabled="{Binding IsEnabled}" />
+                                <Label Text="País" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Picker
+                                        Title="Seleccione un país"
+                                        ItemsSource="{Binding Paises}"
+                                        ItemDisplayBinding="{Binding NombrePais}"
+                                        SelectedItem="{Binding PaisSeleccionado}"
+                                        IsEnabled="{Binding IsEnabled}"
+                                        Style="{StaticResource ModernPicker}" />
+                                </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                x:Name="DepartamentoSection"
-                                Grid.Row="1"
-                                Spacing="6">
-                                <Label Text="Departamento" FontAttributes="Bold" />
-                                <Picker
-                                    Title="Seleccione un departamento"
-                                    ItemsSource="{Binding Departamentos}"
-                                    ItemDisplayBinding="{Binding NombreDepartamento}"
-                                    SelectedItem="{Binding DepartamentoSeleccionado}"
-                                    IsEnabled="{Binding CanPickDepartamento}" />
+                            <VerticalStackLayout x:Name="DepartamentoSection" Grid.Row="1" Spacing="6">
+                                <Label Text="Departamento" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Picker
+                                        Title="Seleccione un departamento"
+                                        ItemsSource="{Binding Departamentos}"
+                                        ItemDisplayBinding="{Binding NombreDepartamento}"
+                                        SelectedItem="{Binding DepartamentoSeleccionado}"
+                                        IsEnabled="{Binding CanPickDepartamento}"
+                                        Style="{StaticResource ModernPicker}" />
+                                </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                x:Name="MunicipioSection"
-                                Grid.Row="2"
-                                Spacing="6">
-                                <Label Text="Municipio" FontAttributes="Bold" />
-                                <Picker
-                                    Title="Seleccione un municipio"
-                                    ItemsSource="{Binding Municipios}"
-                                    ItemDisplayBinding="{Binding NombreMunicipio}"
-                                    SelectedItem="{Binding MunicipioSeleccionado}"
-                                    IsEnabled="{Binding CanPickMunicipio}" />
+                            <VerticalStackLayout x:Name="MunicipioSection" Grid.Row="2" Spacing="6">
+                                <Label Text="Municipio" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Picker
+                                        Title="Seleccione un municipio"
+                                        ItemsSource="{Binding Municipios}"
+                                        ItemDisplayBinding="{Binding NombreMunicipio}"
+                                        SelectedItem="{Binding MunicipioSeleccionado}"
+                                        IsEnabled="{Binding CanPickMunicipio}"
+                                        Style="{StaticResource ModernPicker}" />
+                                </Border>
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-                <Border
-                    Padding="18"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 18">
-
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                        <VerticalStackLayout Spacing="5">
-                            <Label
-                                Text="Imagen de perfil"
-                                FontSize="18"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Verde}" />
-
+                <Border Style="{StaticResource ModernFormCard}">
+                    <Grid
+                        ColumnDefinitions="{OnIdiom Phone='*,Auto', Tablet='*,Auto', Desktop='*,Auto'}"
+                        ColumnSpacing="14">
+                        <VerticalStackLayout Spacing="7" VerticalOptions="Center">
+                            <Label Text="Imagen de perfil" Style="{StaticResource ModernSectionTitle}" />
+                            <Label Text="Agregue una fotografía para identificar la cuenta con mayor facilidad." Style="{StaticResource ModernCaption}" />
                             <Button
                                 Text="Seleccionar imagen"
                                 Command="{Binding SeleccionarImagenCommand}"
                                 IsEnabled="{Binding EnabledImagenField}"
-                                Style="{StaticResource AddButton}"
+                                Style="{StaticResource ModernSecondaryButton}"
                                 HorizontalOptions="Start" />
                         </VerticalStackLayout>
 
                         <Border
                             Grid.Column="1"
-                            WidthRequest="120"
-                            HeightRequest="120"
-                            BackgroundColor="#EEF5F2"
-                            Stroke="#DDE7E3"
-                            StrokeShape="RoundRectangle 18">
-                            <Image
-                                Source="{Binding ImagenPreview}"
-                                Aspect="AspectFill" />
+                            WidthRequest="{OnIdiom Phone=92, Tablet=110, Desktop=120}"
+                            HeightRequest="{OnIdiom Phone=92, Tablet=110, Desktop=120}"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                            StrokeShape="RoundRectangle 20">
+                            <Image Source="{Binding ImagenPreview}" Aspect="AspectFill" />
                         </Border>
                     </Grid>
                 </Border>
 
                 <Grid
                     ColumnDefinitions="*,*"
-                    ColumnSpacing="12"
+                    ColumnSpacing="10"
                     Margin="0,2,0,16">
-
                     <Button
                         Text="Guardar"
-                        Style="{StaticResource UpdateButton}"
+                        Style="{StaticResource ModernPrimaryButton}"
                         IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding SaveCommand}" />
-
                     <Button
                         Grid.Column="1"
                         Text="Cancelar"
-                        Style="{StaticResource CancelButton}"
+                        Style="{StaticResource ModernNeutralButton}"
                         IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding CancelCommand}" />
-
                     <Button
                         Grid.Column="0"
                         Grid.ColumnSpan="2"
                         Text="Regresar"
-                        Style="{StaticResource CancelButton}"
+                        Style="{StaticResource ModernNeutralButton}"
                         IsVisible="{Binding IsReadOnly}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding CancelCommand}" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
+
+        <!--
+            Capa de carga de la operación actual.
+            Bloquea temporalmente la interacción para evitar dobles acciones
+            y deja claro que la aplicación continúa trabajando.
+        -->
+        <Grid
+            ZIndex="100"
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#4A0B1511">
+
+            <Border
+                Padding="18,14"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 14">
+
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}"
+                        WidthRequest="24"
+                        HeightRequest="24" />
+
+                    <Label
+                        Text="Procesando usuario..."
+                        VerticalOptions="Center"
+                        FontFamily="MontserratBold"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

@@ -198,11 +198,23 @@
 		<MauiXaml Update="Controls\ConfiguracionOpcionCard.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Controls\InspectionHeader.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Controls\ResponsiveCatalogHeader.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Controls\ResponsiveSearchPanel.xaml">
 			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Resources\Styles\AnalysisTheme.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Resources\Styles\InspectionTheme.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Resources\Styles\ModernTheme.xaml">
+		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Resources\Styles\SwipeViewMouseStyles.xaml">
 			<Generator>MSBuild:Compile</Generator>

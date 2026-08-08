@@ -5,62 +5,77 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="#F7F8F7">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Grid Padding="{OnIdiom Phone=14, Default=22}" RowDefinitions="Auto,*,Auto" RowSpacing="12">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <VerticalStackLayout Spacing="2">
-                <Label Text="Solicitar corrección al técnico" FontSize="23" FontAttributes="Bold" TextColor="#263A35" />
-                <Label Text="{Binding PosicionTexto}" TextColor="#5E6B67" />
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10" MaximumWidthRequest="900" HorizontalOptions="Center">
+            <VerticalStackLayout Spacing="3">
+                <Label Text="Solicitar corrección al técnico" Style="{StaticResource ModernPageTitle}" />
+                <Label Text="{Binding PosicionTexto}" Style="{StaticResource InspectionSubtitle}" />
             </VerticalStackLayout>
-            <Button Grid.Column="1" Text="Cerrar" Clicked="OnCerrarClicked" BackgroundColor="#EEF2F0" TextColor="#263A35" />
+            <Button Grid.Column="1" Text="Cerrar" Clicked="OnCerrarClicked" Style="{StaticResource InspectionNeutralButton}" WidthRequest="100" />
         </Grid>
 
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Spacing="13" MaximumWidthRequest="850" HorizontalOptions="Center">
-                <Border Padding="12" BackgroundColor="#FFF9E8" Stroke="#E2B93B" StrokeShape="RoundRectangle 12" IsVisible="{Binding TieneMensaje}">
+            <VerticalStackLayout Spacing="13" MaximumWidthRequest="900" HorizontalOptions="Center">
+                <Border Style="{StaticResource InspectionWarningPanel}" IsVisible="{Binding TieneMensaje}">
                     <HorizontalStackLayout Spacing="9">
-                        <ActivityIndicator IsRunning="{Binding EstaCargando}" Color="#9B552C" />
-                        <Label Text="{Binding Mensaje}" TextColor="#6B5710" VerticalTextAlignment="Center" />
+                        <ActivityIndicator IsRunning="{Binding EstaCargando}" IsVisible="{Binding EstaCargando}" Color="{StaticResource color_Cafe}" />
+                        <Label Text="{Binding Mensaje}" TextColor="#6B5710" VerticalTextAlignment="Center" LineBreakMode="WordWrap" />
                     </HorizontalStackLayout>
                 </Border>
 
-                <Border Padding="14" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14">
-                    <Grid ColumnDefinitions="{OnIdiom Phone='120,*', Default='220,*'}" ColumnSpacing="15">
-                        <Image Source="{Binding Fotografia.UrlImagen}" HeightRequest="{OnIdiom Phone=130, Default=220}" Aspect="AspectFill" />
-                        <VerticalStackLayout Grid.Column="1" Spacing="5">
-                            <Label Text="{Binding Fotografia.Titulo}" FontSize="18" FontAttributes="Bold" TextColor="#263A35" />
-                            <Label Text="{Binding Fotografia.ResultadoIA.DiagnosticoVisible}" FontSize="16" FontAttributes="Bold" TextColor="#3B655B" />
-                            <Label Text="{Binding Fotografia.ResultadoIA.ResumenImagen}" TextColor="#5E6B67" />
+                <Border Style="{StaticResource InspectionCard}">
+                    <Grid
+                        ColumnDefinitions="{OnIdiom Phone='*', Default='220,*'}"
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                        ColumnSpacing="15"
+                        RowSpacing="12">
+                        <Border HeightRequest="{OnIdiom Phone=220, Default=220}" BackgroundColor="#EEF3F1" Stroke="Transparent" StrokeShape="RoundRectangle 13">
+                            <Image Source="{Binding Fotografia.UrlImagen}" Aspect="AspectFill" />
+                        </Border>
+                        <VerticalStackLayout
+                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                            Spacing="6"
+                            VerticalOptions="Center">
+                            <Label Text="{Binding Fotografia.Titulo}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                            <Label Text="{Binding Fotografia.ResultadoIA.DiagnosticoVisible}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                            <Label Text="{Binding Fotografia.ResultadoIA.ResumenImagen}" Style="{StaticResource InspectionSubtitle}" />
                         </VerticalStackLayout>
                     </Grid>
                 </Border>
 
-                <Border Padding="16" BackgroundColor="White" Stroke="#C8DED6" StrokeShape="RoundRectangle 14">
-                    <VerticalStackLayout Spacing="11">
-                        <Label Text="Motivo administrable *" FontAttributes="Bold" TextColor="#263A35" />
-                        <Picker
-                            ItemsSource="{Binding Motivos}"
-                            ItemDisplayBinding="{Binding NombreMostrar}"
-                            SelectedItem="{Binding MotivoSeleccionado, Mode=TwoWay}"
-                            Title="Seleccione el motivo" />
+                <Border Style="{StaticResource InspectionCard}">
+                    <VerticalStackLayout Spacing="12">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Motivo administrable *" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource InspectionInputBorder}">
+                                <Picker ItemsSource="{Binding Motivos}" ItemDisplayBinding="{Binding NombreMostrar}" SelectedItem="{Binding MotivoSeleccionado, Mode=TwoWay}" Title="Seleccione el motivo" BackgroundColor="Transparent" />
+                            </Border>
+                        </VerticalStackLayout>
 
-                        <Border Padding="11" BackgroundColor="#FAFCFB" Stroke="#E2E9E6" StrokeShape="RoundRectangle 10" IsVisible="{Binding TieneMotivoSeleccionado}">
-                            <VerticalStackLayout Spacing="4">
-                                <Label Text="{Binding MotivoSeleccionado.TipoCorreccionTexto}" FontAttributes="Bold" TextColor="#9B552C" />
-                                <Label Text="{Binding MotivoSeleccionado.Descripcion}" TextColor="#5E6B67" />
-                                <Label Text="Instrucción sugerida" FontSize="12" FontAttributes="Bold" TextColor="#3B655B" />
-                                <Label Text="{Binding MotivoSeleccionado.InstruccionSugerida}" FontSize="12" TextColor="#5E6B67" />
+                        <Border Style="{StaticResource InspectionWarningPanel}" IsVisible="{Binding TieneMotivoSeleccionado}">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="{Binding MotivoSeleccionado.TipoCorreccionTexto}" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                                <Label Text="{Binding MotivoSeleccionado.Descripcion}" Style="{StaticResource InspectionSubtitle}" />
+                                <Label Text="Instrucción sugerida" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                <Label Text="{Binding MotivoSeleccionado.InstruccionSugerida}" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
                         </Border>
 
-                        <Label Text="Instrucciones específicas para esta fotografía *" FontAttributes="Bold" TextColor="#263A35" />
-                        <Editor
-                            Text="{Binding Instrucciones}"
-                            AutoSize="TextChanges"
-                            MinimumHeightRequest="125"
-                            MaxLength="3000"
-                            Placeholder="Explique con precisión qué debe corregir, verificar o volver a fotografiar el técnico." />
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Instrucciones específicas para esta fotografía *" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource InspectionInputBorder}" Padding="10">
+                                <Editor
+                                    Text="{Binding Instrucciones}"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="125"
+                                    MaxLength="3000"
+                                    BackgroundColor="Transparent"
+                                    Placeholder="Explique con precisión qué debe corregir, verificar o volver a fotografiar el técnico." />
+                            </Border>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
@@ -70,10 +85,22 @@
             Grid.Row="2"
             Text="Devolver al técnico"
             Clicked="OnGuardarClicked"
-            HeightRequest="50"
-            HorizontalOptions="End"
-            WidthRequest="220"
-            BackgroundColor="#9B552C"
-            TextColor="White" />
+            Style="{StaticResource InspectionCoffeeButton}"
+            MaximumWidthRequest="900"
+            HorizontalOptions="Fill" />
+
+        <Grid
+            Grid.RowSpan="3"
+            BackgroundColor="#66000000"
+            IsVisible="{Binding EstaCargando}"
+            InputTransparent="False"
+            ZIndex="50">
+            <Border Style="{StaticResource InspectionOverlayCard}">
+                <VerticalStackLayout Spacing="12">
+                    <ActivityIndicator IsRunning="{Binding EstaCargando}" Color="{StaticResource color_Cafe}" WidthRequest="42" HeightRequest="42" />
+                    <Label Text="Cargando catálogo de motivos..." HorizontalTextAlignment="Center" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

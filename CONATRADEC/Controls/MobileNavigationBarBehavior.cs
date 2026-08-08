@@ -3,19 +3,18 @@ using Microsoft.Maui.Controls;
 namespace CONATRADEC.Controls
 {
     /// <summary>
-    /// Mejora la legibilidad de las opciones de la barra inferior.
-    ///
-    /// AppNavigationMenuItem mantiene su diseño original en Windows.
-    /// Este comportamiento solamente ajusta las instancias móviles que están
-    /// dentro del FlexLayout del FooterTemplate.
+    /// Ajusta únicamente la presentación de la barra inferior en móvil.
+    /// Mantiene cinco accesos visibles, con etiquetas de una sola línea para
+    /// aprovechar mejor el ancho disponible sin modificar la navegación.
     /// </summary>
     public sealed class MobileNavigationBarBehavior :
         Behavior<FlexLayout>
     {
-        private const double MobileItemHeight = 68;
+        private const double MobileItemHeight = 66;
         private const double MobileIconSize = 24;
-        private const double MobileFontSize = 11.5;
-        private const double MobileLabelHeight = 28;
+        private const double MobileFontSize = 10.2;
+        private const double ConfigurationFontSize = 9.1;
+        private const double MobileLabelHeight = 20;
 
         private FlexLayout? layout;
 
@@ -100,7 +99,7 @@ namespace CONATRADEC.Controls
                 MobileItemHeight;
 
             mobileLayout.Padding =
-                new Thickness(2, 6, 2, 5);
+                new Thickness(2, 5, 2, 4);
 
             mobileLayout.Spacing = 2;
             mobileLayout.VerticalOptions =
@@ -140,14 +139,24 @@ namespace CONATRADEC.Controls
             if (label == null)
                 return;
 
+            /*
+             * "Configuración" es la etiqueta más larga de la barra.
+             * Se reduce solamente esa opción para conservar el texto completo
+             * en una sola línea incluso en teléfonos angostos.
+             */
             label.FontSize =
-                MobileFontSize;
+                string.Equals(
+                    item.Texto,
+                    "Configuración",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? ConfigurationFontSize
+                    : MobileFontSize;
 
-            label.MaxLines = 2;
+            label.MaxLines = 1;
             label.LineBreakMode =
-                LineBreakMode.WordWrap;
+                LineBreakMode.NoWrap;
 
-            label.LineHeight = 0.95;
+            label.LineHeight = 1;
             label.MinimumHeightRequest =
                 MobileLabelHeight;
 

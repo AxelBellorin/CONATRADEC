@@ -49,6 +49,7 @@ namespace CONATRADEC.Views
          */
         private Grid? indicadorCargaVisual;
         private Label? textoCargaVisual;
+        private ActivityIndicator? actividadCargaVisual;
         private CancellationTokenSource?
             cambioTabCancellationTokenSource;
 
@@ -763,63 +764,52 @@ namespace CONATRADEC.Views
             if (Content is not Grid contenedorRaiz)
                 return;
 
-            var actividad =
+            actividadCargaVisual =
                 new ActivityIndicator
                 {
-                    IsRunning = true,
+                    // No consume render mientras el overlay está oculto.
+                    IsRunning = false,
                     WidthRequest = 46,
                     HeightRequest = 46,
-                    Color =
-                        Color.FromArgb("#3B655B"),
-                    HorizontalOptions =
-                        LayoutOptions.Center
+                    Color = Color.FromArgb("#3B655B"),
+                    HorizontalOptions = LayoutOptions.Center
                 };
 
             textoCargaVisual =
                 new Label
                 {
-                    Text =
-                        "Preparando los datos...",
+                    Text = "Preparando los datos...",
+                    FontFamily = "MontserratBold",
                     FontSize = 15,
-                    FontAttributes =
-                        FontAttributes.Bold,
-                    TextColor =
-                        Color.FromArgb("#1F2937"),
-                    HorizontalTextAlignment =
-                        TextAlignment.Center,
-                    LineBreakMode =
-                        LineBreakMode.WordWrap
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#17201D"),
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
                 };
 
             var tarjeta =
                 new Border
                 {
-                    BackgroundColor =
-                        Colors.White,
-                    Stroke =
-                        Color.FromArgb("#D1D5DB"),
+                    BackgroundColor = Colors.White,
+                    Stroke = Color.FromArgb("#DCE6E1"),
                     StrokeThickness = 1,
                     StrokeShape =
                         new RoundRectangle
                         {
-                            CornerRadius =
-                                new CornerRadius(18)
+                            CornerRadius = new CornerRadius(20)
                         },
-                    Padding =
-                        new Thickness(24, 20),
+                    Padding = new Thickness(24, 20),
                     Margin = 24,
-                    HorizontalOptions =
-                        LayoutOptions.Center,
-                    VerticalOptions =
-                        LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
                     MaximumWidthRequest = 420,
                     Content =
                         new VerticalStackLayout
                         {
-                            Spacing = 12,
+                            Spacing = 11,
                             Children =
                             {
-                                actividad,
+                                actividadCargaVisual,
                                 textoCargaVisual
                             }
                         }
@@ -828,33 +818,27 @@ namespace CONATRADEC.Views
             indicadorCargaVisual =
                 new Grid
                 {
-                    BackgroundColor =
-                        Color.FromArgb("#80000000"),
+                    BackgroundColor = Color.FromArgb("#66000000"),
                     IsVisible = false,
                     InputTransparent = false,
                     ZIndex = 2000
                 };
 
-            Grid.SetRowSpan(
-                indicadorCargaVisual,
-                3);
+            Grid.SetRowSpan(indicadorCargaVisual, 3);
 
-            indicadorCargaVisual
-                .Children
-                .Add(tarjeta);
-
-            contenedorRaiz
-                .Children
-                .Add(indicadorCargaVisual);
+            indicadorCargaVisual.Children.Add(tarjeta);
+            contenedorRaiz.Children.Add(indicadorCargaVisual);
         }
 
-        private void MostrarIndicadorCargaVisual(
-            string mensaje)
+        private void MostrarIndicadorCargaVisual(string mensaje)
         {
             void Mostrar()
             {
                 if (textoCargaVisual != null)
                     textoCargaVisual.Text = mensaje;
+
+                if (actividadCargaVisual != null)
+                    actividadCargaVisual.IsRunning = true;
 
                 if (indicadorCargaVisual != null)
                     indicadorCargaVisual.IsVisible = true;
@@ -866,8 +850,7 @@ namespace CONATRADEC.Views
             }
             else
             {
-                MainThread.BeginInvokeOnMainThread(
-                    Mostrar);
+                MainThread.BeginInvokeOnMainThread(Mostrar);
             }
         }
 
@@ -875,6 +858,9 @@ namespace CONATRADEC.Views
         {
             void Ocultar()
             {
+                if (actividadCargaVisual != null)
+                    actividadCargaVisual.IsRunning = false;
+
                 if (indicadorCargaVisual != null)
                     indicadorCargaVisual.IsVisible = false;
             }
@@ -885,8 +871,7 @@ namespace CONATRADEC.Views
             }
             else
             {
-                MainThread.BeginInvokeOnMainThread(
-                    Ocultar);
+                MainThread.BeginInvokeOnMainThread(Ocultar);
             }
         }
 

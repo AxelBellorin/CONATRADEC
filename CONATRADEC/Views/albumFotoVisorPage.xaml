@@ -3,6 +3,7 @@
     x:Class="CONATRADEC.Views.albumFotoVisorPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     Shell.NavBarIsVisible="False"
     BackgroundColor="#090B0A">
 
@@ -56,12 +57,19 @@
         </Grid>
 
         <Grid Grid.Row="1">
+            <!--
+                Se conserva el swipe nativo del CarouselView. En Android el
+                control de imagen bloquea la intercepción del carrusel solo
+                durante un pellizco o mientras la fotografía está ampliada.
+            -->
             <CarouselView
                 x:Name="FotosCarousel"
                 ItemsSource="{Binding Fotos}"
                 CurrentItem="{Binding FotoSeleccionada, Mode=TwoWay}"
                 IndicatorView="FotosIndicator"
                 Loop="False"
+                IsSwipeEnabled="True"
+                IsBounceEnabled="False"
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill">
 
@@ -72,14 +80,11 @@
 
                             <!--
                                 El visor utiliza primero la fotografía original.
-                                Si el original no está disponible localmente,
-                                utiliza la miniatura descargada como respaldo.
+                                Si no está disponible localmente, utiliza la
+                                miniatura descargada como respaldo.
                             -->
-                            <Image
-                                Source="{Binding FotoVisorUrl}"
-                                Aspect="AspectFit"
-                                HorizontalOptions="Fill"
-                                VerticalOptions="Fill" />
+                            <controls:ZoomableAlbumImage
+                                Source="{Binding FotoVisorUrl}" />
 
                             <Border
                                 Margin="12"
@@ -120,12 +125,21 @@
             StrokeThickness="1"
             StrokeShape="RoundRectangle 14">
 
-            <Label
-                Text="{Binding DescripcionTexto}"
-                FontSize="12"
-                TextColor="White"
-                HorizontalTextAlignment="Center"
-                LineBreakMode="WordWrap" />
+            <VerticalStackLayout Spacing="4">
+                <Label
+                    Text="{Binding DescripcionTexto}"
+                    FontSize="12"
+                    TextColor="White"
+                    HorizontalTextAlignment="Center"
+                    LineBreakMode="WordWrap" />
+
+                <Label
+                    Text="Pellizque con dos dedos para ampliar · Con zoom arrastre para mover · Doble toque para ampliar/restablecer"
+                    FontSize="10"
+                    TextColor="#BFD0CA"
+                    HorizontalTextAlignment="Center"
+                    LineBreakMode="WordWrap" />
+            </VerticalStackLayout>
         </Border>
     </Grid>
 </ContentPage>

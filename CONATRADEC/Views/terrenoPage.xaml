@@ -7,27 +7,18 @@
     xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="#FFF5FF"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}"
     ControlTemplate="{StaticResource FooterTemplate}">
 
     <Grid>
         <Grid
             x:Name="ContenidoPrincipal"
-            RowDefinitions="Auto,*"
+            RowDefinitions="*"
             RowSpacing="12"
-            Padding="{OnIdiom Phone='14,12', Tablet='24,20', Desktop='24,20'}">
-
-            <controls:ResponsiveCatalogHeader
-                Title="Terrenos"
-                Subtitle="{Binding TotalTexto}"
-                BackText="← Configuración"
-                BackCommand="{Binding Source={x:Reference TerrenosRoot}, Path=RegresarConfiguracionCommand}"
-                PrimaryText="+ Nuevo terreno"
-                PrimaryCommand="{Binding AddCommand}"
-                IsPrimaryVisible="{Binding CanAdd}" />
+            Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}">
 
             <RefreshView
-                Grid.Row="1"
+                Grid.Row="0"
                 IsRefreshing="{Binding IsRefreshing}"
                 Command="{Binding RefrescarCommand}">
 
@@ -39,59 +30,66 @@
                     RemainingItemsThreshold="3"
                     RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
 
+                    <CollectionView.Behaviors>
+                        <controls:ResponsiveGridItemsLayoutBehavior />
+                    </CollectionView.Behaviors>
+
                     <CollectionView.ItemsLayout>
-                        <LinearItemsLayout
+                        <GridItemsLayout
                             Orientation="Vertical"
-                            ItemSpacing="11" />
+                            Span="1"
+                            HorizontalItemSpacing="12"
+                            VerticalItemSpacing="12" />
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.Header>
                         <VerticalStackLayout Spacing="10" Padding="0,0,0,10">
 
+                            <controls:ResponsiveCatalogHeader
+                                            Title="Terrenos"
+                                            Subtitle="{Binding TotalTexto}"
+                                            BackText="← Configuración"
+                                            BackCommand="{Binding Source={x:Reference TerrenosRoot}, Path=RegresarConfiguracionCommand}"
+                                            PrimaryText="+ Nuevo terreno"
+                                            PrimaryCommand="{Binding AddCommand}"
+                                            IsPrimaryVisible="{Binding CanAdd}" />
+
+
                             <!-- Búsqueda principal -->
-                            <Border
-                                Padding="12"
-                                BackgroundColor="White"
-                                Stroke="#DDE7E3"
-                                StrokeShape="RoundRectangle 15">
+                            <Border Style="{StaticResource ModernCard}" Padding="12">
                                 <VerticalStackLayout Spacing="10">
-                                    <SearchBar
-                                        Placeholder="Código, propietario, identificación o dirección"
-                                        Text="{Binding TextoBusqueda}"
-                                        SearchCommand="{Binding BuscarCommand}"
-                                        FontFamily="MontserratMedium"
-                                        BackgroundColor="#F8FAF9" />
+                                    <Border Style="{StaticResource ModernInputBorder}" Padding="6,0">
+                                        <SearchBar
+                                            Placeholder="Código, propietario, identificación o dirección"
+                                            Text="{Binding TextoBusqueda}"
+                                            SearchCommand="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernSearchBar}" />
+                                    </Border>
 
                                     <Grid
                                         x:Name="BusquedaAccionesGrid"
                                         ColumnDefinitions="*,Auto,Auto"
                                         ColumnSpacing="8"
                                         RowSpacing="8">
+
                                         <Button
                                             Text="Buscar"
                                             Command="{Binding BuscarCommand}"
-                                            BackgroundColor="#3B655B"
-                                            TextColor="White"
-                                            FontFamily="MontserratBold"
-                                            CornerRadius="10" />
+                                            Style="{StaticResource ModernPrimaryButton}" />
 
                                         <Button
                                             Grid.Column="1"
                                             Text="{Binding TextoBotonFiltros}"
                                             Command="{Binding AlternarFiltrosCommand}"
-                                            BackgroundColor="#EEF5F2"
-                                            TextColor="#3B655B"
-                                            FontFamily="MontserratBold"
-                                            CornerRadius="10" />
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            HeightRequest="48" />
 
                                         <Button
                                             Grid.Column="2"
                                             Text="Limpiar"
                                             Command="{Binding LimpiarFiltrosCommand}"
-                                            BackgroundColor="Transparent"
-                                            TextColor="#9B552C"
-                                            FontFamily="MontserratBold"
-                                            Padding="8,4" />
+                                            Style="{StaticResource ModernNeutralButton}"
+                                            HeightRequest="48" />
                                     </Grid>
                                 </VerticalStackLayout>
                             </Border>
@@ -99,106 +97,133 @@
                             <!-- Filtros avanzados -->
                             <Border
                                 IsVisible="{Binding MostrarFiltrosAvanzados}"
-                                Padding="14"
-                                BackgroundColor="White"
-                                Stroke="#DDE7E3"
-                                StrokeShape="RoundRectangle 15">
-                                <VerticalStackLayout Spacing="13">
-                                    <Label
-                                        Text="Búsqueda avanzada"
-                                        FontFamily="MontserratBold"
-                                        FontSize="16"
-                                        TextColor="#3B655B" />
+                                Style="{StaticResource ModernCard}">
+                                <VerticalStackLayout Spacing="14">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="Búsqueda avanzada" Style="{StaticResource ModernSectionTitle}" />
+                                            <Label Text="Combine uno o varios criterios para reducir el listado." Style="{StaticResource ModernPageSubtitle}" FontSize="11" />
+                                        </VerticalStackLayout>
+                                        <Border
+                                            Grid.Column="1"
+                                            Style="{StaticResource ModernBadgeGreen}"
+                                            VerticalOptions="Start">
+                                            <Label Text="Filtros" FontFamily="MontserratBold" FontSize="9.5" TextColor="{StaticResource color_Verde}" />
+                                        </Border>
+                                    </Grid>
 
                                     <Grid
                                         ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*', Desktop='*,*'}"
                                         RowDefinitions="Auto,Auto,Auto,Auto"
                                         ColumnSpacing="12"
                                         RowSpacing="10">
-                                        <VerticalStackLayout Spacing="4">
-                                            <Label Text="Código" FontFamily="MontserratBold" FontSize="11" />
-                                            <Entry
-                                                Placeholder="Ej: TRR-0025-000127"
-                                                Text="{Binding CodigoFiltro}"
-                                                BackgroundColor="#F8FAF9" />
+                                        <VerticalStackLayout Spacing="5">
+                                            <Label Text="Código" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <Entry
+                                                    Placeholder="Ej: TRR-0025-000127"
+                                                    Text="{Binding CodigoFiltro}"
+                                                    Style="{StaticResource ModernEntry}" />
+                                            </Border>
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
                                             Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                                             Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                                            Spacing="4">
-                                            <Label Text="Propietario" FontFamily="MontserratBold" FontSize="11" />
-                                            <Entry
-                                                Placeholder="Nombre del propietario"
-                                                Text="{Binding PropietarioFiltro}"
-                                                BackgroundColor="#F8FAF9" />
+                                            Spacing="5">
+                                            <Label Text="Propietario" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <Entry
+                                                    Placeholder="Nombre del propietario"
+                                                    Text="{Binding PropietarioFiltro}"
+                                                    Style="{StaticResource ModernEntry}" />
+                                            </Border>
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
                                             Grid.Row="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
-                                            Spacing="4">
-                                            <Label Text="Identificación" FontFamily="MontserratBold" FontSize="11" />
-                                            <Entry
-                                                Placeholder="001-080701-1050R"
-                                                Text="{Binding IdentificacionFiltro}"
-                                                BackgroundColor="#F8FAF9" />
+                                            Spacing="5">
+                                            <Label Text="Identificación" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <Entry
+                                                    Placeholder="001-080701-1050R"
+                                                    Text="{Binding IdentificacionFiltro}"
+                                                    Style="{StaticResource ModernEntry}" />
+                                            </Border>
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
                                             Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                                             Grid.Row="{OnIdiom Phone=3, Tablet=1, Desktop=1}"
-                                            Spacing="4">
-                                            <Label Text="Dirección" FontFamily="MontserratBold" FontSize="11" />
-                                            <Entry
-                                                Placeholder="Sector, comunidad o referencia"
-                                                Text="{Binding DireccionFiltro}"
-                                                BackgroundColor="#F8FAF9" />
+                                            Spacing="5">
+                                            <Label Text="Dirección" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <Entry
+                                                    Placeholder="Sector, comunidad o referencia"
+                                                    Text="{Binding DireccionFiltro}"
+                                                    Style="{StaticResource ModernEntry}" />
+                                            </Border>
                                         </VerticalStackLayout>
                                     </Grid>
 
-                                    <BoxView HeightRequest="1" Color="#E5E7EB" />
+                                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
 
-                                    <Label
-                                        Text="Ubicación administrativa"
-                                        FontFamily="MontserratBold"
-                                        FontSize="12"
-                                        TextColor="#374151" />
+                                    <Label Text="Ubicación administrativa" Style="{StaticResource ModernFieldLabel}" FontSize="12" />
 
                                     <Grid
                                         ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*,*', Desktop='*,*,*'}"
                                         RowDefinitions="Auto,Auto,Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="8">
-                                        <Picker
-                                            Title="Todos los países"
-                                            ItemsSource="{Binding Paises}"
-                                            ItemDisplayBinding="{Binding NombrePais}"
-                                            SelectedItem="{Binding PaisSeleccionado}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                Title="Todos los países"
+                                                ItemsSource="{Binding Paises}"
+                                                ItemDisplayBinding="{Binding NombrePais}"
+                                                SelectedItem="{Binding PaisSeleccionado}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
 
-                                        <Picker
+                                        <Border
                                             Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                                             Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                                            Title="Todos los departamentos"
-                                            ItemsSource="{Binding Departamentos}"
-                                            ItemDisplayBinding="{Binding NombreDepartamento}"
-                                            SelectedItem="{Binding DepartamentoSeleccionado}" />
+                                            Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                Title="Todos los departamentos"
+                                                ItemsSource="{Binding Departamentos}"
+                                                ItemDisplayBinding="{Binding NombreDepartamento}"
+                                                SelectedItem="{Binding DepartamentoSeleccionado}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
 
-                                        <Picker
+                                        <Border
                                             Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
                                             Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
-                                            Title="Todos los municipios"
-                                            ItemsSource="{Binding Municipios}"
-                                            ItemDisplayBinding="{Binding NombreMunicipio}"
-                                            SelectedItem="{Binding MunicipioSeleccionado}" />
+                                            Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                Title="Todos los municipios"
+                                                ItemsSource="{Binding Municipios}"
+                                                ItemDisplayBinding="{Binding NombreMunicipio}"
+                                                SelectedItem="{Binding MunicipioSeleccionado}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
                                     </Grid>
 
-                                    <ActivityIndicator
+                                    <HorizontalStackLayout
                                         IsVisible="{Binding UbicacionCargando}"
-                                        IsRunning="{Binding UbicacionCargando}"
-                                        Color="#3B655B"
-                                        HorizontalOptions="Start" />
+                                        Spacing="8">
+                                        <ActivityIndicator
+                                            IsRunning="{Binding UbicacionCargando}"
+                                            Color="{StaticResource color_Verde}"
+                                            WidthRequest="20"
+                                            HeightRequest="20" />
+                                        <Label
+                                            Text="Actualizando ubicación..."
+                                            Style="{StaticResource ModernCaption}"
+                                            VerticalOptions="Center" />
+                                    </HorizontalStackLayout>
 
-                                    <BoxView HeightRequest="1" Color="#E5E7EB" />
+                                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
 
                                     <Grid
                                         ColumnDefinitions="{OnIdiom Phone='Auto,*', Tablet='Auto,*,*,*', Desktop='Auto,*,*,*'}"
@@ -207,25 +232,34 @@
                                         RowSpacing="8">
                                         <Switch
                                             IsToggled="{Binding FiltrarPorFecha}"
-                                            OnColor="#3B655B" />
+                                            OnColor="{StaticResource color_Verde}" />
                                         <Label
                                             Grid.Column="1"
                                             Text="Filtrar fecha de ingreso"
                                             VerticalOptions="Center"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="12" />
+                                            FontFamily="MontserratBold"
+                                            FontSize="11.5"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
 
-                                        <DatePicker
+                                        <Border
                                             Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
                                             Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                                            Date="{Binding FechaDesde}"
-                                            IsVisible="{Binding FiltrarPorFecha}" />
+                                            IsVisible="{Binding FiltrarPorFecha}"
+                                            Style="{StaticResource ModernInputBorder}">
+                                            <DatePicker
+                                                Date="{Binding FechaDesde}"
+                                                Style="{StaticResource ModernDatePicker}" />
+                                        </Border>
 
-                                        <DatePicker
+                                        <Border
                                             Grid.Column="{OnIdiom Phone=1, Tablet=3, Desktop=3}"
                                             Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                                            Date="{Binding FechaHasta}"
-                                            IsVisible="{Binding FiltrarPorFecha}" />
+                                            IsVisible="{Binding FiltrarPorFecha}"
+                                            Style="{StaticResource ModernInputBorder}">
+                                            <DatePicker
+                                                Date="{Binding FechaHasta}"
+                                                Style="{StaticResource ModernDatePicker}" />
+                                        </Border>
                                     </Grid>
 
                                     <Grid
@@ -233,108 +267,102 @@
                                         RowDefinitions="Auto,Auto,Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="8">
-                                        <VerticalStackLayout Spacing="4">
-                                            <Label Text="Extensión mínima (mz)" FontFamily="MontserratBold" FontSize="11" />
-                                            <Entry
-                                                Keyboard="Numeric"
-                                                Placeholder="0.00"
-                                                Text="{Binding ExtensionMinimaTexto}"
-                                                BackgroundColor="#F8FAF9" />
+                                        <VerticalStackLayout Spacing="5">
+                                            <Label Text="Extensión mínima (mz)" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <Entry
+                                                    Keyboard="Numeric"
+                                                    Placeholder="0.00"
+                                                    Text="{Binding ExtensionMinimaTexto}"
+                                                    Style="{StaticResource ModernEntry}" />
+                                            </Border>
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
                                             Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                                             Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                                            Spacing="4">
-                                            <Label Text="Extensión máxima (mz)" FontFamily="MontserratBold" FontSize="11" />
-                                            <Entry
-                                                Keyboard="Numeric"
-                                                Placeholder="100.00"
-                                                Text="{Binding ExtensionMaximaTexto}"
-                                                BackgroundColor="#F8FAF9" />
+                                            Spacing="5">
+                                            <Label Text="Extensión máxima (mz)" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <Entry
+                                                    Keyboard="Numeric"
+                                                    Placeholder="100.00"
+                                                    Text="{Binding ExtensionMaximaTexto}"
+                                                    Style="{StaticResource ModernEntry}" />
+                                            </Border>
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
                                             Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
                                             Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
-                                            Spacing="4">
-                                            <Label Text="Ordenar por" FontFamily="MontserratBold" FontSize="11" />
-                                            <Picker
-                                                ItemsSource="{Binding Ordenamientos}"
-                                                SelectedItem="{Binding OrdenarSeleccionado}" />
+                                            Spacing="5">
+                                            <Label Text="Ordenar por" Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <Picker
+                                                    ItemsSource="{Binding Ordenamientos}"
+                                                    SelectedItem="{Binding OrdenarSeleccionado}"
+                                                    Style="{StaticResource ModernPicker}" />
+                                            </Border>
                                         </VerticalStackLayout>
                                     </Grid>
 
                                     <Button
                                         Text="Aplicar filtros"
                                         Command="{Binding BuscarCommand}"
-                                        BackgroundColor="#3B655B"
-                                        TextColor="White"
-                                        FontFamily="MontserratBold"
-                                        CornerRadius="10"
+                                        Style="{StaticResource ModernPrimaryButton}"
                                         HorizontalOptions="End" />
                                 </VerticalStackLayout>
                             </Border>
 
                             <Border
                                 IsVisible="{Binding TieneMensaje}"
-                                Padding="11"
-                                BackgroundColor="#FFF7ED"
-                                Stroke="#FDBA74"
-                                StrokeShape="RoundRectangle 11">
+                                Style="{StaticResource ModernWarningBanner}">
                                 <Label
                                     Text="{Binding Mensaje}"
                                     FontFamily="MontserratMedium"
-                                    FontSize="12"
-                                    TextColor="#9A3412" />
+                                    FontSize="11.5"
+                                    TextColor="{AppThemeBinding Light=#8B541E, Dark=#E6C28D}" />
                             </Border>
                         </VerticalStackLayout>
                     </CollectionView.Header>
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:TerrenoResponse">
-                            <Border
-                                BackgroundColor="White"
-                                Stroke="#E3EAE7"
-                                StrokeShape="RoundRectangle 16"
-                                Padding="14">
-
+                            <Border Style="{StaticResource ModernCatalogCard}">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
                                         Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.ViewCommand}"
                                         CommandParameter="{Binding .}" />
                                 </Border.GestureRecognizers>
 
-                                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                         <VerticalStackLayout Spacing="3">
                                             <Label
                                                 Text="{Binding CodigoTerreno}"
                                                 FontFamily="MontserratBold"
                                                 FontAttributes="Bold"
-                                                FontSize="17"
-                                                TextColor="#1F2937"
+                                                FontSize="16"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                                MaxLines="1"
                                                 LineBreakMode="TailTruncation" />
                                             <Label
                                                 Text="{Binding Propietario.NombreCompleto, TargetNullValue='Sin propietario'}"
                                                 FontFamily="MontserratMedium"
-                                                FontSize="13"
-                                                TextColor="#4B5563"
+                                                FontSize="12"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                                 MaxLines="1"
                                                 LineBreakMode="TailTruncation" />
                                         </VerticalStackLayout>
 
                                         <Border
                                             Grid.Column="1"
-                                            Padding="9,4"
-                                            BackgroundColor="#EEF5F2"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 9">
+                                            Style="{StaticResource ModernBadgeGreen}">
                                             <Label
                                                 Text="{Binding ExtensionManzanaTerreno, StringFormat='{0:F2} mz'}"
                                                 FontFamily="MontserratBold"
-                                                FontSize="11"
-                                                TextColor="#3B655B" />
+                                                FontSize="10.5"
+                                                TextColor="{StaticResource color_Verde}" />
                                         </Border>
                                     </Grid>
 
@@ -342,72 +370,75 @@
                                         Grid.Row="1"
                                         ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*,*', Desktop='*,*,*'}"
                                         RowDefinitions="Auto,Auto,Auto"
-                                        ColumnSpacing="10"
-                                        RowSpacing="4">
-                                        <Label
-                                            Text="{Binding Ubicacion.NombreMunicipio}"
-                                            FontFamily="MontserratBold"
-                                            FontSize="12"
-                                            TextColor="#3B655B"
-                                            MaxLines="1" />
-                                        <Label
+                                        ColumnSpacing="8"
+                                        RowSpacing="6">
+                                        <Border Style="{StaticResource ModernMetricSurface}">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label Text="MUNICIPIO" Style="{StaticResource ModernCaption}" FontSize="8.5" />
+                                                <Label
+                                                    Text="{Binding Ubicacion.NombreMunicipio}"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="10.5"
+                                                    TextColor="{StaticResource color_Verde}"
+                                                    MaxLines="1"
+                                                    LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                        </Border>
+
+                                        <Border
                                             Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                                             Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                                            Text="{Binding Ubicacion.NombreDepartamento}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="11"
-                                            TextColor="#6B7280"
-                                            MaxLines="1" />
-                                        <Label
+                                            Style="{StaticResource ModernMetricSurface}">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label Text="DEPARTAMENTO" Style="{StaticResource ModernCaption}" FontSize="8.5" />
+                                                <Label
+                                                    Text="{Binding Ubicacion.NombreDepartamento}"
+                                                    FontFamily="MontserratMedium"
+                                                    FontSize="10.5"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                                                    MaxLines="1"
+                                                    LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                        </Border>
+
+                                        <Border
                                             Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
                                             Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
-                                            Text="{Binding FechaIngresoTerreno, StringFormat='Ingreso: {0:dd/MM/yyyy}'}"
-                                            FontFamily="MontserratMedium"
-                                            FontSize="11"
-                                            TextColor="#6B7280" />
+                                            Style="{StaticResource ModernMetricSurface}">
+                                            <VerticalStackLayout Spacing="1">
+                                                <Label Text="INGRESO" Style="{StaticResource ModernCaption}" FontSize="8.5" />
+                                                <Label
+                                                    Text="{Binding FechaIngresoTerreno, StringFormat='{0:dd/MM/yyyy}'}"
+                                                    FontFamily="MontserratMedium"
+                                                    FontSize="10.5"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                            </VerticalStackLayout>
+                                        </Border>
                                     </Grid>
 
-                                    <!-- Acciones visibles también con mouse en Windows -->
                                     <Grid
                                         Grid.Row="2"
-                                        ColumnDefinitions="*,Auto,Auto"
+                                        ColumnDefinitions="*,*,*"
                                         ColumnSpacing="8">
                                         <Button
-                                            Text="Ver detalle"
+                                            Text="Ver"
                                             Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.ViewCommand}"
                                             CommandParameter="{Binding .}"
-                                            BackgroundColor="Transparent"
-                                            TextColor="#3B655B"
-                                            FontFamily="MontserratBold"
-                                            FontSize="11"
-                                            HorizontalOptions="Start"
-                                            Padding="5,4" />
-
+                                            Style="{StaticResource ModernSecondaryButton}" />
                                         <Button
                                             Grid.Column="1"
                                             Text="Editar"
                                             Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.EditCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.CanEdit}"
-                                            BackgroundColor="#EEF2FF"
-                                            TextColor="#2563EB"
-                                            FontFamily="MontserratBold"
-                                            FontSize="11"
-                                            CornerRadius="9"
-                                            Padding="11,6" />
-
+                                            Style="{StaticResource ModernUpdateButton}" />
                                         <Button
                                             Grid.Column="2"
                                             Text="Eliminar"
                                             Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.DeleteCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.CanDelete}"
-                                            BackgroundColor="#FEF2F2"
-                                            TextColor="#DC2626"
-                                            FontFamily="MontserratBold"
-                                            FontSize="11"
-                                            CornerRadius="9"
-                                            Padding="11,6" />
+                                            Style="{StaticResource ModernDangerButton}" />
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -415,24 +446,30 @@
                     </CollectionView.ItemTemplate>
 
                     <CollectionView.EmptyView>
-                        <VerticalStackLayout
-                            IsVisible="{Binding MostrarVacio}"
-                            Padding="34"
-                            Spacing="8"
-                            HorizontalOptions="Center">
-                            <Label
-                                Text="No hay terrenos para mostrar"
-                                FontFamily="MontserratBold"
-                                FontSize="17"
-                                TextColor="#3B655B"
-                                HorizontalTextAlignment="Center" />
-                            <Label
-                                Text="Cambie los filtros o actualice la lista."
-                                FontFamily="MontserratMedium"
-                                FontSize="12"
-                                TextColor="#6B7280"
-                                HorizontalTextAlignment="Center" />
-                        </VerticalStackLayout>
+                        <Grid Padding="12,24">
+                            <Border
+                                IsVisible="{Binding MostrarVacio}"
+                                Style="{StaticResource ModernEmptyStateCard}">
+                                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                    <Border
+                                        Style="{StaticResource ModernIconTile}"
+                                        WidthRequest="54"
+                                        HeightRequest="54"
+                                        Padding="11">
+                                        <Image Source="iconland.png" Aspect="AspectFit" Opacity="0.62" />
+                                    </Border>
+                                    <Label
+                                        Text="No hay terrenos para mostrar"
+                                        Style="{StaticResource ModernSectionTitle}"
+                                        FontSize="17"
+                                        HorizontalTextAlignment="Center" />
+                                    <Label
+                                        Text="Cambie los filtros o actualice la lista."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
                     </CollectionView.EmptyView>
 
                     <CollectionView.Footer>
@@ -443,50 +480,57 @@
                             <ActivityIndicator
                                 IsVisible="{Binding CargandoMas}"
                                 IsRunning="{Binding CargandoMas}"
-                                Color="#3B655B" />
+                                Color="{StaticResource color_Verde}" />
                             <Label
                                 IsVisible="{Binding MostrarFinLista}"
                                 Text="No hay más terrenos."
-                                FontFamily="MontserratMedium"
-                                FontSize="11"
-                                TextColor="#6B7280" />
+                                Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
                     </CollectionView.Footer>
                 </CollectionView>
             </RefreshView>
 
-            <ActivityIndicator
-                Grid.RowSpan="2"
-                IsRunning="{Binding IsBusy}"
+            <Grid
+                Grid.RowSpan="1"
                 IsVisible="{Binding IsBusy}"
-                Color="#3B655B"
-                HorizontalOptions="Center"
-                VerticalOptions="Center" />
+                InputTransparent="False"
+                BackgroundColor="#36000000">
+                <Border
+                    Padding="18,14"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                    StrokeShape="RoundRectangle 15"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                    <HorizontalStackLayout Spacing="10">
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" />
+                        <Label Text="Cargando terrenos..." FontFamily="MontserratBold" FontSize="12" VerticalOptions="Center" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
 
         <Grid
             x:Name="ContenidoSinPermiso"
             IsVisible="False"
-            Padding="24">
-            <Border
-                MaximumWidthRequest="540"
-                Padding="26"
-                BackgroundColor="White"
-                Stroke="#DDE7E3"
-                StrokeShape="RoundRectangle 18"
-                HorizontalOptions="Center"
-                VerticalOptions="Center">
-                <VerticalStackLayout Spacing="12">
+            Padding="{OnIdiom Phone=16, Tablet=24, Desktop=28}">
+            <Border Style="{StaticResource ModernAccessDeniedCard}">
+                <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                    <Border
+                        Style="{StaticResource ModernIconTile}"
+                        WidthRequest="70"
+                        HeightRequest="70"
+                        Padding="14">
+                        <Image Source="iconpermission.png" Aspect="AspectFit" Opacity="0.72" />
+                    </Border>
                     <Label
                         Text="Sin permiso para consultar terrenos"
-                        FontFamily="MontserratBold"
-                        FontSize="22"
-                        TextColor="#3B655B"
+                        Style="{StaticResource ModernSectionTitle}"
+                        FontSize="21"
                         HorizontalTextAlignment="Center" />
                     <Label
                         Text="Su usuario está activo, pero su rol no tiene permiso de lectura para este apartado."
-                        FontFamily="MontserratMedium"
-                        TextColor="#4B5563"
+                        Style="{StaticResource ModernPageSubtitle}"
                         HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Border>

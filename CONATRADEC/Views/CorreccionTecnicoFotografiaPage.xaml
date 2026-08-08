@@ -4,72 +4,85 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="#F7F8F7">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Grid Padding="{OnIdiom Phone=14, Default=22}" RowDefinitions="Auto,*,Auto" RowSpacing="12">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <VerticalStackLayout Spacing="2">
-                <Label Text="Corrección solicitada" FontSize="23" FontAttributes="Bold" TextColor="#263A35" />
-                <Label Text="{Binding Fotografia.Titulo}" TextColor="#5E6B67" />
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10" MaximumWidthRequest="900" HorizontalOptions="Center">
+            <VerticalStackLayout Spacing="3">
+                <Label Text="Corrección solicitada" Style="{StaticResource ModernPageTitle}" />
+                <Label Text="{Binding Fotografia.Titulo}" Style="{StaticResource InspectionSubtitle}" />
             </VerticalStackLayout>
-            <Button Grid.Column="1" Text="Cerrar" Clicked="OnCerrarClicked" BackgroundColor="#EEF2F0" TextColor="#263A35" />
+            <Button Grid.Column="1" Text="Cerrar" Clicked="OnCerrarClicked" Style="{StaticResource InspectionNeutralButton}" WidthRequest="100" />
         </Grid>
 
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Spacing="13" MaximumWidthRequest="850" HorizontalOptions="Center">
-                <Border Padding="15" BackgroundColor="#FFF9E8" Stroke="#E2B93B" StrokeShape="RoundRectangle 13">
+            <VerticalStackLayout Spacing="13" MaximumWidthRequest="900" HorizontalOptions="Center">
+                <Border Style="{StaticResource InspectionWarningPanel}">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="{Binding Devolucion.MotivoNombre}" FontSize="18" FontAttributes="Bold" TextColor="#6B5710" />
-                        <Label Text="{Binding Devolucion.InstruccionCompleta}" TextColor="#6B5710" />
+                        <Label Text="{Binding Devolucion.InstruccionCompleta}" TextColor="#6B5710" LineBreakMode="WordWrap" />
                         <Label Text="{Binding Devolucion.FechaTexto, StringFormat='Devuelta: {0}'}" FontSize="12" TextColor="#7A651B" />
                     </VerticalStackLayout>
                 </Border>
 
-                <Border Padding="14" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14">
-                    <Grid ColumnDefinitions="{OnIdiom Phone='120,*', Default='220,*'}" ColumnSpacing="15">
-                        <Image Source="{Binding Fotografia.UrlImagen}" HeightRequest="{OnIdiom Phone=130, Default=220}" Aspect="AspectFill" />
-                        <VerticalStackLayout Grid.Column="1" Spacing="5">
-                            <Label Text="{Binding Fotografia.ResultadoIA.DiagnosticoVisible}" FontSize="17" FontAttributes="Bold" TextColor="#3B655B" />
-                            <Label Text="{Binding Fotografia.ResultadoIA.ResumenImagen}" TextColor="#5E6B67" />
+                <Border Style="{StaticResource InspectionCard}">
+                    <Grid
+                        ColumnDefinitions="{OnIdiom Phone='*', Default='220,*'}"
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                        ColumnSpacing="15"
+                        RowSpacing="12">
+                        <Border HeightRequest="{OnIdiom Phone=220, Default=220}" BackgroundColor="#EEF3F1" Stroke="Transparent" StrokeShape="RoundRectangle 13">
+                            <Image Source="{Binding Fotografia.UrlImagen}" Aspect="AspectFill" />
+                        </Border>
+                        <VerticalStackLayout
+                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                            Spacing="6"
+                            VerticalOptions="Center">
+                            <Label Text="Resultado actual" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                            <Label Text="{Binding Fotografia.ResultadoIA.DiagnosticoVisible}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                            <Label Text="{Binding Fotografia.ResultadoIA.ResumenImagen}" Style="{StaticResource InspectionSubtitle}" />
                         </VerticalStackLayout>
                     </Grid>
                 </Border>
 
-                <Border
-                    Padding="16"
-                    BackgroundColor="#FDECEC"
-                    Stroke="#F4B7B2"
-                    StrokeShape="RoundRectangle 14"
-                    IsVisible="{Binding RequiereNuevaFotografia}">
+                <Border Style="{StaticResource InspectionDangerPanel}" IsVisible="{Binding RequiereNuevaFotografia}">
                     <VerticalStackLayout Spacing="6">
                         <Label Text="Se requiere una nueva fotografía" FontSize="18" FontAttributes="Bold" TextColor="#B42318" />
-                        <Label
-                            Text="Agregue la nueva evidencia con el botón «Agregar fotografías». Después descarte esta fotografía indicando que fue sustituida por la corrección solicitada."
-                            TextColor="#7A271A" />
+                        <Label Text="Agregue la nueva evidencia con el botón «Agregar fotografías». Después descarte esta fotografía indicando que fue sustituida por la corrección solicitada." TextColor="#7A271A" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
                 </Border>
 
-                <Border
-                    Padding="16"
-                    BackgroundColor="White"
-                    Stroke="#C8DED6"
-                    StrokeShape="RoundRectangle 14"
-                    IsVisible="{Binding PermiteCorregirMetadatos}">
-                    <VerticalStackLayout Spacing="11">
-                        <Label Text="Tipo de fotografía corregido *" FontAttributes="Bold" TextColor="#263A35" />
-                        <Picker
-                            ItemsSource="{Binding TiposFotografia}"
-                            ItemDisplayBinding="{Binding NombreMostrar}"
-                            SelectedItem="{Binding TipoSeleccionado, Mode=TwoWay}" />
-                        <Label Text="Fecha de identificación en campo *" FontAttributes="Bold" TextColor="#263A35" />
-                        <DatePicker Date="{Binding FechaCampo}" Format="dd/MM/yyyy" MaximumDate="{Binding FechaMaxima}" />
-                        <Label Text="Respuesta del técnico *" FontAttributes="Bold" TextColor="#263A35" />
-                        <Editor
-                            Text="{Binding RespuestaTecnico}"
-                            AutoSize="TextChanges"
-                            MinimumHeightRequest="115"
-                            MaxLength="2000"
-                            Placeholder="Explique qué se verificó o corrigió antes de reenviar la evidencia a la IA." />
+                <Border Style="{StaticResource InspectionCard}" IsVisible="{Binding PermiteCorregirMetadatos}">
+                    <VerticalStackLayout Spacing="13">
+                        <Label Text="Datos corregidos" Style="{StaticResource InspectionTitle}" />
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Tipo de fotografía corregido *" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource InspectionInputBorder}">
+                                <Picker ItemsSource="{Binding TiposFotografia}" ItemDisplayBinding="{Binding NombreMostrar}" SelectedItem="{Binding TipoSeleccionado, Mode=TwoWay}" BackgroundColor="Transparent" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Fecha de identificación en campo *" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource InspectionInputBorder}">
+                                <DatePicker Date="{Binding FechaCampo}" Format="dd/MM/yyyy" MaximumDate="{Binding FechaMaxima}" BackgroundColor="Transparent" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Respuesta del técnico *" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource InspectionInputBorder}" Padding="10">
+                                <Editor
+                                    Text="{Binding RespuestaTecnico}"
+                                    AutoSize="TextChanges"
+                                    MinimumHeightRequest="115"
+                                    MaxLength="2000"
+                                    BackgroundColor="Transparent"
+                                    Placeholder="Explique qué se verificó o corrigió antes de reenviar la evidencia a la IA." />
+                            </Border>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
@@ -80,10 +93,22 @@
             Text="Guardar corrección y reenviar a IA"
             Clicked="OnGuardarClicked"
             IsVisible="{Binding PermiteCorregirMetadatos}"
-            HeightRequest="50"
-            HorizontalOptions="End"
-            WidthRequest="280"
-            BackgroundColor="#3B655B"
-            TextColor="White" />
+            Style="{StaticResource InspectionPrimaryButton}"
+            MaximumWidthRequest="900"
+            HorizontalOptions="Fill" />
+
+        <Grid
+            Grid.RowSpan="3"
+            BackgroundColor="#66000000"
+            IsVisible="{Binding EstaCargando}"
+            InputTransparent="False"
+            ZIndex="50">
+            <Border Style="{StaticResource InspectionOverlayCard}">
+                <VerticalStackLayout Spacing="12">
+                    <ActivityIndicator IsRunning="{Binding EstaCargando}" Color="{StaticResource color_Verde}" WidthRequest="42" HeightRequest="42" />
+                    <Label Text="{Binding MensajeCarga}" HorizontalTextAlignment="Center" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

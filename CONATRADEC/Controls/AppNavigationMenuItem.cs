@@ -10,8 +10,8 @@ namespace CONATRADEC.Controls
 {
     /// <summary>
     /// Elemento reutilizable de la navegación principal. Oculta opciones sin
-    /// permiso y conserva seleccionada la sección a la que pertenece cada
-    /// página secundaria.
+    /// permiso, conserva seleccionada la sección actual y muestra un relay
+    /// visual mientras una navegación está en curso.
     /// </summary>
     public sealed class AppNavigationMenuItem : Border
     {
@@ -97,11 +97,14 @@ namespace CONATRADEC.Controls
         private readonly VerticalStackLayout mobileLayout;
         private readonly Image desktopIcon;
         private readonly Image mobileIcon;
+        private readonly ActivityIndicator desktopLoading;
+        private readonly ActivityIndicator mobileLoading;
         private readonly Label desktopLabel;
         private readonly Label mobileLabel;
 
         private bool suscritoPermisos;
         private bool suscritoNavegacion;
+        private bool navegando;
 
         public static readonly BindableProperty TextoProperty =
             BindableProperty.Create(
@@ -215,6 +218,8 @@ namespace CONATRADEC.Controls
 
             desktopIcon = CrearIcono(24);
             mobileIcon = CrearIcono(26);
+            desktopLoading = CrearIndicadorCarga(24);
+            mobileLoading = CrearIndicadorCarga(26);
 
             desktopLabel = new Label
             {
@@ -248,7 +253,8 @@ namespace CONATRADEC.Controls
                 },
                 ColumnSpacing = 12
             };
-            desktopLayout.Add(desktopIcon);
+            desktopLayout.Add(desktopIcon, 0, 0);
+            desktopLayout.Add(desktopLoading, 0, 0);
             desktopLayout.Add(desktopLabel, 1, 0);
 
             mobileLayout = new VerticalStackLayout
@@ -261,6 +267,7 @@ namespace CONATRADEC.Controls
                 VerticalOptions = LayoutOptions.Center
             };
             mobileLayout.Add(mobileIcon);
+            mobileLayout.Add(mobileLoading);
             mobileLayout.Add(mobileLabel);
 
             var contentGrid = new Grid();
@@ -307,6 +314,20 @@ namespace CONATRADEC.Controls
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 Aspect = Aspect.AspectFit
+            };
+
+        private static ActivityIndicator CrearIndicadorCarga(double size) =>
+            new()
+            {
+                HeightRequest = size,
+                WidthRequest = size,
+                MinimumHeightRequest = size,
+                MinimumWidthRequest = size,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                Color = Color.FromArgb("#3B655B"),
+                IsRunning = false,
+                IsVisible = false
             };
 
         private void OnLoaded(object? sender, EventArgs e)
@@ -424,6 +445,8 @@ namespace CONATRADEC.Controls
             VerticalOptions = EsMovil
                 ? LayoutOptions.Fill
                 : LayoutOptions.Start;
+
+            AplicarEstadoCargaVisual();
         }
 
         private void AplicarPermiso()
@@ -433,8 +456,8 @@ namespace CONATRADEC.Controls
                 GrupoPermisos);
 
             IsVisible = visible;
-            IsEnabled = visible;
-            InputTransparent = !visible;
+            IsEnabled = visible && !navegando;
+            InputTransparent = !visible || navegando;
         }
 
         private void ActualizarEstadoActivo()
@@ -444,21 +467,45 @@ namespace CONATRADEC.Controls
                 Seccion,
                 StringComparison.OrdinalIgnoreCase);
 
-            BackgroundColor = active
+            BackgroundColor = active || navegando
                 ? Color.FromArgb("#EEF5F2")
                 : Colors.Transparent;
 
             Stroke = new SolidColorBrush(
-                active
+                active || navegando
                     ? Color.FromArgb("#BFD8CF")
                     : Colors.Transparent);
 
-            Color textColor = active
+            Color textColor = active || navegando
                 ? Color.FromArgb("#3B655B")
                 : Color.FromArgb("#111827");
 
             desktopLabel.TextColor = textColor;
             mobileLabel.TextColor = textColor;
+        }
+
+        private void CambiarEstadoNavegacion(bool valor)
+        {
+            if (navegando == valor)
+                return;
+
+            navegando = valor;
+            AplicarEstadoCargaVisual();
+            AplicarPermiso();
+            ActualizarEstadoActivo();
+        }
+
+        private void AplicarEstadoCargaVisual()
+        {
+            desktopIcon.IsVisible = !navegando;
+            mobileIcon.IsVisible = !navegando;
+
+            desktopLoading.IsVisible = navegando;
+            mobileLoading.IsVisible = navegando;
+            desktopLoading.IsRunning = navegando;
+            mobileLoading.IsRunning = navegando;
+
+            Opacity = navegando ? 0.92 : 1;
         }
 
         private async Task NavegarAsync()
@@ -486,6 +533,8 @@ namespace CONATRADEC.Controls
                 return;
             }
 
+            CambiarEstadoNavegacion(true);
+
             try
             {
                 await KeyboardService.HideAsync();
@@ -504,6 +553,7 @@ namespace CONATRADEC.Controls
             }
             finally
             {
+                CambiarEstadoNavegacion(false);
                 NavigationLock.Release();
             }
         }

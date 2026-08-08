@@ -11,6 +11,8 @@ namespace CONATRADEC.Controls
     ///
     /// Además de la acción principal, detecta automáticamente los
     /// catálogos que admiten reactivación y muestra "Eliminados".
+    /// La distribución se adapta al ancho disponible sin modificar
+    /// comandos, permisos ni navegación.
     /// </summary>
     public partial class ResponsiveCatalogHeader : ContentView
     {
@@ -141,123 +143,84 @@ namespace CONATRADEC.Controls
 
         public string Title
         {
-            get => (string)GetValue(
-                TitleProperty);
-            set => SetValue(
-                TitleProperty,
-                value);
+            get => (string)GetValue(TitleProperty);
+            set => SetValue(TitleProperty, value);
         }
 
         public string Subtitle
         {
-            get => (string)GetValue(
-                SubtitleProperty);
-            set => SetValue(
-                SubtitleProperty,
-                value);
+            get => (string)GetValue(SubtitleProperty);
+            set => SetValue(SubtitleProperty, value);
         }
 
         public string ContextText
         {
-            get => (string)GetValue(
-                ContextTextProperty);
-            set => SetValue(
-                ContextTextProperty,
-                value);
+            get => (string)GetValue(ContextTextProperty);
+            set => SetValue(ContextTextProperty, value);
         }
 
         public bool IsContextVisible
         {
-            get => (bool)GetValue(
-                IsContextVisibleProperty);
-            set => SetValue(
-                IsContextVisibleProperty,
-                value);
+            get => (bool)GetValue(IsContextVisibleProperty);
+            set => SetValue(IsContextVisibleProperty, value);
         }
 
         public string BackText
         {
-            get => (string)GetValue(
-                BackTextProperty);
-            set => SetValue(
-                BackTextProperty,
-                value);
+            get => (string)GetValue(BackTextProperty);
+            set => SetValue(BackTextProperty, value);
         }
 
         public ICommand? BackCommand
         {
-            get => (ICommand?)GetValue(
-                BackCommandProperty);
-            set => SetValue(
-                BackCommandProperty,
-                value);
+            get => (ICommand?)GetValue(BackCommandProperty);
+            set => SetValue(BackCommandProperty, value);
         }
 
         public bool IsBackVisible
         {
-            get => (bool)GetValue(
-                IsBackVisibleProperty);
-            set => SetValue(
-                IsBackVisibleProperty,
-                value);
+            get => (bool)GetValue(IsBackVisibleProperty);
+            set => SetValue(IsBackVisibleProperty, value);
         }
 
         public string PrimaryText
         {
-            get => (string)GetValue(
-                PrimaryTextProperty);
-            set => SetValue(
-                PrimaryTextProperty,
-                value);
+            get => (string)GetValue(PrimaryTextProperty);
+            set => SetValue(PrimaryTextProperty, value);
         }
 
         public ICommand? PrimaryCommand
         {
-            get => (ICommand?)GetValue(
-                PrimaryCommandProperty);
-            set => SetValue(
-                PrimaryCommandProperty,
-                value);
+            get => (ICommand?)GetValue(PrimaryCommandProperty);
+            set => SetValue(PrimaryCommandProperty, value);
         }
 
         public Color PrimaryBackgroundColor
         {
-            get => (Color)GetValue(
-                PrimaryBackgroundColorProperty);
-            set => SetValue(
-                PrimaryBackgroundColorProperty,
-                value);
+            get => (Color)GetValue(PrimaryBackgroundColorProperty);
+            set => SetValue(PrimaryBackgroundColorProperty, value);
         }
 
         public Color PrimaryTextColor
         {
-            get => (Color)GetValue(
-                PrimaryTextColorProperty);
-            set => SetValue(
-                PrimaryTextColorProperty,
-                value);
+            get => (Color)GetValue(PrimaryTextColorProperty);
+            set => SetValue(PrimaryTextColorProperty, value);
         }
 
         public bool IsPrimaryVisible
         {
-            get => (bool)GetValue(
-                IsPrimaryVisibleProperty);
-            set => SetValue(
-                IsPrimaryVisibleProperty,
-                value);
+            get => (bool)GetValue(IsPrimaryVisibleProperty);
+            set => SetValue(IsPrimaryVisibleProperty, value);
         }
 
         public bool HasSubtitle =>
-            (bool)GetValue(
-                HasSubtitleProperty);
+            (bool)GetValue(HasSubtitleProperty);
 
         protected override void OnSizeAllocated(
             double width,
             double height)
         {
-            base.OnSizeAllocated(
-                width,
-                height);
+            base.OnSizeAllocated(width, height);
 
             if (width <= 0)
                 return;
@@ -276,40 +239,33 @@ namespace CONATRADEC.Controls
             ApplyLayout(mode);
         }
 
-        private void ApplyLayout(
-            LayoutMode mode)
+        private void ApplyLayout(LayoutMode mode)
         {
             HeaderGrid.RowDefinitions.Clear();
             HeaderGrid.ColumnDefinitions.Clear();
+
+            RestablecerOpcionesAcciones();
 
             switch (mode)
             {
                 case LayoutMode.Phone:
                     ConfigurePhoneGrid();
+                    TitleLabel.FontSize = 24;
 
-                    TitleLabel.FontSize = 25;
-                    BackButton.Padding =
-                        new Thickness(10, 9);
-                    DeletedButton.Padding =
-                        new Thickness(10, 9);
-                    PrimaryButton.Padding =
-                        new Thickness(10, 9);
-                    BackButton.FontSize = 12;
-                    DeletedButton.FontSize = 12;
-                    PrimaryButton.FontSize = 12;
+                    /*
+                     * Las tres acciones deben caber en una sola fila.
+                     * Se reduce únicamente su presentación; comandos, rutas y
+                     * permisos permanecen intactos.
+                     */
+                    ConfigurarBotonMovil(BackButton);
+                    ConfigurarBotonMovil(DeletedButton);
+                    ConfigurarBotonMovil(PrimaryButton);
                     SubtitleLabel.MaxLines = 3;
                     break;
 
                 case LayoutMode.Tablet:
                     ConfigureHorizontalGrid();
-
-                    TitleLabel.FontSize = 27;
-                    BackButton.Padding =
-                        new Thickness(13, 9);
-                    DeletedButton.Padding =
-                        new Thickness(13, 9);
-                    PrimaryButton.Padding =
-                        new Thickness(14, 10);
+                    TitleLabel.FontSize = 28;
                     BackButton.FontSize = 12;
                     DeletedButton.FontSize = 12;
                     PrimaryButton.FontSize = 12;
@@ -318,174 +274,133 @@ namespace CONATRADEC.Controls
 
                 default:
                     ConfigureHorizontalGrid();
-
                     TitleLabel.FontSize = 30;
-                    BackButton.Padding =
-                        new Thickness(16, 10);
-                    DeletedButton.Padding =
-                        new Thickness(16, 10);
-                    PrimaryButton.Padding =
-                        new Thickness(18, 11);
-                    BackButton.FontSize = 13;
-                    DeletedButton.FontSize = 13;
-                    PrimaryButton.FontSize = 13;
+                    BackButton.FontSize = 12.5;
+                    DeletedButton.FontSize = 12.5;
+                    PrimaryButton.FontSize = 12.5;
                     SubtitleLabel.MaxLines = 2;
                     break;
             }
         }
 
+        /// <summary>
+        /// En teléfono el título ocupa la primera fila y todas las acciones
+        /// visibles comparten una segunda fila. Esto evita que el encabezado
+        /// consuma media pantalla antes de que el usuario llegue al listado.
+        /// </summary>
         private void ConfigurePhoneGrid()
         {
-            var acciones =
-                ObtenerAccionesVisibles();
+            List<View> acciones = ObtenerAccionesVisibles();
 
-            int columnas =
-                Math.Max(
-                    1,
-                    acciones.Count);
+            int columnas = Math.Max(1, acciones.Count);
 
-            for (int indice = 0;
-                 indice < columnas;
-                 indice++)
+            for (int indice = 0; indice < columnas; indice++)
             {
                 HeaderGrid.ColumnDefinitions.Add(
-                    new ColumnDefinition(
-                        GridLength.Star));
+                    new ColumnDefinition(GridLength.Star));
             }
 
             HeaderGrid.RowDefinitions.Add(
-                new RowDefinition(
-                    GridLength.Auto));
+                new RowDefinition(GridLength.Auto));
+
+            Grid.SetRow(TitleContainer, 0);
+            Grid.SetColumn(TitleContainer, 0);
+            Grid.SetColumnSpan(TitleContainer, columnas);
+
+            if (acciones.Count == 0)
+                return;
 
             HeaderGrid.RowDefinitions.Add(
-                new RowDefinition(
-                    GridLength.Auto));
+                new RowDefinition(GridLength.Auto));
 
-            Grid.SetRow(
-                TitleContainer,
-                0);
-            Grid.SetColumn(
-                TitleContainer,
-                0);
-            Grid.SetColumnSpan(
-                TitleContainer,
-                columnas);
-
-            for (int indice = 0;
-                 indice < acciones.Count;
-                 indice++)
+            for (int indice = 0; indice < acciones.Count; indice++)
             {
-                View accion =
-                    acciones[indice];
-
-                Grid.SetRow(
-                    accion,
-                    1);
-                Grid.SetColumn(
-                    accion,
-                    indice);
-                Grid.SetColumnSpan(
-                    accion,
-                    1);
+                View accion = acciones[indice];
+                Grid.SetRow(accion, 1);
+                Grid.SetColumn(accion, indice);
+                Grid.SetColumnSpan(accion, 1);
             }
+        }
+
+        private static void ConfigurarBotonMovil(Button button)
+        {
+            button.FontSize = 9.4;
+            button.HeightRequest = 40;
+            button.MinimumHeightRequest = 40;
+            button.MinimumWidthRequest = 0;
+            button.Padding = new Thickness(5, 7);
+            button.CornerRadius = 10;
+            button.HorizontalOptions = LayoutOptions.Fill;
         }
 
         private void ConfigureHorizontalGrid()
         {
             HeaderGrid.RowDefinitions.Add(
-                new RowDefinition(
-                    GridLength.Auto));
+                new RowDefinition(GridLength.Auto));
 
             int columna = 0;
 
             if (IsBackVisible)
             {
                 HeaderGrid.ColumnDefinitions.Add(
-                    new ColumnDefinition(
-                        GridLength.Auto));
+                    new ColumnDefinition(GridLength.Auto));
 
-                Grid.SetRow(
-                    BackButton,
-                    0);
-                Grid.SetColumn(
-                    BackButton,
-                    columna++);
-                Grid.SetColumnSpan(
-                    BackButton,
-                    1);
+                Grid.SetRow(BackButton, 0);
+                Grid.SetColumn(BackButton, columna++);
+                Grid.SetColumnSpan(BackButton, 1);
             }
 
             HeaderGrid.ColumnDefinitions.Add(
-                new ColumnDefinition(
-                    GridLength.Star));
+                new ColumnDefinition(GridLength.Star));
 
-            Grid.SetRow(
-                TitleContainer,
-                0);
-            Grid.SetColumn(
-                TitleContainer,
-                columna++);
-            Grid.SetColumnSpan(
-                TitleContainer,
-                1);
+            Grid.SetRow(TitleContainer, 0);
+            Grid.SetColumn(TitleContainer, columna++);
+            Grid.SetColumnSpan(TitleContainer, 1);
 
             if (DeletedButton.IsVisible)
             {
                 HeaderGrid.ColumnDefinitions.Add(
-                    new ColumnDefinition(
-                        GridLength.Auto));
+                    new ColumnDefinition(GridLength.Auto));
 
-                Grid.SetRow(
-                    DeletedButton,
-                    0);
-                Grid.SetColumn(
-                    DeletedButton,
-                    columna++);
-                Grid.SetColumnSpan(
-                    DeletedButton,
-                    1);
+                Grid.SetRow(DeletedButton, 0);
+                Grid.SetColumn(DeletedButton, columna++);
+                Grid.SetColumnSpan(DeletedButton, 1);
             }
 
             if (IsPrimaryVisible)
             {
                 HeaderGrid.ColumnDefinitions.Add(
-                    new ColumnDefinition(
-                        GridLength.Auto));
+                    new ColumnDefinition(GridLength.Auto));
 
-                Grid.SetRow(
-                    PrimaryButton,
-                    0);
-                Grid.SetColumn(
-                    PrimaryButton,
-                    columna);
-                Grid.SetColumnSpan(
-                    PrimaryButton,
-                    1);
+                Grid.SetRow(PrimaryButton, 0);
+                Grid.SetColumn(PrimaryButton, columna);
+                Grid.SetColumnSpan(PrimaryButton, 1);
             }
+        }
+
+        private void RestablecerOpcionesAcciones()
+        {
+            BackButton.HorizontalOptions = LayoutOptions.Fill;
+            DeletedButton.HorizontalOptions = LayoutOptions.Fill;
+            PrimaryButton.HorizontalOptions = LayoutOptions.Fill;
+
+            BackButton.MinimumWidthRequest = 0;
+            DeletedButton.MinimumWidthRequest = 0;
+            PrimaryButton.MinimumWidthRequest = 0;
         }
 
         private List<View> ObtenerAccionesVisibles()
         {
-            var acciones =
-                new List<View>();
+            var acciones = new List<View>();
 
             if (IsBackVisible)
-            {
-                acciones.Add(
-                    BackButton);
-            }
+                acciones.Add(BackButton);
 
             if (DeletedButton.IsVisible)
-            {
-                acciones.Add(
-                    DeletedButton);
-            }
+                acciones.Add(DeletedButton);
 
             if (IsPrimaryVisible)
-            {
-                acciones.Add(
-                    PrimaryButton);
-            }
+                acciones.Add(PrimaryButton);
 
             return acciones;
         }
@@ -500,8 +415,7 @@ namespace CONATRADEC.Controls
                 return;
             }
 
-            DeletedButton.IsEnabled =
-                false;
+            DeletedButton.IsEnabled = false;
 
             try
             {
@@ -525,13 +439,11 @@ namespace CONATRADEC.Controls
                 }
 
                 await CatalogoEliminadosLauncher
-                    .AbrirAsync(
-                        catalogoEliminados!);
+                    .AbrirAsync(catalogoEliminados!);
             }
             finally
             {
-                DeletedButton.IsEnabled =
-                    true;
+                DeletedButton.IsEnabled = true;
             }
         }
 
@@ -560,14 +472,10 @@ namespace CONATRADEC.Controls
              * Fuente de Nutriente abre su pantalla especializada.
              */
             DeletedButton.IsVisible =
-                disponible ||
-                esFuenteNutriente;
+                disponible || esFuenteNutriente;
 
-            if (currentMode is
-                LayoutMode mode)
-            {
+            if (currentMode is LayoutMode mode)
                 ApplyLayout(mode);
-            }
         }
 
         private static void OnTitleChanged(
@@ -587,11 +495,8 @@ namespace CONATRADEC.Controls
             var control =
                 (ResponsiveCatalogHeader)bindable;
 
-            if (control.currentMode is
-                LayoutMode mode)
-            {
+            if (control.currentMode is LayoutMode mode)
                 control.ApplyLayout(mode);
-            }
         }
 
         private static void OnSubtitleChanged(
@@ -607,8 +512,7 @@ namespace CONATRADEC.Controls
         {
             SetValue(
                 HasSubtitlePropertyKey,
-                !string.IsNullOrWhiteSpace(
-                    Subtitle));
+                !string.IsNullOrWhiteSpace(Subtitle));
         }
     }
 }

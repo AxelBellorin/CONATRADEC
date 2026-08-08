@@ -3,6 +3,7 @@ using CONATRADEC.ViewModels;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls.Shapes;
 using System;
+using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,8 +16,10 @@ namespace CONATRADEC.Views
 
         private Grid? indicadorProcesamiento;
         private Label? textoProcesamiento;
+        private ActivityIndicator? actividadProcesamiento;
         private Button? botonContinuar;
         private CancellationTokenSource? indicadorCts;
+        private bool procesamientoDetectado;
 
         public ResultadoAnalisisSueloPage()
         {
@@ -28,6 +31,7 @@ namespace CONATRADEC.Views
 
             CrearIndicadorProcesamiento();
 
+            viewModel.PropertyChanged += ViewModel_PropertyChanged;
             Loaded += ResultadoAnalisisSueloPage_Loaded;
         }
 
@@ -65,89 +69,74 @@ namespace CONATRADEC.Views
 
         private void CrearIndicadorProcesamiento()
         {
-            View? contenidoOriginal =
-                Content;
+            View? contenidoOriginal = Content;
 
             if (contenidoOriginal == null)
                 return;
 
             Content = null;
 
-            Grid contenedorRaiz =
-                new();
+            Grid contenedorRaiz = new();
 
-            contenedorRaiz.Children.Add(
-                contenidoOriginal);
+            contenedorRaiz.Children.Add(contenidoOriginal);
 
-            var actividad =
+            actividadProcesamiento =
                 new ActivityIndicator
                 {
-                    IsRunning = true,
+                    // Permanece detenido mientras el overlay está oculto.
+                    IsRunning = false,
                     WidthRequest = 44,
                     HeightRequest = 44,
                     Color = Color.FromArgb("#3B655B"),
-                    HorizontalOptions =
-                        LayoutOptions.Center
+                    HorizontalOptions = LayoutOptions.Center
                 };
 
             textoProcesamiento =
                 new Label
                 {
-                    Text =
-                        "Preparando los cálculos complementarios...",
+                    Text = "Preparando los cálculos complementarios...",
+                    FontFamily = "MontserratBold",
                     FontSize = 15,
-                    FontAttributes =
-                        FontAttributes.Bold,
-                    TextColor =
-                        Color.FromArgb("#1F2937"),
-                    HorizontalTextAlignment =
-                        TextAlignment.Center,
-                    LineBreakMode =
-                        LineBreakMode.WordWrap
+                    FontAttributes = FontAttributes.Bold,
+                    TextColor = Color.FromArgb("#17201D"),
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
                 };
 
             Label detalle =
                 new()
                 {
-                    Text =
-                        "Espere un momento. La información se está preparando en el dispositivo.",
+                    Text = "Espere un momento. La información se está preparando en el dispositivo.",
+                    FontFamily = "MontserratMedium",
                     FontSize = 12,
-                    TextColor =
-                        Color.FromArgb("#6B7280"),
-                    HorizontalTextAlignment =
-                        TextAlignment.Center,
-                    LineBreakMode =
-                        LineBreakMode.WordWrap
+                    TextColor = Color.FromArgb("#607069"),
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    LineBreakMode = LineBreakMode.WordWrap
                 };
 
             Border tarjeta =
                 new()
                 {
                     BackgroundColor = Colors.White,
-                    Stroke =
-                        Color.FromArgb("#D1D5DB"),
+                    Stroke = Color.FromArgb("#DCE6E1"),
                     StrokeThickness = 1,
                     StrokeShape =
                         new RoundRectangle
                         {
-                            CornerRadius =
-                                new CornerRadius(18)
+                            CornerRadius = new CornerRadius(20)
                         },
-                    Padding =
-                        new Thickness(24, 20),
+                    Padding = new Thickness(24, 20),
                     Margin = 24,
-                    HorizontalOptions =
-                        LayoutOptions.Center,
-                    VerticalOptions =
-                        LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
                     MaximumWidthRequest = 420,
                     Content =
                         new VerticalStackLayout
                         {
-                            Spacing = 12,
+                            Spacing = 11,
                             Children =
                             {
-                                actividad,
+                                actividadProcesamiento,
                                 textoProcesamiento,
                                 detalle
                             }
@@ -157,46 +146,35 @@ namespace CONATRADEC.Views
             indicadorProcesamiento =
                 new Grid
                 {
-                    BackgroundColor =
-                        Color.FromArgb("#80000000"),
+                    BackgroundColor = Color.FromArgb("#66000000"),
                     IsVisible = false,
                     InputTransparent = false,
                     ZIndex = 1000
                 };
 
-            indicadorProcesamiento.Children.Add(
-                tarjeta);
-
-            contenedorRaiz.Children.Add(
-                indicadorProcesamiento);
+            indicadorProcesamiento.Children.Add(tarjeta);
+            contenedorRaiz.Children.Add(indicadorProcesamiento);
 
             Content = contenedorRaiz;
         }
 
         private void VincularBotonContinuar()
         {
-            Button? encontrado =
-                BuscarBotonContinuar(this);
+            Button? encontrado = BuscarBotonContinuar(this);
 
-            if (ReferenceEquals(
-                    botonContinuar,
-                    encontrado))
-            {
+            if (ReferenceEquals(botonContinuar, encontrado))
                 return;
-            }
 
             if (botonContinuar != null)
             {
-                botonContinuar.Clicked -=
-                    BotonContinuar_Clicked;
+                botonContinuar.Clicked -= BotonContinuar_Clicked;
             }
 
             botonContinuar = encontrado;
 
             if (botonContinuar != null)
             {
-                botonContinuar.Clicked +=
-                    BotonContinuar_Clicked;
+                botonContinuar.Clicked += BotonContinuar_Clicked;
             }
         }
 
@@ -214,55 +192,54 @@ namespace CONATRADEC.Views
                         ? "Actualizando el requerimiento anual..."
                         : "Guardando el requerimiento anual...";
 
-            MostrarIndicadorProcesamiento(
-                mensaje);
+            procesamientoDetectado = viewModel.IsBusy;
+            MostrarIndicadorProcesamiento(mensaje);
 
             CancelarVigilanciaIndicador();
 
-            indicadorCts =
-                new CancellationTokenSource();
+            indicadorCts = new CancellationTokenSource();
 
-            _ = VigilarProcesamientoAsync(
-                indicadorCts.Token);
+            /*
+             * El comando puede validar antes de activar IsBusy. Se utiliza un
+             * único fallback corto en vez de consultar el estado cada 100 ms.
+             * Si el proceso real comienza, PropertyChanged se encarga del relay.
+             */
+            _ = OcultarSiOperacionNoInicioAsync(indicadorCts.Token);
         }
 
-        private async Task VigilarProcesamientoAsync(
+        private void ViewModel_PropertyChanged(
+            object? sender,
+            PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(GlobalService.IsBusy))
+                return;
+
+            if (viewModel.IsBusy)
+            {
+                procesamientoDetectado = true;
+                return;
+            }
+
+            if (procesamientoDetectado &&
+                Shell.Current?.CurrentPage == this)
+            {
+                Dispatcher.Dispatch(OcultarIndicadorProcesamiento);
+            }
+        }
+
+        private async Task OcultarSiOperacionNoInicioAsync(
             CancellationToken cancellationToken)
         {
             try
             {
-                for (int intento = 0;
-                     intento < 100;
-                     intento++)
+                await Task.Delay(1200, cancellationToken);
+
+                if (Shell.Current?.CurrentPage != this)
+                    return;
+
+                if (!viewModel.IsBusy && !procesamientoDetectado)
                 {
-                    await Task.Delay(
-                        100,
-                        cancellationToken);
-
-                    if (Shell.Current?.CurrentPage != this)
-                        return;
-
-                    /*
-                     * Guardar únicamente el requerimiento utiliza IsBusy.
-                     * Al finalizar esa operación sin navegar, se libera el
-                     * indicador para permitir corregir cualquier validación.
-                     */
-                    if (intento > 10 &&
-                        viewModel.IsBusy)
-                    {
-                        continue;
-                    }
-
-                    /*
-                     * Si una validación mantiene al usuario en esta pantalla,
-                     * el indicador se retira. La navegación normal debería
-                     * completarse en mucho menos de ocho segundos offline.
-                     */
-                    if (intento >= 80)
-                    {
-                        OcultarIndicadorProcesamiento();
-                        return;
-                    }
+                    OcultarIndicadorProcesamiento();
                 }
             }
             catch (OperationCanceledException)
@@ -270,11 +247,13 @@ namespace CONATRADEC.Views
             }
         }
 
-        private void MostrarIndicadorProcesamiento(
-            string mensaje)
+        private void MostrarIndicadorProcesamiento(string mensaje)
         {
             if (textoProcesamiento != null)
                 textoProcesamiento.Text = mensaje;
+
+            if (actividadProcesamiento != null)
+                actividadProcesamiento.IsRunning = true;
 
             if (indicadorProcesamiento != null)
                 indicadorProcesamiento.IsVisible = true;
@@ -282,6 +261,11 @@ namespace CONATRADEC.Views
 
         private void OcultarIndicadorProcesamiento()
         {
+            procesamientoDetectado = false;
+
+            if (actividadProcesamiento != null)
+                actividadProcesamiento.IsRunning = false;
+
             if (indicadorProcesamiento != null)
                 indicadorProcesamiento.IsVisible = false;
         }
@@ -289,9 +273,7 @@ namespace CONATRADEC.Views
         private void CancelarVigilanciaIndicador()
         {
             CancellationTokenSource? anterior =
-                Interlocked.Exchange(
-                    ref indicadorCts,
-                    null);
+                Interlocked.Exchange(ref indicadorCts, null);
 
             if (anterior == null)
                 return;
@@ -309,14 +291,11 @@ namespace CONATRADEC.Views
             }
         }
 
-        private Button? BuscarBotonContinuar(
-            IVisualTreeElement elemento)
+        private Button? BuscarBotonContinuar(IVisualTreeElement elemento)
         {
             if (elemento is Button boton)
             {
-                string texto =
-                    boton.Text ??
-                    string.Empty;
+                string texto = boton.Text ?? string.Empty;
 
                 if (ReferenceEquals(
                         boton.Command,
@@ -335,11 +314,9 @@ namespace CONATRADEC.Views
                 }
             }
 
-            foreach (IVisualTreeElement hijo
-                     in elemento.GetVisualChildren())
+            foreach (IVisualTreeElement hijo in elemento.GetVisualChildren())
             {
-                Button? encontrado =
-                    BuscarBotonContinuar(hijo);
+                Button? encontrado = BuscarBotonContinuar(hijo);
 
                 if (encontrado != null)
                     return encontrado;

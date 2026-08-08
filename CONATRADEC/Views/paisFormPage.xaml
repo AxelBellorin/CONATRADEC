@@ -4,203 +4,106 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid Padding="{OnIdiom Phone='14,16,14,22', Tablet='22,20,22,26', Desktop='28,24,28,30'}">
+    <Grid Padding="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}">
+        <ScrollView HorizontalScrollBarVisibility="Never">
+            <VerticalStackLayout MaximumWidthRequest="920" HorizontalOptions="Center" Spacing="14">
+                <Border Style="{StaticResource ModernHeroCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Title}" Style="{StaticResource ModernPageTitle}" TextColor="{StaticResource color_Verde}" />
+                            <Label Text="{Binding Subtitulo}" Style="{StaticResource ModernPageSubtitle}" />
+                        </VerticalStackLayout>
+                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
 
-        <ScrollView>
-            <VerticalStackLayout
-                MaximumWidthRequest="920"
-                HorizontalOptions="Center"
-                Spacing="18">
-
-                <!-- Encabezado -->
-                <Grid
-                    ColumnDefinitions="*,Auto"
-                    ColumnSpacing="12">
-
-                    <VerticalStackLayout Spacing="4">
-                        <Label
-                            Text="{Binding Title}"
-                            FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
-
-                        <Label
-                            Text="{Binding Subtitulo}"
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}"
-                            LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-
-                    <ActivityIndicator
-                        Grid.Column="1"
-                        IsRunning="{Binding IsBusy}"
-                        IsVisible="{Binding IsBusy}"
-                        Color="{StaticResource color_Naranja}"
-                        VerticalOptions="Center" />
-                </Grid>
-
-                <!-- Información general -->
-                <Border
-                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout Spacing="16">
-
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="15">
                         <VerticalStackLayout Spacing="3">
-                            <Label
-                                Text="Información general"
-                                FontSize="19"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Verde}" />
-
-                            <Label
-                                Text="El código ISO se utiliza en búsquedas, filtros y relaciones geográficas."
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                            <Label Text="Información general" Style="{StaticResource ModernSectionTitle}" />
+                            <Label Text="El código ISO se utiliza en búsquedas, filtros y relaciones geográficas." Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
                         <Grid
                             ColumnDefinitions="{OnIdiom Phone='*', Tablet='2*,*', Desktop='2*,*'}"
                             RowDefinitions="{OnIdiom Phone='Auto,Auto', Tablet='Auto', Desktop='Auto'}"
-                            ColumnSpacing="16"
-                            RowSpacing="16">
-
-                            <!-- Nombre -->
-                            <VerticalStackLayout
-                                Grid.Row="0"
-                                Grid.Column="0"
-                                Spacing="6">
-
-                                <Label
-                                    Text="Nombre del país"
-                                    FontSize="13"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Negro}" />
-
-                                <Border
-                                    Padding="3"
-                                    BackgroundColor="#FAFBFA"
-                                    Stroke="#D1D5DB"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 11">
-
+                            ColumnSpacing="14"
+                            RowSpacing="12">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Nombre del país" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
                                     <Border.Triggers>
-                                        <DataTrigger
-                                            TargetType="Border"
-                                            Binding="{Binding TieneErrorNombrePais}"
-                                            Value="True">
-
-                                            <Setter
-                                                Property="Stroke"
-                                                Value="{StaticResource RedDelete}" />
-
-                                            <Setter
-                                                Property="StrokeThickness"
-                                                Value="2" />
+                                        <DataTrigger TargetType="Border" Binding="{Binding TieneErrorNombrePais}" Value="True">
+                                            <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                            <Setter Property="StrokeThickness" Value="2" />
                                         </DataTrigger>
                                     </Border.Triggers>
-
-                                    <Entry
-                                        Placeholder="Ejemplo: Nicaragua"
-                                        Text="{Binding NombrePais}"
-                                        MaxLength="80"
-                                        IsReadOnly="{Binding IsReadOnly}"
-                                        BackgroundColor="Transparent" />
+                                    <Entry Placeholder="Ejemplo: Nicaragua" Text="{Binding NombrePais}" MaxLength="80" IsReadOnly="{Binding IsReadOnly}" Style="{StaticResource ModernEntry}" />
                                 </Border>
-
-                                <Label
-                                    Text="{Binding ErrorNombrePais}"
-                                    IsVisible="{Binding TieneErrorNombrePais}"
-                                    FontSize="12"
-                                    TextColor="{StaticResource RedDelete}" />
+                                <Label Text="{Binding ErrorNombrePais}" IsVisible="{Binding TieneErrorNombrePais}" FontSize="11" TextColor="{StaticResource RedDelete}" />
                             </VerticalStackLayout>
 
-                            <!-- Código ISO -->
-                            <VerticalStackLayout
-                                Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
-                                Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                                Spacing="6">
-
-                                <Label
-                                    Text="Código ISO"
-                                    FontSize="13"
-                                    FontFamily="MontserratBold"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Negro}" />
-
-                                <Border
-                                    Padding="3"
-                                    BackgroundColor="#FAFBFA"
-                                    Stroke="#D1D5DB"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 11">
-
+                            <VerticalStackLayout Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}" Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}" Spacing="6">
+                                <Label Text="Código ISO" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
                                     <Border.Triggers>
-                                        <DataTrigger
-                                            TargetType="Border"
-                                            Binding="{Binding TieneErrorCodigoISOPais}"
-                                            Value="True">
-
-                                            <Setter
-                                                Property="Stroke"
-                                                Value="{StaticResource RedDelete}" />
-
-                                            <Setter
-                                                Property="StrokeThickness"
-                                                Value="2" />
+                                        <DataTrigger TargetType="Border" Binding="{Binding TieneErrorCodigoISOPais}" Value="True">
+                                            <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                            <Setter Property="StrokeThickness" Value="2" />
                                         </DataTrigger>
                                     </Border.Triggers>
-
-                                    <Entry
-                                        Placeholder="NIC"
-                                        Text="{Binding CodigoISOPais}"
-                                        MaxLength="3"
-                                        IsReadOnly="{Binding IsReadOnly}"
-                                        CharacterSpacing="2"
-                                        FontFamily="MontserratBold"
-                                        BackgroundColor="Transparent" />
+                                    <Entry Placeholder="NIC" Text="{Binding CodigoISOPais}" MaxLength="3" IsReadOnly="{Binding IsReadOnly}" CharacterSpacing="2" FontFamily="MontserratBold" Style="{StaticResource ModernEntry}" />
                                 </Border>
-
-                                <Label
-                                    Text="{Binding ErrorCodigoISOPais}"
-                                    IsVisible="{Binding TieneErrorCodigoISOPais}"
-                                    FontSize="12"
-                                    TextColor="{StaticResource RedDelete}" />
+                                <Label Text="{Binding ErrorCodigoISOPais}" IsVisible="{Binding TieneErrorCodigoISOPais}" FontSize="11" TextColor="{StaticResource RedDelete}" />
                             </VerticalStackLayout>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Acciones -->
-                <Grid
-                    ColumnDefinitions="*,*"
-                    ColumnSpacing="12"
-                    Margin="0,2,0,16">
-
-                    <Button
-                        Grid.Column="0"
-                        Text="Guardar"
-                        IsVisible="{Binding ShowSaveButton}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding SaveCommand}"
-                        Style="{StaticResource UpdateButton}" />
-
-                    <Button
-                        Grid.Column="1"
-                        Text="Cancelar"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding CancelCommand}"
-                        Style="{StaticResource CancelButton}" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,2,0,16">
+                    <Button Grid.Column="0" Text="Guardar" IsVisible="{Binding ShowSaveButton}" IsEnabled="{Binding NotIsBusy}" Command="{Binding SaveCommand}" Style="{StaticResource ModernPrimaryButton}" />
+                    <Button Grid.Column="1" Text="Cancelar" IsEnabled="{Binding NotIsBusy}" Command="{Binding CancelCommand}" Style="{StaticResource ModernNeutralButton}" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
+
+        <!--
+            Capa de carga de la operación actual.
+            Bloquea temporalmente la interacción para evitar dobles acciones
+            y deja claro que la aplicación continúa trabajando.
+        -->
+        <Grid
+            ZIndex="100"
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#4A0B1511">
+
+            <Border
+                Padding="18,14"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 14">
+
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}"
+                        WidthRequest="24"
+                        HeightRequest="24" />
+
+                    <Label
+                        Text="Procesando país..."
+                        VerticalOptions="Center"
+                        FontFamily="MontserratBold"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

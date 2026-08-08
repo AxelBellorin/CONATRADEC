@@ -1,89 +1,123 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <?xaml-comp compile="true" ?>
-<ResourceDictionary 
+<ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    <!--#region Colores Propios-->
-    <!--Colores Principales-->
+    <!-- =========================================================
+         IDENTIDAD VISUAL CONATRADEC
+         ========================================================= -->
     <Color x:Key="color_Verde">#3B655B</Color>
     <Color x:Key="color_Cafe">#9B552C</Color>
     <Color x:Key="color_Amarillo">#F2C94C</Color>
-    <Color x:Key="color_Blanco">#FFF5FF</Color>
-    <Color x:Key="color_Negro">#000000</Color>
-    <Color x:Key="color_Naranja">#FF9800</Color>
-    <Color x:Key="color_Gris">#B0B0B0</Color>
-    <Color x:Key="color_GrisOscuro">#FF555555</Color>
+    <Color x:Key="color_Blanco">#FFFFFF</Color>
+    <Color x:Key="color_Negro">#17201D</Color>
+    <Color x:Key="color_Naranja">#F28C28</Color>
+    <Color x:Key="color_Gris">#8A9892</Color>
+    <Color x:Key="color_GrisOscuro">#5A6862</Color>
 
+    <!-- Superficies y textos del nuevo sistema visual -->
+    <Color x:Key="SurfacePage">#F4F7F5</Color>
+    <Color x:Key="SurfaceNavigation">#FCFDFC</Color>
+    <Color x:Key="SurfaceCard">#FFFFFF</Color>
+    <Color x:Key="SurfaceMuted">#F7F9F8</Color>
+    <Color x:Key="SurfaceRaised">#FFFFFF</Color>
 
-    <!--Colores Funcionales-->
-    
-    <!--Boton Agregar-->
+    <Color x:Key="SurfacePageDark">#151A18</Color>
+    <Color x:Key="SurfaceNavigationDark">#181F1C</Color>
+    <Color x:Key="SurfaceCardDark">#1D2421</Color>
+    <Color x:Key="SurfaceMutedDark">#232B27</Color>
+    <Color x:Key="SurfaceRaisedDark">#222A26</Color>
+
+    <Color x:Key="BorderSoft">#DCE6E1</Color>
+    <Color x:Key="BorderStrong">#C5D7CF</Color>
+    <Color x:Key="BorderSoftDark">#34423C</Color>
+    <Color x:Key="BorderStrongDark">#486057</Color>
+
+    <Color x:Key="TextPrimary">#17201D</Color>
+    <Color x:Key="TextSecondary">#607069</Color>
+    <Color x:Key="TextTertiary">#829089</Color>
+    <Color x:Key="TextPrimaryDark">#F4F7F5</Color>
+    <Color x:Key="TextSecondaryDark">#ADB9B3</Color>
+    <Color x:Key="TextTertiaryDark">#85948D</Color>
+
+    <Color x:Key="BrandGreenDark">#2F534A</Color>
+    <Color x:Key="BrandGreenPressed">#31584E</Color>
+    <Color x:Key="BrandGreenSoft">#EAF3EF</Color>
+    <Color x:Key="BrandGreenSoftDark">#263A33</Color>
+    <Color x:Key="BrandCoffeeSoft">#FBF1EA</Color>
+    <Color x:Key="BrandCoffeeSoftDark">#3A2B23</Color>
+    <Color x:Key="BrandYellowSoft">#FFF8DA</Color>
+    <Color x:Key="BrandYellowSoftDark">#3D371D</Color>
+    <Color x:Key="BrandBlueSoft">#EEF4FF</Color>
+    <Color x:Key="BrandBlueSoftDark">#24334B</Color>
+    <Color x:Key="DangerSoft">#FEF1F1</Color>
+    <Color x:Key="DangerSoftDark">#462626</Color>
+    <Color x:Key="SuccessSoft">#EDF7F1</Color>
+    <Color x:Key="SuccessSoftDark">#233B2D</Color>
+
+    <!-- =========================================================
+         COLORES FUNCIONALES
+         ========================================================= -->
     <Color x:Key="GreenAdd">#3B655B</Color>
-    <Color x:Key="GreenAddPressed">#22C55E</Color>
+    <Color x:Key="GreenAddPressed">#31584E</Color>
 
-    <!--Boton Actualizar-->
     <Color x:Key="BlueUpdate">#3B82F6</Color>
     <Color x:Key="BlueUpdatePressed">#2563EB</Color>
 
-    <!--Boton Borrar-->
-    <Color x:Key="RedDelete">#EF4444</Color>
-    <Color x:Key="RedDeletePressed">#DC2626</Color>
+    <Color x:Key="RedDelete">#E5484D</Color>
+    <Color x:Key="RedDeletePressed">#C83C41</Color>
 
-    <!--Boton Cancelar-->
-    <Color x:Key="GrayDisabled">#E5E7EB</Color>
-    <Color x:Key="GrayDisabledText">#9CA3AF</Color>
-    
-    <!--Boton Refrescar-->
-    <Color x:Key="Color_Refrescar_Normal">#03A9F4</Color>
-    <Color x:Key="Color_Refrescar_Pressed">#0288D1</Color>
+    <Color x:Key="GrayDisabled">#E5EAE7</Color>
+    <Color x:Key="GrayDisabledText">#97A39D</Color>
 
-    <!-- Colores cancelar -->
-    <Color x:Key="GrayCancelBg">#F3F4F6</Color>
-    <Color x:Key="GrayCancelBgPressed">#E5E7EB</Color>
-    <Color x:Key="GrayCancelText">#111827</Color>
-    <Color x:Key="GrayCancelBorder">#D1D5DB</Color>
-    
-    <!--#endregion-->
-    
-    <!--#region Colores Incluidos-->
-    <!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
+    <Color x:Key="Color_Refrescar_Normal">#0EA5E9</Color>
+    <Color x:Key="Color_Refrescar_Pressed">#0284C7</Color>
 
-    <Color x:Key="Primary">#512BD4</Color>
-    <Color x:Key="PrimaryDark">#ac99ea</Color>
-    <Color x:Key="PrimaryDarkText">#242424</Color>
-    <Color x:Key="Secondary">#DFD8F7</Color>
-    <Color x:Key="SecondaryDarkText">#9880e5</Color>
-    <Color x:Key="Tertiary">#2B0B98</Color>
+    <Color x:Key="GrayCancelBg">#F3F6F4</Color>
+    <Color x:Key="GrayCancelBgPressed">#E7ECE9</Color>
+    <Color x:Key="GrayCancelText">#26312D</Color>
+    <Color x:Key="GrayCancelBorder">#D5DED9</Color>
 
-    <Color x:Key="White">White</Color>
-    <Color x:Key="Black">Black</Color>
-    <Color x:Key="Magenta">#D600AA</Color>
-    <Color x:Key="MidnightBlue">#190649</Color>
-    <Color x:Key="OffBlack">#1f1f1f</Color>
+    <!-- =========================================================
+         COLORES BASE DE .NET MAUI
+         Se alinean con la identidad de CONATRADEC para evitar que
+         los controles predeterminados vuelvan al morado original.
+         ========================================================= -->
+    <Color x:Key="Primary">#3B655B</Color>
+    <Color x:Key="PrimaryDark">#D8E8E2</Color>
+    <Color x:Key="PrimaryDarkText">#17201D</Color>
+    <Color x:Key="Secondary">#EAF3EF</Color>
+    <Color x:Key="SecondaryDarkText">#C8DDD5</Color>
+    <Color x:Key="Tertiary">#9B552C</Color>
 
-    <Color x:Key="Gray100">#E1E1E1</Color>
-    <Color x:Key="Gray200">#C8C8C8</Color>
-    <Color x:Key="Gray300">#ACACAC</Color>
-    <Color x:Key="Gray400">#919191</Color>
-    <Color x:Key="Gray500">#6E6E6E</Color>
-    <Color x:Key="Gray600">#404040</Color>
-    <Color x:Key="Gray900">#212121</Color>
-    <Color x:Key="Gray950">#141414</Color>
+    <Color x:Key="White">#FFFFFF</Color>
+    <Color x:Key="Black">#000000</Color>
+    <Color x:Key="Magenta">#9B552C</Color>
+    <Color x:Key="MidnightBlue">#24332E</Color>
+    <Color x:Key="OffBlack">#151A18</Color>
 
-    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
-    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
-    <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
-    <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource White}"/>
-    <SolidColorBrush x:Key="BlackBrush" Color="{StaticResource Black}"/>
+    <Color x:Key="Gray100">#EDF1EF</Color>
+    <Color x:Key="Gray200">#DCE3DF</Color>
+    <Color x:Key="Gray300">#C1CBC6</Color>
+    <Color x:Key="Gray400">#9EAAA4</Color>
+    <Color x:Key="Gray500">#74817B</Color>
+    <Color x:Key="Gray600">#52605A</Color>
+    <Color x:Key="Gray900">#26312D</Color>
+    <Color x:Key="Gray950">#17201D</Color>
 
-    <SolidColorBrush x:Key="Gray100Brush" Color="{StaticResource Gray100}"/>
-    <SolidColorBrush x:Key="Gray200Brush" Color="{StaticResource Gray200}"/>
-    <SolidColorBrush x:Key="Gray300Brush" Color="{StaticResource Gray300}"/>
-    <SolidColorBrush x:Key="Gray400Brush" Color="{StaticResource Gray400}"/>
-    <SolidColorBrush x:Key="Gray500Brush" Color="{StaticResource Gray500}"/>
-    <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}"/>
-    <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
-    <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
-    <!--#endregion-->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}" />
+    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}" />
+    <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}" />
+    <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource White}" />
+    <SolidColorBrush x:Key="BlackBrush" Color="{StaticResource Black}" />
+
+    <SolidColorBrush x:Key="Gray100Brush" Color="{StaticResource Gray100}" />
+    <SolidColorBrush x:Key="Gray200Brush" Color="{StaticResource Gray200}" />
+    <SolidColorBrush x:Key="Gray300Brush" Color="{StaticResource Gray300}" />
+    <SolidColorBrush x:Key="Gray400Brush" Color="{StaticResource Gray400}" />
+    <SolidColorBrush x:Key="Gray500Brush" Color="{StaticResource Gray500}" />
+    <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}" />
+    <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}" />
+    <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}" />
 </ResourceDictionary>

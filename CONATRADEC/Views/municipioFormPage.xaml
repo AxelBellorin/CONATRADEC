@@ -4,234 +4,128 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Grid
         RowDefinitions="Auto,*"
-        Padding="{OnIdiom Phone='14,12,14,22', Tablet='22,14,22,26', Desktop='28,16,28,30'}">
+        Padding="{OnIdiom Phone='12,10,12,20', Tablet='20,14,20,26', Desktop='28,16,28,30'}">
 
-        <!--
-            Flecha exclusiva del formulario Municipio.
-            Usa directamente el mismo CancelCommand del botón inferior.
-        -->
+        <!-- Mantiene el mismo CancelCommand y comportamiento de regreso existente. -->
         <Button
             Grid.Row="0"
             Text="←"
-            WidthRequest="48"
-            HeightRequest="48"
-            MinimumWidthRequest="48"
-            MinimumHeightRequest="48"
+            WidthRequest="44"
+            HeightRequest="44"
+            MinimumWidthRequest="44"
+            MinimumHeightRequest="44"
             Padding="0"
-            Margin="0,0,0,2"
-            CornerRadius="14"
-            FontSize="23"
+            Margin="0,0,0,4"
+            CornerRadius="12"
+            FontSize="21"
             FontAttributes="Bold"
-            BackgroundColor="#F3F5F4"
-            TextColor="#263238"
+            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+            BorderColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+            BorderWidth="1"
             HorizontalOptions="Start"
             VerticalOptions="Center"
             Command="{Binding CancelCommand}"
             AutomationId="BotonRegresarMunicipio"
             SemanticProperties.Description="Regresar al listado de municipios" />
 
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout
-                MaximumWidthRequest="920"
-                HorizontalOptions="Center"
-                Spacing="18">
-
-                <!-- Encabezado -->
-                <Grid
-                    ColumnDefinitions="*,Auto"
-                    ColumnSpacing="12">
-
-                    <VerticalStackLayout Spacing="4">
-
-                        <Label
-                            Text="{Binding Title}"
-                            FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
-
-                        <Label
-                            Text="{Binding Subtitulo}"
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}"
-                            LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-
-                    <ActivityIndicator
-                        Grid.Column="1"
-                        IsRunning="{Binding IsBusy}"
-                        IsVisible="{Binding IsBusy}"
-                        Color="{StaticResource color_Naranja}"
-                        VerticalOptions="Center" />
-                </Grid>
-
-                <!-- Ubicación asociada -->
-                <Border
-                    Padding="16"
-                    BackgroundColor="#F7F1EC"
-                    Stroke="#E7D8CC"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 16">
-
-                    <Grid
-                        ColumnDefinitions="Auto,*,Auto"
-                        ColumnSpacing="12">
-
-                        <Border
-                            WidthRequest="48"
-                            HeightRequest="48"
-                            Padding="10"
-                            BackgroundColor="White"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 13">
-
-                            <Image
-                                Source="iconcountry.png"
-                                Aspect="AspectFit" />
-                        </Border>
-
-                        <VerticalStackLayout
-                            Grid.Column="1"
-                            Spacing="2"
-                            VerticalOptions="Center">
-
-                            <Label
-                                Text="Ubicación asociada"
-                                FontSize="11"
-                                TextColor="{StaticResource color_GrisOscuro}" />
-
-                            <Label
-                                Text="{Binding NombreDepartamento}"
-                                FontSize="16"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Label
-                                Text="{Binding NombrePais}"
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+        <ScrollView Grid.Row="1" HorizontalScrollBarVisibility="Never">
+            <VerticalStackLayout MaximumWidthRequest="920" HorizontalOptions="Center" Spacing="14">
+                <Border Style="{StaticResource ModernHeroCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Title}" Style="{StaticResource ModernPageTitle}" TextColor="{StaticResource color_Verde}" />
+                            <Label Text="{Binding Subtitulo}" Style="{StaticResource ModernPageSubtitle}" />
                         </VerticalStackLayout>
+                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
 
-                        <Border
-                            Grid.Column="2"
-                            IsVisible="{Binding MostrarCodigoPais}"
-                            Padding="10,6"
-                            VerticalOptions="Center"
-                            BackgroundColor="White"
-                            StrokeThickness="0"
-                            StrokeShape="RoundRectangle 10">
-
-                            <Label
-                                Text="{Binding CodigoPais}"
-                                FontSize="12"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Verde}" />
+                <Border Style="{StaticResource ModernSoftPanel}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                        <Border WidthRequest="46" HeightRequest="46" Padding="10" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 13">
+                            <Image Source="iconcountry.png" Aspect="AspectFit" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="Ubicación asociada" Style="{StaticResource ModernCaption}" />
+                            <Label Text="{Binding NombreDepartamento}" FontSize="15" FontFamily="MontserratBold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                            <Label Text="{Binding NombrePais}" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2" IsVisible="{Binding MostrarCodigoPais}" Padding="9,5" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 9">
+                            <Label Text="{Binding CodigoPais}" FontSize="11" FontFamily="MontserratBold" TextColor="{StaticResource color_Verde}" />
                         </Border>
                     </Grid>
                 </Border>
 
-                <!-- Información del municipio -->
-                <Border
-                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout Spacing="16">
-
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="15">
                         <VerticalStackLayout Spacing="3">
-
-                            <Label
-                                Text="Información general"
-                                FontSize="19"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Verde}" />
-
-                            <Label
-                                Text="El municipio permanecerá asociado al departamento mostrado arriba."
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                            <Label Text="Información general" Style="{StaticResource ModernSectionTitle}" />
+                            <Label Text="El municipio permanecerá asociado al departamento mostrado arriba." Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
-
                         <VerticalStackLayout Spacing="6">
-
-                            <Label
-                                Text="Nombre del municipio"
-                                FontSize="13"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Border
-                                Padding="3"
-                                BackgroundColor="#FAFBFA"
-                                Stroke="#D1D5DB"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 11">
-
+                            <Label Text="Nombre del municipio" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource ModernInputBorder}">
                                 <Border.Triggers>
-                                    <DataTrigger
-                                        TargetType="Border"
-                                        Binding="{Binding TieneErrorNombreMunicipio}"
-                                        Value="True">
-
-                                        <Setter
-                                            Property="Stroke"
-                                            Value="{StaticResource RedDelete}" />
-
-                                        <Setter
-                                            Property="StrokeThickness"
-                                            Value="2" />
+                                    <DataTrigger TargetType="Border" Binding="{Binding TieneErrorNombreMunicipio}" Value="True">
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
                                 </Border.Triggers>
-
-                                <Entry
-                                    Placeholder="Ejemplo: Matagalpa"
-                                    Text="{Binding NombreMunicipio}"
-                                    MaxLength="80"
-                                    IsReadOnly="{Binding IsReadOnly}"
-                                    BackgroundColor="Transparent" />
+                                <Entry Placeholder="Ejemplo: Matagalpa" Text="{Binding NombreMunicipio}" MaxLength="80" IsReadOnly="{Binding IsReadOnly}" Style="{StaticResource ModernEntry}" />
                             </Border>
-
-                            <Label
-                                Text="{Binding ErrorNombreMunicipio}"
-                                IsVisible="{Binding TieneErrorNombreMunicipio}"
-                                FontSize="12"
-                                TextColor="{StaticResource RedDelete}" />
+                            <Label Text="{Binding ErrorNombreMunicipio}" IsVisible="{Binding TieneErrorNombreMunicipio}" FontSize="11" TextColor="{StaticResource RedDelete}" />
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Acciones -->
-                <Grid
-                    ColumnDefinitions="*,*"
-                    ColumnSpacing="12"
-                    Margin="0,2,0,16">
-
-                    <Button
-                        Grid.Column="0"
-                        Text="Guardar"
-                        IsVisible="{Binding ShowSaveButton}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding SaveCommand}"
-                        Style="{StaticResource UpdateButton}" />
-
-                    <Button
-                        Grid.Column="1"
-                        Text="{Binding TextoBotonCancelar}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding CancelCommand}"
-                        Style="{StaticResource CancelButton}" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,2,0,16">
+                    <Button Grid.Column="0" Text="Guardar" IsVisible="{Binding ShowSaveButton}" IsEnabled="{Binding NotIsBusy}" Command="{Binding SaveCommand}" Style="{StaticResource ModernPrimaryButton}" />
+                    <Button Grid.Column="1" Text="{Binding TextoBotonCancelar}" IsEnabled="{Binding NotIsBusy}" Command="{Binding CancelCommand}" Style="{StaticResource ModernNeutralButton}" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
+
+        <!--
+            Capa de carga de la operación actual.
+            Bloquea temporalmente la interacción para evitar dobles acciones
+            y deja claro que la aplicación continúa trabajando.
+        -->
+        <Grid
+            Grid.RowSpan="2"
+            ZIndex="100"
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#4A0B1511">
+
+            <Border
+                Padding="18,14"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 14">
+
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}"
+                        WidthRequest="24"
+                        HeightRequest="24" />
+
+                    <Label
+                        Text="Procesando municipio..."
+                        VerticalOptions="Center"
+                        FontFamily="MontserratBold"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

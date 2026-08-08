@@ -8,7 +8,7 @@
     <ControlTemplate x:Key="FooterTemplate">
         <Grid
             RowDefinitions="*,Auto"
-            BackgroundColor="{StaticResource color_Blanco}">
+            BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0" />
@@ -19,29 +19,93 @@
                 <controls:ResponsiveNavigationLayoutBehavior />
             </Grid.Behaviors>
 
-            <!-- NAVEGACIÓN LATERAL: WINDOWS AMPLIO -->
+            <!-- =====================================================
+                 NAVEGACIÓN LATERAL: WINDOWS AMPLIO
+                 Se conserva exactamente la navegación y permisos.
+                 ===================================================== -->
             <Border
                 AutomationId="DesktopNavigation"
                 Grid.Row="0"
                 Grid.RowSpan="2"
                 Grid.Column="0"
                 IsVisible="False"
-                Padding="14,18"
-                BackgroundColor="White"
-                Stroke="#E5E7EB"
+                Padding="16,18,16,16"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceNavigation}, Dark={StaticResource SurfaceNavigationDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                 StrokeThickness="1">
 
                 <Border.Shadow>
-                    <Shadow Brush="Black" Offset="3,0" Radius="12" Opacity="0.08" />
+                    <Shadow
+                        Brush="#14231E"
+                        Offset="3,0"
+                        Radius="18"
+                        Opacity="0.08" />
                 </Border.Shadow>
 
-                <Grid RowDefinitions="Auto,*,Auto">
-                    <VerticalStackLayout Grid.Row="0" Padding="10,8,10,20" Spacing="3">
-                        <Label Text="ConatraCafé" FontSize="22" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
-                        <Label Text="Soil" FontSize="13" FontFamily="MontserratMedium" TextColor="{StaticResource color_GrisOscuro}" />
-                    </VerticalStackLayout>
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
 
-                    <VerticalStackLayout Grid.Row="1" Spacing="8">
+                    <!-- Marca -->
+                    <Border
+                        Grid.Row="0"
+                        Padding="12"
+                        BackgroundColor="{AppThemeBinding Light=#F4F8F6, Dark={StaticResource SurfaceMutedDark}}"
+                        Stroke="{AppThemeBinding Light=#DDE9E4, Dark={StaticResource BorderSoftDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 18">
+
+                        <Grid ColumnDefinitions="52,*" ColumnSpacing="12">
+                            <Border
+                                WidthRequest="48"
+                                HeightRequest="48"
+                                Padding="4"
+                                BackgroundColor="White"
+                                Stroke="#D9E5E0"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 14"
+                                VerticalOptions="Center">
+                                <Image
+                                    Source="logocontradec.png"
+                                    Aspect="AspectFit" />
+                            </Border>
+
+                            <VerticalStackLayout
+                                Grid.Column="1"
+                                Spacing="0"
+                                VerticalOptions="Center">
+                                <Label
+                                    Text="ConatraCafé Soil"
+                                    FontFamily="MontserratBold"
+                                    FontAttributes="Bold"
+                                    FontSize="18"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                    MaxLines="1"
+                                    LineBreakMode="TailTruncation" />
+                                <Label
+                                    Text="Gestión técnica de suelos"
+                                    Margin="0,2,0,0"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="10.5"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                                    MaxLines="1"
+                                    LineBreakMode="TailTruncation" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <!-- Opciones principales -->
+                    <VerticalStackLayout
+                        Grid.Row="1"
+                        Padding="0,8,0,0"
+                        Spacing="7">
+
+                        <Label
+                            Text="NAVEGACIÓN"
+                            Margin="12,0,0,4"
+                            FontFamily="MontserratBold"
+                            FontSize="9.5"
+                            CharacterSpacing="1.1"
+                            TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+
                         <controls:AppNavigationMenuItem
                             Texto="Inicio"
                             Icono="iconhome.png"
@@ -85,49 +149,76 @@
                             Seccion="DatosOffline" />
                     </VerticalStackLayout>
 
+                    <!-- Cerrar sesión -->
                     <VerticalStackLayout Grid.Row="2" Spacing="10">
-                        <BoxView HeightRequest="1" Color="#E5E7EB" Margin="0,0,0,4" />
+                        <BoxView
+                            HeightRequest="1"
+                            Color="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                            Margin="0,0,0,2" />
+
                         <Border
                             HeightRequest="50"
                             MinimumHeightRequest="50"
-                            Padding="14,11"
-                            BackgroundColor="#FEF2F2"
+                            Padding="13,10"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource DangerSoft}, Dark={StaticResource DangerSoftDark}}"
                             Stroke="Transparent"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 12">
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 13">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding CerrarSesionCommand}" />
                             </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="26,*" ColumnSpacing="12">
-                                <Image Source="iconloginout.png" HeightRequest="24" WidthRequest="24" VerticalOptions="Center" />
-                                <Label Grid.Column="1" Text="Cerrar sesión" FontFamily="MontserratMedium" FontSize="15" TextColor="{StaticResource RedDelete}" VerticalOptions="Center" />
+
+                            <Grid ColumnDefinitions="28,*" ColumnSpacing="11">
+                                <Image
+                                    Source="iconloginout.png"
+                                    HeightRequest="23"
+                                    WidthRequest="23"
+                                    VerticalOptions="Center" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Cerrar sesión"
+                                    FontFamily="MontserratBold"
+                                    FontSize="13"
+                                    TextColor="{StaticResource RedDelete}"
+                                    VerticalOptions="Center" />
                             </Grid>
                         </Border>
                     </VerticalStackLayout>
                 </Grid>
             </Border>
 
+            <!-- Contenido de la página -->
             <ContentPresenter
                 Grid.Row="0"
                 Grid.Column="1"
-                BackgroundColor="{StaticResource color_Blanco}" />
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}" />
 
-            <!-- NAVEGACIÓN INFERIOR: VENTANA ESTRECHA Y MÓVIL -->
+            <!-- =====================================================
+                 NAVEGACIÓN INFERIOR: MÓVIL, TABLET Y WINDOWS ESTRECHO
+                 ===================================================== -->
             <Border
                 AutomationId="CompactNavigation"
                 Grid.Row="1"
                 Grid.Column="1"
                 IsVisible="True"
-                Padding="3,6,3,10"
-                BackgroundColor="{StaticResource color_Blanco}"
-                Stroke="#E5E7EB"
+                Padding="3,3,3,5"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceNavigation}, Dark={StaticResource SurfaceNavigationDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                 StrokeThickness="1">
 
                 <Border.Shadow>
-                    <Shadow Brush="Black" Offset="0,-3" Radius="12" Opacity="0.10" />
+                    <Shadow
+                        Brush="#14231E"
+                        Offset="0,-3"
+                        Radius="14"
+                        Opacity="0.09" />
                 </Border.Shadow>
 
-                <FlexLayout Direction="Row" AlignItems="Stretch" JustifyContent="SpaceBetween">
+                <FlexLayout
+                    Direction="Row"
+                    AlignItems="Stretch"
+                    JustifyContent="SpaceBetween">
+
                     <FlexLayout.Behaviors>
                         <controls:MobileNavigationBarBehavior />
                     </FlexLayout.Behaviors>
@@ -172,53 +263,21 @@
                         Seccion="Noticias"
                         EsMovil="True" />
 
+                    <!--
+                        En móvil se concentran las herramientas secundarias y
+                        el cierre de sesión dentro de Configuración. Con cinco
+                        accesos principales la barra mantiene separación,
+                        legibilidad y áreas táctiles cómodas.
+                    -->
                     <controls:AppNavigationMenuItem
                         FlexLayout.Grow="1"
                         FlexLayout.Basis="0"
-                        Texto="Config."
+                        Texto="Configuración"
                         Icono="iconsettings.png"
-                        GrupoPermisos="Configuracion"
+                        GrupoPermisos="ConfiguracionMovil"
                         Ruta="//ConfiguracionPage"
                         Seccion="Configuracion"
                         EsMovil="True" />
-
-                    <controls:AppNavigationMenuItem
-                        FlexLayout.Grow="1"
-                        FlexLayout.Basis="0"
-                        Texto="Sin conexión"
-                        Icono="iconoffline.png"
-                        Interfaz="datosSinConexionPage"
-                        Ruta="//DatosSinConexionPage"
-                        Seccion="DatosOffline"
-                        EsMovil="True" />
-
-                    <VerticalStackLayout
-                        FlexLayout.Grow="1"
-                        FlexLayout.Basis="0"
-                        HeightRequest="68"
-                        MinimumHeightRequest="68"
-                        Padding="2,6,2,5"
-                        Spacing="2"
-                        BackgroundColor="Transparent"
-                        HorizontalOptions="Fill"
-                        VerticalOptions="Center">
-                        <VerticalStackLayout.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding CerrarSesionCommand}" />
-                        </VerticalStackLayout.GestureRecognizers>
-                        <Image Source="iconloginout.png" HeightRequest="24" WidthRequest="24" MinimumHeightRequest="24" MinimumWidthRequest="24" HorizontalOptions="Center" VerticalOptions="Center" />
-                        <Label
-                            Text="Salir"
-                            FontSize="11.5"
-                            FontFamily="MontserratMedium"
-                            TextColor="{StaticResource RedDelete}"
-                            MaxLines="2"
-                            LineBreakMode="WordWrap"
-                            LineHeight="0.95"
-                            MinimumHeightRequest="28"
-                            VerticalTextAlignment="Center"
-                            HorizontalTextAlignment="Center"
-                            HorizontalOptions="Fill" />
-                    </VerticalStackLayout>
                 </FlexLayout>
             </Border>
         </Grid>

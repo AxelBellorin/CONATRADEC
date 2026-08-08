@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- =========================================================
+         SISTEMA VISUAL MODERNO REUTILIZABLE
+         No altera comandos ni lógica; únicamente presentación.
+         ========================================================= -->
+
+    <Style TargetType="Shadow">
+        <Setter Property="Brush" Value="#14231E" />
+        <Setter Property="Offset" Value="0,3" />
+        <Setter Property="Radius" Value="12" />
+        <Setter Property="Opacity" Value="0.09" />
+    </Style>
+
+    <!-- Tipografía -->
+    <Style x:Key="ModernPageTitle" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="{OnIdiom Phone=24, Tablet=28, Desktop=30}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="LineBreakMode" Value="TailTruncation" />
+    </Style>
+
+    <Style x:Key="ModernPageSubtitle" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="{OnIdiom Phone=12, Tablet=13, Desktop=13}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <Style x:Key="ModernSectionTitle" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+    </Style>
+
+    <Style x:Key="ModernFieldLabel" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+    </Style>
+
+    <Style x:Key="ModernCaption" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+    </Style>
+
+    <!-- Superficies -->
+    <Style x:Key="ModernCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+        <Setter Property="Padding" Value="{OnIdiom Phone=14, Tablet=16, Desktop=18}" />
+    </Style>
+
+    <Style x:Key="ModernHeroCard" TargetType="Border" BasedOn="{StaticResource ModernCard}">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F9FCFA, Dark={StaticResource SurfaceCardDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light=#D6E5DF, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="Padding" Value="{OnIdiom Phone='16,15', Tablet='20,18', Desktop='22,20'}" />
+        <!-- Una sola sombra en el encabezado mantiene profundidad sin penalizar listas largas. -->
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="#16211D" Offset="0,3" Radius="10" Opacity="0.055" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ModernCatalogCard" TargetType="Border" BasedOn="{StaticResource ModernCard}">
+        <Setter Property="Padding" Value="{OnIdiom Phone=14, Tablet=15, Desktop=16}" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 17" />
+        <!-- Sin sombra por elemento: mejora el desplazamiento en listas extensas. -->
+    </Style>
+
+    <Style x:Key="ModernFormCard" TargetType="Border" BasedOn="{StaticResource ModernCard}">
+        <Setter Property="Padding" Value="{OnIdiom Phone=15, Tablet=19, Desktop=22}" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 20" />
+    </Style>
+
+    <Style x:Key="ModernSoftPanel" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 14" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style x:Key="ModernInputBorder" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+        <Setter Property="Padding" Value="10,1" />
+        <Setter Property="MinimumHeightRequest" Value="48" />
+    </Style>
+
+    <Style x:Key="ModernIconTile" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}" />
+        <Setter Property="Stroke" Value="Transparent" />
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 15" />
+        <Setter Property="WidthRequest" Value="58" />
+        <Setter Property="HeightRequest" Value="58" />
+    </Style>
+
+    <Style x:Key="ModernAccessDeniedCard" TargetType="Border" BasedOn="{StaticResource ModernHeroCard}">
+        <Setter Property="MaximumWidthRequest" Value="620" />
+        <Setter Property="Padding" Value="{OnIdiom Phone=22, Tablet=26, Desktop=30}" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <Style x:Key="ModernEmptyStateCard" TargetType="Border" BasedOn="{StaticResource ModernCard}">
+        <Setter Property="MaximumWidthRequest" Value="560" />
+        <Setter Property="Padding" Value="24" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <!-- Mensajes -->
+    <Style x:Key="ModernInfoBanner" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light=#CFE1D9, Dark={StaticResource BorderStrongDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 13" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style x:Key="ModernWarningBanner" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFF9EA, Dark={StaticResource BrandYellowSoftDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light=#ECDDA0, Dark=#5A512A}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 13" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style x:Key="ModernDangerBanner" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource DangerSoft}, Dark={StaticResource DangerSoftDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light=#F2C7C9, Dark=#6A383B}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 13" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <!-- Botones -->
+    <Style x:Key="ModernPrimaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource color_Verde}" />
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource BrandGreenPressed}" />
+                            <Setter Property="Scale" Value="0.985" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource GrayDisabled}" />
+                            <Setter Property="TextColor" Value="{StaticResource GrayDisabledText}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ModernSecondaryButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}" />
+        <Setter Property="BorderColor" Value="{AppThemeBinding Light=#D2E4DD, Dark={StaticResource BorderStrongDark}}" />
+        <Setter Property="BorderWidth" Value="1" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="Padding" Value="13,8" />
+    </Style>
+
+    <Style x:Key="ModernNeutralButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F1F4F2, Dark={StaticResource SurfaceMutedDark}}" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+        <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="BorderWidth" Value="1" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="Padding" Value="13,8" />
+    </Style>
+
+    <Style x:Key="ModernCoffeeButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandCoffeeSoft}, Dark={StaticResource BrandCoffeeSoftDark}}" />
+        <Setter Property="TextColor" Value="{StaticResource color_Cafe}" />
+        <Setter Property="BorderColor" Value="{AppThemeBinding Light=#E7D7CA, Dark=#5B4639}" />
+        <Setter Property="BorderWidth" Value="1" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="Padding" Value="13,8" />
+    </Style>
+
+    <Style x:Key="ModernUpdateButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource BlueUpdate}" />
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <Style x:Key="ModernDangerButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource RedDelete}" />
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <Style x:Key="ModernDangerSoftButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource DangerSoft}, Dark={StaticResource DangerSoftDark}}" />
+        <Setter Property="TextColor" Value="{StaticResource RedDelete}" />
+        <Setter Property="BorderColor" Value="{AppThemeBinding Light=#F1CDCF, Dark=#67373A}" />
+        <Setter Property="BorderWidth" Value="1" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <Style x:Key="ModernLinkButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{StaticResource color_Verde}" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="HeightRequest" Value="42" />
+        <Setter Property="Padding" Value="8,7" />
+    </Style>
+
+    <!-- Métricas y etiquetas -->
+    <Style x:Key="ModernMetricSurface" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}" />
+        <Setter Property="Stroke" Value="Transparent" />
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <Style x:Key="ModernBadgeGreen" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}" />
+        <Setter Property="Stroke" Value="Transparent" />
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 9" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <Style x:Key="ModernBadgeCoffee" TargetType="Border" BasedOn="{StaticResource ModernBadgeGreen}">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandCoffeeSoft}, Dark={StaticResource BrandCoffeeSoftDark}}" />
+    </Style>
+
+    <Style x:Key="ModernBadgeYellow" TargetType="Border" BasedOn="{StaticResource ModernBadgeGreen}">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandYellowSoft}, Dark={StaticResource BrandYellowSoftDark}}" />
+    </Style>
+
+    <Style x:Key="ModernBadgeBlue" TargetType="Border" BasedOn="{StaticResource ModernBadgeGreen}">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BrandBlueSoft}, Dark={StaticResource BrandBlueSoftDark}}" />
+    </Style>
+
+    <!-- Controles de entrada -->
+    <Style x:Key="ModernSearchBar" TargetType="SearchBar">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+        <Setter Property="CancelButtonColor" Value="{StaticResource color_Verde}" />
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HeightRequest" Value="46" />
+    </Style>
+
+    <Style x:Key="ModernEntry" TargetType="Entry">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HeightRequest" Value="46" />
+    </Style>
+
+    <Style x:Key="ModernPicker" TargetType="Picker">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HeightRequest" Value="46" />
+    </Style>
+
+    <Style x:Key="ModernDatePicker" TargetType="DatePicker">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="HeightRequest" Value="46" />
+    </Style>
+</ResourceDictionary>

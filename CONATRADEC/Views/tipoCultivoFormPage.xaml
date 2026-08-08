@@ -4,216 +4,125 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid
-        Padding="{OnIdiom Phone='14,16,14,22', Tablet='22,20,22,26', Desktop='28,24,28,30'}">
-
-        <ScrollView
-            HorizontalOptions="Fill"
-            HorizontalScrollBarVisibility="Never">
-
-            <!--
-                El ancho se ajusta desde el code-behind según la ventana.
-                Evita formularios demasiado angostos en Windows.
-            -->
+    <Grid Padding="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}">
+        <ScrollView HorizontalOptions="Fill" HorizontalScrollBarVisibility="Never">
             <VerticalStackLayout
                 x:Name="FormularioContainer"
-                MaximumWidthRequest="1100"
+                MaximumWidthRequest="1000"
                 HorizontalOptions="Center"
-                Spacing="18">
+                Spacing="14">
 
-                <!-- Encabezado -->
-                <Grid
-                    ColumnDefinitions="*,Auto"
-                    ColumnSpacing="12">
+                <Border Style="{StaticResource ModernHeroCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding Title}" Style="{StaticResource ModernPageTitle}" TextColor="{StaticResource color_Verde}" />
+                            <Label Text="{Binding Subtitulo}" Style="{StaticResource ModernPageSubtitle}" />
+                        </VerticalStackLayout>
+                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource color_Naranja}" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
 
-                    <VerticalStackLayout Spacing="4">
-
-                        <Label
-                            Text="{Binding Title}"
-                            FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Verde}" />
-
-                        <Label
-                            Text="{Binding Subtitulo}"
-                            FontSize="13"
-                            TextColor="{StaticResource color_GrisOscuro}"
-                            LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-
-                    <ActivityIndicator
-                        Grid.Column="1"
-                        IsRunning="{Binding IsBusy}"
-                        IsVisible="{Binding IsBusy}"
-                        Color="{StaticResource color_Naranja}"
-                        VerticalOptions="Center" />
-                </Grid>
-
-                <!-- Información -->
-                <Border
-                    Padding="{OnIdiom Phone='14', Tablet='19', Desktop='22'}"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout Spacing="17">
-
+                <Border Style="{StaticResource ModernFormCard}">
+                    <VerticalStackLayout Spacing="16">
                         <VerticalStackLayout Spacing="3">
-
-                            <Label
-                                Text="Información general"
-                                FontSize="19"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Verde}" />
-
-                            <Label
-                                Text="Este cultivo estará disponible para análisis de suelo y parámetros nutricionales."
-                                FontSize="12"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                            <Label Text="Información general" Style="{StaticResource ModernSectionTitle}" />
+                            <Label Text="Este cultivo estará disponible para análisis de suelo y parámetros nutricionales." Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
-                        <!-- Nombre -->
                         <VerticalStackLayout Spacing="6">
-
-                            <Label
-                                Text="Nombre del tipo de cultivo"
-                                FontSize="13"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
-                            <Border
-                                Padding="3"
-                                BackgroundColor="#FAFBFA"
-                                Stroke="#D1D5DB"
-                                StrokeThickness="1"
-                                StrokeShape="RoundRectangle 11">
-
+                            <Label Text="Nombre del tipo de cultivo" Style="{StaticResource ModernFieldLabel}" />
+                            <Border Style="{StaticResource ModernInputBorder}">
                                 <Border.Triggers>
-                                    <DataTrigger
-                                        TargetType="Border"
-                                        Binding="{Binding TieneErrorNombre}"
-                                        Value="True">
-
-                                        <Setter
-                                            Property="Stroke"
-                                            Value="{StaticResource RedDelete}" />
-
-                                        <Setter
-                                            Property="StrokeThickness"
-                                            Value="2" />
+                                    <DataTrigger TargetType="Border" Binding="{Binding TieneErrorNombre}" Value="True">
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
                                 </Border.Triggers>
-
-                                <Entry
-                                    Placeholder="Ejemplo: CAFÉ"
-                                    Text="{Binding Nombre}"
-                                    MaxLength="80"
-                                    IsReadOnly="{Binding IsReadOnly}"
-                                    BackgroundColor="Transparent" />
+                                <Entry Placeholder="Ejemplo: CAFÉ" Text="{Binding Nombre}" MaxLength="80" IsReadOnly="{Binding IsReadOnly}" Style="{StaticResource ModernEntry}" />
                             </Border>
-
-                            <Label
-                                Text="{Binding ErrorNombre}"
-                                IsVisible="{Binding TieneErrorNombre}"
-                                FontSize="12"
-                                TextColor="{StaticResource RedDelete}" />
+                            <Label Text="{Binding ErrorNombre}" IsVisible="{Binding TieneErrorNombre}" FontSize="11" TextColor="{StaticResource RedDelete}" />
                         </VerticalStackLayout>
 
-                        <!-- Descripción -->
                         <VerticalStackLayout Spacing="6">
-
-                            <Label
-                                Text="Descripción"
-                                FontSize="13"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                TextColor="{StaticResource color_Negro}" />
-
+                            <Label Text="Descripción" Style="{StaticResource ModernFieldLabel}" />
                             <Border
-                                Padding="3"
-                                BackgroundColor="#FAFBFA"
-                                Stroke="#D1D5DB"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}"
+                                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                                 StrokeThickness="1"
-                                StrokeShape="RoundRectangle 11">
-
+                                StrokeShape="RoundRectangle 12"
+                                Padding="10,6">
                                 <Border.Triggers>
-                                    <DataTrigger
-                                        TargetType="Border"
-                                        Binding="{Binding TieneErrorDescripcion}"
-                                        Value="True">
-
-                                        <Setter
-                                            Property="Stroke"
-                                            Value="{StaticResource RedDelete}" />
-
-                                        <Setter
-                                            Property="StrokeThickness"
-                                            Value="2" />
+                                    <DataTrigger TargetType="Border" Binding="{Binding TieneErrorDescripcion}" Value="True">
+                                        <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
+                                        <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
                                 </Border.Triggers>
-
                                 <Editor
                                     Placeholder="Descripción breve del cultivo"
                                     Text="{Binding Descripcion}"
                                     MaxLength="150"
-                                    MinimumHeightRequest="120"
+                                    MinimumHeightRequest="112"
                                     AutoSize="TextChanges"
                                     IsReadOnly="{Binding IsReadOnly}"
-                                    BackgroundColor="Transparent" />
+                                    BackgroundColor="Transparent"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                    PlaceholderColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="13" />
                             </Border>
-
-                            <Label
-                                Text="Máximo 150 caracteres."
-                                FontSize="11"
-                                TextColor="{StaticResource color_GrisOscuro}" />
-
-                            <Label
-                                Text="{Binding ErrorDescripcion}"
-                                IsVisible="{Binding TieneErrorDescripcion}"
-                                FontSize="12"
-                                TextColor="{StaticResource RedDelete}" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="Máximo 150 caracteres." Style="{StaticResource ModernCaption}" />
+                                <Label Grid.Column="1" Text="{Binding ErrorDescripcion}" IsVisible="{Binding TieneErrorDescripcion}" FontSize="11" TextColor="{StaticResource RedDelete}" />
+                            </Grid>
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Acciones -->
-                <Grid
-                    ColumnDefinitions="*,*"
-                    ColumnSpacing="12"
-                    Margin="0,2,0,16">
-
-                    <Button
-                        Grid.Column="0"
-                        Text="Guardar"
-                        IsVisible="{Binding ShowSaveButton}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding SaveCommand}"
-                        Style="{StaticResource UpdateButton}" />
-
-                    <Button
-                        Grid.Column="1"
-                        Text="Cancelar"
-                        IsVisible="{Binding MostrarBotonCancelar}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding CancelCommand}"
-                        Style="{StaticResource CancelButton}" />
-
-                    <Button
-                        Grid.Column="0"
-                        Grid.ColumnSpan="2"
-                        Text="Regresar"
-                        IsVisible="{Binding IsReadOnly}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Command="{Binding CancelCommand}"
-                        Style="{StaticResource CancelButton}" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,2,0,16">
+                    <Button Grid.Column="0" Text="Guardar" IsVisible="{Binding ShowSaveButton}" IsEnabled="{Binding NotIsBusy}" Command="{Binding SaveCommand}" Style="{StaticResource ModernPrimaryButton}" />
+                    <Button Grid.Column="1" Text="Cancelar" IsVisible="{Binding MostrarBotonCancelar}" IsEnabled="{Binding NotIsBusy}" Command="{Binding CancelCommand}" Style="{StaticResource ModernNeutralButton}" />
+                    <Button Grid.Column="0" Grid.ColumnSpan="2" Text="Regresar" IsVisible="{Binding IsReadOnly}" IsEnabled="{Binding NotIsBusy}" Command="{Binding CancelCommand}" Style="{StaticResource ModernNeutralButton}" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
+
+        <!--
+            Capa de carga de la operación actual.
+            Bloquea temporalmente la interacción para evitar dobles acciones
+            y deja claro que la aplicación continúa trabajando.
+        -->
+        <Grid
+            ZIndex="100"
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#4A0B1511">
+
+            <Border
+                Padding="18,14"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 14">
+
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}"
+                        WidthRequest="24"
+                        HeightRequest="24" />
+
+                    <Label
+                        Text="Procesando tipo de cultivo..."
+                        VerticalOptions="Center"
+                        FontFamily="MontserratBold"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

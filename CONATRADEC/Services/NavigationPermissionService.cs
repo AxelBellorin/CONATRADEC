@@ -10,6 +10,18 @@ namespace CONATRADEC.Services
     public static class NavigationPermissionService
     {
         public const string GrupoConfiguracion = "Configuracion";
+
+        /*
+         * En móvil Configuración también funciona como acceso a herramientas
+         * generales y cierre de sesión, por lo que debe permanecer visible
+         * aunque el rol no tenga permisos sobre catálogos administrativos.
+         *
+         * Esto no modifica la regla de permisos del menú lateral de Windows,
+         * que continúa utilizando GrupoConfiguracion.
+         */
+        public const string GrupoConfiguracionMovil =
+            "ConfiguracionMovil";
+
         public const string GrupoInspeccionFitosanitaria =
             "InspeccionFitosanitaria";
 
@@ -51,6 +63,14 @@ namespace CONATRADEC.Services
 
         public static bool PuedeVerGrupo(string? grupoPermisos)
         {
+            if (string.Equals(
+                    grupoPermisos,
+                    GrupoConfiguracionMovil,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
             if (string.Equals(
                     grupoPermisos,
                     GrupoConfiguracion,

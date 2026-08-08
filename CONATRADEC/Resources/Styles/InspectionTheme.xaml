@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!--
+        Sistema visual exclusivo del flujo fitosanitario. Las claves son
+        explícitas para no alterar de forma accidental otras pantallas.
+    -->
+
+    <Style x:Key="InspectionCard" TargetType="Border">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}" />
+        <Setter Property="Stroke"
+                Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+        <Setter Property="Padding" Value="{OnIdiom Phone=16, Tablet=18, Desktop=20}" />
+    </Style>
+
+    <Style x:Key="InspectionSoftPanel" TargetType="Border">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}" />
+        <Setter Property="Stroke"
+                Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 14" />
+        <Setter Property="Padding" Value="14" />
+    </Style>
+
+    <Style x:Key="InspectionGreenPanel" TargetType="Border" BasedOn="{StaticResource InspectionSoftPanel}">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}" />
+        <Setter Property="Stroke"
+                Value="{AppThemeBinding Light=#C6DBD2, Dark=#456158}" />
+    </Style>
+
+    <Style x:Key="InspectionCoffeePanel" TargetType="Border" BasedOn="{StaticResource InspectionSoftPanel}">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource BrandCoffeeSoft}, Dark={StaticResource BrandCoffeeSoftDark}}" />
+        <Setter Property="Stroke"
+                Value="{AppThemeBinding Light=#E7CDBD, Dark=#76513F}" />
+    </Style>
+
+    <Style x:Key="InspectionWarningPanel" TargetType="Border" BasedOn="{StaticResource InspectionSoftPanel}">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource BrandYellowSoft}, Dark={StaticResource BrandYellowSoftDark}}" />
+        <Setter Property="Stroke"
+                Value="{AppThemeBinding Light=#E8D28A, Dark=#77682F}" />
+    </Style>
+
+    <Style x:Key="InspectionDangerPanel" TargetType="Border" BasedOn="{StaticResource InspectionSoftPanel}">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource DangerSoft}, Dark={StaticResource DangerSoftDark}}" />
+        <Setter Property="Stroke"
+                Value="{AppThemeBinding Light=#F0C5C7, Dark=#744246}" />
+    </Style>
+
+    <Style x:Key="InspectionTitle" TargetType="Label">
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="{OnIdiom Phone=20, Tablet=22, Desktop=23}" />
+        <Setter Property="TextColor"
+                Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <Style x:Key="InspectionSubtitle" TargetType="Label">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextColor"
+                Value="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <Style x:Key="InspectionInputBorder" TargetType="Border">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}" />
+        <Setter Property="Stroke"
+                Value="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 13" />
+        <Setter Property="Padding" Value="12,2" />
+        <Setter Property="MinimumHeightRequest" Value="52" />
+    </Style>
+
+    <Style x:Key="InspectionPrimaryButton" TargetType="Button" BasedOn="{StaticResource ModernPrimaryButton}">
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="InspectionCoffeeButton" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{StaticResource color_Cafe}" />
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="FontFamily" Value="MontserratBold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="14,8" />
+    </Style>
+
+    <Style x:Key="InspectionNeutralButton" TargetType="Button" BasedOn="{StaticResource ModernNeutralButton}">
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="InspectionDangerButton" TargetType="Button" BasedOn="{StaticResource ModernDangerButton}">
+        <Setter Property="HeightRequest" Value="48" />
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="InspectionOverlayCard" TargetType="Border">
+        <Setter Property="BackgroundColor"
+                Value="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}" />
+        <Setter Property="Stroke"
+                Value="{AppThemeBinding Light={StaticResource BorderStrong}, Dark={StaticResource BorderStrongDark}}" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+        <Setter Property="Padding" Value="24,20" />
+        <Setter Property="MaximumWidthRequest" Value="420" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+</ResourceDictionary>

@@ -4,9 +4,10 @@
     x:Name="MainPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{StaticResource color_Blanco}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Grid>
         <ContentView
@@ -19,172 +20,201 @@
 
                 <CollectionView
                     x:Name="AnalisisCollectionView"
+                    Margin="{OnIdiom Phone='12,0', Tablet='18,0', Desktop='22,0'}"
                     ItemsSource="{Binding AnalisisGuardados}"
                     SelectionMode="None"
                     ItemSizingStrategy="MeasureFirstItem"
                     RemainingItemsThreshold="2"
                     RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
 
+                    <!--
+                        El número de columnas responde al ancho real disponible:
+                        1 en móvil/ventanas estrechas, 2 en tablet/Windows medio y
+                        3 cuando Windows dispone de espacio amplio.
+                    -->
+                    <CollectionView.Behaviors>
+                        <controls:ResponsiveGridItemsLayoutBehavior />
+                    </CollectionView.Behaviors>
+
                     <CollectionView.ItemsLayout>
-                        <LinearItemsLayout
+                        <GridItemsLayout
                             Orientation="Vertical"
-                            ItemSpacing="10" />
+                            Span="1"
+                            HorizontalItemSpacing="12"
+                            VerticalItemSpacing="12" />
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.Header>
                         <VerticalStackLayout
-                            Padding="{OnPlatform WinUI='24,20,24,10', Default='14,14,14,8'}"
+                            Padding="{OnIdiom Phone='0,14,0,12', Tablet='0,18,0,14', Desktop='0,22,0,16'}"
                             Spacing="12">
 
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label
-                                        Text="Análisis de suelo"
-                                        FontFamily="MontserratBold"
-                                        FontAttributes="Bold"
-                                        FontSize="{OnPlatform WinUI=28, Default=23}"
-                                        TextColor="{StaticResource color_Negro}" />
+                            <!-- Encabezado principal -->
+                            <Border Style="{StaticResource ModernHeroCard}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Spacing="4" VerticalOptions="Center">
+                                        <Label
+                                            Text="Análisis de suelo"
+                                            Style="{StaticResource ModernPageTitle}" />
 
-                                    <Label
-                                        Text="{Binding TotalMostradoTexto}"
-                                        FontSize="13"
-                                        TextColor="{StaticResource color_GrisOscuro}" />
-                                </VerticalStackLayout>
+                                        <Label
+                                            Text="{Binding TotalMostradoTexto}"
+                                            Style="{StaticResource ModernPageSubtitle}" />
+                                    </VerticalStackLayout>
 
-                                <ImageButton
-                                    Grid.Column="1"
-                                    Source="iconadd.png"
-                                    WidthRequest="52"
-                                    HeightRequest="52"
-                                    Padding="5"
-                                    Command="{Binding NuevoAnalisisCommand}"
-                                    IsVisible="{Binding CanAdd}" />
-                            </Grid>
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="+ Nuevo análisis"
+                                        Style="{StaticResource ModernPrimaryButton}"
+                                        HeightRequest="46"
+                                        Padding="{OnIdiom Phone='12,9', Tablet='16,9', Desktop='18,9'}"
+                                        FontSize="{OnIdiom Phone=11, Tablet=12, Desktop=12.5}"
+                                        Command="{Binding NuevoAnalisisCommand}"
+                                        IsVisible="{Binding CanAdd}"
+                                        VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
 
+                            <!-- Selección del alcance antes de listar -->
                             <Border
                                 IsVisible="{Binding MostrarSelectorAlcance}"
-                                Padding="12"
-                                BackgroundColor="#EEF5F2"
-                                Stroke="#C8DED6"
-                                StrokeShape="RoundRectangle 13">
+                                Style="{StaticResource ModernCard}">
 
-                                <VerticalStackLayout Spacing="5">
-                                    <Label
-                                        Text="¿Qué análisis desea listar?"
-                                        FontSize="12"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource color_Verde}" />
+                                <VerticalStackLayout Spacing="10">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label
+                                            Text="Alcance del listado"
+                                            Style="{StaticResource ModernSectionTitle}" />
+                                        <Label
+                                            Text="Seleccione qué análisis desea consultar antes de cargar la lista."
+                                            Style="{StaticResource ModernPageSubtitle}" />
+                                    </VerticalStackLayout>
 
-                                    <Picker
-                                        ItemsSource="{Binding OpcionesAlcanceListado}"
-                                        SelectedItem="{Binding AlcanceListadoSeleccionado, Mode=TwoWay}"
-                                        BackgroundColor="White"
-                                        TextColor="{StaticResource color_Negro}" />
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <Picker
+                                            ItemsSource="{Binding OpcionesAlcanceListado}"
+                                            SelectedItem="{Binding AlcanceListadoSeleccionado, Mode=TwoWay}"
+                                            Style="{StaticResource ModernPicker}" />
+                                    </Border>
+
+                                    <Button
+                                        Text="{Binding TextoBotonListar}"
+                                        Command="{Binding ListarCommand}"
+                                        Style="{StaticResource ModernPrimaryButton}" />
                                 </VerticalStackLayout>
                             </Border>
 
-                            <Button
-                                Text="{Binding TextoBotonListar}"
-                                Command="{Binding ListarCommand}"
-                                HeightRequest="48"
-                                BackgroundColor="{StaticResource color_Verde}"
-                                TextColor="White"
-                                FontAttributes="Bold"
-                                CornerRadius="13" />
-
-                            <HorizontalStackLayout
+                            <!-- Carga inicial -->
+                            <Border
                                 IsVisible="{Binding CargandoListado}"
-                                HorizontalOptions="Center"
-                                Spacing="8">
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoListado}"
-                                    Color="{StaticResource color_Verde}"
-                                    WidthRequest="22"
-                                    HeightRequest="22" />
-                                <Label
-                                    Text="Cargando los primeros análisis..."
-                                    VerticalOptions="Center"
-                                    FontSize="12"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Verde}" />
-                            </HorizontalStackLayout>
+                                Style="{StaticResource ModernSoftPanel}"
+                                HorizontalOptions="Fill">
+                                <HorizontalStackLayout
+                                    HorizontalOptions="Center"
+                                    Spacing="9">
+                                    <ActivityIndicator
+                                        IsRunning="{Binding CargandoListado}"
+                                        Color="{StaticResource color_Verde}"
+                                        WidthRequest="22"
+                                        HeightRequest="22" />
+                                    <Label
+                                        Text="Cargando los primeros análisis..."
+                                        VerticalOptions="Center"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_Verde}" />
+                                </HorizontalStackLayout>
+                            </Border>
 
+                            <!-- Búsqueda y filtros -->
                             <Border
                                 IsVisible="{Binding SeHaListado}"
-                                Padding="12"
-                                BackgroundColor="White"
-                                Stroke="#E5E7EB"
-                                StrokeShape="RoundRectangle 15">
+                                Style="{StaticResource ModernCard}">
 
-                                <VerticalStackLayout Spacing="10">
+                                <VerticalStackLayout Spacing="12">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <SearchBar
-                                            Text="{Binding TextoBusqueda}"
-                                            SearchCommand="{Binding BuscarCommand}"
-                                            Placeholder="Buscar cliente, laboratorio, usuario o terreno"
-                                            BackgroundColor="#F9FAFB"
-                                            TextColor="{StaticResource color_Negro}"
-                                            PlaceholderColor="{StaticResource color_Gris}" />
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label
+                                                Text="Buscar y filtrar"
+                                                Style="{StaticResource ModernSectionTitle}" />
+                                            <Label
+                                                Text="Encuentre análisis por cliente, laboratorio, usuario o terreno."
+                                                Style="{StaticResource ModernPageSubtitle}" />
+                                        </VerticalStackLayout>
 
                                         <Button
                                             Grid.Column="1"
                                             Text="Limpiar"
                                             Command="{Binding LimpiarFiltrosCommand}"
-                                            BackgroundColor="#F3F4F6"
-                                            TextColor="{StaticResource color_GrisOscuro}"
-                                            CornerRadius="10"
-                                            Padding="12,7" />
+                                            Style="{StaticResource ModernNeutralButton}"
+                                            HeightRequest="40"
+                                            VerticalOptions="Center" />
                                     </Grid>
+
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <SearchBar
+                                            Text="{Binding TextoBusqueda}"
+                                            SearchCommand="{Binding BuscarCommand}"
+                                            Placeholder="Buscar cliente, laboratorio, usuario o terreno"
+                                            Style="{StaticResource ModernSearchBar}" />
+                                    </Border>
 
                                     <VerticalStackLayout
                                         IsVisible="{Binding PuedeFiltrarPorUsuario}"
-                                        Spacing="4">
+                                        Spacing="5">
                                         <Label
                                             Text="Usuario"
-                                            FontSize="11"
-                                            FontAttributes="Bold"
-                                            TextColor="{StaticResource color_GrisOscuro}" />
-                                        <Picker
-                                            ItemsSource="{Binding UsuariosFiltro}"
-                                            SelectedItem="{Binding UsuarioFiltroSeleccionado, Mode=TwoWay}"
-                                            ItemDisplayBinding="{Binding TextoMostrar}"
-                                            BackgroundColor="#F9FAFB"
-                                            TextColor="{StaticResource color_Negro}" />
+                                            Style="{StaticResource ModernFieldLabel}" />
+                                        <Border Style="{StaticResource ModernInputBorder}">
+                                            <Picker
+                                                ItemsSource="{Binding UsuariosFiltro}"
+                                                SelectedItem="{Binding UsuarioFiltroSeleccionado, Mode=TwoWay}"
+                                                ItemDisplayBinding="{Binding TextoMostrar}"
+                                                Style="{StaticResource ModernPicker}" />
+                                        </Border>
                                     </VerticalStackLayout>
 
-                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7">
                                         <CheckBox
                                             IsChecked="{Binding UsarFiltroRangoFecha}"
-                                            Color="{StaticResource color_Verde}" />
+                                            Color="{StaticResource color_Verde}"
+                                            VerticalOptions="Center" />
                                         <Label
                                             Grid.Column="1"
                                             Text="Filtrar por fecha de guardado"
                                             VerticalOptions="Center"
+                                            FontFamily="MontserratBold"
                                             FontSize="12"
-                                            FontAttributes="Bold"
-                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
                                     </Grid>
 
                                     <Grid
                                         IsVisible="{Binding UsarFiltroRangoFecha}"
                                         ColumnDefinitions="*,*"
-                                        ColumnSpacing="8">
-                                        <VerticalStackLayout Spacing="3">
-                                            <Label Text="Desde" FontSize="10" />
-                                            <DatePicker
-                                                Date="{Binding FechaDesde}"
-                                                Format="dd/MM/yyyy"
-                                                BackgroundColor="#F9FAFB"
-                                                TextColor="{StaticResource color_Negro}" />
+                                        ColumnSpacing="10">
+
+                                        <VerticalStackLayout Spacing="5">
+                                            <Label
+                                                Text="Desde"
+                                                Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <DatePicker
+                                                    Date="{Binding FechaDesde}"
+                                                    Format="dd/MM/yyyy"
+                                                    Style="{StaticResource ModernDatePicker}" />
+                                            </Border>
                                         </VerticalStackLayout>
 
-                                        <VerticalStackLayout Grid.Column="1" Spacing="3">
-                                            <Label Text="Hasta" FontSize="10" />
-                                            <DatePicker
-                                                Date="{Binding FechaHasta}"
-                                                Format="dd/MM/yyyy"
-                                                BackgroundColor="#F9FAFB"
-                                                TextColor="{StaticResource color_Negro}" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                            <Label
+                                                Text="Hasta"
+                                                Style="{StaticResource ModernFieldLabel}" />
+                                            <Border Style="{StaticResource ModernInputBorder}">
+                                                <DatePicker
+                                                    Date="{Binding FechaHasta}"
+                                                    Format="dd/MM/yyyy"
+                                                    Style="{StaticResource ModernDatePicker}" />
+                                            </Border>
                                         </VerticalStackLayout>
                                     </Grid>
 
@@ -192,92 +222,117 @@
                                         Text="{Binding ErrorRangoFecha}"
                                         IsVisible="{Binding TieneErrorRangoFecha}"
                                         TextColor="{StaticResource RedDelete}"
-                                        FontSize="11"
-                                        FontAttributes="Bold" />
+                                        FontFamily="MontserratBold"
+                                        FontSize="11" />
                                 </VerticalStackLayout>
                             </Border>
 
+                            <!-- Mensaje de error o información -->
                             <Border
                                 IsVisible="{Binding TieneMensaje}"
-                                Padding="11"
-                                BackgroundColor="#FEF2F2"
-                                Stroke="#FECACA"
-                                StrokeShape="RoundRectangle 11">
+                                Padding="12"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource DangerSoft}, Dark={StaticResource DangerSoftDark}}"
+                                Stroke="#F1C7C9"
+                                StrokeShape="RoundRectangle 12">
                                 <Label
                                     Text="{Binding Mensaje}"
-                                    TextColor="#991B1B"
+                                    FontFamily="MontserratMedium"
+                                    TextColor="{AppThemeBinding Light=#982F33, Dark=#F4B7B9}"
                                     FontSize="12" />
                             </Border>
 
-                            <VerticalStackLayout
+                            <!-- Estado antes de ejecutar el listado -->
+                            <Border
                                 IsVisible="{Binding MostrarEsperaInicial}"
-                                Padding="16,22"
-                                Spacing="6"
-                                HorizontalOptions="Center">
-                                <Label
-                                    Text="{Binding MensajeListaVacia}"
-                                    FontSize="17"
-                                    FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Verde}"
-                                    HorizontalTextAlignment="Center" />
-                                <Label
-                                    Text="{Binding SubtituloListaVacia}"
-                                    FontSize="13"
-                                    TextColor="{StaticResource color_GrisOscuro}"
-                                    HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
+                                Style="{StaticResource ModernSoftPanel}">
+                                <VerticalStackLayout
+                                    Padding="10,14"
+                                    Spacing="5"
+                                    HorizontalOptions="Center">
+                                    <Label
+                                        Text="{Binding MensajeListaVacia}"
+                                        FontFamily="MontserratBold"
+                                        FontSize="17"
+                                        TextColor="{StaticResource color_Verde}"
+                                        HorizontalTextAlignment="Center" />
+                                    <Label
+                                        Text="{Binding SubtituloListaVacia}"
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
 
-                            <VerticalStackLayout
+                            <!-- Lista vacía después de consultar -->
+                            <Border
                                 IsVisible="{Binding MostrarListaVacia}"
-                                Padding="20"
-                                HorizontalOptions="Center">
-                                <Label
-                                    Text="No hay análisis para mostrar"
-                                    FontAttributes="Bold"
-                                    FontSize="17"
-                                    TextColor="{StaticResource color_Verde}" />
-                            </VerticalStackLayout>
+                                Style="{StaticResource ModernSoftPanel}">
+                                <VerticalStackLayout
+                                    Padding="12,16"
+                                    Spacing="4"
+                                    HorizontalOptions="Center">
+                                    <Label
+                                        Text="No hay análisis para mostrar"
+                                        FontFamily="MontserratBold"
+                                        FontSize="17"
+                                        TextColor="{StaticResource color_Verde}"
+                                        HorizontalTextAlignment="Center" />
+                                    <Label
+                                        Text="Pruebe ajustando los filtros o actualizando la lista."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
                         </VerticalStackLayout>
                     </CollectionView.Header>
 
+                    <!-- =================================================
+                         TARJETAS DE ANÁLISIS
+                         Todos los comandos y bindings originales se conservan.
+                         ================================================= -->
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:AnalisisGuardadoResumen">
                             <Border
-                                Margin="{OnPlatform WinUI='24,4', Default='14,4'}"
-                                Padding="14"
-                                BackgroundColor="White"
-                                Stroke="#E5E7EB"
-                                StrokeShape="RoundRectangle 15">
+                                Style="{StaticResource ModernCard}"
+                                Padding="{OnIdiom Phone=14, Tablet=15, Desktop=16}"
+                                Margin="0,2">
 
                                 <Grid
-                                    RowDefinitions="Auto,Auto,Auto,Auto,Auto"
-                                    RowSpacing="8">
+                                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                    RowSpacing="10">
 
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <!-- Identificación -->
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                         <VerticalStackLayout Spacing="2">
                                             <Label
                                                 Text="{Binding IdentificadorMostrar}"
-                                                FontSize="17"
+                                                FontFamily="MontserratBold"
                                                 FontAttributes="Bold"
+                                                FontSize="17"
                                                 TextColor="{StaticResource color_Verde}"
                                                 MaxLines="1"
                                                 LineBreakMode="TailTruncation" />
+
                                             <Label
                                                 Text="{Binding ClienteMostrar}"
-                                                FontSize="14"
+                                                FontFamily="MontserratBold"
                                                 FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Negro}"
+                                                FontSize="14"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                                 MaxLines="1"
                                                 LineBreakMode="TailTruncation" />
+
                                             <Label
                                                 Text="{Binding TerrenoMostrar}"
+                                                FontFamily="MontserratMedium"
                                                 FontSize="11"
-                                                TextColor="{StaticResource color_GrisOscuro}"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                                 MaxLines="1"
                                                 LineBreakMode="TailTruncation" />
+
                                             <Label
                                                 Text="{Binding UsuarioMostrar, StringFormat='Usuario: {0}'}"
                                                 IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EsAdministrador}"
+                                                FontFamily="MontserratMedium"
                                                 FontSize="10"
                                                 TextColor="{StaticResource color_Cafe}"
                                                 MaxLines="1"
@@ -286,126 +341,177 @@
 
                                         <Border
                                             Grid.Column="1"
-                                            Padding="8,5"
-                                            BackgroundColor="#EEF5F2"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 9"
+                                            Style="{StaticResource ModernBadgeGreen}"
+                                            Padding="9,6"
                                             VerticalOptions="Start">
                                             <VerticalStackLayout Spacing="1">
                                                 <Label
-                                                    Text="Laboratorio"
-                                                    FontSize="9"
-                                                    TextColor="{StaticResource color_GrisOscuro}"
+                                                    Text="LABORATORIO"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="8"
+                                                    CharacterSpacing="0.6"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                                     HorizontalTextAlignment="Center" />
                                                 <Label
                                                     Text="{Binding FechaAnalisisTexto}"
+                                                    FontFamily="MontserratBold"
                                                     FontSize="11"
-                                                    FontAttributes="Bold"
-                                                    TextColor="{StaticResource color_Verde}" />
+                                                    TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}" />
                                             </VerticalStackLayout>
                                         </Border>
                                     </Grid>
 
-                                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                    <!-- Laboratorio / fecha de registro -->
+                                    <Grid
+                                        Grid.Row="1"
+                                        ColumnDefinitions="*,Auto"
+                                        ColumnSpacing="8">
                                         <Label
                                             Text="{Binding LaboratorioMostrar, StringFormat='Laboratorio: {0}'}"
-                                            FontSize="11"
-                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10.5"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                             MaxLines="1"
                                             LineBreakMode="TailTruncation" />
                                         <Label
                                             Grid.Column="1"
                                             Text="{Binding FechaRegistroTexto, StringFormat='Guardado: {0}'}"
-                                            FontSize="11"
-                                            FontAttributes="Bold"
-                                            TextColor="{StaticResource color_Verde}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="10.5"
+                                            TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}"
                                             HorizontalTextAlignment="End" />
                                     </Grid>
 
-                                    <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                                        <VerticalStackLayout Spacing="1">
-                                            <Label Text="pH" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
-                                            <Label Text="{Binding PhTexto}" FontSize="14" FontAttributes="Bold" />
-                                        </VerticalStackLayout>
-                                        <VerticalStackLayout Grid.Column="1" Spacing="1">
-                                            <Label Text="Finca" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
-                                            <Label Text="{Binding TamanoFincaTexto}" FontSize="14" FontAttributes="Bold" />
-                                        </VerticalStackLayout>
-                                        <VerticalStackLayout Grid.Column="2" Spacing="1">
-                                            <Label Text="Producción" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
-                                            <Label Text="{Binding ProduccionTexto}" FontSize="13" FontAttributes="Bold" />
-                                        </VerticalStackLayout>
-                                    </Grid>
+                                    <BoxView
+                                        Grid.Row="2"
+                                        HeightRequest="1"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
 
-                                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="6">
-                                        <Border
-                                            IsVisible="{Binding TieneFormulaNutricional}"
-                                            Padding="7,3"
-                                            BackgroundColor="#EEF5F2"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 8">
-                                            <Label Text="✓ Balance" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
+                                    <!-- Métricas principales -->
+                                    <Grid
+                                        Grid.Row="3"
+                                        ColumnDefinitions="*,*,*"
+                                        ColumnSpacing="7">
+
+                                        <Border Style="{StaticResource ModernMetricSurface}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label
+                                                    Text="pH"
+                                                    FontFamily="MontserratMedium"
+                                                    FontSize="9.5"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                                <Label
+                                                    Text="{Binding PhTexto}"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="15"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                            </VerticalStackLayout>
                                         </Border>
+
                                         <Border
                                             Grid.Column="1"
-                                            IsVisible="{Binding TieneEnmiendaCalcarea}"
-                                            Padding="7,3"
-                                            BackgroundColor="#FFF3E8"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 8">
-                                            <Label Text="✓ Enmienda" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                                            Style="{StaticResource ModernMetricSurface}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label
+                                                    Text="Finca"
+                                                    FontFamily="MontserratMedium"
+                                                    FontSize="9.5"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                                <Label
+                                                    Text="{Binding TamanoFincaTexto}"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="15"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                            </VerticalStackLayout>
                                         </Border>
+
                                         <Border
                                             Grid.Column="2"
-                                            IsVisible="{Binding TieneFertilizacionMixta}"
-                                            Padding="7,3"
-                                            BackgroundColor="#FFF8D8"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 8">
-                                            <Label Text="✓ Mixta" FontSize="10" FontAttributes="Bold" TextColor="#7A5C00" />
+                                            Style="{StaticResource ModernMetricSurface}">
+                                            <VerticalStackLayout Spacing="2">
+                                                <Label
+                                                    Text="Producción"
+                                                    FontFamily="MontserratMedium"
+                                                    FontSize="9.5"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                                <Label
+                                                    Text="{Binding ProduccionTexto}"
+                                                    FontFamily="MontserratBold"
+                                                    FontSize="13.5"
+                                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                                    MaxLines="1"
+                                                    LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
                                         </Border>
                                     </Grid>
 
-                                    <Grid
+                                    <!-- Procesos calculados -->
+                                    <FlexLayout
                                         Grid.Row="4"
-                                        Margin="0,4,0,0"
+                                        Direction="Row"
+                                        Wrap="Wrap"
+                                        AlignItems="Center">
+
+                                        <Border
+                                            IsVisible="{Binding TieneFormulaNutricional}"
+                                            Style="{StaticResource ModernBadgeGreen}"
+                                            Margin="0,0,6,5">
+                                            <Label
+                                                Text="✓ Balance"
+                                                FontFamily="MontserratBold"
+                                                FontSize="10"
+                                                TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}" />
+                                        </Border>
+
+                                        <Border
+                                            IsVisible="{Binding TieneEnmiendaCalcarea}"
+                                            Style="{StaticResource ModernBadgeCoffee}"
+                                            Margin="0,0,6,5">
+                                            <Label
+                                                Text="✓ Enmienda"
+                                                FontFamily="MontserratBold"
+                                                FontSize="10"
+                                                TextColor="{AppThemeBinding Light={StaticResource color_Cafe}, Dark=#E9B897}" />
+                                        </Border>
+
+                                        <Border
+                                            IsVisible="{Binding TieneFertilizacionMixta}"
+                                            Style="{StaticResource ModernBadgeYellow}"
+                                            Margin="0,0,6,5">
+                                            <Label
+                                                Text="✓ Mixta"
+                                                FontFamily="MontserratBold"
+                                                FontSize="10"
+                                                TextColor="{AppThemeBinding Light=#765C00, Dark=#F1D978}" />
+                                        </Border>
+                                    </FlexLayout>
+
+                                    <!-- Acciones: mismas funciones y comandos -->
+                                    <Grid
+                                        Grid.Row="5"
+                                        Margin="0,1,0,0"
                                         ColumnDefinitions="*,*,*"
-                                        ColumnSpacing="8">
+                                        ColumnSpacing="7">
+
                                         <Button
                                             Text="Ver"
-                                            HeightRequest="42"
-                                            Padding="8,7"
-                                            CornerRadius="10"
-                                            FontSize="12"
-                                            FontAttributes="Bold"
-                                            BackgroundColor="#EEF5F2"
-                                            TextColor="{StaticResource color_Verde}"
+                                            Style="{StaticResource ModernSecondaryButton}"
                                             IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanView}"
                                             Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.VisualizarCommand}"
                                             CommandParameter="{Binding .}" />
+
                                         <Button
                                             Grid.Column="1"
                                             Text="Editar"
-                                            HeightRequest="42"
-                                            Padding="8,7"
-                                            CornerRadius="10"
-                                            FontSize="12"
-                                            FontAttributes="Bold"
-                                            BackgroundColor="{StaticResource BlueUpdate}"
-                                            TextColor="White"
+                                            Style="{StaticResource ModernUpdateButton}"
                                             IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanEdit}"
                                             Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EditarCommand}"
                                             CommandParameter="{Binding .}" />
+
                                         <Button
                                             Grid.Column="2"
                                             Text="Eliminar"
-                                            HeightRequest="42"
-                                            Padding="8,7"
-                                            CornerRadius="10"
-                                            FontSize="12"
-                                            FontAttributes="Bold"
-                                            BackgroundColor="{StaticResource RedDelete}"
-                                            TextColor="White"
+                                            Style="{StaticResource ModernDangerButton}"
                                             IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanDelete}"
                                             Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EliminarCommand}"
                                             CommandParameter="{Binding .}" />
@@ -417,7 +523,7 @@
 
                     <CollectionView.Footer>
                         <VerticalStackLayout
-                            Padding="16,12,16,28"
+                            Padding="16,14,16,30"
                             Spacing="8"
                             HorizontalOptions="Center">
                             <ActivityIndicator
@@ -427,14 +533,16 @@
                             <Label
                                 IsVisible="{Binding MostrarFinLista}"
                                 Text="No hay más análisis por cargar."
+                                FontFamily="MontserratMedium"
                                 FontSize="11"
-                                TextColor="{StaticResource color_GrisOscuro}" />
+                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
                         </VerticalStackLayout>
                     </CollectionView.Footer>
                 </CollectionView>
             </RefreshView>
         </ContentView>
 
+        <!-- Estado sin permiso: se conserva la lógica actual -->
         <ContentView
             x:Name="ContenidoSinPermiso"
             IsVisible="False"
@@ -442,13 +550,24 @@
             <Grid Padding="24">
                 <Border
                     MaximumWidthRequest="540"
+                    Style="{StaticResource ModernCard}"
                     Padding="26"
-                    BackgroundColor="White"
-                    Stroke="#DDE7E3"
-                    StrokeShape="RoundRectangle 18"
                     HorizontalOptions="Center"
                     VerticalOptions="Center">
-                    <VerticalStackLayout Spacing="12">
+                    <VerticalStackLayout Spacing="10">
+                        <Border
+                            WidthRequest="54"
+                            HeightRequest="54"
+                            Padding="12"
+                            HorizontalOptions="Center"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                            Stroke="Transparent"
+                            StrokeShape="RoundRectangle 18">
+                            <Image
+                                Source="iconhome.png"
+                                Aspect="AspectFit" />
+                        </Border>
+
                         <Label
                             Text="Sin permisos asignados"
                             FontFamily="MontserratBold"
@@ -457,31 +576,40 @@
                             HorizontalTextAlignment="Center" />
                         <Label
                             Text="Su usuario está activo, pero su rol no tiene permiso para visualizar análisis de suelo."
-                            FontSize="14"
-                            TextColor="{StaticResource color_GrisOscuro}"
+                            Style="{StaticResource ModernPageSubtitle}"
                             HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
                 </Border>
             </Grid>
         </ContentView>
 
+        <!-- Capa de carga general -->
         <Grid
             IsVisible="{Binding IsBusy}"
-            BackgroundColor="#66000000">
-            <VerticalStackLayout
+            BackgroundColor="#660B1511"
+            InputTransparent="False">
+            <Border
+                Padding="24,20"
+                MinimumWidthRequest="190"
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
-                Spacing="10">
-                <ActivityIndicator
-                    IsRunning="{Binding IsBusy}"
-                    Color="White"
-                    WidthRequest="40"
-                    HeightRequest="40" />
-                <Label
-                    Text="Cargando datos..."
-                    TextColor="White"
-                    FontAttributes="Bold" />
-            </VerticalStackLayout>
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceRaisedDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}"
+                        WidthRequest="34"
+                        HeightRequest="34" />
+                    <Label
+                        Text="Cargando datos..."
+                        FontFamily="MontserratBold"
+                        FontSize="12"
+                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
         </Grid>
     </Grid>
 </ContentPage>

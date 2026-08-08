@@ -6,66 +6,78 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
-            Padding="{OnIdiom Phone='14,12,14,18', Tablet='18,16,18,22', Desktop='26,22,26,30'}"
+            Padding="{OnIdiom Phone='14,12,14,12', Tablet='18,16,18,18', Desktop='26,22,26,24'}"
             RowDefinitions="Auto,Auto,*"
             RowSpacing="{OnIdiom Phone=10, Tablet=12, Desktop=14}">
 
-            <VerticalStackLayout
-                Grid.Row="0"
-                Spacing="3">
-
-                <Label
-                    Text="Configuración"
-                    FontSize="{OnIdiom Phone=25, Tablet=28, Desktop=30}"
-                    FontFamily="MontserratBold"
-                    FontAttributes="Bold"
-                    TextColor="{StaticResource color_Verde}" />
-
-                <Label
-                    Text="Acceda a los catálogos y herramientas habilitados para su usuario."
-                    FontSize="{OnIdiom Phone=12, Tablet=13, Desktop=13}"
-                    TextColor="{StaticResource color_GrisOscuro}"
-                    LineBreakMode="WordWrap" />
-            </VerticalStackLayout>
-
+            <!-- Encabezado -->
             <Border
-                Grid.Row="1"
-                Padding="3"
-                BackgroundColor="White"
-                Stroke="#DDE7E3"
-                StrokeThickness="1"
-                StrokeShape="RoundRectangle 13">
+                Grid.Row="0"
+                Style="{StaticResource ModernHeroCard}">
 
                 <Grid
                     ColumnDefinitions="*,Auto"
-                    ColumnSpacing="8">
+                    ColumnSpacing="12">
 
+                    <VerticalStackLayout Spacing="4">
+                        <Label
+                            Text="Configuración"
+                            Style="{StaticResource ModernPageTitle}" />
+
+                        <Label
+                            Text="Administre catálogos, herramientas del dispositivo y opciones de su sesión."
+                            Style="{StaticResource ModernPageSubtitle}" />
+                    </VerticalStackLayout>
+
+                    <Border
+                        Grid.Column="1"
+                        Padding="10,6"
+                        VerticalOptions="Start"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                        Stroke="Transparent"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 10"
+                        IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}">
+
+                        <Label
+                            Text="{Binding ResumenOpciones}"
+                            FontFamily="MontserratBold"
+                            FontSize="10.5"
+                            TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Búsqueda -->
+            <Border
+                Grid.Row="1"
+                Style="{StaticResource ModernInputBorder}"
+                Padding="4,0">
+
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                     <SearchBar
                         Grid.Column="0"
+                        Style="{StaticResource ModernSearchBar}"
                         Placeholder="Buscar una opción de configuración"
-                        Text="{Binding TextoBusqueda, Mode=TwoWay}"
-                        BackgroundColor="Transparent"
-                        CancelButtonColor="{StaticResource color_Verde}" />
+                        Text="{Binding TextoBusqueda, Mode=TwoWay}" />
 
                     <Label
                         Grid.Column="1"
                         Text="{Binding ResumenOpciones}"
-                        Margin="0,0,12,0"
+                        Margin="0,0,10,0"
                         VerticalOptions="Center"
-                        FontSize="11"
-                        TextColor="{StaticResource color_GrisOscuro}"
-                        IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}" />
+                        FontFamily="MontserratMedium"
+                        FontSize="10.5"
+                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                        IsVisible="{OnIdiom Phone=False, Tablet=False, Desktop=True}" />
                 </Grid>
             </Border>
 
-            <!--
-                Un único CollectionView agrupado y virtualizado.
-                Se crea exactamente una tarjeta por opción.
-            -->
+            <!-- Catálogo principal -->
             <CollectionView
                 x:Name="OpcionesCollection"
                 Grid.Row="2"
@@ -85,41 +97,46 @@
                 </CollectionView.ItemsLayout>
 
                 <CollectionView.EmptyView>
-                    <Grid Padding="24">
-
+                    <Grid Padding="12,18">
                         <Border
                             IsVisible="{Binding MostrarSinOpciones}"
                             MaximumWidthRequest="620"
                             Padding="24"
                             HorizontalOptions="Center"
                             VerticalOptions="Center"
-                            BackgroundColor="White"
-                            Stroke="#E5E7EB"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 16">
+                            Style="{StaticResource ModernCard}">
 
                             <VerticalStackLayout
                                 Spacing="8"
                                 HorizontalOptions="Center">
 
-                                <Image
-                                    Source="iconsettings.png"
-                                    WidthRequest="54"
-                                    HeightRequest="54"
-                                    Opacity="0.5" />
+                                <Border
+                                    WidthRequest="58"
+                                    HeightRequest="58"
+                                    Padding="12"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                                    Stroke="Transparent"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 18">
+                                    <Image
+                                        Source="iconsettings.png"
+                                        Aspect="AspectFit" />
+                                </Border>
 
                                 <Label
                                     Text="No hay opciones disponibles"
                                     FontSize="18"
                                     FontFamily="MontserratBold"
                                     FontAttributes="Bold"
-                                    TextColor="{StaticResource color_Negro}"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                     HorizontalTextAlignment="Center" />
 
                                 <Label
-                                    Text="No hay coincidencias o su usuario no tiene permisos de lectura."
+                                    Text="No hay coincidencias o su usuario no tiene permisos de lectura para los catálogos administrativos."
+                                    MaximumWidthRequest="480"
+                                    FontFamily="MontserratMedium"
                                     FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                     HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
                         </Border>
@@ -128,25 +145,25 @@
 
                 <CollectionView.GroupHeaderTemplate>
                     <DataTemplate x:DataType="models:ConfiguracionGrupoVisual">
-
                         <Grid
-                            Padding="{OnIdiom Phone='0,16,0,7', Tablet='0,18,0,8', Desktop='0,20,0,9'}"
+                            Padding="{OnIdiom Phone='2,17,2,7', Tablet='2,18,2,8', Desktop='2,20,2,9'}"
                             RowDefinitions="Auto,Auto,Auto"
                             RowSpacing="2">
 
                             <Label
                                 Grid.Row="0"
                                 Text="{Binding Titulo}"
-                                FontSize="{OnIdiom Phone=17, Tablet=18, Desktop=19}"
+                                FontSize="{OnIdiom Phone=16, Tablet=17, Desktop=18}"
                                 FontFamily="MontserratBold"
                                 FontAttributes="Bold"
-                                TextColor="{StaticResource color_Verde}" />
+                                TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}" />
 
                             <Label
                                 Grid.Row="1"
                                 Text="{Binding Descripcion}"
+                                FontFamily="MontserratMedium"
                                 FontSize="11"
-                                TextColor="{StaticResource color_GrisOscuro}"
+                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                 LineBreakMode="WordWrap"
                                 MaxLines="2" />
 
@@ -154,21 +171,28 @@
                                 Grid.Row="2"
                                 Margin="0,7,0,0"
                                 HeightRequest="1"
-                                BackgroundColor="#E4ECE8" />
+                                BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
                         </Grid>
                     </DataTemplate>
                 </CollectionView.GroupHeaderTemplate>
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:ConfiguracionOpcion">
-
                         <Border
-                            HeightRequest="{OnIdiom Phone=92, Tablet=98, Desktop=100}"
+                            HeightRequest="{OnIdiom Phone=94, Tablet=98, Desktop=100}"
                             Padding="{OnIdiom Phone='12', Tablet='14', Desktop='15'}"
-                            BackgroundColor="White"
-                            Stroke="#DDE7E3"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                            Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                             StrokeThickness="1"
-                            StrokeShape="RoundRectangle 15">
+                            StrokeShape="RoundRectangle 16">
+
+                            <Border.Shadow>
+                                <Shadow
+                                    Brush="#16211D"
+                                    Offset="0,2"
+                                    Radius="8"
+                                    Opacity="0.045" />
+                            </Border.Shadow>
 
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer
@@ -186,7 +210,7 @@
                                     Padding="9"
                                     BackgroundColor="{Binding ColorFondoIcono}"
                                     StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 13">
+                                    StrokeShape="RoundRectangle 14">
 
                                     <Image
                                         Source="{Binding Icono}"
@@ -195,7 +219,7 @@
 
                                 <VerticalStackLayout
                                     Grid.Column="1"
-                                    Spacing="2"
+                                    Spacing="3"
                                     VerticalOptions="Center">
 
                                     <Label
@@ -203,27 +227,161 @@
                                         FontSize="{OnIdiom Phone=14, Tablet=14.5, Desktop=15}"
                                         FontFamily="MontserratBold"
                                         FontAttributes="Bold"
-                                        TextColor="{StaticResource color_Negro}"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                         LineBreakMode="TailTruncation" />
 
                                     <Label
                                         Text="{Binding Descripcion}"
-                                        FontSize="{OnIdiom Phone=11, Tablet=11.5, Desktop=12}"
-                                        TextColor="{StaticResource color_GrisOscuro}"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="{OnIdiom Phone=10.5, Tablet=11, Desktop=11.5}"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                         MaxLines="2"
                                         LineBreakMode="TailTruncation" />
                                 </VerticalStackLayout>
 
-                                <Label
+                                <Border
                                     Grid.Column="2"
-                                    Text="›"
-                                    FontSize="26"
-                                    TextColor="{StaticResource color_Verde}"
-                                    VerticalOptions="Center" />
+                                    WidthRequest="30"
+                                    HeightRequest="30"
+                                    Padding="0"
+                                    VerticalOptions="Center"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                                    Stroke="Transparent"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 10">
+                                    <Label
+                                        Text="›"
+                                        FontSize="22"
+                                        TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}"
+                                        HorizontalTextAlignment="Center"
+                                        VerticalTextAlignment="Center" />
+                                </Border>
                             </Grid>
                         </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <VerticalStackLayout
+                        Padding="0,18,0,8"
+                        Spacing="10">
+
+                        <VerticalStackLayout Spacing="2">
+                            <Label
+                                Text="Sistema y sesión"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="16"
+                                TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}" />
+                            <Label
+                                Text="Herramientas del dispositivo y opciones de la cuenta actual."
+                                FontFamily="MontserratMedium"
+                                FontSize="10.5"
+                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                        </VerticalStackLayout>
+
+                    <Border
+                        Padding="10"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 16">
+        
+                        <Grid
+                            x:Name="AccionesSistemaGrid"
+                            ColumnDefinitions="*,*"
+                            ColumnSpacing="10">
+        
+                            <Border
+                                x:Name="DatosSinConexionCard"
+                                Grid.Column="0"
+                                HeightRequest="62"
+                                Padding="12,8"
+                                IsVisible="False"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                                Stroke="{AppThemeBinding Light=#D4E5DE, Dark={StaticResource BorderSoftDark}}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 13">
+        
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="DatosSinConexionCard_Tapped" />
+                                </Border.GestureRecognizers>
+        
+                                <Grid ColumnDefinitions="34,*" ColumnSpacing="9">
+                                    <Image
+                                        Source="iconoffline.png"
+                                        WidthRequest="27"
+                                        HeightRequest="27"
+                                        VerticalOptions="Center" />
+        
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="1"
+                                        VerticalOptions="Center">
+                                        <Label
+                                            Text="Datos sin conexión"
+                                            FontFamily="MontserratBold"
+                                            FontSize="11.5"
+                                            TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation" />
+                                        <Label
+                                            Text="Descargar y administrar"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="9.5"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+        
+                            <Border
+                                x:Name="CerrarSesionCard"
+                                Grid.Column="1"
+                                HeightRequest="62"
+                                Padding="12,8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource DangerSoft}, Dark={StaticResource DangerSoftDark}}"
+                                Stroke="{AppThemeBinding Light=#F4C7C7, Dark=#5E3030}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 13">
+        
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding CerrarSesionCommand}" />
+                                </Border.GestureRecognizers>
+        
+                                <Grid ColumnDefinitions="34,*" ColumnSpacing="9">
+                                    <Image
+                                        Source="iconloginout.png"
+                                        WidthRequest="27"
+                                        HeightRequest="27"
+                                        VerticalOptions="Center" />
+        
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="1"
+                                        VerticalOptions="Center">
+                                        <Label
+                                            Text="Cerrar sesión"
+                                            FontFamily="MontserratBold"
+                                            FontSize="11.5"
+                                            TextColor="{StaticResource RedDelete}"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation" />
+                                        <Label
+                                            Text="Salir de la cuenta actual"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="9.5"
+                                            TextColor="{AppThemeBinding Light=#9B4B4B, Dark=#F0AAAA}"
+                                            MaxLines="1"
+                                            LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    </VerticalStackLayout>
+                </CollectionView.Footer>
             </CollectionView>
 
             <Grid
@@ -232,11 +390,28 @@
                 InputTransparent="False"
                 BackgroundColor="#28FFFFFF">
 
-                <ActivityIndicator
-                    IsRunning="True"
-                    Color="{StaticResource color_Naranja}"
+                <Border
+                    Padding="18,14"
                     HorizontalOptions="Center"
-                    VerticalOptions="Center" />
+                    VerticalOptions="Center"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 14">
+                    <HorizontalStackLayout Spacing="10">
+                        <ActivityIndicator
+                            IsRunning="{Binding Navegando}"
+                            Color="{StaticResource color_Verde}"
+                            WidthRequest="22"
+                            HeightRequest="22" />
+                        <Label
+                            Text="Abriendo opción..."
+                            VerticalOptions="Center"
+                            FontFamily="MontserratBold"
+                            FontSize="11"
+                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                    </HorizontalStackLayout>
+                </Border>
             </Grid>
         </Grid>
     </ContentView>
