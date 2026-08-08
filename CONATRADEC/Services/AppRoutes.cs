@@ -126,6 +126,13 @@ namespace CONATRADEC.Services
         public const string AnalisisGuardadoDetalle =
             nameof(AnalisisGuardadoDetallePage);
 
+        /*
+         * Esta ruta sigue siendo necesaria al regresar desde Resultado
+         * durante la edición de un análisis histórico. Aunque la edición
+         * principal se realiza en NuevoAnalisisFormPage, el flujo de retorno
+         * todavía utiliza EditarAnalisisGuardadoPage para conservar el
+         * análisis seleccionado y su navegación histórica.
+         */
         public const string EditarAnalisisGuardado =
             nameof(EditarAnalisisGuardadoPage);
 

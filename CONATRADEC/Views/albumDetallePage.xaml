@@ -44,13 +44,8 @@
                                 Padding="4,4"
                                 HeightRequest="36" />
 
-                            <Grid
-                                RowDefinitions="Auto,Auto"
-                                ColumnDefinitions="*"
-                                RowSpacing="12">
-                                <VerticalStackLayout
-                                    Grid.Row="0"
-                                    Spacing="3">
+                            <VerticalStackLayout Spacing="12">
+                                <VerticalStackLayout Spacing="3">
                                     <Label
                                         Text="Detalle del álbum"
                                         Style="{StaticResource ModernPageTitle}" />
@@ -60,17 +55,16 @@
                                 </VerticalStackLayout>
 
                                 <!--
-                                    Las acciones usan todo el ancho del encabezado.
-                                    En Windows se alinean a la derecha sin quedar
-                                    atrapadas en una columna Auto demasiado estrecha;
-                                    en móvil permanecen alineadas a la izquierda.
+                                    Barra de acciones estable para WinUI. Los botones
+                                    comienzan desde el lado izquierdo y utilizan el ancho
+                                    real disponible sin depender de una medición Auto.
+                                    En móvil pueden envolver de forma natural.
                                 -->
                                 <FlexLayout
-                                    Grid.Row="1"
                                     Direction="Row"
                                     Wrap="Wrap"
                                     AlignItems="Center"
-                                    JustifyContent="{OnIdiom Phone=Start, Tablet=End, Desktop=End}"
+                                    JustifyContent="Start"
                                     HorizontalOptions="Fill">
                                     <Button
                                         Margin="0,0,8,8"
@@ -94,7 +88,7 @@
                                         Style="{StaticResource ModernCoffeeButton}"
                                         MinimumWidthRequest="128" />
                                 </FlexLayout>
-                            </Grid>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
 

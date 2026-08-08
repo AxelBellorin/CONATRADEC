@@ -86,6 +86,12 @@ namespace CONATRADEC
                 AppRoutes.AnalisisGuardadoDetalle,
                 typeof(AnalisisGuardadoDetallePage));
 
+            /*
+             * La edición principal continúa por NuevoAnalisisFormPage, pero
+             * ResultadoAnalisisSueloViewModel usa esta ruta al regresar desde
+             * el resultado de una edición histórica. Por eso debe mantenerse
+             * registrada para conservar el flujo de retorno existente.
+             */
             Routing.RegisterRoute(
                 AppRoutes.EditarAnalisisGuardado,
                 typeof(EditarAnalisisGuardadoPage));

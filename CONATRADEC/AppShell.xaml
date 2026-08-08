@@ -226,35 +226,17 @@
         FlyoutItemIsVisible="False"
         ContentTemplate="{DataTemplate views:NuevoAnalisisFormPage}" />
 
-    <ShellContent
-        Title="EnmiendasCalcareasPage"
-        Route="EnmiendasCalcareasPage"
-        FlyoutItemIsVisible="False"
-        ContentTemplate="{DataTemplate views:EnmiendasCalcareasPage}" />
-
-    <ShellContent
-        Title="ResultadosAnalisisPage"
-        Route="ResultadosAnalisisPage"
-        FlyoutItemIsVisible="False"
-        ContentTemplate="{DataTemplate views:ResultadosAnalisisPage}" />
-
+    <!--
+        El flujo moderno de análisis utiliza ResultadoAnalisisSueloPage y
+        MultiCalculoPage. Las páginas históricas independientes de resultados,
+        balance, enmienda y fertilización mixta permanecen en el proyecto por
+        compatibilidad, pero ya no se exponen como rutas de Shell.
+    -->
     <ShellContent
         Title="Resultado análisis"
         Route="ResultadoAnalisisSueloPage"
         FlyoutItemIsVisible="False"
         ContentTemplate="{DataTemplate views:ResultadoAnalisisSueloPage}" />
-
-    <ShellContent
-        Title="Balance de fórmula"
-        Route="BalanceFormulaPage"
-        FlyoutItemIsVisible="False"
-        ContentTemplate="{DataTemplate views:BalanceFormulaPage}" />
-
-    <ShellContent
-        Title="Fertilización mixta"
-        Route="FertilizacionMixtaPage"
-        FlyoutItemIsVisible="False"
-        ContentTemplate="{DataTemplate views:FertilizacionMixtaPage}" />
 
     <ShellContent
         Title="Cálculos complementarios"
