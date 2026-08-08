@@ -23,6 +23,8 @@ namespace CONATRADEC.ViewModels
             InspeccionFitosanitariaApiService.Instance;
         private string origen = DiagnosticoIARoutes.ModoMisInspecciones;
         private InspeccionFitosanitariaDetalleV2? detalle;
+        private bool soloConsultaAsignacion;
+        private string etapaConsultaAsignacion = string.Empty;
 
         public DiagnosticoIAResultadoViewModel()
         {
@@ -34,7 +36,8 @@ namespace CONATRADEC.ViewModels
                 () => !IsBusy && PuedeAgregarFotografias);
             SeleccionarTodoCommand = new Command(
                 SeleccionarTodo,
-                () => !IsBusy && EsEtapaTecnicaAbierta &&
+                () => !IsBusy && !SoloConsultaAsignacion &&
+                      EsEtapaTecnicaAbierta &&
                       Fotografias.Any(item => item.PuedeSeleccionarse));
             QuitarSeleccionCommand = new Command(
                 QuitarSeleccion,
@@ -114,24 +117,46 @@ namespace CONATRADEC.ViewModels
                 CerradaDefinitiva: false
             };
 
+        public bool SoloConsultaAsignacion => soloConsultaAsignacion;
+
         public string TituloResultado =>
             Detalle?.Titulo ?? "Inspección fitosanitaria";
 
-        public string SubtituloResultado => Detalle == null
-            ? "Cargando expediente..."
-            : $"{Detalle.TerrenoTexto} · Estado: {Detalle.EstadoTexto} · " +
-              Detalle.CierreTexto;
+        public string SubtituloResultado
+        {
+            get
+            {
+                if (Detalle == null)
+                    return "Cargando expediente...";
+
+                string baseTexto =
+                    $"{Detalle.TerrenoTexto} · Estado: {Detalle.EstadoTexto} · " +
+                    Detalle.CierreTexto;
+
+                if (!SoloConsultaAsignacion)
+                    return baseTexto;
+
+                string etapa = string.IsNullOrWhiteSpace(etapaConsultaAsignacion)
+                    ? "esta etapa"
+                    : $"la etapa de {etapaConsultaAsignacion}";
+
+                return $"Solo consulta · Asignada a otro responsable para {etapa} · {baseTexto}";
+            }
+        }
 
         public bool PuedeAgregarFotografias =>
+            !SoloConsultaAsignacion &&
             Detalle?.PuedeGestionarSolicitud == true &&
             EsEtapaTecnicaAbierta &&
             Fotografias.Count < 40;
 
         public bool PuedeCerrarInspeccion =>
+            !SoloConsultaAsignacion &&
             Detalle?.PuedeCerrarInspeccion == true &&
             EsEtapaTecnicaAbierta;
 
         public bool MostrarCierreTecnico =>
+            !SoloConsultaAsignacion &&
             Detalle is
             {
                 PuedeGestionarSolicitud: true,
@@ -154,6 +179,7 @@ namespace CONATRADEC.ViewModels
             : $"{CantidadSeleccionada} fotografías seleccionadas";
 
         public bool PuedeProcesarSeleccion =>
+            !SoloConsultaAsignacion &&
             TieneSeleccion &&
             Detalle?.PuedeGestionarSolicitud == true &&
             EsEtapaTecnicaAbierta &&
@@ -164,6 +190,7 @@ namespace CONATRADEC.ViewModels
                 InspeccionFotoEstados.NoConcluyente);
 
         public bool PuedeEnviarSeleccion =>
+            !SoloConsultaAsignacion &&
             TieneSeleccion &&
             Detalle?.PuedeGestionarSolicitud == true &&
             EsEtapaTecnicaAbierta &&
@@ -171,6 +198,7 @@ namespace CONATRADEC.ViewModels
                 InspeccionFotoEstados.PendienteDecisionTecnico);
 
         public bool PuedeSolicitarRevision =>
+            !SoloConsultaAsignacion &&
             CantidadSeleccionada == 1 &&
             Detalle?.PuedeGestionarSolicitud == true &&
             EsEtapaTecnicaAbierta &&
@@ -179,6 +207,7 @@ namespace CONATRADEC.ViewModels
                 InspeccionFotoEstados.ErrorIA);
 
         public bool PuedeDescartarSeleccion =>
+            !SoloConsultaAsignacion &&
             CantidadSeleccionada == 1 &&
             Detalle?.PuedeGestionarSolicitud == true &&
             EsEtapaTecnicaAbierta &&
@@ -190,6 +219,7 @@ namespace CONATRADEC.ViewModels
                 InspeccionFotoEstados.DevueltaTecnico);
 
         public bool PuedeAprobarSeleccion =>
+            !SoloConsultaAsignacion &&
             CantidadSeleccionada == 1 &&
             Detalle?.PuedeAprobar == true &&
             !EsInspeccionCerrada &&
@@ -197,12 +227,14 @@ namespace CONATRADEC.ViewModels
                 InspeccionFotoEstados.PendienteAprobacion;
 
         public bool PuedePublicarSeleccion =>
+            !SoloConsultaAsignacion &&
             CantidadSeleccionada == 1 &&
             Detalle?.PuedePublicarAlbum == true &&
             FotosSeleccionadas[0].PuedePublicarseEnAlbum &&
             FotosSeleccionadas[0].TieneClasificacionAlbumCompleta;
 
         public bool PuedeCerrarDefinitivamente =>
+            !SoloConsultaAsignacion &&
             string.Equals(
                 origen,
                 DiagnosticoIARoutes.ModoAprobador,
@@ -213,22 +245,77 @@ namespace CONATRADEC.ViewModels
             Fotografias.Count > 0 &&
             Fotografias.All(item => item.EsEstadoFinal);
 
-        public string TextoRegresar => origen switch
-        {
-            DiagnosticoIARoutes.ModoHistorial => "Historial",
-            DiagnosticoIARoutes.ModoAnalizador =>
-                "Bandeja del analizador",
-            DiagnosticoIARoutes.ModoAprobador =>
-                "Bandeja del aprobador",
-            _ => "Mis inspecciones"
-        };
+        public string TextoRegresar => SoloConsultaAsignacion
+            ? "Volver a la bandeja"
+            : origen switch
+            {
+                DiagnosticoIARoutes.ModoHistorial => "Historial",
+                DiagnosticoIARoutes.ModoAnalizador =>
+                    "Bandeja del analizador",
+                DiagnosticoIARoutes.ModoAprobador =>
+                    "Bandeja del aprobador",
+                _ => "Mis inspecciones"
+            };
 
         public void AplicarParametros(int id, string? origenVista)
         {
             diagnosticoId = id;
             origen = DiagnosticoIARoutes.NormalizarModo(origenVista);
+            soloConsultaAsignacion = false;
+            etapaConsultaAsignacion = string.Empty;
+            OnPropertyChanged(nameof(SoloConsultaAsignacion));
             OnPropertyChanged(nameof(TextoRegresar));
+            OnPropertyChanged(nameof(SubtituloResultado));
             OnPropertyChanged(nameof(PuedeCerrarDefinitivamente));
+            ActualizarComandos();
+        }
+
+        /// <summary>
+        /// Convierte el expediente en una vista de consulta cuando la etapa ya
+        /// pertenece a otro responsable. El backend sigue siendo la autoridad
+        /// final; esta bandera evita presentar acciones de escritura en móvil y
+        /// Windows mientras se conserva el acceso de lectura.
+        /// </summary>
+        public void ConfigurarSoloConsultaAsignacion(
+            bool soloConsulta,
+            string? etapa = null)
+        {
+            string etapaNormalizada = (etapa ?? string.Empty)
+                .Trim()
+                .ToLowerInvariant();
+
+            if (soloConsultaAsignacion == soloConsulta &&
+                etapaConsultaAsignacion == etapaNormalizada)
+            {
+                return;
+            }
+
+            soloConsultaAsignacion = soloConsulta;
+            etapaConsultaAsignacion = soloConsulta
+                ? etapaNormalizada
+                : string.Empty;
+
+            if (soloConsulta)
+            {
+                foreach (InspeccionFotoV2 foto in Fotografias)
+                    foto.Seleccionada = false;
+            }
+
+            OnPropertyChanged(nameof(SoloConsultaAsignacion));
+            OnPropertyChanged(nameof(TextoRegresar));
+            OnPropertyChanged(nameof(SubtituloResultado));
+            OnPropertyChanged(nameof(PuedeAgregarFotografias));
+            OnPropertyChanged(nameof(PuedeCerrarInspeccion));
+            OnPropertyChanged(nameof(MostrarCierreTecnico));
+            OnPropertyChanged(nameof(PuedeProcesarSeleccion));
+            OnPropertyChanged(nameof(PuedeEnviarSeleccion));
+            OnPropertyChanged(nameof(PuedeSolicitarRevision));
+            OnPropertyChanged(nameof(PuedeDescartarSeleccion));
+            OnPropertyChanged(nameof(PuedeAprobarSeleccion));
+            OnPropertyChanged(nameof(PuedePublicarSeleccion));
+            OnPropertyChanged(nameof(PuedeCerrarDefinitivamente));
+            NotificarSeleccion();
+            ActualizarComandos();
         }
 
         public Task InicializarAsync() => ActualizarAsync();
@@ -897,6 +984,9 @@ namespace CONATRADEC.ViewModels
 
         private void SeleccionarTodo()
         {
+            if (SoloConsultaAsignacion)
+                return;
+
             foreach (InspeccionFotoV2 foto in Fotografias)
             {
                 foto.Seleccionada = foto.PuedeSeleccionarse &&

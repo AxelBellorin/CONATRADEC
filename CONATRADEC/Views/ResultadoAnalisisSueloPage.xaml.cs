@@ -1,9 +1,12 @@
-﻿using CONATRADEC.Services;
+﻿using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls.Shapes;
 using System;
 using System.ComponentModel;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace CONATRADEC.Views
 {
@@ -11,6 +14,12 @@ namespace CONATRADEC.Views
     {
         private readonly ResultadoAnalisisSueloEdicionViewModel viewModel =
             new();
+
+        private static readonly Regex RangoReferenciaRegex =
+            new(
+                @"Rango\s+de\s+referencia:\s*(?<min>-?\d+(?:[\.,]\d+)?)\s*-\s*(?<max>-?\d+(?:[\.,]\d+)?)\s*lb/Mz",
+                RegexOptions.IgnoreCase |
+                RegexOptions.CultureInvariant);
 
         private Grid? indicadorProcesamiento;
         private Label? textoProcesamiento;
@@ -40,6 +49,16 @@ namespace CONATRADEC.Views
 
             OcultarIndicadorProcesamiento();
 
+            /*
+             * Compatibilidad con respuestas antiguas del endpoint de cálculo.
+             * Las versiones actuales de la API ya devuelven estos campos, pero
+             * algunos servidores/cálculos históricos pueden traer únicamente
+             * el rango convertido dentro de Observacion. Se reconstruyen sólo
+             * los valores faltantes usando exactamente la relación que utiliza
+             * el backend para el requerimiento anual.
+             */
+            CompletarDatosRequerimientoCompatibilidad();
+
             viewModel.LoadPagePermissions("ResultadoAnalisisSueloPage");
 
             if (!viewModel.CanView)
@@ -64,6 +83,132 @@ namespace CONATRADEC.Views
             EventArgs e)
         {
             VincularBotonContinuar();
+        }
+
+        private void CompletarDatosRequerimientoCompatibilidad()
+        {
+            decimal quintalesOro =
+                viewModel.CantidadQuintalesOro;
+
+            foreach (
+                ElementoResultadoCalculoResponse elemento
+                in viewModel.Elementos)
+            {
+                if ((!elemento.RangoMinimoLbMz.HasValue ||
+                     !elemento.RangoMaximoLbMz.HasValue) &&
+                    TryObtenerRangoDesdeObservacion(
+                        elemento.Observacion,
+                        out decimal rangoMinimo,
+                        out decimal rangoMaximo))
+                {
+                    if (!elemento.RangoMinimoLbMz.HasValue)
+                    {
+                        elemento.RangoMinimoLbMz =
+                            rangoMinimo;
+                    }
+
+                    if (!elemento.RangoMaximoLbMz.HasValue)
+                    {
+                        elemento.RangoMaximoLbMz =
+                            rangoMaximo;
+                    }
+                }
+
+                if (!elemento.ExtraccionPorProduccion.HasValue &&
+                    elemento.RequerimientoCalculado.HasValue &&
+                    elemento.RangoMaximoLbMz.HasValue)
+                {
+                    decimal extraccionProduccion =
+                        elemento.RequerimientoCalculado.Value -
+                        elemento.RangoMaximoLbMz.Value;
+
+                    if (extraccionProduccion >= 0)
+                    {
+                        elemento.ExtraccionPorProduccion =
+                            Math.Round(
+                                extraccionProduccion,
+                                4);
+                    }
+                }
+
+                if (!elemento.ExtraccionPorQQOro.HasValue &&
+                    elemento.ExtraccionPorProduccion.HasValue &&
+                    quintalesOro > 0)
+                {
+                    elemento.ExtraccionPorQQOro =
+                        Math.Round(
+                            elemento.ExtraccionPorProduccion.Value /
+                            quintalesOro,
+                            4);
+                }
+            }
+        }
+
+        private static bool TryObtenerRangoDesdeObservacion(
+            string? observacion,
+            out decimal minimo,
+            out decimal maximo)
+        {
+            minimo = 0;
+            maximo = 0;
+
+            if (string.IsNullOrWhiteSpace(observacion))
+                return false;
+
+            Match coincidencia =
+                RangoReferenciaRegex.Match(observacion);
+
+            if (!coincidencia.Success)
+                return false;
+
+            return
+                TryParseDecimalFlexible(
+                    coincidencia.Groups["min"].Value,
+                    out minimo) &&
+                TryParseDecimalFlexible(
+                    coincidencia.Groups["max"].Value,
+                    out maximo);
+        }
+
+        private static bool TryParseDecimalFlexible(
+            string texto,
+            out decimal valor)
+        {
+            string limpio = texto.Trim();
+
+            /*
+             * Las observaciones históricas pueden haberse generado con punto
+             * o coma decimal. Si sólo existe coma, se normaliza antes de usar
+             * InvariantCulture para impedir que se interprete como separador
+             * de miles (por ejemplo, 346,5 no debe convertirse en 3465).
+             */
+            if (limpio.Contains(',') &&
+                !limpio.Contains('.'))
+            {
+                string normalizado =
+                    limpio.Replace(',', '.');
+
+                return decimal.TryParse(
+                    normalizado,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out valor);
+            }
+
+            if (decimal.TryParse(
+                    limpio,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out valor))
+            {
+                return true;
+            }
+
+            return decimal.TryParse(
+                limpio,
+                NumberStyles.Number,
+                CultureInfo.CurrentCulture,
+                out valor);
         }
 
         private void CrearIndicadorProcesamiento()

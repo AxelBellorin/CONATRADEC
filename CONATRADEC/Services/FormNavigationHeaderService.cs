@@ -1,4 +1,5 @@
-﻿using Microsoft.Maui.ApplicationModel;
+﻿using Microsoft.Maui;
+using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices;
 using System;
@@ -13,11 +14,12 @@ namespace CONATRADEC.Services
     /// Administra el encabezado superior agregado dinámicamente a las páginas.
     ///
     /// Funciones:
-    /// 1. Conserva la flecha de regreso utilizada por los formularios antiguos.
+    /// 1. Mantiene deshabilitada la flecha automática de regreso; la navegación
+    ///    queda a cargo de los botones propios de cada pantalla.
     /// 2. Muestra "Abandonar edición" durante todo el flujo de edición de un
     ///    análisis de suelo.
-    /// 3. Retira el encabezado cuando la página ya no necesita ninguno de los
-    ///    controles, evitando que una instancia reutilizada conserve botones.
+    /// 3. Retira el encabezado cuando la página ya no necesita controles,
+    ///    evitando que una instancia reutilizada conserve botones.
     /// </summary>
     public static class FormNavigationHeaderService
     {
@@ -62,6 +64,15 @@ namespace CONATRADEC.Services
                         return;
                     }
 
+                    /*
+                     * Elimina únicamente el símbolo visual de regreso. Si el
+                     * botón además contiene texto (por ejemplo "← Regresar"),
+                     * conserva el botón, el comando y muestra "Regresar".
+                     * Los botones cuyo único contenido era la flecha se ocultan.
+                     */
+                    QuitarFlechasVisuales(
+                        pagina);
+
                     AsegurarEnPagina(pagina);
                 });
         }
@@ -69,9 +80,12 @@ namespace CONATRADEC.Services
         private static void AsegurarEnPagina(
             ContentPage pagina)
         {
-            bool requiereBotonRegresar =
-                EsFormulario(pagina) &&
-                !UsaNavegacionPropia(pagina);
+            /*
+             * La flecha dinámica usada anteriormente por formularios queda
+             * deshabilitada de forma global. Las páginas ya tienen navegación
+             * propia y Shell también oculta su botón nativo de retroceso.
+             */
+            bool requiereBotonRegresar = false;
 
             bool requiereBotonAbandonar =
                 AnalisisEdicionService
@@ -288,7 +302,66 @@ namespace CONATRADEC.Services
                 return;
 
             pagina.Loaded -= Pagina_Loaded;
+
+            QuitarFlechasVisuales(
+                pagina);
+
             AsegurarEnPagina(pagina);
+        }
+
+        /// <summary>
+        /// Retira el símbolo ← de los botones visibles sin cambiar sus comandos.
+        /// Se hace en tiempo de ejecución para cubrir también encabezados
+        /// reutilizables y páginas antiguas que aún conservan ese texto en XAML.
+        /// </summary>
+        private static void QuitarFlechasVisuales(
+            IVisualTreeElement elemento)
+        {
+            if (elemento is Button boton)
+            {
+                string original =
+                    boton.Text ??
+                    string.Empty;
+
+                string limpio =
+                    QuitarFlechaInicial(original);
+
+                if (!string.Equals(
+                        original,
+                        limpio,
+                        StringComparison.Ordinal))
+                {
+                    boton.Text = limpio;
+
+                    if (string.IsNullOrWhiteSpace(limpio))
+                        boton.IsVisible = false;
+                }
+            }
+
+            foreach (
+                IVisualTreeElement hijo
+                in elemento.GetVisualChildren())
+            {
+                QuitarFlechasVisuales(hijo);
+            }
+        }
+
+        private static string QuitarFlechaInicial(
+            string texto)
+        {
+            string resultado =
+                texto.TrimStart();
+
+            while (resultado.StartsWith(
+                       "←",
+                       StringComparison.Ordinal))
+            {
+                resultado =
+                    resultado[1..]
+                        .TrimStart();
+            }
+
+            return resultado;
         }
 
         private static Button CrearBotonRegresar(

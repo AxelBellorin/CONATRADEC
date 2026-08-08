@@ -66,7 +66,7 @@
                     <controls:InspectionHeader
                         Title="{Binding Source={x:Reference PaginaRaiz}, Path=TituloVista}"
                         Subtitle="{Binding Source={x:Reference PaginaRaiz}, Path=SubtituloVista}"
-                        BackText="← Volver"
+                        BackText="Volver"
                         BackCommand="{Binding RegresarSolicitudCommand}"
                         IsPrimaryVisible="False"
                         IsVisible="{Binding VisorCerrado}" />
@@ -317,7 +317,6 @@
                 SelectionMode="None"
                 RemainingItemsThreshold="3"
                 RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}"
-                MaximumWidthRequest="1150"
                 HorizontalOptions="Fill"
                 Margin="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
                 IsVisible="{Binding EsModoListado}">
@@ -327,11 +326,14 @@
                 </CollectionView.ItemsLayout>
 
                 <CollectionView.Header>
-                    <VerticalStackLayout Spacing="8" Padding="0,0,0,12">
+                    <VerticalStackLayout
+                        Spacing="8"
+                        Padding="0,0,0,12"
+                        HorizontalOptions="Fill">
                         <controls:InspectionHeader
                             Title="{Binding Source={x:Reference PaginaRaiz}, Path=TituloVista}"
                             Subtitle="{Binding Source={x:Reference PaginaRaiz}, Path=SubtituloVista}"
-                            BackText="← Volver"
+                            BackText="Volver"
                             BackCommand="{Binding RegresarSolicitudCommand}"
                             IsPrimaryVisible="False"
                             IsVisible="{Binding VisorCerrado}" />
@@ -551,7 +553,12 @@
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:InspeccionFitosanitariaBandejaItemV2">
-                        <Border Padding="{OnIdiom Phone=12, Default=15}" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14">
+                        <Border
+                            Padding="{OnIdiom Phone=12, Default=15}"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 14"
+                            HorizontalOptions="Fill">
                             <VerticalStackLayout Spacing="12">
                                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{OnIdiom Phone=10, Default=14}">
                                     <Border

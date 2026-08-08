@@ -6,9 +6,12 @@ using System.Linq;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Desactiva la navegación visual nativa de Shell en todo el módulo de
-    /// inspección fitosanitaria. Las páginas conservan únicamente los botones
-    /// propios definidos en sus encabezados y comandos de cada flujo.
+    /// Desactiva la navegación visual nativa de retroceso de Shell en toda
+    /// la aplicación. Las páginas conservan únicamente sus botones y comandos
+    /// propios de navegación.
+    ///
+    /// El tratamiento adicional del encabezado heredado se mantiene limitado
+    /// al módulo de inspección fitosanitaria, igual que antes.
     /// </summary>
     public sealed class InspeccionNavegacionBehavior : Behavior<Shell>
     {
@@ -43,9 +46,9 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Se ejecuta en dos ciclos del hilo principal. El segundo ciclo ocurre
-        /// después de los servicios heredados que agregan encabezados a algunos
-        /// formularios, permitiendo retirar cualquier flecha duplicada.
+        /// Se ejecuta en dos ciclos del hilo principal para aplicarse después
+        /// de que Shell y los servicios de encabezado terminen de preparar la
+        /// página visible.
         /// </summary>
         private void ProgramarAplicacion()
         {
@@ -56,19 +59,17 @@ namespace CONATRADEC.Services
 
         private void AplicarEnPaginaActual()
         {
-            /*
-             * Shell.CurrentPage devuelve Page. Antes de utilizar propiedades
-             * exclusivas de ContentPage se comprueba explícitamente el tipo.
-             */
-            if (shell?.CurrentPage is not ContentPage pagina ||
-                !EsPaginaInspeccion(pagina))
-            {
+            if (shell?.CurrentPage is not ContentPage pagina)
                 return;
-            }
 
-            Shell.SetNavBarIsVisible(pagina, false);
-            NavigationPage.SetHasNavigationBar(pagina, false);
-            NavigationPage.SetHasBackButton(pagina, false);
+            /*
+             * Regla global: CONATRADEC no utiliza la flecha nativa de Shell o
+             * NavigationPage. La navegación se realiza con los controles que
+             * ya existen dentro de cada pantalla.
+             */
+            NavigationPage.SetHasBackButton(
+                pagina,
+                false);
 
             BackButtonBehavior comportamiento =
                 Shell.GetBackButtonBehavior(pagina) ??
@@ -81,6 +82,21 @@ namespace CONATRADEC.Services
             Shell.SetBackButtonBehavior(
                 pagina,
                 comportamiento);
+
+            if (!EsPaginaInspeccion(pagina))
+                return;
+
+            /*
+             * El módulo fitosanitario ya trabajaba sin barra de navegación
+             * nativa. Se conserva ese comportamiento específico.
+             */
+            Shell.SetNavBarIsVisible(
+                pagina,
+                false);
+
+            NavigationPage.SetHasNavigationBar(
+                pagina,
+                false);
 
             QuitarFlechaHeredadaSiExiste(pagina);
         }
@@ -103,9 +119,9 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Algunos formularios antiguos reciben una flecha dinámica mediante
-        /// FormNavigationHeaderService. Si una pantalla del módulo ya posee su
-        /// encabezado propio, se restaura su contenido original.
+        /// Algunos formularios antiguos pueden recibir un encabezado dinámico.
+        /// Si una pantalla del módulo ya posee su encabezado propio, se restaura
+        /// su contenido original.
         /// </summary>
         private static void QuitarFlechaHeredadaSiExiste(
             ContentPage pagina)

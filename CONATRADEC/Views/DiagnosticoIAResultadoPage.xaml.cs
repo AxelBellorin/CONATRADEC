@@ -1,6 +1,8 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
+using Microsoft.Maui.Devices;
+using System.Linq;
 
 namespace CONATRADEC.Views
 {
@@ -118,35 +120,63 @@ namespace CONATRADEC.Views
 
             var titulo = new Label
             {
-                Text = "Usuario que registró la inspección",
-                FontSize = 11,
-                TextColor = Color.FromArgb("#5E6B67"),
+                Text = "Registrado por",
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#6B7773"),
                 VerticalTextAlignment = TextAlignment.Center
             };
 
-            var contenido = new VerticalStackLayout
+            View contenido;
+
+            if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
             {
-                Spacing = 1,
-                Children =
+                contenido = new VerticalStackLayout
                 {
-                    titulo,
-                    etiqueta
-                }
-            };
+                    Spacing = 2,
+                    Children =
+                    {
+                        titulo,
+                        etiqueta
+                    }
+                };
+            }
+            else
+            {
+                var fila = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition
+                        {
+                            Width = GridLength.Auto
+                        },
+                        new ColumnDefinition
+                        {
+                            Width = GridLength.Star
+                        }
+                    },
+                    ColumnSpacing = 12
+                };
+
+                fila.Add(titulo, 0, 0);
+                fila.Add(etiqueta, 1, 0);
+                contenido = fila;
+            }
 
             var banner = new Border
             {
                 IsVisible = false,
-                Padding = new Thickness(14, 9),
-                Margin = new Thickness(12, 8, 12, 0),
+                Padding = new Thickness(11, 7),
+                Margin = new Thickness(0, 6, 0, 0),
                 BackgroundColor = Color.FromArgb("#EAF3EF"),
                 Stroke = Color.FromArgb("#C8DED6"),
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle
                 {
-                    CornerRadius = 12
+                    CornerRadius = 10
                 },
-                MaximumWidthRequest = 1250,
-                HorizontalOptions = LayoutOptions.Fill,
+                MaximumWidthRequest = 520,
+                HorizontalOptions = LayoutOptions.Start,
                 Content = contenido
             };
 
@@ -155,26 +185,37 @@ namespace CONATRADEC.Views
 
         private void IntegrarBannerTecnicoResponsable()
         {
-            View? contenidoOriginal = Content;
-            if (contenidoOriginal == null)
+            /*
+             * El dato del usuario pertenece al encabezado del expediente.
+             * Antes se insertaba por encima de todo el ContentView, lo que en
+             * Windows creaba una franja independiente incluso sobre el menú
+             * lateral. Ahora se integra debajo del título/subtítulo y comparte
+             * exactamente el mismo ancho y alineación del encabezado.
+             */
+            if (Content is not ContentView contentView ||
+                contentView.Content is not Grid contenedorPrincipal)
+            {
+                return;
+            }
+
+            Grid? encabezado =
+                contenedorPrincipal.Children
+                    .OfType<Grid>()
+                    .FirstOrDefault(x => Grid.GetRow(x) == 0);
+
+            if (encabezado == null)
                 return;
 
-            Content = null;
+            VerticalStackLayout? bloqueTitulo =
+                encabezado.Children
+                    .OfType<VerticalStackLayout>()
+                    .FirstOrDefault();
 
-            var contenedor = new Grid
-            {
-                RowDefinitions =
-                {
-                    new RowDefinition { Height = GridLength.Auto },
-                    new RowDefinition { Height = GridLength.Star }
-                }
-            };
+            if (bloqueTitulo == null)
+                return;
 
-            Grid.SetRow(tecnicoResponsableBanner, 0);
-            Grid.SetRow(contenidoOriginal, 1);
-            contenedor.Children.Add(tecnicoResponsableBanner);
-            contenedor.Children.Add(contenidoOriginal);
-            Content = contenedor;
+            bloqueTitulo.Children.Add(
+                tecnicoResponsableBanner);
         }
 
         private async Task CargarTecnicoResponsableAsync()

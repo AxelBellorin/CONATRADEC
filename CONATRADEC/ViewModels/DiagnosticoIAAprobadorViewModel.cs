@@ -560,10 +560,14 @@ namespace CONATRADEC.ViewModels
             if (item == null || IsBusy || CargandoMas || cambiandoVista)
                 return;
 
+            string origen = MostrandoRevisadas
+                ? DiagnosticoIARoutes.ModoAprobadorRevisadas
+                : DiagnosticoIARoutes.ModoAprobador;
+
             await GoToAsyncParameters(
                 DiagnosticoIARoutes.CrearRutaResultado(
                     item.InspeccionId,
-                    DiagnosticoIARoutes.ModoAprobador));
+                    origen));
         }
 
         private bool ValidarRangoFechas()

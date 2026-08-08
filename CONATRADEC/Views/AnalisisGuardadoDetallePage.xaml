@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.AnalisisGuardadoDetallePage"
     x:Name="DetallePageRoot"
@@ -245,13 +245,22 @@
                                                             FontSize="10.5"
                                                             TextColor="{StaticResource color_Cafe}" />
                                                     </VerticalStackLayout>
-                                                    <Label
+                                                    <VerticalStackLayout
                                                         Grid.Column="1"
-                                                        Text="{Binding RequerimientoCalculado, StringFormat='{0:N2} lb/mz'}"
-                                                        FontFamily="MontserratBold"
-                                                        FontSize="13"
-                                                        TextColor="{StaticResource color_Cafe}"
-                                                        VerticalOptions="Center" />
+                                                        Spacing="1"
+                                                        HorizontalOptions="End"
+                                                        VerticalOptions="Center">
+                                                        <Label
+                                                            Text="Requerimiento"
+                                                            Style="{StaticResource ModernCaption}"
+                                                            HorizontalTextAlignment="End" />
+                                                        <Label
+                                                            Text="{Binding RequerimientoCalculado, StringFormat='{0:N2} lb/Mz'}"
+                                                            FontFamily="MontserratBold"
+                                                            FontSize="13"
+                                                            TextColor="{StaticResource color_Cafe}"
+                                                            HorizontalTextAlignment="End" />
+                                                    </VerticalStackLayout>
                                                 </Grid>
                                                 <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                                                     <VerticalStackLayout>
@@ -259,8 +268,8 @@
                                                         <Label Text="{Binding CantidadIngresada, StringFormat='{0:N4}'}" Style="{StaticResource HistoryValueLabel}" />
                                                     </VerticalStackLayout>
                                                     <VerticalStackLayout Grid.Column="1">
-                                                        <Label Text="Cantidad convertida" Style="{StaticResource ModernCaption}" />
-                                                        <Label Text="{Binding CantidadConvertidaLbMz, StringFormat='{0:N2} lb/mz'}" Style="{StaticResource HistoryValueLabel}" />
+                                                        <Label Text="Cantidad en el suelo" Style="{StaticResource ModernCaption}" />
+                                                        <Label Text="{Binding CantidadConvertidaLbMz, StringFormat='{0:N2} lb/Mz'}" Style="{StaticResource HistoryValueLabel}" />
                                                     </VerticalStackLayout>
                                                 </Grid>
                                                 <Label

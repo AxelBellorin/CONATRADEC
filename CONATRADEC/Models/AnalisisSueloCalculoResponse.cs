@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
@@ -16,6 +18,10 @@ namespace CONATRADEC.Models
 
     public class AnalisisSueloCalculoDataResponse
     {
+        private decimal? cantidadQuintalesOro;
+
+        private List<ElementoResultadoCalculoResponse> elementos = new();
+
         public int? TerrenoId { get; set; }
 
         public int? TipoCultivoId { get; set; }
@@ -26,7 +32,15 @@ namespace CONATRADEC.Models
 
         public string? TipoAnalisisSuelo { get; set; }
 
-        public decimal? CantidadQuintalesOro { get; set; }
+        public decimal? CantidadQuintalesOro
+        {
+            get => cantidadQuintalesOro;
+            set
+            {
+                cantidadQuintalesOro = value;
+                ActualizarContextoElementos();
+            }
+        }
 
         public decimal? TamanoFinca { get; set; }
 
@@ -34,7 +48,15 @@ namespace CONATRADEC.Models
 
         public decimal? AcidezTotal { get; set; }
 
-        public List<ElementoResultadoCalculoResponse> Elementos { get; set; } = new();
+        public List<ElementoResultadoCalculoResponse> Elementos
+        {
+            get => elementos;
+            set
+            {
+                elementos = value ?? new List<ElementoResultadoCalculoResponse>();
+                ActualizarContextoElementos();
+            }
+        }
 
         public List<object> FuentesFertilizantes { get; set; } = new();
 
@@ -45,6 +67,14 @@ namespace CONATRADEC.Models
         public string? RecomendacionGeneral { get; set; }
 
         public List<string> Observaciones { get; set; } = new();
+
+        private void ActualizarContextoElementos()
+        {
+            foreach (ElementoResultadoCalculoResponse elemento in elementos)
+            {
+                elemento.CantidadQuintalesOroContexto = cantidadQuintalesOro;
+            }
+        }
     }
 
     /// <summary>
@@ -53,12 +83,23 @@ namespace CONATRADEC.Models
     /// IncluirEnCalculosComplementarios controla únicamente si el elemento
     /// participa en Balance de fórmula y Fertilización mixta. El elemento
     /// siempre permanece dentro del requerimiento anual y del historial.
+    ///
+    /// También conserva compatibilidad con respuestas antiguas de la API que
+    /// incluían el rango convertido únicamente dentro de Observacion.
     /// </summary>
     public class ElementoResultadoCalculoResponse : INotifyPropertyChanged
     {
         private string? simboloElementoQuimico;
         private string? nombreElementoQuimico;
         private string? clasificacion;
+        private string? observacion;
+
+        private decimal? extraccionPorQQOro;
+        private decimal? extraccionPorProduccion;
+        private decimal? rangoMinimoLbMz;
+        private decimal? rangoMaximoLbMz;
+        private decimal? requerimientoCalculado;
+        private decimal? cantidadQuintalesOroContexto;
 
         private bool incluirEnCalculosComplementarios = true;
         private bool inclusionDefinidaPorRespuesta;
@@ -91,19 +132,114 @@ namespace CONATRADEC.Models
 
         public decimal? CantidadConvertidaLbMz { get; set; }
 
-        public decimal? ExtraccionPorQQOro { get; set; }
+        public decimal? ExtraccionPorQQOro
+        {
+            get
+            {
+                if (extraccionPorQQOro.HasValue)
+                    return extraccionPorQQOro;
 
-        public decimal? ExtraccionPorProduccion { get; set; }
+                decimal? produccion = ExtraccionPorProduccion;
+
+                if (!produccion.HasValue ||
+                    !cantidadQuintalesOroContexto.HasValue ||
+                    cantidadQuintalesOroContexto.Value <= 0)
+                {
+                    return null;
+                }
+
+                return Math.Round(
+                    produccion.Value /
+                    cantidadQuintalesOroContexto.Value,
+                    4);
+            }
+            set
+            {
+                extraccionPorQQOro = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public decimal? ExtraccionPorProduccion
+        {
+            get
+            {
+                if (extraccionPorProduccion.HasValue)
+                    return extraccionPorProduccion;
+
+                decimal? requerimiento = RequerimientoCalculado;
+                decimal? rangoMaximo = RangoMaximoLbMz;
+
+                if (!requerimiento.HasValue ||
+                    !rangoMaximo.HasValue)
+                {
+                    return null;
+                }
+
+                decimal valor =
+                    requerimiento.Value - rangoMaximo.Value;
+
+                return Math.Round(
+                    Math.Max(0m, valor),
+                    4);
+            }
+            set
+            {
+                extraccionPorProduccion = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ExtraccionPorQQOro));
+            }
+        }
 
         public decimal? RangoMinimo { get; set; }
 
         public decimal? RangoMaximo { get; set; }
 
-        public decimal? RangoMinimoLbMz { get; set; }
+        public decimal? RangoMinimoLbMz
+        {
+            get
+            {
+                if (rangoMinimoLbMz.HasValue)
+                    return rangoMinimoLbMz;
 
-        public decimal? RangoMaximoLbMz { get; set; }
+                return ObtenerRangoDesdeObservacion().Minimo;
+            }
+            set
+            {
+                rangoMinimoLbMz = value;
+                OnPropertyChanged();
+            }
+        }
 
-        public decimal? RequerimientoCalculado { get; set; }
+        public decimal? RangoMaximoLbMz
+        {
+            get
+            {
+                if (rangoMaximoLbMz.HasValue)
+                    return rangoMaximoLbMz;
+
+                return ObtenerRangoDesdeObservacion().Maximo;
+            }
+            set
+            {
+                rangoMaximoLbMz = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ExtraccionPorProduccion));
+                OnPropertyChanged(nameof(ExtraccionPorQQOro));
+            }
+        }
+
+        public decimal? RequerimientoCalculado
+        {
+            get => requerimientoCalculado;
+            set
+            {
+                requerimientoCalculado = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ExtraccionPorProduccion));
+                OnPropertyChanged(nameof(ExtraccionPorQQOro));
+            }
+        }
 
         public string? UnidadBase { get; set; }
 
@@ -137,7 +273,31 @@ namespace CONATRADEC.Models
             }
         }
 
-        public string? Observacion { get; set; }
+        public string? Observacion
+        {
+            get => observacion;
+            set
+            {
+                observacion = value;
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(RangoMinimoLbMz));
+                OnPropertyChanged(nameof(RangoMaximoLbMz));
+                OnPropertyChanged(nameof(ExtraccionPorProduccion));
+                OnPropertyChanged(nameof(ExtraccionPorQQOro));
+            }
+        }
+
+        [JsonIgnore]
+        public decimal? CantidadQuintalesOroContexto
+        {
+            get => cantidadQuintalesOroContexto;
+            set
+            {
+                cantidadQuintalesOroContexto = value;
+                OnPropertyChanged(nameof(ExtraccionPorQQOro));
+            }
+        }
 
         [JsonPropertyName("incluirCalculosComplementarios")]
         public bool IncluirEnCalculosComplementarios
@@ -159,13 +319,97 @@ namespace CONATRADEC.Models
         public bool EsExcesivo =>
             EsClasificacionExcesiva(Clasificacion);
 
+        private (decimal? Minimo, decimal? Maximo)
+            ObtenerRangoDesdeObservacion()
+        {
+            if (string.IsNullOrWhiteSpace(Observacion))
+                return (null, null);
+
+            const string marcadorInicio =
+                "Rango de referencia:";
+
+            int inicio =
+                Observacion.IndexOf(
+                    marcadorInicio,
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (inicio < 0)
+                return (null, null);
+
+            inicio += marcadorInicio.Length;
+
+            int fin =
+                Observacion.IndexOf(
+                    "lb/Mz",
+                    inicio,
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (fin <= inicio)
+                return (null, null);
+
+            string textoRango =
+                Observacion
+                    .Substring(inicio, fin - inicio)
+                    .Trim()
+                    .TrimEnd('.');
+
+            string[] partes =
+                textoRango.Split(
+                    '-',
+                    2,
+                    StringSplitOptions.TrimEntries |
+                    StringSplitOptions.RemoveEmptyEntries);
+
+            if (partes.Length != 2 ||
+                !TryParseDecimalFlexible(
+                    partes[0],
+                    out decimal minimo) ||
+                !TryParseDecimalFlexible(
+                    partes[1],
+                    out decimal maximo))
+            {
+                return (null, null);
+            }
+
+            return (minimo, maximo);
+        }
+
+        private static bool TryParseDecimalFlexible(
+            string texto,
+            out decimal valor)
+        {
+            if (decimal.TryParse(
+                    texto,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out valor))
+            {
+                return true;
+            }
+
+            if (decimal.TryParse(
+                    texto,
+                    NumberStyles.Number,
+                    CultureInfo.CurrentCulture,
+                    out valor))
+            {
+                return true;
+            }
+
+            return decimal.TryParse(
+                texto.Replace(',', '.'),
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out valor);
+        }
+
         private static bool EsClasificacionExcesiva(
             string? valor)
         {
             return string.Equals(
                 valor?.Trim(),
                 "EXCESIVO",
-                System.StringComparison.OrdinalIgnoreCase);
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static string? LimpiarTexto(string? valor)

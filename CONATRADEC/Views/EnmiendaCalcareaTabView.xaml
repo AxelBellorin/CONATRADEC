@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentView
     x:Class="CONATRADEC.Views.EnmiendaCalcareaTabView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -416,7 +416,7 @@
                             Grid.Column="1">
 
                             <Label
-                                Text="Ton/Ha"
+                                Text="Equivalente técnico ton/ha"
                                 FontSize="12"
                                 TextColor="#7C2D12" />
 
@@ -431,12 +431,12 @@
                             Grid.Column="0">
 
                             <Label
-                                Text="Lb/Mz"
+                                Text="Resultado final lb/Mz"
                                 FontSize="12"
                                 TextColor="#7C2D12" />
 
                             <Label
-                                Text="{Binding ResultadoEnmienda.NecesidadEncaladoLbMz, StringFormat='{0:N2} lb/mz'}"
+                                Text="{Binding ResultadoEnmienda.NecesidadEncaladoLbMz, StringFormat='{0:N2} lb/Mz'}"
                                 FontSize="15"
                                 FontAttributes="Bold" />
                         </VerticalStackLayout>
@@ -451,7 +451,7 @@
                                 TextColor="#7C2D12" />
 
                             <Label
-                                Text="{Binding ResultadoEnmienda.NecesidadEncaladoOzMz, StringFormat='{0:N2} oz/mz'}"
+                                Text="{Binding ResultadoEnmienda.NecesidadEncaladoOzMz, StringFormat='{0:N2} oz/Mz'}"
                                 FontSize="15"
                                 FontAttributes="Bold" />
                         </VerticalStackLayout>
@@ -474,7 +474,7 @@
                             TextColor="{StaticResource color_Verde}" />
 
                         <Label
-                            Text="{Binding InterpretacionResultado}"
+                            Text="{Binding ResultadoEnmienda.InterpretacionResultadoLbMz}"
                             FontSize="13"
                             TextColor="{StaticResource color_GrisOscuro}"
                             LineBreakMode="WordWrap" />

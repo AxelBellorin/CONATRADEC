@@ -18,7 +18,7 @@
             Margin="{OnIdiom Phone='14,12,14,0', Tablet='20,18,20,0', Desktop='26,20,26,0'}"
             Style="{StaticResource ModernHeroCard}"
             MaximumWidthRequest="1180"
-            HorizontalOptions="Center">
+            HorizontalOptions="Fill">
 
             <Grid
                 ColumnDefinitions="Auto,*"
@@ -57,19 +57,30 @@
 
         <ScrollView
             Grid.Row="1"
+            HorizontalOptions="Fill"
             HorizontalScrollBarVisibility="Never">
 
             <VerticalStackLayout
                 Padding="{OnIdiom Phone='14,12,14,18', Tablet='20,14,20,22', Desktop='26,16,26,24'}"
                 Spacing="14"
                 MaximumWidthRequest="1180"
-                HorizontalOptions="Center">
+                HorizontalOptions="Fill">
 
                 <!-- Resumen del análisis. Se mantiene ligero: solo controles de texto. -->
-                <Border Style="{StaticResource AnalysisPanel}">
-                    <VerticalStackLayout Spacing="14">
+                <Border
+                    Style="{StaticResource AnalysisPanel}"
+                    HorizontalOptions="Fill">
+                    <!--
+                        Grid raíz: mantiene un ancho finito en WinUI. Así los
+                        paneles internos con columnas * usan todo el espacio
+                        del card y nunca se dibujan fuera de su fondo.
+                    -->
+                    <Grid
+                        RowDefinitions="Auto,Auto,Auto"
+                        RowSpacing="14">
 
                         <Grid
+                            Grid.Row="0"
                             ColumnDefinitions="*,Auto"
                             ColumnSpacing="10">
 
@@ -96,7 +107,9 @@
                             </Border>
                         </Grid>
 
-                        <Border Style="{StaticResource AnalysisSoftPanel}">
+                        <Border
+                            Grid.Row="1"
+                            Style="{StaticResource AnalysisSoftPanel}">
                             <Grid
                                 ColumnDefinitions="Auto,*"
                                 ColumnSpacing="11">
@@ -135,6 +148,7 @@
                         </Border>
 
                         <Grid
+                            Grid.Row="2"
                             ColumnDefinitions="*,*"
                             RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                             ColumnSpacing="10"
@@ -203,7 +217,7 @@
                                 </Grid>
                             </Border>
                         </Grid>
-                    </VerticalStackLayout>
+                    </Grid>
                 </Border>
 
                 <!--
@@ -211,7 +225,9 @@
                     Se conserva esta optimización para no construir las tres
                     interfaces simultáneamente, especialmente en Android.
                 -->
-                <Grid x:Name="ContenidoTabActual" />
+                <Grid
+                    x:Name="ContenidoTabActual"
+                    HorizontalOptions="Fill" />
 
                 <Border
                     IsVisible="{Binding TieneMensaje}"

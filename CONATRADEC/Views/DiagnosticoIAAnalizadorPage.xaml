@@ -26,9 +26,9 @@
                 continúa fija mediante FooterTemplate.
             -->
             <CollectionView
+                x:Name="AnalizadorListado"
                 ItemsSource="{Binding Solicitudes}"
                 SelectionMode="None"
-                MaximumWidthRequest="1180"
                 HorizontalOptions="Fill"
                 Margin="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
@@ -37,11 +37,15 @@
                 </CollectionView.ItemsLayout>
 
                 <CollectionView.Header>
-                    <VerticalStackLayout Spacing="10" Padding="0,0,0,12">
+                    <VerticalStackLayout
+                        Spacing="10"
+                        Padding="0,0,0,12"
+                        WidthRequest="{Binding Source={x:Reference AnalizadorListado}, Path=Width}"
+                        HorizontalOptions="Fill">
                         <controls:InspectionHeader
                             Title="Bandeja del analizador"
                             Subtitle="{Binding SubtituloVista}"
-                            BackText="← Volver"
+                            BackText="Volver"
                             BackCommand="{Binding RegresarCommand}"
                             IsPrimaryVisible="False" />
 
@@ -197,7 +201,8 @@
                             Padding="{OnIdiom Phone=12, Default=15}"
                             BackgroundColor="White"
                             Stroke="#D7E2DE"
-                            StrokeShape="RoundRectangle 15">
+                            StrokeShape="RoundRectangle 15"
+                            HorizontalOptions="Fill">
                             <VerticalStackLayout Spacing="12">
                                 <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Start" JustifyContent="SpaceBetween">
                                     <Border

@@ -18,9 +18,9 @@
                 mayor parte de la pantalla disponible para las fichas.
             -->
             <CollectionView
+                x:Name="AprobadorListado"
                 ItemsSource="{Binding Solicitudes}"
                 SelectionMode="None"
-                MaximumWidthRequest="1180"
                 HorizontalOptions="Fill"
                 Margin="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
@@ -29,11 +29,15 @@
                 </CollectionView.ItemsLayout>
 
                 <CollectionView.Header>
-                    <VerticalStackLayout Spacing="10" Padding="0,0,0,12">
+                    <VerticalStackLayout
+                        Spacing="10"
+                        Padding="0,0,0,12"
+                        WidthRequest="{Binding Source={x:Reference AprobadorListado}, Path=Width}"
+                        HorizontalOptions="Fill">
                         <controls:InspectionHeader
                             Title="Bandeja del aprobador"
                             Subtitle="{Binding SubtituloVista}"
-                            BackText="← Volver"
+                            BackText="Volver"
                             BackCommand="{Binding RegresarCommand}"
                             IsPrimaryVisible="False" />
 
@@ -248,7 +252,12 @@
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:InspeccionFitosanitariaBandejaItemV2">
-                        <Border Padding="{OnIdiom Phone=12, Default=14}" BackgroundColor="White" Stroke="#D9E3DF" StrokeShape="RoundRectangle 14">
+                        <Border
+                            Padding="{OnIdiom Phone=12, Default=14}"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 14"
+                            HorizontalOptions="Fill">
                             <Grid
                                 RowDefinitions="Auto,Auto"
                                 ColumnDefinitions="{OnIdiom Phone='82,*', Default='86,*,Auto'}"

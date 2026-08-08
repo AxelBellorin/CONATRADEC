@@ -37,7 +37,7 @@
                     <Border Style="{StaticResource ModernHeroCard}">
                         <VerticalStackLayout Spacing="10">
                             <Button
-                                Text="← Regresar"
+                                Text="Regresar"
                                 Command="{Binding RegresarCommand}"
                                 Style="{StaticResource ModernLinkButton}"
                                 HorizontalOptions="Start"
