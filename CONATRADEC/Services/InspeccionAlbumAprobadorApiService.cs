@@ -45,6 +45,20 @@ namespace CONATRADEC.Services
             return EnviarAsync(request, cancellationToken);
         }
 
+        /// <summary>
+        /// Retira la copia activa del Álbum Botánico sin revocar la
+        /// autorización concedida por el aprobador.
+        /// </summary>
+        public Task<EstadoAlbumAprobador> RetirarPublicacionAsync(
+            int inspeccionId,
+            int fotografiaId,
+            CancellationToken cancellationToken = default) =>
+            EnviarAsync(
+                new HttpRequestMessage(
+                    HttpMethod.Patch,
+                    $"api/publicaciones-album-fitosanitarias/{inspeccionId}/fotografias/{fotografiaId}/publicacion/retirar"),
+                cancellationToken);
+
         private async Task<EstadoAlbumAprobador> EnviarAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)

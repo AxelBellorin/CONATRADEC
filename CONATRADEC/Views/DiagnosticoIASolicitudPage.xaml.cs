@@ -44,6 +44,8 @@ namespace CONATRADEC.Views
         private bool cambiandoVista;
         private bool selectorVistaAbierto;
         private Button? selectorVistaButton;
+        private bool selectorTecnicoAbierto;
+        private Button? selectorTecnicoButton;
 
         public DiagnosticoIASolicitudPage()
         {
@@ -59,6 +61,7 @@ namespace CONATRADEC.Views
 
             BindingContext = viewModel;
             PrepararSelectorVistaPersonalizado();
+            PrepararSelectorTecnicoPersonalizado();
 
             VistasInspecciones.Add(
                 new VistaMisInspeccionesItem(
@@ -182,6 +185,121 @@ namespace CONATRADEC.Views
             {
                 selectorVistaAbierto = false;
             }
+        }
+
+        /// <summary>
+        /// Historial utiliza el mismo selector estable que las bandejas del
+        /// analizador y aprobador. El Picker se conserva únicamente como estado
+        /// interno para no alterar la lógica existente de filtros.
+        /// </summary>
+        private void PrepararSelectorTecnicoPersonalizado()
+        {
+            if (TecnicoFiltroPicker?.Parent is not Layout contenedor ||
+                selectorTecnicoButton != null)
+            {
+                return;
+            }
+
+            TecnicoFiltroPicker.IsVisible = false;
+
+            selectorTecnicoButton = new Button
+            {
+                Text = "Todos los técnicos",
+                HeightRequest = 42,
+                Padding = new Thickness(12, 7),
+                HorizontalOptions = LayoutOptions.Fill,
+                BackgroundColor = Colors.White,
+                BorderColor = Color.FromArgb("#C9D4D0"),
+                BorderWidth = 1,
+                TextColor = Color.FromArgb("#263A35"),
+                CornerRadius = 8
+            };
+            selectorTecnicoButton.Clicked +=
+                OnSelectorTecnicoPersonalizadoClicked;
+            contenedor.Children.Add(selectorTecnicoButton);
+        }
+
+        private async void OnSelectorTecnicoPersonalizadoClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (selectorTecnicoAbierto || cargandoTecnicos ||
+                viewModel.IsBusy || !MostrarFiltroTecnico ||
+                TecnicosFiltro.Count == 0)
+            {
+                return;
+            }
+
+            selectorTecnicoAbierto = true;
+            try
+            {
+                string? opcion = await DisplayActionSheet(
+                    "Técnico responsable",
+                    "Cancelar",
+                    null,
+                    TecnicosFiltro.Select(item => item.TextoMostrar).ToArray());
+
+                if (string.IsNullOrWhiteSpace(opcion) ||
+                    string.Equals(opcion, "Cancelar", StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                TecnicoInspeccionFiltroItem? seleccionado =
+                    TecnicosFiltro.FirstOrDefault(item =>
+                        string.Equals(
+                            item.TextoMostrar,
+                            opcion,
+                            StringComparison.Ordinal));
+
+                if (seleccionado == null)
+                    return;
+
+                cargandoTecnicos = true;
+                try
+                {
+                    TecnicoFiltroPicker.SelectedItem = seleccionado;
+                    TecnicoFiltroPicker.SelectedIndex =
+                        TecnicosFiltro.IndexOf(seleccionado);
+                }
+                finally
+                {
+                    cargandoTecnicos = false;
+                }
+
+                ActualizarTextoSelectorTecnico(seleccionado);
+                AplicarFiltroTecnico(seleccionado);
+            }
+            finally
+            {
+                selectorTecnicoAbierto = false;
+            }
+        }
+
+        private void ActualizarTextoSelectorTecnico(
+            TecnicoInspeccionFiltroItem? seleccionado = null)
+        {
+            if (selectorTecnicoButton == null)
+                return;
+
+            seleccionado ??= TecnicoFiltroPicker.SelectedItem as
+                TecnicoInspeccionFiltroItem;
+
+            selectorTecnicoButton.Text =
+                seleccionado?.TextoMostrar ?? "Todos los técnicos";
+        }
+
+        private void AplicarFiltroTecnico(
+            TecnicoInspeccionFiltroItem? seleccionado)
+        {
+            bandejaApi.EstablecerTecnicoContextual(
+                modoActual,
+                seleccionado?.UsuarioTecnicoId is > 0
+                    ? seleccionado.UsuarioTecnicoId
+                    : null);
+
+            if (viewModel.BuscarInspeccionesCommand.CanExecute(null))
+                viewModel.BuscarInspeccionesCommand.Execute(null);
         }
 
         public void ApplyQueryAttributes(
@@ -345,6 +463,9 @@ namespace CONATRADEC.Views
                     TecnicosFiltro.Count > indice
                         ? TecnicosFiltro[indice]
                         : null;
+                ActualizarTextoSelectorTecnico(
+                    TecnicoFiltroPicker.SelectedItem as
+                        TecnicoInspeccionFiltroItem);
             }
             catch (Exception ex)
             {
@@ -372,14 +493,8 @@ namespace CONATRADEC.Views
                 TecnicoFiltroPicker.SelectedItem as
                     TecnicoInspeccionFiltroItem;
 
-            bandejaApi.EstablecerTecnicoContextual(
-                modoActual,
-                seleccionado?.UsuarioTecnicoId is > 0
-                    ? seleccionado.UsuarioTecnicoId
-                    : null);
-
-            if (viewModel.BuscarInspeccionesCommand.CanExecute(null))
-                viewModel.BuscarInspeccionesCommand.Execute(null);
+            ActualizarTextoSelectorTecnico(seleccionado);
+            AplicarFiltroTecnico(seleccionado);
         }
 
         private void OnLimpiarFiltrosClicked(
@@ -391,7 +506,12 @@ namespace CONATRADEC.Views
             cargandoTecnicos = true;
             TecnicoFiltroPicker.SelectedIndex =
                 TecnicosFiltro.Count > 0 ? 0 : -1;
+            TecnicoFiltroPicker.SelectedItem =
+                TecnicosFiltro.Count > 0 ? TecnicosFiltro[0] : null;
             cargandoTecnicos = false;
+            ActualizarTextoSelectorTecnico(
+                TecnicoFiltroPicker.SelectedItem as
+                    TecnicoInspeccionFiltroItem);
 
             if (viewModel.LimpiarFiltrosCommand.CanExecute(null))
                 viewModel.LimpiarFiltrosCommand.Execute(null);

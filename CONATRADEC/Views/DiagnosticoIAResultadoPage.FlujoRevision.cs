@@ -765,6 +765,13 @@ namespace CONATRADEC.Views
             publicar.CommandParameter = foto;
             publicar.Clicked += OnPublicarAlbumTarjetaAprobadorClicked;
 
+            Button retirarAlbum = CrearBotonTarjeta(
+                "Retirar del Álbum",
+                "#FFF4EA",
+                Color.FromArgb("#9B552C"));
+            retirarAlbum.CommandParameter = foto;
+            retirarAlbum.Clicked += OnRetirarAlbumTarjetaAprobadorClicked;
+
             Button cancelarAlbum = CrearBotonTarjeta(
                 "Cancelar autorización",
                 "#FDECEC",
@@ -781,6 +788,7 @@ namespace CONATRADEC.Views
                 noConcluyente,
                 autorizarAlbum,
                 publicar,
+                retirarAlbum,
                 cancelarAlbum);
 
             var contenido = new VerticalStackLayout
@@ -816,6 +824,7 @@ namespace CONATRADEC.Views
                 noConcluyente,
                 autorizarAlbum,
                 publicar,
+                retirarAlbum,
                 cancelarAlbum);
 
             accionesAprobadorPorFoto[foto.FotografiaId] = acciones;
@@ -845,6 +854,10 @@ namespace CONATRADEC.Views
                 ObtenerEstadoAlbumAprobador(foto);
             bool autorizada = aprobada && estadoAlbum.Autorizada;
             bool publicada = aprobada && estadoAlbum.PublicadaActiva;
+            bool puedePublicarAlbum = PermissionService.Instance.HasAdd(
+                InterfazCodigos.AlbumFotos);
+            bool puedeRetirarAlbum = PermissionService.Instance.HasDelete(
+                InterfazCodigos.AlbumFotos);
 
             if (pendiente)
             {
@@ -855,10 +868,12 @@ namespace CONATRADEC.Views
             }
             else if (publicada)
             {
-                acciones.Estado.Text =
-                    "✓ Fotografía aprobada y publicada activamente en el Álbum Botánico.";
+                acciones.Estado.Text = string.IsNullOrWhiteSpace(
+                        estadoAlbum.Mensaje)
+                    ? "✓ Fotografía aprobada y publicada activamente en el Álbum Botánico."
+                    : $"✓ {estadoAlbum.Mensaje}";
                 acciones.Ayuda.Text =
-                    "Puede retirar la copia del álbum y cancelar su autorización sin alterar la evidencia original ni la aprobación técnica.";
+                    "Retirar la copia y cancelar la autorización son decisiones independientes. Desactivar la ficha o categoría solo oculta la publicación; puede retirar la fotografía y conservar la autorización para publicarla nuevamente más adelante.";
             }
             else if (aprobada && autorizada)
             {
@@ -927,18 +942,21 @@ namespace CONATRADEC.Views
                 acciones.AutorizarAlbum.IsVisible && !operacionRevisionActiva;
 
             acciones.Publicar.IsVisible =
-                aprobada && autorizada && !publicada;
+                aprobada && autorizada && !publicada && puedePublicarAlbum;
             acciones.Publicar.Text = estadoAlbum.TuvoPublicacion
                 ? "Publicar nuevamente en Álbum Botánico"
                 : "Publicar en Álbum Botánico";
             acciones.Publicar.IsEnabled =
                 acciones.Publicar.IsVisible && !operacionRevisionActiva;
 
+            acciones.RetirarAlbum.IsVisible =
+                aprobada && autorizada && publicada && puedeRetirarAlbum;
+            acciones.RetirarAlbum.IsEnabled =
+                acciones.RetirarAlbum.IsVisible && !operacionRevisionActiva;
+
             acciones.CancelarAlbum.IsVisible =
                 aprobada && autorizada;
-            acciones.CancelarAlbum.Text = publicada
-                ? "Retirar del Álbum y cancelar autorización"
-                : "Cancelar autorización";
+            acciones.CancelarAlbum.Text = "Cancelar autorización";
             acciones.CancelarAlbum.IsEnabled =
                 acciones.CancelarAlbum.IsVisible && !operacionRevisionActiva;
         }
@@ -1545,15 +1563,13 @@ namespace CONATRADEC.Views
                 return;
 
             string mensaje = estado.PublicadaActiva
-                ? "La copia activa será retirada lógicamente del Álbum Botánico y la autorización quedará cancelada. La aprobación técnica y la evidencia original no se modificarán."
+                ? "La autorización quedará cancelada. Como consecuencia, la copia publicada también será retirada del Álbum Botánico. La aprobación técnica y la evidencia original no se modificarán."
                 : "La autorización para incorporar esta fotografía al Álbum Botánico quedará cancelada. La aprobación técnica no se modificará.";
 
             bool confirmar = await DisplayAlert(
-                estado.PublicadaActiva
-                    ? "Retirar del Álbum Botánico"
-                    : "Cancelar autorización",
+                "Cancelar autorización",
                 mensaje,
-                estado.PublicadaActiva ? "Retirar" : "Cancelar autorización",
+                "Cancelar autorización",
                 "Volver");
 
             if (!confirmar)
@@ -1585,6 +1601,72 @@ namespace CONATRADEC.Views
             }
         }
 
+        private async void OnRetirarAlbumTarjetaAprobadorClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (operacionRevisionActiva ||
+                sender is not Button boton ||
+                boton.CommandParameter is not InspeccionFotoV2 foto)
+            {
+                return;
+            }
+
+            EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
+            if (!estado.Aprobada || !estado.Autorizada ||
+                !estado.PublicadaActiva)
+            {
+                return;
+            }
+
+            if (!PermissionService.Instance.HasDelete(InterfazCodigos.AlbumFotos))
+            {
+                await DisplayAlert(
+                    "Retirar del Álbum Botánico",
+                    "No tiene permiso para retirar fotografías del Álbum Botánico.",
+                    "Aceptar");
+                return;
+            }
+
+            bool confirmar = await DisplayAlert(
+                "Retirar del Álbum Botánico",
+                "La copia activa será retirada del Álbum Botánico, pero la aprobación técnica y la autorización se conservarán. Podrá publicarla nuevamente más adelante.",
+                "Retirar",
+                "Volver");
+
+            if (!confirmar)
+                return;
+
+            operacionRevisionActiva = true;
+            ActualizarEstadoBotonesTarjetas();
+            try
+            {
+                EstadoAlbumAprobador actualizado =
+                    await albumAprobadorApi.RetirarPublicacionAsync(
+                        idRevision,
+                        foto.FotografiaId);
+                estadosAlbumAprobadorPorFoto[foto.FotografiaId] = actualizado;
+                await RecargarDespuesOperacionRevisionAsync();
+
+                await DisplayAlert(
+                    "Fotografía retirada",
+                    "La copia fue retirada del Álbum Botánico. La autorización permanece disponible para publicarla nuevamente cuando sea necesario.",
+                    "Aceptar");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert(
+                    "Retirar del Álbum Botánico",
+                    ex.Message,
+                    "Aceptar");
+            }
+            finally
+            {
+                operacionRevisionActiva = false;
+                ActualizarEstadoBotonesTarjetas();
+            }
+        }
+
         private async void OnPublicarAlbumTarjetaAprobadorClicked(
             object? sender,
             EventArgs e)
@@ -1599,6 +1681,15 @@ namespace CONATRADEC.Views
             EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
             if (!estado.Aprobada || !estado.Autorizada || estado.PublicadaActiva)
             {
+                return;
+            }
+
+            if (!PermissionService.Instance.HasAdd(InterfazCodigos.AlbumFotos))
+            {
+                await DisplayAlert(
+                    "Publicar en Álbum Botánico",
+                    "No tiene permiso para agregar fotografías al Álbum Botánico.",
+                    "Aceptar");
                 return;
             }
 
@@ -2782,6 +2873,7 @@ namespace CONATRADEC.Views
                 Button noConcluyente,
                 Button autorizarAlbum,
                 Button publicar,
+                Button retirarAlbum,
                 Button cancelarAlbum)
             {
                 Tarjeta = tarjeta;
@@ -2795,6 +2887,7 @@ namespace CONATRADEC.Views
                 NoConcluyente = noConcluyente;
                 AutorizarAlbum = autorizarAlbum;
                 Publicar = publicar;
+                RetirarAlbum = retirarAlbum;
                 CancelarAlbum = cancelarAlbum;
             }
 
@@ -2809,6 +2902,7 @@ namespace CONATRADEC.Views
             public Button NoConcluyente { get; }
             public Button AutorizarAlbum { get; }
             public Button Publicar { get; }
+            public Button RetirarAlbum { get; }
             public Button CancelarAlbum { get; }
         }
 
