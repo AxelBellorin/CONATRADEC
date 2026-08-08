@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
@@ -9,7 +9,7 @@
   <Identity
     Name="maui-package-name-placeholder"
     Publisher="CN=AXEL BELLORIN"
-    Version="1.0.7.0" />
+    Version="1.0.9.0" />
 
   <mp:PhoneIdentity
     PhoneProductId="AAED2C63-5D3C-4C80-8260-F2BDA5DD7F1E"

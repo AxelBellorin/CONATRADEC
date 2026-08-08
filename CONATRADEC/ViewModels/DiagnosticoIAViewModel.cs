@@ -104,11 +104,24 @@ namespace CONATRADEC.ViewModels
                     DiagnosticoIARoutes.InterfazSolicitud);
 
             PuedeMisInspecciones = puedeLeerSolicitud;
-            PuedeHistorial = puedeLeerSolicitud;
-            PuedeAnalizador = PermissionService.Instance.HasRead(
+
+            /*
+             * La captura de campo y la cola local permanecen disponibles sin
+             * conexión. Las etapas humanas posteriores necesitan el servidor
+             * para respetar asignaciones, bloqueos exclusivos y auditoría.
+             */
+            bool enLinea = ModoSesionService.EsEnLinea;
+            PuedeHistorial = puedeLeerSolicitud && enLinea;
+            PuedeAnalizador = enLinea && PermissionService.Instance.HasRead(
                 DiagnosticoIARoutes.InterfazAnalizador);
-            PuedeAprobador = PermissionService.Instance.HasRead(
+            PuedeAprobador = enLinea && PermissionService.Instance.HasRead(
                 DiagnosticoIARoutes.InterfazAprobador);
+
+            if (enLinea && puedeLeerSolicitud)
+            {
+                FitosanitariaOfflineService.Instance
+                    .SolicitarSincronizacionEnSegundoPlano();
+            }
 
             ActualizarComandos();
             return Task.CompletedTask;

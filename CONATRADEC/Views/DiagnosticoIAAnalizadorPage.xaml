@@ -27,14 +27,14 @@
             <controls:ResponsiveCatalogHeader
                 Grid.Row="0"
                 Title="Bandeja del analizador"
-                Subtitle="Revise las fotografías recibidas mientras el técnico completa el envío de la inspección."
+                Subtitle="{Binding SubtituloVista}"
                 BackText="Inspección fitosanitaria"
                 BackCommand="{Binding RegresarCommand}"
                 IsPrimaryVisible="False" />
 
             <Grid
                 Grid.Row="1"
-                RowDefinitions="Auto,Auto,Auto,*"
+                RowDefinitions="Auto,Auto,Auto,Auto,*"
                 RowSpacing="10"
                 MaximumWidthRequest="1180"
                 HorizontalOptions="Fill">
@@ -45,9 +45,7 @@
                     BackgroundColor="#EEF6F2"
                     Stroke="#B9D7CB"
                     StrokeShape="RoundRectangle 14">
-                    <Grid
-                        ColumnDefinitions="Auto,*"
-                        ColumnSpacing="12">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                         <Border
                             WidthRequest="38"
                             HeightRequest="38"
@@ -63,17 +61,14 @@
                                 HorizontalTextAlignment="Center"
                                 VerticalTextAlignment="Center" />
                         </Border>
-
-                        <VerticalStackLayout
-                            Grid.Column="1"
-                            Spacing="3">
+                        <VerticalStackLayout Grid.Column="1" Spacing="3">
                             <Label
                                 Text="Revisión progresiva por fotografía"
                                 FontSize="16"
                                 FontAttributes="Bold"
                                 TextColor="#294A42" />
                             <Label
-                                Text="Puede revisar las fotografías que el técnico ya envió y pasar al aprobador cada evidencia conforme quede lista. El técnico debe finalizar su etapa antes del primer envío al aprobador."
+                                Text="Pendientes contiene el trabajo activo. Revisadas conserva el acceso de consulta a las inspecciones cuya etapa del analizador ya terminó."
                                 FontSize="12"
                                 TextColor="#4D625C"
                                 LineBreakMode="WordWrap" />
@@ -81,13 +76,78 @@
                     </Grid>
                 </Border>
 
-                <Grid
+                <Border
                     Grid.Row="1"
+                    Padding="{OnIdiom Phone=10, Default=12}"
+                    BackgroundColor="#F2F7F5"
+                    Stroke="#C8DED6"
+                    StrokeShape="RoundRectangle 13">
+                    <Grid
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                        RowSpacing="8"
+                        ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label
+                                Text="Vista de revisión"
+                                FontSize="14"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Label
+                                Text="Cambie entre el trabajo pendiente y las revisiones ya completadas por su usuario."
+                                FontSize="11"
+                                TextColor="#5E6B67"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <Grid
+                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                            ColumnDefinitions="*,*"
+                            ColumnSpacing="8"
+                            HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
+                            <Button
+                                Grid.Column="0"
+                                Text="Pendientes"
+                                Command="{Binding VerPendientesCommand}"
+                                MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
+                                HeightRequest="42"
+                                BackgroundColor="#E3EFEA"
+                                TextColor="#315E52"
+                                CornerRadius="9">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding MostrandoPendientes}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="#9B552C" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button
+                                Grid.Column="1"
+                                Text="Revisadas"
+                                Command="{Binding VerRevisadasCommand}"
+                                MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
+                                HeightRequest="42"
+                                BackgroundColor="#E3EFEA"
+                                TextColor="#315E52"
+                                CornerRadius="9">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding MostrandoRevisadas}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="#9B552C" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Grid
+                    Grid.Row="2"
                     ColumnDefinitions="*,Auto"
                     ColumnSpacing="10">
                     <Label
                         Grid.Column="0"
-                        Text="Inspecciones con fotografías disponibles para revisión humana"
+                        Text="{Binding SubtituloVista}"
                         FontAttributes="Bold"
                         TextColor="#3B655B"
                         VerticalTextAlignment="Center"
@@ -103,7 +163,7 @@
                 </Grid>
 
                 <Border
-                    Grid.Row="2"
+                    Grid.Row="3"
                     Padding="{OnIdiom Phone=10, Default=12}"
                     BackgroundColor="White"
                     Stroke="#C8DED6"
@@ -124,7 +184,7 @@
                                 FontAttributes="Bold"
                                 TextColor="#263A35" />
                             <Label
-                                Text="Filtra por identificador, mostrando nombre completo y usuario."
+                                Text="Filtra por el usuario que registró la inspección."
                                 FontSize="11"
                                 TextColor="#6B7773" />
                         </VerticalStackLayout>
@@ -146,7 +206,7 @@
                     </Grid>
                 </Border>
 
-                <Grid Grid.Row="3">
+                <Grid Grid.Row="4">
                     <Border
                         Padding="14"
                         Margin="0,4"
@@ -157,25 +217,15 @@
                         StrokeShape="RoundRectangle 13"
                         IsVisible="{Binding TieneMensajeEstado}">
                         <HorizontalStackLayout Spacing="10">
-                            <ActivityIndicator
-                                IsRunning="{Binding IsBusy}"
-                                Color="#9B552C" />
-                            <Label
-                                Text="{Binding MensajeEstado}"
-                                VerticalTextAlignment="Center"
-                                TextColor="#6B5710" />
+                            <ActivityIndicator IsRunning="{Binding IsBusy}" Color="#9B552C" />
+                            <Label Text="{Binding MensajeEstado}" VerticalTextAlignment="Center" TextColor="#6B5710" />
                         </HorizontalStackLayout>
                     </Border>
 
-                    <CollectionView
-                        ItemsSource="{Binding Solicitudes}"
-                        SelectionMode="None">
+                    <CollectionView ItemsSource="{Binding Solicitudes}" SelectionMode="None">
                         <CollectionView.ItemsLayout>
-                            <LinearItemsLayout
-                                Orientation="Vertical"
-                                ItemSpacing="10" />
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
                         </CollectionView.ItemsLayout>
-
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:InspeccionFitosanitariaBandejaItemV2">
                                 <Border
@@ -184,12 +234,7 @@
                                     Stroke="#D7E2DE"
                                     StrokeShape="RoundRectangle 15">
                                     <VerticalStackLayout Spacing="12">
-                                        <FlexLayout
-                                            Direction="Row"
-                                            Wrap="Wrap"
-                                            AlignItems="Start"
-                                            JustifyContent="SpaceBetween">
-
+                                        <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Start" JustifyContent="SpaceBetween">
                                             <Border
                                                 Margin="0,0,12,8"
                                                 WidthRequest="{OnIdiom Phone=92, Tablet=112, Desktop=122}"
@@ -197,9 +242,7 @@
                                                 BackgroundColor="#EEF3F1"
                                                 Stroke="#C8DED6"
                                                 StrokeShape="RoundRectangle 12">
-                                                <Image
-                                                    Source="{Binding UrlMiniatura}"
-                                                    Aspect="AspectFill" />
+                                                <Image Source="{Binding UrlMiniatura}" Aspect="AspectFill" />
                                             </Border>
 
                                             <VerticalStackLayout
@@ -208,31 +251,11 @@
                                                 MinimumWidthRequest="{OnIdiom Phone=210, Default=330}"
                                                 FlexLayout.Grow="1"
                                                 FlexLayout.Basis="420">
-                                                <Label
-                                                    Text="{Binding NombreInspeccionTexto}"
-                                                    FontSize="{OnIdiom Phone=17, Default=19}"
-                                                    FontAttributes="Bold"
-                                                    TextColor="#263A35"
-                                                    LineBreakMode="WordWrap" />
-                                                <Label
-                                                    Text="{Binding TerrenoTexto}"
-                                                    FontSize="13"
-                                                    TextColor="#3B655B" />
-                                                <Label
-                                                    Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}, StringFormat='Técnico: {0}'}"
-                                                    FontSize="12"
-                                                    FontAttributes="Bold"
-                                                    TextColor="#40544E"
-                                                    LineBreakMode="TailTruncation" />
-                                                <Label
-                                                    Text="{Binding FechaTexto}"
-                                                    FontSize="12"
-                                                    TextColor="#7A8581" />
-                                                <Label
-                                                    Text="{Binding AsignacionTexto}"
-                                                    FontSize="11"
-                                                    TextColor="#52665F"
-                                                    LineBreakMode="WordWrap" />
+                                                <Label Text="{Binding NombreInspeccionTexto}" FontSize="{OnIdiom Phone=17, Default=19}" FontAttributes="Bold" TextColor="#263A35" LineBreakMode="WordWrap" />
+                                                <Label Text="{Binding TerrenoTexto}" FontSize="13" TextColor="#3B655B" />
+                                                <Label Text="{Binding InspeccionId, Converter={StaticResource TecnicoInspeccionTextoConverter}, StringFormat='Técnico: {0}'}" FontSize="12" FontAttributes="Bold" TextColor="#40544E" LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding FechaTexto}" FontSize="12" TextColor="#7A8581" />
+                                                <Label Text="{Binding AsignacionTexto}" FontSize="11" TextColor="#52665F" LineBreakMode="WordWrap" />
                                             </VerticalStackLayout>
 
                                             <VerticalStackLayout
@@ -240,7 +263,6 @@
                                                 Spacing="8"
                                                 MinimumWidthRequest="{OnIdiom Phone=210, Default=230}"
                                                 FlexLayout.Basis="250">
-
                                                 <Border
                                                     Padding="10,6"
                                                     BackgroundColor="#FFF3D7"
@@ -248,20 +270,12 @@
                                                     StrokeShape="RoundRectangle 11"
                                                     IsVisible="True">
                                                     <Border.Triggers>
-                                                        <DataTrigger
-                                                            TargetType="Border"
-                                                            Binding="{Binding EtapaTecnicaFinalizada}"
-                                                            Value="True">
+                                                        <DataTrigger TargetType="Border" Binding="{Binding EtapaTecnicaFinalizada}" Value="True">
                                                             <Setter Property="IsVisible" Value="False" />
                                                         </DataTrigger>
                                                     </Border.Triggers>
-                                                    <Label
-                                                        Text="Recepción parcial"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#705A19"
-                                                        HorizontalTextAlignment="Center" />
+                                                    <Label Text="Recepción parcial" FontAttributes="Bold" TextColor="#705A19" HorizontalTextAlignment="Center" />
                                                 </Border>
-
                                                 <Border
                                                     Padding="10,6"
                                                     BackgroundColor="#E8F3EE"
@@ -269,22 +283,14 @@
                                                     StrokeShape="RoundRectangle 11"
                                                     IsVisible="False">
                                                     <Border.Triggers>
-                                                        <DataTrigger
-                                                            TargetType="Border"
-                                                            Binding="{Binding EtapaTecnicaFinalizada}"
-                                                            Value="True">
+                                                        <DataTrigger TargetType="Border" Binding="{Binding EtapaTecnicaFinalizada}" Value="True">
                                                             <Setter Property="IsVisible" Value="True" />
                                                         </DataTrigger>
                                                     </Border.Triggers>
-                                                    <Label
-                                                        Text="Envío técnico completo"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#315E52"
-                                                        HorizontalTextAlignment="Center" />
+                                                    <Label Text="Envío técnico completo" FontAttributes="Bold" TextColor="#315E52" HorizontalTextAlignment="Center" />
                                                 </Border>
-
                                                 <Button
-                                                    Text="Continuar revisión"
+                                                    Text="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.TextoAbrir}"
                                                     Command="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.AbrirCommand}"
                                                     CommandParameter="{Binding .}"
                                                     HeightRequest="46"
@@ -299,106 +305,20 @@
                                             RowDefinitions="{OnIdiom Phone='Auto,Auto,Auto', Default='Auto'}"
                                             ColumnSpacing="8"
                                             RowSpacing="8">
-
-                                            <Border
-                                                Grid.Row="0"
-                                                Grid.Column="0"
-                                                Padding="10"
-                                                BackgroundColor="#F7FAF9"
-                                                Stroke="#DCE6E2"
-                                                StrokeShape="RoundRectangle 11">
-                                                <VerticalStackLayout Spacing="2">
-                                                    <Label
-                                                        Text="Total activas"
-                                                        FontSize="11"
-                                                        TextColor="#6B7773" />
-                                                    <Label
-                                                        Text="{Binding TotalFotografias}"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#263A35" />
-                                                </VerticalStackLayout>
+                                            <Border Grid.Row="0" Grid.Column="0" Padding="10" BackgroundColor="#F7FAF9" Stroke="#DCE6E2" StrokeShape="RoundRectangle 11">
+                                                <VerticalStackLayout Spacing="2"><Label Text="Total activas" FontSize="11" TextColor="#6B7773" /><Label Text="{Binding TotalFotografias}" FontSize="18" FontAttributes="Bold" TextColor="#263A35" /></VerticalStackLayout>
                                             </Border>
-
-                                            <Border
-                                                Grid.Row="0"
-                                                Grid.Column="1"
-                                                Padding="10"
-                                                BackgroundColor="#EAF3EF"
-                                                Stroke="#C8DED6"
-                                                StrokeShape="RoundRectangle 11">
-                                                <VerticalStackLayout Spacing="2">
-                                                    <Label
-                                                        Text="Recibidas"
-                                                        FontSize="11"
-                                                        TextColor="#527066" />
-                                                    <Label
-                                                        Text="{Binding EnviadasRevision}"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#315E52" />
-                                                </VerticalStackLayout>
+                                            <Border Grid.Row="0" Grid.Column="1" Padding="10" BackgroundColor="#EAF3EF" Stroke="#C8DED6" StrokeShape="RoundRectangle 11">
+                                                <VerticalStackLayout Spacing="2"><Label Text="Recibidas" FontSize="11" TextColor="#527066" /><Label Text="{Binding EnviadasRevision}" FontSize="18" FontAttributes="Bold" TextColor="#315E52" /></VerticalStackLayout>
                                             </Border>
-
-                                            <Border
-                                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                                Grid.Column="{OnIdiom Phone=0, Default=2}"
-                                                Padding="10"
-                                                BackgroundColor="#EDF4FF"
-                                                Stroke="#C8D9EE"
-                                                StrokeShape="RoundRectangle 11">
-                                                <VerticalStackLayout Spacing="2">
-                                                    <Label
-                                                        Text="Enviadas al aprobador"
-                                                        FontSize="11"
-                                                        TextColor="#315B86" />
-                                                    <Label
-                                                        Text="{Binding EnviadasAprobador}"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#315B86" />
-                                                </VerticalStackLayout>
+                                            <Border Grid.Row="{OnIdiom Phone=1, Default=0}" Grid.Column="{OnIdiom Phone=0, Default=2}" Padding="10" BackgroundColor="#EDF4FF" Stroke="#C8D9EE" StrokeShape="RoundRectangle 11">
+                                                <VerticalStackLayout Spacing="2"><Label Text="Enviadas al aprobador" FontSize="11" TextColor="#315B86" /><Label Text="{Binding EnviadasAprobador}" FontSize="18" FontAttributes="Bold" TextColor="#315B86" /></VerticalStackLayout>
                                             </Border>
-
-                                            <Border
-                                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                                Grid.Column="{OnIdiom Phone=1, Default=3}"
-                                                Padding="10"
-                                                BackgroundColor="#FFF8E2"
-                                                Stroke="#E4C765"
-                                                StrokeShape="RoundRectangle 11">
-                                                <VerticalStackLayout Spacing="2">
-                                                    <Label
-                                                        Text="Pendientes/correcciones del técnico"
-                                                        FontSize="11"
-                                                        TextColor="#705A19" />
-                                                    <Label
-                                                        Text="{Binding RequierenDecisionTecnico}"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#705A19" />
-                                                </VerticalStackLayout>
+                                            <Border Grid.Row="{OnIdiom Phone=1, Default=0}" Grid.Column="{OnIdiom Phone=1, Default=3}" Padding="10" BackgroundColor="#FFF8E2" Stroke="#E4C765" StrokeShape="RoundRectangle 11">
+                                                <VerticalStackLayout Spacing="2"><Label Text="Pendientes/correcciones" FontSize="11" TextColor="#705A19" /><Label Text="{Binding RequierenDecisionTecnico}" FontSize="18" FontAttributes="Bold" TextColor="#705A19" /></VerticalStackLayout>
                                             </Border>
-
-                                            <Border
-                                                Grid.Row="{OnIdiom Phone=2, Default=0}"
-                                                Grid.Column="{OnIdiom Phone=0, Default=4}"
-                                                Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
-                                                Padding="10"
-                                                BackgroundColor="#FDECEC"
-                                                Stroke="#F0C8C4"
-                                                StrokeShape="RoundRectangle 11">
-                                                <VerticalStackLayout Spacing="2">
-                                                    <Label
-                                                        Text="Error IA pendiente"
-                                                        FontSize="11"
-                                                        TextColor="#9A3028" />
-                                                    <Label
-                                                        Text="{Binding ConError}"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="#B42318" />
-                                                </VerticalStackLayout>
+                                            <Border Grid.Row="{OnIdiom Phone=2, Default=0}" Grid.Column="{OnIdiom Phone=0, Default=4}" Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}" Padding="10" BackgroundColor="#FDECEC" Stroke="#F0C8C4" StrokeShape="RoundRectangle 11">
+                                                <VerticalStackLayout Spacing="2"><Label Text="Error IA pendiente" FontSize="11" TextColor="#9A3028" /><Label Text="{Binding ConError}" FontSize="18" FontAttributes="Bold" TextColor="#B42318" /></VerticalStackLayout>
                                             </Border>
                                         </Grid>
 
@@ -409,15 +329,11 @@
                                             Text="Puede revisar las fotografías recibidas. Todavía faltan evidencias o correcciones bajo responsabilidad del técnico."
                                             IsVisible="True">
                                             <Label.Triggers>
-                                                <DataTrigger
-                                                    TargetType="Label"
-                                                    Binding="{Binding EtapaTecnicaFinalizada}"
-                                                    Value="True">
+                                                <DataTrigger TargetType="Label" Binding="{Binding EtapaTecnicaFinalizada}" Value="True">
                                                     <Setter Property="IsVisible" Value="False" />
                                                 </DataTrigger>
                                             </Label.Triggers>
                                         </Label>
-
                                         <Label
                                             FontSize="12"
                                             TextColor="#315E52"
@@ -425,10 +341,7 @@
                                             Text="El técnico completó el envío. Cada fotografía revisada puede enviarse al aprobador de forma individual o mediante selección múltiple."
                                             IsVisible="False">
                                             <Label.Triggers>
-                                                <DataTrigger
-                                                    TargetType="Label"
-                                                    Binding="{Binding EtapaTecnicaFinalizada}"
-                                                    Value="True">
+                                                <DataTrigger TargetType="Label" Binding="{Binding EtapaTecnicaFinalizada}" Value="True">
                                                     <Setter Property="IsVisible" Value="True" />
                                                 </DataTrigger>
                                             </Label.Triggers>
@@ -438,13 +351,8 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="0,14,0,4"
-                                Spacing="8">
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoMas}"
-                                    IsVisible="{Binding CargandoMas}"
-                                    Color="#3B655B" />
+                            <VerticalStackLayout Padding="0,14,0,4" Spacing="8">
+                                <ActivityIndicator IsRunning="{Binding CargandoMas}" IsVisible="{Binding CargandoMas}" Color="#3B655B" />
                                 <Button
                                     Text="{Binding TextoCargarMas}"
                                     Command="{Binding CargarMasCommand}"
@@ -467,10 +375,7 @@
                         Stroke="#D9E3DF"
                         StrokeShape="RoundRectangle 14"
                         IsVisible="{Binding SinSolicitudes}">
-                        <Label
-                            Text="No hay fotografías enviadas al analizador en este momento."
-                            HorizontalTextAlignment="Center"
-                            TextColor="#5E6B67" />
+                        <Label Text="{Binding TextoSinSolicitudes}" HorizontalTextAlignment="Center" TextColor="#5E6B67" />
                     </Border>
                 </Grid>
             </Grid>

@@ -1,4 +1,5 @@
 using CONATRADEC.Models;
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 
@@ -19,49 +20,105 @@ namespace CONATRADEC.Services
 
         private readonly HttpClient client = ApiClientService.Client;
 
-        public async Task<InspeccionFitosanitariaBandejaPaginaV2>
+        public Task<InspeccionFitosanitariaBandejaPaginaV2>
             ObtenerPaginaAsync(
                 string modo,
                 int? tecnicoId,
                 DateTime? ultimaFechaUtc,
                 int? ultimoId,
                 int tamanoPagina = 20,
+                CancellationToken cancellationToken = default) =>
+            ObtenerPaginaAsync(
+                new InspeccionFitosanitariaBandejaFiltroV2
+                {
+                    Modo = modo,
+                    TecnicoId = tecnicoId,
+                    UltimaFechaUtc = ultimaFechaUtc,
+                    UltimoId = ultimoId,
+                    TamanoPagina = tamanoPagina,
+                    DesfaseHorarioMinutos = (int)TimeZoneInfo.Local
+                        .GetUtcOffset(DateTime.Now)
+                        .TotalMinutes
+                },
+                cancellationToken);
+
+        public async Task<InspeccionFitosanitariaBandejaPaginaV2>
+            ObtenerPaginaAsync(
+                InspeccionFitosanitariaBandejaFiltroV2 filtro,
                 CancellationToken cancellationToken = default)
         {
-            tamanoPagina = Math.Clamp(tamanoPagina, 10, 50);
+            ArgumentNullException.ThrowIfNull(filtro);
 
-            var parametros = new List<string>
-            {
-                "modo=" + Uri.EscapeDataString(
-                    string.IsNullOrWhiteSpace(modo)
-                        ? DiagnosticoIARoutes.ModoAnalizador
-                        : modo.Trim().ToLowerInvariant()),
-                "tamanoPagina=" + tamanoPagina,
-                "desfaseHorarioMinutos=" +
-                    (int)TimeZoneInfo.Local.GetUtcOffset(DateTime.Now)
-                        .TotalMinutes
-            };
+            int tamanoPagina = Math.Clamp(filtro.TamanoPagina, 10, 50);
+            var parametros = new List<string>();
 
-            if (tecnicoId is > 0)
+            Agregar(parametros, "modo", filtro.Modo);
+            Agregar(parametros, "buscar", filtro.Buscar);
+            Agregar(parametros, "propietario", filtro.Propietario);
+            Agregar(parametros, "departamento", filtro.Departamento);
+            Agregar(parametros, "tipoFotografia", filtro.TipoFotografia);
+            Agregar(parametros, "estado", filtro.Estado);
+
+            if (filtro.TecnicoId is > 0)
             {
-                parametros.Add(
-                    "tecnicoId=" + tecnicoId.Value);
+                Agregar(
+                    parametros,
+                    "tecnicoId",
+                    filtro.TecnicoId.Value.ToString(CultureInfo.InvariantCulture));
             }
 
-            if (ultimaFechaUtc.HasValue && ultimoId is > 0)
+            if (filtro.FechaDesde.HasValue)
             {
-                parametros.Add(
-                    "ultimaFechaUtc=" + Uri.EscapeDataString(
-                        ultimaFechaUtc.Value.ToUniversalTime()
-                            .ToString("O")));
-                parametros.Add("ultimoId=" + ultimoId.Value);
+                Agregar(
+                    parametros,
+                    "fechaDesde",
+                    filtro.FechaDesde.Value.ToString(
+                        "yyyy-MM-dd",
+                        CultureInfo.InvariantCulture));
             }
 
-            /*
-             * Analizador y aprobador utilizan una consulta operativa propia.
-             * De esta forma el flujo individual por fotografía no depende de
-             * filtros históricos de la bandeja general.
-             */
+            if (filtro.FechaHasta.HasValue)
+            {
+                Agregar(
+                    parametros,
+                    "fechaHasta",
+                    filtro.FechaHasta.Value.ToString(
+                        "yyyy-MM-dd",
+                        CultureInfo.InvariantCulture));
+            }
+
+            int desfase = filtro.DesfaseHorarioMinutos;
+            if (desfase == 0)
+            {
+                desfase = (int)TimeZoneInfo.Local
+                    .GetUtcOffset(DateTime.Now)
+                    .TotalMinutes;
+            }
+
+            Agregar(
+                parametros,
+                "desfaseHorarioMinutos",
+                Math.Clamp(desfase, -840, 840)
+                    .ToString(CultureInfo.InvariantCulture));
+
+            if (filtro.UltimaFechaUtc.HasValue && filtro.UltimoId is > 0)
+            {
+                Agregar(
+                    parametros,
+                    "ultimaFechaUtc",
+                    filtro.UltimaFechaUtc.Value.ToUniversalTime()
+                        .ToString("O", CultureInfo.InvariantCulture));
+                Agregar(
+                    parametros,
+                    "ultimoId",
+                    filtro.UltimoId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+
+            Agregar(
+                parametros,
+                "tamanoPagina",
+                tamanoPagina.ToString(CultureInfo.InvariantCulture));
+
             string ruta =
                 "api/revision-fitosanitaria/bandeja-paginada?" +
                 string.Join("&", parametros);
@@ -109,6 +166,19 @@ namespace CONATRADEC.Services
             throw new InspeccionFitosanitariaApiException(
                 HttpStatusCode.BadGateway,
                 "El servidor devolvió una página de bandeja incompleta.");
+        }
+
+        private static void Agregar(
+            ICollection<string> parametros,
+            string nombre,
+            string? valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                return;
+
+            parametros.Add(
+                Uri.EscapeDataString(nombre) + "=" +
+                Uri.EscapeDataString(valor.Trim()));
         }
 
         private sealed class RespuestaApi<T>

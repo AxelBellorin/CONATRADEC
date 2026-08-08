@@ -23,7 +23,9 @@ namespace CONATRADEC.Services
         public const string ModoDecisionesPendientes = "decisiones";
         public const string ModoHistorial = "historial";
         public const string ModoAnalizador = "analizador";
+        public const string ModoAnalizadorRevisadas = "analizador-revisadas";
         public const string ModoAprobador = "aprobador";
+        public const string ModoAprobadorRevisadas = "aprobador-revisadas";
 
         public static readonly string Pagina = Registrar(
             nameof(Views.DiagnosticoIAPage),
@@ -93,8 +95,8 @@ namespace CONATRADEC.Services
 
             return normalizado switch
             {
-                ModoAnalizador => PaginaAnalizador,
-                ModoAprobador => PaginaAprobador,
+                ModoAnalizador or ModoAnalizadorRevisadas => PaginaAnalizador,
+                ModoAprobador or ModoAprobadorRevisadas => PaginaAprobador,
                 _ => CrearRutaSolicitud(normalizado)
             };
         }
@@ -111,7 +113,9 @@ namespace CONATRADEC.Services
                 ModoDecisionesPendientes => ModoDecisionesPendientes,
                 ModoHistorial => ModoHistorial,
                 ModoAnalizador => ModoAnalizador,
+                ModoAnalizadorRevisadas => ModoAnalizadorRevisadas,
                 ModoAprobador => ModoAprobador,
+                ModoAprobadorRevisadas => ModoAprobadorRevisadas,
                 _ => ModoMisInspecciones
             };
         }

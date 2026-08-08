@@ -81,10 +81,20 @@ namespace CONATRADEC.Models
         public string AprobadorAsignado { get; set; } = string.Empty;
         public string VersionAsignacion { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Identifica una inspección creada en el dispositivo sin conexión. Su
+        /// identificador es temporal y negativo hasta que la cola la envíe al
+        /// servidor. Nunca se mezcla con identificadores reales del backend.
+        /// </summary>
+        public bool EsLocalPendiente { get; set; }
+
         public string AsignacionTexto
         {
             get
             {
+                if (EsLocalPendiente)
+                    return "Pendiente de sincronización con el servidor";
+
                 if (!string.IsNullOrWhiteSpace(AprobadorAsignado))
                     return $"Aprobador asignado: {AprobadorAsignado.Trim()}";
 
@@ -100,16 +110,20 @@ namespace CONATRADEC.Models
             UsuarioAprobadorAsignadoId is > 0;
 
         public bool TieneDecisionesTecnicas =>
+            !EsLocalPendiente &&
             !CerradaDefinitiva &&
             !EtapaTecnicaFinalizada &&
             RequierenDecisionTecnico > 0;
 
         public bool TieneProcesamientoActivo =>
+            !EsLocalPendiente &&
             !CerradaDefinitiva && Procesando > 0;
 
         public string NombreInspeccionTexto =>
             string.IsNullOrWhiteSpace(NombreInspeccion)
-                ? $"Inspección #{InspeccionId}"
+                ? EsLocalPendiente
+                    ? "Inspección guardada sin conexión"
+                    : $"Inspección #{InspeccionId}"
                 : NombreInspeccion.Trim();
 
         public string TerrenoTexto => string.IsNullOrWhiteSpace(CodigoTerreno)
@@ -117,7 +131,9 @@ namespace CONATRADEC.Models
             : $"Terreno {CodigoTerreno}";
 
         public string PropietarioTexto => string.IsNullOrWhiteSpace(Propietario)
-            ? "Sin propietario vinculado"
+            ? EsLocalPendiente
+                ? "Propietario disponible al sincronizar"
+                : "Sin propietario vinculado"
             : Propietario;
 
         public string UbicacionTexto
@@ -174,6 +190,9 @@ namespace CONATRADEC.Models
         {
             get
             {
+                if (EsLocalPendiente)
+                    return "Guardada sin conexión";
+
                 if (CerradaDefinitiva)
                     return "Cerrada definitivamente";
 
@@ -214,50 +233,61 @@ namespace CONATRADEC.Models
         }
 
         public string EstadoFondo =>
-            CerradaDefinitiva
-                ? "#EEF2F0"
-                : TieneDecisionesTecnicas
-                    ? "#FFF5D6"
-                    : ConError > 0
-                        ? "#FDECEC"
-                        : EtapaTecnicaFinalizada
-                            ? "#EAF3EF"
-                            : TieneProcesamientoActivo
-                                ? "#EDF4FF"
-                                : "#FFF4EA";
+            EsLocalPendiente
+                ? "#FFF8E2"
+                : CerradaDefinitiva
+                    ? "#EEF2F0"
+                    : TieneDecisionesTecnicas
+                        ? "#FFF5D6"
+                        : ConError > 0
+                            ? "#FDECEC"
+                            : EtapaTecnicaFinalizada
+                                ? "#EAF3EF"
+                                : TieneProcesamientoActivo
+                                    ? "#EDF4FF"
+                                    : "#FFF4EA";
 
         public string EstadoColor =>
-            CerradaDefinitiva
-                ? "#52625D"
-                : TieneDecisionesTecnicas
-                    ? "#7A5A13"
-                    : ConError > 0
-                        ? "#B42318"
-                        : EtapaTecnicaFinalizada
-                            ? "#315E52"
-                            : TieneProcesamientoActivo
-                                ? "#315B86"
-                                : "#9B552C";
+            EsLocalPendiente
+                ? "#705A19"
+                : CerradaDefinitiva
+                    ? "#52625D"
+                    : TieneDecisionesTecnicas
+                        ? "#7A5A13"
+                        : ConError > 0
+                            ? "#B42318"
+                            : EtapaTecnicaFinalizada
+                                ? "#315E52"
+                                : TieneProcesamientoActivo
+                                    ? "#315B86"
+                                    : "#9B552C";
 
         public string TextoAbrir =>
-            CerradaDefinitiva
-                ? "Consultar expediente"
-                : TieneDecisionesTecnicas
-                    ? "Atender decisiones"
-                    : EtapaTecnicaFinalizada
-                        ? "Ver avance de revisión"
-                        : "Abrir inspección";
+            EsLocalPendiente
+                ? "Pendiente de sincronizar"
+                : CerradaDefinitiva
+                    ? "Consultar expediente"
+                    : TieneDecisionesTecnicas
+                        ? "Atender decisiones"
+                        : EtapaTecnicaFinalizada
+                            ? "Ver avance de revisión"
+                            : "Abrir inspección";
 
         public string Resumen =>
-            $"{TotalFotografias} fotos · " +
-            $"{RequierenDecisionTecnico} por decidir · " +
-            $"{EnviadasRevision} enviadas · " +
-            $"{Finalizadas} finalizadas";
+            EsLocalPendiente
+                ? $"{TotalFotografias} fotos · guardada en el dispositivo"
+                : $"{TotalFotografias} fotos · " +
+                  $"{RequierenDecisionTecnico} por decidir · " +
+                  $"{EnviadasRevision} enviadas · " +
+                  $"{Finalizadas} finalizadas";
 
         public string ProgresoTexto
         {
             get
             {
+                if (EsLocalPendiente)
+                    return "Se enviará automáticamente al servidor durante una sesión en línea";
+
                 if (TotalFotografias <= 0)
                     return "Sin fotografías registradas";
 

@@ -130,10 +130,7 @@
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 14">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                        <Label
-                            Text="ⓘ"
-                            FontSize="22"
-                            TextColor="#9B552C" />
+                        <Label Text="ⓘ" FontSize="22" TextColor="#9B552C" />
                         <Label
                             Grid.Column="1"
                             Text="Al visitar esta página durante una sesión en línea, se comprueba si existen actualizaciones disponibles. La descarga continúa siendo manual y durante una sesión sin conexión no se consulta la API."
@@ -230,6 +227,64 @@
                     </Border>
                 </Grid>
 
+                <!--
+                    La captura fitosanitaria reutiliza los terrenos descargados
+                    por el paquete global. Este panel prepara su cola local y
+                    conserva las fotografías hasta poder enviarlas al servidor.
+                -->
+                <Border
+                    x:Name="FitosanitariaOfflineBorder"
+                    Padding="14"
+                    BackgroundColor="White"
+                    Stroke="#DDE7E3"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 13"
+                    Loaded="FitosanitariaOfflineBorder_Loaded"
+                    Unloaded="FitosanitariaOfflineBorder_Unloaded">
+                    <Grid
+                        RowDefinitions="Auto,Auto"
+                        ColumnDefinitions="*,Auto"
+                        ColumnSpacing="12"
+                        RowSpacing="8">
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="4">
+                            <Label
+                                Text="Inspección fitosanitaria"
+                                FontFamily="MontserratBold"
+                                FontAttributes="Bold"
+                                FontSize="14"
+                                TextColor="#3B655B" />
+                            <Label
+                                x:Name="FitosanitariaOfflineEstadoLabel"
+                                Text="Comprobando..."
+                                FontAttributes="Bold"
+                                FontSize="11" />
+                            <Label
+                                x:Name="FitosanitariaOfflineDetalleLabel"
+                                Text="Captura de campo, fotografías y cola de sincronización."
+                                FontSize="10"
+                                TextColor="#60736B"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="🌿"
+                            FontSize="28"
+                            VerticalOptions="Center" />
+                        <Button
+                            x:Name="FitosanitariaOfflineActualizarButton"
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="2"
+                            Text="Preparar / sincronizar fitosanitaria"
+                            Clicked="FitosanitariaOfflineActualizarButton_Clicked"
+                            HeightRequest="42"
+                            BackgroundColor="#EEF5F2"
+                            TextColor="#3B655B"
+                            CornerRadius="10" />
+                    </Grid>
+                </Border>
+
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                     <Border Padding="12" BackgroundColor="White" Stroke="#E2E8E5" StrokeShape="RoundRectangle 12">
                         <VerticalStackLayout Spacing="2">
@@ -252,37 +307,14 @@
                     Stroke="#DDE7E3"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 13">
-                    <Grid
-                        ColumnDefinitions="*,*"
-                        ColumnSpacing="12">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="3">
-                            <Label
-                                Text="Análisis pendientes de enviar"
-                                FontSize="10"
-                                TextColor="#60736B" />
-                            <Label
-                                x:Name="PendientesAnalisisLabel"
-                                Text="0"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                FontSize="18"
-                                TextColor="#3B655B" />
+                            <Label Text="Análisis pendientes de enviar" FontSize="10" TextColor="#60736B" />
+                            <Label x:Name="PendientesAnalisisLabel" Text="0" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="18" TextColor="#3B655B" />
                         </VerticalStackLayout>
-
-                        <VerticalStackLayout
-                            Grid.Column="1"
-                            Spacing="3">
-                            <Label
-                                Text="Requieren revisión"
-                                FontSize="10"
-                                TextColor="#60736B" />
-                            <Label
-                                x:Name="RevisionAnalisisLabel"
-                                Text="0"
-                                FontFamily="MontserratBold"
-                                FontAttributes="Bold"
-                                FontSize="18"
-                                TextColor="#9B552C" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="3">
+                            <Label Text="Requieren revisión" FontSize="10" TextColor="#60736B" />
+                            <Label x:Name="RevisionAnalisisLabel" Text="0" FontFamily="MontserratBold" FontAttributes="Bold" FontSize="18" TextColor="#9B552C" />
                         </VerticalStackLayout>
                     </Grid>
                 </Border>

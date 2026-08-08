@@ -16,6 +16,7 @@ namespace CONATRADEC.Views
 
         private int diagnosticoIdActual;
         private string origenActual = DiagnosticoIARoutes.ModoMisInspecciones;
+        private bool avisoLocalMostrado;
 
         public DiagnosticoIAResultadoPage()
         {
@@ -51,6 +52,28 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            /*
+             * Los identificadores negativos pertenecen exclusivamente a la cola
+             * fitosanitaria local. Aún no existe un expediente central que pueda
+             * analizarse; la tarjeta se conserva en Mis inspecciones hasta que
+             * una sesión en línea complete la sincronización.
+             */
+            if (diagnosticoIdActual < 0 && ModoSesionService.EsOffline)
+            {
+                if (!avisoLocalMostrado)
+                {
+                    avisoLocalMostrado = true;
+                    await DisplayAlert(
+                        "Inspección pendiente de sincronización",
+                        "Esta inspección fue guardada en el dispositivo. Sus fotografías se enviarán al servidor cuando vuelva a iniciar una sesión en línea; después podrá continuar con el análisis IA y el resto del flujo.",
+                        "Aceptar");
+                }
+
+                if (Shell.Current != null)
+                    await Shell.Current.GoToAsync("..");
+                return;
+            }
 
             /*
              * Analizador y aprobador deben reservar la ficha antes de cargar

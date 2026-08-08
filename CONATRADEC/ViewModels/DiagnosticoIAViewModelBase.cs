@@ -55,15 +55,49 @@ namespace CONATRADEC.ViewModels
 #endif
 
             bool enLinea = redDisponible && ModoSesionService.EsEnLinea;
+            if (enLinea)
+                return true;
+
+            /*
+             * El técnico sí puede registrar una nueva inspección durante una
+             * sesión sin conexión. La operación se guarda en el dispositivo y
+             * se sincroniza posteriormente; IA, analizador y aprobador siguen
+             * requiriendo el servidor para conservar concurrencia y auditoría.
+             */
+            bool esCapturaTecnico = EsPantallaCapturaTecnico();
+            if (ModoSesionService.EsOffline &&
+                esCapturaTecnico &&
+                FitosanitariaOfflineService.Instance
+                    .EstaPreparadoUsuarioActual)
+            {
+                return true;
+            }
 
             if (!enLinea && mostrarMensaje)
             {
+                string mensaje =
+                    ModoSesionService.EsOffline && esCapturaTecnico
+                        ? "La captura fitosanitaria sin conexión todavía no está preparada en este dispositivo. Inicie una sesión en línea, abra Datos sin conexión y utilice Descargar todo."
+                        : "El análisis IA, la revisión del analizador, la aprobación y la publicación en el Álbum Botánico requieren una sesión en línea. La captura de campo del técnico sí puede realizarse sin conexión después de preparar el dispositivo.";
+
                 _ = MostrarAlertaAsync(
                     "Conexión requerida",
-                    "La inspección fitosanitaria, el análisis IA y la validación humana están disponibles únicamente en línea.");
+                    mensaje);
             }
 
-            return enLinea;
+            return false;
+        }
+
+        private static bool EsPantallaCapturaTecnico()
+        {
+            string ruta = Shell.Current?
+                .CurrentState?
+                .Location?
+                .OriginalString ?? string.Empty;
+
+            return ruta.Contains(
+                "DiagnosticoIASolicitudPage",
+                StringComparison.OrdinalIgnoreCase);
         }
 
         protected static List<string> SepararLista(string? texto) =>

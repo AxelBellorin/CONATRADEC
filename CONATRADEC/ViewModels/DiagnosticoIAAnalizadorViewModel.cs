@@ -15,6 +15,8 @@ namespace CONATRADEC.ViewModels
 
         private bool catalogoTecnicosCargado;
         private bool cargandoMas;
+        private bool mostrandoRevisadas;
+        private bool cambiandoVista;
         private TecnicoInspeccionFiltroItem? tecnicoSeleccionado;
         private DateTime? siguienteFechaUtc;
         private int? siguienteId;
@@ -24,15 +26,32 @@ namespace CONATRADEC.ViewModels
         {
             ActualizarCommand = new Command(
                 async () => await ActualizarAsync(),
-                () => !IsBusy && !cargandoMas);
+                () => !IsBusy && !cargandoMas && !cambiandoVista);
 
             CargarMasCommand = new Command(
                 async () => await CargarMasAsync(),
-                () => !IsBusy && !cargandoMas && HayMas);
+                () => !IsBusy && !cargandoMas && !cambiandoVista && HayMas);
 
             AbrirCommand = new Command<InspeccionFitosanitariaBandejaItemV2>(
                 async item => await AbrirAsync(item),
-                item => item != null && !IsBusy && !cargandoMas);
+                item => item != null &&
+                    !IsBusy &&
+                    !cargandoMas &&
+                    !cambiandoVista);
+
+            VerPendientesCommand = new Command(
+                async () => await CambiarVistaAsync(revisadas: false),
+                () => MostrandoRevisadas &&
+                    !IsBusy &&
+                    !cargandoMas &&
+                    !cambiandoVista);
+
+            VerRevisadasCommand = new Command(
+                async () => await CambiarVistaAsync(revisadas: true),
+                () => !MostrandoRevisadas &&
+                    !IsBusy &&
+                    !cargandoMas &&
+                    !cambiandoVista);
         }
 
         public ObservableCollection<InspeccionFitosanitariaBandejaItemV2>
@@ -44,6 +63,8 @@ namespace CONATRADEC.ViewModels
         public Command ActualizarCommand { get; }
         public Command CargarMasCommand { get; }
         public Command<InspeccionFitosanitariaBandejaItemV2> AbrirCommand { get; }
+        public Command VerPendientesCommand { get; }
+        public Command VerRevisadasCommand { get; }
 
         public TecnicoInspeccionFiltroItem? TecnicoSeleccionado
         {
@@ -57,13 +78,46 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TecnicoFiltroTexto));
 
-                if (catalogoTecnicosCargado && !IsBusy)
+                if (catalogoTecnicosCargado && !IsBusy && !cambiandoVista)
                     _ = CargarPrimeraPaginaAsync();
             }
         }
 
         public string TecnicoFiltroTexto =>
             TecnicoSeleccionado?.TextoMostrar ?? "Todos los técnicos";
+
+        public bool MostrandoRevisadas
+        {
+            get => mostrandoRevisadas;
+            private set
+            {
+                if (mostrandoRevisadas == value)
+                    return;
+
+                mostrandoRevisadas = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(MostrandoPendientes));
+                OnPropertyChanged(nameof(SubtituloVista));
+                OnPropertyChanged(nameof(TextoSinSolicitudes));
+                OnPropertyChanged(nameof(TextoCargarMas));
+                OnPropertyChanged(nameof(TextoAbrir));
+                ActualizarComandos();
+            }
+        }
+
+        public bool MostrandoPendientes => !MostrandoRevisadas;
+
+        public string SubtituloVista => MostrandoRevisadas
+            ? "Consulte las inspecciones cuya revisión humana ya terminó para este analizador."
+            : "Revise las fotografías recibidas mientras el técnico completa el envío de la inspección.";
+
+        public string TextoSinSolicitudes => MostrandoRevisadas
+            ? "Todavía no hay inspecciones revisadas por este analizador."
+            : "No hay fotografías enviadas al analizador en este momento.";
+
+        public string TextoAbrir => MostrandoRevisadas
+            ? "Consultar revisión"
+            : "Continuar revisión";
 
         public bool SinSolicitudes =>
             !IsBusy && !cargandoMas && Solicitudes.Count == 0;
@@ -97,8 +151,11 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public string TextoCargarMas =>
-            CargandoMas ? "Cargando..." : "Cargar más inspecciones";
+        public string TextoCargarMas => CargandoMas
+            ? "Cargando..."
+            : MostrandoRevisadas
+                ? "Cargar más revisadas"
+                : "Cargar más inspecciones";
 
         public async Task InicializarAsync()
         {
@@ -110,6 +167,31 @@ namespace CONATRADEC.ViewModels
         {
             await CargarTecnicosAsync(forzar: true);
             await CargarPrimeraPaginaAsync();
+        }
+
+        private async Task CambiarVistaAsync(bool revisadas)
+        {
+            if (MostrandoRevisadas == revisadas ||
+                cambiandoVista || IsBusy || CargandoMas)
+            {
+                return;
+            }
+
+            cambiandoVista = true;
+            ActualizarComandos();
+
+            try
+            {
+                MostrandoRevisadas = revisadas;
+                catalogoTecnicosCargado = false;
+                await CargarTecnicosAsync(forzar: true);
+                await CargarPrimeraPaginaAsync();
+            }
+            finally
+            {
+                cambiandoVista = false;
+                ActualizarComandos();
+            }
         }
 
         private async Task CargarTecnicosAsync(bool forzar = false)
@@ -125,9 +207,12 @@ namespace CONATRADEC.ViewModels
                 int tecnicoSeleccionadoId =
                     tecnicoSeleccionado?.UsuarioTecnicoId ?? 0;
 
+                string modo = MostrandoRevisadas
+                    ? DiagnosticoIARoutes.ModoAnalizadorRevisadas
+                    : DiagnosticoIARoutes.ModoAnalizador;
+
                 TecnicoInspeccionFiltroRespuesta respuesta =
-                    await filtrosApi.ObtenerTecnicosAsync(
-                        DiagnosticoIARoutes.ModoAnalizador);
+                    await filtrosApi.ObtenerTecnicosAsync(modo);
 
                 TecnicosFiltro.Clear();
                 TecnicosFiltro.Add(TecnicoInspeccionFiltroItem.Todos());
@@ -158,7 +243,7 @@ namespace CONATRADEC.ViewModels
 
         private async Task CargarMasAsync()
         {
-            if (!HayMas || CargandoMas || IsBusy)
+            if (!HayMas || CargandoMas || IsBusy || cambiandoVista)
                 return;
 
             CargandoMas = true;
@@ -174,21 +259,31 @@ namespace CONATRADEC.ViewModels
 
         private async Task CargarPaginaAsync(bool reemplazar)
         {
-            if ((IsBusy && reemplazar) || !ValidarEnLinea(false))
+            if ((IsBusy && reemplazar) ||
+                (cambiandoVista && !reemplazar) ||
+                !ValidarEnLinea(false))
+            {
                 return;
+            }
 
             if (reemplazar)
             {
                 IsBusy = true;
-                MensajeEstado = "Cargando inspecciones pendientes del analizador...";
+                MensajeEstado = MostrandoRevisadas
+                    ? "Cargando inspecciones revisadas por el analizador..."
+                    : "Cargando inspecciones pendientes del analizador...";
                 ActualizarComandos();
             }
 
             try
             {
+                string modo = MostrandoRevisadas
+                    ? DiagnosticoIARoutes.ModoAnalizadorRevisadas
+                    : DiagnosticoIARoutes.ModoAnalizador;
+
                 InspeccionFitosanitariaBandejaPaginaV2 pagina =
                     await api.ObtenerPaginaAsync(
-                        DiagnosticoIARoutes.ModoAnalizador,
+                        modo,
                         TecnicoSeleccionado?.UsuarioTecnicoId is > 0
                             ? TecnicoSeleccionado.UsuarioTecnicoId
                             : null,
@@ -235,13 +330,17 @@ namespace CONATRADEC.ViewModels
         private async Task AbrirAsync(
             InspeccionFitosanitariaBandejaItemV2? item)
         {
-            if (item == null || IsBusy || CargandoMas)
+            if (item == null || IsBusy || CargandoMas || cambiandoVista)
                 return;
+
+            string origen = MostrandoRevisadas
+                ? DiagnosticoIARoutes.ModoAnalizadorRevisadas
+                : DiagnosticoIARoutes.ModoAnalizador;
 
             await GoToAsyncParameters(
                 DiagnosticoIARoutes.CrearRutaResultado(
                     item.InspeccionId,
-                    DiagnosticoIARoutes.ModoAnalizador));
+                    origen));
         }
 
         private void ActualizarComandos()
@@ -249,6 +348,8 @@ namespace CONATRADEC.ViewModels
             ActualizarCommand.ChangeCanExecute();
             CargarMasCommand.ChangeCanExecute();
             AbrirCommand.ChangeCanExecute();
+            VerPendientesCommand.ChangeCanExecute();
+            VerRevisadasCommand.ChangeCanExecute();
         }
     }
 }

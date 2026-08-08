@@ -69,6 +69,60 @@ namespace CONATRADEC.Services
         {
             ArgumentNullException.ThrowIfNull(filtro);
 
+            string modo = NormalizarModo(filtro.Modo);
+
+            /*
+             * Al volver de una jornada sin conexión, Mis inspecciones intenta
+             * enviar primero la cola fitosanitaria. Un error de sincronización
+             * no bloquea la consulta central: la copia local se conserva para
+             * reintentar desde Datos sin conexión.
+             */
+            if (ModoSesionService.EsEnLinea &&
+                (modo is DiagnosticoIARoutes.ModoMisInspecciones or
+                    DiagnosticoIARoutes.ModoDecisionesPendientes))
+            {
+                try
+                {
+                    await FitosanitariaOfflineService.Instance
+                        .SincronizarPendientesAsync(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // La bandeja en línea continúa con los datos del servidor.
+                }
+            }
+
+            /*
+             * Mis inspecciones, Decisiones pendientes e Historial comparten la
+             * misma consulta moderna por fotografía. Así una misma inspección
+             * conserva exactamente el mismo estado funcional sin importar la
+             * bandeja desde la que se consulte.
+             */
+            bool usaBandejaUnificada = modo is
+                DiagnosticoIARoutes.ModoMisInspecciones or
+                DiagnosticoIARoutes.ModoDecisionesPendientes or
+                DiagnosticoIARoutes.ModoHistorial;
+
+            if (usaBandejaUnificada)
+            {
+                if (modo == DiagnosticoIARoutes.ModoHistorial)
+                {
+                    filtro.TecnicoId ??=
+                        ObtenerTecnicoContextual(filtro.Modo);
+                }
+
+                var operativa = new
+                    InspeccionFitosanitariaBandejaOperativaApiService();
+
+                return await operativa.ObtenerPaginaAsync(
+                    filtro,
+                    cancellationToken);
+            }
+
             string ruta = ConstruirRuta(filtro);
             SesionInactividadService.Instance.RegistrarActividad();
 
@@ -109,9 +163,19 @@ namespace CONATRADEC.Services
                 string modo,
                 CancellationToken cancellationToken = default)
         {
-            string ruta =
-                "api/inspecciones-fitosanitarias/bandeja-tecnicos?modo=" +
-                Uri.EscapeDataString(NormalizarModo(modo));
+            string normalizado = NormalizarModo(modo);
+            bool usaBandejaRevision = normalizado is
+                DiagnosticoIARoutes.ModoAnalizador or
+                DiagnosticoIARoutes.ModoAnalizadorRevisadas or
+                DiagnosticoIARoutes.ModoAprobador or
+                DiagnosticoIARoutes.ModoAprobadorRevisadas or
+                DiagnosticoIARoutes.ModoHistorial;
+
+            string ruta = usaBandejaRevision
+                ? "api/revision-fitosanitaria/tecnicos?modo=" +
+                  Uri.EscapeDataString(normalizado)
+                : "api/inspecciones-fitosanitarias/bandeja-tecnicos?modo=" +
+                  Uri.EscapeDataString(normalizado);
 
             TecnicoInspeccionFiltroRespuesta respuesta =
                 await GetDataAsync<TecnicoInspeccionFiltroRespuesta>(

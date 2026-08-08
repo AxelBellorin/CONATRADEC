@@ -11,19 +11,32 @@ namespace CONATRADEC.Services
     /// incluso si un servicio antiguo intenta llamar a base.SendAsync.
     /// La respuesta se genera inmediatamente, sin DNS, socket, timeout ni
     /// comprobación de conectividad.
+    ///
+    /// La captura fitosanitaria constituye una excepción controlada: la
+    /// creación de inspecciones y su bandeja local se resuelven íntegramente en
+    /// el dispositivo y continúan sin tocar la red.
     /// </summary>
     public sealed class ModoSesionHttpHandler : DelegatingHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             if (ModoSesionService.EsEnLinea)
             {
-                return base.SendAsync(
+                return await base.SendAsync(
                     request,
                     cancellationToken);
             }
+
+            HttpResponseMessage? respuestaFitosanitaria =
+                await FitosanitariaOfflineService.Instance
+                    .IntentarProcesarSolicitudAsync(
+                        request,
+                        cancellationToken);
+
+            if (respuestaFitosanitaria != null)
+                return respuestaFitosanitaria;
 
             bool esOperacionEscritura =
                 request.Method != HttpMethod.Get &&
@@ -58,7 +71,7 @@ namespace CONATRADEC.Services
                     ? "LOCAL-ESCRITURA-BLOQUEADA"
                     : OfflineReadResponseService.OrigenSinDatos);
 
-            return Task.FromResult(response);
+            return response;
         }
     }
 }
