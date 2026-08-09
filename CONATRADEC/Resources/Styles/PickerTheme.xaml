@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!--
+        Normalización global de Picker para CONATRADEC.
+        Mantiene la apariencia de cada familia de controles y únicamente
+        garantiza una altura suficiente en móvil, tablet y escritorio.
+    -->
+
+    <!--
+        Picker sin estilo explícito.
+        Conserva la apariencia base definida históricamente en Styles.xaml.
+        MinimumHeightRequest también protege los Picker que todavía declaran
+        HeightRequest=42/44 en algunas pantallas antiguas.
+    -->
+    <Style TargetType="Picker">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+        <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray200}}" />
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="FontFamily" Value="OpenSansRegular" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="HeightRequest" Value="{OnIdiom Phone=50, Tablet=54, Desktop=60}" />
+        <Setter Property="MinimumHeightRequest" Value="{OnIdiom Phone=50, Tablet=54, Desktop=60}" />
+        <Setter Property="MinimumWidthRequest" Value="44" />
+        <Setter Property="VerticalOptions" Value="Center" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                            <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!-- Picker del sistema visual moderno. -->
+    <Style x:Key="ModernPicker" TargetType="Picker">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HeightRequest" Value="{OnIdiom Phone=50, Tablet=54, Desktop=60}" />
+        <Setter Property="MinimumHeightRequest" Value="{OnIdiom Phone=50, Tablet=54, Desktop=60}" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <!-- Picker histórico utilizado por análisis y cálculos. -->
+    <Style x:Key="InputPickerStyle" TargetType="Picker">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+        <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" />
+        <Setter Property="FontFamily" Value="MontserratMedium" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HeightRequest" Value="{OnIdiom Phone=50, Tablet=54, Desktop=60}" />
+        <Setter Property="MinimumHeightRequest" Value="{OnIdiom Phone=50, Tablet=54, Desktop=60}" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+</ResourceDictionary>

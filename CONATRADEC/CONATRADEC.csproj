@@ -217,6 +217,9 @@
 		<MauiXaml Update="Resources\Styles\ModernTheme.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Resources\Styles\PickerTheme.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Resources\Styles\SwipeViewMouseStyles.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

@@ -50,6 +50,14 @@
                 <ResourceDictionary
                     Source="Resources/Styles/InspectionTheme.xaml" />
 
+                <!--
+                    Normalización global de Picker.
+                    Se carga al final para corregir el recorte vertical en WinUI
+                    sin modificar bindings, eventos, validaciones ni lógica.
+                -->
+                <ResourceDictionary
+                    Source="Resources/Styles/PickerTheme.xaml" />
+
             </ResourceDictionary.MergedDictionaries>
 
         </ResourceDictionary>
