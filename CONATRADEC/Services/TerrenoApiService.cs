@@ -101,8 +101,18 @@ namespace CONATRADEC.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    string contenido = await response.Content
+                        .ReadAsStringAsync(cancellationToken);
+
+                    string mensaje = ApiErrorMessageParser.Parse(
+                        response.StatusCode,
+                        contenido,
+                        ObtenerMensajeHttp(
+                            response.StatusCode,
+                            "crear el terreno"));
+
                     return ApiResult<bool>.Fail(
-                        ObtenerMensajeHttp(response.StatusCode, "crear el terreno"),
+                        mensaje,
                         (int)response.StatusCode);
                 }
 
@@ -146,8 +156,18 @@ namespace CONATRADEC.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    string contenidoError = await response.Content
+                        .ReadAsStringAsync(cancellationToken);
+
+                    string mensaje = ApiErrorMessageParser.Parse(
+                        response.StatusCode,
+                        contenidoError,
+                        ObtenerMensajeHttp(
+                            response.StatusCode,
+                            "crear el terreno"));
+
                     return ApiResult<TerrenoResponse>.Fail(
-                        ObtenerMensajeHttp(response.StatusCode, "crear el terreno"),
+                        mensaje,
                         (int)response.StatusCode);
                 }
 
