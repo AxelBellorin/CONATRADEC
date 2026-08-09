@@ -119,6 +119,16 @@ namespace CONATRADEC.Models
             !EsLocalPendiente &&
             !CerradaDefinitiva && Procesando > 0;
 
+        /// <summary>
+        /// En la bandeja del aprobador, una revisión puede haber terminado su
+        /// decisión técnica y aun conservar administración posterior del Álbum.
+        /// </summary>
+        public bool TieneGestionPosteriorAlbum =>
+            !EsLocalPendiente &&
+            EtapaTecnicaFinalizada &&
+            PendientesAprobacion == 0 &&
+            (Estado is "FINALIZADA" or "FINALIZADA_PARCIALMENTE");
+
         public string NombreInspeccionTexto =>
             string.IsNullOrWhiteSpace(NombreInspeccion)
                 ? EsLocalPendiente
@@ -201,9 +211,9 @@ namespace CONATRADEC.Models
                     return Estado switch
                     {
                         "PENDIENTE_APROBACION" => "Pendiente de aprobación",
-                        "FINALIZADA" => "Revisión completada",
+                        "FINALIZADA" => "Decisión técnica completada",
                         "FINALIZADA_PARCIALMENTE" =>
-                            "Revisión completada parcialmente",
+                            "Decisión técnica completada parcialmente",
                         _ => "En revisión humana"
                     };
                 }
@@ -272,6 +282,19 @@ namespace CONATRADEC.Models
                         : EtapaTecnicaFinalizada
                             ? "Ver avance de revisión"
                             : "Abrir inspección";
+
+        /// <summary>
+        /// Texto exclusivo de la bandeja del aprobador. Una decisión técnica
+        /// terminada sigue permitiendo administrar clasificación, autorización
+        /// y publicación del Álbum sin reabrir la aprobación original.
+        /// </summary>
+        public string TextoAbrirAprobador => TieneGestionPosteriorAlbum
+            ? "Administrar resultado"
+            : "Abrir revisión";
+
+        public string AyudaAlbumAprobador => TieneGestionPosteriorAlbum
+            ? "Decisión técnica cerrada · clasificación, autorización y publicación del Álbum se administran por separado."
+            : string.Empty;
 
         public string Resumen =>
             EsLocalPendiente

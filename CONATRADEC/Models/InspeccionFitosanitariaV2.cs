@@ -361,6 +361,7 @@ namespace CONATRADEC.Models
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneJerarquiaAlbum));
                 OnPropertyChanged(nameof(TieneClasificacionAlbumCompleta));
+                OnPropertyChanged(nameof(TieneClasificacionAlbumOficial));
             }
         }
 
@@ -377,6 +378,18 @@ namespace CONATRADEC.Models
             JerarquiaAlbum?.AlbumBotanicoCafeId is > 0 &&
             JerarquiaAlbum.CategoriaEsPropuesta == false &&
             JerarquiaAlbum.FichaEsPropuesta == false;
+
+        /// <summary>
+        /// Una clasificación se considera oficial únicamente cuando el
+        /// aprobador la confirmó. Una propuesta del analizador puede contener
+        /// IDs válidos del catálogo y aun así seguir pendiente de aprobación.
+        /// </summary>
+        public bool TieneClasificacionAlbumOficial =>
+            TieneClasificacionAlbumCompleta &&
+            string.Equals(
+                JerarquiaAlbum?.Estado,
+                "RESUELTA_APROBADOR",
+                StringComparison.OrdinalIgnoreCase);
 
         public bool Seleccionada
         {
@@ -412,6 +425,11 @@ namespace CONATRADEC.Models
             InspeccionFotoEstados.Descartada or
             InspeccionFotoEstados.PublicadaAlbum;
 
+        public bool EstaAprobadaTecnicamente => Estado is
+            InspeccionFotoEstados.Aprobada or
+            InspeccionFotoEstados.AprobadaConCorreccion or
+            InspeccionFotoEstados.PublicadaAlbum;
+
         public bool EstaProcesando =>
             Estado == InspeccionFotoEstados.AnalizandoIA;
 
@@ -428,13 +446,18 @@ namespace CONATRADEC.Models
 
         public bool PuedeSeleccionarse => !EsSoloConsulta;
 
-        public string DisponibilidadTexto => PuedePublicarseEnAlbum
-            ? "Proceso finalizado · disponible para copiar al Álbum Botánico"
-            : EsEstadoFinal || Descartada
-                ? "Proceso finalizado · solo consulta"
-                : EstaProcesando
-                    ? "Procesamiento en curso"
-                    : string.Empty;
+        public string DisponibilidadTexto => PublicadaAlbum ||
+                                              Estado == InspeccionFotoEstados.PublicadaAlbum
+            ? "Decisión técnica finalizada · publicada en el Álbum Botánico"
+            : EstaAprobadaTecnicamente
+                ? TieneClasificacionAlbumOficial
+                    ? "Decisión técnica finalizada · clasificación oficial del Álbum confirmada"
+                    : "Decisión técnica finalizada · clasificación del Álbum pendiente de confirmar"
+                : EsEstadoFinal || Descartada
+                    ? "Proceso finalizado · solo consulta"
+                    : EstaProcesando
+                        ? "Procesamiento en curso"
+                        : string.Empty;
 
         public bool TieneMensajeDisponibilidad =>
             !string.IsNullOrWhiteSpace(DisponibilidadTexto);

@@ -54,7 +54,7 @@
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="Asignación de expedientes" FontSize="14" FontAttributes="Bold" TextColor="#263A35" />
                                     <Label
-                                        Text="Mis expedientes contiene únicamente los asignados a usted. Disponibles muestra los que todavía no tienen aprobador. Revisados conserva sus decisiones ya emitidas."
+                                        Text="Mis expedientes contiene únicamente los asignados a usted. Disponibles muestra los que todavía no tienen aprobador. Revisados conserva las decisiones técnicas ya emitidas y permite administrar posteriormente la clasificación, autorización y publicación del Álbum Botánico."
                                         FontSize="11"
                                         TextColor="#5E6B67"
                                         LineBreakMode="WordWrap" />
@@ -295,6 +295,13 @@
                                     <Label Text="{Binding PropietarioTexto, StringFormat='Propietario: {0}'}" FontSize="12" TextColor="#5E6B67" LineBreakMode="TailTruncation" />
                                     <Label Text="{Binding UbicacionTexto}" FontSize="11" TextColor="#6B7773" />
                                     <Label Text="{Binding Resumen}" FontSize="12" TextColor="#5E6B67" LineBreakMode="WordWrap" />
+                                    <Label
+                                        Text="{Binding AyudaAlbumAprobador}"
+                                        FontSize="11"
+                                        FontAttributes="Bold"
+                                        TextColor="#7A5A13"
+                                        LineBreakMode="WordWrap"
+                                        IsVisible="{Binding TieneGestionPosteriorAlbum}" />
                                     <Label Text="{Binding FechaTexto, StringFormat='Registrada: {0}'}" FontSize="12" TextColor="#7A8581" />
                                     <Label Text="{Binding AsignacionTexto}" FontSize="11" TextColor="#52665F" LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
@@ -310,7 +317,7 @@
                                     </Border>
 
                                     <Button
-                                        Text="Abrir revisión"
+                                        Text="{Binding TextoAbrirAprobador}"
                                         Command="{Binding Source={x:Reference PaginaAprobador}, Path=BindingContext.AbrirCommand}"
                                         CommandParameter="{Binding .}"
                                         HeightRequest="46"
