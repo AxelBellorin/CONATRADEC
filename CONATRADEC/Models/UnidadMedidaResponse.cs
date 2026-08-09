@@ -40,9 +40,25 @@
         {
             get
             {
-                return $"{NombreUnidadMedida} {DescripcionUnidadMedida} {SimboloUnidadMedida} {AbreviaturaUnidadMedida}"
+                /*
+                 * La descripción puede explicar que una unidad se convierte
+                 * internamente a porcentaje. No debe hacer que esa unidad sea
+                 * identificada como "%" por las validaciones del formulario.
+                 *
+                 * Se conservan los demás términos descriptivos para no perder
+                 * utilidad en búsquedas, pero los indicadores exclusivos de
+                 * porcentaje se toman solamente del nombre, símbolo o
+                 * abreviatura reales de la unidad.
+                 */
+                string descripcion =
+                    (DescripcionUnidadMedida ?? string.Empty)
+                        .ToUpperInvariant()
+                        .Replace("%", string.Empty)
+                        .Replace("PORCENTAJE", string.Empty);
+
+                return $"{NombreUnidadMedida} {descripcion} {SimboloUnidadMedida} {AbreviaturaUnidadMedida}"
                     .Trim()
-                    .ToUpper();
+                    .ToUpperInvariant();
             }
         }
 
