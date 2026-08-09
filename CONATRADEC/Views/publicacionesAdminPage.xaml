@@ -11,14 +11,72 @@
     ControlTemplate="{StaticResource FooterTemplate}">
 
     <Grid>
-        <Grid x:Name="ContenidoPrincipal">
+        <Grid
+            x:Name="ContenidoPrincipal"
+            RowDefinitions="Auto,*">
+
+            <!-- SearchBar estable fuera del CollectionView virtualizado. -->
+            <VerticalStackLayout
+                Grid.Row="0"
+                Margin="{OnIdiom Phone='12,12,12,10', Tablet='20,18,20,12', Desktop='28,22,28,14'}"
+                Spacing="10">
+
+                <Border Style="{StaticResource ModernHeroCard}">
+                    <Grid
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                        RowSpacing="12"
+                        ColumnSpacing="14">
+                        <VerticalStackLayout Spacing="4">
+                            <Button
+                                Text="← Noticias"
+                                Command="{Binding RegresarCommand}"
+                                Style="{StaticResource ModernLinkButton}"
+                                HorizontalOptions="Start"
+                                Margin="-8,-5,0,0" />
+                            <Label
+                                Text="Administrar publicaciones"
+                                Style="{StaticResource ModernPageTitle}" />
+                            <Label
+                                Text="Gestione noticias, eventos, vigencia y publicaciones destacadas."
+                                Style="{StaticResource ModernPageSubtitle}" />
+                            <Label
+                                Text="{Binding TotalTexto}"
+                                Style="{StaticResource ModernCaption}" />
+                        </VerticalStackLayout>
+
+                        <Button
+                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                            Text="Nueva publicación"
+                            Command="{Binding NuevaCommand}"
+                            IsVisible="{Binding CanAdd}"
+                            Style="{StaticResource ModernPrimaryButton}"
+                            HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                            VerticalOptions="End"
+                            MinimumWidthRequest="{OnIdiom Phone=0, Default=170}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource ModernCard}" Padding="8">
+                    <Border Style="{StaticResource ModernInputBorder}">
+                        <SearchBar
+                            Placeholder="Buscar por título o contenido"
+                            Text="{Binding TextoBusqueda}"
+                            SearchCommand="{Binding BuscarCommand}"
+                            Style="{StaticResource ModernSearchBar}" />
+                    </Border>
+                </Border>
+            </VerticalStackLayout>
+
             <RefreshView
+                Grid.Row="1"
                 IsRefreshing="{Binding IsRefreshing}"
                 Command="{Binding RefrescarCommand}"
                 RefreshColor="{StaticResource color_Verde}">
 
                 <CollectionView
-                    Margin="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}"
+                    Margin="{OnIdiom Phone='12,0,12,20', Tablet='20,0,20,26', Desktop='28,0,28,30'}"
                     ItemsSource="{Binding Publicaciones}"
                     SelectionMode="None"
                     ItemSizingStrategy="MeasureFirstItem"
@@ -34,88 +92,41 @@
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.Header>
-                        <VerticalStackLayout Spacing="14" Margin="0,0,0,14">
-                            <Border Style="{StaticResource ModernHeroCard}">
+                        <VerticalStackLayout Spacing="10" Margin="0,0,0,14">
+                            <Border Style="{StaticResource ModernCard}">
                                 <Grid
                                     RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
-                                    RowSpacing="12"
-                                    ColumnSpacing="14">
-                                    <VerticalStackLayout Spacing="4">
-                                        <Button
-                                            Text="← Noticias"
-                                            Command="{Binding RegresarCommand}"
-                                            Style="{StaticResource ModernLinkButton}"
-                                            HorizontalOptions="Start"
-                                            Margin="-8,-5,0,0" />
-                                        <Label
-                                            Text="Administrar publicaciones"
-                                            Style="{StaticResource ModernPageTitle}" />
-                                        <Label
-                                            Text="Gestione noticias, eventos, vigencia y publicaciones destacadas."
-                                            Style="{StaticResource ModernPageSubtitle}" />
-                                        <Label
-                                            Text="{Binding TotalTexto}"
-                                            Style="{StaticResource ModernCaption}" />
-                                    </VerticalStackLayout>
-
+                                    ColumnDefinitions="{OnIdiom Phone='*,*', Default='1*,1*,Auto,Auto'}"
+                                    ColumnSpacing="8"
+                                    RowSpacing="8">
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <Picker
+                                            Title="Categoría"
+                                            ItemsSource="{Binding Categorias}"
+                                            ItemDisplayBinding="{Binding Nombre}"
+                                            SelectedItem="{Binding CategoriaSeleccionada}"
+                                            Style="{StaticResource ModernPicker}" />
+                                    </Border>
+                                    <Border Grid.Column="1" Style="{StaticResource ModernInputBorder}">
+                                        <Picker
+                                            Title="Estado"
+                                            ItemsSource="{Binding Estados}"
+                                            SelectedItem="{Binding EstadoSeleccionado}"
+                                            Style="{StaticResource ModernPicker}" />
+                                    </Border>
                                     <Button
                                         Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                        Text="Nueva publicación"
-                                        Command="{Binding NuevaCommand}"
-                                        IsVisible="{Binding CanAdd}"
-                                        Style="{StaticResource ModernPrimaryButton}"
-                                        HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
-                                        VerticalOptions="End"
-                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=170}" />
+                                        Grid.Column="{OnIdiom Phone=0, Default=2}"
+                                        Text="Buscar"
+                                        Command="{Binding BuscarCommand}"
+                                        Style="{StaticResource ModernPrimaryButton}" />
+                                    <Button
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=1, Default=3}"
+                                        Text="Limpiar"
+                                        Command="{Binding LimpiarFiltrosCommand}"
+                                        Style="{StaticResource ModernNeutralButton}" />
                                 </Grid>
-                            </Border>
-
-                            <Border Style="{StaticResource ModernCard}">
-                                <VerticalStackLayout Spacing="10">
-                                    <Border Style="{StaticResource ModernInputBorder}">
-                                        <SearchBar
-                                            Placeholder="Buscar por título o contenido"
-                                            Text="{Binding TextoBusqueda}"
-                                            SearchCommand="{Binding BuscarCommand}"
-                                            Style="{StaticResource ModernSearchBar}" />
-                                    </Border>
-
-                                    <Grid
-                                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                                        ColumnDefinitions="{OnIdiom Phone='*,*', Default='1*,1*,Auto,Auto'}"
-                                        ColumnSpacing="8"
-                                        RowSpacing="8">
-                                        <Border Style="{StaticResource ModernInputBorder}">
-                                            <Picker
-                                                Title="Categoría"
-                                                ItemsSource="{Binding Categorias}"
-                                                ItemDisplayBinding="{Binding Nombre}"
-                                                SelectedItem="{Binding CategoriaSeleccionada}"
-                                                Style="{StaticResource ModernPicker}" />
-                                        </Border>
-                                        <Border Grid.Column="1" Style="{StaticResource ModernInputBorder}">
-                                            <Picker
-                                                Title="Estado"
-                                                ItemsSource="{Binding Estados}"
-                                                SelectedItem="{Binding EstadoSeleccionado}"
-                                                Style="{StaticResource ModernPicker}" />
-                                        </Border>
-                                        <Button
-                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                            Grid.Column="{OnIdiom Phone=0, Default=2}"
-                                            Text="Buscar"
-                                            Command="{Binding BuscarCommand}"
-                                            Style="{StaticResource ModernPrimaryButton}" />
-                                        <Button
-                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                            Grid.Column="{OnIdiom Phone=1, Default=3}"
-                                            Text="Limpiar"
-                                            Command="{Binding LimpiarFiltrosCommand}"
-                                            Style="{StaticResource ModernNeutralButton}" />
-                                    </Grid>
-                                </VerticalStackLayout>
                             </Border>
 
                             <Border
@@ -250,20 +261,25 @@
                     </CollectionView.ItemTemplate>
 
                     <CollectionView.EmptyView>
-                        <Border
-                            IsVisible="{Binding MostrarVacio}"
-                            Style="{StaticResource ModernEmptyStateCard}">
-                            <VerticalStackLayout Spacing="8">
-                                <Label
-                                    Text="No hay publicaciones administrativas"
-                                    Style="{StaticResource ModernSectionTitle}"
-                                    HorizontalTextAlignment="Center" />
-                                <Label
-                                    Text="Cree una publicación o cambie los filtros."
-                                    Style="{StaticResource ModernPageSubtitle}"
-                                    HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
-                        </Border>
+                        <Grid Padding="12,24">
+                            <Border
+                                IsVisible="{Binding MostrarVacio}"
+                                Style="{StaticResource ModernEmptyStateCard}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Start"
+                                MaximumWidthRequest="560">
+                                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                    <Label
+                                        Text="No hay publicaciones administrativas"
+                                        Style="{StaticResource ModernSectionTitle}"
+                                        HorizontalTextAlignment="Center" />
+                                    <Label
+                                        Text="Cree una publicación o cambie los filtros."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
                     </CollectionView.EmptyView>
 
                     <CollectionView.Footer>
@@ -282,6 +298,7 @@
             </RefreshView>
 
             <Grid
+                Grid.RowSpan="2"
                 IsVisible="{Binding IsBusy}"
                 BackgroundColor="#52000000"
                 InputTransparent="False">

@@ -10,8 +10,35 @@
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
-        <Grid Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
+        <Grid
+            Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}"
+            RowDefinitions="Auto,*"
+            RowSpacing="12">
+
+            <!--
+                El buscador queda fuera del encabezado virtualizado para que
+                WinUI conserve el foco y la escritura fluida al refrescar datos.
+            -->
+            <VerticalStackLayout Grid.Row="0" Spacing="12">
+                <controls:ResponsiveCatalogHeader
+                    Title="{Binding Titulo}"
+                    Subtitle="{Binding DescripcionCategoria}"
+                    BackText="← Cultivos"
+                    BackCommand="{Binding BackCommand}"
+                    PrimaryText="+ Nuevo rango"
+                    PrimaryCommand="{Binding AddCommand}"
+                    IsPrimaryVisible="{Binding CanAdd}" />
+
+                <controls:ResponsiveSearchPanel
+                    Placeholder="Buscar por elemento, símbolo o descripción"
+                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                    SummaryText="{Binding ResumenAportes}"
+                    SearchCommand="{Binding BuscarCommand}"
+                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
+            </VerticalStackLayout>
+
             <RefreshView
+                Grid.Row="1"
                 IsRefreshing="{Binding IsRefreshing}"
                 Command="{Binding RefrescarCommand}">
                 <CollectionView
@@ -30,36 +57,22 @@
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.Header>
-                        <VerticalStackLayout Padding="0,0,0,14" Spacing="12">
-                            <controls:ResponsiveCatalogHeader
-                                Title="{Binding Titulo}"
-                                Subtitle="{Binding DescripcionCategoria}"
-                                BackText="← Cultivos"
-                                BackCommand="{Binding BackCommand}"
-                                PrimaryText="+ Nuevo rango"
-                                PrimaryCommand="{Binding AddCommand}"
-                                IsPrimaryVisible="{Binding CanAdd}" />
-
-                            <controls:ResponsiveSearchPanel
-                                Placeholder="Buscar por elemento, símbolo o descripción"
-                                SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
-                                SummaryText="{Binding ResumenAportes}"
-                                SearchCommand="{Binding BuscarCommand}"
-                                ClearCommand="{Binding LimpiarFiltrosCommand}" />
-
-                            <Border
-                                IsVisible="{Binding TieneMensaje}"
-                                Style="{StaticResource ModernWarningBanner}">
-                                <Label Text="{Binding Mensaje}" Style="{StaticResource ModernPageSubtitle}" />
-                            </Border>
-                        </VerticalStackLayout>
+                        <Border
+                            Margin="0,0,0,12"
+                            IsVisible="{Binding TieneMensaje}"
+                            Style="{StaticResource ModernWarningBanner}">
+                            <Label Text="{Binding Mensaje}" Style="{StaticResource ModernPageSubtitle}" />
+                        </Border>
                     </CollectionView.Header>
 
                     <CollectionView.EmptyView>
                         <Grid Padding="20,30">
                             <Border
                                 IsVisible="{Binding MostrarVacio}"
-                                Style="{StaticResource ModernEmptyStateCard}">
+                                Style="{StaticResource ModernEmptyStateCard}"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Start"
+                                MaximumWidthRequest="560">
                                 <VerticalStackLayout Spacing="9" HorizontalOptions="Center">
                                     <Border Style="{StaticResource ModernIconTile}">
                                         <Label
@@ -173,6 +186,7 @@
             </RefreshView>
 
             <Grid
+                Grid.RowSpan="2"
                 ZIndex="100"
                 IsVisible="{Binding IsBusy}"
                 InputTransparent="False"

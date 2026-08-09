@@ -39,7 +39,10 @@
                             RowSpacing="13">
                             <VerticalStackLayout x:Name="ElementoSection" Grid.Row="0" Spacing="6">
                                 <Label Text="Elemento químico" Style="{StaticResource ModernFieldLabel}" />
-                                <Border Style="{StaticResource ModernInputBorder}">
+                                <Border
+                                    Style="{StaticResource ModernInputBorder}"
+                                    Padding="10,2"
+                                    MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}">
                                     <Border.Triggers>
                                         <DataTrigger TargetType="Border" Binding="{Binding TieneErrorElemento}" Value="True">
                                             <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
@@ -52,7 +55,10 @@
                                         ItemDisplayBinding="{Binding Texto}"
                                         Title="Seleccione un elemento"
                                         IsEnabled="{Binding IsEditable}"
-                                        Style="{StaticResource ModernPicker}" />
+                                        Style="{StaticResource ModernPicker}"
+                                        HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        VerticalOptions="Center" />
                                 </Border>
                                 <Label Text="{Binding ErrorElemento}" IsVisible="{Binding TieneErrorElemento}" FontSize="11" TextColor="{StaticResource RedDelete}" />
                             </VerticalStackLayout>

@@ -50,11 +50,30 @@
             <Grid
                 IsVisible="{Binding CanView}"
                 Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}"
-                RowDefinitions="*"
+                RowDefinitions="Auto,*"
                 RowSpacing="12">
 
+                <!-- Buscador estable fuera del CollectionView virtualizado. -->
+                <VerticalStackLayout Grid.Row="0" Spacing="12">
+                    <controls:ResponsiveCatalogHeader
+                        Title="Roles"
+                        Subtitle="Administre los perfiles utilizados para asignar usuarios y permisos."
+                        BackText="← Configuración"
+                        BackCommand="{Binding RegresarConfiguracionCommand}"
+                        PrimaryText="+ Nuevo rol"
+                        PrimaryCommand="{Binding AddCommand}"
+                        IsPrimaryVisible="{Binding CanAdd}" />
+
+                    <controls:ResponsiveSearchPanel
+                        Placeholder="Buscar por nombre o descripción"
+                        SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                        SummaryText="{Binding ResumenResultados}"
+                        SearchCommand="{Binding BuscarCommand}"
+                        ClearCommand="{Binding LimpiarFiltrosCommand}" />
+                </VerticalStackLayout>
+
                 <RefreshView
-                    Grid.Row="0"
+                    Grid.Row="1"
                     IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
 
@@ -65,35 +84,16 @@
                         RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
 
                         <CollectionView.Header>
-                            <VerticalStackLayout
-                                Padding="0,0,0,12"
-                                Spacing="12">
-                                <controls:ResponsiveCatalogHeader
-                                                    Title="Roles"
-                                                    Subtitle="Administre los perfiles utilizados para asignar usuarios y permisos."
-                                                    BackText="← Configuración"
-                                                    BackCommand="{Binding RegresarConfiguracionCommand}"
-                                                    PrimaryText="+ Nuevo rol"
-                                                    PrimaryCommand="{Binding AddCommand}"
-                                                    IsPrimaryVisible="{Binding CanAdd}" />
-                                
-                                                <controls:ResponsiveSearchPanel
-                                                    Placeholder="Buscar por nombre o descripción"
-                                                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
-                                                    SummaryText="{Binding ResumenResultados}"
-                                                    SearchCommand="{Binding BuscarCommand}"
-                                                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
-                                
-                                                <Border
-                                                    IsVisible="{Binding TieneMensaje}"
-                                                    Style="{StaticResource ModernWarningBanner}">
-                                                    <Label
-                                                        Text="{Binding Mensaje}"
-                                                        FontFamily="MontserratMedium"
-                                                        FontSize="12"
-                                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
-                                                </Border>
-                            </VerticalStackLayout>
+                            <Border
+                                Margin="0,0,0,12"
+                                IsVisible="{Binding TieneMensaje}"
+                                Style="{StaticResource ModernWarningBanner}">
+                                <Label
+                                    Text="{Binding Mensaje}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                            </Border>
                         </CollectionView.Header>
 
                         <CollectionView.ItemsLayout>
@@ -109,7 +109,10 @@
                             <Grid Padding="12,24">
                                 <Border
                                     IsVisible="{Binding MostrarVacio}"
-                                    Style="{StaticResource ModernEmptyStateCard}">
+                                    Style="{StaticResource ModernEmptyStateCard}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Start"
+                                    MaximumWidthRequest="560">
                                     <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                         <Border
                                             Style="{StaticResource ModernIconTile}"
@@ -243,7 +246,7 @@
                 </RefreshView>
 
                 <Grid
-                    Grid.RowSpan="1"
+                    Grid.RowSpan="2"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="False"
                     BackgroundColor="#36000000">

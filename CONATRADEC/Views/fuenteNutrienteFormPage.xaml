@@ -140,7 +140,10 @@
 
                         <VerticalStackLayout Spacing="6">
                             <Label Text="Clasificación" Style="{StaticResource ModernFieldLabel}" />
-                            <Border Style="{StaticResource ModernInputBorder}">
+                            <Border
+                                Style="{StaticResource ModernInputBorder}"
+                                Padding="10,2"
+                                MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}">
                                 <Border.Triggers>
                                     <DataTrigger TargetType="Border" Binding="{Binding TieneErrorCategoria}" Value="True">
                                         <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
@@ -153,7 +156,10 @@
                                     ItemsSource="{Binding CategoriasFuente}"
                                     ItemDisplayBinding="{Binding Nombre}"
                                     SelectedItem="{Binding CategoriaSeleccionada}"
-                                    IsEnabled="{Binding IsFormEnabled}" />
+                                    IsEnabled="{Binding IsFormEnabled}"
+                                    HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                    MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                    VerticalOptions="Center" />
                             </Border>
                             <Label
                                 Text="{Binding ErrorCategoria}"
@@ -292,6 +298,8 @@
                                                 <Label Text="Elemento químico" Style="{StaticResource ModernFieldLabel}" />
                                                 <Border
                                                     Style="{StaticResource ModernInputBorder}"
+                                                    Padding="10,2"
+                                                    MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}"
                                                     BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}">
                                                     <Picker
                                                         Style="{StaticResource ModernPicker}"
@@ -299,7 +307,10 @@
                                                         ItemsSource="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.ElementosQuimicos}"
                                                         ItemDisplayBinding="{Binding NombreElementoQuimico}"
                                                         SelectedItem="{Binding ElementoSeleccionado}"
-                                                        IsEnabled="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsFormEnabled}" />
+                                                        IsEnabled="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsFormEnabled}"
+                                                        HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                                        MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                                        VerticalOptions="Center" />
                                                 </Border>
                                             </VerticalStackLayout>
 
