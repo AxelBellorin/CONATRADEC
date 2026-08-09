@@ -164,10 +164,19 @@ namespace CONATRADEC.Services
                 CancellationToken cancellationToken = default)
         {
             string normalizado = NormalizarModo(modo);
+
+            /*
+             * Las tres vistas operativas de cada etapa pertenecen a la bandeja
+             * de revisión. Los modos *-disponibles no se normalizan a la vista
+             * personal porque el backend debe devolver únicamente los técnicos
+             * que realmente tienen expedientes sin responsable.
+             */
             bool usaBandejaRevision = normalizado is
                 DiagnosticoIARoutes.ModoAnalizador or
+                "analizador-disponibles" or
                 DiagnosticoIARoutes.ModoAnalizadorRevisadas or
                 DiagnosticoIARoutes.ModoAprobador or
+                "aprobador-disponibles" or
                 DiagnosticoIARoutes.ModoAprobadorRevisadas or
                 DiagnosticoIARoutes.ModoHistorial;
 

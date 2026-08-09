@@ -1,35 +1,14 @@
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Centraliza la dirección base utilizada por los servicios de la API.
+    /// Centraliza la dirección base utilizada por todos los servicios de la API.
+    /// CONATRADEC consume únicamente el endpoint HTTPS publicado en la nube.
     /// </summary>
     public sealed class UrlApiService
     {
-        /*
-         * SERVIDOR ACTUAL DE DESARROLLO
-         *
-         * Se mantiene HTTP porque el alojamiento de desarrollo todavía no
-         * dispone de certificado SSL. Android debe permitir tráfico HTTP
-         * mientras se utilice este servidor.
-         */
-        private const string DevelopmentBaseUrl =
+        private const string ApiBaseUrl =
             "https://conatradecnic.runasp.net/";
 
-        //private const string DevelopmentBaseUrl =
-        //    "https://localhost:7176/";
-
-        /*
-         * PRODUCCIÓN
-         *
-         * Cuando se disponga del dominio definitivo con certificado SSL,
-         * se reemplaza DevelopmentBaseUrl por la URL HTTPS de producción
-         * y se desactiva el tráfico HTTP en Android.
-         *
-         * Ejemplo:
-         * private const string ProductionBaseUrl =
-         *     "https://conatradecnic.runasp.net/";
-         */
-
-        public string BaseUrlApi => DevelopmentBaseUrl;
+        public string BaseUrlApi => ApiBaseUrl;
     }
 }

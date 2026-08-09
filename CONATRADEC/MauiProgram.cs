@@ -70,6 +70,7 @@ namespace CONATRADEC
             SwipeViewRightClick.Register();
             KeyboardDismissBehavior.Register();
             LoginTabletResponsiveMapper.Register();
+            LoginPhoneViewportMapper.Register();
             NuevoAnalisisInfoResponsiveMapper.Register();
             DecimalAnalysisEntryMapper.Register();
 

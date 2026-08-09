@@ -61,12 +61,12 @@
                                 ColumnSpacing="12">
                                 <VerticalStackLayout Spacing="2">
                                     <Label
-                                        Text="Vista de revisión"
+                                        Text="Asignación de expedientes"
                                         FontSize="14"
                                         FontAttributes="Bold"
                                         TextColor="#263A35" />
                                     <Label
-                                        Text="Pendientes contiene el trabajo activo. Revisadas conserva las inspecciones cuya etapa del analizador ya terminó."
+                                        Text="Mis expedientes son únicamente los asignados a usted. Disponibles contiene los que todavía no tienen analizador; al tomar uno desaparece para los demás. Revisados conserva el trabajo ya finalizado."
                                         FontSize="11"
                                         TextColor="#5E6B67"
                                         LineBreakMode="WordWrap" />
@@ -74,20 +74,22 @@
                                 <Grid
                                     Grid.Row="{OnIdiom Phone=1, Default=0}"
                                     Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                    ColumnDefinitions="*,*"
-                                    ColumnSpacing="8"
+                                    ColumnDefinitions="*,*,*"
+                                    ColumnSpacing="6"
                                     HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
                                     <Button
                                         Grid.Column="0"
-                                        Text="Pendientes"
-                                        Command="{Binding VerPendientesCommand}"
+                                        Text="Mis expedientes"
+                                        Command="{Binding VerMisCommand}"
                                         MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
                                         HeightRequest="42"
+                                        Padding="8,5"
+                                        FontSize="{OnIdiom Phone=11, Default=12}"
                                         BackgroundColor="#E3EFEA"
                                         TextColor="#315E52"
                                         CornerRadius="9">
                                         <Button.Triggers>
-                                            <DataTrigger TargetType="Button" Binding="{Binding MostrandoPendientes}" Value="True">
+                                            <DataTrigger TargetType="Button" Binding="{Binding MostrandoMis}" Value="True">
                                                 <Setter Property="BackgroundColor" Value="#9B552C" />
                                                 <Setter Property="TextColor" Value="White" />
                                             </DataTrigger>
@@ -95,10 +97,30 @@
                                     </Button>
                                     <Button
                                         Grid.Column="1"
-                                        Text="Revisadas"
-                                        Command="{Binding VerRevisadasCommand}"
-                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
+                                        Text="Disponibles"
+                                        Command="{Binding VerDisponiblesCommand}"
+                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=125}"
                                         HeightRequest="42"
+                                        Padding="8,5"
+                                        FontSize="{OnIdiom Phone=11, Default=12}"
+                                        BackgroundColor="#E3EFEA"
+                                        TextColor="#315E52"
+                                        CornerRadius="9">
+                                        <Button.Triggers>
+                                            <DataTrigger TargetType="Button" Binding="{Binding MostrandoDisponibles}" Value="True">
+                                                <Setter Property="BackgroundColor" Value="#9B552C" />
+                                                <Setter Property="TextColor" Value="White" />
+                                            </DataTrigger>
+                                        </Button.Triggers>
+                                    </Button>
+                                    <Button
+                                        Grid.Column="2"
+                                        Text="Revisados"
+                                        Command="{Binding VerRevisadasCommand}"
+                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=125}"
+                                        HeightRequest="42"
+                                        Padding="8,5"
+                                        FontSize="{OnIdiom Phone=11, Default=12}"
                                         BackgroundColor="#E3EFEA"
                                         TextColor="#315E52"
                                         CornerRadius="9">
@@ -259,6 +281,7 @@
                                             </Border.Triggers>
                                             <Label Text="Envío técnico completo" FontAttributes="Bold" TextColor="#315E52" HorizontalTextAlignment="Center" />
                                         </Border>
+
                                         <Button
                                             Text="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.TextoAbrir}"
                                             Command="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.AbrirCommand}"
@@ -266,7 +289,31 @@
                                             HeightRequest="46"
                                             BackgroundColor="#9B552C"
                                             TextColor="White"
-                                            CornerRadius="11" />
+                                            CornerRadius="11"
+                                            IsVisible="True">
+                                            <Button.Triggers>
+                                                <DataTrigger TargetType="Button" Binding="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.MostrandoDisponibles}" Value="True">
+                                                    <Setter Property="IsVisible" Value="False" />
+                                                </DataTrigger>
+                                            </Button.Triggers>
+                                        </Button>
+
+                                        <Button
+                                            Text="Tomar expediente"
+                                            Command="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.TomarCommand}"
+                                            CommandParameter="{Binding .}"
+                                            HeightRequest="46"
+                                            BackgroundColor="#3B655B"
+                                            TextColor="White"
+                                            CornerRadius="11"
+                                            IsVisible="False"
+                                            IsEnabled="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.PuedeTomarExpediente}">
+                                            <Button.Triggers>
+                                                <DataTrigger TargetType="Button" Binding="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.MostrandoDisponibles}" Value="True">
+                                                    <Setter Property="IsVisible" Value="True" />
+                                                </DataTrigger>
+                                            </Button.Triggers>
+                                        </Button>
                                     </VerticalStackLayout>
                                 </FlexLayout>
 
@@ -294,11 +341,27 @@
 
                                 <Label
                                     FontSize="12"
+                                    TextColor="#315E52"
+                                    LineBreakMode="WordWrap"
+                                    Text="Este expediente todavía no tiene analizador responsable. Al tomarlo quedará asignado a usted y dejará de estar disponible para los demás analizadores."
+                                    IsVisible="False">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.MostrandoDisponibles}" Value="True">
+                                            <Setter Property="IsVisible" Value="True" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+
+                                <Label
+                                    FontSize="12"
                                     TextColor="#6B5710"
                                     LineBreakMode="WordWrap"
                                     Text="Puede revisar las fotografías recibidas. Todavía faltan evidencias o correcciones bajo responsabilidad del técnico."
                                     IsVisible="True">
                                     <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.MostrandoDisponibles}" Value="True">
+                                            <Setter Property="IsVisible" Value="False" />
+                                        </DataTrigger>
                                         <DataTrigger TargetType="Label" Binding="{Binding EtapaTecnicaFinalizada}" Value="True">
                                             <Setter Property="IsVisible" Value="False" />
                                         </DataTrigger>
@@ -313,6 +376,9 @@
                                     <Label.Triggers>
                                         <DataTrigger TargetType="Label" Binding="{Binding EtapaTecnicaFinalizada}" Value="True">
                                             <Setter Property="IsVisible" Value="True" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Source={x:Reference PaginaAnalizador}, Path=BindingContext.MostrandoDisponibles}" Value="True">
+                                            <Setter Property="IsVisible" Value="False" />
                                         </DataTrigger>
                                     </Label.Triggers>
                                 </Label>

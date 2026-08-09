@@ -18,10 +18,11 @@ namespace CONATRADEC.Views
         private readonly InspeccionFitosanitariaBandejaApiService bandejaApi =
             InspeccionFitosanitariaBandejaApiService.Instance;
         private readonly Label tecnicoResponsableLabel;
-        private readonly Border tecnicoResponsableBanner;
+        private readonly Label asignacionTituloLabel;
         private readonly Label asignacionResponsableLabel;
         private readonly Label asignacionAyudaLabel;
-        private readonly Border asignacionResponsableBanner;
+        private readonly VerticalStackLayout asignacionInformacionLayout;
+        private readonly Border resumenResponsabilidadBanner;
         private readonly Button tomarInspeccionButton;
         private readonly Button administrarAsignacionButton;
 
@@ -29,24 +30,25 @@ namespace CONATRADEC.Views
         private string origenActual = DiagnosticoIARoutes.ModoMisInspecciones;
         private bool avisoLocalMostrado;
         private bool procesandoAsignacion;
+        private bool tecnicoResponsableDisponible;
         private InspeccionRevisionAsignacion? asignacionRevision;
 
         public DiagnosticoIAResultadoPage()
         {
             InitializeComponent();
 
-            (tecnicoResponsableBanner, tecnicoResponsableLabel) =
-                CrearBannerTecnicoResponsable();
-
             (
-                asignacionResponsableBanner,
+                resumenResponsabilidadBanner,
+                tecnicoResponsableLabel,
+                asignacionInformacionLayout,
+                asignacionTituloLabel,
                 asignacionResponsableLabel,
                 asignacionAyudaLabel,
                 tomarInspeccionButton,
                 administrarAsignacionButton
-            ) = CrearBannerAsignacionResponsable();
+            ) = CrearResumenResponsabilidad();
 
-            IntegrarBannersEncabezado();
+            IntegrarResumenEncabezado();
 
             viewModel = new DiagnosticoIAResultadoViewModel();
             BindingContext = viewModel;
@@ -158,7 +160,11 @@ namespace CONATRADEC.Views
         {
             if (!EsVistaOperativaAsignable || diagnosticoIdActual <= 0)
             {
-                asignacionResponsableBanner.IsVisible = false;
+                asignacionRevision = null;
+                asignacionInformacionLayout.IsVisible = false;
+                tomarInspeccionButton.IsVisible = false;
+                administrarAsignacionButton.IsVisible = false;
+                ActualizarVisibilidadResumen();
                 return true;
             }
 
@@ -172,11 +178,7 @@ namespace CONATRADEC.Views
                 ActualizarBannerAsignacion();
 
                 if (!PuedeEditarEtapaActual)
-                {
-                    asignacionAyudaLabel.Text =
-                        "Tu permiso para esta etapa es de consulta. No se adquirirá un bloqueo de edición.";
                     return false;
-                }
 
                 if (asignacionRevision.AsignadaAlUsuarioActual)
                     return await PrepararBloqueoRevisionAsync();
@@ -186,15 +188,20 @@ namespace CONATRADEC.Views
             catch (Exception ex)
             {
                 asignacionRevision = null;
-                asignacionResponsableBanner.IsVisible = true;
-                asignacionResponsableLabel.Text =
-                    "No fue posible consultar el responsable de la etapa.";
+                asignacionInformacionLayout.IsVisible = true;
+                asignacionTituloLabel.Text = ModoAsignacionActual == "aprobador"
+                    ? "Responsable de aprobación"
+                    : "Responsable de análisis";
+                asignacionResponsableLabel.Text = "No disponible";
                 asignacionAyudaLabel.Text = string.IsNullOrWhiteSpace(ex.Message)
-                    ? "Actualice el expediente para volver a intentarlo."
+                    ? "No fue posible consultar la asignación. Actualiza el expediente para reintentar."
                     : ex.Message;
                 tomarInspeccionButton.IsVisible = false;
                 administrarAsignacionButton.IsVisible =
                     PuedeAdministrarAsignacion;
+                administrarAsignacionButton.Text = "Administrar asignación";
+                administrarAsignacionButton.IsEnabled = !procesandoAsignacion;
+                ActualizarVisibilidadResumen();
                 return false;
             }
         }
@@ -203,33 +210,38 @@ namespace CONATRADEC.Views
         {
             if (!EsVistaOperativaAsignable || asignacionRevision == null)
             {
-                asignacionResponsableBanner.IsVisible = false;
+                asignacionInformacionLayout.IsVisible = false;
+                tomarInspeccionButton.IsVisible = false;
+                administrarAsignacionButton.IsVisible = false;
+                ActualizarVisibilidadResumen();
                 return;
             }
 
-            string etapa = ModoAsignacionActual == "aprobador"
-                ? "Aprobador responsable"
-                : "Analizador responsable";
-
-            asignacionResponsableBanner.IsVisible = true;
-            asignacionResponsableLabel.Text =
-                $"{etapa}: {asignacionRevision.ResponsableTexto}";
+            asignacionInformacionLayout.IsVisible = true;
+            asignacionTituloLabel.Text = ModoAsignacionActual == "aprobador"
+                ? "Responsable de aprobación"
+                : "Responsable de análisis";
 
             if (asignacionRevision.DisponibleParaTomar)
             {
+                asignacionResponsableLabel.Text = "Sin asignar";
                 asignacionAyudaLabel.Text = PuedeEditarEtapaActual
-                    ? "La inspección está disponible. Tomarla te convierte en responsable persistente de esta etapa; después se abrirá el bloqueo temporal de edición."
-                    : "La inspección está sin asignar, pero tu usuario no posee permiso de actualización para tomarla.";
+                    ? "Disponible para tomar"
+                    : "Solo consulta · no tienes permiso de actualización para esta etapa";
             }
             else if (asignacionRevision.AsignadaAlUsuarioActual)
             {
+                asignacionResponsableLabel.Text =
+                    NombreResponsableAsignado();
                 asignacionAyudaLabel.Text =
-                    "Esta etapa está asignada a ti. El bloqueo temporal se adquiere únicamente mientras mantienes abierta la ficha de trabajo.";
+                    "Asignado a ti · edición protegida por bloqueo temporal";
             }
             else
             {
+                asignacionResponsableLabel.Text =
+                    NombreResponsableAsignado();
                 asignacionAyudaLabel.Text =
-                    "Puedes consultar el expediente, pero solo el responsable asignado puede modificar esta etapa. Un supervisor autorizado puede reasignarla.";
+                    "Asignado a otro usuario · expediente en modo consulta";
             }
 
             tomarInspeccionButton.IsVisible =
@@ -237,6 +249,11 @@ namespace CONATRADEC.Views
                 PuedeEditarEtapaActual;
             tomarInspeccionButton.IsEnabled = !procesandoAsignacion;
 
+            /*
+             * La reasignación es exclusivamente administrativa. No depende del
+             * nombre del rol: requiere los permisos reales Leer + Actualizar de
+             * diagnosticoIAControlPage.
+             */
             administrarAsignacionButton.IsVisible =
                 PuedeAdministrarAsignacion;
             administrarAsignacionButton.Text =
@@ -244,6 +261,32 @@ namespace CONATRADEC.Views
                     ? "Asignar responsable"
                     : "Reasignar responsable";
             administrarAsignacionButton.IsEnabled = !procesandoAsignacion;
+
+            ActualizarVisibilidadResumen();
+        }
+
+        private string NombreResponsableAsignado()
+        {
+            if (asignacionRevision == null)
+                return "Sin asignar";
+
+            if (!string.IsNullOrWhiteSpace(
+                    asignacionRevision.UsuarioAsignadoNombre))
+            {
+                return asignacionRevision.UsuarioAsignadoNombre.Trim();
+            }
+
+            return asignacionRevision.UsuarioAsignadoId is > 0
+                ? $"Usuario #{asignacionRevision.UsuarioAsignadoId}"
+                : "Sin asignar";
+        }
+
+        private void ActualizarVisibilidadResumen()
+        {
+            resumenResponsabilidadBanner.IsVisible =
+                tecnicoResponsableDisponible ||
+                (EsVistaOperativaAsignable &&
+                 asignacionInformacionLayout.IsVisible);
         }
 
         private async void OnTomarInspeccionClicked(
@@ -493,86 +536,52 @@ namespace CONATRADEC.Views
                        StringComparison.OrdinalIgnoreCase);
         }
 
-        private static (Border Banner, Label Texto)
-            CrearBannerTecnicoResponsable()
+        private (
+            Border Banner,
+            Label Tecnico,
+            VerticalStackLayout AsignacionLayout,
+            Label AsignacionTitulo,
+            Label Responsable,
+            Label Ayuda,
+            Button Tomar,
+            Button Administrar) CrearResumenResponsabilidad()
         {
-            var etiqueta = new Label
-            {
-                FontSize = 12,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#315E52"),
-                LineBreakMode = LineBreakMode.WordWrap,
-                VerticalTextAlignment = TextAlignment.Center
-            };
-
-            var titulo = new Label
+            var tecnicoTitulo = new Label
             {
                 Text = "Registrado por",
                 FontSize = 10,
                 FontAttributes = FontAttributes.Bold,
-                TextColor = Color.FromArgb("#6B7773"),
-                VerticalTextAlignment = TextAlignment.Center
+                TextColor = Color.FromArgb("#6B7773")
             };
 
-            View contenido;
-
-            if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
+            var tecnico = new Label
             {
-                contenido = new VerticalStackLayout
-                {
-                    Spacing = 2,
-                    Children =
-                    {
-                        titulo,
-                        etiqueta
-                    }
-                };
-            }
-            else
-            {
-                var fila = new Grid
-                {
-                    ColumnDefinitions =
-                    {
-                        new ColumnDefinition
-                        {
-                            Width = GridLength.Auto
-                        },
-                        new ColumnDefinition
-                        {
-                            Width = GridLength.Star
-                        }
-                    },
-                    ColumnSpacing = 12
-                };
-
-                fila.Add(titulo, 0, 0);
-                fila.Add(etiqueta, 1, 0);
-                contenido = fila;
-            }
-
-            var banner = new Border
-            {
-                IsVisible = false,
-                Padding = new Thickness(11, 7),
-                Margin = new Thickness(0, 6, 0, 0),
-                BackgroundColor = Color.FromArgb("#EAF3EF"),
-                Stroke = Color.FromArgb("#C8DED6"),
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle
-                {
-                    CornerRadius = 10
-                },
-                MaximumWidthRequest = 520,
-                HorizontalOptions = LayoutOptions.Start,
-                Content = contenido
+                Text = "Cargando...",
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#315E52"),
+                LineBreakMode = LineBreakMode.WordWrap
             };
 
-            return (banner, etiqueta);
-        }
+            var tecnicoLayout = new VerticalStackLayout
+            {
+                Spacing = 2,
+                VerticalOptions = LayoutOptions.Center,
+                Children =
+                {
+                    tecnicoTitulo,
+                    tecnico
+                }
+            };
 
-        private (Border Banner, Label Responsable, Label Ayuda, Button Tomar, Button Administrar)
-            CrearBannerAsignacionResponsable()
-        {
+            var asignacionTitulo = new Label
+            {
+                Text = "Responsable del flujo",
+                FontSize = 10,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#6B7773")
+            };
+
             var responsable = new Label
             {
                 FontSize = 13,
@@ -588,11 +597,24 @@ namespace CONATRADEC.Views
                 LineBreakMode = LineBreakMode.WordWrap
             };
 
+            var asignacionLayout = new VerticalStackLayout
+            {
+                IsVisible = false,
+                Spacing = 2,
+                VerticalOptions = LayoutOptions.Center,
+                Children =
+                {
+                    asignacionTitulo,
+                    responsable,
+                    ayuda
+                }
+            };
+
             var tomar = new Button
             {
                 Text = "Tomar inspección",
-                HeightRequest = 42,
-                Padding = new Thickness(14, 7),
+                HeightRequest = 40,
+                Padding = new Thickness(14, 6),
                 CornerRadius = 9,
                 BackgroundColor = Color.FromArgb("#3B655B"),
                 TextColor = Colors.White,
@@ -605,10 +627,12 @@ namespace CONATRADEC.Views
             var administrar = new Button
             {
                 Text = "Asignar responsable",
-                HeightRequest = 42,
-                Padding = new Thickness(14, 7),
+                HeightRequest = 40,
+                Padding = new Thickness(14, 6),
                 CornerRadius = 9,
-                BackgroundColor = Color.FromArgb("#EEF2F0"),
+                BackgroundColor = Color.FromArgb("#FFFFFF"),
+                BorderColor = Color.FromArgb("#BFD5CD"),
+                BorderWidth = 1,
                 TextColor = Color.FromArgb("#315E52"),
                 FontSize = 12,
                 FontAttributes = FontAttributes.Bold,
@@ -616,12 +640,14 @@ namespace CONATRADEC.Views
             };
             administrar.Clicked += OnAdministrarAsignacionClicked;
 
-            View acciones;
+            View contenido;
+
             if (DeviceInfo.Current.Idiom == DeviceIdiom.Phone)
             {
                 tomar.HorizontalOptions = LayoutOptions.Fill;
                 administrar.HorizontalOptions = LayoutOptions.Fill;
-                acciones = new VerticalStackLayout
+
+                var acciones = new VerticalStackLayout
                 {
                     Spacing = 6,
                     Children =
@@ -630,61 +656,89 @@ namespace CONATRADEC.Views
                         administrar
                     }
                 };
+
+                contenido = new VerticalStackLayout
+                {
+                    Spacing = 10,
+                    Children =
+                    {
+                        tecnicoLayout,
+                        asignacionLayout,
+                        acciones
+                    }
+                };
             }
             else
             {
-                var fila = new HorizontalStackLayout
+                var acciones = new HorizontalStackLayout
                 {
-                    Spacing = 8
+                    Spacing = 8,
+                    HorizontalOptions = LayoutOptions.End,
+                    VerticalOptions = LayoutOptions.Center
                 };
-                fila.Children.Add(tomar);
-                fila.Children.Add(administrar);
-                acciones = fila;
-            }
+                acciones.Children.Add(tomar);
+                acciones.Children.Add(administrar);
 
-            var contenido = new VerticalStackLayout
-            {
-                Spacing = 5,
-                Children =
+                var fila = new Grid
                 {
-                    new Label
+                    ColumnDefinitions =
                     {
-                        Text = "Responsabilidad del flujo",
-                        FontSize = 10,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Color.FromArgb("#6B7773")
+                        new ColumnDefinition
+                        {
+                            Width = new GridLength(0.85, GridUnitType.Star)
+                        },
+                        new ColumnDefinition
+                        {
+                            Width = new GridLength(1.55, GridUnitType.Star)
+                        },
+                        new ColumnDefinition
+                        {
+                            Width = GridLength.Auto
+                        }
                     },
-                    responsable,
-                    ayuda,
-                    acciones
-                }
-            };
+                    ColumnSpacing = 18,
+                    VerticalOptions = LayoutOptions.Center
+                };
+
+                fila.Add(tecnicoLayout, 0, 0);
+                fila.Add(asignacionLayout, 1, 0);
+                fila.Add(acciones, 2, 0);
+                contenido = fila;
+            }
 
             var banner = new Border
             {
                 IsVisible = false,
-                Padding = new Thickness(12, 10),
-                Margin = new Thickness(0, 6, 0, 0),
-                BackgroundColor = Color.FromArgb("#F8FBFA"),
+                Padding = new Thickness(14, 11),
+                Margin = new Thickness(0, 2, 0, 0),
+                BackgroundColor = Color.FromArgb("#F4F8F6"),
                 Stroke = Color.FromArgb("#C8DED6"),
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle
                 {
                     CornerRadius = 11
                 },
-                MaximumWidthRequest = 720,
                 HorizontalOptions = LayoutOptions.Fill,
                 Content = contenido
             };
 
-            return (banner, responsable, ayuda, tomar, administrar);
+            return (
+                banner,
+                tecnico,
+                asignacionLayout,
+                asignacionTitulo,
+                responsable,
+                ayuda,
+                tomar,
+                administrar);
         }
 
-        private void IntegrarBannersEncabezado()
+        private void IntegrarResumenEncabezado()
         {
             /*
-             * Los datos del creador y del responsable pertenecen al encabezado
-             * del expediente. Se integran debajo del título para no crear una
-             * franja independiente sobre el menú lateral de Windows.
+             * La cabecera se presenta como una sola tarjeta: navegación, título,
+             * creador y responsable pertenecen al mismo contexto visual. En
+             * teléfono el resumen baja a una tercera fila; en escritorio ocupa
+             * todo el ancho debajo del título sin dejar bloques flotantes.
              */
             if (Content is not ContentView contentView ||
                 contentView.Content is not Grid contenedorPrincipal)
@@ -700,23 +754,81 @@ namespace CONATRADEC.Views
             if (encabezado == null)
                 return;
 
-            VerticalStackLayout? bloqueTitulo =
-                encabezado.Children
-                    .OfType<VerticalStackLayout>()
-                    .FirstOrDefault();
+            bool esTelefono =
+                DeviceInfo.Current.Idiom == DeviceIdiom.Phone;
 
-            if (bloqueTitulo == null)
+            int filaResumen = esTelefono ? 2 : 1;
+            while (encabezado.RowDefinitions.Count <= filaResumen)
+            {
+                encabezado.RowDefinitions.Add(
+                    new RowDefinition
+                    {
+                        Height = GridLength.Auto
+                    });
+            }
+
+            Grid.SetRow(resumenResponsabilidadBanner, filaResumen);
+            Grid.SetColumn(resumenResponsabilidadBanner, 0);
+            Grid.SetColumnSpan(
+                resumenResponsabilidadBanner,
+                Math.Max(1, encabezado.ColumnDefinitions.Count));
+            encabezado.Children.Add(resumenResponsabilidadBanner);
+
+            List<Button> botonesEncabezado =
+                encabezado.Children
+                    .OfType<Button>()
+                    .Where(boton =>
+                        !ReferenceEquals(boton, tomarInspeccionButton) &&
+                        !ReferenceEquals(boton, administrarAsignacionButton))
+                    .ToList();
+
+            if (botonesEncabezado.Count > 0)
+            {
+                Button regresar = botonesEncabezado[0];
+                regresar.HeightRequest = 42;
+                regresar.WidthRequest = esTelefono ? 150 : 190;
+                regresar.Padding = new Thickness(12, 7);
+                regresar.BackgroundColor = Color.FromArgb("#F8FBFA");
+                regresar.BorderColor = Color.FromArgb("#C8DED6");
+                regresar.BorderWidth = 1;
+                regresar.FontAttributes = FontAttributes.Bold;
+            }
+
+            /*
+             * Se envuelve el Grid existente sin reconstruir sus bindings ni
+             * comandos. Esto conserva íntegra la lógica de navegación y hace que
+             * la cabecera se perciba como una sola unidad en Windows y Android.
+             */
+            if (!contenedorPrincipal.Children.Remove(encabezado))
                 return;
 
-            bloqueTitulo.Children.Add(tecnicoResponsableBanner);
-            bloqueTitulo.Children.Add(asignacionResponsableBanner);
+            var tarjetaEncabezado = new Border
+            {
+                Padding = esTelefono
+                    ? new Thickness(13, 12)
+                    : new Thickness(16, 14),
+                BackgroundColor = Colors.White,
+                Stroke = Color.FromArgb("#D7E5E0"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle
+                {
+                    CornerRadius = 14
+                },
+                MaximumWidthRequest = 1250,
+                HorizontalOptions = LayoutOptions.Fill,
+                Content = encabezado
+            };
+
+            Grid.SetRow(tarjetaEncabezado, 0);
+            contenedorPrincipal.Children.Add(tarjetaEncabezado);
         }
 
         private async Task CargarTecnicoResponsableAsync()
         {
+            tecnicoResponsableDisponible = false;
+
             if (diagnosticoIdActual <= 0)
             {
-                tecnicoResponsableBanner.IsVisible = false;
+                ActualizarVisibilidadResumen();
                 return;
             }
 
@@ -734,16 +846,21 @@ namespace CONATRADEC.Views
                             : tecnico.UsuarioTecnicoId > 0
                                 ? $"Usuario #{tecnico.UsuarioTecnicoId}"
                                 : "Usuario no disponible";
-                tecnicoResponsableBanner.IsVisible = true;
+
+                tecnicoResponsableDisponible = true;
             }
             catch
             {
                 /*
-                 * El dato es informativo. Un problema al cargar el nombre del
-                 * usuario creador no debe bloquear el expediente ni sus decisiones.
+                 * El creador es un dato informativo. Si no puede cargarse, el
+                 * flujo operativo continúa sin bloquear el expediente.
                  */
-                tecnicoResponsableBanner.IsVisible = false;
+                tecnicoResponsableLabel.Text = "Usuario no disponible";
+                tecnicoResponsableDisponible = false;
             }
+
+            ActualizarVisibilidadResumen();
         }
+
     }
 }
