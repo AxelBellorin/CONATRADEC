@@ -202,16 +202,22 @@
                                 </Grid>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout x:Name="RolSection" Grid.Row="3" Spacing="6">
+                            <VerticalStackLayout x:Name="RolSection" Grid.Row="3" Spacing="7">
                                 <Label Text="Rol" Style="{StaticResource ModernFieldLabel}" />
-                                <Border Style="{StaticResource ModernInputBorder}">
+                                <Border
+                                    Style="{StaticResource ModernInputBorder}"
+                                    Padding="10,2"
+                                    MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}">
                                     <Picker
                                         Title="Seleccione un rol"
                                         ItemsSource="{Binding Roles}"
                                         ItemDisplayBinding="{Binding NombreRol}"
                                         SelectedItem="{Binding RolSeleccionado}"
                                         IsEnabled="{Binding IsEnabled}"
-                                        Style="{StaticResource ModernPicker}" />
+                                        Style="{StaticResource ModernPicker}"
+                                        HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        VerticalOptions="Center" />
                                 </Border>
                             </VerticalStackLayout>
                         </Grid>
@@ -219,7 +225,7 @@
                 </Border>
 
                 <Border Style="{StaticResource ModernFormCard}">
-                    <VerticalStackLayout Spacing="15">
+                    <VerticalStackLayout Spacing="17">
                         <VerticalStackLayout Spacing="3">
                             <Label Text="Ubicación" Style="{StaticResource ModernSectionTitle}" />
                             <Label Text="Seleccione la ubicación administrativa vinculada al usuario." Style="{StaticResource ModernCaption}" />
@@ -229,45 +235,63 @@
                             x:Name="UbicacionGrid"
                             ColumnDefinitions="*"
                             RowDefinitions="Auto,Auto,Auto"
-                            ColumnSpacing="14"
-                            RowSpacing="13">
+                            ColumnSpacing="16"
+                            RowSpacing="15">
 
-                            <VerticalStackLayout x:Name="PaisSection" Spacing="6">
+                            <VerticalStackLayout x:Name="PaisSection" Spacing="7">
                                 <Label Text="País" Style="{StaticResource ModernFieldLabel}" />
-                                <Border Style="{StaticResource ModernInputBorder}">
+                                <Border
+                                    Style="{StaticResource ModernInputBorder}"
+                                    Padding="10,2"
+                                    MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}">
                                     <Picker
                                         Title="Seleccione un país"
                                         ItemsSource="{Binding Paises}"
                                         ItemDisplayBinding="{Binding NombrePais}"
                                         SelectedItem="{Binding PaisSeleccionado}"
                                         IsEnabled="{Binding IsEnabled}"
-                                        Style="{StaticResource ModernPicker}" />
+                                        Style="{StaticResource ModernPicker}"
+                                        HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        VerticalOptions="Center" />
                                 </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout x:Name="DepartamentoSection" Grid.Row="1" Spacing="6">
+                            <VerticalStackLayout x:Name="DepartamentoSection" Grid.Row="1" Spacing="7">
                                 <Label Text="Departamento" Style="{StaticResource ModernFieldLabel}" />
-                                <Border Style="{StaticResource ModernInputBorder}">
+                                <Border
+                                    Style="{StaticResource ModernInputBorder}"
+                                    Padding="10,2"
+                                    MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}">
                                     <Picker
                                         Title="Seleccione un departamento"
                                         ItemsSource="{Binding Departamentos}"
                                         ItemDisplayBinding="{Binding NombreDepartamento}"
                                         SelectedItem="{Binding DepartamentoSeleccionado}"
                                         IsEnabled="{Binding CanPickDepartamento}"
-                                        Style="{StaticResource ModernPicker}" />
+                                        Style="{StaticResource ModernPicker}"
+                                        HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        VerticalOptions="Center" />
                                 </Border>
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout x:Name="MunicipioSection" Grid.Row="2" Spacing="6">
+                            <VerticalStackLayout x:Name="MunicipioSection" Grid.Row="2" Spacing="7">
                                 <Label Text="Municipio" Style="{StaticResource ModernFieldLabel}" />
-                                <Border Style="{StaticResource ModernInputBorder}">
+                                <Border
+                                    Style="{StaticResource ModernInputBorder}"
+                                    Padding="10,2"
+                                    MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}">
                                     <Picker
                                         Title="Seleccione un municipio"
                                         ItemsSource="{Binding Municipios}"
                                         ItemDisplayBinding="{Binding NombreMunicipio}"
                                         SelectedItem="{Binding MunicipioSeleccionado}"
                                         IsEnabled="{Binding CanPickMunicipio}"
-                                        Style="{StaticResource ModernPicker}" />
+                                        Style="{StaticResource ModernPicker}"
+                                        HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                        VerticalOptions="Center" />
                                 </Border>
                             </VerticalStackLayout>
                         </Grid>

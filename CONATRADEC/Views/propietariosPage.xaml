@@ -17,11 +17,51 @@
         <Grid>
             <Grid
                 Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}"
-                RowDefinitions="*"
+                RowDefinitions="Auto,*"
                 RowSpacing="12">
 
-                <RefreshView
+                <!--
+                    Encabezado y búsqueda fuera del CollectionView.
+                    Evita que el SearchBar sea re-medido por la virtualización
+                    del listado mientras el usuario escribe en Android o Windows.
+                -->
+                <VerticalStackLayout
                     Grid.Row="0"
+                    Spacing="12">
+
+                    <controls:ResponsiveCatalogHeader
+                        Title="{Binding Titulo}"
+                        Subtitle="Una persona se registra una sola vez y puede tener varios terrenos."
+                        BackText="{Binding TextoRegresar, StringFormat='← {0}'}"
+                        BackCommand="{Binding RegresarCommand}"
+                        PrimaryText="+ Nuevo propietario"
+                        PrimaryCommand="{Binding NuevoCommand}"
+                        IsPrimaryVisible="{Binding CanAdd}" />
+
+                    <!-- Búsqueda -->
+                    <Border Style="{StaticResource ModernCard}" Padding="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Border Style="{StaticResource ModernInputBorder}" Padding="6,0">
+                                <SearchBar
+                                    Placeholder="Buscar por nombre, identificación o correo"
+                                    Text="{Binding TextoBusqueda, Mode=TwoWay}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    Style="{StaticResource ModernSearchBar}" />
+                            </Border>
+
+                            <Button
+                                Grid.Column="1"
+                                Text="Buscar"
+                                Command="{Binding BuscarCommand}"
+                                Style="{StaticResource ModernPrimaryButton}"
+                                HeightRequest="48"
+                                Padding="14,9" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+
+                <RefreshView
+                    Grid.Row="1"
                     Command="{Binding ActualizarCommand}"
                     IsRefreshing="{Binding IsRefreshing}">
 
@@ -35,87 +75,58 @@
                             <VerticalStackLayout
                                 Padding="0,0,0,12"
                                 Spacing="12">
-                                <controls:ResponsiveCatalogHeader
-                                                    Title="{Binding Titulo}"
-                                                    Subtitle="Una persona se registra una sola vez y puede tener varios terrenos."
-                                                    BackText="{Binding TextoRegresar, StringFormat='← {0}'}"
-                                                    BackCommand="{Binding RegresarCommand}"
-                                                    PrimaryText="+ Nuevo propietario"
-                                                    PrimaryCommand="{Binding NuevoCommand}"
-                                                    IsPrimaryVisible="{Binding CanAdd}" />
-                                
-                                                <!-- Búsqueda -->
-                                                <Border Grid.Row="1" Style="{StaticResource ModernCard}" Padding="12">
-                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                        <Border Style="{StaticResource ModernInputBorder}" Padding="6,0">
-                                                            <SearchBar
-                                                                Placeholder="Buscar por nombre, identificación o correo"
-                                                                Text="{Binding TextoBusqueda, Mode=TwoWay}"
-                                                                SearchCommand="{Binding BuscarCommand}"
-                                                                Style="{StaticResource ModernSearchBar}" />
-                                                        </Border>
-                                
-                                                        <Button
-                                                            Grid.Column="1"
-                                                            Text="Buscar"
-                                                            Command="{Binding BuscarCommand}"
-                                                            Style="{StaticResource ModernPrimaryButton}"
-                                                            HeightRequest="48"
-                                                            Padding="14,9" />
-                                                    </Grid>
-                                                </Border>
-                                
-                                                <!-- Modo selección -->
-                                                <Border
-                                                    IsVisible="{Binding EsModoSeleccion}"
-                                                    Style="{StaticResource ModernInfoBanner}">
-                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                                        <Border
-                                                            WidthRequest="32"
-                                                            HeightRequest="32"
-                                                            BackgroundColor="{StaticResource color_Verde}"
-                                                            StrokeThickness="0"
-                                                            StrokeShape="RoundRectangle 10">
-                                                            <Label
-                                                                Text="✓"
-                                                                FontFamily="MontserratBold"
-                                                                FontSize="15"
-                                                                TextColor="White"
-                                                                HorizontalOptions="Center"
-                                                                VerticalOptions="Center" />
-                                                        </Border>
-                                                        <Label
-                                                            Grid.Column="1"
-                                                            Text="Seleccione una tarjeta para asignar ese propietario al terreno."
-                                                            FontFamily="MontserratBold"
-                                                            FontSize="11.5"
-                                                            TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}"
-                                                            VerticalOptions="Center" />
-                                                    </Grid>
-                                                </Border>
-                                
-                                                <!-- Recuperación de eliminados -->
-                                                <Border
-                                                    IsVisible="{Binding MostrarFiltroEliminados}"
-                                                    Style="{StaticResource ModernWarningBanner}">
-                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                                                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
-                                                            <Label
-                                                                Text="Mostrar propietarios eliminados"
-                                                                Style="{StaticResource ModernSectionTitle}"
-                                                                FontSize="13" />
-                                                            <Label
-                                                                Text="Permite recuperar registros eliminados sin perder su historial."
-                                                                Style="{StaticResource ModernPageSubtitle}"
-                                                                FontSize="10.5" />
-                                                        </VerticalStackLayout>
-                                                        <Switch
-                                                            Grid.Column="1"
-                                                            IsToggled="{Binding MostrarEliminados, Mode=TwoWay}"
-                                                            OnColor="{StaticResource color_Verde}"
-                                                            VerticalOptions="Center" />
-                                                    </Grid>
-                                                </Border>
+
+                                <!-- Modo selección -->
+                                <Border
+                                    IsVisible="{Binding EsModoSeleccion}"
+                                    Style="{StaticResource ModernInfoBanner}">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                        <Border
+                                            WidthRequest="32"
+                                            HeightRequest="32"
+                                            BackgroundColor="{StaticResource color_Verde}"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 10">
+                                            <Label
+                                                Text="✓"
+                                                FontFamily="MontserratBold"
+                                                FontSize="15"
+                                                TextColor="White"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center" />
+                                        </Border>
+                                        <Label
+                                            Grid.Column="1"
+                                            Text="Seleccione una tarjeta para asignar ese propietario al terreno."
+                                            FontFamily="MontserratBold"
+                                            FontSize="11.5"
+                                            TextColor="{AppThemeBinding Light={StaticResource color_Verde}, Dark=#BFD8CF}"
+                                            VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Recuperación de eliminados -->
+                                <Border
+                                    IsVisible="{Binding MostrarFiltroEliminados}"
+                                    Style="{StaticResource ModernWarningBanner}">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                        <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                            <Label
+                                                Text="Mostrar propietarios eliminados"
+                                                Style="{StaticResource ModernSectionTitle}"
+                                                FontSize="13" />
+                                            <Label
+                                                Text="Permite recuperar registros eliminados sin perder su historial."
+                                                Style="{StaticResource ModernPageSubtitle}"
+                                                FontSize="10.5" />
+                                        </VerticalStackLayout>
+                                        <Switch
+                                            Grid.Column="1"
+                                            IsToggled="{Binding MostrarEliminados, Mode=TwoWay}"
+                                            OnColor="{StaticResource color_Verde}"
+                                            VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -345,7 +356,7 @@
                 </RefreshView>
 
                 <Grid
-                    Grid.RowSpan="1"
+                    Grid.RowSpan="2"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="False"
                     BackgroundColor="#36000000">
