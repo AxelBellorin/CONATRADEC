@@ -71,7 +71,7 @@ namespace CONATRADEC.Views
         /// <summary>
         /// Ambas vistas del aprobador pueden administrar el Álbum Botánico.
         /// Revisados mantiene bloqueada la decisión técnica y solo habilita
-        /// clasificación oficial, autorización y publicación posterior.
+        /// clasificación oficial y publicación posterior.
         /// </summary>
         private bool EsVistaAprobadorAdministracion =>
             EsVistaAprobadorRevision || EsVistaAprobadorRevisadas;
@@ -535,8 +535,10 @@ namespace CONATRADEC.Views
                                 InspeccionFotoEstados.Aprobada or
                                 InspeccionFotoEstados.AprobadaConCorreccion or
                                 InspeccionFotoEstados.PublicadaAlbum,
+                            // Compatibilidad: ya no existe una etapa separada de autorización.
                             Autorizada =
-                                foto.UltimaAprobacion?.AutorizaPublicacionAlbum == true,
+                                foto.EstaAprobadaTecnicamente &&
+                                foto.TieneClasificacionAlbumOficial,
                             PublicadaActiva = foto.PublicadaAlbum,
                             TuvoPublicacion = foto.PublicadaAlbum,
                             EstadoEvidencia = foto.Estado
@@ -562,8 +564,10 @@ namespace CONATRADEC.Views
                     InspeccionFotoEstados.Aprobada or
                     InspeccionFotoEstados.AprobadaConCorreccion or
                     InspeccionFotoEstados.PublicadaAlbum,
+                // Compatibilidad: representa elegibilidad de publicación.
                 Autorizada =
-                    foto.UltimaAprobacion?.AutorizaPublicacionAlbum == true,
+                    foto.EstaAprobadaTecnicamente &&
+                    foto.TieneClasificacionAlbumOficial,
                 PublicadaActiva = foto.PublicadaAlbum,
                 TuvoPublicacion = foto.PublicadaAlbum,
                 EstadoEvidencia = foto.Estado
@@ -1075,14 +1079,6 @@ namespace CONATRADEC.Views
             clasificarAlbum.Clicked +=
                 OnClasificarAlbumTarjetaAprobadorClicked;
 
-            Button autorizarAlbum = CrearBotonTarjeta(
-                "Autorizar para Álbum",
-                "#E3EFEA",
-                Color.FromArgb("#315E52"));
-            autorizarAlbum.CommandParameter = foto;
-            autorizarAlbum.Clicked +=
-                OnAutorizarAlbumTarjetaAprobadorClicked;
-
             Button publicar = CrearBotonTarjeta(
                 "Publicar en Álbum Botánico",
                 "#F2C94C",
@@ -1097,14 +1093,6 @@ namespace CONATRADEC.Views
             retirarAlbum.CommandParameter = foto;
             retirarAlbum.Clicked += OnRetirarAlbumTarjetaAprobadorClicked;
 
-            Button cancelarAlbum = CrearBotonTarjeta(
-                "Cancelar autorización",
-                "#FDECEC",
-                Color.FromArgb("#B42318"));
-            cancelarAlbum.CommandParameter = foto;
-            cancelarAlbum.Clicked +=
-                OnCancelarAutorizacionAlbumTarjetaAprobadorClicked;
-
             Microsoft.Maui.Controls.Layout botones = CrearContenedorBotones(
                 aprobar,
                 corregir,
@@ -1112,10 +1100,8 @@ namespace CONATRADEC.Views
                 rechazar,
                 noConcluyente,
                 clasificarAlbum,
-                autorizarAlbum,
                 publicar,
-                retirarAlbum,
-                cancelarAlbum);
+                retirarAlbum);
 
             var contenido = new VerticalStackLayout
             {
@@ -1151,10 +1137,8 @@ namespace CONATRADEC.Views
                 rechazar,
                 noConcluyente,
                 clasificarAlbum,
-                autorizarAlbum,
                 publicar,
-                retirarAlbum,
-                cancelarAlbum);
+                retirarAlbum);
 
             accionesAprobadorPorFoto[foto.FotografiaId] = acciones;
             return acciones;
@@ -1178,8 +1162,6 @@ namespace CONATRADEC.Views
 
             (Border contenedorClasificacion, Label clasificacion) =
                 CrearIndicadorEstadoAlbumTecnico("Clasificación del Álbum");
-            (Border contenedorAutorizacion, Label autorizacion) =
-                CrearIndicadorEstadoAlbumTecnico("Autorización");
             (Border contenedorPublicacion, Label publicacion) =
                 CrearIndicadorEstadoAlbumTecnico("Publicación");
 
@@ -1194,14 +1176,13 @@ namespace CONATRADEC.Views
             foreach (Border indicador in new[]
                      {
                          contenedorClasificacion,
-                         contenedorAutorizacion,
                          contenedorPublicacion
                      })
             {
                 indicador.Margin = new Thickness(0, 0, 8, 8);
                 indicador.MinimumWidthRequest = DeviceInfo.Idiom == DeviceIdiom.Phone
                     ? 260
-                    : 235;
+                    : 300;
                 FlexLayout.SetGrow(indicador, 1);
                 indicadores.Children.Add(indicador);
             }
@@ -1224,7 +1205,7 @@ namespace CONATRADEC.Views
                     },
                     new Label
                     {
-                        Text = "Seguimiento de solo lectura. La decisión técnica y la administración del Álbum Botánico son procesos independientes.",
+                        Text = "Seguimiento de solo lectura. Una vez confirmada la clasificación oficial, el aprobador únicamente puede publicar o quitar la fotografía del Álbum Botánico.",
                         FontSize = 11,
                         TextColor = Color.FromArgb("#5E6B67"),
                         LineBreakMode = LineBreakMode.WordWrap
@@ -1244,8 +1225,6 @@ namespace CONATRADEC.Views
                 panel,
                 contenedorClasificacion,
                 clasificacion,
-                contenedorAutorizacion,
-                autorizacion,
                 contenedorPublicacion,
                 publicacion,
                 ayuda);
@@ -1303,9 +1282,6 @@ namespace CONATRADEC.Views
                 return;
 
             bool aprobada = foto.EstaAprobadaTecnicamente;
-            bool autorizada =
-                aprobada &&
-                foto.UltimaAprobacion?.AutorizaPublicacionAlbum == true;
             bool publicada =
                 aprobada &&
                 (foto.PublicadaAlbum ||
@@ -1319,7 +1295,6 @@ namespace CONATRADEC.Views
             if (!aprobada)
             {
                 estado.Clasificacion.Text = "No elegible para publicación";
-                estado.Autorizacion.Text = "No aplica";
                 estado.Publicacion.Text = "No publicada";
                 estado.Ayuda.Text =
                     "La decisión técnica registrada no habilita esta fotografía para incorporarse al Álbum Botánico.";
@@ -1327,12 +1302,6 @@ namespace CONATRADEC.Views
                 AplicarPresentacionIndicador(
                     estado.ContenedorClasificacion,
                     estado.Clasificacion,
-                    "#F5F7F6",
-                    "#D9E3DF",
-                    "#52625D");
-                AplicarPresentacionIndicador(
-                    estado.ContenedorAutorizacion,
-                    estado.Autorizacion,
                     "#F5F7F6",
                     "#D9E3DF",
                     "#52625D");
@@ -1368,16 +1337,6 @@ namespace CONATRADEC.Views
                     "#7A5A13");
             }
 
-            estado.Autorizacion.Text = autorizada
-                ? "Autorizada para el Álbum"
-                : "No autorizada";
-            AplicarPresentacionIndicador(
-                estado.ContenedorAutorizacion,
-                estado.Autorizacion,
-                autorizada ? "#EAF3EF" : "#FFF9E8",
-                autorizada ? "#B9D7CB" : "#E2B93B",
-                autorizada ? "#315E52" : "#7A5A13");
-
             if (publicada)
             {
                 estado.Publicacion.Text = "Publicada en el Álbum Botánico";
@@ -1388,19 +1347,7 @@ namespace CONATRADEC.Views
                     "#B9D7CB",
                     "#315E52");
                 estado.Ayuda.Text =
-                    "El aprobador confirmó la incorporación y existe una publicación activa de esta fotografía en el Álbum Botánico.";
-            }
-            else if (autorizada)
-            {
-                estado.Publicacion.Text = "Pendiente de publicación";
-                AplicarPresentacionIndicador(
-                    estado.ContenedorPublicacion,
-                    estado.Publicacion,
-                    "#FFF9E8",
-                    "#E2B93B",
-                    "#7A5A13");
-                estado.Ayuda.Text =
-                    "La fotografía ya está autorizada para el Álbum Botánico, pero todavía no tiene una publicación activa.";
+                    "La fotografía tiene una publicación activa en el Álbum Botánico. La decisión técnica y la clasificación oficial permanecen inalterables.";
             }
             else
             {
@@ -1408,13 +1355,13 @@ namespace CONATRADEC.Views
                 AplicarPresentacionIndicador(
                     estado.ContenedorPublicacion,
                     estado.Publicacion,
-                    "#F5F7F6",
-                    "#D9E3DF",
-                    "#52625D");
+                    clasificacionOficial ? "#FFF9E8" : "#F5F7F6",
+                    clasificacionOficial ? "#E2B93B" : "#D9E3DF",
+                    clasificacionOficial ? "#7A5A13" : "#52625D");
 
                 estado.Ayuda.Text = !clasificacionOficial
-                    ? "La decisión técnica fue aprobada, pero el aprobador todavía debe confirmar la clasificación oficial antes de autorizar y publicar la fotografía en el Álbum Botánico."
-                    : "La clasificación oficial ya fue confirmada, pero la fotografía todavía no está autorizada ni publicada en el Álbum Botánico.";
+                    ? "La decisión técnica fue aprobada, pero la clasificación oficial del Álbum Botánico todavía debe confirmarse."
+                    : "La clasificación oficial ya fue confirmada. La fotografía permanece fuera del Álbum Botánico hasta que el aprobador decida publicarla.";
             }
         }
 
@@ -1528,13 +1475,17 @@ namespace CONATRADEC.Views
 
             EstadoAlbumAprobador estadoAlbum =
                 ObtenerEstadoAlbumAprobador(foto);
-            bool autorizada = aprobada && estadoAlbum.Autorizada;
             bool publicada = aprobada && estadoAlbum.PublicadaActiva;
             bool clasificacionOficial = foto.TieneClasificacionAlbumOficial;
-            bool puedePublicarAlbum = PermissionService.Instance.HasAdd(
-                InterfazCodigos.AlbumFotos);
-            bool puedeRetirarAlbum = PermissionService.Instance.HasDelete(
-                InterfazCodigos.AlbumFotos);
+            bool puedeAdministrarComoAprobador =
+                PermissionService.Instance.HasUpdate(
+                    DiagnosticoIARoutes.InterfazAprobador);
+            bool puedePublicarAlbum =
+                puedeAdministrarComoAprobador &&
+                PermissionService.Instance.HasAdd(InterfazCodigos.AlbumFotos);
+            bool puedeRetirarAlbum =
+                puedeAdministrarComoAprobador &&
+                PermissionService.Instance.HasDelete(InterfazCodigos.AlbumFotos);
 
             if (pendiente)
             {
@@ -1543,46 +1494,40 @@ namespace CONATRADEC.Views
                     acciones.Estado.Text =
                         "Esta fotografía todavía tiene una decisión técnica pendiente.";
                     acciones.Ayuda.Text =
-                        "Las decisiones técnicas no se reabren desde Revisados. Atienda esta fotografía desde Mis expedientes; aquí solo se administra el Álbum después de aprobar.";
+                        "Las decisiones técnicas no se reabren desde Revisados. Atienda esta fotografía desde Mis expedientes.";
                 }
                 else
                 {
                     acciones.Estado.Text =
                         "Revise la clasificación humana y registre la decisión técnica de esta fotografía.";
                     acciones.Ayuda.Text =
-                        "La decisión sobre el Álbum Botánico se toma después de aprobar. Aprobar una evidencia no la publica ni la autoriza automáticamente.";
+                        "Aprobar una evidencia no la publica automáticamente. La clasificación oficial y la publicación se administran después.";
                 }
             }
             else if (publicada)
             {
                 acciones.Estado.Text = string.IsNullOrWhiteSpace(
                         estadoAlbum.Mensaje)
-                    ? "✓ Fotografía aprobada y publicada activamente en el Álbum Botánico."
+                    ? "✓ Fotografía publicada activamente en el Álbum Botánico."
                     : $"✓ {estadoAlbum.Mensaje}";
                 acciones.Ayuda.Text =
-                    "La decisión técnica permanece cerrada. Para cambiar la clasificación oficial retire primero la publicación y cancele la autorización; así no se mueve silenciosamente una copia activa entre subcategorías.";
-            }
-            else if (aprobada && autorizada)
-            {
-                acciones.Estado.Text = estadoAlbum.TuvoPublicacion
-                    ? "✓ Fotografía aprobada y autorizada. La copia anterior del Álbum Botánico ya no está activa."
-                    : "✓ Fotografía aprobada y autorizada para el Álbum Botánico.";
-                acciones.Ayuda.Text =
-                    "La clasificación oficial queda protegida mientras exista autorización. Puede publicar, volver a publicar o cancelar la autorización antes de reclasificar.";
+                    "La decisión técnica y la clasificación oficial están cerradas. Puede quitar la copia del Álbum sin modificar el expediente original.";
             }
             else if (aprobada && !clasificacionOficial)
             {
                 acciones.Estado.Text =
                     "✓ Decisión técnica completada. ⚠ La clasificación del Álbum Botánico está pendiente de confirmación.";
                 acciones.Ayuda.Text =
-                    "Confirme la categoría y subcategoría oficiales antes de autorizar esta fotografía para el Álbum. La propuesta del analizador no modifica por sí sola el catálogo oficial.";
+                    "Confirme una sola vez la categoría y subcategoría oficiales. Después de confirmarlas, la clasificación queda cerrada y solo podrá publicar o quitar la fotografía del Álbum.";
             }
             else if (aprobada)
             {
                 acciones.Estado.Text =
                     "✓ Decisión técnica completada. Clasificación oficial del Álbum confirmada.";
                 acciones.Ayuda.Text =
-                    "La fotografía aún no está autorizada para el Álbum Botánico. Autorizar y publicar son decisiones posteriores e independientes.";
+                    estadoAlbum.TuvoPublicacion
+                        ? "La fotografía no está publicada actualmente. Puede publicarla nuevamente en la misma clasificación oficial."
+                        : "La fotografía todavía no está publicada en el Álbum Botánico.";
             }
             else if (devuelta)
             {
@@ -1600,7 +1545,7 @@ namespace CONATRADEC.Views
                     ? "? La fotografía fue cerrada como no concluyente."
                     : "✕ La fotografía fue rechazada.";
                 acciones.Ayuda.Text =
-                    "La decisión queda registrada en la trazabilidad del expediente y no habilita administración del Álbum.";
+                    "La decisión queda registrada en la trazabilidad del expediente y no habilita publicación en el Álbum.";
             }
 
             bool habilitada =
@@ -1633,21 +1578,17 @@ namespace CONATRADEC.Views
             acciones.Rechazar.IsEnabled = habilitada;
             acciones.NoConcluyente.IsEnabled = habilitada;
 
+            // La clasificación oficial se confirma una sola vez.
             acciones.ClasificarAlbum.IsVisible =
-                aprobada && !autorizada && !publicada;
-            acciones.ClasificarAlbum.Text = clasificacionOficial
-                ? "Revisar clasificación oficial"
-                : "Confirmar clasificación del Álbum";
+                aprobada && !clasificacionOficial && !publicada &&
+                puedeAdministrarComoAprobador;
+            acciones.ClasificarAlbum.Text =
+                "Confirmar clasificación del Álbum";
             acciones.ClasificarAlbum.IsEnabled =
                 acciones.ClasificarAlbum.IsVisible && !operacionRevisionActiva;
 
-            acciones.AutorizarAlbum.IsVisible =
-                aprobada && clasificacionOficial && !autorizada && !publicada;
-            acciones.AutorizarAlbum.IsEnabled =
-                acciones.AutorizarAlbum.IsVisible && !operacionRevisionActiva;
-
             acciones.Publicar.IsVisible =
-                aprobada && clasificacionOficial && autorizada &&
+                aprobada && clasificacionOficial &&
                 !publicada && puedePublicarAlbum;
             acciones.Publicar.Text = estadoAlbum.TuvoPublicacion
                 ? "Publicar nuevamente en Álbum Botánico"
@@ -1656,15 +1597,9 @@ namespace CONATRADEC.Views
                 acciones.Publicar.IsVisible && !operacionRevisionActiva;
 
             acciones.RetirarAlbum.IsVisible =
-                aprobada && autorizada && publicada && puedeRetirarAlbum;
+                aprobada && publicada && puedeRetirarAlbum;
             acciones.RetirarAlbum.IsEnabled =
                 acciones.RetirarAlbum.IsVisible && !operacionRevisionActiva;
-
-            acciones.CancelarAlbum.IsVisible =
-                aprobada && autorizada;
-            acciones.CancelarAlbum.Text = "Cancelar autorización";
-            acciones.CancelarAlbum.IsEnabled =
-                acciones.CancelarAlbum.IsVisible && !operacionRevisionActiva;
         }
 
         private AccionesTarjetaRevision? ObtenerOCrearAccionesTecnico(
@@ -2104,21 +2039,21 @@ namespace CONATRADEC.Views
                     InspeccionFotoEstados.NoConcluyente);
             int seleccionadas = viewModel.Fotografias.Count(item =>
                 item.Seleccionada && EsEstadoPendienteAprobador(item.Estado));
-            int autorizadasAlbum = estadosAlbumAprobadorPorFoto.Values.Count(
-                item => item.Autorizada);
+            int clasificacionesOficiales = viewModel.Fotografias.Count(item =>
+                item.TieneClasificacionAlbumOficial);
             int publicadasAlbum = estadosAlbumAprobadorPorFoto.Values.Count(
                 item => item.PublicadaActiva);
 
             if (estadoGlobalAprobadorLabel != null)
             {
                 estadoGlobalAprobadorLabel.Text =
-                    $"Pendientes: {pendientes} · Aprobadas: {aprobadas} · Devueltas: {devueltas} · Rechazadas/no concluyentes: {rechazadas} · Álbum autorizadas: {autorizadasAlbum} · Publicadas: {publicadasAlbum} · Seleccionadas: {seleccionadas}.";
+                    $"Pendientes: {pendientes} · Aprobadas: {aprobadas} · Devueltas: {devueltas} · Rechazadas/no concluyentes: {rechazadas} · Clasificaciones oficiales: {clasificacionesOficiales} · Publicadas: {publicadasAlbum} · Seleccionadas: {seleccionadas}.";
             }
 
             if (ayudaGlobalAprobadorLabel != null)
             {
                 ayudaGlobalAprobadorLabel.Text = seleccionadas == 0
-                    ? "Seleccione una o varias fotografías pendientes. Aprobar no autoriza ni publica en el álbum: esa decisión se administra después, por fotografía."
+                    ? "Seleccione una o varias fotografías pendientes. Aprobar no publica en el Álbum Botánico: después se confirma una sola vez la clasificación oficial y se decide si se publica la fotografía."
                     : "Las acciones masivas resuelven únicamente la decisión técnica. Aprobar con corrección y la gestión del Álbum Botánico se mantienen como acciones individuales.";
             }
 
@@ -2211,16 +2146,32 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
-            if (estado.Autorizada || estado.PublicadaActiva)
+            if (foto.TieneClasificacionAlbumOficial)
             {
                 await DisplayAlert(
-                    "Clasificación protegida",
-                    estado.PublicadaActiva
-                        ? "Retire la fotografía del Álbum y cancele su autorización antes de cambiar la clasificación oficial."
-                        : "Cancele la autorización del Álbum antes de cambiar la clasificación oficial.",
+                    "Clasificación oficial cerrada",
+                    "La clasificación ya fue confirmada por el aprobador y forma parte del historial del expediente. No puede sobrescribirse desde este flujo.",
                     "Aceptar");
                 return;
+            }
+
+            bool bloqueoTemporalRevisados = false;
+
+            /*
+             * Revisados no mantiene un lease durante toda la consulta. Solo la
+             * confirmación única de la clasificación necesita exclusividad;
+             * publicar o quitar del Álbum son operaciones posteriores y no
+             * dependen de esta sesión de revisión.
+             */
+            if (EsVistaAprobadorRevisadas &&
+                (bloqueoRevision == null ||
+                 !bloqueoRevision.Adquirido ||
+                 string.IsNullOrWhiteSpace(bloqueoRevision.Token)))
+            {
+                if (!await PrepararBloqueoRevisionAsync())
+                    return;
+
+                bloqueoTemporalRevisados = true;
             }
 
             operacionRevisionActiva = true;
@@ -2246,7 +2197,7 @@ namespace CONATRADEC.Views
 
                 await DisplayAlert(
                     "Clasificación oficial confirmada",
-                    "La categoría y subcategoría quedaron resueltas por el aprobador. Ahora puede decidir si autoriza esta fotografía para el Álbum Botánico.",
+                    "La categoría y subcategoría quedaron resueltas por el aprobador y la clasificación oficial quedó cerrada. Ahora puede publicar la fotografía en el Álbum Botánico.",
                     "Aceptar");
             }
             catch (Exception ex)
@@ -2258,124 +2209,9 @@ namespace CONATRADEC.Views
             }
             finally
             {
-                operacionRevisionActiva = false;
-                ActualizarEstadoBotonesTarjetas();
-            }
-        }
+                if (bloqueoTemporalRevisados)
+                    await LiberarBloqueoRevisionAsync();
 
-        private async void OnAutorizarAlbumTarjetaAprobadorClicked(
-            object? sender,
-            EventArgs e)
-        {
-            if (operacionRevisionActiva ||
-                sender is not Button boton ||
-                boton.CommandParameter is not InspeccionFotoV2 foto)
-            {
-                return;
-            }
-
-            EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
-            if (!estado.Aprobada || estado.Autorizada)
-                return;
-
-            if (!foto.TieneClasificacionAlbumOficial)
-            {
-                await DisplayAlert(
-                    "Clasificación pendiente",
-                    "Confirme primero la categoría y subcategoría oficiales del Álbum Botánico. La propuesta del analizador todavía no es una clasificación final.",
-                    "Aceptar");
-                return;
-            }
-
-            bool confirmar = await DisplayAlert(
-                "Autorizar para Álbum Botánico",
-                "La aprobación técnica no cambiará. Esta autorización permitirá publicar la fotografía ahora o más adelante. ¿Desea autorizarla?",
-                "Autorizar",
-                "Cancelar");
-
-            if (!confirmar)
-                return;
-
-            operacionRevisionActiva = true;
-            ActualizarEstadoBotonesTarjetas();
-            try
-            {
-                EstadoAlbumAprobador actualizado =
-                    await albumAprobadorApi.CambiarAutorizacionAsync(
-                        idRevision,
-                        foto.FotografiaId,
-                        autorizar: true);
-                estadosAlbumAprobadorPorFoto[foto.FotografiaId] = actualizado;
-                await RecargarDespuesOperacionRevisionAsync();
-
-                await DisplayAlert(
-                    "Autorización registrada",
-                    "La fotografía quedó autorizada para el Álbum Botánico. Puede publicarla ahora o hacerlo posteriormente.",
-                    "Aceptar");
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert(
-                    "Autorizar para Álbum Botánico",
-                    ex.Message,
-                    "Aceptar");
-            }
-            finally
-            {
-                operacionRevisionActiva = false;
-                ActualizarEstadoBotonesTarjetas();
-            }
-        }
-
-        private async void OnCancelarAutorizacionAlbumTarjetaAprobadorClicked(
-            object? sender,
-            EventArgs e)
-        {
-            if (operacionRevisionActiva ||
-                sender is not Button boton ||
-                boton.CommandParameter is not InspeccionFotoV2 foto)
-            {
-                return;
-            }
-
-            EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
-            if (!estado.Autorizada)
-                return;
-
-            string mensaje = estado.PublicadaActiva
-                ? "La autorización quedará cancelada. Como consecuencia, la copia publicada también será retirada del Álbum Botánico. La aprobación técnica y la evidencia original no se modificarán."
-                : "La autorización para incorporar esta fotografía al Álbum Botánico quedará cancelada. La aprobación técnica no se modificará.";
-
-            bool confirmar = await DisplayAlert(
-                "Cancelar autorización",
-                mensaje,
-                "Cancelar autorización",
-                "Volver");
-
-            if (!confirmar)
-                return;
-
-            operacionRevisionActiva = true;
-            ActualizarEstadoBotonesTarjetas();
-            try
-            {
-                EstadoAlbumAprobador actualizado =
-                    await albumAprobadorApi.CambiarAutorizacionAsync(
-                        idRevision,
-                        foto.FotografiaId,
-                        autorizar: false);
-                estadosAlbumAprobadorPorFoto[foto.FotografiaId] = actualizado;
-                await RecargarDespuesOperacionRevisionAsync();
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert(
-                    "Álbum Botánico",
-                    ex.Message,
-                    "Aceptar");
-            }
-            finally
-            {
                 operacionRevisionActiva = false;
                 ActualizarEstadoBotonesTarjetas();
             }
@@ -2393,24 +2229,25 @@ namespace CONATRADEC.Views
             }
 
             EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
-            if (!estado.Aprobada || !estado.Autorizada ||
-                !estado.PublicadaActiva)
+            if (!estado.Aprobada || !estado.PublicadaActiva)
             {
                 return;
             }
 
-            if (!PermissionService.Instance.HasDelete(InterfazCodigos.AlbumFotos))
+            if (!PermissionService.Instance.HasUpdate(
+                    DiagnosticoIARoutes.InterfazAprobador) ||
+                !PermissionService.Instance.HasDelete(InterfazCodigos.AlbumFotos))
             {
                 await DisplayAlert(
                     "Retirar del Álbum Botánico",
-                    "No tiene permiso para retirar fotografías del Álbum Botánico.",
+                    "No tiene los permisos necesarios para retirar fotografías del Álbum Botánico.",
                     "Aceptar");
                 return;
             }
 
             bool confirmar = await DisplayAlert(
                 "Retirar del Álbum Botánico",
-                "La copia activa será retirada del Álbum Botánico, pero la aprobación técnica y la autorización se conservarán. Podrá publicarla nuevamente más adelante.",
+                "La copia activa será retirada del Álbum Botánico. La aprobación técnica y la clasificación oficial se conservarán, por lo que podrá publicarla nuevamente más adelante.",
                 "Retirar",
                 "Volver");
 
@@ -2430,7 +2267,7 @@ namespace CONATRADEC.Views
 
                 await DisplayAlert(
                     "Fotografía retirada",
-                    "La copia fue retirada del Álbum Botánico. La autorización permanece disponible para publicarla nuevamente cuando sea necesario.",
+                    "La copia fue retirada del Álbum Botánico. La clasificación oficial permanece cerrada y podrá publicarla nuevamente cuando sea necesario.",
                     "Aceptar");
             }
             catch (Exception ex)
@@ -2459,7 +2296,7 @@ namespace CONATRADEC.Views
             }
 
             EstadoAlbumAprobador estado = ObtenerEstadoAlbumAprobador(foto);
-            if (!estado.Aprobada || !estado.Autorizada || estado.PublicadaActiva)
+            if (!estado.Aprobada || estado.PublicadaActiva)
             {
                 return;
             }
@@ -2473,11 +2310,13 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            if (!PermissionService.Instance.HasAdd(InterfazCodigos.AlbumFotos))
+            if (!PermissionService.Instance.HasUpdate(
+                    DiagnosticoIARoutes.InterfazAprobador) ||
+                !PermissionService.Instance.HasAdd(InterfazCodigos.AlbumFotos))
             {
                 await DisplayAlert(
                     "Publicar en Álbum Botánico",
-                    "No tiene permiso para agregar fotografías al Álbum Botánico.",
+                    "No tiene los permisos necesarios para publicar fotografías en el Álbum Botánico.",
                     "Aceptar");
                 return;
             }
@@ -2601,8 +2440,7 @@ namespace CONATRADEC.Views
                             humano,
                             decision,
                             diagnosticoFinal,
-                            observaciones.Trim(),
-                            autorizaAlbum: false)]);
+                            observaciones.Trim())]);
 
                 await RecargarDespuesOperacionRevisionAsync();
 
@@ -2610,7 +2448,7 @@ namespace CONATRADEC.Views
                 {
                     await DisplayAlert(
                         "Fotografía aprobada",
-                        "La decisión técnica quedó registrada. El Álbum Botánico se administra por separado: confirme la clasificación oficial y luego decida si autoriza y publica la fotografía.",
+                        "La decisión técnica quedó registrada. El Álbum Botánico se administra por separado: confirme la clasificación oficial una sola vez y luego decida si publica la fotografía.",
                         "Aceptar");
                 }
             }
@@ -2717,8 +2555,7 @@ namespace CONATRADEC.Views
                                     humano,
                                     decision,
                                     humano.Diagnostico,
-                                    observaciones.Trim(),
-                                    autorizaAlbum: false)]);
+                                    observaciones.Trim())]);
                         exitosas++;
                     }
                     catch (Exception ex)
@@ -2734,7 +2571,7 @@ namespace CONATRADEC.Views
                 if (decision == "APROBAR" && exitosas > 0)
                 {
                     resumen +=
-                        " Las fotografías quedaron aprobadas técnicamente. La clasificación oficial, autorización y publicación en el Álbum Botánico se deciden posteriormente por fotografía.";
+                        " Las fotografías quedaron aprobadas técnicamente. La clasificación oficial y la publicación en el Álbum Botánico se deciden posteriormente por fotografía.";
                 }
 
                 if (errores.Count > 0)
@@ -2758,8 +2595,7 @@ namespace CONATRADEC.Views
                 InspeccionFotoAnalisisHumanoV2 humano,
                 string decision,
                 string diagnosticoFinal,
-                string observaciones,
-                bool autorizaAlbum) =>
+                string observaciones) =>
             new()
             {
                 FotografiaId = foto.FotografiaId,
@@ -2773,7 +2609,8 @@ namespace CONATRADEC.Views
                 SeveridadFinal = humano.Severidad,
                 NivelCertezaFinal = humano.NivelCerteza,
                 Observaciones = observaciones,
-                AutorizaPublicacionAlbum = autorizaAlbum
+                // Campo legado conservado solo para compatibilidad del contrato.
+                AutorizaPublicacionAlbum = false
             };
 
         private async Task PublicarFotografiaAprobadaAsync(
@@ -3657,8 +3494,6 @@ namespace CONATRADEC.Views
                 Border panel,
                 Border contenedorClasificacion,
                 Label clasificacion,
-                Border contenedorAutorizacion,
-                Label autorizacion,
                 Border contenedorPublicacion,
                 Label publicacion,
                 Label ayuda)
@@ -3666,8 +3501,6 @@ namespace CONATRADEC.Views
                 Panel = panel;
                 ContenedorClasificacion = contenedorClasificacion;
                 Clasificacion = clasificacion;
-                ContenedorAutorizacion = contenedorAutorizacion;
-                Autorizacion = autorizacion;
                 ContenedorPublicacion = contenedorPublicacion;
                 Publicacion = publicacion;
                 Ayuda = ayuda;
@@ -3676,8 +3509,6 @@ namespace CONATRADEC.Views
             public Border Panel { get; }
             public Border ContenedorClasificacion { get; }
             public Label Clasificacion { get; }
-            public Border ContenedorAutorizacion { get; }
-            public Label Autorizacion { get; }
             public Border ContenedorPublicacion { get; }
             public Label Publicacion { get; }
             public Label Ayuda { get; }
@@ -3696,10 +3527,8 @@ namespace CONATRADEC.Views
                 Button rechazar,
                 Button noConcluyente,
                 Button clasificarAlbum,
-                Button autorizarAlbum,
                 Button publicar,
-                Button retirarAlbum,
-                Button cancelarAlbum)
+                Button retirarAlbum)
             {
                 Tarjeta = tarjeta;
                 Panel = panel;
@@ -3711,10 +3540,8 @@ namespace CONATRADEC.Views
                 Rechazar = rechazar;
                 NoConcluyente = noConcluyente;
                 ClasificarAlbum = clasificarAlbum;
-                AutorizarAlbum = autorizarAlbum;
                 Publicar = publicar;
                 RetirarAlbum = retirarAlbum;
-                CancelarAlbum = cancelarAlbum;
             }
 
             public Border Tarjeta { get; }
@@ -3727,10 +3554,8 @@ namespace CONATRADEC.Views
             public Button Rechazar { get; }
             public Button NoConcluyente { get; }
             public Button ClasificarAlbum { get; }
-            public Button AutorizarAlbum { get; }
             public Button Publicar { get; }
             public Button RetirarAlbum { get; }
-            public Button CancelarAlbum { get; }
         }
 
         private sealed class AccionesTarjetaRevision

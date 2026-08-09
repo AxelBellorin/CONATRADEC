@@ -1,13 +1,13 @@
 using CONATRADEC.Models;
-using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Operaciones posteriores a la decisión técnica del aprobador. La
-    /// autorización para el Álbum Botánico se mantiene separada de la
-    /// aprobación de la evidencia y puede cambiarse posteriormente.
+    /// Operaciones posteriores a la decisión técnica del aprobador.
+    /// Una vez confirmada la clasificación oficial, la administración del
+    /// Álbum Botánico se reduce a consultar el estado o retirar una publicación.
+    /// La publicación se realiza mediante el servicio fitosanitario existente.
     /// </summary>
     public sealed class InspeccionAlbumAprobadorApiService
     {
@@ -29,25 +29,10 @@ namespace CONATRADEC.Services
                     $"api/publicaciones-album-fitosanitarias/{inspeccionId}/fotografias/{fotografiaId}/estado"),
                 cancellationToken);
 
-        public Task<EstadoAlbumAprobador> CambiarAutorizacionAsync(
-            int inspeccionId,
-            int fotografiaId,
-            bool autorizar,
-            CancellationToken cancellationToken = default)
-        {
-            var request = new HttpRequestMessage(
-                HttpMethod.Patch,
-                $"api/publicaciones-album-fitosanitarias/{inspeccionId}/fotografias/{fotografiaId}/autorizacion")
-            {
-                Content = JsonContent.Create(new { autorizar })
-            };
-
-            return EnviarAsync(request, cancellationToken);
-        }
-
         /// <summary>
-        /// Retira la copia activa del Álbum Botánico sin revocar la
-        /// autorización concedida por el aprobador.
+        /// Retira únicamente la copia activa del Álbum Botánico. La decisión
+        /// técnica y la clasificación oficial del expediente permanecen
+        /// inalterables y la fotografía puede volver a publicarse después.
         /// </summary>
         public Task<EstadoAlbumAprobador> RetirarPublicacionAsync(
             int inspeccionId,
