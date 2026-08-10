@@ -512,12 +512,17 @@ namespace CONATRADEC.ViewModels
             if (elemento == null || IsBusy)
                 return;
 
+            string identificacion =
+                $"{elemento.NombreElementoQuimico} " +
+                $"({elemento.SimboloElementoQuimico})";
+
             bool confirmar =
                 await Application.Current!
                     .MainPage!
                     .DisplayAlert(
                         "Eliminar elemento químico",
-                        $"¿Desea eliminar el elemento '{elemento.NombreElementoQuimico}' ({elemento.SimboloElementoQuimico})?",
+                        "¿Desea eliminar este elemento químico?\n\n" +
+                        identificacion,
                         "Eliminar",
                         "Cancelar");
 
