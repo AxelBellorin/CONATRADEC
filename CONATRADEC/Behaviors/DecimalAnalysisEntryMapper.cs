@@ -11,11 +11,13 @@ using Android.Text.Method;
 namespace CONATRADEC.Behaviors
 {
     /// <summary>
-    /// Permite que los campos numéricos del flujo de análisis acepten
-    /// tanto punto como coma como separador decimal en Android.
+    /// Permite que únicamente los campos numéricos del flujo de análisis
+    /// acepten tanto punto como coma como separador decimal en Android.
     ///
-    /// La normalización final continúa realizándose en los ViewModels,
-    /// por lo que la API siempre recibe valores decimales válidos.
+    /// Los campos de texto del mismo formulario, por ejemplo laboratorio e
+    /// identificador del análisis, conservan el teclado alfanumérico normal.
+    /// La normalización final continúa realizándose en los ViewModels, por lo
+    /// que la API siempre recibe valores decimales válidos.
     /// </summary>
     public static class DecimalAnalysisEntryMapper
     {
@@ -66,7 +68,16 @@ namespace CONATRADEC.Behaviors
             Entry entry)
         {
 #if ANDROID
-            if (!EsCampoDelFlujoAnalisis(entry) ||
+            /*
+             * Antes se aplicaba la configuración numérica a TODOS los Entry
+             * cuyo BindingContext pertenecía al formulario de análisis.
+             * Eso convertía también Laboratorio e Identificador en campos
+             * numéricos en Android.
+             *
+             * A partir de ahora solo se modifica el control nativo cuando el
+             * propio XAML declaró explícitamente Keyboard="Numeric".
+             */
+            if (!EsCampoNumericoDelFlujoAnalisis(entry) ||
                 entry.Handler is not EntryHandler handler)
             {
                 return;
@@ -91,9 +102,22 @@ namespace CONATRADEC.Behaviors
 #endif
         }
 
-        private static bool EsCampoDelFlujoAnalisis(
-            Entry entry) =>
-            entry.BindingContext is NuevoAnalisisFormViewModel ||
-            entry.BindingContext is ResultadoAnalisisItemViewModel;
+        private static bool EsCampoNumericoDelFlujoAnalisis(
+            Entry entry)
+        {
+            bool perteneceAlFlujo =
+                entry.BindingContext is NuevoAnalisisFormViewModel ||
+                entry.BindingContext is ResultadoAnalisisItemViewModel;
+
+            if (!perteneceAlFlujo)
+                return false;
+
+            /*
+             * Keyboard="Numeric" se resuelve a Keyboard.Numeric.
+             * Los Entry de texto mantienen Keyboard.Default/Text y no
+             * deben recibir InputTypes.ClassNumber ni DigitsKeyListener.
+             */
+            return entry.Keyboard == Keyboard.Numeric;
+        }
     }
 }
