@@ -50,10 +50,27 @@ namespace CONATRADEC.Services
         {
             if (ModoSesionService.EsOffline)
             {
+                /*
+                 * El cliente no puede ampliar el alcance offline por su cuenta.
+                 * Sin el permiso explícito de lectura global, cualquier petición
+                 * queda forzada a los análisis propios.
+                 */
+                bool puedeVerTodos =
+                    PermissionService.Instance.HasRead(
+                        InterfazCodigos.AnalisisSueloTodos);
+
+                bool soloPropiosEfectivo =
+                    soloPropios || !puedeVerTodos;
+
+                int? usuarioFiltroEfectivo =
+                    puedeVerTodos && !soloPropiosEfectivo
+                        ? usuarioId
+                        : null;
+
                 List<AnalisisGuardadoResumen> locales =
                     await ObtenerLocalesCacheadosAsync(
-                        soloPropios,
-                        usuarioId,
+                        soloPropiosEfectivo,
+                        usuarioFiltroEfectivo,
                         buscar,
                         fechaDesde,
                         fechaHasta,
@@ -206,6 +223,14 @@ namespace CONATRADEC.Services
         {
             if (ModoSesionService.EsOffline)
             {
+                if (!PermissionService.Instance.HasRead(
+                        InterfazCodigos.AnalisisSueloTodos))
+                {
+                    return ApiResult<List<UsuarioFiltroAnalisis>>.Fail(
+                        "No tiene permiso para consultar análisis de otros usuarios.",
+                        403);
+                }
+
                 string json =
                     await AnalisisHistorialLocalService.Instance
                         .ObtenerUsuariosFiltroJsonAsync();
@@ -554,9 +579,9 @@ namespace CONATRADEC.Services
                 (int)Math.Ceiling(
                     items.Count / (double)pageSize));
 
-            string rol = Preferences.Get(
-                SessionKeys.KeyRolNombre,
-                string.Empty);
+            bool puedeVerTodos =
+                PermissionService.Instance.HasRead(
+                    InterfazCodigos.AnalisisSueloTodos);
 
             return new AnalisisListadoPaginadoResponse
             {
@@ -565,9 +590,11 @@ namespace CONATRADEC.Services
                 TotalRegistros = items.Count,
                 TotalPaginas = totalPages,
                 TieneMas = page < totalPages,
-                EsAdministrador = rol.Contains(
-                    "ADMIN",
-                    StringComparison.OrdinalIgnoreCase),
+                /*
+                 * La propiedad se conserva con el nombre histórico para no
+                 * romper bindings. Su significado es permiso de alcance global.
+                 */
+                EsAdministrador = puedeVerTodos,
                 Items = items
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)

@@ -283,6 +283,11 @@ namespace CONATRADEC.ViewModels
         public bool TieneErrorRangoFecha =>
             !string.IsNullOrWhiteSpace(ErrorRangoFecha);
 
+        /*
+         * Se conserva el nombre histórico EsAdministrador para no romper el
+         * XAML existente. Desde esta versión significa "puede ver análisis de
+         * todos los usuarios" y depende exclusivamente del permiso dedicado.
+         */
         public bool EsAdministrador
         {
             get => esAdministrador;
@@ -433,21 +438,29 @@ namespace CONATRADEC.ViewModels
 
         public void PrepararPantalla()
         {
-            string rol = Preferences.Get(
-                SessionKeys.KeyRolNombre,
-                string.Empty);
+            bool puedeVerTodos =
+                PermissionService.Instance.HasRead(
+                    InterfazCodigos.AnalisisSueloTodos);
 
-            bool administrador =
-                !string.IsNullOrWhiteSpace(rol) &&
-                rol.Contains(
-                    "ADMIN",
-                    StringComparison.OrdinalIgnoreCase);
+            EsAdministrador = puedeVerTodos;
 
-            EsAdministrador = administrador;
-
-            if (!administrador)
+            if (!puedeVerTodos)
             {
                 alcanceListadoSeleccionado = AlcancePropios;
+                OnPropertyChanged(nameof(AlcanceListadoSeleccionado));
+                OnPropertyChanged(nameof(ListarSoloPropios));
+            }
+            else if (string.Equals(
+                         alcanceListadoSeleccionado,
+                         AlcancePropios,
+                         StringComparison.OrdinalIgnoreCase) &&
+                     !SeHaListado)
+            {
+                /*
+                 * Una nueva sesión con alcance global inicia mostrando todos.
+                 * Después el usuario puede seleccionar "Solo mis análisis".
+                 */
+                alcanceListadoSeleccionado = AlcanceTodos;
                 OnPropertyChanged(nameof(AlcanceListadoSeleccionado));
                 OnPropertyChanged(nameof(ListarSoloPropios));
             }
@@ -552,7 +565,24 @@ namespace CONATRADEC.ViewModels
                 }
 
                 AnalisisListadoPaginadoResponse data = result.Data;
+
+                /*
+                 * El backend devuelve el permiso efectivo usando el campo
+                 * histórico esAdministrador para compatibilidad. Nunca se
+                 * deduce el alcance por el nombre del rol.
+                 */
                 EsAdministrador = data.EsAdministrador;
+
+                if (!EsAdministrador &&
+                    !string.Equals(
+                        alcanceListadoSeleccionado,
+                        AlcancePropios,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    alcanceListadoSeleccionado = AlcancePropios;
+                    OnPropertyChanged(nameof(AlcanceListadoSeleccionado));
+                    OnPropertyChanged(nameof(ListarSoloPropios));
+                }
 
                 if (reiniciar)
                     AnalisisGuardados.Clear();

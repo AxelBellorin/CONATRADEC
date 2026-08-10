@@ -1,5 +1,5 @@
 using CONATRADEC.Models;
-using System.Net.Http.Json;
+using System.Net;
 using System.Text.Json;
 
 namespace CONATRADEC.Services
@@ -7,9 +7,20 @@ namespace CONATRADEC.Services
     /// <summary>
     /// Descarga manualmente todos los análisis a los que el usuario tiene
     /// acceso, incluyendo detalle y datos completos de reportes.
+    ///
+    /// El alcance se determina por permisos:
+    /// - MainPage/Leer: permite trabajar con análisis propios.
+    /// - AnalisisSueloTodosPage/Leer: permite incluir análisis de otros usuarios.
+    ///
+    /// La API vuelve a validar el alcance, por lo que un cliente no puede
+    /// ampliar sus datos modificando soloPropios manualmente.
     /// </summary>
     public sealed class AnalisisHistorialDescargaService
     {
+        private const int TamanoPagina = 30;
+        private const int TamanoLoteDetalles = 4;
+        private const int MaximoIntentosHttp = 3;
+
         private static readonly Lazy<AnalisisHistorialDescargaService> lazy =
             new(() => new AnalisisHistorialDescargaService());
 
@@ -57,19 +68,29 @@ namespace CONATRADEC.Services
 
             try
             {
-                string usuariosJson =
-                    await DescargarUsuariosAsync(cancellationToken);
+                bool puedeVerTodos =
+                    PermissionService.Instance.HasRead(
+                        InterfazCodigos.AnalisisSueloTodos);
+
+                /*
+                 * El catálogo de usuarios solo tiene sentido cuando existe el
+                 * permiso de alcance global. Para un técnico normal no se hace
+                 * esta solicitud ni se guarda información de otros usuarios.
+                 */
+                string usuariosJson = puedeVerTodos
+                    ? await DescargarUsuariosAsync(cancellationToken)
+                    : string.Empty;
 
                 var items = new List<AnalisisGuardadoResumen>();
                 int pagina = 1;
-                const int tamanoPagina = 30;
 
                 while (true)
                 {
                     ApiEnvelope<AnalisisListadoPaginadoResponse> envelope =
                         await DescargarPaginaAsync(
                             pagina,
-                            tamanoPagina,
+                            TamanoPagina,
+                            soloPropios: !puedeVerTodos,
                             cancellationToken);
 
                     AnalisisListadoPaginadoResponse data =
@@ -112,48 +133,50 @@ namespace CONATRADEC.Services
                     total,
                     total == 0
                         ? "No existen análisis para descargar."
-                        : "Preparando el historial de análisis...");
+                        : puedeVerTodos
+                            ? $"Preparando {total} análisis autorizados para este usuario..."
+                            : $"Preparando {total} análisis propios...");
 
-                foreach (AnalisisGuardadoResumen resumen in items)
+                /*
+                 * Se descargan pocos análisis en paralelo para reducir el
+                 * tiempo total sin generar cientos de solicitudes simultáneas.
+                 * Cada lote se escribe en SQLite de forma secuencial.
+                 */
+                foreach (AnalisisGuardadoResumen[] lote in
+                         items.Chunk(TamanoLoteDetalles))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    Task<string> detalleTask = DescargarJsonAsync(
-                        $"api/guardar-todo/listardetalle/" +
-                        resumen.AnalisisSueloCalculoId,
-                        cancellationToken);
+                    Task<AnalisisDescargado>[] tareas = lote
+                        .Select(item =>
+                            DescargarAnalisisAsync(
+                                item,
+                                cancellationToken))
+                        .ToArray();
 
-                    Task<string> reporteTask = DescargarJsonAsync(
-                        $"api/reportes/analisis/" +
-                        resumen.AnalisisSueloCalculoId +
-                        "/datos",
-                        cancellationToken);
+                    AnalisisDescargado[] descargados =
+                        await Task.WhenAll(tareas);
 
-                    await Task.WhenAll(
-                        detalleTask,
-                        reporteTask);
+                    foreach (AnalisisDescargado descargado in descargados)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                    string detalleJson = await detalleTask;
-                    string reporteJson = await reporteTask;
+                        await AnalisisHistorialLocalService.Instance
+                            .GuardarTemporalAsync(
+                                paqueteId,
+                                descargado.Resumen,
+                                descargado.DetalleJson,
+                                descargado.ReporteJson);
 
-                    ValidarDetalle(detalleJson);
-                    ValidarReporte(reporteJson);
+                        detalles++;
+                        reportes++;
+                        procesados++;
 
-                    await AnalisisHistorialLocalService.Instance
-                        .GuardarTemporalAsync(
-                            paqueteId,
-                            resumen,
-                            detalleJson,
-                            reporteJson);
-
-                    detalles++;
-                    reportes++;
-                    procesados++;
-
-                    Notificar(
-                        procesados,
-                        total,
-                        $"Descargando análisis {procesados} de {total}...");
+                        Notificar(
+                            procesados,
+                            total,
+                            $"Descargando análisis {procesados} de {total}...");
+                    }
                 }
 
                 await AnalisisHistorialLocalService.Instance
@@ -177,7 +200,9 @@ namespace CONATRADEC.Services
                     tamano,
                     total == 0
                         ? "No existen análisis accesibles para este usuario."
-                        : $"Se descargaron {total} análisis con sus detalles y reportes.");
+                        : puedeVerTodos
+                            ? $"Se descargaron {total} análisis autorizados con sus detalles y reportes."
+                            : $"Se descargaron {total} análisis propios con sus detalles y reportes.");
             }
             catch (OperationCanceledException)
             {
@@ -202,35 +227,78 @@ namespace CONATRADEC.Services
             }
         }
 
+        private static async Task<AnalisisDescargado>
+            DescargarAnalisisAsync(
+                AnalisisGuardadoResumen resumen,
+                CancellationToken cancellationToken)
+        {
+            try
+            {
+                Task<string> detalleTask = DescargarJsonAsync(
+                    $"api/guardar-todo/listardetalle/" +
+                    resumen.AnalisisSueloCalculoId,
+                    cancellationToken);
+
+                Task<string> reporteTask = DescargarJsonAsync(
+                    $"api/reportes/analisis/" +
+                    resumen.AnalisisSueloCalculoId +
+                    "/datos",
+                    cancellationToken);
+
+                await Task.WhenAll(
+                    detalleTask,
+                    reporteTask);
+
+                string detalleJson = await detalleTask;
+                string reporteJson = await reporteTask;
+
+                ValidarDetalle(detalleJson);
+                ValidarReporte(reporteJson);
+
+                return new AnalisisDescargado
+                {
+                    Resumen = resumen,
+                    DetalleJson = detalleJson,
+                    ReporteJson = reporteJson
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                string identificador =
+                    string.IsNullOrWhiteSpace(
+                        resumen.IdentificadorAnalisisSuelo)
+                        ? $"ID {resumen.AnalisisSueloCalculoId}"
+                        : $"{resumen.IdentificadorAnalisisSuelo} " +
+                          $"(ID {resumen.AnalisisSueloCalculoId})";
+
+                throw new InvalidOperationException(
+                    $"Falló la descarga del análisis {identificador}. " +
+                    ex.Message,
+                    ex);
+            }
+        }
+
         private static async Task<ApiEnvelope<
             AnalisisListadoPaginadoResponse>>
             DescargarPaginaAsync(
                 int pagina,
                 int tamanoPagina,
+                bool soloPropios,
                 CancellationToken cancellationToken)
         {
             string route =
                 "api/analisis-listado/paginado" +
-                $"?soloPropios=false&pagina={pagina}" +
+                $"?soloPropios={soloPropios.ToString().ToLowerInvariant()}" +
+                $"&pagina={pagina}" +
                 $"&tamanoPagina={tamanoPagina}";
 
-            using HttpResponseMessage response =
-                await ApiClientService.Client.GetAsync(
-                    route,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    cancellationToken);
-
-            string json = await response.Content
-                .ReadAsStringAsync(cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new InvalidOperationException(
-                    ApiErrorMessageParser.Parse(
-                        response.StatusCode,
-                        json,
-                        "No fue posible descargar el listado de análisis."));
-            }
+            string json = await DescargarJsonAsync(
+                route,
+                cancellationToken);
 
             return JsonSerializer.Deserialize<ApiEnvelope<
                        AnalisisListadoPaginadoResponse>>(
@@ -243,43 +311,97 @@ namespace CONATRADEC.Services
         private static async Task<string> DescargarUsuariosAsync(
             CancellationToken cancellationToken)
         {
-            using HttpResponseMessage response =
-                await ApiClientService.Client.GetAsync(
+            try
+            {
+                return await DescargarJsonAsync(
                     "api/analisis-listado/usuarios",
                     cancellationToken);
-
-            string json = await response.Content
-                .ReadAsStringAsync(cancellationToken);
-
-            return response.IsSuccessStatusCode
-                ? json
-                : string.Empty;
+            }
+            catch (InvalidOperationException)
+            {
+                /*
+                 * El filtro de usuarios es auxiliar. Si cambia el permiso entre
+                 * el login y la descarga, el servidor seguirá protegiendo el
+                 * listado principal y simplemente se omite este catálogo.
+                 */
+                return string.Empty;
+            }
         }
 
         private static async Task<string> DescargarJsonAsync(
             string route,
             CancellationToken cancellationToken)
         {
-            using HttpResponseMessage response =
-                await ApiClientService.Client.GetAsync(
-                    route,
-                    HttpCompletionOption.ResponseContentRead,
-                    cancellationToken);
+            string ultimoMensaje =
+                $"No fue posible descargar {route}.";
 
-            string json = await response.Content
-                .ReadAsStringAsync(cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
+            for (int intento = 1;
+                 intento <= MaximoIntentosHttp;
+                 intento++)
             {
-                throw new InvalidOperationException(
-                    ApiErrorMessageParser.Parse(
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    using HttpResponseMessage response =
+                        await ApiClientService.Client.GetAsync(
+                            route,
+                            HttpCompletionOption.ResponseHeadersRead,
+                            cancellationToken);
+
+                    string json = await response.Content
+                        .ReadAsStringAsync(cancellationToken);
+
+                    if (response.IsSuccessStatusCode)
+                        return json;
+
+                    ultimoMensaje = ApiErrorMessageParser.Parse(
                         response.StatusCode,
                         json,
-                        $"No fue posible descargar {route}."));
+                        $"No fue posible descargar {route}.");
+
+                    if (!EsErrorTransitorio(response.StatusCode) ||
+                        intento >= MaximoIntentosHttp)
+                    {
+                        throw new InvalidOperationException(
+                            ultimoMensaje);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (HttpRequestException ex)
+                {
+                    ultimoMensaje =
+                        $"No fue posible conectar con el servidor al descargar {route}. " +
+                        ex.Message;
+
+                    if (intento >= MaximoIntentosHttp)
+                    {
+                        throw new InvalidOperationException(
+                            ultimoMensaje,
+                            ex);
+                    }
+                }
+
+                await Task.Delay(
+                    TimeSpan.FromMilliseconds(350 * intento),
+                    cancellationToken);
             }
 
-            return json;
+            throw new InvalidOperationException(ultimoMensaje);
         }
+
+        private static bool EsErrorTransitorio(
+            HttpStatusCode statusCode) =>
+            statusCode is
+                HttpStatusCode.RequestTimeout or
+                HttpStatusCode.TooManyRequests or
+                HttpStatusCode.InternalServerError or
+                HttpStatusCode.BadGateway or
+                HttpStatusCode.ServiceUnavailable or
+                HttpStatusCode.GatewayTimeout;
 
         private static void ValidarDetalle(string json)
         {
@@ -343,6 +465,13 @@ namespace CONATRADEC.Services
                     Total = total,
                     Mensaje = mensaje
                 });
+        }
+
+        private sealed class AnalisisDescargado
+        {
+            public AnalisisGuardadoResumen Resumen { get; init; } = null!;
+            public string DetalleJson { get; init; } = string.Empty;
+            public string ReporteJson { get; init; } = string.Empty;
         }
 
         private sealed class ApiEnvelope<T>

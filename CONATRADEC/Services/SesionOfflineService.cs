@@ -308,6 +308,17 @@ namespace CONATRADEC.Services
                     registro.JsonLogin,
                     InterfazCodigos.AlbumFotos);
 
+            bool analisisTodos =
+                TienePermisoLectura(
+                    registro.JsonLogin,
+                    InterfazCodigos.AnalisisSueloTodos);
+
+            /*
+             * El alcance del historial forma parte del perfil offline. Si el
+             * permiso cambia entre una sesión y otra, la copia anterior no se
+             * reutiliza: el usuario debe preparar nuevamente el dispositivo.
+             * Esto evita conservar análisis ajenos después de revocar el permiso.
+             */
             if (!SincronizacionOfflineGlobalService
                     .EstaPreparadoParaUsuario(
                         usuarioId) ||
@@ -315,7 +326,8 @@ namespace CONATRADEC.Services
                     .CoincidePerfilPreparacion(
                         usuarioId,
                         noticias,
-                        album))
+                        album,
+                        analisisTodos))
             {
                 return NoDisponible(
                     "Inicie en línea y utilice Descargar todo antes de trabajar sin conexión.",

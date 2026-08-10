@@ -8,6 +8,15 @@ namespace CONATRADEC.Services
     public static class InterfazCodigos
     {
         public const string AnalisisSuelo = "MainPage";
+
+        /// <summary>
+        /// Permiso de alcance global del historial de análisis.
+        /// Leer habilita consultar y descargar análisis de otros usuarios.
+        /// Sin este permiso, MainPage queda limitado a los análisis propios.
+        /// </summary>
+        public const string AnalisisSueloTodos =
+            "AnalisisSueloTodosPage";
+
         public const string Usuarios = "userPage";
         public const string Roles = "rolPage";
         public const string MatrizPermisos =
@@ -55,6 +64,8 @@ namespace CONATRADEC.Services
                 {
                     [AnalisisSuelo] =
                         "Análisis de suelo",
+                    [AnalisisSueloTodos] =
+                        "Análisis de suelo · ver todos",
                     [Usuarios] =
                         "Usuarios",
                     [Roles] =

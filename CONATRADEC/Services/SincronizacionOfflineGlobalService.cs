@@ -17,23 +17,24 @@ namespace CONATRADEC.Services
     public sealed class SincronizacionOfflineGlobalService
     {
         private const string EstadoClavePrefijo =
-            "offline_global_manual_estado_";
+            "offline_global_manual_estado_v3_";
 
         /*
-         * Esta versión se incrementa cuando cambia el contenido mínimo
-         * obligatorio. Una descarga de una entrega anterior no habilita el
-         * modo offline hasta completar nuevamente Actualizar todo.
+         * Versión 3 incorpora el alcance de análisis dentro del perfil de
+         * preparación y valida las rutas actuales del Álbum jerárquico.
+         * Un paquete v2 debe prepararse nuevamente para evitar conservar datos
+         * globales cuando el permiso "ver todos" ya no esté habilitado.
          */
-        private const int VersionPreparacionActual = 2;
+        private const int VersionPreparacionActual = 3;
 
         private const string PreparacionCompletaClavePrefijo =
-            "offline_global_preparado_v2_";
+            "offline_global_preparado_v3_";
 
         private const string PreparacionFechaClavePrefijo =
-            "offline_global_preparado_fecha_v2_";
+            "offline_global_preparado_fecha_v3_";
 
         private const string PreparacionPerfilClavePrefijo =
-            "offline_global_preparado_perfil_v2_";
+            "offline_global_preparado_perfil_v3_";
 
         private static readonly Lazy<
             SincronizacionOfflineGlobalService> lazy =
@@ -70,7 +71,8 @@ namespace CONATRADEC.Services
         public static bool CoincidePerfilPreparacion(
             string? usuarioId,
             bool requiereNoticias,
-            bool requiereAlbum)
+            bool requiereAlbum,
+            bool puedeVerTodosAnalisis)
         {
             if (string.IsNullOrWhiteSpace(usuarioId) ||
                 usuarioId == "0")
@@ -81,7 +83,8 @@ namespace CONATRADEC.Services
             string esperado =
                 ConstruirPerfilPermisos(
                     requiereNoticias,
-                    requiereAlbum);
+                    requiereAlbum,
+                    puedeVerTodosAnalisis);
 
             string guardado =
                 Preferences.Get(
@@ -289,7 +292,9 @@ namespace CONATRADEC.Services
 
                 analisis = CrearEnCurso(
                     "Historial de análisis",
-                    "Descargando encabezados, detalles y reportes...");
+                    PuedeDescargarTodosLosAnalisis()
+                        ? "Descargando análisis autorizados, detalles y reportes..."
+                        : "Descargando sus análisis, detalles y reportes...");
                 ActualizarPaso(
                     paso,
                     totalPasos,
@@ -426,7 +431,8 @@ namespace CONATRADEC.Services
                         usuarioPreparado),
                     ConstruirPerfilPermisos(
                         PuedeDescargarNoticias(),
-                        PuedeDescargarAlbum()));
+                        PuedeDescargarAlbum(),
+                        PuedeDescargarTodosLosAnalisis()));
 
                 /*
                  * Se guarda la versión exacta que acaba de descargarse. Si la
@@ -685,10 +691,16 @@ namespace CONATRADEC.Services
                         ? 12
                         : 6;
 
+                /*
+                 * AlbumOfflineSyncService utiliza la jerarquía nueva. La
+                 * validación anterior todavía buscaba rutas legacy
+                 * /api/album-botanico y por eso una descarga correcta terminaba
+                 * marcada falsamente como incompleta.
+                 */
                 await ExigirRutaAsync(
                     usuarioId,
                     "album",
-                    "/api/album-botanico/inicio" +
+                    "/api/album-jerarquia/inicio" +
                     $"?tamanoPagina={pageSize}",
                     version,
                     cancellationToken);
@@ -696,10 +708,10 @@ namespace CONATRADEC.Services
                 await ExigirRutaAsync(
                     usuarioId,
                     "album",
-                    "/api/album-botanico/galeria-paginada" +
-                    "?pagina=1" +
-                    $"&tamanoPagina={pageSize}" +
-                    "&incluirInactivos=false",
+                    "/api/album-jerarquia/galeria-paginada" +
+                    "?incluirInactivos=false" +
+                    "&pagina=1" +
+                    $"&tamanoPagina={pageSize}",
                     version,
                     cancellationToken);
             }
@@ -751,6 +763,10 @@ namespace CONATRADEC.Services
         private static bool PuedeDescargarAlbum() =>
             PermissionService.Instance.HasRead(
                 InterfazCodigos.AlbumFotos);
+
+        private static bool PuedeDescargarTodosLosAnalisis() =>
+            PermissionService.Instance.HasRead(
+                InterfazCodigos.AnalisisSueloTodos);
 
         private static ModuloOfflineResumen CrearPendiente(
             string nombre) =>
@@ -959,8 +975,10 @@ namespace CONATRADEC.Services
 
         private static string ConstruirPerfilPermisos(
             bool noticias,
-            bool album) =>
+            bool album,
+            bool analisisTodos) =>
             $"N:{(noticias ? 1 : 0)}|" +
-            $"A:{(album ? 1 : 0)}";
+            $"A:{(album ? 1 : 0)}|" +
+            $"T:{(analisisTodos ? 1 : 0)}";
     }
 }

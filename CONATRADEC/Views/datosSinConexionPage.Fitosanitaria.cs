@@ -116,11 +116,73 @@ namespace CONATRADEC.Views
             if (!e.Estado.PreparacionCompleta || !ModoSesionService.EsEnLinea)
                 return;
 
+            /*
+             * GuardarYNotificar() publica primero el estado visual de la
+             * descarga y el marcador persistente de "preparado" puede quedar
+             * disponible unas milésimas después.
+             *
+             * La captura fitosanitaria depende de ese marcador. Si intentamos
+             * prepararla dentro de esa pequeña ventana, PrepararAsync() cree
+             * que la descarga general todavía no terminó y lanza una excepción.
+             *
+             * Se espera de forma breve y acotada a que la marca persistente
+             * quede disponible antes de continuar.
+             */
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                await PrepararFitosanitariaSiCorrespondeAsync();
-                await ActualizarPanelFitosanitarioAsync();
+                try
+                {
+                    bool preparacionPersistida =
+                        await EsperarPreparacionGlobalPersistidaAsync();
+
+                    if (!preparacionPersistida)
+                    {
+                        await ActualizarPanelFitosanitarioAsync();
+                        return;
+                    }
+
+                    await PrepararFitosanitariaSiCorrespondeAsync();
+                    await ActualizarPanelFitosanitarioAsync();
+                }
+                catch
+                {
+                    /*
+                     * Un callback de estado nunca debe derribar la interfaz.
+                     * El panel reflejará el estado real y el usuario puede
+                     * reintentar manualmente si fuese necesario.
+                     */
+                    await ActualizarPanelFitosanitarioAsync();
+                }
             });
+        }
+
+        /// <summary>
+        /// Espera únicamente la pequeña ventana existente entre la publicación
+        /// del estado "Preparación completa" y la persistencia del marcador
+        /// que consumen los módulos offline dependientes.
+        ///
+        /// No inicia descargas, no hace llamadas a la API y no espera de forma
+        /// indefinida.
+        /// </summary>
+        private static async Task<bool>
+            EsperarPreparacionGlobalPersistidaAsync()
+        {
+            const int maxIntentos = 20;
+            const int esperaMilisegundos = 25;
+
+            for (int intento = 0; intento < maxIntentos; intento++)
+            {
+                if (FitosanitariaOfflineService.Instance
+                        .EstaPreparadoUsuarioActual)
+                {
+                    return true;
+                }
+
+                if (intento + 1 < maxIntentos)
+                    await Task.Delay(esperaMilisegundos);
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -143,6 +205,22 @@ namespace CONATRADEC.Views
 
             if (!global.PreparacionCompleta)
                 return;
+
+            /*
+             * El estado global puede haberse guardado justo antes que el
+             * marcador persistente utilizado por FitosanitariaOfflineService.
+             * Esperamos esa persistencia para evitar una falsa condición de
+             * "descarga general incompleta".
+             */
+            if (!FitosanitariaOfflineService.Instance
+                    .EstaPreparadoUsuarioActual)
+            {
+                bool preparacionPersistida =
+                    await EsperarPreparacionGlobalPersistidaAsync();
+
+                if (!preparacionPersistida)
+                    return;
+            }
 
             if (forzar ||
                 !FitosanitariaOfflineService.Instance.EstaPreparadoUsuarioActual)
