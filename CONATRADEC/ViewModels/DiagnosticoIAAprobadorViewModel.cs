@@ -19,6 +19,8 @@ namespace CONATRADEC.ViewModels
             new();
         private readonly InspeccionRevisionBloqueoApiService asignacionApi =
             new();
+        private readonly TipoFotografiaIAApiService tiposFotografiaApi =
+            new();
 
         private bool catalogoTecnicosCargado;
         private bool cargandoMas;
@@ -41,7 +43,8 @@ namespace CONATRADEC.ViewModels
 
         public DiagnosticoIAAprobadorViewModel()
         {
-            tipoFotografiaFiltroSeleccionado = TiposFotografiaFiltro[0];
+            tipoFotografiaFiltroSeleccionado =
+                ObtenerFiltroTipoFotografiaPredeterminado();
             estadoFiltroSeleccionado = EstadosFiltro[0];
 
             ActualizarCommand = new Command(
@@ -96,17 +99,15 @@ namespace CONATRADEC.ViewModels
         public ObservableCollection<TecnicoInspeccionFiltroItem>
             TecnicosFiltro { get; } = [];
 
-        public IReadOnlyList<FiltroCodigoOpcionV2> TiposFotografiaFiltro { get; } =
+        /// <summary>
+        /// El primer elemento es una opción exclusiva de interfaz. El resto se
+        /// reconstruye desde el catálogo activo del backend para evitar que los
+        /// filtros diverjan de Web o de la configuración administrativa.
+        /// </summary>
+        public ObservableCollection<FiltroCodigoOpcionV2>
+            TiposFotografiaFiltro { get; } =
         [
-            new(string.Empty, "Todos los tipos"),
-            new("EVIDENCIA", "Evidencia general"),
-            new("HOJA", "Hoja"),
-            new("FRUTO", "Fruto"),
-            new("TALLO", "Tallo"),
-            new("RAMA", "Rama"),
-            new("PLANTA_COMPLETA", "Planta completa"),
-            new("RAIZ", "Raíz"),
-            new("OTRA", "Otra")
+            new(string.Empty, "Todos los tipos")
         ];
 
         public IReadOnlyList<FiltroCodigoOpcionV2> EstadosFiltro { get; } =
@@ -191,7 +192,8 @@ namespace CONATRADEC.ViewModels
 
         public FiltroCodigoOpcionV2 TipoFotografiaFiltroSeleccionado
         {
-            get => tipoFotografiaFiltroSeleccionado ?? TiposFotografiaFiltro[0];
+            get => tipoFotografiaFiltroSeleccionado ??
+                ObtenerFiltroTipoFotografiaPredeterminado();
             set
             {
                 if (ReferenceEquals(tipoFotografiaFiltroSeleccionado, value))
@@ -396,15 +398,82 @@ namespace CONATRADEC.ViewModels
 
         public async Task InicializarAsync()
         {
+            await CargarTiposFotografiaAsync();
             await CargarTecnicosAsync();
             await CargarPrimeraPaginaAsync();
         }
 
         private async Task ActualizarAsync()
         {
+            await CargarTiposFotografiaAsync(forzar: true);
             await CargarTecnicosAsync(forzar: true);
             await CargarPrimeraPaginaAsync();
         }
+
+        private async Task CargarTiposFotografiaAsync(bool forzar = false)
+        {
+            string codigoSeleccionado =
+                tipoFotografiaFiltroSeleccionado?.Codigo ?? string.Empty;
+
+            ApiResult<List<TipoFotografiaIAItem>> resultado =
+                await tiposFotografiaApi.ListarActivosAsync(forzar);
+
+            if (!resultado.Success || resultado.Data is not { Count: > 0 })
+            {
+                if (TiposFotografiaFiltro.Count <= 1)
+                {
+                    await MostrarAlertaAsync(
+                        "Tipos de fotografía",
+                        string.IsNullOrWhiteSpace(resultado.Message)
+                            ? "No fue posible cargar el catálogo activo de tipos de fotografía."
+                            : resultado.Message);
+                }
+
+                return;
+            }
+
+            // Se conserva siempre la opción de interfaz "Todos los tipos".
+            // Evitamos dejar la colección vacía temporalmente porque los
+            // bindings de MAUI pueden reevaluar el getter durante un Clear().
+            while (TiposFotografiaFiltro.Count > 1)
+                TiposFotografiaFiltro.RemoveAt(TiposFotografiaFiltro.Count - 1);
+
+            if (TiposFotografiaFiltro.Count == 0)
+            {
+                TiposFotografiaFiltro.Add(
+                    new FiltroCodigoOpcionV2(
+                        string.Empty,
+                        "Todos los tipos"));
+            }
+
+            foreach (TipoFotografiaIAItem item in resultado.Data
+                         .Where(item => item.Activo)
+                         .OrderBy(item => item.Orden)
+                         .ThenBy(item => item.NombreMostrar))
+            {
+                TiposFotografiaFiltro.Add(
+                    new FiltroCodigoOpcionV2(
+                        item.Codigo,
+                        item.NombreMostrar));
+            }
+
+            tipoFotografiaFiltroSeleccionado =
+                TiposFotografiaFiltro.FirstOrDefault(item =>
+                    string.Equals(
+                        item.Codigo,
+                        codigoSeleccionado,
+                        StringComparison.OrdinalIgnoreCase)) ??
+                ObtenerFiltroTipoFotografiaPredeterminado();
+
+            OnPropertyChanged(nameof(TipoFotografiaFiltroSeleccionado));
+            NotificarFiltros();
+        }
+
+        private FiltroCodigoOpcionV2 ObtenerFiltroTipoFotografiaPredeterminado() =>
+            TiposFotografiaFiltro.FirstOrDefault() ??
+            new FiltroCodigoOpcionV2(
+                string.Empty,
+                "Todos los tipos");
 
         private async Task BuscarAsync()
         {
@@ -421,7 +490,8 @@ namespace CONATRADEC.ViewModels
             PropietarioFiltro = string.Empty;
             DepartamentoFiltro = string.Empty;
             TecnicoSeleccionado = TecnicosFiltro.FirstOrDefault();
-            TipoFotografiaFiltroSeleccionado = TiposFotografiaFiltro[0];
+            TipoFotografiaFiltroSeleccionado =
+                ObtenerFiltroTipoFotografiaPredeterminado();
             EstadoFiltroSeleccionado = EstadosFiltro[0];
             UsarFechaDesde = false;
             UsarFechaHasta = false;

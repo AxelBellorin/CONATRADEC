@@ -9,18 +9,27 @@ namespace CONATRADEC.ViewModels
 {
     /// <summary>
     /// Opción visible del tipo de fotografía. El nombre se presenta al usuario
-    /// y el código se envía sin cambios al backend.
+    /// y el código se envía sin cambios al backend. La instrucción de captura
+    /// también proviene del mismo catálogo que utiliza la IA.
     /// </summary>
     public sealed class TipoFotografiaOpcion
     {
-        public TipoFotografiaOpcion(string codigo, string nombre)
+        public TipoFotografiaOpcion(
+            string codigo,
+            string nombre,
+            string descripcion,
+            string instruccionIA)
         {
             Codigo = codigo;
             Nombre = nombre;
+            Descripcion = descripcion;
+            InstruccionIA = instruccionIA;
         }
 
         public string Codigo { get; }
         public string Nombre { get; }
+        public string Descripcion { get; }
+        public string InstruccionIA { get; }
     }
 
     /// <summary>
@@ -50,6 +59,8 @@ namespace CONATRADEC.ViewModels
 
         private readonly InspeccionFitosanitariaBandejaApiService bandejaApi =
             InspeccionFitosanitariaBandejaApiService.Instance;
+        private readonly TipoFotografiaIAApiService tiposFotografiaApi =
+            new();
         private readonly SemaphoreSlim cargaBandejaLock = new(1, 1);
 
         private bool cargaInicialCompletada;
@@ -78,7 +89,7 @@ namespace CONATRADEC.ViewModels
                 () => !IsBusy);
 
             tipoFotografiaFiltroSeleccionado =
-                TiposFotografiaFiltro[0];
+                ObtenerFiltroTipoFotografiaPredeterminado();
             estadoFiltroSeleccionado =
                 EstadosInspeccionFiltro[0];
 
@@ -169,31 +180,18 @@ namespace CONATRADEC.ViewModels
 
         public Command RegresarSolicitudCommand { get; }
 
-        public IReadOnlyList<TipoFotografiaOpcion> TiposFotografia { get; } =
-        [
-            new("EVIDENCIA", "Evidencia general"),
-            new("HOJA", "Hoja"),
-            new("FRUTO", "Fruto"),
-            new("TALLO", "Tallo"),
-            new("RAMA", "Rama"),
-            new("PLANTA_COMPLETA", "Planta completa"),
-            new("RAIZ", "Raíz"),
-            new("OTRA", "Otra")
-        ];
+        /// <summary>
+        /// Catálogo activo obtenido desde la API. No contiene códigos definidos
+        /// por el cliente para que Android, Windows y Web compartan exactamente
+        /// la misma configuración.
+        /// </summary>
+        public ObservableCollection<TipoFotografiaOpcion>
+            TiposFotografia { get; } = [];
 
-
-        public IReadOnlyList<FiltroCodigoOpcionV2>
+        public ObservableCollection<FiltroCodigoOpcionV2>
             TiposFotografiaFiltro { get; } =
         [
-            new(string.Empty, "Todos los tipos"),
-            new("EVIDENCIA", "Evidencia general"),
-            new("HOJA", "Hoja"),
-            new("FRUTO", "Fruto"),
-            new("TALLO", "Tallo"),
-            new("RAMA", "Rama"),
-            new("PLANTA_COMPLETA", "Planta completa"),
-            new("RAIZ", "Raíz"),
-            new("OTRA", "Otra")
+            new(string.Empty, "Todos los tipos")
         ];
 
         public IReadOnlyList<FiltroCodigoOpcionV2>
@@ -316,7 +314,7 @@ namespace CONATRADEC.ViewModels
 
         public string TerrenoSeleccionadoTexto =>
             TerrenoSeleccionado == null
-                ? "La inspección puede guardarse sin terreno vinculado."
+                ? "Seleccione un terreno activo antes de guardar la inspección."
                 : TerrenoSeleccionado.ResumenSeleccion;
 
         public bool EsModoNueva =>
@@ -377,8 +375,8 @@ namespace CONATRADEC.ViewModels
             TieneFotos && indiceFotoActual < Fotos.Count - 1;
 
         /// <summary>
-        /// El Picker muestra nombres legibles, pero la fotografía conserva el
-        /// código requerido por la API (HOJA, FRUTO, PLANTA_COMPLETA, etc.).
+        /// El Picker muestra el nombre configurado, pero la fotografía conserva
+        /// el código exacto requerido por la API.
         /// </summary>
         public TipoFotografiaOpcion? TipoFotografiaSeleccionada
         {
@@ -389,13 +387,19 @@ namespace CONATRADEC.ViewModels
                 return string.IsNullOrWhiteSpace(codigo)
                     ? null
                     : TiposFotografia.FirstOrDefault(
-                        opcion => opcion.Codigo == codigo);
+                        opcion => string.Equals(
+                            opcion.Codigo,
+                            codigo,
+                            StringComparison.OrdinalIgnoreCase));
             }
             set
             {
                 if (FotoActual == null ||
                     value == null ||
-                    FotoActual.TipoFotografia == value.Codigo)
+                    string.Equals(
+                        FotoActual.TipoFotografia,
+                        value.Codigo,
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     return;
                 }
@@ -427,26 +431,27 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public string EnfoqueFotoActual =>
-            FotoActual?.TipoFotografia switch
+        /// <summary>
+        /// La orientación de captura ya no depende de un switch mantenido en la
+        /// aplicación. Se muestra la instrucción configurada para el mismo tipo
+        /// que recibe el motor IA y se conserva una ayuda genérica si el catálogo
+        /// todavía no define un texto específico.
+        /// </summary>
+        public string EnfoqueFotoActual
+        {
+            get
             {
-                "HOJA" =>
-                    "Prioriza el haz y el envés de la hoja. Observa manchas, clorosis, necrosis, perforaciones, galerías, pústulas, micelio, esporas, insectos, huevos, deformaciones, bordes y patrón de distribución de los síntomas.",
-                "FRUTO" =>
-                    "Procura mostrar varios frutos y un acercamiento del daño. Observa perforaciones, pudriciones, manchas, deformaciones, insectos, residuos, maduración irregular y distribución de los síntomas.",
-                "TALLO" =>
-                    "Incluye el área afectada y tejido sano alrededor. Observa lesiones, grietas, exudados, perforaciones, galerías, hongos, necrosis y cambios de coloración.",
-                "RAMA" =>
-                    "Muestra la rama completa y un acercamiento. Observa secamiento, pérdida de hojas, lesiones, perforaciones, insectos, deformaciones y distribución del daño.",
-                "PLANTA_COMPLETA" =>
-                    "Fotografía la planta completa con buena iluminación. Observa vigor, marchitez, defoliación, crecimiento desigual, coloración general y distribución de síntomas.",
-                "RAIZ" =>
-                    "Limpia suavemente el exceso de suelo sin dañar la raíz. Observa pudrición, coloración, deformaciones, nódulos, lesiones, insectos y pérdida de raíces finas.",
-                "OTRA" =>
-                    "Incluye una vista general y un acercamiento del hallazgo, procurando buena iluminación, enfoque y una referencia clara del tamaño.",
-                _ =>
-                    "Incluye una vista general y otra cercana del hallazgo. Mantén buena iluminación, enfoque y suficiente contexto para interpretar la evidencia."
-            };
+                TipoFotografiaOpcion? tipo = TipoFotografiaSeleccionada;
+
+                if (!string.IsNullOrWhiteSpace(tipo?.InstruccionIA))
+                    return tipo.InstruccionIA.Trim();
+
+                if (!string.IsNullOrWhiteSpace(tipo?.Descripcion))
+                    return tipo.Descripcion.Trim();
+
+                return "Incluya una vista general y otra cercana del hallazgo. Mantenga buena iluminación, enfoque y suficiente contexto para interpretar la evidencia.";
+            }
+        }
 
         public bool EsVisorAbierto
         {
@@ -670,7 +675,7 @@ namespace CONATRADEC.ViewModels
         public FiltroCodigoOpcionV2 TipoFotografiaFiltroSeleccionado
         {
             get => tipoFotografiaFiltroSeleccionado ??
-                TiposFotografiaFiltro[0];
+                ObtenerFiltroTipoFotografiaPredeterminado();
             set
             {
                 if (ReferenceEquals(tipoFotografiaFiltroSeleccionado, value))
@@ -805,8 +810,90 @@ namespace CONATRADEC.ViewModels
 
             inicializado = true;
 
+            await CargarTiposFotografiaAsync();
+
             if (EsModoListado)
                 await CargarBandejaAsync(reiniciar: true);
+        }
+
+        private async Task CargarTiposFotografiaAsync(bool forzar = false)
+        {
+            string filtroSeleccionado =
+                tipoFotografiaFiltroSeleccionado?.Codigo ?? string.Empty;
+            string? tipoFotoActual = FotoActual?.TipoFotografia;
+
+            ApiResult<List<TipoFotografiaIAItem>> resultado =
+                await tiposFotografiaApi.ListarActivosAsync(forzar);
+
+            if (!resultado.Success || resultado.Data is not { Count: > 0 })
+            {
+                await MostrarAlertaAsync(
+                    "Tipos de fotografía",
+                    string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "No fue posible cargar el catálogo activo de tipos de fotografía."
+                        : resultado.Message);
+                return;
+            }
+
+            TiposFotografia.Clear();
+            foreach (TipoFotografiaIAItem item in resultado.Data
+                         .Where(item => item.Activo)
+                         .OrderBy(item => item.Orden)
+                         .ThenBy(item => item.NombreMostrar))
+            {
+                TiposFotografia.Add(
+                    new TipoFotografiaOpcion(
+                        item.Codigo,
+                        item.NombreMostrar,
+                        item.Descripcion,
+                        item.InstruccionIA));
+            }
+
+            // Se conserva siempre la opción de interfaz "Todos los tipos".
+            // Evitamos dejar la colección vacía temporalmente porque los
+            // bindings de MAUI pueden reevaluar el getter durante un Clear().
+            while (TiposFotografiaFiltro.Count > 1)
+                TiposFotografiaFiltro.RemoveAt(TiposFotografiaFiltro.Count - 1);
+
+            if (TiposFotografiaFiltro.Count == 0)
+            {
+                TiposFotografiaFiltro.Add(
+                    new FiltroCodigoOpcionV2(
+                        string.Empty,
+                        "Todos los tipos"));
+            }
+
+            foreach (TipoFotografiaOpcion item in TiposFotografia)
+            {
+                TiposFotografiaFiltro.Add(
+                    new FiltroCodigoOpcionV2(
+                        item.Codigo,
+                        item.Nombre));
+            }
+
+            tipoFotografiaFiltroSeleccionado =
+                TiposFotografiaFiltro.FirstOrDefault(item =>
+                    string.Equals(
+                        item.Codigo,
+                        filtroSeleccionado,
+                        StringComparison.OrdinalIgnoreCase)) ??
+                ObtenerFiltroTipoFotografiaPredeterminado();
+
+            if (FotoActual != null &&
+                !string.IsNullOrWhiteSpace(tipoFotoActual) &&
+                TiposFotografia.Any(item => string.Equals(
+                    item.Codigo,
+                    tipoFotoActual,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                FotoActual.TipoFotografia = tipoFotoActual;
+            }
+
+            OnPropertyChanged(nameof(TipoFotografiaSeleccionada));
+            OnPropertyChanged(nameof(TipoFotografiaActualTexto));
+            OnPropertyChanged(nameof(EnfoqueFotoActual));
+            OnPropertyChanged(nameof(TipoFotografiaFiltroSeleccionado));
+            NotificarEstadoFiltros();
         }
 
         public void CerrarVisor()
@@ -815,10 +902,30 @@ namespace CONATRADEC.ViewModels
             RestablecerZoom();
         }
 
+        private FiltroCodigoOpcionV2 ObtenerFiltroTipoFotografiaPredeterminado() =>
+            TiposFotografiaFiltro.FirstOrDefault() ??
+            new FiltroCodigoOpcionV2(
+                string.Empty,
+                "Todos los tipos");
+
+        private string ObtenerCodigoTipoFotografiaPredeterminado() =>
+            TiposFotografia.FirstOrDefault()?.Codigo ?? string.Empty;
+
         private async Task AgregarFotosAsync()
         {
             if (IsBusy || !ValidarEnLinea())
                 return;
+
+            string tipoPredeterminado =
+                ObtenerCodigoTipoFotografiaPredeterminado();
+
+            if (string.IsNullOrWhiteSpace(tipoPredeterminado))
+            {
+                await MostrarAlertaAsync(
+                    "Tipos de fotografía",
+                    "No hay tipos de fotografía activos disponibles para registrar evidencia.");
+                return;
+            }
 
             try
             {
@@ -858,7 +965,7 @@ namespace CONATRADEC.ViewModels
                         TipoContenido =
                             archivo.ContentType ?? "image/jpeg",
                         FechaIdentificacionCampo = DateTime.Today,
-                        TipoFotografia = "EVIDENCIA"
+                        TipoFotografia = tipoPredeterminado
                     });
 
                     if (primerIndiceAgregado < 0)
@@ -894,6 +1001,17 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            string tipoPredeterminado =
+                ObtenerCodigoTipoFotografiaPredeterminado();
+
+            if (string.IsNullOrWhiteSpace(tipoPredeterminado))
+            {
+                await MostrarAlertaAsync(
+                    "Tipos de fotografía",
+                    "No hay tipos de fotografía activos disponibles para registrar evidencia.");
+                return;
+            }
+
             try
             {
                 FileResult? archivo =
@@ -911,7 +1029,7 @@ namespace CONATRADEC.ViewModels
                     TipoContenido =
                         archivo.ContentType ?? "image/jpeg",
                     FechaIdentificacionCampo = DateTime.Today,
-                    TipoFotografia = "EVIDENCIA"
+                    TipoFotografia = tipoPredeterminado
                 });
 
                 EstablecerIndiceFotoActual(Fotos.Count - 1);
@@ -1124,6 +1242,28 @@ namespace CONATRADEC.ViewModels
             if (IsBusy || !TieneFotos || !ValidarEnLinea())
                 return;
 
+            if (string.IsNullOrWhiteSpace(CodigoTerreno))
+            {
+                await MostrarAlertaAsync(
+                    "Terreno requerido",
+                    "Seleccione un terreno activo antes de guardar la inspección.");
+                return;
+            }
+
+            if (TiposFotografia.Count == 0 ||
+                Fotos.Any(foto =>
+                    string.IsNullOrWhiteSpace(foto.TipoFotografia) ||
+                    !TiposFotografia.Any(tipo => string.Equals(
+                        tipo.Codigo,
+                        foto.TipoFotografia,
+                        StringComparison.OrdinalIgnoreCase))))
+            {
+                await MostrarAlertaAsync(
+                    "Tipos de fotografía",
+                    "Una o más fotografías no tienen un tipo activo del catálogo. Revise la evidencia antes de guardar.");
+                return;
+            }
+
             string nombre = NombreInspeccion.Trim();
             if (nombre.Length < 3)
             {
@@ -1218,7 +1358,8 @@ namespace CONATRADEC.ViewModels
             UsarFechaHasta = false;
             FechaDesde = FechaDesdePredeterminada;
             FechaHasta = FechaMaximaFiltro;
-            TipoFotografiaFiltroSeleccionado = TiposFotografiaFiltro[0];
+            TipoFotografiaFiltroSeleccionado =
+                ObtenerFiltroTipoFotografiaPredeterminado();
             EstadoFiltroSeleccionado = EstadosInspeccionFiltro[0];
             FiltrosExpandidos = false;
 
