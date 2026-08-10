@@ -31,6 +31,7 @@ namespace CONATRADEC.Views
         private bool avisoLocalMostrado;
         private bool procesandoAsignacion;
         private bool tecnicoResponsableDisponible;
+        private bool paginaVisualActiva;
         private InspeccionRevisionAsignacion? asignacionRevision;
 
         public DiagnosticoIAResultadoPage()
@@ -78,6 +79,13 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             /*
+             * Desde este punto la página vuelve a ser un destino válido para
+             * actualizaciones visuales. Al ocultarse o cerrarse se desactiva
+             * antes de esperar cualquier operación asíncrona.
+             */
+            paginaVisualActiva = true;
+
+            /*
              * Los identificadores negativos pertenecen exclusivamente a la cola
              * fitosanitaria local. Aún no existe un expediente central que pueda
              * analizarse; la tarjeta se conserva en Mis inspecciones hasta que
@@ -105,31 +113,62 @@ namespace CONATRADEC.Views
              * manera explícita desde el panel de responsables.
              */
             await viewModel.InicializarAsync();
+
+            if (!paginaVisualActiva)
+                return;
+
             await CargarTecnicoResponsableAsync();
+
+            if (!paginaVisualActiva)
+                return;
 
             bool edicionDisponible =
                 await PrepararAsignacionYBloqueoAsync();
 
+            if (!paginaVisualActiva)
+                return;
+
             await AplicarFlujoRevisionAsync();
 
-            if (EsVistaOperativaAsignable && !edicionDisponible)
+            if (paginaVisualActiva &&
+                EsVistaOperativaAsignable &&
+                !edicionDisponible)
+            {
                 ProgramarModoSoloConsultaAsignacion();
+            }
         }
 
         protected override async void OnDisappearing()
         {
             /*
-             * Las ventanas modales que forman parte de la misma revisión no
-             * liberan el bloqueo. Al abandonar realmente el expediente sí se
-             * libera de inmediato; si la aplicación termina abruptamente, el
-             * backend lo libera automáticamente al vencer el lease.
+             * IMPORTANTE EN WINDOWS:
+             * al cerrar la ventana con la X, WinUI comienza a desmontar los
+             * controles inmediatamente. Antes se esperaba primero la liberación
+             * del bloqueo remoto y durante esa espera podían ejecutarse tareas
+             * visuales diferidas contra Label/TextBlock ya destruidos, generando
+             * una COMException de WinRT.
+             *
+             * Por eso primero invalidamos el destino visual y desconectamos todo
+             * el flujo de UI. La liberación del bloqueo se hace después y ya no
+             * puede provocar escrituras sobre controles que están cerrándose.
              */
-            if (!DebeMantenerBloqueoRevisionAlOcultarse)
-                await LiberarBloqueoRevisionAsync();
+            bool mantenerBloqueo =
+                DebeMantenerBloqueoRevisionAlOcultarse;
+
+            paginaVisualActiva = false;
+            contextoRevision = null;
 
             DesconectarFlujoRevision();
             viewModel.DetenerSeguimiento();
+
+            /*
+             * El ciclo de vida base no debe quedar esperando una operación de
+             * red. WinUI puede continuar destruyendo la ventana con seguridad.
+             */
             base.OnDisappearing();
+
+            if (!mantenerBloqueo)
+                await LiberarBloqueoRevisionAsync();
         }
 
         private bool EsVistaOperativaAsignable =>
@@ -158,6 +197,9 @@ namespace CONATRADEC.Views
 
         private async Task<bool> PrepararAsignacionYBloqueoAsync()
         {
+            if (!paginaVisualActiva)
+                return false;
+
             if (!EsVistaOperativaAsignable || diagnosticoIdActual <= 0)
             {
                 asignacionRevision = null;
@@ -170,11 +212,15 @@ namespace CONATRADEC.Views
 
             try
             {
-                asignacionRevision =
+                InspeccionRevisionAsignacion asignacion =
                     await bloqueoRevisionApi.ObtenerAsignacionAsync(
                         diagnosticoIdActual,
                         ModoAsignacionActual);
 
+                if (!paginaVisualActiva)
+                    return false;
+
+                asignacionRevision = asignacion;
                 ActualizarBannerAsignacion();
 
                 if (!PuedeEditarEtapaActual)
@@ -187,6 +233,9 @@ namespace CONATRADEC.Views
             }
             catch (Exception ex)
             {
+                if (!paginaVisualActiva)
+                    return false;
+
                 asignacionRevision = null;
                 asignacionInformacionLayout.IsVisible = true;
                 asignacionTituloLabel.Text = ModoAsignacionActual == "aprobador"
@@ -208,6 +257,9 @@ namespace CONATRADEC.Views
 
         private void ActualizarBannerAsignacion()
         {
+            if (!paginaVisualActiva)
+                return;
+
             if (!EsVistaOperativaAsignable || asignacionRevision == null)
             {
                 asignacionInformacionLayout.IsVisible = false;
@@ -283,6 +335,9 @@ namespace CONATRADEC.Views
 
         private void ActualizarVisibilidadResumen()
         {
+            if (!paginaVisualActiva)
+                return;
+
             resumenResponsabilidadBanner.IsVisible =
                 tecnicoResponsableDisponible ||
                 (EsVistaOperativaAsignable &&
@@ -293,7 +348,8 @@ namespace CONATRADEC.Views
             object? sender,
             EventArgs e)
         {
-            if (procesandoAsignacion ||
+            if (!paginaVisualActiva ||
+                procesandoAsignacion ||
                 asignacionRevision?.DisponibleParaTomar != true ||
                 !PuedeEditarEtapaActual)
             {
@@ -306,7 +362,7 @@ namespace CONATRADEC.Views
                 "Tomar inspección",
                 "Cancelar");
 
-            if (!confirmar)
+            if (!confirmar || !paginaVisualActiva)
                 return;
 
             procesandoAsignacion = true;
@@ -314,19 +370,29 @@ namespace CONATRADEC.Views
 
             try
             {
-                asignacionRevision = await bloqueoRevisionApi.TomarAsync(
-                    diagnosticoIdActual,
-                    ModoAsignacionActual);
+                InspeccionRevisionAsignacion asignacion =
+                    await bloqueoRevisionApi.TomarAsync(
+                        diagnosticoIdActual,
+                        ModoAsignacionActual);
+
+                if (!paginaVisualActiva)
+                    return;
+
+                asignacionRevision = asignacion;
 
                 await DisplayAlert(
                     "Inspección asignada",
                     "La etapa quedó asignada a tu usuario. Se volverá a abrir el expediente para iniciar la sesión exclusiva de edición.",
                     "Continuar");
 
-                await RecargarExpedienteActualAsync();
+                if (paginaVisualActiva)
+                    await RecargarExpedienteActualAsync();
             }
             catch (Exception ex)
             {
+                if (!paginaVisualActiva)
+                    return;
+
                 await DisplayAlert(
                     "No se pudo tomar la inspección",
                     string.IsNullOrWhiteSpace(ex.Message)
@@ -334,7 +400,8 @@ namespace CONATRADEC.Views
                         : ex.Message,
                     "Aceptar");
 
-                await PrepararAsignacionYBloqueoAsync();
+                if (paginaVisualActiva)
+                    await PrepararAsignacionYBloqueoAsync();
             }
             finally
             {
@@ -347,7 +414,8 @@ namespace CONATRADEC.Views
             object? sender,
             EventArgs e)
         {
-            if (procesandoAsignacion ||
+            if (!paginaVisualActiva ||
+                procesandoAsignacion ||
                 !EsVistaOperativaAsignable ||
                 !PuedeAdministrarAsignacion)
             {
@@ -362,6 +430,9 @@ namespace CONATRADEC.Views
                 List<InspeccionRevisionUsuarioAsignable> usuarios =
                     await bloqueoRevisionApi.ObtenerUsuariosAsignablesAsync(
                         ModoAsignacionActual);
+
+                if (!paginaVisualActiva)
+                    return;
 
                 if (usuarios.Count == 0)
                 {
@@ -382,7 +453,8 @@ namespace CONATRADEC.Views
                     null,
                     opciones);
 
-                if (string.IsNullOrWhiteSpace(seleccion) ||
+                if (!paginaVisualActiva ||
+                    string.IsNullOrWhiteSpace(seleccion) ||
                     seleccion == "Cancelar")
                 {
                     return;
@@ -407,7 +479,7 @@ namespace CONATRADEC.Views
                     1000,
                     Keyboard.Text);
 
-                if (motivo == null)
+                if (!paginaVisualActiva || motivo == null)
                     return;
 
                 motivo = motivo.Trim();
@@ -426,15 +498,22 @@ namespace CONATRADEC.Views
                     usuario.UsuarioId,
                     motivo);
 
+                if (!paginaVisualActiva)
+                    return;
+
                 await DisplayAlert(
                     "Asignación actualizada",
                     $"La etapa quedó asignada a {usuario.TextoMostrar}. La acción fue registrada en auditoría.",
                     "Continuar");
 
-                await RecargarExpedienteActualAsync();
+                if (paginaVisualActiva)
+                    await RecargarExpedienteActualAsync();
             }
             catch (Exception ex)
             {
+                if (!paginaVisualActiva)
+                    return;
+
                 await DisplayAlert(
                     "No se pudo actualizar la asignación",
                     string.IsNullOrWhiteSpace(ex.Message)
@@ -451,8 +530,12 @@ namespace CONATRADEC.Views
 
         private async Task RecargarExpedienteActualAsync()
         {
-            if (Shell.Current == null || diagnosticoIdActual <= 0)
+            if (!paginaVisualActiva ||
+                Shell.Current == null ||
+                diagnosticoIdActual <= 0)
+            {
                 return;
+            }
 
             string ruta = DiagnosticoIARoutes.CrearRutaResultado(
                 diagnosticoIdActual,
@@ -470,20 +553,42 @@ namespace CONATRADEC.Views
         /// </summary>
         private void ProgramarModoSoloConsultaAsignacion()
         {
+            if (!paginaVisualActiva)
+                return;
+
             AplicarModoSoloConsultaAsignacion();
 
             _ = Task.Run(async () =>
             {
                 await Task.Delay(180);
-                Dispatcher.Dispatch(AplicarModoSoloConsultaAsignacion);
+
+                if (!paginaVisualActiva)
+                    return;
+
+                Dispatcher.Dispatch(() =>
+                {
+                    if (paginaVisualActiva)
+                        AplicarModoSoloConsultaAsignacion();
+                });
 
                 await Task.Delay(320);
-                Dispatcher.Dispatch(AplicarModoSoloConsultaAsignacion);
+
+                if (!paginaVisualActiva)
+                    return;
+
+                Dispatcher.Dispatch(() =>
+                {
+                    if (paginaVisualActiva)
+                        AplicarModoSoloConsultaAsignacion();
+                });
             });
         }
 
         private void AplicarModoSoloConsultaAsignacion()
         {
+            if (!paginaVisualActiva)
+                return;
+
             if (!EsVistaOperativaAsignable ||
                 asignacionRevision?.AsignadaAlUsuarioActual == true)
             {
@@ -826,7 +931,7 @@ namespace CONATRADEC.Views
         {
             tecnicoResponsableDisponible = false;
 
-            if (diagnosticoIdActual <= 0)
+            if (!paginaVisualActiva || diagnosticoIdActual <= 0)
             {
                 ActualizarVisibilidadResumen();
                 return;
@@ -837,6 +942,9 @@ namespace CONATRADEC.Views
                 TecnicoInspeccionFiltroItem tecnico =
                     await bandejaApi.ObtenerTecnicoResponsableAsync(
                         diagnosticoIdActual);
+
+                if (!paginaVisualActiva)
+                    return;
 
                 tecnicoResponsableLabel.Text =
                     !string.IsNullOrWhiteSpace(tecnico.NombreCompleto)
@@ -855,6 +963,9 @@ namespace CONATRADEC.Views
                  * El creador es un dato informativo. Si no puede cargarse, el
                  * flujo operativo continúa sin bloquear el expediente.
                  */
+                if (!paginaVisualActiva)
+                    return;
+
                 tecnicoResponsableLabel.Text = "Usuario no disponible";
                 tecnicoResponsableDisponible = false;
             }
