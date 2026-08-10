@@ -1,5 +1,6 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
+using CONATRADEC.Views;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using System.IO;
@@ -507,11 +508,16 @@ namespace CONATRADEC.ViewModels
                             out int inspeccionId,
                             out string mensajeVisible))
                     {
-                        bool irInspeccion = await page.DisplayAlert(
-                            "Fotografía vinculada a inspección",
-                            mensajeVisible,
-                            "Ir a la inspección",
-                            "Cerrar");
+                        INavigation navegacion =
+                            Shell.Current?.Navigation ?? page.Navigation;
+
+                        var dialogo =
+                            new FotografiaVinculadaInspeccionPage(
+                                inspeccionId,
+                                mensajeVisible);
+
+                        await navegacion.PushModalAsync(dialogo);
+                        bool irInspeccion = await dialogo.ResultadoTask;
 
                         if (irInspeccion)
                         {

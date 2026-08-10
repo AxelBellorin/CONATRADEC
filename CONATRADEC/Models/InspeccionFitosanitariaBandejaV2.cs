@@ -120,6 +120,17 @@ namespace CONATRADEC.Models
             !CerradaDefinitiva && Procesando > 0;
 
         /// <summary>
+        /// Mientras la etapa técnica permanezca abierta, una inspección puede
+        /// tener fotografías ya entregadas al analizador y permitir todavía
+        /// agregar nuevas evidencias. La bandeja debe reflejar ese avance y no
+        /// degradarlo visualmente a "Borrador".
+        /// </summary>
+        public bool TieneRevisionHumanaIniciada =>
+            !EsLocalPendiente &&
+            !CerradaDefinitiva &&
+            EnviadasRevision > 0;
+
+        /// <summary>
         /// En la bandeja del aprobador, una revisión puede haber terminado su
         /// decisión técnica y aun conservar administración posterior del Álbum.
         /// </summary>
@@ -221,16 +232,25 @@ namespace CONATRADEC.Models
                 if (RequierenDecisionTecnico > 0)
                 {
                     return RequierenDecisionTecnico == 1
-                        ? "1 decisión técnica pendiente"
+                        ? "Pendiente de decisión técnica"
                         : $"{RequierenDecisionTecnico} decisiones técnicas pendientes";
                 }
 
                 if (Procesando > 0)
                     return "Análisis IA en proceso";
 
+                if (TieneRevisionHumanaIniciada ||
+                    string.Equals(
+                        Estado,
+                        "PENDIENTE_REVISION",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return "Pendiente de revisión";
+                }
+
                 return Estado switch
                 {
-                    "BORRADOR" => "Borrador",
+                    "BORRADOR" => "En proceso",
                     "EN_PROCESO" => "En proceso",
                     "EN_PROCESO_CON_ERRORES" => "En proceso con errores",
                     "PENDIENTE_REVISION" => "Pendiente de revisión",
@@ -251,7 +271,7 @@ namespace CONATRADEC.Models
                         ? "#FFF5D6"
                         : ConError > 0
                             ? "#FDECEC"
-                            : EtapaTecnicaFinalizada
+                            : EtapaTecnicaFinalizada || TieneRevisionHumanaIniciada
                                 ? "#EAF3EF"
                                 : TieneProcesamientoActivo
                                     ? "#EDF4FF"
@@ -266,7 +286,7 @@ namespace CONATRADEC.Models
                         ? "#7A5A13"
                         : ConError > 0
                             ? "#B42318"
-                            : EtapaTecnicaFinalizada
+                            : EtapaTecnicaFinalizada || TieneRevisionHumanaIniciada
                                 ? "#315E52"
                                 : TieneProcesamientoActivo
                                     ? "#315B86"
@@ -281,7 +301,9 @@ namespace CONATRADEC.Models
                         ? "Atender decisiones"
                         : EtapaTecnicaFinalizada
                             ? "Ver avance de revisión"
-                            : "Abrir inspección";
+                            : TieneRevisionHumanaIniciada
+                                ? "Ver avance y continuar"
+                                : "Abrir inspección";
 
         /// <summary>
         /// Texto exclusivo de la bandeja del aprobador. Una decisión técnica
@@ -327,13 +349,18 @@ namespace CONATRADEC.Models
                 }
 
                 if (EtapaTecnicaFinalizada)
-                    return "La etapa técnica ya fue enviada al analizador";
+                    return "El envío de evidencias fue finalizado y la inspección continúa en revisión";
 
                 if (Procesando > 0)
                 {
                     return Procesando == 1
                         ? "1 fotografía está siendo procesada por la IA"
                         : $"{Procesando} fotografías están siendo procesadas por la IA";
+                }
+
+                if (TieneRevisionHumanaIniciada)
+                {
+                    return "Las evidencias actuales ya fueron enviadas a revisión. Puede agregar más fotografías o finalizar la etapa técnica cuando termine el levantamiento en campo";
                 }
 
                 return "Abra la inspección para continuar el flujo por fotografía";

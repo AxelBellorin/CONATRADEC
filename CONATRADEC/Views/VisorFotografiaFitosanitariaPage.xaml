@@ -9,8 +9,8 @@
     BackgroundColor="Black">
 
     <Grid
-        Padding="{OnIdiom Phone='12,10,12,14', Tablet='18,14,18,18', Desktop='24,18,24,22'}"
-        RowDefinitions="Auto,*,Auto,Auto"
+        Padding="{OnIdiom Phone='10,10,10,14', Tablet='18,14,18,18', Desktop='24,18,24,22'}"
+        RowDefinitions="Auto,Auto,*,Auto,Auto"
         RowSpacing="10">
 
         <Grid
@@ -48,38 +48,292 @@
                 FontSize="18" />
         </Grid>
 
-        <Grid
+        <Border
             Grid.Row="1"
+            Padding="6"
+            WidthRequest="{OnIdiom Phone=264, Tablet=286, Desktop=304}"
+            HorizontalOptions="Center"
+            BackgroundColor="#1D2220"
+            Stroke="#39423F"
+            StrokeThickness="1.5"
+            StrokeShape="RoundRectangle 15">
+
+            <!--
+                Selector segmentado con ancho explícito para evitar que WinUI
+                comprima o recorte el texto del segmento derecho. En Android
+                conserva un ancho cómodo dentro de pantallas pequeñas.
+            -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+                <Button
+                    x:Name="LimpiaButton"
+                    Grid.Column="0"
+                    Text="Limpia"
+                    Clicked="OnLimpiaClicked"
+                    HeightRequest="46"
+                    Padding="12,0"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Center"
+                    CornerRadius="11"
+                    FontAttributes="Bold"
+                    FontSize="{OnIdiom Phone=13, Default=14}" />
+
+                <Button
+                    x:Name="MarcadaButton"
+                    Grid.Column="1"
+                    Text="Marcada IA"
+                    Clicked="OnMarcadaClicked"
+                    HeightRequest="46"
+                    Padding="12,0"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Center"
+                    CornerRadius="11"
+                    FontAttributes="Bold"
+                    FontSize="{OnIdiom Phone=13, Default=14}" />
+            </Grid>
+        </Border>
+
+        <Grid
+            x:Name="ContenedorImagenGrid"
+            Grid.Row="2"
             MaximumWidthRequest="1500"
             HorizontalOptions="Fill"
-            VerticalOptions="Fill">
+            VerticalOptions="Fill"
+            BackgroundColor="Black"
+            IsClippedToBounds="True">
 
             <Image
                 x:Name="FotografiaImage"
                 Aspect="AspectFit"
                 HorizontalOptions="Fill"
-                VerticalOptions="Fill" />
+                VerticalOptions="Fill">
+                <Image.GestureRecognizers>
+                    <PinchGestureRecognizer
+                        PinchUpdated="OnImagenPinchUpdated" />
+                    <PanGestureRecognizer
+                        PanUpdated="OnImagenPanUpdated" />
+                    <TapGestureRecognizer
+                        NumberOfTapsRequired="2"
+                        Tapped="OnImagenDobleTap" />
+                </Image.GestureRecognizers>
+            </Image>
+
+            <Border
+                x:Name="IndicadorVistaBorder"
+                Margin="10"
+                Padding="10,6"
+                HorizontalOptions="Start"
+                VerticalOptions="Start"
+                BackgroundColor="#B31B201E"
+                Stroke="#69736F"
+                StrokeShape="RoundRectangle 10">
+                <Label
+                    x:Name="IndicadorVistaLabel"
+                    Text="Foto limpia"
+                    FontSize="11"
+                    FontAttributes="Bold"
+                    TextColor="White" />
+            </Border>
+
+            <Border
+                Margin="10"
+                Padding="6"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                BackgroundColor="#D91B201E"
+                Stroke="#58635F"
+                StrokeShape="RoundRectangle 12">
+                <HorizontalStackLayout Spacing="4">
+                    <Button
+                        Text="−"
+                        Clicked="OnZoomMenosClicked"
+                        WidthRequest="40"
+                        HeightRequest="38"
+                        Padding="0"
+                        CornerRadius="9"
+                        FontSize="20"
+                        BackgroundColor="#29312E"
+                        TextColor="White" />
+
+                    <Label
+                        x:Name="ZoomPorcentajeLabel"
+                        Text="100%"
+                        WidthRequest="56"
+                        HorizontalTextAlignment="Center"
+                        VerticalTextAlignment="Center"
+                        FontSize="11"
+                        FontAttributes="Bold"
+                        TextColor="White" />
+
+                    <Button
+                        Text="+"
+                        Clicked="OnZoomMasClicked"
+                        WidthRequest="40"
+                        HeightRequest="38"
+                        Padding="0"
+                        CornerRadius="9"
+                        FontSize="18"
+                        BackgroundColor="#29312E"
+                        TextColor="White" />
+
+                    <Button
+                        Text="Ajustar"
+                        Clicked="OnRestablecerZoomClicked"
+                        HeightRequest="38"
+                        Padding="10,0"
+                        CornerRadius="9"
+                        FontSize="11"
+                        BackgroundColor="#3B655B"
+                        TextColor="White" />
+                </HorizontalStackLayout>
+            </Border>
         </Grid>
 
         <Border
-            Grid.Row="2"
-            Padding="12,9"
+            Grid.Row="3"
+            Padding="12,10"
             MaximumWidthRequest="1500"
             HorizontalOptions="Fill"
             BackgroundColor="#222725"
             Stroke="#3C4441"
-            StrokeShape="RoundRectangle 11">
+            StrokeShape="RoundRectangle 12">
 
-            <Label
-                x:Name="DiagnosticoFotografiaLabel"
-                FontSize="13"
-                TextColor="#E0E6E4"
-                MaxLines="3"
-                LineBreakMode="TailTruncation" />
+            <VerticalStackLayout Spacing="8">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                    <Label
+                        Grid.Column="0"
+                        Text="Hallazgos de la valoración"
+                        FontSize="12"
+                        FontAttributes="Bold"
+                        TextColor="#C9D4D0"
+                        VerticalTextAlignment="Center" />
+
+                    <Label
+                        x:Name="VersionMarcadaLabel"
+                        Grid.Column="1"
+                        FontSize="11"
+                        TextColor="#9EAAA5"
+                        HorizontalTextAlignment="End"
+                        VerticalTextAlignment="Center" />
+
+                    <Button
+                        x:Name="HallazgosToggleButton"
+                        Grid.Column="2"
+                        Text="Ver detalles ▾"
+                        Clicked="OnHallazgosToggleClicked"
+                        HeightRequest="34"
+                        MinimumWidthRequest="110"
+                        Padding="10,4"
+                        CornerRadius="9"
+                        FontSize="11"
+                        BackgroundColor="#303936"
+                        TextColor="White" />
+                </Grid>
+
+                <ScrollView
+                    x:Name="HallazgosDetalleScroll"
+                    IsVisible="False"
+                    HorizontalScrollBarVisibility="Never"
+                    VerticalScrollBarVisibility="Default"
+                    MaximumHeightRequest="{OnIdiom Phone=270, Tablet=300, Desktop=330}">
+                    <VerticalStackLayout Spacing="8">
+
+                    <Border
+                        Padding="10,8"
+                        BackgroundColor="#19201E"
+                        Stroke="#39423F"
+                        StrokeShape="RoundRectangle 10">
+                        <VerticalStackLayout Spacing="6">
+                            <Label
+                                Text="Cómo leer las marcas"
+                                FontSize="11"
+                                FontAttributes="Bold"
+                                TextColor="#D6DFDC" />
+
+                            <FlexLayout
+                                Direction="Row"
+                                Wrap="Wrap"
+                                AlignItems="Center"
+                                JustifyContent="Start">
+                                <HorizontalStackLayout
+                                    Spacing="6"
+                                    Margin="0,0,18,5">
+                                    <Border
+                                        WidthRequest="12"
+                                        HeightRequest="12"
+                                        Padding="0"
+                                        BackgroundColor="#E53935"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 3" />
+                                    <Label
+                                        Text="Diagnóstico principal IA"
+                                        FontSize="10"
+                                        TextColor="#CDD5D2" />
+                                </HorizontalStackLayout>
+
+                                <HorizontalStackLayout
+                                    Spacing="6"
+                                    Margin="0,0,18,5">
+                                    <Border
+                                        WidthRequest="12"
+                                        HeightRequest="12"
+                                        Padding="0"
+                                        BackgroundColor="#43A047"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 3" />
+                                    <Label
+                                        Text="Otros colores · diagnóstico adicional IA"
+                                        FontSize="10"
+                                        TextColor="#CDD5D2" />
+                                </HorizontalStackLayout>
+
+                                <HorizontalStackLayout
+                                    Spacing="6"
+                                    Margin="0,0,0,5">
+                                    <Border
+                                        WidthRequest="12"
+                                        HeightRequest="12"
+                                        Padding="0"
+                                        BackgroundColor="#1E88E5"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 3" />
+                                    <Label
+                                        Text="Diferencial no confirmado"
+                                        FontSize="10"
+                                        TextColor="#9FC9FF" />
+                                </HorizontalStackLayout>
+                            </FlexLayout>
+
+                            <Label
+                                Text="Si un diferencial no tiene coordenadas explícitas, se mostrará como ‘Sin localización específica’ y no se dibujará un cuadro azul."
+                                FontSize="10"
+                                TextColor="#98A6A1"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label
+                        x:Name="DiagnosticoFotografiaLabel"
+                        FontSize="14"
+                        FontAttributes="Bold"
+                        TextColor="White"
+                        LineBreakMode="WordWrap" />
+
+                    <VerticalStackLayout
+                        x:Name="DiagnosticosStack"
+                        Spacing="7" />
+
+                    <Label
+                        x:Name="LocalizacionVisualLabel"
+                        FontSize="12"
+                        TextColor="#BAC5C1"
+                        LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </ScrollView>
+            </VerticalStackLayout>
         </Border>
 
         <Grid
-            Grid.Row="3"
+            Grid.Row="4"
             MaximumWidthRequest="900"
             HorizontalOptions="Fill"
             ColumnDefinitions="*,*"

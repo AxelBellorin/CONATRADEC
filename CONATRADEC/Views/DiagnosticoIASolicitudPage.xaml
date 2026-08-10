@@ -42,6 +42,33 @@
                 </VisualStateGroupList>
             </Setter>
         </Style>
+
+        <!--
+            Metadatos de la fotografía. En Windows el Title del Picker se muestra
+            como encabezado adicional; por eso el selector no utiliza Title y se
+            presenta dentro de una superficie propia, uniforme con Android.
+        -->
+        <Style x:Key="FotoMetadataPickerStyle" TargetType="Picker">
+            <Setter Property="HeightRequest" Value="54" />
+            <Setter Property="MinimumHeightRequest" Value="54" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="#263A35" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="HorizontalOptions" Value="Fill" />
+            <Setter Property="VerticalOptions" Value="Fill" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
+        <Style x:Key="FotoMetadataDatePickerStyle" TargetType="DatePicker">
+            <Setter Property="HeightRequest" Value="54" />
+            <Setter Property="MinimumHeightRequest" Value="54" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="#263A35" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="HorizontalOptions" Value="Fill" />
+            <Setter Property="VerticalOptions" Value="Fill" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
     </ContentPage.Resources>
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
@@ -232,54 +259,78 @@
                                             MinimumWidthRequest="{OnIdiom Phone=96, Default=130}" />
                                     </Grid>
 
-                                    <Grid
-                                        ColumnDefinitions="*,220"
-                                        RowDefinitions="Auto,Auto"
-                                        ColumnSpacing="18"
-                                        RowSpacing="12">
-                                        <Grid
-                                            Grid.Row="0"
-                                            Grid.Column="0"
-                                            Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
-                                            MaximumWidthRequest="360"
-                                            HorizontalOptions="Fill"
-                                            RowDefinitions="Auto,54"
-                                            RowSpacing="6">
-                                            <Label Text="Tipo de fotografía *" FontAttributes="Bold" TextColor="#263A35" />
-                                            <Border Grid.Row="1" HeightRequest="54" BackgroundColor="White" Stroke="#C9D4D0" StrokeShape="RoundRectangle 8">
-                                                <Picker
-                                                    Margin="10,0,6,0"
-                                                    TextColor="#263A35"
-                                                    FontSize="15"
-                                                    BackgroundColor="Transparent"
-                                                    HorizontalOptions="Fill"
-                                                    VerticalOptions="Center"
-                                                    ItemsSource="{Binding TiposFotografia}"
-                                                    ItemDisplayBinding="{Binding Nombre}"
-                                                    SelectedItem="{Binding TipoFotografiaSeleccionada, Mode=TwoWay}" />
-                                            </Border>
-                                        </Grid>
+                                    <!--
+                                        Los dos metadatos se distribuyen con FlexLayout. En Windows
+                                        ocupan el ancho disponible de forma equilibrada y, cuando la
+                                        ventana se estrecha o se ejecuta en Android, se apilan sin
+                                        depender de DeviceIdiom ni de una columna fija de 220 px.
+                                    -->
+                                    <FlexLayout
+                                        Direction="Row"
+                                        Wrap="Wrap"
+                                        AlignItems="Stretch"
+                                        JustifyContent="Start"
+                                        Margin="0,2,0,0">
+                                        <Border
+                                            Padding="12,10"
+                                            Margin="0,0,10,10"
+                                            MinimumWidthRequest="{OnIdiom Phone=250, Default=320}"
+                                            FlexLayout.Grow="1"
+                                            BackgroundColor="#F7FAF9"
+                                            Stroke="#D9E3DF"
+                                            StrokeShape="RoundRectangle 12">
+                                            <VerticalStackLayout Spacing="7">
+                                                <Label
+                                                    Text="Tipo de fotografía *"
+                                                    FontSize="13"
+                                                    FontAttributes="Bold"
+                                                    TextColor="#263A35" />
+                                                <Border
+                                                    HeightRequest="56"
+                                                    Padding="10,0,6,0"
+                                                    BackgroundColor="White"
+                                                    Stroke="#C9D4D0"
+                                                    StrokeThickness="1"
+                                                    StrokeShape="RoundRectangle 10">
+                                                    <Picker
+                                                        Style="{StaticResource FotoMetadataPickerStyle}"
+                                                        ItemsSource="{Binding TiposFotografia}"
+                                                        ItemDisplayBinding="{Binding Nombre}"
+                                                        SelectedItem="{Binding TipoFotografiaSeleccionada, Mode=TwoWay}" />
+                                                </Border>
+                                            </VerticalStackLayout>
+                                        </Border>
 
-                                        <Grid
-                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                            Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                            Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
-                                            RowDefinitions="Auto,54"
-                                            RowSpacing="6">
-                                            <Label Text="Fecha de identificación en campo *" FontAttributes="Bold" TextColor="#263A35" />
-                                            <Border Grid.Row="1" HeightRequest="54" BackgroundColor="White" Stroke="#C9D4D0" StrokeShape="RoundRectangle 8">
-                                                <DatePicker
-                                                    Margin="10,0,6,0"
-                                                    Date="{Binding FotoActual.FechaIdentificacionCampo, Mode=TwoWay}"
-                                                    Format="dd/MM/yyyy"
+                                        <Border
+                                            Padding="12,10"
+                                            Margin="0,0,0,10"
+                                            MinimumWidthRequest="{OnIdiom Phone=250, Default=320}"
+                                            FlexLayout.Grow="1"
+                                            BackgroundColor="#F7FAF9"
+                                            Stroke="#D9E3DF"
+                                            StrokeShape="RoundRectangle 12">
+                                            <VerticalStackLayout Spacing="7">
+                                                <Label
+                                                    Text="Fecha de identificación en campo *"
+                                                    FontSize="13"
+                                                    FontAttributes="Bold"
                                                     TextColor="#263A35"
-                                                    FontSize="15"
-                                                    BackgroundColor="Transparent"
-                                                    HorizontalOptions="Fill"
-                                                    VerticalOptions="Fill" />
-                                            </Border>
-                                        </Grid>
-                                    </Grid>
+                                                    LineBreakMode="WordWrap" />
+                                                <Border
+                                                    HeightRequest="56"
+                                                    Padding="10,0,6,0"
+                                                    BackgroundColor="White"
+                                                    Stroke="#C9D4D0"
+                                                    StrokeThickness="1"
+                                                    StrokeShape="RoundRectangle 10">
+                                                    <DatePicker
+                                                        Style="{StaticResource FotoMetadataDatePickerStyle}"
+                                                        Date="{Binding FotoActual.FechaIdentificacionCampo, Mode=TwoWay}"
+                                                        Format="dd/MM/yyyy" />
+                                                </Border>
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </FlexLayout>
 
                                     <Border Padding="12,10" BackgroundColor="#EAF3F0" Stroke="Transparent" StrokeShape="RoundRectangle 12">
                                         <VerticalStackLayout Spacing="3">

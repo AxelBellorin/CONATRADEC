@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -47,6 +48,55 @@ namespace CONATRADEC.Models
             FinalizadaParcialmente => "Finalizada parcialmente",
             _ => (estado ?? string.Empty).Replace('_', ' ')
         };
+
+        public static string ObtenerTextoFotografia(string? estado) => estado switch
+        {
+            InspeccionFotoEstados.Borrador => "Borrador",
+            InspeccionFotoEstados.PendienteIA => "Pendiente de análisis IA",
+            InspeccionFotoEstados.AnalizandoIA => "Analizando con IA",
+            InspeccionFotoEstados.ErrorIA => "Error en análisis IA",
+            InspeccionFotoEstados.PendienteDecisionTecnico => "Pendiente de decisión técnica",
+            InspeccionFotoEstados.PendienteAnalizador => "Pendiente de analizador",
+            InspeccionFotoEstados.EnAnalisisHumano => "En análisis humano",
+            InspeccionFotoEstados.PendienteAprobacion => "Pendiente de aprobación",
+            InspeccionFotoEstados.DevueltaAnalizador => "Devuelta al analizador",
+            InspeccionFotoEstados.DevueltaTecnico => "Devuelta al técnico",
+            InspeccionFotoEstados.Aprobada => "Aprobada",
+            InspeccionFotoEstados.AprobadaConCorreccion => "Aprobada con corrección",
+            InspeccionFotoEstados.Rechazada => "Rechazada",
+            InspeccionFotoEstados.NoConcluyente => "No concluyente",
+            InspeccionFotoEstados.Descartada => "Descartada",
+            InspeccionFotoEstados.PublicadaAlbum => "Publicada en Álbum",
+            _ => (estado ?? string.Empty).Replace('_', ' ')
+        };
+
+        public static string ObtenerTextoInspeccion(
+            string? estado,
+            bool etapaTecnicaFinalizada,
+            IEnumerable<InspeccionFotoV2>? fotografias)
+        {
+            if (fotografias != null)
+            {
+                List<InspeccionFotoV2> fotos = fotografias.ToList();
+
+                if (!etapaTecnicaFinalizada)
+                {
+                    if (fotos.Any(item => item.Estado is InspeccionFotoEstados.PendienteDecisionTecnico or InspeccionFotoEstados.DevueltaTecnico or InspeccionFotoEstados.ErrorIA))
+                        return "Pendiente de decisión técnica";
+
+                    if (fotos.Any(item => item.Estado is InspeccionFotoEstados.AnalizandoIA or InspeccionFotoEstados.PendienteIA))
+                        return "Análisis IA en proceso";
+
+                    if (fotos.Any(item => item.Estado is InspeccionFotoEstados.PendienteAnalizador or InspeccionFotoEstados.EnAnalisisHumano or InspeccionFotoEstados.DevueltaAnalizador))
+                        return "Pendiente de revisión";
+                }
+
+                if (fotos.Any(item => item.Estado == InspeccionFotoEstados.PendienteAprobacion))
+                    return "Pendiente de aprobación";
+            }
+
+            return ObtenerTexto(estado);
+        }
     }
 
     public sealed class InspeccionFotoLocal : INotifyPropertyChanged
@@ -125,10 +175,6 @@ namespace CONATRADEC.Models
                 new PropertyChangedEventArgs(name));
     }
 
-    /// <summary>
-    /// Modelo de compatibilidad para listados que todavía no usan la bandeja
-    /// paginada. Todos los nombres de cierre corresponden al flujo moderno.
-    /// </summary>
     public sealed class InspeccionFitosanitariaListaItemV2
     {
         public int InspeccionId { get; set; }
@@ -177,6 +223,56 @@ namespace CONATRADEC.Models
                 .ToString("dd/MM/yyyy HH:mm");
     }
 
+    /// <summary>
+    /// Lesión localizada en coordenadas normalizadas 0..1000 con el formato
+    /// [ymin, xmin, ymax, xmax].
+    /// </summary>
+    public sealed class InspeccionLesionVisualV2
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public List<int> Box2d { get; set; } = [];
+    }
+
+    /// <summary>
+    /// Afectación individual dentro del único expediente de la fotografía.
+    /// AccionHumana se utiliza durante revisión: CONFIRMAR, CORREGIR,
+    /// DESCARTAR o AGREGAR.
+    /// </summary>
+    public sealed class InspeccionDiferencialVisualV2
+    {
+        public string Diagnostico { get; set; } = string.Empty;
+        public string ColorMarcador { get; set; } = "#1E88E5";
+        public List<InspeccionLesionVisualV2> Lesiones { get; set; } = [];
+        public int TotalLesiones => Lesiones?.Count ?? 0;
+    }
+
+    public sealed class InspeccionDiagnosticoVisualV2
+    {
+        public string Id { get; set; } = string.Empty;
+        public string IdOrigenIA { get; set; } = string.Empty;
+        public string AccionHumana { get; set; } = string.Empty;
+        public string Diagnostico { get; set; } = string.Empty;
+        public string Categoria { get; set; } = string.Empty;
+        public string TipoDiagnostico { get; set; } = string.Empty;
+        public bool EsPrincipal { get; set; }
+        public string NivelCerteza { get; set; } = string.Empty;
+        public string Severidad { get; set; } = string.Empty;
+        public List<string> DiagnosticosDiferenciales { get; set; } = [];
+        public List<InspeccionDiferencialVisualV2> DiferencialesLocalizados { get; set; } = [];
+        public List<InspeccionLesionVisualV2> Lesiones { get; set; } = [];
+        public string ColorMarcador { get; set; } = "#E53935";
+
+        public int TotalLesiones => Lesiones?.Count ?? 0;
+
+        public string PrincipalTexto => EsPrincipal ? "Principal" : "Secundaria";
+
+        public string Resumen =>
+            $"{Diagnostico} · {TotalLesiones} " +
+            $"{(TotalLesiones == 1 ? "lesión" : "lesiones")} · " +
+            $"certeza {NivelCerteza.ToLowerInvariant()}";
+    }
+
     public sealed class InspeccionFotoResultadoIAV2
     {
         public bool ImagenValida { get; set; }
@@ -208,11 +304,67 @@ namespace CONATRADEC.Models
         public List<string> RecomendacionesCaptura { get; set; } = [];
         public List<string> Advertencias { get; set; } = [];
         public DateTime? FechaAnalisisIAUtc { get; set; }
+        public List<InspeccionDiagnosticoVisualV2> Diagnosticos { get; set; } = [];
+        public bool LocalizacionVisualDisponible { get; set; }
+        public int? VersionVisual { get; set; }
 
         public string DiagnosticoVisible =>
             string.IsNullOrWhiteSpace(DiagnosticoProbable)
-                ? "Sin diagnóstico preliminar"
+                ? Diagnosticos.FirstOrDefault(item => item.EsPrincipal)?.Diagnostico ??
+                  Diagnosticos.FirstOrDefault()?.Diagnostico ??
+                  "Sin diagnóstico preliminar"
                 : DiagnosticoProbable;
+
+        public string ResumenDiagnosticos => Diagnosticos.Count switch
+        {
+            0 => DiagnosticoVisible,
+            1 => Diagnosticos[0].Resumen,
+            _ => $"{Diagnosticos.Count} afectaciones diferenciadas por IA"
+        };
+
+        public bool TieneDiagnosticos => Diagnosticos.Count > 0;
+
+        public bool TieneMultiplesDiagnosticos => Diagnosticos.Count > 1;
+
+        /// <summary>
+        /// Resume todos los diagnósticos simultáneos para la tarjeta principal.
+        /// Los diagnósticos diferenciales no se mezclan aquí porque continúan
+        /// siendo posibilidades no confirmadas y se explican en el visor.
+        /// </summary>
+        public string DiagnosticosTarjeta
+        {
+            get
+            {
+                if (Diagnosticos.Count == 0)
+                    return DiagnosticoVisible;
+
+                if (Diagnosticos.Count == 1)
+                    return Diagnosticos[0].Diagnostico;
+
+                bool existePrincipal = Diagnosticos.Any(item => item.EsPrincipal);
+                var lineas = new List<string>
+                {
+                    $"{Diagnosticos.Count} diagnósticos detectados por IA"
+                };
+
+                foreach (InspeccionDiagnosticoVisualV2 diagnostico in Diagnosticos)
+                {
+                    string rol = diagnostico.EsPrincipal
+                        ? "Principal"
+                        : existePrincipal
+                            ? "Adicional"
+                            : "Diagnóstico";
+
+                    string nombre = string.IsNullOrWhiteSpace(diagnostico.Diagnostico)
+                        ? "Afectación sin nombre"
+                        : diagnostico.Diagnostico.Trim();
+
+                    lineas.Add($"• {rol}: {nombre}");
+                }
+
+                return string.Join(Environment.NewLine, lineas);
+            }
+        }
 
         public bool EsAparentementeSana
         {
@@ -295,6 +447,7 @@ namespace CONATRADEC.Models
         public string Observaciones { get; set; } = string.Empty;
         public DateTime FechaCreacionUtc { get; set; }
         public DateTime? FechaEnvioUtc { get; set; }
+        public List<InspeccionDiagnosticoVisualV2> Diagnosticos { get; set; } = [];
     }
 
     public sealed class InspeccionFotoAprobacionV2
@@ -308,6 +461,7 @@ namespace CONATRADEC.Models
         public bool AutorizaPublicacionAlbum { get; set; }
         public bool MismoUsuarioQueAnalizo { get; set; }
         public DateTime FechaAprobacionUtc { get; set; }
+        public List<InspeccionDiagnosticoVisualV2> DiagnosticosFinales { get; set; } = [];
     }
 
     public sealed class InspeccionFotoHistorialV2
@@ -332,6 +486,9 @@ namespace CONATRADEC.Models
         public string TipoFotografia { get; set; } = string.Empty;
         public string NombreArchivoOriginal { get; set; } = string.Empty;
         public string UrlImagen { get; set; } = string.Empty;
+        public string UrlImagenMarcadaIA { get; set; } = string.Empty;
+        public bool TieneImagenMarcadaIA { get; set; }
+        public int? VersionImagenMarcadaIA { get; set; }
         public string Estado { get; set; } = string.Empty;
         public DateTime? FechaIdentificacionCampo { get; set; }
         public DateTime FechaRegistroSistemaUtc { get; set; }
@@ -340,6 +497,36 @@ namespace CONATRADEC.Models
         public DateTime? FechaAprobacionUtc { get; set; }
         public string ModeloIAUtilizado { get; set; } = string.Empty;
         public int IntentosIA { get; set; }
+
+        // El análisis inicial no consume el límite configurado. Solo se cuentan
+        // reevaluaciones adicionales completadas correctamente.
+        public int RevisionesIACompletadas { get; set; }
+        public int MaximoRevisionesIA { get; set; } = 2;
+        public bool RevisionesIAIlimitadas { get; set; }
+        public int RevisionesIARestantes { get; set; }
+        public bool PuedeSolicitarRevisionIA { get; set; } = true;
+
+        public string RevisionesIATexto
+        {
+            get
+            {
+                if (RevisionesIAIlimitadas)
+                {
+                    return RevisionesIACompletadas == 1
+                        ? "Reevaluaciones IA ilimitadas · 1 completada"
+                        : $"Reevaluaciones IA ilimitadas · {RevisionesIACompletadas} completadas";
+                }
+
+                int maximo = Math.Max(1, MaximoRevisionesIA);
+                int utilizadas = Math.Max(0, RevisionesIACompletadas);
+                string limite = utilizadas >= maximo
+                    ? " · límite alcanzado"
+                    : $" · {Math.Max(0, maximo - utilizadas)} restante(s)";
+
+                return $"Reevaluaciones IA: {utilizadas} de {maximo} utilizadas{limite}";
+            }
+        }
+
         public string ErrorProcesamiento { get; set; } = string.Empty;
         public bool Descartada { get; set; }
         public string MotivoDescarte { get; set; } = string.Empty;
@@ -368,22 +555,12 @@ namespace CONATRADEC.Models
         public bool TieneJerarquiaAlbum =>
             JerarquiaAlbum?.TieneClasificacion == true;
 
-        /// <summary>
-        /// El Álbum Botánico tiene tres niveles reales: categoría,
-        /// subcategoría específica y fotografías. AlbumBotanicoCafeId es el
-        /// identificador de la subcategoría específica.
-        /// </summary>
         public bool TieneClasificacionAlbumCompleta =>
             JerarquiaAlbum?.CategoriaAlbumBotanicoId is > 0 &&
             JerarquiaAlbum?.AlbumBotanicoCafeId is > 0 &&
             JerarquiaAlbum.CategoriaEsPropuesta == false &&
             JerarquiaAlbum.FichaEsPropuesta == false;
 
-        /// <summary>
-        /// Una clasificación se considera oficial únicamente cuando el
-        /// aprobador la confirmó. Una propuesta del analizador puede contener
-        /// IDs válidos del catálogo y aun así seguir pendiente de aprobación.
-        /// </summary>
         public bool TieneClasificacionAlbumOficial =>
             TieneClasificacionAlbumCompleta &&
             string.Equals(
@@ -416,6 +593,15 @@ namespace CONATRADEC.Models
             !string.IsNullOrWhiteSpace(ErrorProcesamiento);
         public bool TieneAnalisisHumano => UltimoAnalisisHumano != null;
         public bool TieneAprobacion => UltimaAprobacion != null;
+        public bool TieneMarcadaIA =>
+            TieneImagenMarcadaIA &&
+            !string.IsNullOrWhiteSpace(UrlImagenMarcadaIA);
+
+        public string LocalizacionVisualTexto => TieneMarcadaIA
+            ? $"Localización IA disponible · revisión {VersionImagenMarcadaIA ?? ResultadoIA?.VersionVisual ?? 0}"
+            : TieneResultadoIA
+                ? "Localización visual no disponible para esta valoración."
+                : string.Empty;
 
         public bool EsEstadoFinal => Estado is
             InspeccionFotoEstados.Aprobada or
@@ -457,7 +643,11 @@ namespace CONATRADEC.Models
                     ? "Proceso finalizado · solo consulta"
                     : EstaProcesando
                         ? "Procesamiento en curso"
-                        : string.Empty;
+                        : Estado is
+                            InspeccionFotoEstados.PendienteDecisionTecnico or
+                            InspeccionFotoEstados.ErrorIA
+                            ? RevisionesIATexto
+                            : string.Empty;
 
         public bool TieneMensajeDisponibilidad =>
             !string.IsNullOrWhiteSpace(DisponibilidadTexto);
@@ -469,10 +659,11 @@ namespace CONATRADEC.Models
             ? $"Identificación en campo: {FechaIdentificacionCampo:dd/MM/yyyy}"
             : "Fecha de campo no indicada";
 
-        public string DiagnosticoTexto => ResultadoIA?.DiagnosticoVisible ??
+        public string DiagnosticoTexto => ResultadoIA?.DiagnosticosTarjeta ??
             "Pendiente de análisis IA";
 
-        public string EstadoTexto => Estado.Replace('_', ' ');
+        public string EstadoTexto =>
+            InspeccionEstadosV2.ObtenerTextoFotografia(Estado);
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -520,7 +711,10 @@ namespace CONATRADEC.Models
             : $"Terreno {CodigoTerreno}";
 
         public string EstadoTexto =>
-            InspeccionEstadosV2.ObtenerTexto(Estado);
+            InspeccionEstadosV2.ObtenerTextoInspeccion(
+                Estado,
+                EtapaTecnicaFinalizada,
+                Fotografias);
 
         public string CierreTexto => CerradaDefinitiva
             ? "Inspección cerrada definitivamente"
@@ -549,8 +743,87 @@ namespace CONATRADEC.Models
             : $"{TotalExitosas} correctas y {TotalConError} con error.";
     }
 
+    /// <summary>
+    /// Puente temporal entre la revisión guiada y el request existente. Permite
+    /// que las acciones por diagnóstico viajen al backend sin cambiar la firma
+    /// pública del flujo principal. Cada conjunto se consume una sola vez.
+    /// </summary>
+    public static class InspeccionDiagnosticosRevisionStore
+    {
+        private static readonly ConcurrentDictionary<
+            int,
+            List<InspeccionDiagnosticoVisualV2>> Pendientes = new();
+
+        public static void Guardar(
+            int fotografiaId,
+            IEnumerable<InspeccionDiagnosticoVisualV2>? diagnosticos)
+        {
+            if (fotografiaId <= 0)
+                return;
+
+            List<InspeccionDiagnosticoVisualV2> copia =
+                (diagnosticos ?? [])
+                    .Select(Copiar)
+                    .ToList();
+
+            if (copia.Count == 0)
+            {
+                Pendientes.TryRemove(fotografiaId, out _);
+                return;
+            }
+
+            Pendientes[fotografiaId] = copia;
+        }
+
+        public static List<InspeccionDiagnosticoVisualV2> Tomar(
+            int fotografiaId)
+        {
+            if (fotografiaId <= 0 ||
+                !Pendientes.TryRemove(fotografiaId, out var diagnosticos))
+            {
+                return [];
+            }
+
+            return diagnosticos.Select(Copiar).ToList();
+        }
+
+        public static void Limpiar(int fotografiaId)
+        {
+            if (fotografiaId > 0)
+                Pendientes.TryRemove(fotografiaId, out _);
+        }
+
+        private static InspeccionDiagnosticoVisualV2 Copiar(
+            InspeccionDiagnosticoVisualV2 origen) =>
+            new()
+            {
+                Id = origen.Id,
+                IdOrigenIA = origen.IdOrigenIA,
+                AccionHumana = origen.AccionHumana,
+                Diagnostico = origen.Diagnostico,
+                Categoria = origen.Categoria,
+                TipoDiagnostico = origen.TipoDiagnostico,
+                EsPrincipal = origen.EsPrincipal,
+                NivelCerteza = origen.NivelCerteza,
+                Severidad = origen.Severidad,
+                DiagnosticosDiferenciales =
+                    (origen.DiagnosticosDiferenciales ?? []).ToList(),
+                Lesiones = (origen.Lesiones ?? [])
+                    .Select(lesion => new InspeccionLesionVisualV2
+                    {
+                        Id = lesion.Id,
+                        Descripcion = lesion.Descripcion,
+                        Box2d = (lesion.Box2d ?? []).ToList()
+                    })
+                    .ToList(),
+                ColorMarcador = origen.ColorMarcador
+            };
+    }
+
     public sealed class InspeccionFotoAnalisisHumanoRequestV2
     {
+        private List<InspeccionDiagnosticoVisualV2>? diagnosticos;
+
         public int FotografiaId { get; set; }
         public string CalidadEvaluacion { get; set; } = "NO_EVALUABLE";
         public string EstadoGeneral { get; set; } = "INDETERMINADA";
@@ -561,6 +834,13 @@ namespace CONATRADEC.Models
         public string Severidad { get; set; } = "NO_EVALUABLE";
         public string NivelCerteza { get; set; } = "NO_DETERMINADO";
         public string Observaciones { get; set; } = string.Empty;
+
+        public List<InspeccionDiagnosticoVisualV2> Diagnosticos
+        {
+            get => diagnosticos ??=
+                InspeccionDiagnosticosRevisionStore.Tomar(FotografiaId);
+            set => diagnosticos = value ?? [];
+        }
     }
 
     public sealed class InspeccionFotoAprobacionRequestV2
@@ -577,6 +857,7 @@ namespace CONATRADEC.Models
         public string NivelCertezaFinal { get; set; } = string.Empty;
         public string Observaciones { get; set; } = string.Empty;
         public bool AutorizaPublicacionAlbum { get; set; }
+        public List<InspeccionDiagnosticoVisualV2> DiagnosticosFinales { get; set; } = [];
     }
 
     public sealed class InspeccionAlbumFichaV2

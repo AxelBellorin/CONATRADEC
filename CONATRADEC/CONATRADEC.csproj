@@ -284,6 +284,9 @@
 		<MauiXaml Update="Views\FertilizacionMixtaTabView.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\FotografiaVinculadaInspeccionPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\FotosTerrenoGaleriaPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

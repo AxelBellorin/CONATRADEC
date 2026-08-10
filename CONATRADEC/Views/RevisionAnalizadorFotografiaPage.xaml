@@ -22,18 +22,17 @@
                             HeightRequest="{OnIdiom Phone=280, Tablet=360, Desktop=440}"
                             BackgroundColor="Black"
                             Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
-                            StrokeShape="RoundRectangle 16"
-                           >
+                            StrokeShape="RoundRectangle 16">
                             <Grid Padding="8">
                                 <Image x:Name="FotografiaImage" Aspect="AspectFit" HorizontalOptions="Fill" VerticalOptions="Fill">
                                     <Image.GestureRecognizers>
                                         <TapGestureRecognizer Tapped="OnAmpliarImagenTapped" />
                                     </Image.GestureRecognizers>
                                 </Image>
-                                <Button Margin="8" Padding="14,8" Text="Ver imagen completa" Clicked="OnAmpliarImagenClicked" HorizontalOptions="End" VerticalOptions="End" BackgroundColor="#435B54" TextColor="White" CornerRadius="10" FontSize="12" />
+                                <Button Margin="8" Padding="14,8" Text="Ver limpia / marcada IA" Clicked="OnAmpliarImagenClicked" HorizontalOptions="End" VerticalOptions="End" BackgroundColor="#435B54" TextColor="White" CornerRadius="10" FontSize="12" />
                             </Grid>
                         </Border>
-                        <Label Text="Toque la imagen para verla a pantalla completa." FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" HorizontalTextAlignment="Center" />
+                        <Label Text="Toque la imagen para comparar la evidencia limpia con la marcada por IA." FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
                 </Border>
 
@@ -43,13 +42,40 @@
                         <Label x:Name="DiagnosticoIaLabel" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" LineBreakMode="WordWrap" />
                         <Label x:Name="ResumenIaLabel" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" LineBreakMode="WordWrap" />
                         <Label x:Name="DetalleIaLabel" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" LineBreakMode="WordWrap" />
+
+                        <VerticalStackLayout x:Name="DiagnosticosIaStack" Spacing="9" />
+
+                        <Button
+                            x:Name="AgregarDiagnosticoButton"
+                            Text="+ Agregar diagnóstico observado"
+                            Clicked="OnAgregarDiagnosticoClicked"
+                            HeightRequest="44"
+                            Padding="12,7"
+                            CornerRadius="10"
+                            BackgroundColor="{AppThemeBinding Light=#EEF5F2, Dark=#2B3B36}"
+                            TextColor="{StaticResource color_Verde}"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Fill" />
+
+                        <Border
+                            x:Name="LocalizacionIaBorder"
+                            Padding="10,8"
+                            BackgroundColor="{AppThemeBinding Light=#EEF5F2, Dark=#24322E}"
+                            Stroke="{AppThemeBinding Light=#C8DED6, Dark=#425650}"
+                            StrokeShape="RoundRectangle 10">
+                            <Label
+                                x:Name="LocalizacionIaLabel"
+                                FontSize="12"
+                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
+                                LineBreakMode="WordWrap" />
+                        </Border>
                     </VerticalStackLayout>
                 </Border>
 
                 <Border Style="{StaticResource InspectionCard}">
                     <VerticalStackLayout Spacing="10">
                         <Label Text="Decisión del analizador" Style="{StaticResource InspectionTitle}" />
-                        <Label Text="La decisión seleccionada se aplicará únicamente a esta fotografía." Style="{StaticResource InspectionSubtitle}" />
+                        <Label Text="La fotografía continúa siendo un solo expediente. La confirmación actual conserva todas las afectaciones diferenciadas detectadas por IA; la corrección modifica su clasificación principal sin perder las secundarias." Style="{StaticResource InspectionSubtitle}" />
 
                         <Button Text="✓ Confirmar diagnóstico IA" Clicked="OnConfirmarClicked" Style="{StaticResource InspectionPrimaryButton}" />
                         <Button Text="✎ Corregir diagnóstico" Clicked="OnCorregirClicked" Style="{StaticResource InspectionCoffeeButton}" />

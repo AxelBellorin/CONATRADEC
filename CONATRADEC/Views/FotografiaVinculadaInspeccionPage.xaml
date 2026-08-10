@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.FotografiaVinculadaInspeccionPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#78000000">
+
+    <Grid
+        Padding="{OnPlatform WinUI='24', Default='14'}"
+        HorizontalOptions="Fill"
+        VerticalOptions="Fill">
+
+        <Border
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            MaximumWidthRequest="620"
+            BackgroundColor="White"
+            Stroke="#D8E2DE"
+            StrokeThickness="1"
+            StrokeShape="RoundRectangle 18">
+
+            <Grid RowDefinitions="Auto,*,Auto">
+                <Grid
+                    Grid.Row="0"
+                    Padding="{OnPlatform WinUI='22,20,22,14', Default='17,17,17,12'}"
+                    ColumnDefinitions="Auto,*"
+                    ColumnSpacing="12">
+
+                    <Border
+                        WidthRequest="38"
+                        HeightRequest="38"
+                        VerticalOptions="Start"
+                        BackgroundColor="#E7F1ED"
+                        Stroke="#C8DED6"
+                        StrokeShape="RoundRectangle 19">
+                        <Label
+                            Text="i"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            FontSize="20"
+                            FontAttributes="Bold"
+                            TextColor="#3B655B" />
+                    </Border>
+
+                    <VerticalStackLayout
+                        Grid.Column="1"
+                        Spacing="4">
+                        <Label
+                            Text="Fotografía vinculada a inspección"
+                            FontSize="{OnPlatform WinUI=21, Default=19}"
+                            FontAttributes="Bold"
+                            TextColor="#202724"
+                            LineBreakMode="WordWrap" />
+                        <Label
+                            Text="Esta fotografía proviene de una inspección fitosanitaria y no puede eliminarse directamente desde el Álbum Botánico."
+                            FontSize="13"
+                            TextColor="#56625E"
+                            LineHeight="1.18"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <ScrollView
+                    Grid.Row="1"
+                    VerticalScrollBarVisibility="Default"
+                    MaximumHeightRequest="{OnPlatform WinUI=520, Default=440}">
+                    <VerticalStackLayout
+                        Padding="{OnPlatform WinUI='22,2,22,16', Default='17,2,17,14'}"
+                        Spacing="12">
+
+                        <Border
+                            Padding="14,12"
+                            BackgroundColor="#F5F8F7"
+                            Stroke="#D9E4DF"
+                            StrokeShape="RoundRectangle 12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label
+                                    x:Name="InspeccionLabel"
+                                    FontSize="16"
+                                    FontAttributes="Bold"
+                                    TextColor="#2E554B"
+                                    LineBreakMode="WordWrap" />
+                                <Label
+                                    x:Name="TerrenoFotoLabel"
+                                    FontSize="13"
+                                    TextColor="#41504B"
+                                    LineBreakMode="WordWrap" />
+                                <Label
+                                    x:Name="FechaIdentificacionLabel"
+                                    FontSize="12"
+                                    TextColor="#697570"
+                                    LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Button
+                            x:Name="VerDetallesButton"
+                            Text="Ver detalles ▾"
+                            Clicked="OnVerDetallesClicked"
+                            Style="{x:Null}"
+                            HorizontalOptions="Start"
+                            HeightRequest="40"
+                            Padding="12,0"
+                            CornerRadius="10"
+                            BackgroundColor="#EEF3F1"
+                            TextColor="#365A50"
+                            FontAttributes="Bold" />
+
+                        <Border
+                            x:Name="DetallesContainer"
+                            IsVisible="False"
+                            Padding="14,12"
+                            BackgroundColor="#FBFCFB"
+                            Stroke="#E0E8E5"
+                            StrokeShape="RoundRectangle 12">
+                            <VerticalStackLayout Spacing="9">
+                                <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
+                                    <Label
+                                        Text="Técnico"
+                                        FontSize="12"
+                                        FontAttributes="Bold"
+                                        TextColor="#65716D" />
+                                    <Label
+                                        x:Name="TecnicoLabel"
+                                        Grid.Column="1"
+                                        FontSize="12"
+                                        TextColor="#33413D"
+                                        LineBreakMode="WordWrap" />
+                                </Grid>
+                                <BoxView HeightRequest="1" Color="#E7ECEA" />
+                                <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
+                                    <Label
+                                        Text="Publicada por"
+                                        FontSize="12"
+                                        FontAttributes="Bold"
+                                        TextColor="#65716D" />
+                                    <Label
+                                        x:Name="PublicadaPorLabel"
+                                        Grid.Column="1"
+                                        FontSize="12"
+                                        TextColor="#33413D"
+                                        LineBreakMode="WordWrap" />
+                                </Grid>
+                                <BoxView HeightRequest="1" Color="#E7ECEA" />
+                                <Grid ColumnDefinitions="110,*" ColumnSpacing="10">
+                                    <Label
+                                        Text="Publicación"
+                                        FontSize="12"
+                                        FontAttributes="Bold"
+                                        TextColor="#65716D" />
+                                    <Label
+                                        x:Name="FechaPublicacionLabel"
+                                        Grid.Column="1"
+                                        FontSize="12"
+                                        TextColor="#33413D"
+                                        LineBreakMode="WordWrap" />
+                                </Grid>
+                                <Label
+                                    x:Name="DetalleFallbackLabel"
+                                    IsVisible="False"
+                                    Margin="0,4,0,0"
+                                    FontSize="11"
+                                    TextColor="#78837F"
+                                    LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border
+                            Padding="13,11"
+                            BackgroundColor="#EDF6F2"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 12">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                                <Label
+                                    Text="→"
+                                    FontSize="18"
+                                    FontAttributes="Bold"
+                                    TextColor="#3B655B"
+                                    VerticalOptions="Start" />
+                                <Label
+                                    Grid.Column="1"
+                                    Text="Para retirarla del álbum, abra la inspección y utilice la acción “Retirar del Álbum”."
+                                    FontSize="12"
+                                    TextColor="#365A50"
+                                    LineHeight="1.15"
+                                    LineBreakMode="WordWrap" />
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <Grid
+                    Grid.Row="2"
+                    Padding="{OnPlatform WinUI='22,14,22,20', Default='17,12,17,17'}"
+                    RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
+                    ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                    RowSpacing="9"
+                    ColumnSpacing="10"
+                    BackgroundColor="#FAFBFA">
+
+                    <Button
+                        Text="Cerrar"
+                        Clicked="OnCerrarClicked"
+                        Style="{x:Null}"
+                        HeightRequest="48"
+                        CornerRadius="11"
+                        BackgroundColor="#EEF1EF"
+                        TextColor="#36433F"
+                        FontAttributes="Bold" />
+
+                    <Button
+                        Grid.Column="{OnPlatform WinUI=1, Default=0}"
+                        Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                        Text="Ir a la inspección"
+                        Clicked="OnIrInspeccionClicked"
+                        Style="{x:Null}"
+                        HeightRequest="48"
+                        CornerRadius="11"
+                        BackgroundColor="#3B655B"
+                        TextColor="White"
+                        FontAttributes="Bold" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

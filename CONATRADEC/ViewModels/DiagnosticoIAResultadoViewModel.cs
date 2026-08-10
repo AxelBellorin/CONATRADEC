@@ -202,6 +202,7 @@ namespace CONATRADEC.ViewModels
             CantidadSeleccionada == 1 &&
             Detalle?.PuedeGestionarSolicitud == true &&
             EsEtapaTecnicaAbierta &&
+            FotosSeleccionadas.All(item => item.PuedeSolicitarRevisionIA) &&
             FotosSeleccionadas.All(item => item.Estado is
                 InspeccionFotoEstados.PendienteDecisionTecnico or
                 InspeccionFotoEstados.ErrorIA);
@@ -632,6 +633,16 @@ namespace CONATRADEC.ViewModels
             if (!PuedeSolicitarRevision || Shell.Current == null)
                 return;
 
+            InspeccionFotoV2 foto = FotosSeleccionadas[0];
+            if (!foto.PuedeSolicitarRevisionIA)
+            {
+                await MostrarAlertaAsync(
+                    "Límite de reevaluaciones alcanzado",
+                    foto.RevisionesIATexto +
+                    ". Puede enviar la fotografía al analizador humano o continuar con otra decisión técnica.");
+                return;
+            }
+
             string? retroalimentacion = await Shell.Current.DisplayPromptAsync(
                 "Solicitar nueva evaluación IA",
                 "Explique qué debe revisar nuevamente la IA.",
@@ -652,8 +663,6 @@ namespace CONATRADEC.ViewModels
                 }
                 return;
             }
-
-            InspeccionFotoV2 foto = FotosSeleccionadas[0];
 
             await EjecutarOperacionAsync(
                 "Solicitando nueva evaluación IA...",
