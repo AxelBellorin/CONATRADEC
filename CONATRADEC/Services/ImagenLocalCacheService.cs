@@ -40,28 +40,68 @@ namespace CONATRADEC.Services
                 return string.Empty;
 
             /*
-             * En Windows offline se prefiere la copia JPEG original local
-             * cuando la URL recibida corresponde a una miniatura.
+             * El Álbum offline de Windows usa exclusivamente copias JPEG
+             * preparadas por el endpoint dedicado.
              *
-             * Android conserva su flujo actual.
+             * Se revisa primero la nueva ubicación aislada y después, por
+             * compatibilidad, el archivo utilizado por versiones anteriores.
+             * El archivo legacy solamente se acepta si sus bytes corresponden
+             * realmente a JPEG; un WebP guardado antiguamente con extensión
+             * .jpg queda descartado.
              */
             if (ModoSesionService.EsOffline &&
-                DeviceInfo.Current.Platform == DevicePlatform.WinUI)
+                DeviceInfo.Current.Platform == DevicePlatform.WinUI &&
+                EsUrlAlbum(url))
             {
                 string? originalUrl =
                     IntentarObtenerOriginalDesdeMiniatura(url);
 
                 if (!string.IsNullOrWhiteSpace(originalUrl))
                 {
-                    string originalPath =
-                        ObtenerRutaOriginal(originalUrl);
+                    string originalOffline =
+                        ObtenerRutaOriginalOfflineWindows(originalUrl);
 
-                    if (ArchivoValido(originalPath))
+                    if (ArchivoJpegValido(originalOffline))
                     {
-                        MarcarUsoFisico(originalPath);
-                        return originalPath;
+                        MarcarUsoFisico(originalOffline);
+                        return originalOffline;
+                    }
+
+                    string originalLegacy =
+                        ObtenerRuta(
+                            "original",
+                            originalUrl,
+                            ".jpg");
+
+                    if (ArchivoJpegValido(originalLegacy))
+                    {
+                        MarcarUsoFisico(originalLegacy);
+                        return originalLegacy;
                     }
                 }
+
+                string miniaturaOffline =
+                    ObtenerRutaMiniaturaOfflineWindows(url);
+
+                if (ArchivoJpegValido(miniaturaOffline))
+                {
+                    MarcarUsoFisico(miniaturaOffline);
+                    return miniaturaOffline;
+                }
+
+                string miniaturaLegacy =
+                    ObtenerRuta(
+                        "miniatura",
+                        url,
+                        ".jpg");
+
+                if (ArchivoJpegValido(miniaturaLegacy))
+                {
+                    MarcarUsoFisico(miniaturaLegacy);
+                    return miniaturaLegacy;
+                }
+
+                return string.Empty;
             }
 
             string path = ObtenerRutaMiniatura(url);
@@ -82,6 +122,34 @@ namespace CONATRADEC.Services
             if (string.IsNullOrWhiteSpace(url))
                 return string.Empty;
 
+            if (ModoSesionService.EsOffline &&
+                DeviceInfo.Current.Platform == DevicePlatform.WinUI &&
+                EsUrlAlbum(url))
+            {
+                string offlinePath =
+                    ObtenerRutaOriginalOfflineWindows(url);
+
+                if (ArchivoJpegValido(offlinePath))
+                {
+                    MarcarUsoFisico(offlinePath);
+                    return offlinePath;
+                }
+
+                string legacyPath =
+                    ObtenerRuta(
+                        "original",
+                        url,
+                        ".jpg");
+
+                if (ArchivoJpegValido(legacyPath))
+                {
+                    MarcarUsoFisico(legacyPath);
+                    return legacyPath;
+                }
+
+                return string.Empty;
+            }
+
             string path = ObtenerRutaOriginal(url);
 
             if (!ArchivoValido(path))
@@ -95,22 +163,34 @@ namespace CONATRADEC.Services
             return path;
         }
 
-        public static string ObtenerRutaMiniatura(string url) =>
-            ObtenerRuta(
+        public static string ObtenerRutaMiniatura(string url)
+        {
+            if (DebeUsarRutaJpegOfflineWindows(url))
+                return ObtenerRutaMiniaturaOfflineWindows(url);
+
+            return ObtenerRuta(
                 "miniatura",
                 url,
                 DeviceInfo.Current.Platform == DevicePlatform.WinUI
                     ? ".jpg"
                     : ".webp");
+        }
 
         public static string ObtenerRutaOriginal(string url)
         {
             /*
-             * La preparación offline de Windows obtiene una representación
-             * JPEG desde el backend. Se conserva la extensión .jpg para que
-             * WinUI identifique correctamente el archivo físico.
-             *
-             * Android conserva la extensión real utilizada actualmente.
+             * Durante "Descargar todo", las fotografías del Álbum en Windows
+             * se guardan en una ubicación exclusiva para JPEG. Así una visita
+             * online previa no puede dejar un WebP con extensión .jpg que haga
+             * pensar a una descarga posterior que ya existe una copia válida.
+             */
+            if (DebeUsarRutaJpegOfflineWindows(url))
+                return ObtenerRutaOriginalOfflineWindows(url);
+
+            /*
+             * Se conserva la ubicación histórica para la navegación normal.
+             * El modo offline del Álbum valida la firma JPEG antes de aceptar
+             * cualquiera de estos archivos legacy.
              */
             if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
             {
@@ -410,6 +490,107 @@ namespace CONATRADEC.Services
             catch
             {
                 return 0;
+            }
+        }
+
+        private static bool DebeUsarRutaJpegOfflineWindows(
+            string url) =>
+            DescargaOfflineContext.Activa &&
+            DeviceInfo.Current.Platform == DevicePlatform.WinUI &&
+            EsUrlAlbum(url);
+
+        private static string ObtenerRutaMiniaturaOfflineWindows(
+            string url) =>
+            ObtenerRuta(
+                "miniatura-jpeg-windows",
+                url,
+                ".jpg");
+
+        private static string ObtenerRutaOriginalOfflineWindows(
+            string url) =>
+            ObtenerRuta(
+                "original-jpeg-windows",
+                url,
+                ".jpg");
+
+        private static bool EsUrlAlbum(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return false;
+
+            if (Uri.TryCreate(
+                    url,
+                    UriKind.Absolute,
+                    out Uri? uri))
+            {
+                if (uri.AbsolutePath.StartsWith(
+                        "/imagenes/miniatura",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    string? original =
+                        IntentarObtenerOriginalDesdeMiniatura(url);
+
+                    return !string.IsNullOrWhiteSpace(original) &&
+                           EsUrlAlbum(original);
+                }
+
+                return EsRutaAlbum(uri.AbsolutePath);
+            }
+
+            return EsRutaAlbum(url);
+        }
+
+        private static bool EsRutaAlbum(string ruta)
+        {
+            string normalizada = ruta
+                .Replace('\\', '/')
+                .Trim();
+
+            if (!normalizada.StartsWith('/'))
+                normalizada = "/" + normalizada;
+
+            return normalizada.StartsWith(
+                       "/resources/uploads/album-botanico/",
+                       StringComparison.OrdinalIgnoreCase) ||
+                   normalizada.StartsWith(
+                       "/resources/uploads/categorias-album/",
+                       StringComparison.OrdinalIgnoreCase) ||
+                   normalizada.StartsWith(
+                       "/resources/uploads/diagnosticos-ia/",
+                       StringComparison.OrdinalIgnoreCase) ||
+                   normalizada.StartsWith(
+                       "/resources/uploads/diagnostico-ia/",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ArchivoJpegValido(string path)
+        {
+            try
+            {
+                if (!File.Exists(path))
+                    return false;
+
+                var info = new FileInfo(path);
+                if (info.Length < 3)
+                    return false;
+
+                using FileStream stream = new(
+                    path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete);
+
+                int primero = stream.ReadByte();
+                int segundo = stream.ReadByte();
+                int tercero = stream.ReadByte();
+
+                return primero == 0xFF &&
+                       segundo == 0xD8 &&
+                       tercero == 0xFF;
+            }
+            catch
+            {
+                return false;
             }
         }
 
