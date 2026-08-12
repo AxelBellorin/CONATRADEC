@@ -20,6 +20,17 @@ namespace CONATRADEC.Services
 
         private static string? rutaNavegacionEnCurso;
 
+        /*
+         * El cierre de sesión no debe depender del IsBusy de la pantalla
+         * actual. IsBusy representa cargas, búsquedas o guardados propios de
+         * cada ViewModel y puede permanecer activo mientras una pantalla vuelve
+         * a cargar sus datos.
+         *
+         * Esta bandera global evita cierres duplicados aunque distintas
+         * instancias de GlobalService continúen vivas en la pila de navegación.
+         */
+        private static int cierreSesionEnCurso;
+
         private const int MaximoReintentosNavegacion = 20;
 
         public bool CanAdd { get; protected set; }
@@ -129,9 +140,14 @@ namespace CONATRADEC.Services
                 async () => await GoToAsyncParameters(AppRoutes.Regresar),
                 () => !IsBusy);
 
+            /*
+             * Cerrar sesión permanece disponible aunque la página actual esté
+             * cargando. La única condición que lo deshabilita es que ya exista
+             * otro cierre de sesión en curso.
+             */
             CerrarSesionCommand = new Command(
                 async () => await CerrarSesionAsync(),
-                () => !IsBusy);
+                PuedeCerrarSesion);
         }
 
         private void UpdateNavigationCommands()
@@ -156,24 +172,63 @@ namespace CONATRADEC.Services
             CerrarSesionCommand.ChangeCanExecute();
         }
 
+        private bool PuedeCerrarSesion()
+        {
+#if WINDOWS
+            /*
+             * En Windows el cierre de sesión no depende del IsBusy de la
+             * pantalla. Esto evita que una recarga del listado de terrenos
+             * deje el botón visualmente disponible pero sin responder.
+             */
+            return Volatile.Read(ref cierreSesionEnCurso) == 0;
+#else
+            /*
+             * Android, iOS y MacCatalyst conservan exactamente la regla
+             * anterior: no cerrar mientras la pantalla actual esté ocupada.
+             */
+            return !IsBusy &&
+                   Volatile.Read(ref cierreSesionEnCurso) == 0;
+#endif
+        }
+
         private async Task CerrarSesionAsync()
         {
+#if !WINDOWS
             if (IsBusy)
                 return;
+#endif
 
-            bool confirm = await ConfirmarAsync(
-                "Cerrar sesión",
-                "¿Está seguro de que desea cerrar la sesión actual?",
-                "Cerrar sesión",
-                "Cancelar");
-
-            if (!confirm)
+            /*
+             * En Windows no se consulta IsBusy: una carga propia de la pantalla
+             * no debe bloquear una acción global como cerrar la sesión.
+             */
+            if (Interlocked.CompareExchange(
+                    ref cierreSesionEnCurso,
+                    1,
+                    0) != 0)
+            {
                 return;
+            }
 
-            IsBusy = true;
+            CerrarSesionCommand.ChangeCanExecute();
+
+            bool estadoBusyAnterior = IsBusy;
+            bool seConfirmoCierre = false;
 
             try
             {
+                bool confirm = await ConfirmarAsync(
+                    "Cerrar sesión",
+                    "¿Está seguro de que desea cerrar la sesión actual?",
+                    "Cerrar sesión",
+                    "Cancelar");
+
+                if (!confirm)
+                    return;
+
+                seConfirmoCierre = true;
+                IsBusy = true;
+
                 /*
                  * Se elimina primero el usuario visible para que el servicio de
                  * conectividad marque el dispositivo como desconectado mientras
@@ -233,7 +288,22 @@ namespace CONATRADEC.Services
             }
             finally
             {
-                IsBusy = false;
+                /*
+                 * Si el usuario canceló el cuadro de confirmación no se altera
+                 * el estado de carga que ya tenía la pantalla.
+                 *
+                 * Si confirmó, al volver a Login esta instancia normalmente ya
+                 * no será visible, pero restaurar el valor anterior evita dejar
+                 * un ViewModel bloqueado si la navegación fuera interrumpida.
+                 */
+                if (seConfirmoCierre)
+                    IsBusy = estadoBusyAnterior;
+
+                Interlocked.Exchange(
+                    ref cierreSesionEnCurso,
+                    0);
+
+                CerrarSesionCommand.ChangeCanExecute();
             }
         }
 
