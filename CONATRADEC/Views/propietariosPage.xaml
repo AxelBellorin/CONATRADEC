@@ -16,52 +16,9 @@
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid>
             <Grid
-                Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}"
-                RowDefinitions="Auto,*"
-                RowSpacing="12">
-
-                <!--
-                    Encabezado y búsqueda fuera del CollectionView.
-                    Evita que el SearchBar sea re-medido por la virtualización
-                    del listado mientras el usuario escribe en Android o Windows.
-                -->
-                <VerticalStackLayout
-                    Grid.Row="0"
-                    Spacing="12">
-
-                    <controls:ResponsiveCatalogHeader
-                        Title="{Binding Titulo}"
-                        Subtitle="Una persona se registra una sola vez y puede tener varios terrenos."
-                        BackText="{Binding TextoRegresar, StringFormat='← {0}'}"
-                        BackCommand="{Binding RegresarCommand}"
-                        PrimaryText="+ Nuevo propietario"
-                        PrimaryCommand="{Binding NuevoCommand}"
-                        IsPrimaryVisible="{Binding CanAdd}" />
-
-                    <!-- Búsqueda -->
-                    <Border Style="{StaticResource ModernCard}" Padding="12">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <Border Style="{StaticResource ModernInputBorder}" Padding="6,0">
-                                <SearchBar
-                                    Placeholder="Buscar por nombre, identificación o correo"
-                                    Text="{Binding TextoBusqueda, Mode=TwoWay}"
-                                    SearchCommand="{Binding BuscarCommand}"
-                                    Style="{StaticResource ModernSearchBar}" />
-                            </Border>
-
-                            <Button
-                                Grid.Column="1"
-                                Text="Buscar"
-                                Command="{Binding BuscarCommand}"
-                                Style="{StaticResource ModernPrimaryButton}"
-                                HeightRequest="48"
-                                Padding="14,9" />
-                        </Grid>
-                    </Border>
-                </VerticalStackLayout>
+                Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}">
 
                 <RefreshView
-                    Grid.Row="1"
                     Command="{Binding ActualizarCommand}"
                     IsRefreshing="{Binding IsRefreshing}">
 
@@ -71,10 +28,46 @@
                         RemainingItemsThreshold="3"
                         RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
 
+                        <!--
+                            Todo el bloque superior nace dentro del Header.
+                            El encabezado, la búsqueda y los filtros salen de la
+                            pantalla con el desplazamiento normal del listado.
+                            No existe reparentado de controles en tiempo de ejecución.
+                        -->
                         <CollectionView.Header>
                             <VerticalStackLayout
                                 Padding="0,0,0,12"
                                 Spacing="12">
+
+                                <controls:ResponsiveCatalogHeader
+                                    Title="{Binding Titulo}"
+                                    Subtitle="Una persona se registra una sola vez y puede tener varios terrenos."
+                                    BackText="{Binding TextoRegresar, StringFormat='← {0}'}"
+                                    BackCommand="{Binding RegresarCommand}"
+                                    PrimaryText="+ Nuevo propietario"
+                                    PrimaryCommand="{Binding NuevoCommand}"
+                                    IsPrimaryVisible="{Binding CanAdd}" />
+
+                                <!-- Búsqueda -->
+                                <Border Style="{StaticResource ModernCard}" Padding="12">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Border Style="{StaticResource ModernInputBorder}" Padding="6,0">
+                                            <SearchBar
+                                                Placeholder="Buscar por nombre, identificación o correo"
+                                                Text="{Binding TextoBusqueda, Mode=TwoWay}"
+                                                SearchCommand="{Binding BuscarCommand}"
+                                                Style="{StaticResource ModernSearchBar}" />
+                                        </Border>
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Buscar"
+                                            Command="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernPrimaryButton}"
+                                            HeightRequest="48"
+                                            Padding="14,9" />
+                                    </Grid>
+                                </Border>
 
                                 <!-- Modo selección -->
                                 <Border
@@ -356,7 +349,6 @@
                 </RefreshView>
 
                 <Grid
-                    Grid.RowSpan="2"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="False"
                     BackgroundColor="#36000000">

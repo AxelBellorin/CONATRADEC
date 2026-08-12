@@ -1,6 +1,7 @@
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using System.Windows.Input;
+using Microsoft.Maui.Devices;
 
 namespace CONATRADEC.Views
 {
@@ -42,15 +43,27 @@ namespace CONATRADEC.Views
              * elementos como índice aproximado de filas para que la siguiente
              * página se solicite de forma confiable en Windows, tablet y móvil.
              */
-            TerrenosCollectionView.Scrolled +=
-                TerrenosCollectionView_Scrolled;
-
             /*
-             * En grillas de varias columnas WinUI puede disparar tarde el
-             * RemainingItemsThreshold. Un margen mayor permite solicitar la
-             * siguiente página antes de que el usuario llegue al último card.
+             * En Windows conservamos la precarga automática porque WinUI
+             * responde bien con el respaldo adicional de Scrolled.
+             *
+             * En Android/Tablet se deshabilita el umbral automático. Cuando
+             * el usuario permanece al final del CollectionView, Android puede
+             * volver a disparar la carga incremental inmediatamente después
+             * de agregar la página anterior. El botón del footer queda como
+             * navegación controlada: un toque = una página.
              */
-            TerrenosCollectionView.RemainingItemsThreshold = 10;
+            if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
+            {
+                TerrenosCollectionView.Scrolled +=
+                    TerrenosCollectionView_Scrolled;
+
+                TerrenosCollectionView.RemainingItemsThreshold = 10;
+            }
+            else
+            {
+                TerrenosCollectionView.RemainingItemsThreshold = -1;
+            }
 
             ConfigurarBotonCargaManual();
 

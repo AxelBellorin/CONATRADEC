@@ -55,31 +55,9 @@
             <!-- Contenido -->
             <Grid
                 IsVisible="{Binding CanView}"
-                Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}"
-                RowDefinitions="Auto,*"
-                RowSpacing="12">
-
-                <!-- Buscador estable fuera del CollectionView virtualizado. -->
-                <VerticalStackLayout Grid.Row="0" Spacing="12">
-                    <controls:ResponsiveCatalogHeader
-                        Title="Usuarios"
-                        Subtitle="Administre cuentas internas, externas, roles y procedencia."
-                        BackText="← Configuración"
-                        BackCommand="{Binding RegresarConfiguracionCommand}"
-                        PrimaryText="+ Nuevo usuario"
-                        PrimaryCommand="{Binding AddUserCommand}"
-                        IsPrimaryVisible="{Binding CanAdd}" />
-
-                    <controls:ResponsiveSearchPanel
-                        Placeholder="Nombre, usuario, correo, identificación o teléfono"
-                        SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
-                        SummaryText="{Binding ResumenResultados}"
-                        SearchCommand="{Binding BuscarCommand}"
-                        ClearCommand="{Binding LimpiarFiltrosCommand}" />
-                </VerticalStackLayout>
+                Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}">
 
                 <RefreshView
-                    Grid.Row="1"
                     IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
 
@@ -89,17 +67,42 @@
                         RemainingItemsThreshold="3"
                         RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
 
+                        <!--
+                            Encabezado, búsqueda y mensajes forman parte del
+                            contenido desplazable. No se mueven controles en
+                            tiempo de ejecución ni se modifica su padre visual.
+                        -->
                         <CollectionView.Header>
-                            <Border
-                                Margin="0,0,0,12"
-                                IsVisible="{Binding TieneMensaje}"
-                                Style="{StaticResource ModernWarningBanner}">
-                                <Label
-                                    Text="{Binding Mensaje}"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="12"
-                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
-                            </Border>
+                            <VerticalStackLayout
+                                Spacing="12"
+                                Padding="0,0,0,12">
+
+                                <controls:ResponsiveCatalogHeader
+                                    Title="Usuarios"
+                                    Subtitle="Administre cuentas internas, externas, roles y procedencia."
+                                    BackText="← Configuración"
+                                    BackCommand="{Binding RegresarConfiguracionCommand}"
+                                    PrimaryText="+ Nuevo usuario"
+                                    PrimaryCommand="{Binding AddUserCommand}"
+                                    IsPrimaryVisible="{Binding CanAdd}" />
+
+                                <controls:ResponsiveSearchPanel
+                                    Placeholder="Nombre, usuario, correo, identificación o teléfono"
+                                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                                    SummaryText="{Binding ResumenResultados}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
+
+                                <Border
+                                    IsVisible="{Binding TieneMensaje}"
+                                    Style="{StaticResource ModernWarningBanner}">
+                                    <Label
+                                        Text="{Binding Mensaje}"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="12"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                </Border>
+                            </VerticalStackLayout>
                         </CollectionView.Header>
 
                         <CollectionView.ItemsLayout>
@@ -285,7 +288,6 @@
                 </RefreshView>
 
                 <Grid
-                    Grid.RowSpan="2"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="False"
                     BackgroundColor="#36000000">
