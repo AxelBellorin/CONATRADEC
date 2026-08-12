@@ -1,4 +1,5 @@
 using CONATRADEC.Models;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 using System.Net;
 using System.Security.Cryptography;
@@ -205,7 +206,14 @@ namespace CONATRADEC.Services
             }
             catch
             {
-                // El JSON sigue siendo válido aunque una imagen falle.
+                /*
+                 * En la navegación normal una imagen fallida no invalida el
+                 * JSON. Durante "Descargar todo" del álbum en Windows sí debe
+                 * propagarse: de lo contrario la pantalla indicaría que el
+                 * dispositivo quedó preparado aunque no existan fotos locales.
+                 */
+                if (EsDescargaAlbumWindows(module))
+                    throw;
             }
         }
 
@@ -243,6 +251,17 @@ namespace CONATRADEC.Services
                 yield break;
             }
 
+            /*
+             * Las miniaturas del servidor se conservan para Android y para
+             * el uso normal en línea. Durante la preparación offline de
+             * Windows se guarda además el archivo original, porque el
+             * decodificador local de Windows no debe depender del formato
+             * WebP utilizado por la miniatura.
+             */
+            bool guardarOriginalWindows =
+                DescargaOfflineContext.Activa &&
+                DeviceInfo.Current.Platform == DevicePlatform.WinUI;
+
             foreach (string path in EncontrarTextos(
                          document.RootElement,
                          "rutaImagenPortada"))
@@ -257,6 +276,15 @@ namespace CONATRADEC.Services
                         65),
                     Original = false
                 };
+
+                if (guardarOriginalWindows)
+                {
+                    yield return new DescargaImagen
+                    {
+                        Url = ConstruirContenidoUrl(authority, path),
+                        Original = true
+                    };
+                }
             }
 
             foreach (string path in EncontrarTextos(
@@ -273,6 +301,15 @@ namespace CONATRADEC.Services
                         68),
                     Original = false
                 };
+
+                if (guardarOriginalWindows)
+                {
+                    yield return new DescargaImagen
+                    {
+                        Url = ConstruirContenidoUrl(authority, path),
+                        Original = true
+                    };
+                }
             }
 
             bool detalleAlbum = route.Contains(
@@ -341,16 +378,65 @@ namespace CONATRADEC.Services
                         cancellationToken);
                 timeout.CancelAfter(TimeSpan.FromSeconds(20));
 
+                string urlDescarga =
+                    ConstruirUrlDescargaImagen(
+                        module,
+                        image);
+
                 using var imageRequest = new HttpRequestMessage(
                     HttpMethod.Get,
-                    image.Url);
+                    urlDescarga);
 
                 using HttpResponseMessage response = await base.SendAsync(
                     imageRequest,
                     timeout.Token);
 
                 if (!response.IsSuccessStatusCode)
+                {
+                    if (EsDescargaAlbumWindows(module))
+                    {
+                        string detalleServidor =
+                            await LeerErrorImagenAsync(
+                                response,
+                                timeout.Token);
+
+                        /*
+                         * Una referencia huérfana del Álbum no debe impedir
+                         * que Windows descargue todas las demás fotografías.
+                         *
+                         * Solamente se omite el 404 que el backend identifica
+                         * como archivo físico perdido. Un endpoint inexistente,
+                         * 500, 401 u otro error continúa deteniendo la descarga.
+                         */
+                        bool archivoFisicoAusente =
+                            response.StatusCode ==
+                                HttpStatusCode.NotFound &&
+                            detalleServidor.Contains(
+                                "archivo físico no fue encontrado",
+                                StringComparison.OrdinalIgnoreCase);
+
+                        if (archivoFisicoAusente)
+                        {
+                            System.Diagnostics.Debug.WriteLine(
+                                "Imagen huérfana omitida durante la " +
+                                "preparación offline de Windows. " +
+                                detalleServidor);
+
+                            return;
+                        }
+
+                        string mensaje =
+                            "El servidor no pudo generar la copia JPEG " +
+                            $"offline de la imagen ({(int)response.StatusCode}).";
+
+                        if (!string.IsNullOrWhiteSpace(detalleServidor))
+                            mensaje += " " + detalleServidor;
+
+                        throw new HttpRequestException(mensaje);
+                    }
+
                     return;
+                }
 
                 await using Stream stream =
                     await response.Content.ReadAsStreamAsync(timeout.Token);
@@ -373,13 +459,195 @@ namespace CONATRADEC.Services
             {
                 throw;
             }
-            catch
+            catch (Exception ex)
             {
+                if (EsDescargaAlbumWindows(module))
+                {
+                    throw new InvalidOperationException(
+                        "No fue posible guardar una fotografía del álbum " +
+                        "para trabajar sin conexión en Windows.",
+                        ex);
+                }
             }
             finally
             {
                 ImageDownloads.Release();
             }
+        }
+
+        /// <summary>
+        /// Obtiene el detalle enviado por el backend cuando una fotografía
+        /// no pudo prepararse. En especial, conserva la ruta pública que
+        /// permite identificar archivos antiguos o ausentes del servidor.
+        /// </summary>
+        private static async Task<string> LeerErrorImagenAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (response.Content == null)
+                    return string.Empty;
+
+                string contenido = await response.Content
+                    .ReadAsStringAsync(cancellationToken);
+
+                if (string.IsNullOrWhiteSpace(contenido))
+                    return string.Empty;
+
+                try
+                {
+                    using JsonDocument document =
+                        JsonDocument.Parse(contenido);
+
+                    JsonElement root = document.RootElement;
+
+                    string mensaje = string.Empty;
+                    string ruta = string.Empty;
+
+                    if (root.ValueKind == JsonValueKind.Object)
+                    {
+                        if (root.TryGetProperty(
+                                "message",
+                                out JsonElement messageElement) &&
+                            messageElement.ValueKind ==
+                                JsonValueKind.String)
+                        {
+                            mensaje =
+                                messageElement.GetString() ??
+                                string.Empty;
+                        }
+                        else if (root.TryGetProperty(
+                                     "detail",
+                                     out JsonElement detailElement) &&
+                                 detailElement.ValueKind ==
+                                     JsonValueKind.String)
+                        {
+                            mensaje =
+                                detailElement.GetString() ??
+                                string.Empty;
+                        }
+
+                        if (root.TryGetProperty(
+                                "ruta",
+                                out JsonElement rutaElement) &&
+                            rutaElement.ValueKind ==
+                                JsonValueKind.String)
+                        {
+                            ruta =
+                                rutaElement.GetString() ??
+                                string.Empty;
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(ruta))
+                    {
+                        return string.IsNullOrWhiteSpace(mensaje)
+                            ? $"Ruta: {ruta}"
+                            : $"{mensaje} Ruta: {ruta}";
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(mensaje))
+                        return mensaje;
+                }
+                catch (JsonException)
+                {
+                }
+
+                const int maximo = 350;
+
+                return contenido.Length <= maximo
+                    ? contenido
+                    : contenido[..maximo];
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static bool EsDescargaAlbumWindows(string module) =>
+            DescargaOfflineContext.Activa &&
+            DeviceInfo.Current.Platform == DevicePlatform.WinUI &&
+            string.Equals(
+                module,
+                "album",
+                StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Durante la preparación offline de Windows se solicita al backend
+        /// una representación JPEG. Android y la navegación online conservan
+        /// exactamente las mismas URLs WebP utilizadas hasta ahora.
+        /// </summary>
+        private static string ConstruirUrlDescargaImagen(
+            string module,
+            DescargaImagen image)
+        {
+            if (!EsDescargaAlbumWindows(module) ||
+                !Uri.TryCreate(
+                    image.Url,
+                    UriKind.Absolute,
+                    out Uri? imageUri))
+            {
+                return image.Url;
+            }
+
+            string? rutaImagen = image.Original
+                ? imageUri.AbsolutePath
+                : ObtenerParametroQuery(
+                    imageUri,
+                    "ruta");
+
+            if (string.IsNullOrWhiteSpace(rutaImagen))
+                return image.Url;
+
+            int dimension = image.Original ? 1400 : 720;
+            int calidad = image.Original ? 84 : 78;
+
+            string authority =
+                imageUri.GetLeftPart(UriPartial.Authority)
+                    .TrimEnd('/');
+
+            return
+                $"{authority}/imagenes/offline-windows/jpeg-directo" +
+                $"?ruta={Uri.EscapeDataString(rutaImagen)}" +
+                $"&ancho={dimension}" +
+                $"&alto={dimension}" +
+                $"&calidad={calidad}";
+        }
+
+        private static string? ObtenerParametroQuery(
+            Uri uri,
+            string nombre)
+        {
+            string query = uri.Query.TrimStart('?');
+
+            foreach (string fragmento in query.Split(
+                         '&',
+                         StringSplitOptions.RemoveEmptyEntries))
+            {
+                string[] partes = fragmento.Split('=', 2);
+
+                if (partes.Length != 2 ||
+                    !string.Equals(
+                        partes[0],
+                        nombre,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    return Uri.UnescapeDataString(partes[1]);
+                }
+                catch
+                {
+                    return partes[1];
+                }
+            }
+
+            return null;
         }
 
         private static IEnumerable<string> EncontrarTextos(

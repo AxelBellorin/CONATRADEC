@@ -1,5 +1,7 @@
 using CONATRADEC.Models;
+using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -20,10 +22,47 @@ namespace CONATRADEC.Services
             "contenido-local",
             "imagenes");
 
+        /*
+         * Cada destino físico se escribe de forma exclusiva.
+         *
+         * El Álbum puede descubrir la misma fotografía desde diferentes
+         * respuestas JSON mientras varias descargas están en paralelo.
+         * Este bloqueo evita que dos tareas intenten reemplazar el mismo
+         * archivo al mismo tiempo, sin serializar imágenes distintas.
+         */
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim>
+            BloqueosEscritura =
+                new(StringComparer.OrdinalIgnoreCase);
+
         public static string ResolverMiniatura(string? url)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return string.Empty;
+
+            /*
+             * En Windows offline se prefiere la copia JPEG original local
+             * cuando la URL recibida corresponde a una miniatura.
+             *
+             * Android conserva su flujo actual.
+             */
+            if (ModoSesionService.EsOffline &&
+                DeviceInfo.Current.Platform == DevicePlatform.WinUI)
+            {
+                string? originalUrl =
+                    IntentarObtenerOriginalDesdeMiniatura(url);
+
+                if (!string.IsNullOrWhiteSpace(originalUrl))
+                {
+                    string originalPath =
+                        ObtenerRutaOriginal(originalUrl);
+
+                    if (ArchivoValido(originalPath))
+                    {
+                        MarcarUsoFisico(originalPath);
+                        return originalPath;
+                    }
+                }
+            }
 
             string path = ObtenerRutaMiniatura(url);
 
@@ -60,10 +99,27 @@ namespace CONATRADEC.Services
             ObtenerRuta(
                 "miniatura",
                 url,
-                ".webp");
+                DeviceInfo.Current.Platform == DevicePlatform.WinUI
+                    ? ".jpg"
+                    : ".webp");
 
         public static string ObtenerRutaOriginal(string url)
         {
+            /*
+             * La preparación offline de Windows obtiene una representación
+             * JPEG desde el backend. Se conserva la extensión .jpg para que
+             * WinUI identifique correctamente el archivo físico.
+             *
+             * Android conserva la extensión real utilizada actualmente.
+             */
+            if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
+            {
+                return ObtenerRuta(
+                    "original",
+                    url,
+                    ".jpg");
+            }
+
             string extension = ".webp";
 
             if (Uri.TryCreate(
@@ -95,37 +151,82 @@ namespace CONATRADEC.Services
         {
             ArgumentNullException.ThrowIfNull(source);
 
-            string? directory = Path.GetDirectoryName(destination);
-            if (!string.IsNullOrWhiteSpace(directory))
-                Directory.CreateDirectory(directory);
+            if (string.IsNullOrWhiteSpace(destination))
+            {
+                throw new ArgumentException(
+                    "La ruta de destino de la imagen es obligatoria.",
+                    nameof(destination));
+            }
 
-            string temporary =
-                destination + $".{Guid.NewGuid():N}.tmp";
+            string destinationFullPath =
+                Path.GetFullPath(destination);
+
+            SemaphoreSlim bloqueo =
+                BloqueosEscritura.GetOrAdd(
+                    destinationFullPath,
+                    _ => new SemaphoreSlim(1, 1));
+
+            await bloqueo.WaitAsync(cancellationToken);
+
+            string? temporary = null;
 
             try
             {
-                await using FileStream output = new(
-                    temporary,
-                    FileMode.Create,
-                    FileAccess.Write,
-                    FileShare.None,
-                    bufferSize: 81920,
-                    useAsync: true);
+                /*
+                 * Otra tarea pudo haber terminado de guardar la misma imagen
+                 * mientras esta esperaba el bloqueo.
+                 */
+                if (ArchivoValido(destinationFullPath))
+                    return;
 
-                await source.CopyToAsync(
-                    output,
-                    cancellationToken);
+                string? directory =
+                    Path.GetDirectoryName(destinationFullPath);
 
-                await output.FlushAsync(cancellationToken);
+                if (!string.IsNullOrWhiteSpace(directory))
+                    Directory.CreateDirectory(directory);
+
+                temporary =
+                    destinationFullPath +
+                    $".{Guid.NewGuid():N}.tmp";
+
+                /*
+                 * IMPORTANTE EN WINDOWS:
+                 *
+                 * El FileStream debe estar completamente cerrado ANTES de
+                 * ejecutar File.Move. Un "await using FileStream output = ..."
+                 * declarado directamente dentro del try mantiene abierto el
+                 * archivo hasta terminar todo el bloque, por lo que Windows
+                 * rechaza el Move indicando que el archivo está siendo usado.
+                 */
+                await using (
+                    FileStream output = new(
+                        temporary,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None,
+                        bufferSize: 81920,
+                        useAsync: true))
+                {
+                    await source.CopyToAsync(
+                        output,
+                        cancellationToken);
+
+                    await output.FlushAsync(cancellationToken);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 File.Move(
                     temporary,
-                    destination,
+                    destinationFullPath,
                     overwrite: true);
+
+                temporary = null;
             }
             finally
             {
-                if (File.Exists(temporary))
+                if (!string.IsNullOrWhiteSpace(temporary) &&
+                    File.Exists(temporary))
                 {
                     try
                     {
@@ -134,6 +235,21 @@ namespace CONATRADEC.Services
                     catch
                     {
                     }
+                }
+
+                bloqueo.Release();
+
+                /*
+                 * Se elimina el semáforo únicamente cuando no hay otra tarea
+                 * dentro del bloqueo. TryRemove no afecta a tareas que ya
+                 * conservaron la referencia local al mismo SemaphoreSlim.
+                 */
+                if (bloqueo.CurrentCount == 1)
+                {
+                    BloqueosEscritura.TryRemove(
+                        new KeyValuePair<string, SemaphoreSlim>(
+                            destinationFullPath,
+                            bloqueo));
                 }
             }
         }
@@ -309,6 +425,83 @@ namespace CONATRADEC.Services
                 RootDirectory,
                 tipo,
                 filename);
+        }
+
+        /// <summary>
+        /// Convierte una URL de /imagenes/miniatura en la URL del archivo
+        /// original utilizando el parámetro "ruta". No realiza peticiones
+        /// de red.
+        /// </summary>
+        private static string? IntentarObtenerOriginalDesdeMiniatura(
+            string miniaturaUrl)
+        {
+            if (!Uri.TryCreate(
+                    miniaturaUrl,
+                    UriKind.Absolute,
+                    out Uri? uri))
+            {
+                return null;
+            }
+
+            if (!uri.AbsolutePath.StartsWith(
+                    "/imagenes/miniatura",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            string query = uri.Query.TrimStart('?');
+
+            foreach (string part in query.Split(
+                         '&',
+                         StringSplitOptions.RemoveEmptyEntries))
+            {
+                string[] pair = part.Split('=', 2);
+
+                if (pair.Length != 2 ||
+                    !string.Equals(
+                        pair[0],
+                        "ruta",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string ruta;
+
+                try
+                {
+                    ruta = Uri.UnescapeDataString(pair[1]);
+                }
+                catch
+                {
+                    return null;
+                }
+
+                if (string.IsNullOrWhiteSpace(ruta))
+                    return null;
+
+                if (Uri.TryCreate(
+                        ruta,
+                        UriKind.Absolute,
+                        out Uri? absolute))
+                {
+                    return absolute.ToString();
+                }
+
+                string rutaNormalizada =
+                    ruta.StartsWith('/')
+                        ? ruta
+                        : "/" + ruta;
+
+                return new Uri(
+                    new Uri(
+                        uri.GetLeftPart(UriPartial.Authority)),
+                    rutaNormalizada)
+                    .ToString();
+            }
+
+            return null;
         }
 
         private static string CalcularHash(string value)

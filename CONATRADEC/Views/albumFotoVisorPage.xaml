@@ -4,8 +4,13 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:converters="clr-namespace:CONATRADEC.Converters"
     Shell.NavBarIsVisible="False"
     BackgroundColor="#090B0A">
+
+    <ContentPage.Resources>
+        <converters:AlbumImageSourceConverter x:Key="AlbumImageSourceConverter" />
+    </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto,*,Auto">
 
@@ -84,7 +89,7 @@
                                 miniatura descargada como respaldo.
                             -->
                             <controls:ZoomableAlbumImage
-                                Source="{Binding FotoVisorUrl}" />
+                                Source="{Binding FotoVisorUrl, Converter={StaticResource AlbumImageSourceConverter}}" />
 
                             <Border
                                 Margin="12"

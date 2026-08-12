@@ -50,6 +50,15 @@ namespace CONATRADEC.Services
 
         private SincronizacionOfflineGlobalEstado estado = new();
 
+        /*
+         * Esta bandera existe únicamente en memoria. Si la aplicación se
+         * cierra, vuelve a false automáticamente porque el proceso desaparece.
+         * De esta forma podemos distinguir una descarga realmente viva de un
+         * estado SINCRONIZANDO que quedó persistido por una ejecución anterior.
+         */
+        private bool descargaActivaEnProceso;
+        private string usuarioDescargaActiva = string.Empty;
+
         public static SincronizacionOfflineGlobalService Instance =>
             lazy.Value;
 
@@ -166,6 +175,10 @@ namespace CONATRADEC.Services
                     "Ya existe una descarga completa en curso.",
                     conservaCopiaAnterior: estado.PreparacionCompleta);
             }
+
+            string usuarioActual = ObtenerUsuarioId();
+            descargaActivaEnProceso = true;
+            usuarioDescargaActiva = usuarioActual;
 
             SincronizacionOfflineGlobalEstado anterior =
                 CargarEstado();
@@ -484,6 +497,8 @@ namespace CONATRADEC.Services
             }
             finally
             {
+                descargaActivaEnProceso = false;
+                usuarioDescargaActiva = string.Empty;
                 syncLock.Release();
             }
         }
@@ -931,16 +946,86 @@ namespace CONATRADEC.Services
 
             try
             {
-                return JsonSerializer.Deserialize<
-                           SincronizacionOfflineGlobalEstado>(
-                           json,
-                           jsonOptions)
-                       ?? new SincronizacionOfflineGlobalEstado();
+                SincronizacionOfflineGlobalEstado cargado =
+                    JsonSerializer.Deserialize<
+                        SincronizacionOfflineGlobalEstado>(
+                        json,
+                        jsonOptions)
+                    ?? new SincronizacionOfflineGlobalEstado();
+
+                if (!cargado.SincronizacionEnCurso ||
+                    EsDescargaActivaEnProceso(usuarioId))
+                {
+                    return cargado;
+                }
+
+                /*
+                 * SINCRONIZANDO solo es válido mientras existe una tarea real
+                 * en memoria para este mismo usuario. Después de cerrar la app
+                 * esa tarea desaparece, aunque Preferences conserve el último
+                 * porcentaje. En ese caso se convierte automáticamente a error
+                 * recuperable y se habilita nuevamente Descargar todo.
+                 */
+                SincronizacionOfflineGlobalEstado recuperado =
+                    CopiarEstado(
+                        cargado,
+                        estado: SincronizacionOfflineGlobalEstados.Error,
+                        mensaje: cargado.PreparacionCompleta
+                            ? "Actualización anterior interrumpida"
+                            : "Descarga anterior interrumpida",
+                        detalle: cargado.PreparacionCompleta
+                            ? "La actualización anterior no terminó. La copia offline completa anterior continúa disponible. Puede usar Actualizar todo para intentarlo nuevamente."
+                            : "La descarga anterior no terminó. Use Descargar todo para iniciar una preparación nueva.",
+                        progreso: 0,
+                        pasoActual: 0,
+                        ultimaVerificacionUtc: DateTime.UtcNow,
+                        motorCalculo: RecuperarModuloInterrumpido(
+                            cargado.MotorCalculo),
+                        catalogos: RecuperarModuloInterrumpido(
+                            cargado.Catalogos),
+                        analisis: RecuperarModuloInterrumpido(
+                            cargado.Analisis),
+                        noticias: RecuperarModuloInterrumpido(
+                            cargado.Noticias),
+                        album: RecuperarModuloInterrumpido(
+                            cargado.Album));
+
+                Preferences.Set(
+                    ConstruirClaveEstado(usuarioId),
+                    JsonSerializer.Serialize(
+                        recuperado,
+                        jsonOptions));
+
+                return recuperado;
             }
             catch
             {
                 return new SincronizacionOfflineGlobalEstado();
             }
+        }
+
+        private bool EsDescargaActivaEnProceso(
+            string usuarioId) =>
+            descargaActivaEnProceso &&
+            string.Equals(
+                usuarioDescargaActiva,
+                usuarioId,
+                StringComparison.Ordinal);
+
+        private static ModuloOfflineResumen RecuperarModuloInterrumpido(
+            ModuloOfflineResumen modulo)
+        {
+            if (modulo.Estado != ModuloOfflineEstados.Sincronizando)
+                return modulo;
+
+            return new ModuloOfflineResumen
+            {
+                Nombre = modulo.Nombre,
+                Estado = ModuloOfflineEstados.Error,
+                Mensaje = "La descarga fue interrumpida. Inicie nuevamente la preparación.",
+                Registros = modulo.Registros,
+                Imagenes = modulo.Imagenes
+            };
         }
 
         private static string ObtenerUsuarioId()

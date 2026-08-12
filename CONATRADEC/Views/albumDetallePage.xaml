@@ -4,8 +4,13 @@
     x:Name="DetallePageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:CONATRADEC.Converters"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
+
+    <ContentPage.Resources>
+        <converters:AlbumImageSourceConverter x:Key="AlbumImageSourceConverter" />
+    </ContentPage.Resources>
 
     <Grid>
         <!--
@@ -210,7 +215,7 @@
 
                         <Grid HeightRequest="{OnIdiom Phone=158, Tablet=190, Desktop=215}">
                             <Image
-                                Source="{Binding FotoUrl}"
+                                Source="{Binding FotoUrl, Converter={StaticResource AlbumImageSourceConverter}}"
                                 Aspect="AspectFill" />
 
                             <BoxView

@@ -4,8 +4,17 @@
     x:Name="AlbumPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:CONATRADEC.Converters"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
+
+    <ContentPage.Resources>
+        <!--
+            En Windows convierte únicamente las rutas físicas del álbum en
+            StreamImageSource. Android y las URL remotas conservan su flujo.
+        -->
+        <converters:AlbumImageSourceConverter x:Key="AlbumImageSourceConverter" />
+    </ContentPage.Resources>
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid RowDefinitions="Auto,*">
@@ -299,7 +308,7 @@
                                 <Grid RowDefinitions="{OnIdiom Phone='220,Auto', Tablet='190,Auto', Desktop='180,Auto'}">
                                     <Grid BackgroundColor="#EEF5F2">
                                         <Image
-                                            Source="{Binding FotoPortadaUrl}"
+                                            Source="{Binding FotoPortadaUrl, Converter={StaticResource AlbumImageSourceConverter}}"
                                             Aspect="AspectFill"
                                             IsVisible="{Binding TieneFoto}" />
                                         <Grid

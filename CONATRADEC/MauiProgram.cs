@@ -33,10 +33,63 @@ namespace CONATRADEC
         private static extern bool ShowWindow(
             IntPtr hWnd,
             int nCmdShow);
+
+        /// <summary>
+        /// WebView2 crea por defecto su carpeta de datos junto al ejecutable
+        /// en aplicaciones Windows no empaquetadas. Cuando el programa se
+        /// instala en una carpeta protegida, esa ubicación puede no permitir
+        /// escritura y la creación del WebView puede fallar.
+        ///
+        /// Se fuerza una carpeta por usuario dentro de LocalAppData antes de
+        /// que MAUI cree cualquier WebView. El cambio aplica solamente a
+        /// Windows y conserva intacto el comportamiento de Android.
+        /// </summary>
+        private static void ConfigurarDatosWebView2()
+        {
+            try
+            {
+                string localAppData =
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.LocalApplicationData);
+
+                if (string.IsNullOrWhiteSpace(localAppData))
+                    return;
+
+                string userDataFolder =
+                    Path.Combine(
+                        localAppData,
+                        "CONATRADEC",
+                        "WebView2");
+
+                Directory.CreateDirectory(userDataFolder);
+
+                Environment.SetEnvironmentVariable(
+                    "WEBVIEW2_USER_DATA_FOLDER",
+                    userDataFolder,
+                    EnvironmentVariableTarget.Process);
+            }
+            catch (Exception ex)
+            {
+                /*
+                 * La configuración de WebView2 no debe impedir el arranque.
+                 * Se registra para diagnóstico si Windows rechazara la ruta.
+                 */
+                Debug.WriteLine(
+                    "No fue posible configurar la carpeta de datos " +
+                    $"de WebView2: {ex}");
+            }
+        }
 #endif
 
         public static MauiApp CreateMauiApp()
         {
+#if WINDOWS
+            /*
+             * Debe ejecutarse antes de crear handlers o controles WebView.
+             */
+            ConfigurarDatosWebView2();
+#endif
+
             var builder = MauiApp.CreateBuilder();
 
             builder
@@ -73,6 +126,14 @@ namespace CONATRADEC
             LoginPhoneViewportMapper.Register();
             NuevoAnalisisInfoResponsiveMapper.Register();
             DecimalAnalysisEntryMapper.Register();
+
+            /*
+             * Windows: las rutas absolutas guardadas en AppDataDirectory
+             * se abren mediante StreamImageSource. Esto evita que WinUI
+             * las trate como recursos incluidos dentro del instalable.
+             * En Android el registro no realiza ninguna modificación.
+             */
+            WindowsLocalImageMapper.Register();
 
             /*
              * Selector global En línea / Sin conexión
