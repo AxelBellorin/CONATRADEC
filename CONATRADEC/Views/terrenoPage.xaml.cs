@@ -11,6 +11,8 @@ namespace CONATRADEC.Views
         private bool accionesCompactas;
         private bool navegandoAConfiguracion;
 
+        private Button? cargarMasRespaldoButton;
+
         public terrenoPage()
         {
             /*
@@ -29,6 +31,28 @@ namespace CONATRADEC.Views
             InitializeComponent();
 
             BindingContext = viewModel;
+
+            /*
+             * Respaldo de carga incremental.
+             *
+             * RemainingItemsThreshold permanece activo desde el XAML, pero
+             * WinUI puede reportar los índices visibles de forma diferente
+             * cuando el CollectionView usa GridItemsLayout con 2 o 3 columnas.
+             * Escuchamos Scrolled y calculamos el umbral tanto como índice de
+             * elementos como índice aproximado de filas para que la siguiente
+             * página se solicite de forma confiable en Windows, tablet y móvil.
+             */
+            TerrenosCollectionView.Scrolled +=
+                TerrenosCollectionView_Scrolled;
+
+            /*
+             * En grillas de varias columnas WinUI puede disparar tarde el
+             * RemainingItemsThreshold. Un margen mayor permite solicitar la
+             * siguiente página antes de que el usuario llegue al último card.
+             */
+            TerrenosCollectionView.RemainingItemsThreshold = 10;
+
+            ConfigurarBotonCargaManual();
 
             Shell.Current.FlyoutBehavior =
                 FlyoutBehavior.Disabled;
@@ -73,6 +97,147 @@ namespace CONATRADEC.Views
             base.OnSizeAllocated(width, height);
 
             AjustarAccionesBusqueda(width);
+        }
+
+        private void TerrenosCollectionView_Scrolled(
+            object? sender,
+            ItemsViewScrolledEventArgs e)
+        {
+            if (!viewModel.CanView ||
+                viewModel.CargandoMas ||
+                !viewModel.PuedeCargarMas ||
+                viewModel.List.Count == 0 ||
+                e.LastVisibleItemIndex < 0)
+            {
+                return;
+            }
+
+            /*
+             * Solo se precarga mientras el usuario baja. Esto evita solicitudes
+             * innecesarias durante reajustes de tamaño o al desplazarse hacia
+             * arriba.
+             */
+            if (e.VerticalDelta <= 0)
+                return;
+
+            int span = ObtenerSpanTerrenos();
+            int totalElementos = viewModel.List.Count;
+
+            /*
+             * En WinUI, LastVisibleItemIndex puede comportarse de forma
+             * diferente cuando GridItemsLayout utiliza dos o tres columnas.
+             * Por eso se evalúa tanto como índice de elemento como índice
+             * aproximado de fila, usando un margen amplio de diez filas.
+             */
+            int margenElementos =
+                Math.Max(
+                    12,
+                    span * 10);
+
+            int umbralComoElementos =
+                Math.Max(
+                    0,
+                    totalElementos - margenElementos);
+
+            int totalFilas =
+                (int)Math.Ceiling(
+                    totalElementos / (double)span);
+
+            int umbralComoFilas =
+                Math.Max(
+                    0,
+                    totalFilas - 10);
+
+            bool cercaDelFinal =
+                e.LastVisibleItemIndex >= umbralComoElementos ||
+                e.LastVisibleItemIndex >= umbralComoFilas;
+
+            if (!cercaDelFinal)
+                return;
+
+            EjecutarCargaMasSiDisponible();
+        }
+
+        private int ObtenerSpanTerrenos()
+        {
+            if (TerrenosCollectionView?.ItemsLayout is
+                GridItemsLayout gridLayout &&
+                gridLayout.Span > 0)
+            {
+                return gridLayout.Span;
+            }
+
+            /*
+             * Respaldo por ancho para los casos en que WinUI todavía no haya
+             * terminado de aplicar el ResponsiveGridItemsLayoutBehavior.
+             */
+            double width =
+                TerrenosCollectionView?.Width ?? 0;
+
+            if (width >= 1380)
+                return 3;
+
+            if (width >= 760)
+                return 2;
+
+            return 1;
+        }
+
+        private void EjecutarCargaMasSiDisponible()
+        {
+            if (!viewModel.CanView ||
+                viewModel.CargandoMas ||
+                !viewModel.PuedeCargarMas)
+            {
+                return;
+            }
+
+            if (viewModel.CargarMasCommand.CanExecute(null))
+                viewModel.CargarMasCommand.Execute(null);
+        }
+
+        /// <summary>
+        /// Agrega un respaldo manual en el footer del CollectionView.
+        /// Si WinUI no vuelve a disparar correctamente el evento de scroll,
+        /// el usuario siempre puede solicitar la siguiente página sin perder
+        /// filtros, ordenamiento ni posición actual.
+        /// </summary>
+        private void ConfigurarBotonCargaManual()
+        {
+            if (cargarMasRespaldoButton != null ||
+                TerrenosCollectionView?.Footer is not
+                    VerticalStackLayout footer)
+            {
+                return;
+            }
+
+            cargarMasRespaldoButton =
+                new Button
+                {
+                    Text = "Cargar más terrenos",
+                    FontFamily = "MontserratBold",
+                    FontSize = 12,
+                    HeightRequest = 46,
+                    MinimumWidthRequest = 190,
+                    Padding = new Thickness(18, 8),
+                    CornerRadius = 12,
+                    HorizontalOptions = LayoutOptions.Center,
+                    BackgroundColor =
+                        Color.FromArgb("#3B655B"),
+                    TextColor = Colors.White
+                };
+
+            cargarMasRespaldoButton.SetBinding(
+                IsVisibleProperty,
+                nameof(TerrenoViewModel.PuedeCargarMas));
+
+            cargarMasRespaldoButton.SetBinding(
+                Button.CommandProperty,
+                nameof(TerrenoViewModel.CargarMasCommand));
+
+            footer.Children.Insert(
+                0,
+                cargarMasRespaldoButton);
         }
 
         private async Task RegresarConfiguracionAsync()

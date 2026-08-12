@@ -16,9 +16,16 @@ namespace CONATRADEC.Services
             if (ModoSesionService.EsEnLinea)
             {
                 request.Headers.Remove(HeaderBypass);
+
+                /*
+                 * CatalogosLocalHttpHandler reconoce explícitamente el valor
+                 * "true" para permitir que la solicitud continúe al backend.
+                 * De esta forma una sesión ONLINE no queda atendida por una
+                 * copia antigua del paquete SQLite.
+                 */
                 request.Headers.TryAddWithoutValidation(
                     HeaderBypass,
-                    "1");
+                    "true");
             }
             else
             {

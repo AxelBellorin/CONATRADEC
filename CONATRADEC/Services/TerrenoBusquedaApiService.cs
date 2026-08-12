@@ -1,5 +1,4 @@
 using CONATRADEC.Models;
-using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Net;
@@ -31,8 +30,12 @@ namespace CONATRADEC.Services
         /// <summary>
         /// Mantiene compatibilidad con las pantallas existentes, como
         /// NuevoAnalisisFormViewModel, que utilizan la búsqueda simplificada.
-        /// Internamente aprovecha el nuevo endpoint paginado y los mismos
-        /// controles de cancelación de la búsqueda avanzada.
+        ///
+        /// Esta variante recupera todas las páginas que coinciden con los filtros
+        /// para que el selector de terrenos no quede limitado a la primera página.
+        /// La consulta solo se ejecuta cuando la pantalla solicita explícitamente
+        /// una búsqueda, por lo que no se cargan todos los terrenos al abrir el
+        /// formulario de análisis.
         /// </summary>
         public async Task<ObservableCollection<TerrenoResponse>> BuscarTerrenosAsync(
             string? texto,
@@ -43,41 +46,77 @@ namespace CONATRADEC.Services
             int pageSize = 50,
             CancellationToken cancellationToken = default)
         {
-            int limiteDispositivo =
-                DeviceInfo.Current.Platform == DevicePlatform.WinUI
-                    ? 50
-                    : 24;
+            int paginaActual = Math.Max(1, page);
 
-            int tamanoPagina = Math.Clamp(
-                pageSize,
-                1,
-                limiteDispositivo);
+            /*
+             * El endpoint admite hasta 100 registros por página. Utilizar el
+             * máximo reduce la cantidad de viajes HTTP cuando el usuario desea
+             * consultar todos los terrenos activos desde Nuevo Análisis.
+             */
+            const int tamanoPaginaConsulta = 100;
 
-            ApiResult<TerrenoBusquedaPaginadaResponse> resultado =
-                await BuscarAsync(
-                    texto: texto,
-                    codigoTerreno: null,
-                    nombrePropietario: null,
-                    identificacionPropietario: null,
-                    direccion: null,
-                    paisId: paisId,
-                    departamentoId: departamentoId,
-                    municipioId: municipioId,
-                    fechaDesde: null,
-                    fechaHasta: null,
-                    extensionMinima: null,
-                    extensionMaxima: null,
-                    ordenarPor: "codigo",
-                    descendente: false,
-                    page: Math.Max(1, page),
-                    pageSize: tamanoPagina,
-                    cancellationToken: cancellationToken);
+            var terrenosAcumulados = new List<TerrenoResponse>();
+            var idsAgregados = new HashSet<int>();
 
-            if (!resultado.Success || resultado.Data?.Data == null)
-                return new ObservableCollection<TerrenoResponse>();
+            int totalPaginas = paginaActual;
+
+            do
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                ApiResult<TerrenoBusquedaPaginadaResponse> resultado =
+                    await BuscarAsync(
+                        texto: texto,
+                        codigoTerreno: null,
+                        nombrePropietario: null,
+                        identificacionPropietario: null,
+                        direccion: null,
+                        paisId: paisId,
+                        departamentoId: departamentoId,
+                        municipioId: municipioId,
+                        fechaDesde: null,
+                        fechaHasta: null,
+                        extensionMinima: null,
+                        extensionMaxima: null,
+                        ordenarPor: "codigo",
+                        descendente: false,
+                        page: paginaActual,
+                        pageSize: tamanoPaginaConsulta,
+                        cancellationToken: cancellationToken);
+
+                if (!resultado.Success || resultado.Data?.Data == null)
+                {
+                    string mensaje = string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "No fue posible consultar los terrenos."
+                        : resultado.Message;
+
+                    throw new InvalidOperationException(mensaje);
+                }
+
+                foreach (TerrenoResponse terreno in resultado.Data.Data)
+                {
+                    if (terreno == null)
+                        continue;
+
+                    if (terreno.TerrenoId is int terrenoId && terrenoId > 0)
+                    {
+                        if (!idsAgregados.Add(terrenoId))
+                            continue;
+                    }
+
+                    terrenosAcumulados.Add(terreno);
+                }
+
+                totalPaginas = Math.Max(
+                    paginaActual,
+                    Math.Max(1, resultado.Data.TotalPages));
+
+                paginaActual++;
+            }
+            while (paginaActual <= totalPaginas);
 
             return new ObservableCollection<TerrenoResponse>(
-                resultado.Data.Data);
+                terrenosAcumulados);
         }
 
         public async Task<ApiResult<TerrenoBusquedaPaginadaResponse>> BuscarAsync(
