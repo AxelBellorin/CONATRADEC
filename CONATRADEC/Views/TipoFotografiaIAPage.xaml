@@ -4,7 +4,6 @@
     x:Name="PageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     BackgroundColor="#F7F8F7">
@@ -18,22 +17,69 @@
                 SelectionMode="None">
 
                 <!--
-                    Encabezado, búsqueda, filtro y mensaje se desplazan con el
-                    catálogo sin reparentado dinámico.
+                    Encabezado estático: no cambia filas ni columnas en tiempo
+                    de ejecución. Esto evita superposición dentro del Header
+                    del CollectionView en Android.
                 -->
                 <CollectionView.Header>
                     <VerticalStackLayout
                         Spacing="14"
                         Padding="0,0,0,14">
 
-                        <controls:ResponsiveCatalogHeader
-                            Title="Tipos de fotografía para IA"
-                            Subtitle="Administre el nombre, orden y la instrucción que orienta el análisis visual de cada evidencia."
-                            BackText="← Configuración de IA"
-                            BackCommand="{Binding RegresarCommand}"
-                            PrimaryText="Nuevo tipo"
-                            PrimaryCommand="{Binding NuevoCommand}"
-                            IsPrimaryVisible="{Binding CanAdd}" />
+                        <Border
+                            Style="{StaticResource ModernHeroCard}"
+                            Padding="{OnIdiom Phone='12,12', Tablet='18,16', Desktop='22,20'}">
+                            <Grid
+                                RowDefinitions="Auto,Auto"
+                                ColumnDefinitions="Auto,*,Auto"
+                                RowSpacing="10"
+                                ColumnSpacing="10">
+
+                                <Button
+                                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                    Grid.Column="0"
+                                    Text="← Configuración de IA"
+                                    Command="{Binding RegresarCommand}"
+                                    Style="{StaticResource ModernNeutralButton}"
+                                    FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12.5}"
+                                    HeightRequest="{OnIdiom Phone=40, Tablet=44, Desktop=44}"
+                                    MinimumWidthRequest="0"
+                                    Padding="{OnIdiom Phone='8,7', Tablet='12,8', Desktop='12,8'}"
+                                    VerticalOptions="Center" />
+
+                                <VerticalStackLayout
+                                    Grid.Row="0"
+                                    Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                    Grid.ColumnSpan="{OnIdiom Phone=3, Tablet=1, Desktop=1}"
+                                    Spacing="4"
+                                    VerticalOptions="Center">
+
+                                    <Label
+                                        Text="Tipos de fotografía para IA"
+                                        Style="{StaticResource ModernPageTitle}"
+                                        FontSize="{OnIdiom Phone=24, Tablet=28, Desktop=30}"
+                                        LineBreakMode="WordWrap" />
+
+                                    <Label
+                                        Text="Administre el nombre, orden y la instrucción que orienta el análisis visual de cada evidencia."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        MaxLines="{OnIdiom Phone=3, Tablet=2, Desktop=2}" />
+                                </VerticalStackLayout>
+
+                                <Button
+                                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                    Grid.Column="2"
+                                    Text="Nuevo tipo"
+                                    Command="{Binding NuevoCommand}"
+                                    IsVisible="{Binding CanAdd}"
+                                    Style="{StaticResource ModernPrimaryButton}"
+                                    FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12.5}"
+                                    HeightRequest="{OnIdiom Phone=40, Tablet=44, Desktop=44}"
+                                    MinimumWidthRequest="0"
+                                    Padding="{OnIdiom Phone='10,7', Tablet='14,8', Desktop='14,8'}"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
 
                         <Border
                             Padding="12"
@@ -41,16 +87,22 @@
                             Stroke="#D9E3DF"
                             StrokeShape="RoundRectangle 13">
                             <Grid
-                                ColumnDefinitions="*,Auto,Auto"
-                                ColumnSpacing="10">
+                                RowDefinitions="{OnIdiom Phone='Auto,Auto,Auto', Tablet='Auto', Desktop='Auto'}"
+                                ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,Auto,Auto', Desktop='*,Auto,Auto'}"
+                                ColumnSpacing="10"
+                                RowSpacing="8">
+
                                 <SearchBar
+                                    Grid.Row="0"
                                     Grid.Column="0"
                                     Placeholder="Buscar por código, nombre o instrucción"
                                     Text="{Binding TextoBusqueda}"
                                     SearchCommand="{Binding BuscarCommand}"
                                     BackgroundColor="Transparent" />
+
                                 <HorizontalStackLayout
-                                    Grid.Column="1"
+                                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                    Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                                     Spacing="5"
                                     VerticalOptions="Center">
                                     <CheckBox
@@ -61,11 +113,14 @@
                                         VerticalTextAlignment="Center"
                                         TextColor="#263A35" />
                                 </HorizontalStackLayout>
+
                                 <Button
-                                    Grid.Column="2"
+                                    Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
+                                    Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
                                     Text="Actualizar"
                                     Command="{Binding ActualizarCommand}"
-                                    WidthRequest="150"
+                                    WidthRequest="{OnIdiom Phone=-1, Tablet=150, Desktop=150}"
+                                    HorizontalOptions="{OnIdiom Phone=Fill, Tablet=End, Desktop=End}"
                                     HeightRequest="46"
                                     BackgroundColor="#E3EFEA"
                                     TextColor="#3B655B" />

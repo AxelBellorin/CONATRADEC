@@ -9,7 +9,7 @@
   <Identity
     Name="maui-package-name-placeholder"
     Publisher="CN=AXEL BELLORIN"
-    Version="1.0.10.0" />
+    Version="1.0.11.0" />
 
   <mp:PhoneIdentity
     PhoneProductId="AAED2C63-5D3C-4C80-8260-F2BDA5DD7F1E"

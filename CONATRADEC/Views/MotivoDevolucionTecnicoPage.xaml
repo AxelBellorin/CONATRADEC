@@ -4,7 +4,6 @@
     x:Name="PaginaRaiz"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:controls="clr-namespace:CONATRADEC.Controls"
     xmlns:models="clr-namespace:CONATRADEC.Models"
     Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
@@ -20,14 +19,64 @@
                         Padding="{OnIdiom Phone='12,12,12,10', Tablet='18,16,18,12', Desktop='24,20,24,14'}"
                         Spacing="12">
 
-                        <controls:ResponsiveCatalogHeader
-                            Title="Motivos de devolución al técnico"
-                            Subtitle="Administre las causas e instrucciones utilizadas por el analizador para solicitar correcciones de evidencia."
-                            BackText="← Configuración"
-                            BackCommand="{Binding RegresarCommand}"
-                            PrimaryText="+ Nuevo motivo"
-                            PrimaryCommand="{Binding NuevoCommand}"
-                            IsPrimaryVisible="{Binding CanAdd}" />
+                        <!--
+                            Encabezado estático: no cambia filas ni columnas en
+                            tiempo de ejecución y evita superposición en Android.
+                        -->
+                        <Border
+                            Style="{StaticResource ModernHeroCard}"
+                            Padding="{OnIdiom Phone='12,12', Tablet='18,16', Desktop='22,20'}">
+                            <Grid
+                                RowDefinitions="Auto,Auto"
+                                ColumnDefinitions="Auto,*,Auto"
+                                RowSpacing="10"
+                                ColumnSpacing="10">
+
+                                <Button
+                                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                    Grid.Column="0"
+                                    Text="← Configuración"
+                                    Command="{Binding RegresarCommand}"
+                                    Style="{StaticResource ModernNeutralButton}"
+                                    FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12.5}"
+                                    HeightRequest="{OnIdiom Phone=40, Tablet=44, Desktop=44}"
+                                    MinimumWidthRequest="0"
+                                    Padding="{OnIdiom Phone='8,7', Tablet='12,8', Desktop='12,8'}"
+                                    VerticalOptions="Center" />
+
+                                <VerticalStackLayout
+                                    Grid.Row="0"
+                                    Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                    Grid.ColumnSpan="{OnIdiom Phone=3, Tablet=1, Desktop=1}"
+                                    Spacing="4"
+                                    VerticalOptions="Center">
+
+                                    <Label
+                                        Text="Motivos de devolución al técnico"
+                                        Style="{StaticResource ModernPageTitle}"
+                                        FontSize="{OnIdiom Phone=24, Tablet=28, Desktop=30}"
+                                        LineBreakMode="WordWrap" />
+
+                                    <Label
+                                        Text="Administre las causas e instrucciones utilizadas por el analizador para solicitar correcciones de evidencia."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        MaxLines="{OnIdiom Phone=3, Tablet=2, Desktop=2}" />
+                                </VerticalStackLayout>
+
+                                <Button
+                                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                    Grid.Column="2"
+                                    Text="+ Nuevo motivo"
+                                    Command="{Binding NuevoCommand}"
+                                    IsVisible="{Binding CanAdd}"
+                                    Style="{StaticResource ModernPrimaryButton}"
+                                    FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12.5}"
+                                    HeightRequest="{OnIdiom Phone=40, Tablet=44, Desktop=44}"
+                                    MinimumWidthRequest="0"
+                                    Padding="{OnIdiom Phone='10,7', Tablet='14,8', Desktop='14,8'}"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
 
                         <Border Style="{StaticResource ModernFormCard}">
                             <VerticalStackLayout Spacing="11">

@@ -65,6 +65,17 @@ namespace CONATRADEC.Views
                 TerrenosCollectionView.RemainingItemsThreshold = -1;
             }
 
+            /*
+             * El comportamiento responsive conserva las columnas normales.
+             * Este ajuste adicional solo fuerza una columna mientras no haya
+             * registros, permitiendo que EmptyView use todo el ancho.
+             */
+            viewModel.List.CollectionChanged +=
+                (_, _) => AjustarSpanTerrenos();
+
+            TerrenosCollectionView.SizeChanged +=
+                (_, _) => AjustarSpanTerrenos();
+
             ConfigurarBotonCargaManual();
 
             Shell.Current.FlyoutBehavior =
@@ -92,6 +103,7 @@ namespace CONATRADEC.Views
                 return;
 
             AjustarAccionesBusqueda(Width);
+            AjustarSpanTerrenos();
 
             await viewModel.InicializarAsync();
         }
@@ -110,6 +122,7 @@ namespace CONATRADEC.Views
             base.OnSizeAllocated(width, height);
 
             AjustarAccionesBusqueda(width);
+            AjustarSpanTerrenos();
         }
 
         private void TerrenosCollectionView_Scrolled(
@@ -194,6 +207,40 @@ namespace CONATRADEC.Views
                 return 2;
 
             return 1;
+        }
+
+        /// <summary>
+        /// Mantiene una sola columna mientras no existen terrenos para que
+        /// EmptyView ocupe el ancho completo. Cuando hay datos se conserva
+        /// exactamente la misma distribución de 1, 2 o 3 columnas.
+        /// </summary>
+        private void AjustarSpanTerrenos()
+        {
+            if (TerrenosCollectionView?.ItemsLayout is not
+                GridItemsLayout gridLayout)
+            {
+                return;
+            }
+
+            double width =
+                TerrenosCollectionView.Width > 0
+                    ? TerrenosCollectionView.Width
+                    : Width;
+
+            if (width <= 0)
+                return;
+
+            int span =
+                viewModel.List.Count == 0
+                    ? 1
+                    : width >= 1380
+                        ? 3
+                        : width >= 760
+                            ? 2
+                            : 1;
+
+            if (gridLayout.Span != span)
+                gridLayout.Span = span;
         }
 
         private void EjecutarCargaMasSiDisponible()

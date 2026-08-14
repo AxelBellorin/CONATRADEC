@@ -58,157 +58,161 @@
                 </Border>
             </Grid>
 
-            <!--
-                Un solo desplazamiento vertical:
-                encabezado, selector, búsqueda y acciones masivas forman
-                parte del Header del CollectionView. Las acciones de guardar
-                y revertir permanecen fijas en la parte inferior.
-            -->
+            <!-- Contenido principal sin ScrollView exterior -->
             <Grid
                 IsVisible="{Binding CanView}"
                 Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-                RowDefinitions="*,Auto"
+                RowDefinitions="Auto,*,Auto"
                 RowSpacing="12">
 
-                <!-- Lista virtualizada con encabezado desplazable -->
-                <CollectionView
+                <!--
+                    Panel superior desplazable y de altura limitada.
+                    Al reducir la ventana, este bloque cede espacio al
+                    listado de permisos, que es la sección prioritaria.
+                -->
+                <ScrollView
+                    x:Name="PanelSuperiorScroll"
                     Grid.Row="0"
+                    VerticalScrollBarVisibility="Always"
+                    HorizontalScrollBarVisibility="Never">
+
+                    <VerticalStackLayout Spacing="12">
+                        <controls:ResponsiveCatalogHeader
+                            Title="Matriz de permisos"
+                            Subtitle="Seleccione un rol y configure sus acciones por interfaz."
+                            BackText="← Configuración"
+                            BackCommand="{Binding RegresarConfiguracionCommand}"
+                            PrimaryText="Refrescar"
+                            PrimaryCommand="{Binding RefrescarCommand}"
+                            IsPrimaryVisible="True"
+                            PrimaryBackgroundColor="#EEF5F2"
+                            PrimaryTextColor="{StaticResource color_Verde}" />
+
+                        <!-- Selector y búsqueda -->
+                        <Border
+                            Padding="{OnIdiom Phone='11', Tablet='14,12', Desktop='16,14'}"
+                            BackgroundColor="White"
+                            Stroke="#DDE7E3"
+                            StrokeShape="RoundRectangle 16">
+
+                            <Grid
+                                RowDefinitions="Auto,Auto,Auto"
+                                RowSpacing="10">
+
+                                <Grid
+                                    ColumnDefinitions="Auto,*"
+                                    ColumnSpacing="12">
+
+                                    <Label
+                                        Text="Rol"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        VerticalOptions="Center"
+                                        TextColor="{StaticResource color_Negro}" />
+
+                                    <Picker
+                                        Grid.Column="1"
+                                        Title="Seleccione un rol"
+                                        ItemsSource="{Binding Roles}"
+                                        ItemDisplayBinding="{Binding NombreRol}"
+                                        SelectedItem="{Binding RolSeleccionado}"
+                                        BackgroundColor="#F8FAF9"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </Grid>
+
+                                <SearchBar
+                                    Grid.Row="1"
+                                    Placeholder="Buscar interfaz"
+                                    Text="{Binding Filtro}"
+                                    IsEnabled="{Binding NotIsBusy}"
+                                    BackgroundColor="#F8FAF9" />
+
+                                <!-- Acciones masivas: desplazamiento solo horizontal -->
+                                <ScrollView
+                                    Grid.Row="2"
+                                    Orientation="Horizontal"
+                                    HorizontalScrollBarVisibility="Default"
+                                    VerticalScrollBarVisibility="Never">
+
+                                    <HorizontalStackLayout Spacing="8">
+
+                                        <Button
+                                            Text="Marcar lectura"
+                                            Padding="12,8"
+                                            Command="{Binding MarcarColumnaCommand}"
+                                            CommandParameter="leer"
+                                            IsEnabled="{Binding PuedeEditar}"
+                                            BackgroundColor="#EEF5F2"
+                                            TextColor="{StaticResource color_Verde}"
+                                            CornerRadius="9" />
+
+                                        <Button
+                                            Text="Marcar agregar"
+                                            Padding="12,8"
+                                            Command="{Binding MarcarColumnaCommand}"
+                                            CommandParameter="agregar"
+                                            IsEnabled="{Binding PuedeEditar}"
+                                            BackgroundColor="#EAF7EF"
+                                            TextColor="{StaticResource color_Verde}"
+                                            CornerRadius="9" />
+
+                                        <Button
+                                            Text="Marcar actualizar"
+                                            Padding="12,8"
+                                            Command="{Binding MarcarColumnaCommand}"
+                                            CommandParameter="actualizar"
+                                            IsEnabled="{Binding PuedeEditar}"
+                                            BackgroundColor="#EEF4FF"
+                                            TextColor="{StaticResource BlueUpdate}"
+                                            CornerRadius="9" />
+
+                                        <Button
+                                            Text="Marcar eliminar"
+                                            Padding="12,8"
+                                            Command="{Binding MarcarColumnaCommand}"
+                                            CommandParameter="eliminar"
+                                            IsEnabled="{Binding PuedeEditar}"
+                                            BackgroundColor="#FDECEC"
+                                            TextColor="{StaticResource RedDelete}"
+                                            CornerRadius="9" />
+
+                                        <Button
+                                            Text="Limpiar todo"
+                                            Padding="12,8"
+                                            Command="{Binding LimpiarTodoCommand}"
+                                            IsEnabled="{Binding PuedeEditar}"
+                                            BackgroundColor="#F3F4F6"
+                                            TextColor="{StaticResource color_Negro}"
+                                            CornerRadius="9" />
+                                    </HorizontalStackLayout>
+                                </ScrollView>
+                            </Grid>
+                        </Border>
+
+                        <!-- Estado -->
+                        <Border
+                            Grid.Row="2"
+                            Padding="11"
+                            BackgroundColor="#FFF7E6"
+                            Stroke="#F2C94C"
+                            StrokeShape="RoundRectangle 11">
+
+                            <Label
+                                Text="{Binding Estado}"
+                                FontSize="12"
+                                TextColor="{StaticResource color_Negro}" />
+                        </Border>
+
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <!-- Lista virtualizada -->
+                <CollectionView
+                    Grid.Row="1"
                     x:Name="PermisosList"
                     ItemsSource="{Binding PermisosVisibles}"
                     SelectionMode="None"
                     ItemSizingStrategy="MeasureFirstItem">
-
-                    <CollectionView.Header>
-                        <VerticalStackLayout
-                            Spacing="12"
-                            Padding="0,0,0,12">
-
-                            <controls:ResponsiveCatalogHeader
-                                Title="Matriz de permisos"
-                                Subtitle="Seleccione un rol y configure sus acciones por interfaz."
-                                BackText="← Configuración"
-                                BackCommand="{Binding RegresarConfiguracionCommand}"
-                                PrimaryText="Refrescar"
-                                PrimaryCommand="{Binding RefrescarCommand}"
-                                IsPrimaryVisible="True"
-                                PrimaryBackgroundColor="#EEF5F2"
-                                PrimaryTextColor="{StaticResource color_Verde}" />
-
-                            <!-- Selector y búsqueda -->
-                            <Border
-                                Padding="{OnIdiom Phone='11', Tablet='14,12', Desktop='16,14'}"
-                                BackgroundColor="White"
-                                Stroke="#DDE7E3"
-                                StrokeShape="RoundRectangle 16">
-
-                                <Grid
-                                    RowDefinitions="Auto,Auto,Auto"
-                                    RowSpacing="10">
-
-                                    <Grid
-                                        ColumnDefinitions="Auto,*"
-                                        ColumnSpacing="12">
-
-                                        <Label
-                                            Text="Rol"
-                                            FontFamily="MontserratBold"
-                                            FontAttributes="Bold"
-                                            VerticalOptions="Center"
-                                            TextColor="{StaticResource color_Negro}" />
-
-                                        <Picker
-                                            Grid.Column="1"
-                                            Title="Seleccione un rol"
-                                            ItemsSource="{Binding Roles}"
-                                            ItemDisplayBinding="{Binding NombreRol}"
-                                            SelectedItem="{Binding RolSeleccionado}"
-                                            BackgroundColor="#F8FAF9"
-                                            TextColor="{StaticResource color_Negro}" />
-                                    </Grid>
-
-                                    <SearchBar
-                                        Grid.Row="1"
-                                        Placeholder="Buscar interfaz"
-                                        Text="{Binding Filtro}"
-                                        IsEnabled="{Binding NotIsBusy}"
-                                        BackgroundColor="#F8FAF9" />
-
-                                    <!-- Acciones masivas: desplazamiento exclusivamente horizontal -->
-                                    <ScrollView
-                                        Grid.Row="2"
-                                        Orientation="Horizontal"
-                                        HorizontalScrollBarVisibility="Default"
-                                        VerticalScrollBarVisibility="Never">
-
-                                        <HorizontalStackLayout Spacing="8">
-
-                                            <Button
-                                                Text="Marcar lectura"
-                                                Padding="12,8"
-                                                Command="{Binding MarcarColumnaCommand}"
-                                                CommandParameter="leer"
-                                                IsEnabled="{Binding PuedeEditar}"
-                                                BackgroundColor="#EEF5F2"
-                                                TextColor="{StaticResource color_Verde}"
-                                                CornerRadius="9" />
-
-                                            <Button
-                                                Text="Marcar agregar"
-                                                Padding="12,8"
-                                                Command="{Binding MarcarColumnaCommand}"
-                                                CommandParameter="agregar"
-                                                IsEnabled="{Binding PuedeEditar}"
-                                                BackgroundColor="#EAF7EF"
-                                                TextColor="{StaticResource color_Verde}"
-                                                CornerRadius="9" />
-
-                                            <Button
-                                                Text="Marcar actualizar"
-                                                Padding="12,8"
-                                                Command="{Binding MarcarColumnaCommand}"
-                                                CommandParameter="actualizar"
-                                                IsEnabled="{Binding PuedeEditar}"
-                                                BackgroundColor="#EEF4FF"
-                                                TextColor="{StaticResource BlueUpdate}"
-                                                CornerRadius="9" />
-
-                                            <Button
-                                                Text="Marcar eliminar"
-                                                Padding="12,8"
-                                                Command="{Binding MarcarColumnaCommand}"
-                                                CommandParameter="eliminar"
-                                                IsEnabled="{Binding PuedeEditar}"
-                                                BackgroundColor="#FDECEC"
-                                                TextColor="{StaticResource RedDelete}"
-                                                CornerRadius="9" />
-
-                                            <Button
-                                                Text="Limpiar todo"
-                                                Padding="12,8"
-                                                Command="{Binding LimpiarTodoCommand}"
-                                                IsEnabled="{Binding PuedeEditar}"
-                                                BackgroundColor="#F3F4F6"
-                                                TextColor="{StaticResource color_Negro}"
-                                                CornerRadius="9" />
-                                        </HorizontalStackLayout>
-                                    </ScrollView>
-                                </Grid>
-                            </Border>
-
-                            <!-- Estado -->
-                            <Border
-                                Padding="11"
-                                BackgroundColor="#FFF7E6"
-                                Stroke="#F2C94C"
-                                StrokeShape="RoundRectangle 11">
-
-                                <Label
-                                    Text="{Binding Estado}"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_Negro}" />
-                            </Border>
-                        </VerticalStackLayout>
-                    </CollectionView.Header>
 
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout
@@ -366,18 +370,12 @@
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
-
-                    <CollectionView.Footer>
-                        <BoxView
-                            HeightRequest="{OnIdiom Phone=10, Tablet=12, Desktop=14}"
-                            Opacity="0" />
-                    </CollectionView.Footer>
                 </CollectionView>
 
                 <!-- Acciones fijas -->
                 <Grid
                     x:Name="AccionesInferioresGrid"
-                    Grid.Row="1"
+                    Grid.Row="2"
                     ColumnDefinitions="Auto,*,Auto"
                     ColumnSpacing="12"
                     Padding="0,4">
@@ -411,7 +409,7 @@
 
                 <!-- Carga -->
                 <Grid
-                    Grid.RowSpan="2"
+                    Grid.RowSpan="3"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="False"
                     BackgroundColor="#50FFFFFF">

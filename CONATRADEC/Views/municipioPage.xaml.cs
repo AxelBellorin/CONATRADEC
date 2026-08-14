@@ -20,6 +20,14 @@ namespace CONATRADEC.Views
 
             Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
             BindingContext = viewModel;
+
+            /*
+             * El estado vacío debe utilizar todo el ancho disponible.
+             * Cuando aparecen registros se restaura automáticamente la
+             * cantidad de columnas correspondiente al ancho de pantalla.
+             */
+            viewModel.List.CollectionChanged +=
+                (_, _) => AjustarCantidadColumnas(Width);
         }
 
         public string TitlePage
@@ -94,15 +102,25 @@ namespace CONATRADEC.Views
             if (width <= 0 || MunicipiosGridLayout == null)
                 return;
 
+            /*
+             * Con la colección vacía se fuerza una sola columna para que el
+             * EmptyView ocupe todo el ancho en tablet y Windows. Al cargarse
+             * elementos se conserva exactamente el diseño responsivo previo.
+             */
             int nuevasColumnas =
-                width >= 1200
-                    ? 3
-                    : width >= 700
-                        ? 2
-                        : 1;
+                viewModel.List.Count == 0
+                    ? 1
+                    : width >= 1200
+                        ? 3
+                        : width >= 700
+                            ? 2
+                            : 1;
 
-            if (cantidadColumnasActual == nuevasColumnas)
+            if (cantidadColumnasActual == nuevasColumnas &&
+                MunicipiosGridLayout.Span == nuevasColumnas)
+            {
                 return;
+            }
 
             cantidadColumnasActual = nuevasColumnas;
             MunicipiosGridLayout.Span = nuevasColumnas;

@@ -1,10 +1,13 @@
 using CONATRADEC.ViewModels;
+using Microsoft.Maui.Devices;
 
 namespace CONATRADEC.Views
 {
     public partial class matrizPermisosPage : ContentPage
     {
         private readonly MatrizPermisosViewModel viewModel = new();
+
+        private bool anchoCompactoActual;
 
         public matrizPermisosPage()
         {
@@ -45,12 +48,11 @@ namespace CONATRADEC.Views
         }
 
         /// <summary>
-        /// La matriz utiliza un único desplazamiento vertical mediante
-        /// PermisosList. El encabezado, selector, buscador y acciones
-        /// masivas forman parte del Header del CollectionView.
+        /// La matriz prioriza el listado de permisos.
         ///
-        /// Aquí solo se ajustan las acciones inferiores para conservar
-        /// una presentación compacta en teléfono y ventanas estrechas.
+        /// En teléfono se limita más la altura del panel superior para
+        /// dejar mayor espacio visible al listado de permisos. Tablet y
+        /// escritorio conservan exactamente la distribución estable actual.
         /// </summary>
         private void AjustarDistribucion(
             double width,
@@ -58,29 +60,75 @@ namespace CONATRADEC.Views
         {
             if (width <= 0 ||
                 height <= 0 ||
-                PermisosList == null ||
-                AccionesInferioresGrid == null ||
-                BotonGuardar == null ||
-                BotonRevertir == null)
+                PanelSuperiorScroll == null)
             {
                 return;
             }
 
-            bool telefono = width < 600;
-            bool alturaCompacta = height < 760;
-            bool anchoCompacto = width < 720;
+            bool esTelefono =
+                DeviceInfo.Current.Idiom ==
+                DeviceIdiom.Phone;
 
-            /*
-             * La lista ocupa la fila flexible de la pantalla. El mínimo evita
-             * que quede inutilizable en ventanas muy bajas sin crear un segundo
-             * ScrollView vertical.
-             */
+            bool alturaCompacta =
+                height < 760;
+
+            double porcentajeSuperior;
+            double minimoSuperior;
+            double maximoSuperior;
+
+            if (esTelefono)
+            {
+                /*
+                 * En teléfono el panel superior funciona como una zona
+                 * auxiliar desplazable. Se limita su altura para priorizar
+                 * la matriz de permisos, que es el contenido principal.
+                 */
+                porcentajeSuperior = 0.28;
+                minimoSuperior = 150;
+                maximoSuperior = 220;
+            }
+            else
+            {
+                /*
+                 * Tablet y Windows conservan la distribución estable que
+                 * ya funciona correctamente en pantallas amplias.
+                 */
+                porcentajeSuperior =
+                    alturaCompacta
+                        ? 0.34
+                        : 0.42;
+
+                minimoSuperior =
+                    alturaCompacta
+                        ? 175
+                        : 245;
+
+                maximoSuperior =
+                    alturaCompacta
+                        ? 250
+                        : 390;
+            }
+
+            PanelSuperiorScroll.MaximumHeightRequest =
+                Math.Clamp(
+                    height * porcentajeSuperior,
+                    minimoSuperior,
+                    maximoSuperior);
+
             PermisosList.MinimumHeightRequest =
-                telefono
+                esTelefono
                     ? 220
                     : alturaCompacta
                         ? 230
                         : 290;
+
+            bool anchoCompacto =
+                width < 720;
+
+            if (anchoCompactoActual == anchoCompacto)
+                return;
+
+            anchoCompactoActual = anchoCompacto;
 
             BotonGuardar.Text =
                 anchoCompacto
