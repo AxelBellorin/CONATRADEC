@@ -12,71 +12,15 @@
 
     <Grid>
         <Grid
-            x:Name="ContenidoPrincipal"
-            RowDefinitions="Auto,*">
-
-            <!--
-                Encabezado y campo de búsqueda fuera del CollectionView para
-                evitar el recálculo del SearchBar mientras WinUI procesa texto.
-            -->
-            <VerticalStackLayout
-                Grid.Row="0"
-                Margin="{OnIdiom Phone='12,12,12,10', Tablet='20,18,20,12', Desktop='28,22,28,14'}"
-                Spacing="10">
-
-                <Border Style="{StaticResource ModernHeroCard}">
-                    <Grid
-                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
-                        RowSpacing="12"
-                        ColumnSpacing="14">
-                        <VerticalStackLayout Spacing="4">
-                            <Button
-                                Text="← Publicaciones"
-                                Command="{Binding RegresarCommand}"
-                                Style="{StaticResource ModernLinkButton}"
-                                HorizontalOptions="Start"
-                                Margin="-8,-5,0,0" />
-                            <Label
-                                Text="Tipos de publicación"
-                                Style="{StaticResource ModernPageTitle}" />
-                            <Label
-                                Text="Administre las categorías utilizadas para noticias, ofertas y eventos."
-                                Style="{StaticResource ModernPageSubtitle}" />
-                        </VerticalStackLayout>
-
-                        <Button
-                            Grid.Row="{OnIdiom Phone=1, Default=0}"
-                            Grid.Column="{OnIdiom Phone=0, Default=1}"
-                            Text="Nuevo tipo"
-                            Command="{Binding NuevoCommand}"
-                            IsVisible="{Binding CanAdd}"
-                            Style="{StaticResource ModernPrimaryButton}"
-                            HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
-                            VerticalOptions="End"
-                            MinimumWidthRequest="{OnIdiom Phone=0, Default=150}" />
-                    </Grid>
-                </Border>
-
-                <Border Style="{StaticResource ModernCard}" Padding="8">
-                    <Border Style="{StaticResource ModernInputBorder}">
-                        <SearchBar
-                            Placeholder="Buscar por nombre o descripción"
-                            Text="{Binding TextoBusqueda}"
-                            SearchCommand="{Binding BuscarCommand}"
-                            Style="{StaticResource ModernSearchBar}" />
-                    </Border>
-                </Border>
-            </VerticalStackLayout>
+            x:Name="ContenidoPrincipal">
 
             <RefreshView
-                Grid.Row="1"
                 IsRefreshing="{Binding IsRefreshing}"
                 Command="{Binding RefrescarCommand}"
                 RefreshColor="{StaticResource color_Verde}">
 
                 <CollectionView
-                    Margin="{OnIdiom Phone='12,0,12,20', Tablet='20,0,20,26', Desktop='28,0,28,30'}"
+                    Margin="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}"
                     ItemsSource="{Binding Categorias}"
                     SelectionMode="None"
                     ItemSizingStrategy="MeasureFirstItem">
@@ -89,16 +33,82 @@
                             VerticalItemSpacing="14" />
                     </CollectionView.ItemsLayout>
 
+                    <!--
+                        Encabezado, búsqueda, filtros y estados forman parte del
+                        desplazamiento natural del catálogo.
+
+                        Se utiliza Entry para la búsqueda porque WinUI puede
+                        recalcular incorrectamente un SearchBar alojado en el
+                        Header de un CollectionView mientras procesa texto.
+                    -->
                     <CollectionView.Header>
-                        <VerticalStackLayout Spacing="10" Margin="0,0,0,14">
+                        <VerticalStackLayout
+                            Spacing="10"
+                            Margin="0,0,0,14">
+
+                            <Border Style="{StaticResource ModernHeroCard}">
+                                <Grid
+                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                                    RowSpacing="12"
+                                    ColumnSpacing="14">
+
+                                    <VerticalStackLayout Spacing="4">
+                                        <Button
+                                            Text="← Publicaciones"
+                                            Command="{Binding RegresarCommand}"
+                                            Style="{StaticResource ModernLinkButton}"
+                                            HorizontalOptions="Start"
+                                            Margin="-8,-5,0,0" />
+                                        <Label
+                                            Text="Tipos de publicación"
+                                            Style="{StaticResource ModernPageTitle}" />
+                                        <Label
+                                            Text="Administre las categorías utilizadas para noticias, ofertas y eventos."
+                                            Style="{StaticResource ModernPageSubtitle}" />
+                                    </VerticalStackLayout>
+
+                                    <Button
+                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                        Text="Nuevo tipo"
+                                        Command="{Binding NuevoCommand}"
+                                        IsVisible="{Binding CanAdd}"
+                                        Style="{StaticResource ModernPrimaryButton}"
+                                        HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                                        VerticalOptions="End"
+                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=150}" />
+                                </Grid>
+                            </Border>
+
+                            <Border
+                                Style="{StaticResource ModernCard}"
+                                Padding="8">
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Entry
+                                        Placeholder="Buscar por nombre o descripción"
+                                        Text="{Binding TextoBusqueda}"
+                                        ReturnType="Search"
+                                        ReturnCommand="{Binding BuscarCommand}"
+                                        ClearButtonVisibility="WhileEditing"
+                                        Style="{StaticResource ModernEntry}" />
+                                </Border>
+                            </Border>
+
                             <Border Style="{StaticResource ModernCard}">
                                 <Grid
                                     RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
                                     ColumnDefinitions="{OnIdiom Phone='*,*', Default='*,Auto,Auto'}"
                                     ColumnSpacing="8"
                                     RowSpacing="8">
-                                    <Border Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}" Style="{StaticResource ModernSoftPanel}" Padding="10,7">
-                                        <HorizontalStackLayout Spacing="7" VerticalOptions="Center">
+
+                                    <Border
+                                        Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}"
+                                        Style="{StaticResource ModernSoftPanel}"
+                                        Padding="10,7">
+                                        <HorizontalStackLayout
+                                            Spacing="7"
+                                            VerticalOptions="Center">
                                             <Switch
                                                 IsToggled="{Binding IncluirInactivas}"
                                                 OnColor="{StaticResource color_Verde}" />
@@ -108,12 +118,14 @@
                                                 VerticalOptions="Center" />
                                         </HorizontalStackLayout>
                                     </Border>
+
                                     <Button
                                         Grid.Row="{OnIdiom Phone=1, Default=0}"
                                         Grid.Column="{OnIdiom Phone=0, Default=1}"
                                         Text="Buscar"
                                         Command="{Binding BuscarCommand}"
                                         Style="{StaticResource ModernPrimaryButton}" />
+
                                     <Button
                                         Grid.Row="{OnIdiom Phone=1, Default=0}"
                                         Grid.Column="{OnIdiom Phone=1, Default=2}"
@@ -129,6 +141,28 @@
                                 <Label
                                     Text="{Binding Mensaje}"
                                     Style="{StaticResource ModernPageSubtitle}" />
+                            </Border>
+
+                            <!--
+                                El estado vacío se mantiene fuera de EmptyView para
+                                ocupar todo el ancho aunque la grilla use 2 o 3 columnas.
+                            -->
+                            <Border
+                                IsVisible="{Binding MostrarVacio}"
+                                Style="{StaticResource ModernEmptyStateCard}"
+                                HorizontalOptions="Fill">
+                                <VerticalStackLayout
+                                    Spacing="6"
+                                    HorizontalOptions="Center">
+                                    <Label
+                                        Text="No hay tipos de publicación"
+                                        Style="{StaticResource ModernSectionTitle}"
+                                        HorizontalTextAlignment="Center" />
+                                    <Label
+                                        Text="Cambie la búsqueda o los filtros para volver a consultar."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
                             </Border>
                         </VerticalStackLayout>
                     </CollectionView.Header>
@@ -226,33 +260,10 @@
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
-
-                    <CollectionView.EmptyView>
-                        <Grid Padding="12,24">
-                            <Border
-                                IsVisible="{Binding MostrarVacio}"
-                                Style="{StaticResource ModernEmptyStateCard}"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Start"
-                                MaximumWidthRequest="520">
-                                <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                                    <Label
-                                        Text="No hay tipos de publicación"
-                                        Style="{StaticResource ModernSectionTitle}"
-                                        HorizontalTextAlignment="Center" />
-                                    <Label
-                                        Text="Cambie la búsqueda o los filtros para volver a consultar."
-                                        Style="{StaticResource ModernPageSubtitle}"
-                                        HorizontalTextAlignment="Center" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </Grid>
-                    </CollectionView.EmptyView>
                 </CollectionView>
             </RefreshView>
 
             <Grid
-                Grid.RowSpan="2"
                 IsVisible="{Binding IsBusy}"
                 BackgroundColor="#52000000"
                 InputTransparent="False">
