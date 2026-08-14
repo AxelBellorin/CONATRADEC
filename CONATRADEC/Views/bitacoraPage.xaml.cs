@@ -4,8 +4,8 @@ namespace CONATRADEC.Views
 {
     public partial class bitacoraPage : ContentPage
     {
-        private readonly BitacoraViewModel viewModel = new();
-        private bool inicializada;
+        private BitacoraViewModel viewModel = new();
+        private bool paginaMostrada;
 
         public bitacoraPage()
         {
@@ -17,10 +17,21 @@ namespace CONATRADEC.Views
         {
             base.OnAppearing();
 
-            if (inicializada)
-                return;
+            /*
+             * El detalle de bitácora se abre sobre esta página. Al regresar se
+             * crea una consulta nueva, incluyendo catálogos de filtros, fechas y
+             * primera página de resultados.
+             */
+            if (paginaMostrada)
+            {
+                viewModel = new BitacoraViewModel();
+                BindingContext = viewModel;
+            }
+            else
+            {
+                paginaMostrada = true;
+            }
 
-            inicializada = true;
             await viewModel.InicializarAsync();
         }
     }

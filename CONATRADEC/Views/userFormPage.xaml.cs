@@ -7,14 +7,20 @@ using static CONATRADEC.Models.FormMode;
 
 namespace CONATRADEC.Views
 {
-    [QueryProperty(nameof(Mode), "Mode")]
-    [QueryProperty(nameof(User), "User")]
-    public partial class userFormPage : ContentPage
+    public partial class userFormPage : ContentPage, IQueryAttributable
     {
         private const string MarcaEncabezadoPropio =
             "CONATRADEC_FORM_BACK_WRAPPER";
 
-        private readonly UserFormViewModel viewModel = new();
+        private UserFormViewModel viewModel = new();
+        private readonly SemaphoreSlim inicializacionLock = new(1, 1);
+
+        private FormModeSelect modeActual;
+        private UserRequest userActual = new();
+        private long versionParametros;
+        private long versionInicializada;
+        private bool parametrosNavegacionValidos;
+        private bool paginaVisible;
 
         /*
          * Evita volver a limpiar la fecha si OnAppearing se ejecuta
@@ -23,23 +29,50 @@ namespace CONATRADEC.Views
         private bool fechaNacimientoPreparada;
         private bool ignorarCambioFechaNacimiento;
 
-        public FormModeSelect Mode
+        /// <summary>
+        /// Recibe Mode y User de forma atómica. No se usan QueryProperty
+        /// separados porque la página de Shell puede reutilizarse y no debe
+        /// inicializarse hasta contar con ambos valores de la navegación.
+        /// </summary>
+        public void ApplyQueryAttributes(
+            IDictionary<string, object> query)
         {
-            set
+            bool tieneModo =
+                query.TryGetValue("Mode", out object? modeValue) &&
+                modeValue is FormModeSelect;
+
+            bool tieneUsuario =
+                query.TryGetValue("User", out object? userValue) &&
+                userValue is UserRequest;
+
+            parametrosNavegacionValidos =
+                tieneModo && tieneUsuario;
+
+            if (tieneModo)
             {
-                viewModel.Mode = value;
-                fechaNacimientoPreparada = false;
+                modeActual =
+                    (FormModeSelect)modeValue!;
             }
-        }
 
-        public UserRequest User
-        {
-            set
+            if (tieneUsuario)
             {
-                viewModel.User =
-                    value ?? new UserRequest();
+                userActual =
+                    (UserRequest)userValue!;
+            }
 
-                fechaNacimientoPreparada = false;
+            fechaNacimientoPreparada = false;
+            Interlocked.Increment(ref versionParametros);
+
+            /*
+             * En algunas secuencias de Shell los atributos pueden aplicarse
+             * cuando la página ya comenzó a mostrarse. Si eso ocurre, se
+             * inicializa inmediatamente con la nueva versión de parámetros.
+             */
+            if (paginaVisible)
+            {
+                Dispatcher.Dispatch(
+                    () =>
+                        _ = InicializarParametrosPendientesAsync());
             }
         }
 
@@ -56,30 +89,131 @@ namespace CONATRADEC.Views
         {
             base.OnAppearing();
 
-            viewModel.LoadPagePermissions("userPage");
-
-            bool denegado =
-                !viewModel.CanView ||
-                (viewModel.Mode == FormModeSelect.Create &&
-                 !viewModel.CanAdd) ||
-                (viewModel.Mode == FormModeSelect.Edit &&
-                 !viewModel.CanEdit);
-
-            if (denegado)
-            {
-                await DisplayAlert(
-                    "Permiso denegado",
-                    "No tiene permisos para realizar esta operación.",
-                    "Aceptar");
-
-                await Shell.Current.GoToAsync(AppRoutes.Usuarios);
-                return;
-            }
-
+            paginaVisible = true;
             AjustarDiseno(Width);
-            await viewModel.InicializarAsync();
 
-            PrepararFechaNacimiento();
+            await InicializarParametrosPendientesAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            paginaVisible = false;
+            base.OnDisappearing();
+        }
+
+        /// <summary>
+        /// Inicializa el formulario únicamente después de haber recibido de
+        /// forma conjunta Mode y User. De esta manera una navegación Editar o
+        /// Ver nunca puede caer temporalmente en el valor predeterminado Crear.
+        /// </summary>
+        private async Task InicializarParametrosPendientesAsync()
+        {
+            await inicializacionLock.WaitAsync();
+
+            try
+            {
+                long versionActual =
+                    Volatile.Read(ref versionParametros);
+
+                if (versionActual <= 0 ||
+                    versionInicializada == versionActual)
+                {
+                    return;
+                }
+
+                if (!parametrosNavegacionValidos)
+                {
+                    versionInicializada = versionActual;
+
+                    await DisplayAlert(
+                        "No fue posible abrir el usuario",
+                        "No se recibieron correctamente los datos de navegación del formulario.",
+                        "Aceptar");
+
+                    await Shell.Current.GoToAsync(AppRoutes.Usuarios);
+                    return;
+                }
+
+                FormModeSelect modo = modeActual;
+                UserRequest usuario = userActual;
+
+                if ((modo == FormModeSelect.Edit ||
+                     modo == FormModeSelect.View) &&
+                    usuario.UsuarioId is not > 0)
+                {
+                    versionInicializada = versionActual;
+
+                    await DisplayAlert(
+                        "Usuario no disponible",
+                        "No se recibió un usuario válido para esta operación.",
+                        "Aceptar");
+
+                    await Shell.Current.GoToAsync(AppRoutes.Usuarios);
+                    return;
+                }
+
+                /*
+                 * Normalmente la visita ya fue creada por userPage. Esta
+                 * llamada cubre también una navegación directa al formulario
+                 * sin invalidar la caché de la visita actual.
+                 */
+                UsuarioVisitaService.AsegurarVisita();
+
+                var nuevoViewModel =
+                    new UserFormViewModel();
+
+                /*
+                 * Mode y User se asignan desde la misma captura de parámetros.
+                 * No se permite que OnAppearing construya un formulario con
+                 * valores predeterminados mientras Shell termina la navegación.
+                 */
+                nuevoViewModel.Mode = modo;
+                nuevoViewModel.User = usuario;
+
+                viewModel = nuevoViewModel;
+                BindingContext = viewModel;
+                fechaNacimientoPreparada = false;
+
+                viewModel.LoadPagePermissions("userPage");
+
+                bool denegado =
+                    !viewModel.CanView ||
+                    (viewModel.Mode == FormModeSelect.Create &&
+                     !viewModel.CanAdd) ||
+                    (viewModel.Mode == FormModeSelect.Edit &&
+                     !viewModel.CanEdit);
+
+                if (denegado)
+                {
+                    versionInicializada = versionActual;
+
+                    await DisplayAlert(
+                        "Permiso denegado",
+                        "No tiene permisos para realizar esta operación.",
+                        "Aceptar");
+
+                    await Shell.Current.GoToAsync(AppRoutes.Usuarios);
+                    return;
+                }
+
+                await viewModel.InicializarAsync();
+
+                /*
+                 * Si mientras se esperaba la API Shell entregó otra navegación,
+                 * la siguiente ejecución tomará la versión más reciente.
+                 */
+                versionInicializada = versionActual;
+
+                if (versionActual ==
+                    Volatile.Read(ref versionParametros))
+                {
+                    PrepararFechaNacimiento();
+                }
+            }
+            finally
+            {
+                inicializacionLock.Release();
+            }
         }
 
         /// <summary>

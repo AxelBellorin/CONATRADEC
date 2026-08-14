@@ -338,9 +338,16 @@ namespace CONATRADEC.ViewModels
             _ => "Usuario"
         };
 
+        /// <summary>
+        /// Inicializa una única vez la instancia actual del formulario.
+        ///
+        /// Ver utiliza exclusivamente los datos ya recibidos por el listado.
+        /// Crear/Editar cargan catálogos pequeños bajo demanda y los reutilizan
+        /// durante toda la visita al módulo Usuarios.
+        /// </summary>
         public async Task InicializarAsync()
         {
-            if (IsBusy)
+            if (IsBusy || initialized)
                 return;
 
             IsBusy = true;
@@ -348,39 +355,49 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                if (!initialized)
+                UsuarioVisitaService.AsegurarVisita();
+
+                if (IsReadOnly)
                 {
-                    var rolesTask = rolApiService.GetRolResultAsync();
-                    var paisesTask = paisApiService.GetPaisResultAsync();
-
-                    await Task.WhenAll(rolesTask, paisesTask);
-
-                    var rolesResult = await rolesTask;
-                    var paisesResult = await paisesTask;
-
-                    if (!rolesResult.Success)
-                    {
-                        await MostrarToastAsync(rolesResult.Message);
-                        return;
-                    }
-
-                    if (!paisesResult.Success)
-                    {
-                        await MostrarToastAsync(paisesResult.Message);
-                        return;
-                    }
-
-                    ReplaceCollection(Roles, rolesResult.Data);
-                    ReplaceCollection(Paises, paisesResult.Data);
+                    PrepararCatalogosSoloLectura();
                     initialized = true;
+                    CaptureInitialState();
+                    return;
                 }
 
+                var rolesTask = ObtenerRolesVisitaAsync();
+                var paisesTask = ObtenerPaisesVisitaAsync();
+
+                await Task.WhenAll(rolesTask, paisesTask);
+
+                ApiResult<List<RolResponse>> rolesResult = await rolesTask;
+                ApiResult<List<PaisResponse>> paisesResult = await paisesTask;
+
+                if (!rolesResult.Success)
+                {
+                    await MostrarToastAsync(rolesResult.Message);
+                    return;
+                }
+
+                if (!paisesResult.Success)
+                {
+                    await MostrarToastAsync(paisesResult.Message);
+                    return;
+                }
+
+                ReplaceCollection(Roles, rolesResult.Data);
+                ReplaceCollection(Paises, paisesResult.Data);
+
                 if (User.RolId > 0)
-                    RolSeleccionado = Roles.FirstOrDefault(x => x.RolId == User.RolId);
+                {
+                    RolSeleccionado = Roles.FirstOrDefault(
+                        item => item.RolId == User.RolId);
+                }
 
                 if (User.MunicipioId > 0)
-                    await ResolverUbicacionAsync(User.MunicipioId);
+                    await ResolverUbicacionAsync();
 
+                initialized = true;
                 CaptureInitialState();
             }
             catch
@@ -395,111 +412,198 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task ResolverUbicacionAsync(int? municipioId)
+        private void PrepararCatalogosSoloLectura()
         {
-            if (municipioId is not > 0)
+            suppressLocationEvents = true;
+
+            try
+            {
+                Roles.Clear();
+                Paises.Clear();
+                Departamentos.Clear();
+                Municipios.Clear();
+
+                if (User.RolId is > 0)
+                {
+                    var rol = new RolResponse
+                    {
+                        RolId = User.RolId,
+                        NombreRol = User.RolNombre ?? string.Empty
+                    };
+
+                    Roles.Add(rol);
+                    RolSeleccionado = rol;
+                }
+
+                if (User.PaisId is > 0 ||
+                    !string.IsNullOrWhiteSpace(User.PaisNombre))
+                {
+                    var pais = new PaisResponse
+                    {
+                        PaisId = User.PaisId ?? 0,
+                        NombrePais = User.PaisNombre ?? string.Empty,
+                        Activo = true
+                    };
+
+                    Paises.Add(pais);
+                    PaisSeleccionado = pais;
+                }
+
+                if (User.DepartamentoId is > 0 ||
+                    !string.IsNullOrWhiteSpace(User.DepartamentoNombre))
+                {
+                    var departamento = new DepartamentoResponse
+                    {
+                        DepartamentoId = User.DepartamentoId,
+                        PaisId = User.PaisId,
+                        NombreDepartamento =
+                            User.DepartamentoNombre ?? string.Empty,
+                        NombrePais = User.PaisNombre ?? string.Empty,
+                        Activo = true
+                    };
+
+                    Departamentos.Add(departamento);
+                    DepartamentoSeleccionado = departamento;
+                }
+
+                if (User.MunicipioId is > 0)
+                {
+                    var municipio = new MunicipioResponse
+                    {
+                        MunicipioId = User.MunicipioId,
+                        DepartamentoId = User.DepartamentoId,
+                        PaisId = User.PaisId,
+                        NombreMunicipio = User.MunicipioNombre ?? string.Empty,
+                        NombreDepartamento =
+                            User.DepartamentoNombre ?? string.Empty,
+                        NombrePais = User.PaisNombre ?? string.Empty,
+                        Activo = true
+                    };
+
+                    Municipios.Add(municipio);
+                    MunicipioSeleccionado = municipio;
+                }
+            }
+            finally
+            {
+                suppressLocationEvents = false;
+                OnPropertyChanged(nameof(CanPickDepartamento));
+                OnPropertyChanged(nameof(CanPickMunicipio));
+            }
+        }
+
+        private async Task ResolverUbicacionAsync()
+        {
+            if (User.MunicipioId is not > 0)
                 return;
 
-            var result =
-                await municipioApiService.GetMunicipiosConUbicacionResultAsync();
-
-            if (!result.Success)
+            /*
+             * El endpoint paginado de Usuarios ya entrega la jerarquía de la
+             * ubicación. Así evitamos descargar todos los municipios del país
+             * solamente para resolver uno.
+             */
+            if (User.PaisId is not > 0 ||
+                User.DepartamentoId is not > 0)
             {
-                await MostrarToastAsync(result.Message);
+                await MostrarToastAsync(
+                    "No fue posible resolver la ubicación del usuario con los datos recibidos.");
                 return;
             }
 
-            MunicipioResponse? target = result.Data?
-                .FirstOrDefault(x => x.MunicipioId == municipioId);
+            PaisResponse? pais = Paises.FirstOrDefault(
+                item => item.PaisId == User.PaisId);
 
-            if (target == null)
-                return;
-
-            // El servidor publicado puede devolver solamente NombrePais y
-            // NombreDepartamento. Por eso primero se intenta por ID y, si
-            // no viene, se resuelve por nombre.
-            PaisResponse? pais = null;
-
-            if (target.PaisId is > 0)
+            if (pais == null)
             {
-                pais = Paises.FirstOrDefault(
-                    x => x.PaisId == target.PaisId);
+                pais = new PaisResponse
+                {
+                    PaisId = User.PaisId.Value,
+                    NombrePais = User.PaisNombre ?? string.Empty,
+                    Activo = true
+                };
+
+                Paises.Add(pais);
             }
 
-            if (pais == null &&
-                !string.IsNullOrWhiteSpace(target.NombrePais))
+            ApiResult<List<DepartamentoResponse>> departamentosResult =
+                await ObtenerDepartamentosVisitaAsync(pais.PaisId);
+
+            if (!departamentosResult.Success)
             {
-                pais = Paises.FirstOrDefault(
-                    x => SonIguales(
-                        x.NombrePais,
-                        target.NombrePais));
+                await MostrarToastAsync(departamentosResult.Message);
+                return;
             }
 
-            if (pais?.PaisId is not > 0)
+            DepartamentoResponse? departamento =
+                departamentosResult.Data?.FirstOrDefault(
+                    item => item.DepartamentoId == User.DepartamentoId);
+
+            if (departamento == null)
+            {
+                departamento = new DepartamentoResponse
+                {
+                    DepartamentoId = User.DepartamentoId,
+                    PaisId = User.PaisId,
+                    NombreDepartamento =
+                        User.DepartamentoNombre ?? string.Empty,
+                    NombrePais = User.PaisNombre ?? string.Empty,
+                    Activo = true
+                };
+            }
+
+            ApiResult<List<MunicipioResponse>> municipiosResult =
+                await ObtenerMunicipiosVisitaAsync(
+                    departamento.DepartamentoId ?? 0);
+
+            if (!municipiosResult.Success)
+            {
+                await MostrarToastAsync(municipiosResult.Message);
                 return;
+            }
+
+            MunicipioResponse? municipio =
+                municipiosResult.Data?.FirstOrDefault(
+                    item => item.MunicipioId == User.MunicipioId);
+
+            municipio ??= new MunicipioResponse
+            {
+                MunicipioId = User.MunicipioId,
+                DepartamentoId = User.DepartamentoId,
+                PaisId = User.PaisId,
+                NombreMunicipio = User.MunicipioNombre ?? string.Empty,
+                NombreDepartamento =
+                    User.DepartamentoNombre ?? string.Empty,
+                NombrePais = User.PaisNombre ?? string.Empty,
+                Activo = true
+            };
 
             suppressLocationEvents = true;
 
             try
             {
-                PaisSeleccionado = pais;
-
-                var departamentosResult =
-                    await departamentoApiService
-                        .GetDepartamentosResultAsync(pais.PaisId);
-
-                if (!departamentosResult.Success)
-                {
-                    await MostrarToastAsync(
-                        departamentosResult.Message);
-                    return;
-                }
-
                 ReplaceCollection(
                     Departamentos,
                     departamentosResult.Data);
 
-                DepartamentoResponse? departamento = null;
-
-                if (target.DepartamentoId is > 0)
+                if (!Departamentos.Any(
+                        item => item.DepartamentoId == departamento.DepartamentoId))
                 {
-                    departamento = Departamentos.FirstOrDefault(
-                        x => x.DepartamentoId ==
-                             target.DepartamentoId);
-                }
-
-                if (departamento == null &&
-                    !string.IsNullOrWhiteSpace(
-                        target.NombreDepartamento))
-                {
-                    departamento = Departamentos.FirstOrDefault(
-                        x => SonIguales(
-                            x.NombreDepartamento,
-                            target.NombreDepartamento));
-                }
-
-                if (departamento?.DepartamentoId is not > 0)
-                    return;
-
-                DepartamentoSeleccionado = departamento;
-
-                var municipiosResult =
-                    await municipioApiService.GetMunicipiosResultAsync(
-                        departamento.DepartamentoId);
-
-                if (!municipiosResult.Success)
-                {
-                    await MostrarToastAsync(
-                        municipiosResult.Message);
-                    return;
+                    Departamentos.Add(departamento);
                 }
 
                 ReplaceCollection(
                     Municipios,
                     municipiosResult.Data);
 
-                MunicipioSeleccionado = Municipios.FirstOrDefault(
-                    x => x.MunicipioId == municipioId);
+                if (!Municipios.Any(
+                        item => item.MunicipioId == municipio.MunicipioId))
+                {
+                    Municipios.Add(municipio);
+                }
+
+                PaisSeleccionado = pais;
+                DepartamentoSeleccionado = departamento;
+                MunicipioSeleccionado = municipio;
             }
             finally
             {
@@ -519,7 +623,8 @@ namespace CONATRADEC.ViewModels
             if (pais?.PaisId is not > 0)
                 return;
 
-            var result = await departamentoApiService.GetDepartamentosResultAsync(pais.PaisId);
+            ApiResult<List<DepartamentoResponse>> result =
+                await ObtenerDepartamentosVisitaAsync(pais.PaisId);
 
             if (!result.Success)
             {
@@ -527,10 +632,14 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            if (PaisSeleccionado?.PaisId != pais.PaisId)
+                return;
+
             ReplaceCollection(Departamentos, result.Data);
         }
 
-        private async Task OnDepartamentoChangedAsync(DepartamentoResponse? departamento)
+        private async Task OnDepartamentoChangedAsync(
+            DepartamentoResponse? departamento)
         {
             MunicipioSeleccionado = null;
             Municipios.Clear();
@@ -538,8 +647,10 @@ namespace CONATRADEC.ViewModels
             if (departamento?.DepartamentoId is not > 0)
                 return;
 
-            var result = await municipioApiService.GetMunicipiosResultAsync(
-                departamento.DepartamentoId);
+            int departamentoId = departamento.DepartamentoId.Value;
+
+            ApiResult<List<MunicipioResponse>> result =
+                await ObtenerMunicipiosVisitaAsync(departamentoId);
 
             if (!result.Success)
             {
@@ -547,7 +658,145 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            if (DepartamentoSeleccionado?.DepartamentoId != departamentoId)
+                return;
+
             ReplaceCollection(Municipios, result.Data);
+        }
+
+        private async Task<ApiResult<List<RolResponse>>>
+            ObtenerRolesVisitaAsync()
+        {
+            if (UsuarioVisitaService.IntentarObtenerRoles(
+                    out List<RolResponse>? cache) &&
+                cache != null)
+            {
+                return ApiResult<List<RolResponse>>.Ok(cache);
+            }
+
+            ApiResult<ObservableCollection<RolResponse>> result =
+                await rolApiService.GetRolResultAsync();
+
+            if (!result.Success)
+            {
+                return ApiResult<List<RolResponse>>.Fail(
+                    result.Message,
+                    result.StatusCode);
+            }
+
+            List<RolResponse> items = result.Data?
+                .Where(item => item.RolId is > 0)
+                .ToList()
+                ?? new List<RolResponse>();
+
+            UsuarioVisitaService.GuardarRoles(items);
+            return ApiResult<List<RolResponse>>.Ok(items);
+        }
+
+        private async Task<ApiResult<List<PaisResponse>>>
+            ObtenerPaisesVisitaAsync()
+        {
+            if (UsuarioVisitaService.IntentarObtenerPaises(
+                    out List<PaisResponse>? cache) &&
+                cache != null)
+            {
+                return ApiResult<List<PaisResponse>>.Ok(cache);
+            }
+
+            ApiResult<ObservableCollection<PaisResponse>> result =
+                await paisApiService.GetPaisResultAsync();
+
+            if (!result.Success)
+            {
+                return ApiResult<List<PaisResponse>>.Fail(
+                    result.Message,
+                    result.StatusCode);
+            }
+
+            List<PaisResponse> items = result.Data?
+                .Where(item => item.PaisId > 0)
+                .ToList()
+                ?? new List<PaisResponse>();
+
+            UsuarioVisitaService.GuardarPaises(items);
+            return ApiResult<List<PaisResponse>>.Ok(items);
+        }
+
+        private async Task<ApiResult<List<DepartamentoResponse>>>
+            ObtenerDepartamentosVisitaAsync(int paisId)
+        {
+            if (paisId <= 0)
+            {
+                return ApiResult<List<DepartamentoResponse>>.Fail(
+                    "Seleccione un país válido.");
+            }
+
+            if (UsuarioVisitaService.IntentarObtenerDepartamentos(
+                    paisId,
+                    out List<DepartamentoResponse>? cache) &&
+                cache != null)
+            {
+                return ApiResult<List<DepartamentoResponse>>.Ok(cache);
+            }
+
+            ApiResult<ObservableCollection<DepartamentoResponse>> result =
+                await departamentoApiService
+                    .GetDepartamentosResultAsync(paisId);
+
+            if (!result.Success)
+            {
+                return ApiResult<List<DepartamentoResponse>>.Fail(
+                    result.Message,
+                    result.StatusCode);
+            }
+
+            List<DepartamentoResponse> items = result.Data?
+                .Where(item => item.DepartamentoId is > 0)
+                .ToList()
+                ?? new List<DepartamentoResponse>();
+
+            UsuarioVisitaService.GuardarDepartamentos(paisId, items);
+            return ApiResult<List<DepartamentoResponse>>.Ok(items);
+        }
+
+        private async Task<ApiResult<List<MunicipioResponse>>>
+            ObtenerMunicipiosVisitaAsync(int departamentoId)
+        {
+            if (departamentoId <= 0)
+            {
+                return ApiResult<List<MunicipioResponse>>.Fail(
+                    "Seleccione un departamento válido.");
+            }
+
+            if (UsuarioVisitaService.IntentarObtenerMunicipios(
+                    departamentoId,
+                    out List<MunicipioResponse>? cache) &&
+                cache != null)
+            {
+                return ApiResult<List<MunicipioResponse>>.Ok(cache);
+            }
+
+            ApiResult<ObservableCollection<MunicipioResponse>> result =
+                await municipioApiService
+                    .GetMunicipiosResultAsync(departamentoId);
+
+            if (!result.Success)
+            {
+                return ApiResult<List<MunicipioResponse>>.Fail(
+                    result.Message,
+                    result.StatusCode);
+            }
+
+            List<MunicipioResponse> items = result.Data?
+                .Where(item => item.MunicipioId is > 0)
+                .ToList()
+                ?? new List<MunicipioResponse>();
+
+            UsuarioVisitaService.GuardarMunicipios(
+                departamentoId,
+                items);
+
+            return ApiResult<List<MunicipioResponse>>.Ok(items);
         }
 
         private async Task SaveAsync()
@@ -597,8 +846,9 @@ namespace CONATRADEC.ViewModels
 
         private async Task CreateUserAsync()
         {
-            var request = BuildRequestForCreate();
-            var result = await userApiService.CreateUserResultAsync(request);
+            UserRequest request = BuildRequestForCreate();
+            ApiResult<UserRequest> result =
+                await userApiService.CreateUserResultAsync(request);
 
             if (!result.Success || result.Data?.UsuarioId is not > 0)
             {
@@ -606,18 +856,37 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            string? imagenActual = result.Data.UrlImagenUsuario;
+
             if (ImagenSeleccionada != null)
             {
-                var imageResult = await userApiService.SubirImagenResultAsync(
-                    result.Data.UsuarioId,
-                    ImagenSeleccionada);
+                ApiResult<bool> imageResult =
+                    await userApiService.SubirImagenResultAsync(
+                        result.Data.UsuarioId,
+                        ImagenSeleccionada);
 
                 if (!imageResult.Success)
                 {
                     await MostrarToastAsync(
                         $"El usuario fue creado, pero la imagen no se pudo guardar: {imageResult.Message}");
                 }
+                else if (!string.IsNullOrWhiteSpace(
+                             ImagenSeleccionada.FullPath))
+                {
+                    // La próxima visita recibirá la URL del servidor. Durante la
+                    // visita actual puede mostrarse la misma imagen local elegida.
+                    imagenActual = ImagenSeleccionada.FullPath;
+                }
             }
+
+            UsuarioVisitaService.RegistrarCambio(
+                new UsuarioVisitaCambio
+                {
+                    Tipo = UsuarioVisitaCambioTipo.Creado,
+                    Usuario = ConstruirRespuestaVisita(
+                        result.Data,
+                        imagenActual)
+                });
 
             ResetForm();
             await GoToAsyncParameters("//UserPage");
@@ -633,8 +902,9 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            var request = BuildRequestForUpdate();
-            var result = await userApiService.UpdateUserResultAsync(request);
+            UserRequest request = BuildRequestForUpdate();
+            ApiResult<UserRequest> result =
+                await userApiService.UpdateUserResultAsync(request);
 
             if (!result.Success || result.Data?.UsuarioId is not > 0)
             {
@@ -642,22 +912,93 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            string? imagenActual =
+                result.Data.UrlImagenUsuario ?? UrlImagenUsuario;
+
             if (ImagenSeleccionada != null)
             {
-                var imageResult = await userApiService.SubirImagenResultAsync(
-                    result.Data.UsuarioId,
-                    ImagenSeleccionada);
+                ApiResult<bool> imageResult =
+                    await userApiService.SubirImagenResultAsync(
+                        result.Data.UsuarioId,
+                        ImagenSeleccionada);
 
                 if (!imageResult.Success)
                 {
                     await MostrarToastAsync(
                         $"Los datos fueron actualizados, pero la imagen no se pudo guardar: {imageResult.Message}");
                 }
+                else if (!string.IsNullOrWhiteSpace(
+                             ImagenSeleccionada.FullPath))
+                {
+                    imagenActual = ImagenSeleccionada.FullPath;
+                }
             }
+
+            UsuarioVisitaService.RegistrarCambio(
+                new UsuarioVisitaCambio
+                {
+                    Tipo = UsuarioVisitaCambioTipo.Actualizado,
+                    Usuario = ConstruirRespuestaVisita(
+                        result.Data,
+                        imagenActual)
+                });
 
             ClaveUsuario = string.Empty;
             await GoToAsyncParameters("//UserPage");
             await MostrarToastAsync("Usuario actualizado correctamente.");
+        }
+
+        private UserResponse ConstruirRespuestaVisita(
+            UserRequest resultado,
+            string? imagenActual)
+        {
+            bool esInterno = resultado.EsInterno ?? User.EsInterno ?? true;
+
+            return new UserResponse
+            {
+                UsuarioId = resultado.UsuarioId ?? User.UsuarioId,
+                NombreUsuario = resultado.NombreUsuario ?? User.NombreUsuario,
+                IdentificacionUsuario =
+                    resultado.IdentificacionUsuario ?? IdentificacionUsuario,
+                NombreCompletoUsuario =
+                    resultado.NombreCompletoUsuario ?? NombreCompletoUsuario,
+                CorreoUsuario = resultado.CorreoUsuario ?? CorreoUsuario,
+                TelefonoUsuario = resultado.TelefonoUsuario ?? TelefonoUsuario,
+                FechaNacimientoUsuario =
+                    resultado.FechaNacimientoUsuario ?? FechaNacimientoUsuario,
+                RolId = RolSeleccionado?.RolId ?? resultado.RolId ?? User.RolId,
+                RolNombre =
+                    RolSeleccionado?.NombreRol ??
+                    resultado.RolNombre ??
+                    User.RolNombre,
+                ProcedenciaId =
+                    resultado.ProcedenciaId ?? User.ProcedenciaId,
+                ProcedenciaNombre =
+                    resultado.ProcedenciaNombre ??
+                    User.ProcedenciaNombre ??
+                    (esInterno ? "Interno" : "Externo"),
+                EsInterno = esInterno,
+                MunicipioId =
+                    MunicipioSeleccionado?.MunicipioId ??
+                    resultado.MunicipioId ??
+                    User.MunicipioId,
+                MunicipioNombre =
+                    MunicipioSeleccionado?.NombreMunicipio ??
+                    User.MunicipioNombre,
+                DepartamentoId =
+                    DepartamentoSeleccionado?.DepartamentoId ??
+                    User.DepartamentoId,
+                DepartamentoNombre =
+                    DepartamentoSeleccionado?.NombreDepartamento ??
+                    User.DepartamentoNombre,
+                PaisId =
+                    PaisSeleccionado?.PaisId ??
+                    User.PaisId,
+                PaisNombre =
+                    PaisSeleccionado?.NombrePais ??
+                    User.PaisNombre,
+                UrlImagenUsuario = imagenActual ?? string.Empty
+            };
         }
 
         private UserRequest BuildRequestForCreate() => new()
@@ -882,9 +1223,6 @@ namespace CONATRADEC.ViewModels
             originalCorreo = NormalizarTexto(CorreoUsuario);
             originalTelefono = NormalizarTexto(TelefonoUsuario);
             originalFechaNacimiento = FechaNacimientoUsuario;
-            // Se guarda exactamente lo que quedó cargado en la interfaz.
-            // Si un catálogo no pudo resolverse, un valor nulo no se
-            // considera una modificación realizada por el usuario.
             originalRolId = RolSeleccionado?.RolId;
             originalMunicipioId =
                 MunicipioSeleccionado?.MunicipioId;
@@ -923,6 +1261,7 @@ namespace CONATRADEC.ViewModels
         private void ResetForm()
         {
             initialStateCaptured = false;
+            initialized = false;
             user = new UserRequest();
             NombreUsuario = string.Empty;
             ClaveUsuario = string.Empty;
@@ -942,6 +1281,8 @@ namespace CONATRADEC.ViewModels
                 PaisSeleccionado = null;
                 DepartamentoSeleccionado = null;
                 MunicipioSeleccionado = null;
+                Roles.Clear();
+                Paises.Clear();
                 Departamentos.Clear();
                 Municipios.Clear();
             }

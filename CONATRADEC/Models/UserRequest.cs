@@ -19,6 +19,23 @@ namespace CONATRADEC.Models
         public string? UrlImagenUsuario { get; set; }
         public bool? EsInterno { get; set; }
 
+        // Datos de contexto ya incluidos por el listado paginado. No forman
+        // parte de los DTO de escritura enviados al backend.
+        [JsonIgnore]
+        public int? DepartamentoId { get; set; }
+
+        [JsonIgnore]
+        public int? PaisId { get; set; }
+
+        [JsonIgnore]
+        public string? MunicipioNombre { get; set; }
+
+        [JsonIgnore]
+        public string? DepartamentoNombre { get; set; }
+
+        [JsonIgnore]
+        public string? PaisNombre { get; set; }
+
         // Se utiliza únicamente al crear un usuario.
         [JsonPropertyName("clave")]
         public string? ClaveUsuario { get; set; }
@@ -44,8 +61,13 @@ namespace CONATRADEC.Models
             RolId = user.RolId;
             ProcedenciaId = user.ProcedenciaId;
             MunicipioId = user.MunicipioId;
+            DepartamentoId = user.DepartamentoId;
+            PaisId = user.PaisId;
             RolNombre = user.RolNombre;
             ProcedenciaNombre = user.ProcedenciaNombre;
+            MunicipioNombre = user.MunicipioNombre;
+            DepartamentoNombre = user.DepartamentoNombre;
+            PaisNombre = user.PaisNombre;
             UrlImagenUsuario = user.UrlImagenUsuario;
             EsInterno = user.EsInterno;
 

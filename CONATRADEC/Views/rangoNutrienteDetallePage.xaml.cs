@@ -8,10 +8,11 @@ namespace CONATRADEC.Views
         ContentPage,
         IQueryAttributable
     {
-        private readonly RangoNutrienteDetalleViewModel
+        private RangoNutrienteDetalleViewModel
             viewModel = new();
 
         private bool parametrosAplicados;
+        private bool paginaMostrada;
         private int cantidadColumnasActual;
 
         public rangoNutrienteDetallePage()
@@ -40,6 +41,29 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            /*
+             * El cultivo seleccionado pertenece al contexto maestro y debe
+             * conservarse. El filtro, la paginación y la colección de rangos no:
+             * al volver del formulario se reconstruye únicamente el ViewModel
+             * de la lista usando la misma categoría.
+             */
+            if (paginaMostrada)
+            {
+                RangoNutrienteCategoriaItem? categoria =
+                    viewModel.Categoria;
+
+                viewModel.CancelarCarga();
+                viewModel = new RangoNutrienteDetalleViewModel
+                {
+                    Categoria = categoria
+                };
+                BindingContext = viewModel;
+            }
+            else
+            {
+                paginaMostrada = true;
+            }
 
             viewModel.ActualizarPermisos();
 

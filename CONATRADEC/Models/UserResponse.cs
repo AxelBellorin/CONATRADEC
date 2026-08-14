@@ -14,8 +14,13 @@ namespace CONATRADEC.Models
         public int? RolId { get; set; }
         public int? ProcedenciaId { get; set; }
         public int? MunicipioId { get; set; }
+        public int? DepartamentoId { get; set; }
+        public int? PaisId { get; set; }
         public string? RolNombre { get; set; }
         public string? ProcedenciaNombre { get; set; }
+        public string? MunicipioNombre { get; set; }
+        public string? DepartamentoNombre { get; set; }
+        public string? PaisNombre { get; set; }
         public bool? EsInterno { get; set; }
         public string? UrlImagenUsuario { get; set; }
 

@@ -6,7 +6,8 @@ namespace CONATRADEC.Views
 {
     public partial class noticiasPage : ContentPage
     {
-        private readonly NoticiasViewModel viewModel = new();
+        private NoticiasViewModel viewModel = new();
+        private bool paginaMostrada;
 
         public noticiasPage()
         {
@@ -21,6 +22,23 @@ namespace CONATRADEC.Views
 
             try
             {
+                /*
+                 * Las rutas de detalle y administración se apilan sobre esta
+                 * página. Al regresar se crea un ViewModel nuevo para que el
+                 * feed vuelva a consultar categorías y publicaciones actuales,
+                 * sin conservar filtros de la visita anterior.
+                 */
+                if (paginaMostrada)
+                {
+                    viewModel.CancelarCarga();
+                    viewModel = new NoticiasViewModel();
+                    BindingContext = viewModel;
+                }
+                else
+                {
+                    paginaMostrada = true;
+                }
+
                 viewModel.ActualizarPermisos();
                 ContenidoPrincipal.IsVisible = viewModel.CanView;
                 ContenidoSinPermiso.IsVisible = !viewModel.CanView;

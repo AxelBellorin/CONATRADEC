@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.CatalogoEliminadosPage"
     x:Name="PaginaEliminados"
@@ -10,9 +10,7 @@
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Grid Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
-        <Grid
-            IsVisible="{Binding CanView}">
-
+        <Grid IsVisible="{Binding CanView}">
             <RefreshView
                 IsRefreshing="{Binding IsRefreshing}"
                 Command="{Binding RefrescarCommand}">
@@ -23,8 +21,9 @@
                     SelectionMode="None">
 
                     <!--
-                        Encabezado, búsqueda y mensaje forman parte del contenido
-                        desplazable. No se reparentan controles en ejecución.
+                        El encabezado y todos los estados forman parte del flujo
+                        normal. No se usa EmptyView para evitar capas que puedan
+                        capturar interacción en WinUI.
                     -->
                     <CollectionView.Header>
                         <VerticalStackLayout
@@ -78,25 +77,13 @@
                                     TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                     LineBreakMode="WordWrap" />
                             </Border>
-                        </VerticalStackLayout>
-                    </CollectionView.Header>
 
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout
-                            x:Name="RegistrosGrid"
-                            Orientation="Vertical"
-                            Span="1"
-                            HorizontalItemSpacing="12"
-                            VerticalItemSpacing="12" />
-                    </CollectionView.ItemsLayout>
-
-                    <CollectionView.EmptyView>
-                        <Grid Padding="12,24">
                             <Border
                                 IsVisible="{Binding MostrarVacio}"
+                                InputTransparent="True"
                                 Style="{StaticResource ModernEmptyStateCard}"
+                                Margin="0,8,0,12"
                                 HorizontalOptions="Center"
-                                VerticalOptions="Start"
                                 MaximumWidthRequest="560">
                                 <VerticalStackLayout
                                     HorizontalOptions="Center"
@@ -123,8 +110,17 @@
                                         HorizontalTextAlignment="Center" />
                                 </VerticalStackLayout>
                             </Border>
-                        </Grid>
-                    </CollectionView.EmptyView>
+                        </VerticalStackLayout>
+                    </CollectionView.Header>
+
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout
+                            x:Name="RegistrosGrid"
+                            Orientation="Vertical"
+                            Span="1"
+                            HorizontalItemSpacing="12"
+                            VerticalItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:CatalogoEliminadoItem">
@@ -226,7 +222,59 @@
                     </CollectionView.ItemTemplate>
 
                     <CollectionView.Footer>
-                        <BoxView HeightRequest="{OnIdiom Phone=18, Tablet=22, Desktop=26}" Opacity="0" />
+                        <VerticalStackLayout Spacing="0">
+                            <Border
+                                x:Name="PaginacionEliminados"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
+                                HorizontalOptions="Center">
+
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="10">
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            HorizontalOptions="Fill" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            HorizontalOptions="Fill" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <BoxView
+                                HeightRequest="{OnIdiom Phone=18, Tablet=22, Desktop=26}"
+                                Opacity="0" />
+                        </VerticalStackLayout>
                     </CollectionView.Footer>
                 </CollectionView>
             </RefreshView>
@@ -264,30 +312,43 @@
             </Border>
         </Grid>
 
+        <!--
+            Relay único para toda operación asíncrona del modal de eliminados.
+            Se utiliza al cargar, buscar, paginar, reactivar y cerrar/regresar.
+        -->
         <Grid
-            IsVisible="{Binding IsBusy}"
+            IsVisible="{Binding MostrandoRelay}"
             InputTransparent="False"
-            BackgroundColor="#66000000">
+            BackgroundColor="#66000000"
+            ZIndex="100">
             <Border
-                Padding="20,16"
+                Padding="22,18"
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
                 BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
                 Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                 StrokeThickness="1"
-                StrokeShape="RoundRectangle 15">
-                <HorizontalStackLayout Spacing="10">
+                StrokeShape="RoundRectangle 16">
+                <HorizontalStackLayout Spacing="12">
                     <ActivityIndicator
-                        IsRunning="{Binding IsBusy}"
+                        IsRunning="{Binding MostrandoRelay}"
                         Color="{StaticResource color_Naranja}"
-                        WidthRequest="24"
-                        HeightRequest="24" />
-                    <Label
-                        Text="Cargando registros eliminados..."
-                        VerticalOptions="Center"
-                        FontFamily="MontserratBold"
-                        FontSize="11.5"
-                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                        WidthRequest="26"
+                        HeightRequest="26" />
+                    <VerticalStackLayout
+                        Spacing="1"
+                        VerticalOptions="Center">
+                        <Label
+                            Text="{Binding TituloRelay}"
+                            FontFamily="MontserratBold"
+                            FontSize="12"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                        <Label
+                            Text="{Binding DetalleRelay}"
+                            FontFamily="MontserratMedium"
+                            FontSize="10"
+                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                    </VerticalStackLayout>
                 </HorizontalStackLayout>
             </Border>
         </Grid>

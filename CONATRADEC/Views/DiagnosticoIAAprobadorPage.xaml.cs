@@ -5,8 +5,9 @@ namespace CONATRADEC.Views
 {
     public partial class DiagnosticoIAAprobadorPage : ContentPage
     {
-        private readonly DiagnosticoIAAprobadorViewModel viewModel;
+        private DiagnosticoIAAprobadorViewModel viewModel;
         private bool selectorTecnicoAbierto;
+        private bool paginaMostrada;
 
         public DiagnosticoIAAprobadorPage()
         {
@@ -18,6 +19,22 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            /*
+             * Al regresar de un expediente se reconstruye la bandeja completa
+             * para consultar asignaciones y estados actuales del servidor.
+             */
+            if (paginaMostrada)
+            {
+                viewModel = new DiagnosticoIAAprobadorViewModel();
+                BindingContext = viewModel;
+                selectorTecnicoAbierto = false;
+            }
+            else
+            {
+                paginaMostrada = true;
+            }
+
             await viewModel.InicializarAsync();
         }
 

@@ -1,3 +1,4 @@
+﻿using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
@@ -19,9 +20,35 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             viewModel.ActualizarPermisos();
-            AjustarColumnas(Width);
+            AjustarDiseno(Width);
 
-            await viewModel.InicializarAsync();
+            if (!viewModel.CanView)
+                return;
+
+            bool nuevaVisita =
+                UsuarioVisitaService.AsegurarVisita();
+
+            if (nuevaVisita)
+            {
+                await viewModel.IniciarNuevaVisitaAsync();
+                return;
+            }
+
+            // Regresar desde Ver/Editar/Crear pertenece a la misma visita.
+            // Normalmente se aplican únicamente los cambios confirmados por el
+            // servidor sin ejecutar otro GET. La única excepción es una
+            // reactivación desde Usuarios inactivos: al cambiar la composición
+            // global del listado paginado se renueva solo la página visible.
+            if (UsuarioVisitaService.ConsumirRecargaListado())
+            {
+                await viewModel.RecargarPaginaActualAsync();
+                return;
+            }
+
+            viewModel.AplicarCambiosPendientes();
+
+            if (!viewModel.TienePaginaCargada)
+                await viewModel.InicializarAsync();
         }
 
         protected override void OnDisappearing()
@@ -35,16 +62,22 @@ namespace CONATRADEC.Views
             double height)
         {
             base.OnSizeAllocated(width, height);
+            AjustarDiseno(width);
+        }
+
+        private void AjustarDiseno(double width)
+        {
+            if (width <= 0)
+                return;
+
             AjustarColumnas(width);
+            AjustarPaginacion(width);
         }
 
         private void AjustarColumnas(double width)
         {
-            if (width <= 0 ||
-                UsuariosGridLayout == null)
-            {
+            if (UsuariosGridLayout == null)
                 return;
-            }
 
             int columnas =
                 width >= 1200
@@ -58,6 +91,27 @@ namespace CONATRADEC.Views
 
             columnasActuales = columnas;
             UsuariosGridLayout.Span = columnas;
+        }
+
+        private void AjustarPaginacion(double width)
+        {
+            if (PaginacionUsuarios == null)
+                return;
+
+            // Se usa el ancho real disponible, no únicamente OnIdiom. Esto
+            // mantiene el paginador correcto también al redimensionar Windows.
+            double margenHorizontal =
+                width < 480
+                    ? 24
+                    : width < 800
+                        ? 36
+                        : 48;
+
+            double anchoDisponible =
+                Math.Max(0, width - margenHorizontal);
+
+            PaginacionUsuarios.WidthRequest =
+                Math.Min(560, anchoDisponible);
         }
     }
 }

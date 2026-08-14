@@ -6,7 +6,8 @@ namespace CONATRADEC.Views
 {
     public partial class publicacionesAdminPage : ContentPage
     {
-        private readonly PublicacionesAdminViewModel viewModel = new();
+        private PublicacionesAdminViewModel viewModel = new();
+        private bool paginaMostrada;
 
         public publicacionesAdminPage()
         {
@@ -21,6 +22,21 @@ namespace CONATRADEC.Views
 
             try
             {
+                /*
+                 * Al volver del formulario de publicación se inicia una visita
+                 * administrativa nueva, sin filtros ni catálogo conservados.
+                 */
+                if (paginaMostrada)
+                {
+                    viewModel.CancelarCarga();
+                    viewModel = new PublicacionesAdminViewModel();
+                    BindingContext = viewModel;
+                }
+                else
+                {
+                    paginaMostrada = true;
+                }
+
                 viewModel.ActualizarPermisos();
                 ContenidoPrincipal.IsVisible = viewModel.CanAdministrar;
                 ContenidoSinPermiso.IsVisible = !viewModel.CanAdministrar;

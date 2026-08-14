@@ -4,7 +4,8 @@ namespace CONATRADEC.Views
 {
     public partial class MotivoDevolucionTecnicoPage : ContentPage
     {
-        private readonly MotivoDevolucionTecnicoViewModel viewModel = new();
+        private MotivoDevolucionTecnicoViewModel viewModel = new();
+        private bool paginaMostrada;
 
         public MotivoDevolucionTecnicoPage()
         {
@@ -15,6 +16,17 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            if (paginaMostrada)
+            {
+                viewModel = new MotivoDevolucionTecnicoViewModel();
+                BindingContext = viewModel;
+            }
+            else
+            {
+                paginaMostrada = true;
+            }
+
             await viewModel.InicializarAsync();
         }
     }

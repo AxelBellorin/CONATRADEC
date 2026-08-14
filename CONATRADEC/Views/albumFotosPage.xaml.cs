@@ -6,7 +6,8 @@ namespace CONATRADEC.Views
 {
     public partial class albumFotosPage : ContentPage
     {
-        private readonly AlbumFotosViewModel viewModel = new();
+        private AlbumFotosViewModel viewModel = new();
+        private bool paginaMostrada;
 
         public albumFotosPage()
         {
@@ -27,6 +28,23 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            /*
+             * El álbum permanece debajo de detalles y formularios dinámicos.
+             * Al volver se descarta exclusivamente su estado de consulta para
+             * reconstruir categorías, filtros y primera página desde la API.
+             */
+            if (paginaMostrada)
+            {
+                viewModel.CancelarConsultas();
+                viewModel = new AlbumFotosViewModel();
+                BindingContext = viewModel;
+            }
+            else
+            {
+                paginaMostrada = true;
+            }
+
             viewModel.ActualizarPermisos();
 
             if (!viewModel.CanView)

@@ -19,6 +19,7 @@ namespace CONATRADEC.Views
         private Label? resumenLabel;
         private Button? buscarButton;
         private Button? limpiarButton;
+        private bool inicializacionSolicitada;
 
         public CatalogoEliminadosPage(
             CatalogoEliminadoConfiguracion configuracion)
@@ -26,8 +27,7 @@ namespace CONATRADEC.Views
             InitializeComponent();
 
             var viewModel =
-                new CatalogoEliminadosViewModel(
-                    configuracion);
+                new CatalogoEliminadosViewModel(configuracion);
 
             BindingContext = viewModel;
 
@@ -40,16 +40,29 @@ namespace CONATRADEC.Views
                 OnRegistrosCollectionSizeChanged;
         }
 
-        protected override async void OnAppearing()
+        protected override void OnAppearing()
         {
             base.OnAppearing();
+            AplicarDisenoResponsivo();
+        }
 
-            if (BindingContext is
-                CatalogoEliminadosViewModel viewModel)
-            {
-                await viewModel.InicializarAsync();
-                AplicarDisenoResponsivo();
-            }
+        /// <summary>
+        /// La carga inicial se ejecuta desde CatalogoEliminadosLauncher
+        /// después de que PushModalAsync haya terminado. Esto garantiza que
+        /// el relay ya esté visible antes de iniciar la consulta al servidor.
+        /// </summary>
+        public async Task InicializarDespuesDeMostrarAsync()
+        {
+            if (inicializacionSolicitada)
+                return;
+
+            inicializacionSolicitada = true;
+
+            if (BindingContext is not CatalogoEliminadosViewModel viewModel)
+                return;
+
+            await viewModel.InicializarAsync();
+            AplicarDisenoResponsivo();
         }
 
         /// <summary>
@@ -70,10 +83,7 @@ namespace CONATRADEC.Views
             double width,
             double height)
         {
-            base.OnSizeAllocated(
-                width,
-                height);
-
+            base.OnSizeAllocated(width, height);
             AplicarDisenoResponsivo();
         }
 
@@ -106,15 +116,16 @@ namespace CONATRADEC.Views
         }
 
         /// <summary>
-        /// La cuadrícula se calcula con el ancho útil del CollectionView.
-        /// Cuando no hay elementos se fuerza una sola columna para que el
-        /// estado vacío utilice todo el ancho y permanezca centrado.
+        /// El diseño depende del ancho real disponible. Esto cubre teléfono,
+        /// tablet y también una ventana Windows estrecha sin depender solo de
+        /// OnIdiom Desktop.
         /// </summary>
         private void AplicarDisenoResponsivo()
         {
             ResolverAccionesBusqueda();
             AplicarColumnas();
             AplicarAccionesBusqueda();
+            AplicarPaginacion();
         }
 
         private void AplicarColumnas()
@@ -147,6 +158,33 @@ namespace CONATRADEC.Views
 
             spanActual = nuevoSpan;
             RegistrosGrid.Span = nuevoSpan;
+        }
+
+        private void AplicarPaginacion()
+        {
+            if (PaginacionEliminados == null)
+                return;
+
+            double ancho =
+                RegistrosCollection.Width > 0
+                    ? RegistrosCollection.Width
+                    : Width;
+
+            if (ancho <= 0)
+                return;
+
+            double margenHorizontal =
+                ancho < 480
+                    ? 8
+                    : ancho < 800
+                        ? 20
+                        : 32;
+
+            double anchoDisponible =
+                Math.Max(0, ancho - margenHorizontal);
+
+            PaginacionEliminados.WidthRequest =
+                Math.Min(560, anchoDisponible);
         }
 
         private void AplicarAccionesBusqueda()
@@ -201,10 +239,8 @@ namespace CONATRADEC.Views
                 Grid.SetColumn(limpiarButton, 1);
                 Grid.SetColumnSpan(limpiarButton, 1);
 
-                buscarButton.HorizontalOptions =
-                    LayoutOptions.Fill;
-                limpiarButton.HorizontalOptions =
-                    LayoutOptions.Fill;
+                buscarButton.HorizontalOptions = LayoutOptions.Fill;
+                limpiarButton.HorizontalOptions = LayoutOptions.Fill;
                 buscarButton.MinimumWidthRequest = 0;
                 limpiarButton.MinimumWidthRequest = 0;
             }
@@ -230,6 +266,9 @@ namespace CONATRADEC.Views
                 Grid.SetRow(limpiarButton, 0);
                 Grid.SetColumn(limpiarButton, 2);
                 Grid.SetColumnSpan(limpiarButton, 1);
+
+                buscarButton.HorizontalOptions = LayoutOptions.End;
+                limpiarButton.HorizontalOptions = LayoutOptions.End;
             }
 
             accionesGrid.InvalidateMeasure();
@@ -262,8 +301,7 @@ namespace CONATRADEC.Views
                 return;
 
             Grid? grid =
-                ResponsiveLayoutUtility.FindAncestor<Grid>(
-                    buscar);
+                ResponsiveLayoutUtility.FindAncestor<Grid>(buscar);
 
             if (grid == null ||
                 !ReferenceEquals(

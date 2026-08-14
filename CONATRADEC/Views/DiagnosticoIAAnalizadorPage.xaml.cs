@@ -5,8 +5,9 @@ namespace CONATRADEC.Views
 {
     public partial class DiagnosticoIAAnalizadorPage : ContentPage
     {
-        private readonly DiagnosticoIAAnalizadorViewModel viewModel;
+        private DiagnosticoIAAnalizadorViewModel viewModel;
         private bool selectorTecnicoAbierto;
+        private bool paginaMostrada;
 
         public DiagnosticoIAAnalizadorPage()
         {
@@ -18,6 +19,23 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            /*
+             * El resultado se abre sobre esta bandeja. Al volver se crea una
+             * bandeja nueva para consultar asignaciones y estados actuales sin
+             * conservar técnico, pestaña o paginación de la visita anterior.
+             */
+            if (paginaMostrada)
+            {
+                viewModel = new DiagnosticoIAAnalizadorViewModel();
+                BindingContext = viewModel;
+                selectorTecnicoAbierto = false;
+            }
+            else
+            {
+                paginaMostrada = true;
+            }
+
             await viewModel.InicializarAsync();
         }
 

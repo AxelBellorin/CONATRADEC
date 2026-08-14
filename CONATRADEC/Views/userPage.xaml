@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.userPage"
     x:Name="UserPageRoot"
@@ -63,9 +63,7 @@
 
                     <CollectionView
                         ItemsSource="{Binding UsersList}"
-                        SelectionMode="None"
-                        RemainingItemsThreshold="3"
-                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                        SelectionMode="None">
 
                         <!--
                             Encabezado, búsqueda y mensajes forman parte del
@@ -102,26 +100,20 @@
                                         FontSize="12"
                                         TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                                 </Border>
-                            </VerticalStackLayout>
-                        </CollectionView.Header>
 
-                        <CollectionView.ItemsLayout>
-                            <GridItemsLayout
-                                x:Name="UsuariosGridLayout"
-                                Orientation="Vertical"
-                                Span="1"
-                                HorizontalItemSpacing="12"
-                                VerticalItemSpacing="12" />
-                        </CollectionView.ItemsLayout>
-
-                        <CollectionView.EmptyView>
-                            <Grid Padding="12,24">
+                                <!--
+                                    El estado vacío forma parte del Header y no usa
+                                    CollectionView.EmptyView. En WinUI el EmptyView
+                                    puede ocupar la superficie completa del control y
+                                    capturar interacción sobre contenido visible.
+                                -->
                                 <Border
                                     IsVisible="{Binding MostrarVacio}"
+                                    InputTransparent="True"
                                     Style="{StaticResource ModernEmptyStateCard}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Start"
-                                    MaximumWidthRequest="560">
+                                    Margin="0,8,0,12"
+                                    MaximumWidthRequest="560"
+                                    HorizontalOptions="Center">
                                     <VerticalStackLayout
                                         Spacing="8"
                                         HorizontalOptions="Center">
@@ -130,7 +122,10 @@
                                             WidthRequest="54"
                                             HeightRequest="54"
                                             Padding="11">
-                                            <Image Source="iconuser.png" Aspect="AspectFit" Opacity="0.62" />
+                                            <Image
+                                                Source="iconuser.png"
+                                                Aspect="AspectFit"
+                                                Opacity="0.62" />
                                         </Border>
                                         <Label
                                             Text="No se encontraron usuarios"
@@ -143,8 +138,18 @@
                                             HorizontalTextAlignment="Center" />
                                     </VerticalStackLayout>
                                 </Border>
-                            </Grid>
-                        </CollectionView.EmptyView>
+                            </VerticalStackLayout>
+                        </CollectionView.Header>
+
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout
+                                x:Name="UsuariosGridLayout"
+                                Orientation="Vertical"
+                                Span="1"
+                                HorizontalItemSpacing="12"
+                                VerticalItemSpacing="12" />
+                        </CollectionView.ItemsLayout>
+
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:UserResponse">
@@ -269,42 +274,113 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
 
+                        <!--
+                            Paginación explícita: la colección contiene únicamente
+                            la página actual. Anterior/Siguiente consultan al servidor
+                            y reemplazan los elementos en memoria.
+                        -->
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="10,16,10,24"
-                                Spacing="8"
+                            <Border
+                                x:Name="PaginacionUsuarios"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
                                 HorizontalOptions="Center">
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoMas}"
-                                    IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Verde}" />
-                                <Label
-                                    IsVisible="{Binding MostrarFinLista}"
-                                    Text="Fin del listado"
-                                    Style="{StaticResource ModernCaption}" />
-                            </VerticalStackLayout>
+
+                                <!--
+                                    Composición única y estable para Windows, tablet
+                                    y móvil. La información ocupa una fila propia y
+                                    los botones comparten exactamente el ancho disponible.
+                                -->
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="10">
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            HorizontalOptions="Fill" />
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            HorizontalOptions="Fill" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>
-
-                <Grid
-                    IsVisible="{Binding IsBusy}"
-                    InputTransparent="False"
-                    BackgroundColor="#36000000">
-                    <Border
-                        Padding="18,14"
-                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
-                        Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
-                        StrokeShape="RoundRectangle 15"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center">
-                        <HorizontalStackLayout Spacing="10">
-                            <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" />
-                            <Label Text="Cargando..." FontFamily="MontserratBold" FontSize="12" VerticalOptions="Center" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
-                        </HorizontalStackLayout>
-                    </Border>
-                </Grid>
             </Grid>
+
+        <!--
+            Relay único para toda operación asíncrona del módulo Usuarios.
+            Se muestra en carga, búsqueda, paginación, navegación y acciones
+            de escritura, y siempre se libera al finalizar la operación.
+        -->
+        <Grid
+            IsVisible="{Binding MostrandoRelay}"
+            InputTransparent="False"
+            BackgroundColor="#66000000"
+            ZIndex="100">
+
+            <Border
+                Padding="22,18"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 16">
+
+                <HorizontalStackLayout Spacing="12">
+                    <ActivityIndicator
+                        IsRunning="{Binding MostrandoRelay}"
+                        Color="{StaticResource color_Naranja}"
+                        WidthRequest="26"
+                        HeightRequest="26" />
+                    <VerticalStackLayout
+                        Spacing="1"
+                        VerticalOptions="Center">
+                        <Label
+                            Text="{Binding TituloRelay}"
+                            FontFamily="MontserratBold"
+                            FontSize="12"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                        <Label
+                            Text="{Binding DetalleRelay}"
+                            FontFamily="MontserratMedium"
+                            FontSize="10"
+                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
         </Grid>
     </ContentView>
 </ContentPage>

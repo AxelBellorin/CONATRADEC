@@ -1,5 +1,6 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
+using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
 
 namespace CONATRADEC.ViewModels
@@ -8,58 +9,107 @@ namespace CONATRADEC.ViewModels
     {
         private readonly CatalogoEliminadoConfiguracion configuracion;
         private readonly CatalogosEliminadosApiService apiService;
+        private readonly UsuariosInactivosApiService usuariosInactivosApiService;
         private readonly List<CatalogoEliminadoItem> originales = new();
 
         private string textoBusqueda = string.Empty;
+        private string textoBusquedaAplicado = string.Empty;
         private string mensaje = string.Empty;
         private bool isRefreshing;
+        private bool cargandoInicial;
+        private bool cargandoListado;
+        private bool mostrandoRelay;
+        private string tituloRelay = "Procesando...";
+        private string detalleRelay = "Espere un momento.";
+        private bool pantallaCargada;
+        private int paginaActual = 1;
+        private int totalPaginas = 1;
+        private int totalRegistros;
+        private int tamanoPaginaActual;
 
         public CatalogoEliminadosViewModel(
             CatalogoEliminadoConfiguracion configuracion)
             : this(
                 configuracion,
-                new CatalogosEliminadosApiService())
+                new CatalogosEliminadosApiService(),
+                new UsuariosInactivosApiService())
         {
         }
 
         public CatalogoEliminadosViewModel(
             CatalogoEliminadoConfiguracion configuracion,
-            CatalogosEliminadosApiService apiService)
+            CatalogosEliminadosApiService apiService,
+            UsuariosInactivosApiService usuariosInactivosApiService)
         {
             this.configuracion =
                 configuracion ??
-                throw new ArgumentNullException(
-                    nameof(configuracion));
+                throw new ArgumentNullException(nameof(configuracion));
 
             this.apiService =
                 apiService ??
+                throw new ArgumentNullException(nameof(apiService));
+
+            this.usuariosInactivosApiService =
+                usuariosInactivosApiService ??
                 throw new ArgumentNullException(
-                    nameof(apiService));
+                    nameof(usuariosInactivosApiService));
+
+            // Usuarios inactivos abre como modal y OnAppearing puede ejecutarse
+            // antes del primer frame visible. Se prepara el relay desde la
+            // construcción para que la carga inicial sea visible desde el
+            // primer render, sin afectar búsquedas ni cambios de página.
+            cargandoInicial = UsaPaginacionServidor;
+            mostrandoRelay = UsaPaginacionServidor;
+
+            if (mostrandoRelay)
+            {
+                tituloRelay = "Cargando registros eliminados...";
+                detalleRelay = "Consultando información actual del servidor";
+            }
 
             BuscarCommand =
-                new Command(AplicarFiltro);
+                new Command(
+                    async () => await EjecutarBusquedaAsync(),
+                    () => CanView && !IsBusy);
 
             LimpiarCommand =
-                new Command(LimpiarFiltro);
+                new Command(
+                    async () => await LimpiarFiltroAsync(),
+                    () => CanView && !IsBusy);
 
             RefrescarCommand =
                 new Command(
-                    async () =>
-                        await RefrescarAsync());
+                    async () => await RefrescarAsync(),
+                    () => CanView && !IsBusy);
 
             ReactivarCommand =
                 new Command<CatalogoEliminadoItem>(
-                    async item =>
-                        await ReactivarAsync(item),
+                    async item => await ReactivarAsync(item),
                     item =>
                         item != null &&
                         CanEdit &&
                         !IsBusy);
 
+            PaginaAnteriorCommand =
+                new Command(
+                    async () => await IrPaginaAnteriorAsync(),
+                    () =>
+                        UsaPaginacionServidor &&
+                        PuedeIrAnterior &&
+                        !IsBusy);
+
+            PaginaSiguienteCommand =
+                new Command(
+                    async () => await IrPaginaSiguienteAsync(),
+                    () =>
+                        UsaPaginacionServidor &&
+                        PuedeIrSiguiente &&
+                        !IsBusy);
+
             CerrarCommand =
                 new Command(
-                    async () =>
-                        await CerrarAsync());
+                    async () => await CerrarAsync(),
+                    () => !IsBusy);
         }
 
         public ObservableCollection<CatalogoEliminadoItem>
@@ -68,26 +118,29 @@ namespace CONATRADEC.ViewModels
         public Command BuscarCommand { get; }
         public Command LimpiarCommand { get; }
         public Command RefrescarCommand { get; }
-        public Command<CatalogoEliminadoItem>
-            ReactivarCommand { get; }
+        public Command<CatalogoEliminadoItem> ReactivarCommand { get; }
+        public Command PaginaAnteriorCommand { get; }
+        public Command PaginaSiguienteCommand { get; }
         public Command CerrarCommand { get; }
 
-        public string Titulo =>
-            configuracion.Titulo;
-
-        public string Descripcion =>
-            configuracion.Descripcion;
+        public string Titulo => configuracion.Titulo;
+        public string Descripcion => configuracion.Descripcion;
 
         public string PlaceholderBusqueda =>
             $"Buscar {configuracion.Singular} eliminado";
+
+        private bool UsaPaginacionServidor =>
+            string.Equals(
+                configuracion.Codigo,
+                CatalogoEliminadoCodigos.Usuario,
+                StringComparison.OrdinalIgnoreCase);
 
         public string TextoBusqueda
         {
             get => textoBusqueda;
             set
             {
-                string nuevoValor =
-                    value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
 
                 if (textoBusqueda == nuevoValor)
                     return;
@@ -102,16 +155,14 @@ namespace CONATRADEC.ViewModels
             get => mensaje;
             private set
             {
-                string nuevoValor =
-                    value ?? string.Empty;
+                string nuevoValor = value ?? string.Empty;
 
                 if (mensaje == nuevoValor)
                     return;
 
                 mensaje = nuevoValor;
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TieneMensaje));
+                OnPropertyChanged(nameof(TieneMensaje));
             }
         }
 
@@ -125,76 +176,397 @@ namespace CONATRADEC.ViewModels
 
                 isRefreshing = value;
                 OnPropertyChanged();
+                ActualizarComandos();
+            }
+        }
+
+        public bool CargandoInicial
+        {
+            get => cargandoInicial;
+            private set
+            {
+                if (cargandoInicial == value)
+                    return;
+
+                cargandoInicial = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool CargandoListado
+        {
+            get => cargandoListado;
+            private set
+            {
+                if (cargandoListado == value)
+                    return;
+
+                cargandoListado = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool MostrandoRelay
+        {
+            get => mostrandoRelay;
+            private set
+            {
+                if (mostrandoRelay == value)
+                    return;
+
+                mostrandoRelay = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string TituloRelay
+        {
+            get => tituloRelay;
+            private set
+            {
+                string nuevoValor = value ?? string.Empty;
+
+                if (tituloRelay == nuevoValor)
+                    return;
+
+                tituloRelay = nuevoValor;
+                OnPropertyChanged();
+            }
+        }
+
+        public string DetalleRelay
+        {
+            get => detalleRelay;
+            private set
+            {
+                string nuevoValor = value ?? string.Empty;
+
+                if (detalleRelay == nuevoValor)
+                    return;
+
+                detalleRelay = nuevoValor;
+                OnPropertyChanged();
             }
         }
 
         public bool TieneMensaje =>
-            !string.IsNullOrWhiteSpace(
-                Mensaje);
+            !string.IsNullOrWhiteSpace(Mensaje);
 
-        public bool MostrarAccesoDenegado =>
-            !CanView;
+        public bool MostrarAccesoDenegado => !CanView;
 
         public bool MostrarVacio =>
             CanView &&
+            pantallaCargada &&
             !IsBusy &&
             Registros.Count == 0 &&
             !TieneMensaje;
 
-        public string Resumen =>
-            Registros.Count == 1
-                ? "1 registro eliminado"
-                : $"{Registros.Count} registros eliminados";
-
-        public async Task InicializarAsync()
+        public int TotalRegistros
         {
-            LoadPagePermissions(
-                configuracion.Interfaz);
-
-            OnPropertyChanged(
-                nameof(MostrarAccesoDenegado));
-
-            ReactivarCommand.ChangeCanExecute();
-            NotificarEstado();
-
-            if (CanView)
+            get => totalRegistros;
+            private set
             {
-                await CargarAsync();
+                if (totalRegistros == value)
+                    return;
+
+                totalRegistros = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(Resumen));
+                OnPropertyChanged(nameof(RangoPaginaTexto));
+                OnPropertyChanged(nameof(MostrarPaginacion));
             }
         }
 
-        private async Task CargarAsync()
+        public int PaginaActual => paginaActual;
+        public int TotalPaginas => totalPaginas;
+
+        public bool PuedeIrAnterior =>
+            pantallaCargada && paginaActual > 1;
+
+        public bool PuedeIrSiguiente =>
+            pantallaCargada && paginaActual < totalPaginas;
+
+        public bool MostrarPaginacion =>
+            UsaPaginacionServidor &&
+            CanView &&
+            pantallaCargada &&
+            Registros.Count > 0;
+
+        public string PaginaTexto =>
+            $"Página {Math.Max(1, paginaActual)} de {Math.Max(1, totalPaginas)}";
+
+        public string RangoPaginaTexto
         {
-            if (!CanView ||
-                IsBusy)
+            get
             {
+                if (TotalRegistros <= 0 || Registros.Count == 0)
+                    return "Sin registros en esta página";
+
+                int inicio =
+                    ((Math.Max(1, paginaActual) - 1) *
+                     Math.Max(1, tamanoPaginaActual)) + 1;
+
+                int fin = Math.Min(
+                    inicio + Registros.Count - 1,
+                    TotalRegistros);
+
+                return $"Mostrando {inicio}-{fin} de {TotalRegistros}";
+            }
+        }
+
+        public string Resumen =>
+            TotalRegistros == 1
+                ? "1 registro eliminado"
+                : $"{TotalRegistros} registros eliminados";
+
+        public async Task InicializarAsync()
+        {
+            LoadPagePermissions(configuracion.Interfaz);
+
+            OnPropertyChanged(nameof(MostrarAccesoDenegado));
+            ActualizarComandos();
+            NotificarEstado();
+
+            if (!CanView)
+            {
+                CargandoInicial = false;
+                OcultarRelay();
                 return;
             }
 
+            if (pantallaCargada)
+            {
+                CargandoInicial = false;
+                OcultarRelay();
+                return;
+            }
+
+            if (UsaPaginacionServidor)
+            {
+                textoBusquedaAplicado = string.Empty;
+                tamanoPaginaActual = ObtenerTamanoPagina();
+                await CargarUsuariosInactivosAsync(
+                    1,
+                    true,
+                    "Cargando registros eliminados...",
+                    "Consultando información actual del servidor");
+            }
+            else
+            {
+                await CargarCatalogoCompletoAsync(
+                    true,
+                    "Cargando registros eliminados...",
+                    "Consultando información actual del servidor");
+            }
+        }
+
+        private async Task EjecutarBusquedaAsync()
+        {
+            if (!CanView || IsBusy)
+                return;
+
+            if (UsaPaginacionServidor)
+            {
+                textoBusquedaAplicado =
+                    (TextoBusqueda ?? string.Empty).Trim();
+
+                await CargarUsuariosInactivosAsync(
+                    1,
+                    false,
+                    "Buscando usuarios eliminados...",
+                    "Consultando los registros que coinciden con la búsqueda");
+                return;
+            }
+
+            AplicarFiltroLocal();
+        }
+
+        private async Task LimpiarFiltroAsync()
+        {
+            if (!CanView || IsBusy)
+                return;
+
+            TextoBusqueda = string.Empty;
+
+            if (UsaPaginacionServidor)
+            {
+                textoBusquedaAplicado = string.Empty;
+                await CargarUsuariosInactivosAsync(
+                    1,
+                    false,
+                    "Actualizando usuarios eliminados...",
+                    "Quitando filtros y consultando la primera página");
+                return;
+            }
+
+            AplicarFiltroLocal();
+        }
+
+        private async Task RefrescarAsync()
+        {
+            if (!CanView || IsBusy)
+                return;
+
+            IsRefreshing = true;
+
             try
             {
+                if (UsaPaginacionServidor)
+                {
+                    await CargarUsuariosInactivosAsync(
+                        Math.Max(1, paginaActual),
+                        false,
+                        "Actualizando usuarios eliminados...",
+                        "Consultando nuevamente la página actual");
+                }
+                else
+                {
+                    await CargarCatalogoCompletoAsync(
+                        false,
+                        "Actualizando registros eliminados...",
+                        "Consultando nuevamente la información del servidor");
+                }
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
+        }
+
+        private Task IrPaginaAnteriorAsync()
+        {
+            if (!UsaPaginacionServidor || !PuedeIrAnterior)
+                return Task.CompletedTask;
+
+            return CargarUsuariosInactivosAsync(
+                paginaActual - 1,
+                false,
+                "Cargando página anterior...",
+                "Consultando la página anterior de usuarios eliminados");
+        }
+
+        private Task IrPaginaSiguienteAsync()
+        {
+            if (!UsaPaginacionServidor || !PuedeIrSiguiente)
+                return Task.CompletedTask;
+
+            return CargarUsuariosInactivosAsync(
+                paginaActual + 1,
+                false,
+                "Cargando página siguiente...",
+                "Consultando la siguiente página de usuarios eliminados");
+        }
+
+        private async Task CargarUsuariosInactivosAsync(
+            int paginaSolicitada,
+            bool cargaInicial,
+            string? tituloOperacion = null,
+            string? detalleOperacion = null)
+        {
+            if (!CanView || IsBusy)
+                return;
+
+            paginaSolicitada = Math.Max(1, paginaSolicitada);
+
+            try
+            {
+                MostrarRelay(
+                    tituloOperacion ??
+                        (cargaInicial
+                            ? "Cargando registros eliminados..."
+                            : "Actualizando registros eliminados..."),
+                    detalleOperacion ??
+                        "Consultando información actual del servidor");
+
                 IsBusy = true;
+                CargandoInicial = cargaInicial;
+                CargandoListado = !cargaInicial;
                 Mensaje = string.Empty;
-                ReactivarCommand.ChangeCanExecute();
+                ActualizarComandos();
                 NotificarEstado();
 
-                ApiResult<
-                    ObservableCollection<CatalogoEliminadoItem>>
-                    resultado =
-                        await apiService.ListarAsync(
-                            configuracion.Codigo);
+                ApiResult<UsuarioInactivoPaginaResponse> resultado =
+                    await usuariosInactivosApiService.BuscarAsync(
+                        textoBusquedaAplicado,
+                        paginaSolicitada,
+                        ObtenerTamanoPagina());
 
-                if (!resultado.Success ||
-                    resultado.Data == null)
+                if (!resultado.Success || resultado.Data == null)
+                {
+                    Registros.Clear();
+                    TotalRegistros = 0;
+                    paginaActual = 1;
+                    totalPaginas = 1;
+                    pantallaCargada = true;
+
+                    Mensaje = string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "No fue posible cargar los usuarios inactivos."
+                        : resultado.Message;
+
+                    return;
+                }
+
+                AplicarPaginaUsuarios(resultado.Data);
+                pantallaCargada = true;
+            }
+            catch (Exception ex)
+            {
+                Mensaje =
+                    "Ocurrió un error inesperado al cargar los usuarios inactivos.";
+
+                await MostrarToastAsync("Error: " + ex.Message);
+            }
+            finally
+            {
+                IsBusy = false;
+                CargandoInicial = false;
+                CargandoListado = false;
+                IsRefreshing = false;
+                OcultarRelay();
+                ActualizarComandos();
+                NotificarEstado();
+            }
+        }
+
+        private async Task CargarCatalogoCompletoAsync(
+            bool cargaInicial,
+            string? tituloOperacion = null,
+            string? detalleOperacion = null)
+        {
+            if (!CanView || IsBusy)
+                return;
+
+            try
+            {
+                MostrarRelay(
+                    tituloOperacion ??
+                        (cargaInicial
+                            ? "Cargando registros eliminados..."
+                            : "Actualizando registros eliminados..."),
+                    detalleOperacion ??
+                        "Consultando información actual del servidor");
+
+                IsBusy = true;
+                CargandoInicial = cargaInicial;
+                CargandoListado = !cargaInicial;
+                Mensaje = string.Empty;
+                ActualizarComandos();
+                NotificarEstado();
+
+                ApiResult<ObservableCollection<CatalogoEliminadoItem>>
+                    resultado =
+                        await apiService.ListarAsync(configuracion.Codigo);
+
+                if (!resultado.Success || resultado.Data == null)
                 {
                     originales.Clear();
                     Registros.Clear();
+                    TotalRegistros = 0;
+                    pantallaCargada = true;
 
-                    Mensaje =
-                        string.IsNullOrWhiteSpace(
-                            resultado.Message)
-                            ? "No fue posible cargar los registros eliminados."
-                            : resultado.Message;
+                    Mensaje = string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "No fue posible cargar los registros eliminados."
+                        : resultado.Message;
 
                     return;
                 }
@@ -202,104 +574,92 @@ namespace CONATRADEC.ViewModels
                 originales.Clear();
                 originales.AddRange(
                     resultado.Data
-                        .Where(item =>
-                            item.Id > 0 &&
-                            !item.Activo)
-                        .OrderBy(item =>
-                            item.Titulo));
+                        .Where(item => item.Id > 0 && !item.Activo)
+                        .OrderBy(item => item.Titulo));
 
-                AplicarFiltro();
+                pantallaCargada = true;
+                AplicarFiltroLocal();
             }
             catch (Exception ex)
             {
                 Mensaje =
                     "Ocurrió un error inesperado al cargar los registros eliminados.";
 
-                await MostrarToastAsync(
-                    "Error: " + ex.Message);
+                await MostrarToastAsync("Error: " + ex.Message);
             }
             finally
             {
                 IsBusy = false;
+                CargandoInicial = false;
+                CargandoListado = false;
                 IsRefreshing = false;
-                ReactivarCommand.ChangeCanExecute();
+                OcultarRelay();
+                ActualizarComandos();
                 NotificarEstado();
             }
         }
 
-        private async Task RefrescarAsync()
+        private void AplicarPaginaUsuarios(
+            UsuarioInactivoPaginaResponse pagina)
         {
-            if (IsBusy)
-                return;
-
-            IsRefreshing = true;
-            await CargarAsync();
-        }
-
-        private void AplicarFiltro()
-        {
-            string filtro =
-                TextoBusqueda.Trim();
-
-            IEnumerable<CatalogoEliminadoItem>
-                consulta =
-                    originales;
-
-            if (!string.IsNullOrWhiteSpace(
-                    filtro))
-            {
-                consulta =
-                    consulta.Where(item =>
-                        Contiene(
-                            item.Titulo,
-                            filtro) ||
-                        Contiene(
-                            item.Subtitulo,
-                            filtro) ||
-                        Contiene(
-                            item.Detalle,
-                            filtro) ||
-                        Contiene(
-                            item.Codigo,
-                            filtro));
-            }
-
             Registros.Clear();
 
-            foreach (
-                CatalogoEliminadoItem item
-                in consulta)
+            foreach (CatalogoEliminadoItem item in pagina.Items)
             {
-                Registros.Add(item);
+                if (item.Id > 0 && !item.Activo)
+                    Registros.Add(item);
             }
 
+            paginaActual = Math.Max(1, pagina.PaginaActual);
+            totalPaginas = Math.Max(1, pagina.TotalPaginas);
+            tamanoPaginaActual =
+                pagina.TamanoPagina > 0
+                    ? pagina.TamanoPagina
+                    : ObtenerTamanoPagina();
+
+            TotalRegistros = Math.Max(0, pagina.TotalRegistros);
             Mensaje = string.Empty;
             NotificarEstado();
         }
 
-        private void LimpiarFiltro()
+        private void AplicarFiltroLocal()
         {
-            TextoBusqueda =
-                string.Empty;
+            string filtro = TextoBusqueda.Trim();
 
-            AplicarFiltro();
+            IEnumerable<CatalogoEliminadoItem> consulta = originales;
+
+            if (!string.IsNullOrWhiteSpace(filtro))
+            {
+                consulta = consulta.Where(item =>
+                    Contiene(item.Titulo, filtro) ||
+                    Contiene(item.Subtitulo, filtro) ||
+                    Contiene(item.Detalle, filtro) ||
+                    Contiene(item.Codigo, filtro));
+            }
+
+            Registros.Clear();
+
+            foreach (CatalogoEliminadoItem item in consulta)
+                Registros.Add(item);
+
+            paginaActual = 1;
+            totalPaginas = 1;
+            tamanoPaginaActual = Math.Max(1, Registros.Count);
+            TotalRegistros = Registros.Count;
+            Mensaje = string.Empty;
+            NotificarEstado();
         }
 
         private async Task ReactivarAsync(
             CatalogoEliminadoItem? item)
         {
-            if (item == null ||
-                item.Id <= 0 ||
-                IsBusy)
-            {
+            if (item == null || item.Id <= 0 || IsBusy)
                 return;
-            }
 
             if (!CanEdit)
             {
                 await MostrarToastAsync(
                     "No tiene permiso para reactivar este registro.");
-
                 return;
             }
 
@@ -322,10 +682,18 @@ namespace CONATRADEC.ViewModels
             if (!confirmar)
                 return;
 
+            bool recargarPagina = false;
+            int paginaDestino = Math.Max(1, paginaActual);
+            string mensajeExito = "Registro reactivado correctamente.";
+
             try
             {
+                MostrarRelay(
+                    "Reactivando usuario...",
+                    "Restaurando el registro en el servidor");
+
                 IsBusy = true;
-                ReactivarCommand.ChangeCanExecute();
+                ActualizarComandos();
                 NotificarEstado();
 
                 ApiResult<bool> resultado =
@@ -336,34 +704,82 @@ namespace CONATRADEC.ViewModels
                 if (!resultado.Success)
                 {
                     await MostrarToastAsync(
-                        string.IsNullOrWhiteSpace(
-                            resultado.Message)
+                        string.IsNullOrWhiteSpace(resultado.Message)
                             ? "No fue posible reactivar el registro."
                             : resultado.Message);
-
                     return;
                 }
 
-                originales.RemoveAll(
-                    registro =>
-                        registro.Id ==
-                        item.Id);
+                mensajeExito = string.IsNullOrWhiteSpace(resultado.Message)
+                    ? mensajeExito
+                    : resultado.Message;
 
-                Registros.Remove(item);
-                NotificarEstado();
+                if (UsaPaginacionServidor)
+                {
+                    Registros.Remove(item);
+                    TotalRegistros = Math.Max(0, TotalRegistros - 1);
+                    RecalcularPaginasServidor();
 
-                await MostrarToastAsync(
-                    string.IsNullOrWhiteSpace(
-                        resultado.Message)
-                        ? "Registro reactivado correctamente."
-                        : resultado.Message);
+                    // El registro vuelve al listado activo. Su posición global
+                    // depende del orden del servidor, por lo que al cerrar este
+                    // modal se renovará únicamente la página activa de Usuarios.
+                    UsuarioVisitaService.MarcarListadoParaRecargar();
+
+                    if (Registros.Count == 0 &&
+                        TotalRegistros > 0 &&
+                        paginaActual > 1)
+                    {
+                        paginaDestino = Math.Min(
+                            paginaActual - 1,
+                            Math.Max(1, totalPaginas));
+
+                        recargarPagina = true;
+                    }
+                }
+                else
+                {
+                    originales.RemoveAll(
+                        registro => registro.Id == item.Id);
+
+                    Registros.Remove(item);
+                    TotalRegistros = Registros.Count;
+                }
             }
             finally
             {
                 IsBusy = false;
-                ReactivarCommand.ChangeCanExecute();
+                OcultarRelay();
+                ActualizarComandos();
                 NotificarEstado();
             }
+
+            if (recargarPagina)
+            {
+                await CargarUsuariosInactivosAsync(
+                    paginaDestino,
+                    false,
+                    "Actualizando usuarios eliminados...",
+                    "Ajustando la página después de la reactivación");
+            }
+
+            await MostrarToastAsync(mensajeExito);
+        }
+
+        private void RecalcularPaginasServidor()
+        {
+            int tamano = Math.Max(1, tamanoPaginaActual);
+
+            totalPaginas =
+                TotalRegistros == 0
+                    ? 1
+                    : (int)Math.Ceiling(
+                        TotalRegistros / (double)tamano);
+
+            paginaActual = Math.Min(
+                Math.Max(1, paginaActual),
+                Math.Max(1, totalPaginas));
+
+            NotificarEstado();
         }
 
         private static bool Contiene(
@@ -374,27 +790,79 @@ namespace CONATRADEC.ViewModels
                     filtro,
                     StringComparison.OrdinalIgnoreCase);
 
-        private static async Task CerrarAsync()
+        private async Task CerrarAsync()
         {
-            if (Shell.Current?
-                    .Navigation != null)
+            if (IsBusy || Shell.Current?.Navigation == null)
+                return;
+
+            try
             {
-                await Shell.Current
-                    .Navigation
-                    .PopModalAsync();
+                MostrarRelay(
+                    "Regresando...",
+                    UsaPaginacionServidor
+                        ? "Cerrando usuarios eliminados y volviendo al listado"
+                        : "Cerrando los registros eliminados");
+
+                IsBusy = true;
+                ActualizarComandos();
+
+                // El modal ya está visible. Se cede un ciclo al UI para que el
+                // relay se pinte antes de iniciar la animación de cierre.
+                await Task.Yield();
+
+                await Shell.Current.Navigation.PopModalAsync();
             }
+            finally
+            {
+                IsBusy = false;
+                OcultarRelay();
+                ActualizarComandos();
+                NotificarEstado();
+            }
+        }
+
+        private void MostrarRelay(
+            string titulo,
+            string detalle)
+        {
+            TituloRelay = titulo;
+            DetalleRelay = detalle;
+            MostrandoRelay = true;
+        }
+
+        private void OcultarRelay()
+        {
+            MostrandoRelay = false;
+        }
+
+        private void ActualizarComandos()
+        {
+            BuscarCommand.ChangeCanExecute();
+            LimpiarCommand.ChangeCanExecute();
+            RefrescarCommand.ChangeCanExecute();
+            ReactivarCommand.ChangeCanExecute();
+            PaginaAnteriorCommand.ChangeCanExecute();
+            PaginaSiguienteCommand.ChangeCanExecute();
+            CerrarCommand.ChangeCanExecute();
         }
 
         private void NotificarEstado()
         {
-            OnPropertyChanged(
-                nameof(MostrarVacio));
-
-            OnPropertyChanged(
-                nameof(Resumen));
-
-            OnPropertyChanged(
-                nameof(TieneMensaje));
+            OnPropertyChanged(nameof(MostrarVacio));
+            OnPropertyChanged(nameof(Resumen));
+            OnPropertyChanged(nameof(TieneMensaje));
+            OnPropertyChanged(nameof(PaginaActual));
+            OnPropertyChanged(nameof(TotalPaginas));
+            OnPropertyChanged(nameof(PuedeIrAnterior));
+            OnPropertyChanged(nameof(PuedeIrSiguiente));
+            OnPropertyChanged(nameof(MostrarPaginacion));
+            OnPropertyChanged(nameof(PaginaTexto));
+            OnPropertyChanged(nameof(RangoPaginaTexto));
         }
+
+        private static int ObtenerTamanoPagina() =>
+            DeviceInfo.Platform == DevicePlatform.WinUI
+                ? 40
+                : 20;
     }
 }

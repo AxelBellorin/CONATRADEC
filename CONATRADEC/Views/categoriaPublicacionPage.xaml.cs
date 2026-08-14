@@ -4,7 +4,8 @@ namespace CONATRADEC.Views
 {
     public partial class categoriaPublicacionPage : ContentPage
     {
-        private readonly CategoriaPublicacionViewModel viewModel = new();
+        private CategoriaPublicacionViewModel viewModel = new();
+        private bool paginaMostrada;
 
         public categoriaPublicacionPage()
         {
@@ -16,6 +17,17 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+
+            if (paginaMostrada)
+            {
+                viewModel.CancelarCarga();
+                viewModel = new CategoriaPublicacionViewModel();
+                BindingContext = viewModel;
+            }
+            else
+            {
+                paginaMostrada = true;
+            }
 
             viewModel.ActualizarPermisos();
             ContenidoPrincipal.IsVisible = viewModel.CanView;
