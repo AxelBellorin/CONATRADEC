@@ -41,38 +41,9 @@
 
             <Grid
                 IsVisible="{Binding CanView}"
-                Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}"
-                RowDefinitions="Auto,*"
-                RowSpacing="12">
-
-                <!--
-                    El SearchBar queda en una zona estable, fuera del encabezado
-                    virtualizado. Clasificación, matriz y mensajes siguen formando
-                    parte del desplazamiento de la lista.
-                -->
-                <VerticalStackLayout Grid.Row="0" Spacing="12">
-                    <controls:ResponsiveCatalogHeader
-                        Title="Fuentes de nutrientes"
-                        Subtitle="Administre fuentes para balance, fertilización mixta y enmienda calcárea."
-                        BackText="← Configuración"
-                        BackCommand="{Binding RegresarConfiguracionCommand}"
-                        PrimaryText="+ Nueva fuente"
-                        PrimaryCommand="{Binding AddCommand}"
-                        IsPrimaryVisible="{Binding CanAdd}" />
-
-                    <Border Style="{StaticResource ModernCard}" Padding="8">
-                        <Border Style="{StaticResource ModernInputBorder}">
-                            <SearchBar
-                                Placeholder="Buscar por nombre o descripción"
-                                Text="{Binding TextoBusqueda}"
-                                SearchCommand="{Binding BuscarCommand}"
-                                Style="{StaticResource ModernSearchBar}" />
-                        </Border>
-                    </Border>
-                </VerticalStackLayout>
+                Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
 
                 <RefreshView
-                    Grid.Row="1"
                     IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
                     <CollectionView
@@ -90,8 +61,33 @@
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
 
+                        <!--
+                            Encabezado, búsqueda, clasificación, matriz y mensajes
+                            forman parte del desplazamiento natural de la colección.
+                            Se conservan los nombres utilizados por el code-behind.
+                        -->
                         <CollectionView.Header>
                             <VerticalStackLayout Padding="0,0,0,14" Spacing="12">
+
+                                <controls:ResponsiveCatalogHeader
+                                    Title="Fuentes de nutrientes"
+                                    Subtitle="Administre fuentes para balance, fertilización mixta y enmienda calcárea."
+                                    BackText="← Configuración"
+                                    BackCommand="{Binding RegresarConfiguracionCommand}"
+                                    PrimaryText="+ Nueva fuente"
+                                    PrimaryCommand="{Binding AddCommand}"
+                                    IsPrimaryVisible="{Binding CanAdd}" />
+
+                                <Border Style="{StaticResource ModernCard}" Padding="8">
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <SearchBar
+                                            Placeholder="Buscar por nombre o descripción"
+                                            Text="{Binding TextoBusqueda}"
+                                            SearchCommand="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernSearchBar}" />
+                                    </Border>
+                                </Border>
+
                                 <Border Style="{StaticResource ModernCard}" Padding="{OnIdiom Phone=12, Tablet=14, Desktop=16}">
                                     <VerticalStackLayout Spacing="11">
                                         <VerticalStackLayout Spacing="3">
@@ -441,7 +437,6 @@
                 </RefreshView>
 
                 <Grid
-                    Grid.RowSpan="2"
                     ZIndex="100"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="False"

@@ -66,49 +66,10 @@
             <!-- Contenido principal -->
             <Grid
                 IsVisible="{Binding CanView}"
-                Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-                RowDefinitions="Auto,Auto,Auto,*"
-                RowSpacing="14">
+                Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
-                <controls:ResponsiveCatalogHeader
-                    Grid.Row="0"
-                    Title="{Binding TitlePage}"
-                    Subtitle="Administre los municipios y consulte sus relaciones."
-                    BackText="← Departamentos"
-                    BackCommand="{Binding ReturnCommand}"
-                    PrimaryText="+ Nuevo municipio"
-                    PrimaryCommand="{Binding AddCommand}"
-                    IsPrimaryVisible="{Binding CanAdd}"
-                    ContextText="{Binding CodigoPais}"
-                    IsContextVisible="{Binding MostrarCodigoPais}" />
-
-                <!-- Búsqueda -->
-                <controls:ResponsiveSearchPanel
-                    Grid.Row="1"
-                    Placeholder="Buscar municipio por nombre"
-                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
-                    SummaryText="{Binding ResumenResultados}"
-                    SearchCommand="{Binding BuscarCommand}"
-                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
-                <Border
-                    Grid.Row="2"
-                    IsVisible="{Binding TieneMensaje}"
-                    Padding="12"
-                    BackgroundColor="#FFF7E6"
-                    Stroke="#F2C94C"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 12">
-
-                    <Label
-                        Text="{Binding Mensaje}"
-                        FontSize="13"
-                        TextColor="{StaticResource color_Negro}" />
-                </Border>
-
-                <!-- Listado -->
-                <RefreshView
-                    Grid.Row="3"
-                    IsRefreshing="{Binding IsRefreshing}"
+<RefreshView
+                        IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
 
                     <CollectionView
@@ -117,6 +78,52 @@
                         SelectionMode="None"
                         RemainingItemsThreshold="3"
                         RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+
+                        <!--
+                            Encabezado, búsqueda y mensajes forman parte del
+                            contenido desplazable. No se reparentan controles
+                            ni se cambia su padre visual en tiempo de ejecución.
+                        -->
+                        <CollectionView.Header>
+                            <VerticalStackLayout
+                                Spacing="14"
+                                Padding="0,0,0,14">
+
+                                <controls:ResponsiveCatalogHeader
+                                    Title="{Binding TitlePage}"
+                                    Subtitle="Administre los municipios y consulte sus relaciones."
+                                    BackText="← Departamentos"
+                                    BackCommand="{Binding ReturnCommand}"
+                                    PrimaryText="+ Nuevo municipio"
+                                    PrimaryCommand="{Binding AddCommand}"
+                                    IsPrimaryVisible="{Binding CanAdd}"
+                                    ContextText="{Binding CodigoPais}"
+                                    IsContextVisible="{Binding MostrarCodigoPais}" />
+
+                                <!-- Búsqueda -->
+                                <controls:ResponsiveSearchPanel
+                                    Placeholder="Buscar municipio por nombre"
+                                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                                    SummaryText="{Binding ResumenResultados}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
+                                <Border
+                                    IsVisible="{Binding TieneMensaje}"
+                                    Padding="12"
+                                    BackgroundColor="#FFF7E6"
+                                    Stroke="#F2C94C"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 12">
+
+                                    <Label
+                                        Text="{Binding Mensaje}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </Border>
+
+                                <!-- Listado -->
+                            </VerticalStackLayout>
+                        </CollectionView.Header>
 
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout
@@ -325,7 +332,6 @@
 
                 <!-- Indicador de carga -->
                 <Grid
-                    Grid.RowSpan="4"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="True"
                     BackgroundColor="#40FFFFFF">

@@ -40,35 +40,9 @@
 
             <Grid
                 IsVisible="{Binding CanView}"
-                Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}"
-                RowDefinitions="Auto,*"
-                RowSpacing="12">
-
-                <!--
-                    Encabezado y buscador permanecen fuera del CollectionView.
-                    Esto evita el congelamiento de WinUI al escribir mientras
-                    la lista virtualizada recalcula sus elementos.
-                -->
-                <VerticalStackLayout Grid.Row="0" Spacing="12">
-                    <controls:ResponsiveCatalogHeader
-                        Title="Rangos nutricionales"
-                        Subtitle="Seleccione un cultivo para administrar sus intervalos por elemento químico."
-                        BackText="← Configuración"
-                        BackCommand="{Binding RegresarConfiguracionCommand}"
-                        PrimaryText="+ Nuevo cultivo"
-                        PrimaryCommand="{Binding AddCategoryCommand}"
-                        IsPrimaryVisible="{Binding CanAdd}" />
-
-                    <controls:ResponsiveSearchPanel
-                        Placeholder="Buscar por cultivo o descripción"
-                        SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
-                        SummaryText="{Binding ResumenResultados}"
-                        SearchCommand="{Binding BuscarCommand}"
-                        ClearCommand="{Binding LimpiarFiltrosCommand}" />
-                </VerticalStackLayout>
+                Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
 
                 <RefreshView
-                    Grid.Row="1"
                     IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
                     <CollectionView
@@ -86,13 +60,38 @@
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
 
+                        <!--
+                            Encabezado, búsqueda y mensajes forman parte del
+                            contenido desplazable. No se mueven controles ni
+                            se cambia su padre visual en tiempo de ejecución.
+                        -->
                         <CollectionView.Header>
-                            <Border
-                                Margin="0,0,0,12"
-                                IsVisible="{Binding TieneMensaje}"
-                                Style="{StaticResource ModernWarningBanner}">
-                                <Label Text="{Binding Mensaje}" Style="{StaticResource ModernPageSubtitle}" />
-                            </Border>
+                            <VerticalStackLayout
+                                Spacing="12"
+                                Padding="0,0,0,12">
+
+                                <controls:ResponsiveCatalogHeader
+                                    Title="Rangos nutricionales"
+                                    Subtitle="Seleccione un cultivo para administrar sus intervalos por elemento químico."
+                                    BackText="← Configuración"
+                                    BackCommand="{Binding RegresarConfiguracionCommand}"
+                                    PrimaryText="+ Nuevo cultivo"
+                                    PrimaryCommand="{Binding AddCategoryCommand}"
+                                    IsPrimaryVisible="{Binding CanAdd}" />
+
+                                <controls:ResponsiveSearchPanel
+                                    Placeholder="Buscar por cultivo o descripción"
+                                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                                    SummaryText="{Binding ResumenResultados}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
+
+                                <Border
+                                    IsVisible="{Binding TieneMensaje}"
+                                    Style="{StaticResource ModernWarningBanner}">
+                                    <Label Text="{Binding Mensaje}" Style="{StaticResource ModernPageSubtitle}" />
+                                </Border>
+                            </VerticalStackLayout>
                         </CollectionView.Header>
 
                         <CollectionView.EmptyView>
@@ -217,7 +216,6 @@
                 </RefreshView>
 
                 <Grid
-                    Grid.RowSpan="2"
                     ZIndex="100"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="False"

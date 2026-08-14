@@ -10,53 +10,10 @@
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Grid Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
-        <!-- Buscador fuera de la zona virtualizada para mantener estable WinUI. -->
         <Grid
-            IsVisible="{Binding CanView}"
-            RowDefinitions="Auto,*"
-            RowSpacing="12">
-
-            <VerticalStackLayout Grid.Row="0" Spacing="12">
-                <controls:ResponsiveCatalogHeader
-                    Title="Fuentes eliminadas"
-                    Subtitle="Reactive fuentes de nutrientes conservando sus datos, clasificación, precio y aportes anteriores."
-                    BackText="← Cerrar"
-                    BackCommand="{Binding CerrarCommand}"
-                    IsPrimaryVisible="False" />
-
-                <Border Style="{StaticResource ModernFormCard}">
-                    <VerticalStackLayout Spacing="10">
-                        <Border Style="{StaticResource ModernInputBorder}">
-                            <SearchBar
-                                Placeholder="Buscar una fuente eliminada"
-                                Text="{Binding TextoBusqueda}"
-                                SearchCommand="{Binding BuscarCommand}"
-                                Style="{StaticResource ModernSearchBar}" />
-                        </Border>
-
-                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                            <Label
-                                Text="{Binding Resumen}"
-                                VerticalOptions="Center"
-                                Style="{StaticResource ModernCaption}"
-                                FontSize="11.5" />
-                            <Button
-                                Grid.Column="1"
-                                Text="Buscar"
-                                Command="{Binding BuscarCommand}"
-                                Style="{StaticResource ModernPrimaryButton}" />
-                            <Button
-                                Grid.Column="2"
-                                Text="Limpiar"
-                                Command="{Binding LimpiarCommand}"
-                                Style="{StaticResource ModernNeutralButton}" />
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
-            </VerticalStackLayout>
+            IsVisible="{Binding CanView}">
 
             <RefreshView
-                Grid.Row="1"
                 IsRefreshing="{Binding IsRefreshing}"
                 Command="{Binding RefrescarCommand}">
 
@@ -64,18 +21,63 @@
                     ItemsSource="{Binding Fuentes}"
                     SelectionMode="None">
 
+                    <!--
+                        Encabezado, búsqueda y mensaje forman parte del contenido
+                        desplazable. No se reparentan controles en ejecución.
+                    -->
                     <CollectionView.Header>
-                        <Border
-                            Margin="0,0,0,12"
-                            IsVisible="{Binding TieneMensaje}"
-                            Style="{StaticResource ModernWarningBanner}">
-                            <Label
-                                Text="{Binding Mensaje}"
-                                FontFamily="MontserratMedium"
-                                FontSize="12"
-                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
-                                LineBreakMode="WordWrap" />
-                        </Border>
+                        <VerticalStackLayout
+                            Spacing="12"
+                            Padding="0,0,0,12">
+
+                            <controls:ResponsiveCatalogHeader
+                                Title="Fuentes eliminadas"
+                                Subtitle="Reactive fuentes de nutrientes conservando sus datos, clasificación, precio y aportes anteriores."
+                                BackText="← Cerrar"
+                                BackCommand="{Binding CerrarCommand}"
+                                IsPrimaryVisible="False" />
+
+                            <Border Style="{StaticResource ModernFormCard}">
+                                <VerticalStackLayout Spacing="10">
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <SearchBar
+                                            Placeholder="Buscar una fuente eliminada"
+                                            Text="{Binding TextoBusqueda}"
+                                            SearchCommand="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernSearchBar}" />
+                                    </Border>
+
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                        <Label
+                                            Text="{Binding Resumen}"
+                                            VerticalOptions="Center"
+                                            Style="{StaticResource ModernCaption}"
+                                            FontSize="11.5" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Buscar"
+                                            Command="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernPrimaryButton}" />
+                                        <Button
+                                            Grid.Column="2"
+                                            Text="Limpiar"
+                                            Command="{Binding LimpiarCommand}"
+                                            Style="{StaticResource ModernNeutralButton}" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border
+                                IsVisible="{Binding TieneMensaje}"
+                                Style="{StaticResource ModernWarningBanner}">
+                                <Label
+                                    Text="{Binding Mensaje}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                    LineBreakMode="WordWrap" />
+                            </Border>
+                        </VerticalStackLayout>
                     </CollectionView.Header>
 
                     <CollectionView.ItemsLayout>

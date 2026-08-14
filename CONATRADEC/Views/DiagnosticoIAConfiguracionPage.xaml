@@ -11,23 +11,24 @@
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
-            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-            RowDefinitions="Auto,*"
-            RowSpacing="14">
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
-            <controls:ResponsiveCatalogHeader
-                Grid.Row="0"
-                Title="Configuración de inteligencia artificial"
-                Subtitle="Límites de revisión y catálogo de tipos de fotografía utilizados por el análisis visual."
-                BackText="Regresar"
-                BackCommand="{Binding RegresarCommand}"
-                IsPrimaryVisible="False" />
-
-            <ScrollView Grid.Row="1">
+            <!--
+                Toda la configuración, incluido el encabezado, comparte un único
+                desplazamiento vertical natural.
+            -->
+            <ScrollView>
                 <VerticalStackLayout
                     Spacing="14"
                     MaximumWidthRequest="900"
                     HorizontalOptions="Center">
+
+                    <controls:ResponsiveCatalogHeader
+                        Title="Configuración de inteligencia artificial"
+                        Subtitle="Límites de revisión y catálogo de tipos de fotografía utilizados por el análisis visual."
+                        BackText="Regresar"
+                        BackCommand="{Binding RegresarCommand}"
+                        IsPrimaryVisible="False" />
 
                     <Border
                         Padding="14"

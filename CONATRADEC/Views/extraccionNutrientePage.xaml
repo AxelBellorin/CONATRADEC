@@ -63,43 +63,9 @@
 
             <Grid
                 IsVisible="{Binding CanView}"
-                Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-                RowDefinitions="Auto,Auto,Auto,*"
-                RowSpacing="14">
-
-                <controls:ResponsiveCatalogHeader
-                    Grid.Row="0"
-                    Title="Extracción por quintal oro"
-                    Subtitle="Configure la cantidad de nutriente exportada por cada quintal oro producido."
-                    BackText="← Configuración"
-                    BackCommand="{Binding RegresarConfiguracionCommand}"
-                    PrimaryText="+ Nuevo parámetro"
-                    PrimaryCommand="{Binding AddCommand}"
-                    IsPrimaryVisible="{Binding CanAdd}" />
-                <controls:ResponsiveSearchPanel
-                    Grid.Row="1"
-                    Placeholder="Buscar por elemento, símbolo o descripción"
-                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
-                    SummaryText="{Binding ResumenResultados}"
-                    SearchCommand="{Binding BuscarCommand}"
-                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
-                <Border
-                    Grid.Row="2"
-                    IsVisible="{Binding TieneMensaje}"
-                    Padding="12"
-                    BackgroundColor="#FFF7E6"
-                    Stroke="#F2C94C"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 12">
-
-                    <Label
-                        Text="{Binding Mensaje}"
-                        FontSize="13"
-                        TextColor="{StaticResource color_Negro}" />
-                </Border>
+                Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
                 <RefreshView
-                    Grid.Row="3"
                     IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
 
@@ -108,6 +74,48 @@
                         SelectionMode="None"
                         RemainingItemsThreshold="3"
                         RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+
+                        <!--
+                            Encabezado, búsqueda y mensajes forman parte del
+                            contenido desplazable. No se reparentan controles
+                            durante la ejecución.
+                        -->
+                        <CollectionView.Header>
+                            <VerticalStackLayout
+                                Spacing="14"
+                                Padding="0,0,0,14">
+
+                                <controls:ResponsiveCatalogHeader
+                                    Title="Extracción por quintal oro"
+                                    Subtitle="Configure la cantidad de nutriente exportada por cada quintal oro producido."
+                                    BackText="← Configuración"
+                                    BackCommand="{Binding RegresarConfiguracionCommand}"
+                                    PrimaryText="+ Nuevo parámetro"
+                                    PrimaryCommand="{Binding AddCommand}"
+                                    IsPrimaryVisible="{Binding CanAdd}" />
+
+                                <controls:ResponsiveSearchPanel
+                                    Placeholder="Buscar por elemento, símbolo o descripción"
+                                    SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
+                                    SummaryText="{Binding ResumenResultados}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    ClearCommand="{Binding LimpiarFiltrosCommand}" />
+
+                                <Border
+                                    IsVisible="{Binding TieneMensaje}"
+                                    Padding="12"
+                                    BackgroundColor="#FFF7E6"
+                                    Stroke="#F2C94C"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 12">
+
+                                    <Label
+                                        Text="{Binding Mensaje}"
+                                        FontSize="13"
+                                        TextColor="{StaticResource color_Negro}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </CollectionView.Header>
 
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout
@@ -307,7 +315,6 @@
                 </RefreshView>
 
                 <Grid
-                    Grid.RowSpan="4"
                     IsVisible="{Binding IsBusy}"
                     InputTransparent="True"
                     BackgroundColor="#40FFFFFF">

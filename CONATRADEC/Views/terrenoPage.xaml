@@ -13,70 +13,9 @@
     <Grid>
         <Grid
             x:Name="ContenidoPrincipal"
-            RowDefinitions="Auto,*"
-            RowSpacing="12"
             Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}">
 
-            <!--
-                Encabezado y búsqueda fuera del CollectionView.
-                Evita que el control de texto sea re-medido por la virtualización
-                del listado mientras el usuario escribe en Android o Windows.
-            -->
-            <VerticalStackLayout
-                Grid.Row="0"
-                Spacing="10">
-
-                <controls:ResponsiveCatalogHeader
-                    Title="Terrenos"
-                    Subtitle="{Binding TotalTexto}"
-                    BackText="← Configuración"
-                    BackCommand="{Binding Source={x:Reference TerrenosRoot}, Path=RegresarConfiguracionCommand}"
-                    PrimaryText="+ Nuevo terreno"
-                    PrimaryCommand="{Binding AddCommand}"
-                    IsPrimaryVisible="{Binding CanAdd}" />
-
-                <!-- Búsqueda principal -->
-                <Border Style="{StaticResource ModernCard}" Padding="12">
-                    <VerticalStackLayout Spacing="10">
-                        <Border Style="{StaticResource ModernInputBorder}" Padding="6,0">
-                            <SearchBar
-                                Placeholder="Código, propietario, identificación o dirección"
-                                Text="{Binding TextoBusqueda}"
-                                SearchCommand="{Binding BuscarCommand}"
-                                Style="{StaticResource ModernSearchBar}" />
-                        </Border>
-
-                        <Grid
-                            x:Name="BusquedaAccionesGrid"
-                            ColumnDefinitions="*,Auto,Auto"
-                            ColumnSpacing="8"
-                            RowSpacing="8">
-
-                            <Button
-                                Text="Buscar"
-                                Command="{Binding BuscarCommand}"
-                                Style="{StaticResource ModernPrimaryButton}" />
-
-                            <Button
-                                Grid.Column="1"
-                                Text="{Binding TextoBotonFiltros}"
-                                Command="{Binding AlternarFiltrosCommand}"
-                                Style="{StaticResource ModernSecondaryButton}"
-                                HeightRequest="48" />
-
-                            <Button
-                                Grid.Column="2"
-                                Text="Limpiar"
-                                Command="{Binding LimpiarFiltrosCommand}"
-                                Style="{StaticResource ModernNeutralButton}"
-                                HeightRequest="48" />
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
-            </VerticalStackLayout>
-
             <RefreshView
-                Grid.Row="1"
                 IsRefreshing="{Binding IsRefreshing}"
                 Command="{Binding RefrescarCommand}">
 
@@ -100,8 +39,61 @@
                             VerticalItemSpacing="12" />
                     </CollectionView.ItemsLayout>
 
+                    <!--
+                        Encabezado, búsqueda y filtros forman parte del contenido
+                        desplazable. Se conserva la misma colección y los mismos
+                        nombres usados por la paginación y el diseño responsivo.
+                    -->
                     <CollectionView.Header>
                         <VerticalStackLayout Spacing="10" Padding="0,0,0,10">
+
+                            <controls:ResponsiveCatalogHeader
+                                Title="Terrenos"
+                                Subtitle="{Binding TotalTexto}"
+                                BackText="← Configuración"
+                                BackCommand="{Binding Source={x:Reference TerrenosRoot}, Path=RegresarConfiguracionCommand}"
+                                PrimaryText="+ Nuevo terreno"
+                                PrimaryCommand="{Binding AddCommand}"
+                                IsPrimaryVisible="{Binding CanAdd}" />
+
+                            <!-- Búsqueda principal -->
+                            <Border Style="{StaticResource ModernCard}" Padding="12">
+                                <VerticalStackLayout Spacing="10">
+                                    <Border Style="{StaticResource ModernInputBorder}" Padding="6,0">
+                                        <SearchBar
+                                            Placeholder="Código, propietario, identificación o dirección"
+                                            Text="{Binding TextoBusqueda}"
+                                            SearchCommand="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernSearchBar}" />
+                                    </Border>
+
+                                    <Grid
+                                        x:Name="BusquedaAccionesGrid"
+                                        ColumnDefinitions="*,Auto,Auto"
+                                        ColumnSpacing="8"
+                                        RowSpacing="8">
+
+                                        <Button
+                                            Text="Buscar"
+                                            Command="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernPrimaryButton}" />
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="{Binding TextoBotonFiltros}"
+                                            Command="{Binding AlternarFiltrosCommand}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            HeightRequest="48" />
+
+                                        <Button
+                                            Grid.Column="2"
+                                            Text="Limpiar"
+                                            Command="{Binding LimpiarFiltrosCommand}"
+                                            Style="{StaticResource ModernNeutralButton}"
+                                            HeightRequest="48" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
 
                             <!-- Filtros avanzados -->
                             <Border
@@ -500,7 +492,6 @@
             </RefreshView>
 
             <Grid
-                Grid.RowSpan="2"
                 IsVisible="{Binding IsBusy}"
                 InputTransparent="False"
                 BackgroundColor="#36000000">

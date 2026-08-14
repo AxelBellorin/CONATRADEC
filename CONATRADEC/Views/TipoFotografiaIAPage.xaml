@@ -11,190 +11,197 @@
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
-            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}"
-            RowDefinitions="Auto,Auto,*"
-            RowSpacing="14">
+            Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
-            <controls:ResponsiveCatalogHeader
-                Grid.Row="0"
-                Title="Tipos de fotografía para IA"
-                Subtitle="Administre el nombre, orden y la instrucción que orienta el análisis visual de cada evidencia."
-                BackText="← Configuración de IA"
-                BackCommand="{Binding RegresarCommand}"
-                PrimaryText="Nuevo tipo"
-                PrimaryCommand="{Binding NuevoCommand}"
-                IsPrimaryVisible="{Binding CanAdd}" />
+            <CollectionView
+                ItemsSource="{Binding Items}"
+                SelectionMode="None">
 
-            <Border
-                Grid.Row="1"
-                Padding="12"
-                BackgroundColor="White"
-                Stroke="#D9E3DF"
-                StrokeShape="RoundRectangle 13">
-                <Grid
-                    ColumnDefinitions="*,Auto,Auto"
-                    ColumnSpacing="10">
-                    <SearchBar
-                        Grid.Column="0"
-                        Placeholder="Buscar por código, nombre o instrucción"
-                        Text="{Binding TextoBusqueda}"
-                        SearchCommand="{Binding BuscarCommand}"
-                        BackgroundColor="Transparent" />
-                    <HorizontalStackLayout
-                        Grid.Column="1"
-                        Spacing="5"
-                        VerticalOptions="Center">
-                        <CheckBox
-                            IsChecked="{Binding MostrarInactivos}"
-                            Color="#3B655B" />
-                        <Label
-                            Text="Mostrar inactivos"
-                            VerticalTextAlignment="Center"
-                            TextColor="#263A35" />
-                    </HorizontalStackLayout>
-                    <Button
-                        Grid.Column="2"
-                        Text="Actualizar"
-                        Command="{Binding ActualizarCommand}"
-                        WidthRequest="150"
-                        HeightRequest="46"
-                        BackgroundColor="#E3EFEA"
-                        TextColor="#3B655B" />
-                </Grid>
-            </Border>
+                <!--
+                    Encabezado, búsqueda, filtro y mensaje se desplazan con el
+                    catálogo sin reparentado dinámico.
+                -->
+                <CollectionView.Header>
+                    <VerticalStackLayout
+                        Spacing="14"
+                        Padding="0,0,0,14">
 
-            <Grid Grid.Row="2">
-                <CollectionView
-                    ItemsSource="{Binding Items}"
-                    SelectionMode="None">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout
-                            Orientation="Vertical"
-                            ItemSpacing="10" />
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.EmptyView>
+                        <controls:ResponsiveCatalogHeader
+                            Title="Tipos de fotografía para IA"
+                            Subtitle="Administre el nombre, orden y la instrucción que orienta el análisis visual de cada evidencia."
+                            BackText="← Configuración de IA"
+                            BackCommand="{Binding RegresarCommand}"
+                            PrimaryText="Nuevo tipo"
+                            PrimaryCommand="{Binding NuevoCommand}"
+                            IsPrimaryVisible="{Binding CanAdd}" />
+
                         <Border
-                            Padding="24"
-                            Margin="0,20"
+                            Padding="12"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 13">
+                            <Grid
+                                ColumnDefinitions="*,Auto,Auto"
+                                ColumnSpacing="10">
+                                <SearchBar
+                                    Grid.Column="0"
+                                    Placeholder="Buscar por código, nombre o instrucción"
+                                    Text="{Binding TextoBusqueda}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    BackgroundColor="Transparent" />
+                                <HorizontalStackLayout
+                                    Grid.Column="1"
+                                    Spacing="5"
+                                    VerticalOptions="Center">
+                                    <CheckBox
+                                        IsChecked="{Binding MostrarInactivos}"
+                                        Color="#3B655B" />
+                                    <Label
+                                        Text="Mostrar inactivos"
+                                        VerticalTextAlignment="Center"
+                                        TextColor="#263A35" />
+                                </HorizontalStackLayout>
+                                <Button
+                                    Grid.Column="2"
+                                    Text="Actualizar"
+                                    Command="{Binding ActualizarCommand}"
+                                    WidthRequest="150"
+                                    HeightRequest="46"
+                                    BackgroundColor="#E3EFEA"
+                                    TextColor="#3B655B" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            IsVisible="{Binding TieneMensajeEstado}"
+                            Padding="14"
+                            HorizontalOptions="Center"
+                            BackgroundColor="#FFF9E8"
+                            Stroke="#E2B93B"
+                            StrokeShape="RoundRectangle 12">
+                            <HorizontalStackLayout Spacing="10">
+                                <ActivityIndicator
+                                    IsRunning="{Binding IsBusy}"
+                                    Color="#9B552C" />
+                                <Label
+                                    Text="{Binding MensajeEstado}"
+                                    VerticalTextAlignment="Center"
+                                    TextColor="#6B5710" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout
+                        Orientation="Vertical"
+                        ItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.EmptyView>
+                    <Border
+                        Padding="24"
+                        Margin="0,20"
+                        BackgroundColor="White"
+                        Stroke="#D9E3DF"
+                        StrokeShape="RoundRectangle 14">
+                        <Label
+                            Text="No se encontraron tipos de fotografía."
+                            HorizontalTextAlignment="Center"
+                            TextColor="#7A8581" />
+                    </Border>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:TipoFotografiaIAItem">
+                        <Border
+                            Padding="16"
                             BackgroundColor="White"
                             Stroke="#D9E3DF"
                             StrokeShape="RoundRectangle 14">
-                            <Label
-                                Text="No se encontraron tipos de fotografía."
-                                HorizontalTextAlignment="Center"
-                                TextColor="#7A8581" />
-                        </Border>
-                    </CollectionView.EmptyView>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:TipoFotografiaIAItem">
-                            <Border
-                                Padding="16"
-                                BackgroundColor="White"
-                                Stroke="#D9E3DF"
-                                StrokeShape="RoundRectangle 14">
-                                <Grid
-                                    ColumnDefinitions="*,Auto"
-                                    RowDefinitions="Auto,Auto,Auto,Auto"
-                                    ColumnSpacing="14"
-                                    RowSpacing="5">
-                                    <HorizontalStackLayout Spacing="10">
-                                        <Label
-                                            Text="{Binding NombreMostrar}"
-                                            FontSize="18"
-                                            FontAttributes="Bold"
-                                            TextColor="#263A35" />
-                                        <Label
-                                            Text="{Binding EstadoTexto}"
-                                            FontAttributes="Bold"
-                                            TextColor="{Binding EstadoColor}"
-                                            VerticalTextAlignment="Center" />
-                                    </HorizontalStackLayout>
-
+                            <Grid
+                                ColumnDefinitions="*,Auto"
+                                RowDefinitions="Auto,Auto,Auto,Auto"
+                                ColumnSpacing="14"
+                                RowSpacing="5">
+                                <HorizontalStackLayout Spacing="10">
                                     <Label
-                                        Grid.Row="1"
-                                        Text="{Binding CodigoTexto}"
-                                        FontSize="12"
+                                        Text="{Binding NombreMostrar}"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="#263A35" />
+                                    <Label
+                                        Text="{Binding EstadoTexto}"
+                                        FontAttributes="Bold"
+                                        TextColor="{Binding EstadoColor}"
+                                        VerticalTextAlignment="Center" />
+                                </HorizontalStackLayout>
+
+                                <Label
+                                    Grid.Row="1"
+                                    Text="{Binding CodigoTexto}"
+                                    FontSize="12"
+                                    TextColor="#7A8581" />
+
+                                <Label
+                                    Grid.Row="2"
+                                    Text="{Binding Descripcion}"
+                                    TextColor="#5E6B67"
+                                    LineBreakMode="WordWrap" />
+
+                                <Label
+                                    Grid.Row="3"
+                                    Text="{Binding InstruccionVisible}"
+                                    TextColor="#3B655B"
+                                    LineBreakMode="WordWrap"
+                                    MaxLines="4" />
+
+                                <VerticalStackLayout
+                                    Grid.Column="1"
+                                    Grid.RowSpan="4"
+                                    Spacing="7"
+                                    WidthRequest="150">
+                                    <Label
+                                        Text="{Binding OrdenTexto}"
+                                        HorizontalTextAlignment="Center"
                                         TextColor="#7A8581" />
-
-                                    <Label
-                                        Grid.Row="2"
-                                        Text="{Binding Descripcion}"
-                                        TextColor="#5E6B67"
-                                        LineBreakMode="WordWrap" />
-
-                                    <Label
-                                        Grid.Row="3"
-                                        Text="{Binding InstruccionVisible}"
-                                        TextColor="#3B655B"
-                                        LineBreakMode="WordWrap"
-                                        MaxLines="4" />
-
-                                    <VerticalStackLayout
-                                        Grid.Column="1"
-                                        Grid.RowSpan="4"
-                                        Spacing="7"
-                                        WidthRequest="150">
-                                        <Label
-                                            Text="{Binding OrdenTexto}"
-                                            HorizontalTextAlignment="Center"
-                                            TextColor="#7A8581" />
-                                        <Button
-                                            Text="Ver"
-                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.VerCommand}"
-                                            CommandParameter="{Binding .}"
-                                            HeightRequest="42"
-                                            BackgroundColor="#EEF2F0"
-                                            TextColor="#263A35" />
-                                        <Button
-                                            Text="Editar"
-                                            IsVisible="{Binding Activo}"
-                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.EditarCommand}"
-                                            CommandParameter="{Binding .}"
-                                            HeightRequest="42"
-                                            BackgroundColor="#3B655B"
-                                            TextColor="White" />
-                                        <Button
-                                            Text="Desactivar"
-                                            IsVisible="{Binding PuedeDesactivarse}"
-                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.EliminarCommand}"
-                                            CommandParameter="{Binding .}"
-                                            HeightRequest="42"
-                                            BackgroundColor="#FDECEC"
-                                            TextColor="#B42318" />
-                                        <Button
-                                            Text="Recuperar"
-                                            IsVisible="{Binding Inactivo}"
-                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.RecuperarCommand}"
-                                            CommandParameter="{Binding .}"
-                                            HeightRequest="42"
-                                            BackgroundColor="#E3EFEA"
-                                            TextColor="#3B655B" />
-                                    </VerticalStackLayout>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <Border
-                    IsVisible="{Binding TieneMensajeEstado}"
-                    Padding="14"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Start"
-                    BackgroundColor="#FFF9E8"
-                    Stroke="#E2B93B"
-                    StrokeShape="RoundRectangle 12">
-                    <HorizontalStackLayout Spacing="10">
-                        <ActivityIndicator
-                            IsRunning="{Binding IsBusy}"
-                            Color="#9B552C" />
-                        <Label
-                            Text="{Binding MensajeEstado}"
-                            VerticalTextAlignment="Center"
-                            TextColor="#6B5710" />
-                    </HorizontalStackLayout>
-                </Border>
-            </Grid>
+                                    <Button
+                                        Text="Ver"
+                                        Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.VerCommand}"
+                                        CommandParameter="{Binding .}"
+                                        HeightRequest="42"
+                                        BackgroundColor="#EEF2F0"
+                                        TextColor="#263A35" />
+                                    <Button
+                                        Text="Editar"
+                                        IsVisible="{Binding Activo}"
+                                        Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.EditarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        HeightRequest="42"
+                                        BackgroundColor="#3B655B"
+                                        TextColor="White" />
+                                    <Button
+                                        Text="Desactivar"
+                                        IsVisible="{Binding PuedeDesactivarse}"
+                                        Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.EliminarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        HeightRequest="42"
+                                        BackgroundColor="#FDECEC"
+                                        TextColor="#B42318" />
+                                    <Button
+                                        Text="Recuperar"
+                                        IsVisible="{Binding Inactivo}"
+                                        Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.RecuperarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        HeightRequest="42"
+                                        BackgroundColor="#E3EFEA"
+                                        TextColor="#3B655B" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
         </Grid>
     </ContentView>
 </ContentPage>

@@ -6,8 +6,6 @@ namespace CONATRADEC.Views
     {
         private readonly MatrizPermisosViewModel viewModel = new();
 
-        private bool anchoCompactoActual;
-
         public matrizPermisosPage()
         {
             InitializeComponent();
@@ -47,11 +45,12 @@ namespace CONATRADEC.Views
         }
 
         /// <summary>
-        /// La matriz prioriza el listado de permisos.
+        /// La matriz utiliza un único desplazamiento vertical mediante
+        /// PermisosList. El encabezado, selector, buscador y acciones
+        /// masivas forman parte del Header del CollectionView.
         ///
-        /// El encabezado, selector, buscador y acciones masivas comparten
-        /// un panel superior desplazable que cede espacio en teléfonos y
-        /// ventanas con poca altura.
+        /// Aquí solo se ajustan las acciones inferiores para conservar
+        /// una presentación compacta en teléfono y ventanas estrechas.
         /// </summary>
         private void AjustarDistribucion(
             double width,
@@ -59,54 +58,29 @@ namespace CONATRADEC.Views
         {
             if (width <= 0 ||
                 height <= 0 ||
-                PanelSuperiorScroll == null)
+                PermisosList == null ||
+                AccionesInferioresGrid == null ||
+                BotonGuardar == null ||
+                BotonRevertir == null)
             {
                 return;
             }
 
             bool telefono = width < 600;
             bool alturaCompacta = height < 760;
+            bool anchoCompacto = width < 720;
 
-            double porcentajeSuperior =
-                telefono
-                    ? 0.44
-                    : alturaCompacta
-                        ? 0.34
-                        : 0.42;
-
-            double minimoSuperior =
-                telefono
-                    ? 230
-                    : alturaCompacta
-                        ? 175
-                        : 245;
-
-            double maximoSuperior =
-                telefono
-                    ? 360
-                    : alturaCompacta
-                        ? 250
-                        : 390;
-
-            PanelSuperiorScroll.MaximumHeightRequest =
-                Math.Clamp(
-                    height * porcentajeSuperior,
-                    minimoSuperior,
-                    maximoSuperior);
-
+            /*
+             * La lista ocupa la fila flexible de la pantalla. El mínimo evita
+             * que quede inutilizable en ventanas muy bajas sin crear un segundo
+             * ScrollView vertical.
+             */
             PermisosList.MinimumHeightRequest =
                 telefono
                     ? 220
                     : alturaCompacta
                         ? 230
                         : 290;
-
-            bool anchoCompacto = width < 720;
-
-            if (anchoCompactoActual == anchoCompacto)
-                return;
-
-            anchoCompactoActual = anchoCompacto;
 
             BotonGuardar.Text =
                 anchoCompacto
