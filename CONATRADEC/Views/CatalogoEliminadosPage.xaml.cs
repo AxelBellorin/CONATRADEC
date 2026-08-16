@@ -19,7 +19,11 @@ namespace CONATRADEC.Views
         private Label? resumenLabel;
         private Button? buscarButton;
         private Button? limpiarButton;
+        private Button? paginaAnteriorButton;
+        private Button? paginaSiguienteButton;
         private bool inicializacionSolicitada;
+        private bool eventosPaginacionConfigurados;
+        private int paginaAntesCambio = -1;
 
         public CatalogoEliminadosPage(
             CatalogoEliminadoConfiguracion configuracion)
@@ -38,11 +42,14 @@ namespace CONATRADEC.Views
             SizeChanged += OnPaginaSizeChanged;
             RegistrosCollection.SizeChanged +=
                 OnRegistrosCollectionSizeChanged;
+
+            ConfigurarScrollPaginacion();
         }
 
         protected override void OnAppearing()
         {
             base.OnAppearing();
+            ConfigurarScrollPaginacion();
             AplicarDisenoResponsivo();
         }
 
@@ -91,6 +98,7 @@ namespace CONATRADEC.Views
             object? sender,
             EventArgs e)
         {
+            ConfigurarScrollPaginacion();
             AplicarDisenoResponsivo();
         }
 
@@ -113,6 +121,134 @@ namespace CONATRADEC.Views
             NotifyCollectionChangedEventArgs e)
         {
             AplicarColumnas();
+        }
+
+        /// <summary>
+        /// Localiza los botones de paginación de la pantalla común y conecta
+        /// los eventos de presentación sin reemplazar los Command del ViewModel.
+        /// Así Usuarios inactivos, Terrenos eliminados y cualquier catálogo
+        /// paginado que reutilice esta vista conserva una sola implementación.
+        /// </summary>
+        private void ConfigurarScrollPaginacion()
+        {
+            if (eventosPaginacionConfigurados)
+                return;
+
+            paginaAnteriorButton ??=
+                ResponsiveLayoutUtility.FindDescendant<Button>(
+                    this,
+                    button =>
+                        string.Equals(
+                            button.Text?.Trim(),
+                            "← Anterior",
+                            StringComparison.OrdinalIgnoreCase));
+
+            paginaSiguienteButton ??=
+                ResponsiveLayoutUtility.FindDescendant<Button>(
+                    this,
+                    button =>
+                        string.Equals(
+                            button.Text?.Trim(),
+                            "Siguiente →",
+                            StringComparison.OrdinalIgnoreCase));
+
+            if (paginaAnteriorButton == null ||
+                paginaSiguienteButton == null)
+            {
+                return;
+            }
+
+            paginaAnteriorButton.Pressed +=
+                PaginacionEliminados_Pressed;
+            paginaSiguienteButton.Pressed +=
+                PaginacionEliminados_Pressed;
+
+            paginaAnteriorButton.Clicked +=
+                PaginacionEliminados_Clicked;
+            paginaSiguienteButton.Clicked +=
+                PaginacionEliminados_Clicked;
+
+            eventosPaginacionConfigurados = true;
+        }
+
+        /// <summary>
+        /// Captura la página visible antes de que el Command solicite la nueva
+        /// página. Pressed ocurre antes de Clicked y permite detectar el cambio
+        /// incluso si la respuesta del servidor es muy rápida.
+        /// </summary>
+        private void PaginacionEliminados_Pressed(
+            object? sender,
+            EventArgs e)
+        {
+            if (BindingContext is CatalogoEliminadosViewModel viewModel)
+            {
+                paginaAntesCambio =
+                    viewModel.PaginaActual;
+            }
+        }
+
+        /// <summary>
+        /// Después de Anterior/Siguiente espera a que termine la consulta y
+        /// posiciona el primer registro de la nueva página al inicio visible.
+        /// El ViewModel continúa siendo el único responsable de la paginación.
+        /// </summary>
+        private async void PaginacionEliminados_Clicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (BindingContext is not CatalogoEliminadosViewModel viewModel)
+                return;
+
+            int paginaOrigen =
+                paginaAntesCambio > 0
+                    ? paginaAntesCambio
+                    : viewModel.PaginaActual;
+
+            bool operacionDetectada = false;
+
+            for (int intento = 0; intento < 240; intento++)
+            {
+                if (viewModel.IsBusy ||
+                    viewModel.PaginaActual != paginaOrigen)
+                {
+                    operacionDetectada = true;
+                }
+
+                if (operacionDetectada &&
+                    !viewModel.IsBusy)
+                {
+                    if (viewModel.PaginaActual != paginaOrigen &&
+                        viewModel.Registros.Count > 0)
+                    {
+                        await DesplazarRegistrosAlInicioAsync();
+                    }
+
+                    paginaAntesCambio = -1;
+                    return;
+                }
+
+                await Task.Delay(50);
+            }
+
+            paginaAntesCambio = -1;
+        }
+
+        private async Task DesplazarRegistrosAlInicioAsync()
+        {
+            if (RegistrosCollection == null ||
+                BindingContext is not CatalogoEliminadosViewModel viewModel ||
+                viewModel.Registros.Count == 0)
+            {
+                return;
+            }
+
+            // Permite que CollectionView materialice la nueva página.
+            await Task.Delay(60);
+
+            RegistrosCollection.ScrollTo(
+                0,
+                position: ScrollToPosition.Start,
+                animate: false);
         }
 
         /// <summary>

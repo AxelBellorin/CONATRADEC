@@ -1,6 +1,5 @@
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
-using Microsoft.Maui.Devices;
 using System.Windows.Input;
 
 namespace CONATRADEC.Views
@@ -17,62 +16,15 @@ namespace CONATRADEC.Views
         private readonly TerrenoViewModel viewModel = new();
 
         private bool accionesCompactas;
-        private bool navegandoAConfiguracion;
-        private int cantidadAntesCargaManual = -1;
+        private bool navegacionShellSuscrita;
+        private bool salidaExternaPendiente;
         private int modoFiltrosFecha = -1;
-
-        private Button? cargarMasRespaldoButton;
 
         public terrenoPage()
         {
-            /*
-             * El comando debe existir antes de InitializeComponent().
-             *
-             * El encabezado responsive utiliza x:Reference para enlazar
-             * esta propiedad durante la carga del XAML. Si se asigna
-             * después, el botón queda visible pero recibe Command = null.
-             */
-            RegresarConfiguracionCommand =
-                new Command(
-                    async () =>
-                        await RegresarConfiguracionAsync(),
-                    () => !navegandoAConfiguracion);
-
             InitializeComponent();
 
             BindingContext = viewModel;
-
-            /*
-             * Respaldo de carga incremental.
-             *
-             * RemainingItemsThreshold permanece activo desde el XAML, pero
-             * WinUI puede reportar los índices visibles de forma diferente
-             * cuando el CollectionView usa GridItemsLayout con 2 o 3 columnas.
-             * Escuchamos Scrolled y calculamos el umbral tanto como índice de
-             * elementos como índice aproximado de filas para que la siguiente
-             * página se solicite de forma confiable en Windows, tablet y móvil.
-             */
-            /*
-             * En Windows conservamos la precarga automática porque WinUI
-             * responde bien con el respaldo adicional de Scrolled.
-             *
-             * En Android/Tablet se deshabilita el umbral automático. Cuando
-             * el usuario permanece al final del CollectionView, Android puede
-             * volver a disparar la carga incremental inmediatamente después
-             * de agregar la página anterior. El botón del footer queda como
-             * navegación controlada: un toque = una página.
-             */
-            if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
-            {
-                TerrenosCollectionView.Scrolled +=
-                    TerrenosCollectionView_Scrolled;
-
-                TerrenosCollectionView.RemainingItemsThreshold = 10;
-            }
-            else
-            {
-                TerrenosCollectionView.RemainingItemsThreshold = -1;
-            }
 
             /*
              * Mientras no existan registros se conserva una sola columna para
@@ -85,20 +37,24 @@ namespace CONATRADEC.Views
             TerrenosCollectionView.SizeChanged +=
                 (_, _) => AjustarDiseno(Width);
 
-            ConfigurarBotonCargaManual();
-
             Shell.Current.FlyoutBehavior =
                 FlyoutBehavior.Disabled;
         }
 
-        public ICommand RegresarConfiguracionCommand { get; }
+        /*
+         * El encabezado utiliza x:Reference sobre la Page. Se expone el comando
+         * real del ViewModel para conservar la finalización correcta de la
+         * visita al regresar a Configuración.
+         */
+        public ICommand RegresarConfiguracionCommand =>
+            viewModel.RegresarConfiguracionCommand;
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            navegandoAConfiguracion = false;
-            ActualizarComandoRegresar();
+            salidaExternaPendiente = false;
+            SuscribirNavegacionShell();
 
             viewModel.ActualizarPermisos();
 
@@ -113,11 +69,48 @@ namespace CONATRADEC.Views
 
             AjustarDiseno(Width);
 
-            await viewModel.InicializarAsync();
+            /*
+             * Cada entrada real a Terrenos inicia con datos frescos. Regresar
+             * desde Crear/Editar/Ver pertenece a la misma visita y reutiliza
+             * únicamente los catálogos ya consultados.
+             */
+            bool nuevaVisita =
+                TerrenoVisitaService.AsegurarVisita();
+
+            if (nuevaVisita)
+            {
+                await viewModel.IniciarNuevaVisitaAsync();
+                return;
+            }
+
+            /*
+             * Una operación interna puede marcar que el listado cambió.
+             * En ese caso se renueva solamente la página actualmente visible.
+             */
+            if (TerrenoVisitaService.ConsumirRecargaListado())
+            {
+                await viewModel.RecargarPaginaActualAsync();
+                return;
+            }
+
+            if (!viewModel.TienePaginaCargada)
+                await viewModel.InicializarAsync();
         }
 
         protected override void OnDisappearing()
         {
+            /*
+             * Si se abandona Terrenos hacia otro módulo mediante la navegación
+             * inferior/lateral, se finaliza la visita. El formulario de Terreno
+             * continúa siendo parte de la misma visita para reutilizar catálogos.
+             */
+            if (salidaExternaPendiente)
+            {
+                TerrenoVisitaService.FinalizarVisita();
+                salidaExternaPendiente = false;
+            }
+
+            DesuscribirNavegacionShell();
             viewModel.CancelarCarga();
 
             base.OnDisappearing();
@@ -137,10 +130,14 @@ namespace CONATRADEC.Views
             if (width <= 0)
                 return;
 
+            double anchoUtil =
+                ObtenerAnchoUtilContenido(width);
+
             AjustarPaddingContenido(width);
-            AjustarAccionesBusqueda(ObtenerAnchoUtilContenido(width));
-            AjustarFiltrosAvanzados(ObtenerAnchoUtilContenido(width));
+            AjustarAccionesBusqueda(anchoUtil);
+            AjustarFiltrosAvanzados(anchoUtil);
             AjustarSpanTerrenos();
+            AjustarPaginacion(width);
         }
 
         private void AjustarPaddingContenido(double width)
@@ -181,87 +178,29 @@ namespace CONATRADEC.Views
                         ? 36
                         : 48;
 
-            return Math.Max(0, width - paddingHorizontal);
+            return Math.Max(
+                0,
+                width - paddingHorizontal);
         }
 
-        private void TerrenosCollectionView_Scrolled(
-            object? sender,
-            ItemsViewScrolledEventArgs e)
+        private void AjustarPaginacion(double width)
         {
-            if (!viewModel.CanView ||
-                viewModel.CargandoMas ||
-                !viewModel.PuedeCargarMas ||
-                viewModel.List.Count == 0 ||
-                e.LastVisibleItemIndex < 0)
-            {
-                return;
-            }
-
-            /*
-             * Solo se precarga mientras el usuario baja. Esto evita solicitudes
-             * innecesarias durante reajustes de tamaño o al desplazarse hacia
-             * arriba.
-             */
-            if (e.VerticalDelta <= 0)
+            if (PaginacionTerrenos == null)
                 return;
 
-            int span = ObtenerSpanTerrenos();
-            int totalElementos = viewModel.List.Count;
+            double anchoDisponible =
+                ObtenerAnchoUtilContenido(width);
 
-            /*
-             * En WinUI, LastVisibleItemIndex puede comportarse de forma
-             * diferente cuando GridItemsLayout utiliza dos o tres columnas.
-             * Por eso se evalúa tanto como índice de elemento como índice
-             * aproximado de fila, usando un margen amplio de diez filas.
-             */
-            int margenElementos =
-                Math.Max(
-                    12,
-                    span * 10);
-
-            int umbralComoElementos =
-                Math.Max(
-                    0,
-                    totalElementos - margenElementos);
-
-            int totalFilas =
-                (int)Math.Ceiling(
-                    totalElementos / (double)span);
-
-            int umbralComoFilas =
-                Math.Max(
-                    0,
-                    totalFilas - 10);
-
-            bool cercaDelFinal =
-                e.LastVisibleItemIndex >= umbralComoElementos ||
-                e.LastVisibleItemIndex >= umbralComoFilas;
-
-            if (!cercaDelFinal)
-                return;
-
-            EjecutarCargaMasSiDisponible();
-        }
-
-        private int ObtenerSpanTerrenos()
-        {
-            if (TerrenosCollectionView?.ItemsLayout is
-                GridItemsLayout gridLayout &&
-                gridLayout.Span > 0)
-            {
-                return gridLayout.Span;
-            }
-
-            double width =
-                TerrenosCollectionView?.Width ?? 0;
-
-            return CalcularSpanTerrenos(width);
+            PaginacionTerrenos.WidthRequest =
+                Math.Min(
+                    560,
+                    Math.Max(0, anchoDisponible));
         }
 
         /// <summary>
         /// Mantiene una sola columna mientras no existen terrenos para que
         /// EmptyView ocupe el ancho completo. Cuando hay datos se usa el ancho
-        /// mínimo real de tarjeta en lugar de breakpoints de tipo de dispositivo.
+        /// mínimo real de tarjeta en lugar de breakpoints por dispositivo.
         /// </summary>
         private void AjustarSpanTerrenos()
         {
@@ -309,168 +248,60 @@ namespace CONATRADEC.Views
                 : 1;
         }
 
-        private void EjecutarCargaMasSiDisponible()
-        {
-            if (!viewModel.CanView ||
-                viewModel.CargandoMas ||
-                !viewModel.PuedeCargarMas)
-            {
-                return;
-            }
-
-            if (viewModel.CargarMasCommand.CanExecute(null))
-                viewModel.CargarMasCommand.Execute(null);
-        }
-
         /// <summary>
-        /// Agrega un respaldo manual en el footer del CollectionView.
-        /// En Android/Tablet este botón representa el cambio controlado hacia
-        /// la siguiente página de resultados.
+        /// Después de cambiar de página espera a que termine la consulta y
+        /// coloca el primer terreno de la nueva página al inicio visible.
+        /// El Command del ViewModel continúa siendo el único responsable de
+        /// solicitar la página al servidor.
         /// </summary>
-        private void ConfigurarBotonCargaManual()
-        {
-            if (cargarMasRespaldoButton != null ||
-                TerrenosCollectionView?.Footer is not
-                    VerticalStackLayout footer)
-            {
-                return;
-            }
-
-            cargarMasRespaldoButton =
-                new Button
-                {
-                    Text = "Cargar más terrenos",
-                    FontFamily = "MontserratBold",
-                    FontSize = 12,
-                    HeightRequest = 46,
-                    MinimumWidthRequest = 0,
-                    Padding = new Thickness(18, 8),
-                    CornerRadius = 12,
-                    HorizontalOptions = LayoutOptions.Center,
-                    BackgroundColor =
-                        Color.FromArgb("#3B655B"),
-                    TextColor = Colors.White
-                };
-
-            cargarMasRespaldoButton.SetBinding(
-                IsVisibleProperty,
-                nameof(TerrenoViewModel.PuedeCargarMas));
-
-            cargarMasRespaldoButton.SetBinding(
-                Button.CommandProperty,
-                nameof(TerrenoViewModel.CargarMasCommand));
-
-            cargarMasRespaldoButton.Pressed +=
-                CargarMasRespaldoButton_Pressed;
-
-            cargarMasRespaldoButton.Clicked +=
-                CargarMasRespaldoButton_Clicked;
-
-            footer.Children.Insert(
-                0,
-                cargarMasRespaldoButton);
-        }
-
-        private void CargarMasRespaldoButton_Pressed(
+        private async void PaginacionTerrenos_Clicked(
             object? sender,
             EventArgs e)
         {
-            cantidadAntesCargaManual =
-                viewModel.List.Count;
-        }
-
-        /// <summary>
-        /// Después de cargar manualmente la siguiente página, coloca el primer
-        /// registro nuevo al inicio visible. La precarga automática de WinUI no
-        /// usa este evento y por tanto conserva un scroll continuo sin saltos.
-        /// </summary>
-        private async void CargarMasRespaldoButton_Clicked(
-            object? sender,
-            EventArgs e)
-        {
-            int primerIndiceNuevaPagina =
-                cantidadAntesCargaManual >= 0
-                    ? cantidadAntesCargaManual
-                    : viewModel.List.Count;
+            int paginaAnterior =
+                viewModel.PaginaActual;
 
             bool operacionDetectada = false;
 
             for (int intento = 0; intento < 240; intento++)
             {
-                if (viewModel.CargandoMas ||
-                    viewModel.List.Count > primerIndiceNuevaPagina)
+                if (viewModel.IsBusy ||
+                    viewModel.PaginaActual != paginaAnterior)
                 {
                     operacionDetectada = true;
                 }
 
                 if (operacionDetectada &&
-                    !viewModel.CargandoMas)
+                    !viewModel.IsBusy)
                 {
-                    if (viewModel.List.Count > primerIndiceNuevaPagina)
+                    if (viewModel.PaginaActual != paginaAnterior &&
+                        viewModel.List.Count > 0)
                     {
-                        await DesplazarTerrenosAIndiceAsync(
-                            primerIndiceNuevaPagina);
+                        await DesplazarTerrenosAlInicioAsync();
                     }
 
-                    cantidadAntesCargaManual = -1;
                     return;
                 }
 
                 await Task.Delay(50);
             }
-
-            cantidadAntesCargaManual = -1;
         }
 
-        private async Task DesplazarTerrenosAIndiceAsync(int indice)
+        private async Task DesplazarTerrenosAlInicioAsync()
         {
             if (TerrenosCollectionView == null ||
-                indice < 0 ||
-                indice >= viewModel.List.Count)
+                viewModel.List.Count == 0)
             {
                 return;
             }
 
-            // Da tiempo al CollectionView para materializar el nuevo bloque.
+            // Permite que CollectionView termine de materializar la nueva página.
             await Task.Delay(60);
 
             TerrenosCollectionView.ScrollTo(
-                indice,
+                0,
                 position: ScrollToPosition.Start,
                 animate: false);
-        }
-
-        private async Task RegresarConfiguracionAsync()
-        {
-            if (navegandoAConfiguracion)
-                return;
-
-            try
-            {
-                navegandoAConfiguracion = true;
-                ActualizarComandoRegresar();
-
-                await Shell.Current.GoToAsync(
-                    AppRoutes.Configuracion,
-                    true);
-            }
-            catch (Exception ex)
-            {
-                navegandoAConfiguracion = false;
-                ActualizarComandoRegresar();
-
-                await DisplayAlert(
-                    "Navegación",
-                    $"No fue posible regresar a Configuración. " +
-                    $"{ex.Message}",
-                    "Aceptar");
-            }
-        }
-
-        private void ActualizarComandoRegresar()
-        {
-            if (RegresarConfiguracionCommand is Command command)
-                command.ChangeCanExecute();
         }
 
         /// <summary>
@@ -871,6 +702,69 @@ namespace CONATRADEC.Views
                 Grid.SetColumn(acciones[2], 1);
                 Grid.SetColumnSpan(acciones[2], 1);
             }
+        }
+
+        private void SuscribirNavegacionShell()
+        {
+            if (navegacionShellSuscrita ||
+                Shell.Current == null)
+            {
+                return;
+            }
+
+            Shell.Current.Navigating +=
+                Shell_Navigating;
+
+            navegacionShellSuscrita = true;
+        }
+
+        private void DesuscribirNavegacionShell()
+        {
+            if (!navegacionShellSuscrita ||
+                Shell.Current == null)
+            {
+                return;
+            }
+
+            Shell.Current.Navigating -=
+                Shell_Navigating;
+
+            navegacionShellSuscrita = false;
+        }
+
+        private void Shell_Navigating(
+            object? sender,
+            ShellNavigatingEventArgs e)
+        {
+            string rutaDestino =
+                e.Target?
+                    .Location?
+                    .OriginalString ??
+                string.Empty;
+
+            if (string.IsNullOrWhiteSpace(rutaDestino))
+                return;
+
+            salidaExternaPendiente =
+                !EsRutaInternaTerrenos(rutaDestino);
+        }
+
+        private static bool EsRutaInternaTerrenos(
+            string ruta)
+        {
+            return
+                ruta.Contains(
+                    "TerrenoPage",
+                    StringComparison.OrdinalIgnoreCase) ||
+                ruta.Contains(
+                    "TerrenoFormPage",
+                    StringComparison.OrdinalIgnoreCase) ||
+                ruta.Contains(
+                    "MapaSeleccionPage",
+                    StringComparison.OrdinalIgnoreCase) ||
+                ruta.Contains(
+                    "FotosTerrenoGaleriaPage",
+                    StringComparison.OrdinalIgnoreCase);
         }
     }
 }

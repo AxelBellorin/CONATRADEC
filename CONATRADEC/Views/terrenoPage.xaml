@@ -23,9 +23,7 @@
                     x:Name="TerrenosCollectionView"
                     ItemsSource="{Binding List}"
                     SelectionMode="None"
-                    ItemSizingStrategy="MeasureFirstItem"
-                    RemainingItemsThreshold="3"
-                    RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                    ItemSizingStrategy="MeasureFirstItem">
 
                     <CollectionView.ItemsLayout>
                         <GridItemsLayout
@@ -519,20 +517,66 @@
                         </Grid>
                     </CollectionView.EmptyView>
 
+                    <!--
+                        Paginación explícita: la colección contiene únicamente
+                        la página actual. Anterior/Siguiente consultan al servidor
+                        y reemplazan los elementos en memoria.
+                    -->
                     <CollectionView.Footer>
-                        <VerticalStackLayout
-                            Padding="0,14,0,28"
-                            Spacing="8"
+                        <Border
+                            x:Name="PaginacionTerrenos"
+                            IsVisible="{Binding MostrarPaginacion}"
+                            Margin="0,16,0,24"
+                            Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                            Style="{StaticResource ModernCatalogCard}"
+                            MaximumWidthRequest="560"
                             HorizontalOptions="Center">
-                            <ActivityIndicator
-                                IsVisible="{Binding CargandoMas}"
-                                IsRunning="{Binding CargandoMas}"
-                                Color="{StaticResource color_Verde}" />
-                            <Label
-                                IsVisible="{Binding MostrarFinLista}"
-                                Text="No hay más terrenos."
-                                Style="{StaticResource ModernCaption}" />
-                        </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="11">
+                                <VerticalStackLayout
+                                    Spacing="2"
+                                    HorizontalOptions="Center">
+                                    <Label
+                                        Text="{Binding PaginaTexto}"
+                                        FontFamily="MontserratBold"
+                                        FontSize="12"
+                                        HorizontalTextAlignment="Center"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                    <Label
+                                        Text="{Binding RangoPaginaTexto}"
+                                        FontFamily="MontserratMedium"
+                                        FontSize="10"
+                                        HorizontalTextAlignment="Center"
+                                        TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                </VerticalStackLayout>
+
+                                <Grid
+                                    ColumnDefinitions="*,*"
+                                    ColumnSpacing="8">
+                                    <Button
+                                        Grid.Column="0"
+                                        Text="← Anterior"
+                                        Clicked="PaginacionTerrenos_Clicked"
+                                        Command="{Binding PaginaAnteriorCommand}"
+                                        IsEnabled="{Binding PuedeIrAnterior}"
+                                        Style="{StaticResource ModernSecondaryButton}"
+                                        MinimumWidthRequest="0"
+                                        HorizontalOptions="Fill"
+                                        Padding="6,8" />
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Siguiente →"
+                                        Clicked="PaginacionTerrenos_Clicked"
+                                        Command="{Binding PaginaSiguienteCommand}"
+                                        IsEnabled="{Binding PuedeIrSiguiente}"
+                                        Style="{StaticResource ModernSecondaryButton}"
+                                        MinimumWidthRequest="0"
+                                        HorizontalOptions="Fill"
+                                        Padding="6,8" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
                     </CollectionView.Footer>
                 </CollectionView>
             </RefreshView>
@@ -551,7 +595,7 @@
                     <HorizontalStackLayout Spacing="10">
                         <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" />
                         <Label
-                            Text="Cargando terrenos..."
+                            Text="{Binding TituloRelay}"
                             FontFamily="MontserratBold"
                             FontSize="12"
                             VerticalOptions="Center"
