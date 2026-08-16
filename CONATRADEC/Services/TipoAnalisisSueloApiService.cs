@@ -9,17 +9,6 @@ namespace CONATRADEC.Services
     {
         private readonly HttpClient httpClient;
 
-        private static readonly SemaphoreSlim CacheLock =
-            new(1, 1);
-
-        private static List<TipoAnalisisSueloResponse>?
-            cacheFormulario;
-
-        private static DateTime cacheCreadoUtc;
-
-        private static readonly TimeSpan DuracionCache =
-            TimeSpan.FromMinutes(20);
-
         public TipoAnalisisSueloApiService()
             : this(ApiClientService.Client)
         {
@@ -35,71 +24,42 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Listado completo conservado para formularios y futuros
-        /// selectores del flujo de análisis.
+        /// Listado completo para formularios y selectores.
+        /// Se consulta siempre al servidor para evitar reutilizar datos de una
+        /// visita anterior del módulo.
         /// </summary>
         public async Task<ApiResult<ObservableCollection<TipoAnalisisSueloResponse>>>
             GetAsync(
                 CancellationToken cancellationToken = default)
         {
-            if (CacheVigente())
+            ApiResult<ObservableCollection<TipoAnalisisSueloResponse>> result =
+                await ConfiguracionApiServiceHelper
+                    .GetCollectionAsync<TipoAnalisisSueloResponse>(
+                        httpClient,
+                        "api/configuracion/tipos-analisis-suelo",
+                        "los tipos de análisis de suelo",
+                        cancellationToken);
+
+            if (!result.Success ||
+                result.Data == null)
             {
-                return ApiResult<
-                    ObservableCollection<TipoAnalisisSueloResponse>>
-                    .Ok(
-                        CrearColeccionCache());
+                return result;
             }
 
-            await CacheLock.WaitAsync(
-                cancellationToken);
-
-            try
-            {
-                if (CacheVigente())
-                {
-                    return ApiResult<
-                        ObservableCollection<TipoAnalisisSueloResponse>>
-                        .Ok(
-                            CrearColeccionCache());
-                }
-
-                ApiResult<
-                    ObservableCollection<TipoAnalisisSueloResponse>>
-                    result =
-                        await ConfiguracionApiServiceHelper
-                            .GetCollectionAsync<TipoAnalisisSueloResponse>(
-                                httpClient,
-                                "api/configuracion/tipos-analisis-suelo",
-                                "los tipos de análisis de suelo",
-                                cancellationToken);
-
-                if (!result.Success ||
-                    result.Data == null)
-                {
-                    return result;
-                }
-
-                cacheFormulario =
+            ObservableCollection<TipoAnalisisSueloResponse> ordenados =
+                new(
                     result.Data
                         .Where(item =>
                             item.TipoAnalisisSueloId > 0)
                         .OrderBy(item =>
                             item.NombreMostrar)
-                        .ToList();
+                        .ThenBy(item =>
+                            item.TipoAnalisisSueloId));
 
-                cacheCreadoUtc =
-                    DateTime.UtcNow;
-
-                return ApiResult<
-                    ObservableCollection<TipoAnalisisSueloResponse>>
-                    .Ok(
-                        CrearColeccionCache(),
-                        result.Message);
-            }
-            finally
-            {
-                CacheLock.Release();
-            }
+            return ApiResult<ObservableCollection<TipoAnalisisSueloResponse>>
+                .Ok(
+                    ordenados,
+                    result.Message);
         }
 
         /// <summary>
@@ -199,6 +159,83 @@ namespace CONATRADEC.Services
             }
         }
 
+        /// <summary>
+        /// Obtiene el registro activo directamente del servidor antes de abrir
+        /// Ver o Editar, evitando utilizar una tarjeta desactualizada.
+        /// </summary>
+        public async Task<ApiResult<TipoAnalisisSueloResponse>>
+            GetByIdAsync(
+                int id,
+                CancellationToken cancellationToken = default)
+        {
+            if (id <= 0)
+            {
+                return ApiResult<TipoAnalisisSueloResponse>.Fail(
+                    "El identificador del tipo de análisis no es válido.");
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        $"api/configuracion/tipos-analisis-suelo/{id}",
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<TipoAnalisisSueloResponse>
+                        .Fail(
+                            await ApiServiceHelper
+                                .ReadResponseMessageAsync(
+                                    response,
+                                    "No fue posible obtener el tipo de análisis de suelo.",
+                                    cancellationToken),
+                            (int)response.StatusCode);
+                }
+
+                TipoAnalisisSueloResponse? data =
+                    await response.Content
+                        .ReadFromJsonAsync<TipoAnalisisSueloResponse>(
+                            cancellationToken:
+                                cancellationToken);
+
+                if (data == null ||
+                    data.TipoAnalisisSueloId <= 0)
+                {
+                    return ApiResult<TipoAnalisisSueloResponse>.Fail(
+                        "El servidor respondió, pero no devolvió un tipo de análisis válido.");
+                }
+
+                return ApiResult<TipoAnalisisSueloResponse>.Ok(data);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<TipoAnalisisSueloResponse>.Fail(
+                    "La consulta del tipo de análisis tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<TipoAnalisisSueloResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<TipoAnalisisSueloResponse>.Fail(
+                    "No fue posible comunicarse con el servidor para obtener el tipo de análisis de suelo.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<TipoAnalisisSueloResponse>.Fail(
+                    "El servidor respondió, pero el tipo de análisis de suelo no tiene el formato esperado.");
+            }
+            catch
+            {
+                return ApiResult<TipoAnalisisSueloResponse>.Fail(
+                    "Ocurrió un error inesperado al obtener el tipo de análisis de suelo.");
+            }
+        }
+
         public async Task<ApiResult<bool>>
             CreateAsync(
                 TipoAnalisisSueloRequest request,
@@ -207,20 +244,14 @@ namespace CONATRADEC.Services
             ArgumentNullException.ThrowIfNull(
                 request);
 
-            ApiResult<bool> result =
-                await ConfiguracionApiServiceHelper.SendAsync(
-                    httpClient,
-                    HttpMethod.Post,
-                    "api/configuracion/tipos-analisis-suelo",
-                    request,
-                    "No fue posible crear el tipo de análisis de suelo.",
-                    "Tipo de análisis de suelo creado correctamente.",
-                    cancellationToken);
-
-            if (result.Success)
-                LimpiarCache();
-
-            return result;
+            return await ConfiguracionApiServiceHelper.SendAsync(
+                httpClient,
+                HttpMethod.Post,
+                "api/configuracion/tipos-analisis-suelo",
+                request,
+                "No fue posible crear el tipo de análisis de suelo.",
+                "Tipo de análisis de suelo creado correctamente.",
+                cancellationToken);
         }
 
         public async Task<ApiResult<bool>>
@@ -237,20 +268,14 @@ namespace CONATRADEC.Services
                     "El identificador del tipo de análisis no es válido.");
             }
 
-            ApiResult<bool> result =
-                await ConfiguracionApiServiceHelper.SendAsync(
-                    httpClient,
-                    HttpMethod.Put,
-                    $"api/configuracion/tipos-analisis-suelo/{request.TipoAnalisisSueloId}",
-                    request,
-                    "No fue posible actualizar el tipo de análisis de suelo.",
-                    "Tipo de análisis de suelo actualizado correctamente.",
-                    cancellationToken);
-
-            if (result.Success)
-                LimpiarCache();
-
-            return result;
+            return await ConfiguracionApiServiceHelper.SendAsync(
+                httpClient,
+                HttpMethod.Put,
+                $"api/configuracion/tipos-analisis-suelo/{request.TipoAnalisisSueloId}",
+                request,
+                "No fue posible actualizar el tipo de análisis de suelo.",
+                "Tipo de análisis de suelo actualizado correctamente.",
+                cancellationToken);
         }
 
         public async Task<ApiResult<bool>>
@@ -264,42 +289,15 @@ namespace CONATRADEC.Services
                     "El identificador del tipo de análisis no es válido.");
             }
 
-            ApiResult<bool> result =
-                await ConfiguracionApiServiceHelper
-                    .SendAsync<object>(
-                        httpClient,
-                        HttpMethod.Put,
-                        $"api/configuracion/tipos-analisis-suelo/{id}/eliminar",
-                        null,
-                        "No fue posible eliminar el tipo de análisis de suelo.",
-                        "Tipo de análisis de suelo desactivado correctamente.",
-                        cancellationToken);
-
-            if (result.Success)
-                LimpiarCache();
-
-            return result;
-        }
-
-        private static bool CacheVigente() =>
-            cacheFormulario != null &&
-            DateTime.UtcNow -
-                cacheCreadoUtc <
-                DuracionCache;
-
-        private static ObservableCollection<TipoAnalisisSueloResponse>
-            CrearColeccionCache() =>
-            new(
-                cacheFormulario ??
-                Enumerable.Empty<TipoAnalisisSueloResponse>());
-
-        private static void LimpiarCache()
-        {
-            cacheFormulario =
-                null;
-
-            cacheCreadoUtc =
-                default;
+            return await ConfiguracionApiServiceHelper
+                .SendAsync<object>(
+                    httpClient,
+                    HttpMethod.Put,
+                    $"api/configuracion/tipos-analisis-suelo/{id}/eliminar",
+                    null,
+                    "No fue posible eliminar el tipo de análisis de suelo.",
+                    "Tipo de análisis de suelo desactivado correctamente.",
+                    cancellationToken);
         }
     }
 }

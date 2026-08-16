@@ -65,6 +65,7 @@
 
             <!-- Contenido principal -->
             <Grid
+                x:Name="ContenidoTiposAnalisis"
                 IsVisible="{Binding CanView}"
                 Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
@@ -74,10 +75,9 @@
                     Command="{Binding RefrescarCommand}">
 
                     <CollectionView
+                        x:Name="TiposAnalisisCollectionView"
                         ItemsSource="{Binding List}"
-                        SelectionMode="None"
-                        RemainingItemsThreshold="3"
-                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                        SelectionMode="None">
 
                         <!--
                             Encabezado, búsqueda y mensajes forman parte del
@@ -267,6 +267,8 @@
                                                 Grid.Column="0"
                                                 Text="Ver"
                                                 Padding="8,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="#EEF5F2"
                                                 TextColor="{StaticResource color_Verde}"
                                                 CornerRadius="10"
@@ -277,6 +279,8 @@
                                                 Grid.Column="1"
                                                 Text="Editar"
                                                 Padding="8,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="{StaticResource BlueUpdate}"
                                                 TextColor="White"
                                                 CornerRadius="10"
@@ -288,6 +292,8 @@
                                                 Grid.Column="2"
                                                 Text="Eliminar"
                                                 Padding="8,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="{StaticResource RedDelete}"
                                                 TextColor="White"
                                                 CornerRadius="10"
@@ -322,32 +328,88 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
 
+                        <!--
+                            Paginación explícita: la colección mantiene únicamente
+                            la página actual y cada cambio consulta al servidor.
+                        -->
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="10,16,10,24"
-                                Spacing="8"
-                                HorizontalOptions="Center">
+                            <Border
+                                x:Name="PaginacionTiposAnalisis"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                                MaximumWidthRequest="560"
+                                HorizontalOptions="Center"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16">
 
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoMas}"
-                                    IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Naranja}" />
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
 
-                                <Label
-                                    IsVisible="{Binding MostrarFinLista}"
-                                    Text="Fin del listado"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-                            </VerticalStackLayout>
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{StaticResource color_Negro}" />
+
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="8">
+
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Clicked="PaginacionTiposAnalisis_Clicked"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="8,9"
+                                            BackgroundColor="#EEF5F2"
+                                            TextColor="{StaticResource color_Verde}"
+                                            CornerRadius="10" />
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Clicked="PaginacionTiposAnalisis_Clicked"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="8,9"
+                                            BackgroundColor="#EEF5F2"
+                                            TextColor="{StaticResource color_Verde}"
+                                            CornerRadius="10" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>
 
-                <!-- Indicador de carga -->
+                <!--
+                    El relay bloquea interacción durante consultas, navegación
+                    previa por ID y escrituras para evitar operaciones duplicadas.
+                -->
                 <Grid
                     IsVisible="{Binding IsBusy}"
-                    InputTransparent="True"
-                    BackgroundColor="#40FFFFFF">
+                    InputTransparent="False"
+                    BackgroundColor="#66000000"
+                    ZIndex="100">
 
                     <Border
                         Padding="18"

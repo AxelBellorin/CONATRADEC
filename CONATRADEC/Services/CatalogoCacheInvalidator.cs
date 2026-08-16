@@ -84,10 +84,14 @@ namespace CONATRADEC.Services
                         break;
 
                     case CatalogoEliminadoCodigos.TipoAnalisis:
-                        LimpiarCampos(
-                            typeof(TipoAnalisisSueloApiService),
-                            "cacheFormulario",
-                            "cacheCreadoUtc");
+                        /*
+                         * TipoAnalisisSueloApiService ya no mantiene un caché
+                         * global de 20 minutos. La reactivación sí cambia la
+                         * composición del listado activo, por lo que se marca
+                         * la versión de la visita para recargar la página actual
+                         * al cerrar el modal de eliminados.
+                         */
+                        TipoAnalisisSueloListadoEstadoService.MarcarCambio();
                         break;
 
                     case CatalogoEliminadoCodigos.CategoriaPublicacion:

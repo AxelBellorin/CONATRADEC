@@ -12,14 +12,15 @@ namespace CONATRADEC.ViewModels
         private CancellationTokenSource? cargaCts;
 
         private string textoBusqueda = string.Empty;
+        private string textoBusquedaAplicado = string.Empty;
         private string mensaje = string.Empty;
         private bool isRefreshing;
-        private bool cargandoMas;
         private bool navegando;
         private bool pantallaCargada;
-        private int paginaActual;
+        private int paginaActual = 1;
         private int totalPaginas = 1;
         private int totalRegistros;
+        private int tamanoPaginaActual;
         private int versionAplicada = -1;
 
         public TipoAnalisisSueloViewModel()
@@ -35,11 +36,13 @@ namespace CONATRADEC.ViewModels
                 ?? throw new ArgumentNullException(
                     nameof(apiService));
 
+            tamanoPaginaActual =
+                ObtenerTamanoPagina();
+
             RegresarConfiguracionCommand =
                 new Command(
                     async () => await EjecutarSeguroAsync(
-                        () => NavegarAsync(
-                            AppRoutes.Configuracion),
+                        SalirAConfiguracionAsync,
                         "regresar a configuración"),
                     () =>
                         !IsBusy &&
@@ -94,8 +97,7 @@ namespace CONATRADEC.ViewModels
             BuscarCommand =
                 new Command(
                     async () => await EjecutarSeguroAsync(
-                        () => CargarAsync(
-                            reiniciar: true),
+                        AplicarBusquedaAsync,
                         "buscar tipos de análisis"),
                     () =>
                         CanView &&
@@ -122,18 +124,27 @@ namespace CONATRADEC.ViewModels
                         !IsBusy &&
                         !Navegando);
 
-            CargarMasCommand =
+            PaginaAnteriorCommand =
                 new Command(
                     async () => await EjecutarSeguroAsync(
-                        () => CargarAsync(
-                            reiniciar: false),
-                        "cargar más tipos de análisis"),
+                        IrPaginaAnteriorAsync,
+                        "cargar la página anterior"),
                     () =>
                         CanView &&
+                        PuedeIrAnterior &&
                         !IsBusy &&
-                        !CargandoMas &&
-                        !Navegando &&
-                        PuedeCargarMas);
+                        !Navegando);
+
+            PaginaSiguienteCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        IrPaginaSiguienteAsync,
+                        "cargar la página siguiente"),
+                    () =>
+                        CanView &&
+                        PuedeIrSiguiente &&
+                        !IsBusy &&
+                        !Navegando);
         }
 
         public ObservableCollection<TipoAnalisisSueloResponse>
@@ -148,7 +159,8 @@ namespace CONATRADEC.ViewModels
         public Command BuscarCommand { get; }
         public Command LimpiarFiltrosCommand { get; }
         public Command RefrescarCommand { get; }
-        public Command CargarMasCommand { get; }
+        public Command PaginaAnteriorCommand { get; }
+        public Command PaginaSiguienteCommand { get; }
 
         public string TextoBusqueda
         {
@@ -209,23 +221,6 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool CargandoMas
-        {
-            get => cargandoMas;
-            private set
-            {
-                if (cargandoMas == value)
-                    return;
-
-                cargandoMas =
-                    value;
-
-                OnPropertyChanged();
-                ActualizarComandos();
-                NotificarEstadoLista();
-            }
-        }
-
         public bool Navegando
         {
             get => navegando;
@@ -255,6 +250,54 @@ namespace CONATRADEC.ViewModels
 
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ResumenResultados));
+                OnPropertyChanged(nameof(RangoPaginaTexto));
+                OnPropertyChanged(nameof(MostrarPaginacion));
+            }
+        }
+
+        public int PaginaActual =>
+            paginaActual;
+
+        public int TotalPaginas =>
+            totalPaginas;
+
+        public bool PuedeIrAnterior =>
+            pantallaCargada &&
+            paginaActual > 1;
+
+        public bool PuedeIrSiguiente =>
+            pantallaCargada &&
+            paginaActual < totalPaginas;
+
+        public bool MostrarPaginacion =>
+            CanView &&
+            pantallaCargada &&
+            List.Count > 0;
+
+        public string PaginaTexto =>
+            $"Página {Math.Max(1, paginaActual)} de {Math.Max(1, totalPaginas)}";
+
+        public string RangoPaginaTexto
+        {
+            get
+            {
+                if (TotalRegistros <= 0 ||
+                    List.Count == 0)
+                {
+                    return "Sin registros en esta página";
+                }
+
+                int inicio =
+                    ((Math.Max(1, paginaActual) - 1) *
+                     Math.Max(1, tamanoPaginaActual)) + 1;
+
+                int fin =
+                    Math.Min(
+                        inicio + List.Count - 1,
+                        TotalRegistros);
+
+                return
+                    $"Mostrando {inicio}-{fin} de {TotalRegistros}";
             }
         }
 
@@ -263,28 +306,18 @@ namespace CONATRADEC.ViewModels
                 ? "1 tipo de análisis encontrado"
                 : $"{TotalRegistros} tipos de análisis encontrados";
 
-        public bool PuedeCargarMas =>
-            paginaActual <
-            totalPaginas;
-
         public bool MostrarVacio =>
             CanView &&
             pantallaCargada &&
             !IsBusy &&
-            !CargandoMas &&
             List.Count == 0 &&
             !TieneMensaje;
 
-        public bool MostrarFinLista =>
-            CanView &&
-            pantallaCargada &&
-            List.Count > 0 &&
-            !PuedeCargarMas &&
-            !IsBusy &&
-            !CargandoMas;
-
         public bool MostrarAccesoDenegado =>
             !CanView;
+
+        public bool TienePaginaCargada =>
+            pantallaCargada;
 
         public void ActualizarPermisos()
         {
@@ -294,10 +327,28 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(
                 nameof(MostrarAccesoDenegado));
 
-            NotificarEstadoLista();
             ActualizarComandos();
+            NotificarEstadoLista();
         }
 
+        /// <summary>
+        /// Inicia una visita real al módulo: descarta búsqueda, página y datos
+        /// anteriores y consulta la primera página directamente al servidor.
+        /// </summary>
+        public async Task IniciarNuevaVisitaAsync()
+        {
+            CancelarCarga();
+            RestablecerEstadoLocal();
+
+            await CargarPaginaAsync(
+                1,
+                cargaInicial: true);
+        }
+
+        /// <summary>
+        /// Al regresar desde un subflujo interno conserva la página y filtros.
+        /// Solo consulta nuevamente cuando hubo un cambio confirmado.
+        /// </summary>
         public async Task InicializarAsync()
         {
             if (!CanView ||
@@ -306,23 +357,136 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            int versionActual =
-                TipoAnalisisSueloListadoEstadoService
-                    .VersionActual;
-
-            if (pantallaCargada &&
-                versionAplicada ==
-                    versionActual)
+            if (!pantallaCargada)
             {
+                await CargarPaginaAsync(
+                    1,
+                    cargaInicial: true);
+
                 return;
             }
 
-            await CargarAsync(
-                reiniciar: true);
+            if (versionAplicada !=
+                TipoAnalisisSueloListadoEstadoService.VersionActual)
+            {
+                await RecargarPaginaActualAsync();
+            }
         }
 
-        public async Task CargarAsync(
-            bool reiniciar)
+        public Task RecargarPaginaActualAsync() =>
+            CargarPaginaAsync(
+                Math.Max(1, paginaActual));
+
+        /// <summary>
+        /// Finaliza una salida real del módulo y libera tanto la visita como el
+        /// estado visible para que el próximo ingreso comience desde cero.
+        /// </summary>
+        public void FinalizarVisita()
+        {
+            TipoAnalisisSueloListadoEstadoService
+                .FinalizarVisita();
+
+            CancelarCarga();
+            RestablecerEstadoLocal();
+        }
+
+        public void CancelarCarga()
+        {
+            CancellationTokenSource? source =
+                Interlocked.Exchange(
+                    ref cargaCts,
+                    null);
+
+            CancelarSeguro(source);
+
+            IsBusy = false;
+            IsRefreshing = false;
+            ActualizarComandos();
+            NotificarEstadoLista();
+        }
+
+        private void RestablecerEstadoLocal()
+        {
+            textoBusquedaAplicado =
+                string.Empty;
+
+            TextoBusqueda =
+                string.Empty;
+
+            Mensaje =
+                string.Empty;
+
+            paginaActual = 1;
+            totalPaginas = 1;
+            TotalRegistros = 0;
+            tamanoPaginaActual =
+                ObtenerTamanoPagina();
+
+            pantallaCargada = false;
+            versionAplicada = -1;
+
+            List.Clear();
+            NotificarEstadoLista();
+        }
+
+        private async Task AplicarBusquedaAsync()
+        {
+            textoBusquedaAplicado =
+                (TextoBusqueda ?? string.Empty)
+                    .Trim();
+
+            await CargarPaginaAsync(1);
+        }
+
+        private async Task LimpiarFiltrosAsync()
+        {
+            TextoBusqueda =
+                string.Empty;
+
+            textoBusquedaAplicado =
+                string.Empty;
+
+            await CargarPaginaAsync(1);
+        }
+
+        private async Task RefrescarAsync()
+        {
+            IsRefreshing =
+                true;
+
+            try
+            {
+                await CargarPaginaAsync(
+                    Math.Max(1, paginaActual));
+            }
+            finally
+            {
+                IsRefreshing =
+                    false;
+            }
+        }
+
+        private Task IrPaginaAnteriorAsync()
+        {
+            if (!PuedeIrAnterior)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                paginaActual - 1);
+        }
+
+        private Task IrPaginaSiguienteAsync()
+        {
+            if (!PuedeIrSiguiente)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                paginaActual + 1);
+        }
+
+        private async Task CargarPaginaAsync(
+            int paginaSolicitada,
+            bool cargaInicial = false)
         {
             if (!CanView ||
                 Navegando)
@@ -330,47 +494,27 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (reiniciar &&
-                IsBusy)
-            {
-                return;
-            }
-
-            if (!reiniciar &&
-                (CargandoMas ||
-                 !PuedeCargarMas))
-            {
-                return;
-            }
+            paginaSolicitada =
+                Math.Max(
+                    1,
+                    paginaSolicitada);
 
             CancellationTokenSource source =
                 PrepararNuevaCarga();
 
             try
             {
-                if (reiniciar)
-                {
-                    IsBusy = true;
-                    Mensaje = string.Empty;
-                }
-                else
-                {
-                    CargandoMas = true;
-                }
+                IsBusy = true;
+                Mensaje = string.Empty;
+                ActualizarComandos();
 
-                int paginaSolicitada =
-                    reiniciar
-                        ? 1
-                        : paginaActual + 1;
-
-                ApiResult<TipoAnalisisSueloPaginaResponse>
-                    resultado =
-                        await apiService
-                            .BuscarAsync(
-                                TextoBusqueda,
-                                paginaSolicitada,
-                                ObtenerTamanoPagina(),
-                                source.Token);
+                ApiResult<TipoAnalisisSueloPaginaResponse> resultado =
+                    await apiService
+                        .BuscarAsync(
+                            textoBusquedaAplicado,
+                            paginaSolicitada,
+                            ObtenerTamanoPagina(),
+                            source.Token);
 
                 if (source.IsCancellationRequested ||
                     !EsCargaActual(source))
@@ -391,9 +535,52 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                AplicarPagina(
-                    resultado.Data,
-                    reiniciar);
+                TipoAnalisisSueloPaginaResponse pagina =
+                    resultado.Data;
+
+                int paginasServidor =
+                    Math.Max(
+                        1,
+                        pagina.TotalPaginas);
+
+                /*
+                 * Si otro cliente eliminó registros y la página dejó de existir,
+                 * se corrige únicamente hacia la última página válida.
+                 */
+                if (paginaSolicitada > paginasServidor)
+                {
+                    ApiResult<TipoAnalisisSueloPaginaResponse> correccion =
+                        await apiService
+                            .BuscarAsync(
+                                textoBusquedaAplicado,
+                                paginasServidor,
+                                ObtenerTamanoPagina(),
+                                source.Token);
+
+                    if (source.IsCancellationRequested ||
+                        !EsCargaActual(source))
+                    {
+                        return;
+                    }
+
+                    if (!correccion.Success ||
+                        correccion.Data == null)
+                    {
+                        if (!EsMensajeCancelacion(
+                                correccion.Message))
+                        {
+                            Mensaje =
+                                correccion.Message;
+                        }
+
+                        return;
+                    }
+
+                    pagina =
+                        correccion.Data;
+                }
+
+                AplicarPagina(pagina);
 
                 pantallaCargada =
                     true;
@@ -404,7 +591,7 @@ namespace CONATRADEC.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Cancelación normal al navegar o reemplazar la búsqueda.
+                // Cancelación normal al navegar o reemplazar una consulta.
             }
             catch (ObjectDisposedException)
             {
@@ -427,14 +614,11 @@ namespace CONATRADEC.ViewModels
             {
                 if (EsCargaActual(source))
                 {
-                    if (reiniciar)
+                    IsBusy = false;
+
+                    if (cargaInicial)
                     {
-                        IsBusy = false;
                         IsRefreshing = false;
-                    }
-                    else
-                    {
-                        CargandoMas = false;
                     }
                 }
 
@@ -444,44 +628,20 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public void CancelarCarga()
-        {
-            CancellationTokenSource? source =
-                Interlocked.Exchange(
-                    ref cargaCts,
-                    null);
-
-            CancelarSeguro(source);
-
-            IsBusy = false;
-            IsRefreshing = false;
-            CargandoMas = false;
-        }
-
+        /// <summary>
+        /// La colección contiene únicamente la página recibida. Nunca acumula
+        /// páginas anteriores, manteniendo acotado el uso de memoria.
+        /// </summary>
         private void AplicarPagina(
-            TipoAnalisisSueloPaginaResponse pagina,
-            bool reiniciar)
+            TipoAnalisisSueloPaginaResponse pagina)
         {
-            if (reiniciar)
-                List.Clear();
-
-            HashSet<int> idsActuales =
-                List
-                    .Select(item =>
-                        item.TipoAnalisisSueloId)
-                    .ToHashSet();
+            List.Clear();
 
             foreach (TipoAnalisisSueloResponse item
                      in pagina.Items)
             {
-                if (item.TipoAnalisisSueloId <= 0)
-                    continue;
-
-                if (idsActuales.Add(
-                        item.TipoAnalisisSueloId))
-                {
+                if (item.TipoAnalisisSueloId > 0)
                     List.Add(item);
-                }
             }
 
             paginaActual =
@@ -494,6 +654,11 @@ namespace CONATRADEC.ViewModels
                     1,
                     pagina.TotalPaginas);
 
+            tamanoPaginaActual =
+                pagina.TamanoPagina > 0
+                    ? pagina.TamanoPagina
+                    : ObtenerTamanoPagina();
+
             TotalRegistros =
                 Math.Max(
                     0,
@@ -502,36 +667,7 @@ namespace CONATRADEC.ViewModels
             Mensaje =
                 string.Empty;
 
-            OnPropertyChanged(
-                nameof(PuedeCargarMas));
-
             NotificarEstadoLista();
-        }
-
-        private async Task LimpiarFiltrosAsync()
-        {
-            TextoBusqueda =
-                string.Empty;
-
-            await CargarAsync(
-                reiniciar: true);
-        }
-
-        private async Task RefrescarAsync()
-        {
-            IsRefreshing =
-                true;
-
-            try
-            {
-                await CargarAsync(
-                    reiniciar: true);
-            }
-            finally
-            {
-                IsRefreshing =
-                    false;
-            }
         }
 
         private Task OnAddAsync() =>
@@ -550,45 +686,101 @@ namespace CONATRADEC.ViewModels
                 });
 
         private Task OnEditAsync(
-            TipoAnalisisSueloResponse? item)
-        {
-            if (item == null)
-                return Task.CompletedTask;
-
-            return NavegarAsync(
-                AppRoutes.TipoAnalisisSueloFormulario,
-                new Dictionary<string, object>
-                {
-                    {
-                        "Mode",
-                        FormMode.FormModeSelect.Edit
-                    },
-                    {
-                        "Item",
-                        new TipoAnalisisSueloRequest(item)
-                    }
-                });
-        }
+            TipoAnalisisSueloResponse? item) =>
+            AbrirDetalleAsync(
+                item,
+                FormMode.FormModeSelect.Edit);
 
         private Task OnViewAsync(
-            TipoAnalisisSueloResponse? item)
-        {
-            if (item == null)
-                return Task.CompletedTask;
+            TipoAnalisisSueloResponse? item) =>
+            AbrirDetalleAsync(
+                item,
+                FormMode.FormModeSelect.View);
 
-            return NavegarAsync(
-                AppRoutes.TipoAnalisisSueloFormulario,
-                new Dictionary<string, object>
+        private async Task AbrirDetalleAsync(
+            TipoAnalisisSueloResponse? item,
+            FormMode.FormModeSelect mode)
+        {
+            if (item == null ||
+                item.TipoAnalisisSueloId <= 0 ||
+                IsBusy)
+            {
+                return;
+            }
+
+            CancellationTokenSource source =
+                PrepararNuevaCarga();
+
+            try
+            {
+                IsBusy = true;
+                Mensaje = string.Empty;
+                ActualizarComandos();
+
+                ApiResult<TipoAnalisisSueloResponse> resultado =
+                    await apiService
+                        .GetByIdAsync(
+                            item.TipoAnalisisSueloId,
+                            source.Token);
+
+                if (source.IsCancellationRequested ||
+                    !EsCargaActual(source))
                 {
+                    return;
+                }
+
+                if (!resultado.Success ||
+                    resultado.Data == null)
+                {
+                    if (!EsMensajeCancelacion(
+                            resultado.Message))
                     {
-                        "Mode",
-                        FormMode.FormModeSelect.View
-                    },
-                    {
-                        "Item",
-                        new TipoAnalisisSueloRequest(item)
+                        Mensaje =
+                            resultado.Message;
+
+                        await MostrarToastAsync(
+                            resultado.Message);
                     }
-                });
+
+                    return;
+                }
+
+                TipoAnalisisSueloRequest request =
+                    new(resultado.Data);
+
+                await NavegarAsync(
+                    AppRoutes.TipoAnalisisSueloFormulario,
+                    new Dictionary<string, object>
+                    {
+                        {
+                            "Mode",
+                            mode
+                        },
+                        {
+                            "Item",
+                            request
+                        }
+                    });
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancelación normal al abandonar la pantalla.
+            }
+            catch (ObjectDisposedException)
+            {
+                // La solicitud terminó mientras se navegaba.
+            }
+            finally
+            {
+                if (EsCargaActual(source))
+                {
+                    IsBusy = false;
+                }
+
+                LiberarCarga(source);
+                ActualizarComandos();
+                NotificarEstadoLista();
+            }
         }
 
         private async Task OnDeleteAsync(
@@ -655,16 +847,38 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                List.Remove(item);
-
-                TotalRegistros =
+                int totalEstimado =
                     Math.Max(
                         0,
                         TotalRegistros - 1);
 
-                versionAplicada =
-                    TipoAnalisisSueloListadoEstadoService
-                        .MarcarCambio();
+                int tamano =
+                    Math.Max(
+                        1,
+                        tamanoPaginaActual);
+
+                int paginasEstimadas =
+                    totalEstimado == 0
+                        ? 1
+                        : (int)Math.Ceiling(
+                            totalEstimado /
+                            (double)tamano);
+
+                int paginaDestino =
+                    Math.Min(
+                        Math.Max(1, paginaActual),
+                        Math.Max(1, paginasEstimadas));
+
+                TipoAnalisisSueloListadoEstadoService
+                    .MarcarCambio();
+
+                /*
+                 * La eliminación siempre se confirma contra el servidor y luego
+                 * se vuelve a consultar la página válida. No se asume que quitar
+                 * la tarjeta local represente el estado final de la base de datos.
+                 */
+                await CargarPaginaAsync(
+                    paginaDestino);
 
                 await MostrarToastAsync(
                     string.IsNullOrWhiteSpace(
@@ -678,6 +892,14 @@ namespace CONATRADEC.ViewModels
                 ActualizarComandos();
                 NotificarEstadoLista();
             }
+        }
+
+        private async Task SalirAConfiguracionAsync()
+        {
+            FinalizarVisita();
+
+            await NavegarAsync(
+                AppRoutes.Configuracion);
         }
 
         private async Task NavegarAsync(
@@ -739,7 +961,8 @@ namespace CONATRADEC.ViewModels
             BuscarCommand.ChangeCanExecute();
             LimpiarFiltrosCommand.ChangeCanExecute();
             RefrescarCommand.ChangeCanExecute();
-            CargarMasCommand.ChangeCanExecute();
+            PaginaAnteriorCommand.ChangeCanExecute();
+            PaginaSiguienteCommand.ChangeCanExecute();
         }
 
         private void NotificarEstadoLista()
@@ -748,10 +971,25 @@ namespace CONATRADEC.ViewModels
                 nameof(MostrarVacio));
 
             OnPropertyChanged(
-                nameof(MostrarFinLista));
+                nameof(MostrarPaginacion));
 
             OnPropertyChanged(
-                nameof(PuedeCargarMas));
+                nameof(PuedeIrAnterior));
+
+            OnPropertyChanged(
+                nameof(PuedeIrSiguiente));
+
+            OnPropertyChanged(
+                nameof(PaginaActual));
+
+            OnPropertyChanged(
+                nameof(TotalPaginas));
+
+            OnPropertyChanged(
+                nameof(PaginaTexto));
+
+            OnPropertyChanged(
+                nameof(RangoPaginaTexto));
 
             OnPropertyChanged(
                 nameof(ResumenResultados));
