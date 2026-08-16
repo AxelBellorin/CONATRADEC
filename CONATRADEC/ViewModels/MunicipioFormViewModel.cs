@@ -277,11 +277,15 @@ namespace CONATRADEC.ViewModels
                 RefrescarComandos();
 
                 MunicipioRequest.NombreMunicipio =
-                    NombreMunicipio.ReplaceLineEndings(" ").Trim().ToUpperInvariant();
+                    NombreMunicipio
+                        .ReplaceLineEndings(" ")
+                        .Trim()
+                        .ToUpperInvariant();
+
                 MunicipioRequest.DepartamentoId =
                     DepartamentoRequest.DepartamentoId;
 
-                ApiResult<bool> resultado =
+                ApiResult<MunicipioResponse> resultado =
                     Mode == FormMode.FormModeSelect.Create
                         ? await municipioApiService.CreateMunicipioResultAsync(
                             MunicipioRequest,
@@ -290,18 +294,26 @@ namespace CONATRADEC.ViewModels
                             MunicipioRequest,
                             guardadoCts.Token);
 
-                if (!resultado.Success || resultado.Data != true)
+                if (!resultado.Success ||
+                    resultado.Data?.MunicipioId is not > 0)
                 {
                     await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
-                int departamentoId = DepartamentoRequest.DepartamentoId!.Value;
+                MunicipioRequest =
+                    new MunicipioRequest(resultado.Data);
+
+                int departamentoId =
+                    DepartamentoRequest.DepartamentoId!.Value;
 
                 if (Mode == FormMode.FormModeSelect.Create)
                 {
+                    // El DTO completo conserva el identificador real incluso
+                    // cuando la creación resolvió una reactivación.
                     UbicacionVisitaService.MarcarMunicipiosParaRecargar(
                         departamentoId);
+
                     UbicacionVisitaService.RegistrarDeltaMunicipiosDepartamento(
                         departamentoId,
                         1);
@@ -325,7 +337,9 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                await MostrarErrorInesperadoAsync("guardar el municipio", ex);
+                await MostrarErrorInesperadoAsync(
+                    "guardar el municipio",
+                    ex);
             }
             finally
             {
@@ -352,16 +366,27 @@ namespace CONATRADEC.ViewModels
         private bool ValidarCampos()
         {
             LimpiarErrores();
+
             NombreMunicipio =
-                NombreMunicipio.ReplaceLineEndings(" ").Trim();
+                NombreMunicipio
+                    .ReplaceLineEndings(" ")
+                    .Trim();
 
             if (!UbicacionValida)
-                ErrorNombreMunicipio = "No se recibió una ubicación válida.";
+            {
+                ErrorNombreMunicipio =
+                    "No se recibió una ubicación válida.";
+            }
             else if (string.IsNullOrWhiteSpace(NombreMunicipio))
-                ErrorNombreMunicipio = "Ingrese el nombre del municipio.";
+            {
+                ErrorNombreMunicipio =
+                    "Ingrese el nombre del municipio.";
+            }
             else if (NombreMunicipio.Length > 80)
+            {
                 ErrorNombreMunicipio =
                     "El nombre no puede superar 80 caracteres.";
+            }
 
             return !TieneErrorNombreMunicipio;
         }
@@ -369,7 +394,9 @@ namespace CONATRADEC.ViewModels
         private bool HayCambios()
         {
             string nombreActual =
-                NombreMunicipio.ReplaceLineEndings(" ").Trim();
+                NombreMunicipio
+                    .ReplaceLineEndings(" ")
+                    .Trim();
 
             if (Mode == FormMode.FormModeSelect.Create)
                 return !string.IsNullOrWhiteSpace(nombreActual);
@@ -395,7 +422,9 @@ namespace CONATRADEC.ViewModels
                     $"Municipios de {NombreDepartamento} - {NombrePais}"
             };
 
-            return GoToAsyncParameters("//MunicipioPage", parametros);
+            return GoToAsyncParameters(
+                "//MunicipioPage",
+                parametros);
         }
 
         private void RefrescarComandos()

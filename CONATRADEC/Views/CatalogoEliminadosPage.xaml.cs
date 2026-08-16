@@ -27,11 +27,24 @@ namespace CONATRADEC.Views
 
         public CatalogoEliminadosPage(
             CatalogoEliminadoConfiguracion configuracion)
+            : this(configuracion, null)
+        {
+        }
+
+        public CatalogoEliminadosPage(
+            CatalogoEliminadoConfiguracion configuracion,
+            int? parentId)
         {
             InitializeComponent();
 
             var viewModel =
-                new CatalogoEliminadosViewModel(configuracion);
+                new CatalogoEliminadosViewModel(
+                    configuracion,
+                    new CatalogosEliminadosApiService(
+                        configuracion.Codigo,
+                        parentId),
+                    new UsuariosInactivosApiService(),
+                    new TerrenosInactivosApiService());
 
             BindingContext = viewModel;
 

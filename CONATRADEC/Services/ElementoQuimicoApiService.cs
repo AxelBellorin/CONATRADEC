@@ -1,5 +1,7 @@
 using CONATRADEC.Models;
+using Microsoft.Maui.ApplicationModel;
 using System.Collections.ObjectModel;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -7,6 +9,18 @@ namespace CONATRADEC.Services
 {
     public sealed class ElementoQuimicoApiService
     {
+        private const string RutaAdministrativa =
+            "api/administracion/elementos-quimicos";
+
+        private const string CodigoInactivoExistente =
+            "ELEMENTO_QUIMICO_INACTIVO_EXISTENTE";
+
+        private const string OpcionReactivar =
+            "Reactivar y usar estos datos";
+
+        private const string OpcionCrearNuevo =
+            "Crear un registro diferente";
+
         private readonly HttpClient httpClient;
 
         private static readonly SemaphoreSlim CacheLock =
@@ -19,6 +33,12 @@ namespace CONATRADEC.Services
 
         private static readonly TimeSpan DuracionCache =
             TimeSpan.FromMinutes(20);
+
+        private static readonly JsonSerializerOptions JsonOptions =
+            new(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            };
 
         public ElementoQuimicoApiService()
             : this(ApiClientService.Client)
@@ -37,6 +57,7 @@ namespace CONATRADEC.Services
         /// <summary>
         /// Listado completo conservado para análisis, fuentes de nutrientes
         /// y demás formularios que utilizan este catálogo como selector.
+        /// Este endpoint histórico no se sustituye por la API administrativa.
         /// </summary>
         public async Task<ApiResult<
             ObservableCollection<ElementoQuimicoResponse>>>
@@ -123,8 +144,8 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Consulta paginada utilizada únicamente por la pantalla
-        /// administrativa del catálogo.
+        /// Consulta paginada exclusiva de la pantalla administrativa moderna.
+        /// Solo la página solicitada viaja al cliente y permanece en memoria.
         /// </summary>
         public async Task<ApiResult<ElementoQuimicoPaginaResponse>>
             BuscarElementosAsync(
@@ -137,11 +158,9 @@ namespace CONATRADEC.Services
             tamanoPagina = Math.Clamp(tamanoPagina, 5, 100);
 
             string ruta =
-                "api/elemento-quimico/buscar" +
+                RutaAdministrativa +
                 $"?pagina={pagina}" +
-                $"&tamanoPagina={tamanoPagina}" +
-                "&orden=nombre" +
-                "&direccion=asc";
+                $"&tamanoPagina={tamanoPagina}";
 
             if (!string.IsNullOrWhiteSpace(buscar))
             {
@@ -170,10 +189,9 @@ namespace CONATRADEC.Services
 
                 ElementoQuimicoPaginaResponse? data =
                     await response.Content
-                        .ReadFromJsonAsync<
-                            ElementoQuimicoPaginaResponse>(
-                                cancellationToken:
-                                    cancellationToken);
+                        .ReadFromJsonAsync<ElementoQuimicoPaginaResponse>(
+                            JsonOptions,
+                            cancellationToken);
 
                 return ApiResult<ElementoQuimicoPaginaResponse>
                     .Ok(
@@ -213,21 +231,21 @@ namespace CONATRADEC.Services
             }
         }
 
-        public async Task<ApiResult<bool>>
-            CreateElementoQuimicoResultAsync(
+        /// <summary>
+        /// Crea mediante la API administrativa. Si la identidad coincide con
+        /// un registro inactivo conserva el comportamiento histórico: permite
+        /// reactivarlo con los datos escritos o crear un registro diferente.
+        /// </summary>
+        public async Task<ApiResult<ElementoQuimicoResponse>>
+            CreateElementoQuimicoAdminResultAsync(
                 ElementoQuimicoRequest elemento,
                 CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(elemento);
 
-            ApiResult<bool> result =
-                await ApiServiceHelper.SendAsync(
-                    httpClient,
-                    HttpMethod.Post,
-                    "api/elemento-quimico/crear",
+            ApiResult<ElementoQuimicoResponse> result =
+                await CrearConResolucionAsync(
                     elemento,
-                    "crear el elemento químico",
-                    "Elemento químico creado correctamente.",
                     cancellationToken);
 
             if (result.Success)
@@ -236,8 +254,8 @@ namespace CONATRADEC.Services
             return result;
         }
 
-        public async Task<ApiResult<bool>>
-            UpdateElementoQuimicoResultAsync(
+        public async Task<ApiResult<ElementoQuimicoResponse>>
+            UpdateElementoQuimicoAdminResultAsync(
                 ElementoQuimicoRequest elemento,
                 CancellationToken cancellationToken = default)
         {
@@ -246,17 +264,16 @@ namespace CONATRADEC.Services
             if (!elemento.ElementoQuimicosId.HasValue ||
                 elemento.ElementoQuimicosId.Value <= 0)
             {
-                return ApiResult<bool>.Fail(
+                return ApiResult<ElementoQuimicoResponse>.Fail(
                     "No se recibió un identificador de elemento químico válido.");
             }
 
-            ApiResult<bool> result =
-                await ApiServiceHelper.SendAsync(
-                    httpClient,
+            ApiResult<ElementoQuimicoResponse> result =
+                await EnviarYLeerElementoAsync(
                     HttpMethod.Put,
-                    $"api/elemento-quimico/editar/{elemento.ElementoQuimicosId.Value}",
+                    $"{RutaAdministrativa}/{elemento.ElementoQuimicosId.Value}",
                     elemento,
-                    "actualizar el elemento químico",
+                    "No fue posible actualizar el elemento químico.",
                     "Elemento químico actualizado correctamente.",
                     cancellationToken);
 
@@ -282,10 +299,10 @@ namespace CONATRADEC.Services
 
             ApiResult<bool> result =
                 await ApiServiceHelper
-                    .SendAsync<ElementoQuimicoRequest>(
+                    .SendAsync<object>(
                         httpClient,
                         HttpMethod.Delete,
-                        $"api/elemento-quimico/eliminar/{elemento.ElementoQuimicosId.Value}",
+                        $"{RutaAdministrativa}/{elemento.ElementoQuimicosId.Value}",
                         null,
                         "eliminar el elemento químico",
                         "Elemento químico eliminado correctamente.",
@@ -308,7 +325,47 @@ namespace CONATRADEC.Services
                 new ObservableCollection<ElementoQuimicoResponse>();
         }
 
-        // Métodos conservados para no afectar código existente.
+        // Firmas históricas conservadas para no afectar otros consumidores.
+        public async Task<ApiResult<bool>>
+            CreateElementoQuimicoResultAsync(
+                ElementoQuimicoRequest elemento,
+                CancellationToken cancellationToken = default)
+        {
+            ApiResult<ElementoQuimicoResponse> result =
+                await CreateElementoQuimicoAdminResultAsync(
+                    elemento,
+                    cancellationToken);
+
+            return result.Success &&
+                   result.Data?.ElementoQuimicosId is > 0
+                ? ApiResult<bool>.Ok(
+                    true,
+                    result.Message)
+                : ApiResult<bool>.Fail(
+                    result.Message,
+                    result.StatusCode);
+        }
+
+        public async Task<ApiResult<bool>>
+            UpdateElementoQuimicoResultAsync(
+                ElementoQuimicoRequest elemento,
+                CancellationToken cancellationToken = default)
+        {
+            ApiResult<ElementoQuimicoResponse> result =
+                await UpdateElementoQuimicoAdminResultAsync(
+                    elemento,
+                    cancellationToken);
+
+            return result.Success &&
+                   result.Data?.ElementoQuimicosId is > 0
+                ? ApiResult<bool>.Ok(
+                    true,
+                    result.Message)
+                : ApiResult<bool>.Fail(
+                    result.Message,
+                    result.StatusCode);
+        }
+
         public async Task<bool> CreateElementoQuimicoAsync(
             ElementoQuimicoRequest elemento)
         {
@@ -347,6 +404,260 @@ namespace CONATRADEC.Services
             LimpiarCache();
         }
 
+        private async Task<ApiResult<ElementoQuimicoResponse>>
+            CrearConResolucionAsync(
+                ElementoQuimicoRequest elemento,
+                CancellationToken cancellationToken)
+        {
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.PostAsJsonAsync(
+                        RutaAdministrativa,
+                        elemento,
+                        JsonOptions,
+                        cancellationToken);
+
+                string contenido =
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
+
+                OperacionEnvelope<ElementoQuimicoResponse>? envelope =
+                    DeserializarEnvelope(contenido);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return CrearResultadoExitoso(
+                        envelope,
+                        "Elemento químico creado correctamente.");
+                }
+
+                bool esInactivoCoincidente =
+                    response.StatusCode == HttpStatusCode.Conflict &&
+                    string.Equals(
+                        envelope?.Code,
+                        CodigoInactivoExistente,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    envelope?.Data?.ElementoQuimicosId is > 0;
+
+                if (!esInactivoCoincidente)
+                {
+                    return ApiResult<ElementoQuimicoResponse>.Fail(
+                        ApiErrorMessageParser.Parse(
+                            response.StatusCode,
+                            contenido,
+                            "No fue posible crear el elemento químico."),
+                        (int)response.StatusCode);
+                }
+
+                ElementoQuimicoResponse inactivo =
+                    envelope!.Data!;
+
+                string? decision =
+                    await MostrarOpcionesInactivoAsync(
+                        inactivo);
+
+                if (decision == OpcionReactivar)
+                {
+                    return await EnviarYLeerElementoAsync(
+                        HttpMethod.Put,
+                        $"{RutaAdministrativa}/{inactivo.ElementoQuimicosId!.Value}/reactivar",
+                        elemento,
+                        "No fue posible reactivar el elemento químico.",
+                        "Elemento químico reactivado correctamente.",
+                        cancellationToken);
+                }
+
+                if (decision == OpcionCrearNuevo)
+                {
+                    return await EnviarYLeerElementoAsync(
+                        HttpMethod.Post,
+                        RutaAdministrativa +
+                        "?crearNuevoSiExisteInactivo=true",
+                        elemento,
+                        "No fue posible crear el elemento químico.",
+                        "Elemento químico creado correctamente.",
+                        cancellationToken);
+                }
+
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "La creación fue cancelada.");
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "La solicitud tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "No fue posible comunicarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "El servidor respondió, pero los datos del elemento químico no tienen el formato esperado.");
+            }
+            catch
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "Ocurrió un error inesperado al crear el elemento químico.");
+            }
+        }
+
+        private async Task<ApiResult<ElementoQuimicoResponse>>
+            EnviarYLeerElementoAsync(
+                HttpMethod method,
+                string route,
+                ElementoQuimicoRequest request,
+                string errorMessage,
+                string successMessage,
+                CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var message =
+                    new HttpRequestMessage(
+                        method,
+                        route)
+                    {
+                        Content =
+                            JsonContent.Create(
+                                request,
+                                options: JsonOptions)
+                    };
+
+                using HttpResponseMessage response =
+                    await httpClient.SendAsync(
+                        message,
+                        cancellationToken);
+
+                string contenido =
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<ElementoQuimicoResponse>.Fail(
+                        ApiErrorMessageParser.Parse(
+                            response.StatusCode,
+                            contenido,
+                            errorMessage),
+                        (int)response.StatusCode);
+                }
+
+                OperacionEnvelope<ElementoQuimicoResponse>? envelope =
+                    DeserializarEnvelope(contenido);
+
+                return CrearResultadoExitoso(
+                    envelope,
+                    successMessage);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "La solicitud tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "No fue posible comunicarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "El servidor respondió, pero el elemento químico no tiene el formato esperado.");
+            }
+            catch
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    errorMessage);
+            }
+        }
+
+        private static ApiResult<ElementoQuimicoResponse>
+            CrearResultadoExitoso(
+                OperacionEnvelope<ElementoQuimicoResponse>? envelope,
+                string successMessage)
+        {
+            ElementoQuimicoResponse? data =
+                envelope?.Data;
+
+            if (data?.ElementoQuimicosId is not > 0)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "La operación se procesó, pero el servidor no devolvió el elemento químico actualizado.");
+            }
+
+            return ApiResult<ElementoQuimicoResponse>.Ok(
+                data,
+                string.IsNullOrWhiteSpace(envelope?.Message)
+                    ? successMessage
+                    : envelope!.Message);
+        }
+
+        private static OperacionEnvelope<ElementoQuimicoResponse>?
+            DeserializarEnvelope(
+                string contenido)
+        {
+            if (string.IsNullOrWhiteSpace(contenido))
+                return null;
+
+            return JsonSerializer.Deserialize<
+                OperacionEnvelope<ElementoQuimicoResponse>>(
+                    contenido,
+                    JsonOptions);
+        }
+
+        private static async Task<string?>
+            MostrarOpcionesInactivoAsync(
+                ElementoQuimicoResponse registro)
+        {
+            return await MainThread.InvokeOnMainThreadAsync(
+                async () =>
+                {
+                    Page? pagina =
+                        Application.Current?
+                            .Windows
+                            .FirstOrDefault()?
+                            .Page;
+
+                    if (pagina == null)
+                        return null;
+
+                    string titulo =
+                        string.IsNullOrWhiteSpace(
+                            registro.NombreElementoQuimico)
+                            ? registro.SimboloElementoQuimico
+                            : registro.NombreElementoQuimico;
+
+                    string mensaje =
+                        "Ya existe un elemento químico eliminado que coincide " +
+                        $"con '{titulo}'.\n\n" +
+                        "Puede reactivarlo conservando su identificador e " +
+                        "historial, o crear un registro diferente.";
+
+                    return await pagina.DisplayActionSheet(
+                        mensaje,
+                        "Cancelar",
+                        null,
+                        OpcionReactivar,
+                        OpcionCrearNuevo);
+                });
+        }
+
         private static bool CacheVigente() =>
             cacheFormulario != null &&
             DateTime.UtcNow - cacheCreadoUtc < DuracionCache;
@@ -361,6 +672,14 @@ namespace CONATRADEC.Services
         {
             cacheFormulario = null;
             cacheCreadoUtc = default;
+        }
+
+        private sealed class OperacionEnvelope<T>
+        {
+            public bool Success { get; set; }
+            public string Code { get; set; } = string.Empty;
+            public string Message { get; set; } = string.Empty;
+            public T? Data { get; set; }
         }
     }
 }

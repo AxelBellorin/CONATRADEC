@@ -62,6 +62,18 @@ namespace CONATRADEC.Controls
                 typeof(ResponsiveCatalogHeader),
                 false);
 
+        /// <summary>
+        /// Identificador opcional del padre jerárquico utilizado al abrir
+        /// Eliminados. Departamento recibe PaisId y Municipio recibe
+        /// DepartamentoId. Los demás catálogos ignoran este valor.
+        /// </summary>
+        public static readonly BindableProperty DeletedParentIdProperty =
+            BindableProperty.Create(
+                nameof(DeletedParentId),
+                typeof(int?),
+                typeof(ResponsiveCatalogHeader),
+                default(int?));
+
         public static readonly BindableProperty BackTextProperty =
             BindableProperty.Create(
                 nameof(BackText),
@@ -163,6 +175,12 @@ namespace CONATRADEC.Controls
         {
             get => (bool)GetValue(IsContextVisibleProperty);
             set => SetValue(IsContextVisibleProperty, value);
+        }
+
+        public int? DeletedParentId
+        {
+            get => (int?)GetValue(DeletedParentIdProperty);
+            set => SetValue(DeletedParentIdProperty, value);
         }
 
         public string BackText
@@ -439,7 +457,9 @@ namespace CONATRADEC.Controls
                 }
 
                 await CatalogoEliminadosLauncher
-                    .AbrirAsync(catalogoEliminados!);
+                    .AbrirAsync(
+                        catalogoEliminados!,
+                        DeletedParentId);
             }
             finally
             {

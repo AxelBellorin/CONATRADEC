@@ -14,6 +14,8 @@ namespace CONATRADEC.Services
     public sealed class CatalogosEliminadosApiService
     {
         private readonly HttpClient httpClient;
+        private readonly string? catalogoContexto;
+        private readonly int? parentId;
 
         private static readonly JsonSerializerOptions JsonOptions =
             new(JsonSerializerDefaults.Web)
@@ -22,17 +24,50 @@ namespace CONATRADEC.Services
             };
 
         public CatalogosEliminadosApiService()
-            : this(ApiClientService.Client)
+            : this(ApiClientService.Client, null, null)
         {
         }
 
         public CatalogosEliminadosApiService(
             HttpClient httpClient)
+            : this(httpClient, null, null)
+        {
+        }
+
+        /// <summary>
+        /// Constructor utilizado por el modal de Eliminados cuando el catálogo
+        /// forma parte de una jerarquía. Departamento usa el PaisId actual y
+        /// Municipio usa el DepartamentoId actual.
+        /// </summary>
+        public CatalogosEliminadosApiService(
+            string catalogoContexto,
+            int? parentId)
+            : this(
+                ApiClientService.Client,
+                catalogoContexto,
+                parentId)
+        {
+        }
+
+        private CatalogosEliminadosApiService(
+            HttpClient httpClient,
+            string? catalogoContexto,
+            int? parentId)
         {
             this.httpClient =
                 httpClient ??
                 throw new ArgumentNullException(
                     nameof(httpClient));
+
+            this.catalogoContexto =
+                string.IsNullOrWhiteSpace(catalogoContexto)
+                    ? null
+                    : catalogoContexto.Trim();
+
+            this.parentId =
+                parentId is > 0
+                    ? parentId
+                    : null;
         }
 
         public async Task<ApiResult<ObservableCollection<CatalogoEliminadoItem>>>
@@ -52,9 +87,12 @@ namespace CONATRADEC.Services
 
             try
             {
+                string ruta =
+                    ConstruirRutaListado(catalogo);
+
                 using HttpResponseMessage response =
                     await httpClient.GetAsync(
-                        $"api/catalogos-eliminados/{Uri.EscapeDataString(catalogo)}",
+                        ruta,
                         cancellationToken);
 
                 string contenido =
@@ -548,6 +586,51 @@ namespace CONATRADEC.Services
                 return ApiResult<bool>.Fail(
                     errorMessage);
             }
+        }
+
+        private string ConstruirRutaListado(
+            string catalogo)
+        {
+            bool mismoContexto =
+                !string.IsNullOrWhiteSpace(catalogoContexto) &&
+                string.Equals(
+                    catalogo,
+                    catalogoContexto,
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (mismoContexto)
+            {
+                /*
+                 * En la aplicación actual Departamento y Municipio nunca deben
+                 * degradarse al listado global. Si por una navegación inválida
+                 * no llegó el padre, se envía 0 y el backend devuelve un error
+                 * controlado en lugar de mezclar registros de otra jerarquía.
+                 */
+                if (string.Equals(
+                        catalogo,
+                        CatalogoEliminadoCodigos.Departamento,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return
+                        "api/administracion/ubicaciones/eliminados/departamentos" +
+                        $"?paisId={parentId ?? 0}";
+                }
+
+                if (string.Equals(
+                        catalogo,
+                        CatalogoEliminadoCodigos.Municipio,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return
+                        "api/administracion/ubicaciones/eliminados/municipios" +
+                        $"?departamentoId={parentId ?? 0}";
+                }
+            }
+
+            // Compatibilidad: sin alcance explícito se conserva el endpoint
+            // global utilizado por versiones anteriores y demás catálogos.
+            return
+                $"api/catalogos-eliminados/{Uri.EscapeDataString(catalogo)}";
         }
 
         private static string ObtenerMensaje(

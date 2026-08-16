@@ -71,6 +71,27 @@
                                     StrokeShape="RoundRectangle 12">
                                     <Label Text="{Binding Mensaje}" FontSize="13" TextColor="{StaticResource color_Negro}" />
                                 </Border>
+                            
+
+                                <Grid Margin="0,6,0,0" Padding="12,24" InputTransparent="True">
+                                    <Border
+                                        IsVisible="{Binding MostrarVacio}"
+                                        InputTransparent="True"
+                                        MaximumWidthRequest="560"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Start"
+                                        Padding="24"
+                                        BackgroundColor="White"
+                                        Stroke="#DDE7E3"
+                                        StrokeThickness="1"
+                                        StrokeShape="RoundRectangle 16">
+                                        <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                            <Image Source="iconcountry.png" WidthRequest="64" HeightRequest="64" Opacity="0.5" />
+                                            <Label Text="No se encontraron países" FontSize="18" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" HorizontalTextAlignment="Center" />
+                                            <Label Text="Pruebe con otro nombre o código ISO." FontSize="13" TextColor="{StaticResource color_GrisOscuro}" HorizontalTextAlignment="Center" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </Grid>
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -82,28 +103,6 @@
                                 HorizontalItemSpacing="12"
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
-
-                        <CollectionView.EmptyView>
-                            <Grid Padding="12,24" InputTransparent="True">
-                                <Border
-                                    IsVisible="{Binding MostrarVacio}"
-                                    InputTransparent="True"
-                                    MaximumWidthRequest="560"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Start"
-                                    Padding="24"
-                                    BackgroundColor="White"
-                                    Stroke="#DDE7E3"
-                                    StrokeThickness="1"
-                                    StrokeShape="RoundRectangle 16">
-                                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                                        <Image Source="iconcountry.png" WidthRequest="64" HeightRequest="64" Opacity="0.5" />
-                                        <Label Text="No se encontraron países" FontSize="18" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" HorizontalTextAlignment="Center" />
-                                        <Label Text="Pruebe con otro nombre o código ISO." FontSize="13" TextColor="{StaticResource color_GrisOscuro}" HorizontalTextAlignment="Center" />
-                                    </VerticalStackLayout>
-                                </Border>
-                            </Grid>
-                        </CollectionView.EmptyView>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:PaisResponse">

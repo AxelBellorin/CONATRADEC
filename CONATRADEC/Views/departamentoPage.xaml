@@ -57,7 +57,8 @@
                                     PrimaryCommand="{Binding AddCommand}"
                                     IsPrimaryVisible="{Binding CanAdd}"
                                     ContextText="{Binding CodigoPais}"
-                                    IsContextVisible="{Binding MostrarCodigoPais}" />
+                                    IsContextVisible="{Binding MostrarCodigoPais}"
+                                    DeletedParentId="{Binding PaisRequest.PaisId}" />
 
                                 <controls:ResponsiveSearchPanel
                                     Placeholder="Buscar departamento por nombre"
@@ -75,6 +76,19 @@
                                     StrokeShape="RoundRectangle 12">
                                     <Label Text="{Binding Mensaje}" FontSize="13" TextColor="{StaticResource color_Negro}" />
                                 </Border>
+                            
+
+                                <Grid Margin="0,6,0,0" Padding="30" InputTransparent="True">
+                                    <VerticalStackLayout
+                                        IsVisible="{Binding MostrarVacio}"
+                                        Spacing="8"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center">
+                                        <Image Source="iconcountry.png" WidthRequest="64" HeightRequest="64" Opacity="0.5" />
+                                        <Label Text="No se encontraron departamentos" FontSize="18" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" HorizontalTextAlignment="Center" />
+                                        <Label Text="Pruebe con otro nombre o registre un nuevo departamento." FontSize="13" TextColor="{StaticResource color_GrisOscuro}" HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </Grid>
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -86,20 +100,6 @@
                                 HorizontalItemSpacing="12"
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
-
-                        <CollectionView.EmptyView>
-                            <Grid Padding="30" InputTransparent="True">
-                                <VerticalStackLayout
-                                    IsVisible="{Binding MostrarVacio}"
-                                    Spacing="8"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center">
-                                    <Image Source="iconcountry.png" WidthRequest="64" HeightRequest="64" Opacity="0.5" />
-                                    <Label Text="No se encontraron departamentos" FontSize="18" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" HorizontalTextAlignment="Center" />
-                                    <Label Text="Pruebe con otro nombre o registre un nuevo departamento." FontSize="13" TextColor="{StaticResource color_GrisOscuro}" HorizontalTextAlignment="Center" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </CollectionView.EmptyView>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:DepartamentoResponse">

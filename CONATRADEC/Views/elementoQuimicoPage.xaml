@@ -12,6 +12,7 @@
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid>
 
+            <!-- Acceso denegado -->
             <Grid
                 IsVisible="{Binding MostrarAccesoDenegado}"
                 Padding="24">
@@ -52,7 +53,9 @@
 
                         <Button
                             Text="Regresar a configuración"
+                            Margin="0,8,0,0"
                             Padding="16,10"
+                            MinimumWidthRequest="0"
                             BackgroundColor="{StaticResource color_Verde}"
                             TextColor="White"
                             CornerRadius="11"
@@ -61,24 +64,28 @@
                 </Border>
             </Grid>
 
+            <!-- Contenido principal -->
             <Grid
+                x:Name="ContenidoElementos"
                 IsVisible="{Binding CanView}"
                 Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
-<RefreshView
-                        IsRefreshing="{Binding IsRefreshing}"
+                <RefreshView
+                    IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
 
                     <CollectionView
+                        x:Name="ElementosCollectionView"
                         ItemsSource="{Binding List}"
                         SelectionMode="None"
-                        RemainingItemsThreshold="3"
-                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                        ItemSizingStrategy="MeasureFirstItem">
 
                         <!--
-                            Encabezado, búsqueda y mensajes forman parte del
-                            contenido desplazable. No se reparentan controles
-                            ni se cambia su padre visual en tiempo de ejecución.
+                            Encabezado, búsqueda, mensajes y estado vacío forman
+                            parte del contenido desplazable. No se utiliza
+                            CollectionView.EmptyView para evitar que WinUI
+                            sustituya controles interactivos cuando la lista
+                            queda temporalmente vacía.
                         -->
                         <CollectionView.Header>
                             <VerticalStackLayout
@@ -94,13 +101,13 @@
                                     PrimaryCommand="{Binding AddCommand}"
                                     IsPrimaryVisible="{Binding CanAdd}" />
 
-                                <!-- Búsqueda -->
                                 <controls:ResponsiveSearchPanel
                                     Placeholder="Buscar por nombre o símbolo"
                                     SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
                                     SummaryText="{Binding ResumenResultados}"
                                     SearchCommand="{Binding BuscarCommand}"
                                     ClearCommand="{Binding LimpiarFiltrosCommand}" />
+
                                 <Border
                                     IsVisible="{Binding TieneMensaje}"
                                     Padding="12"
@@ -114,6 +121,40 @@
                                         FontSize="13"
                                         TextColor="{StaticResource color_Negro}" />
                                 </Border>
+
+                                <Border
+                                    IsVisible="{Binding MostrarVacio}"
+                                    Padding="24"
+                                    BackgroundColor="White"
+                                    Stroke="#DDE7E3"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 16">
+
+                                    <VerticalStackLayout
+                                        Spacing="8"
+                                        HorizontalOptions="Center">
+
+                                        <Image
+                                            Source="iconchemicalelement.png"
+                                            WidthRequest="64"
+                                            HeightRequest="64"
+                                            Opacity="0.5" />
+
+                                        <Label
+                                            Text="No se encontraron elementos químicos"
+                                            FontSize="18"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}"
+                                            HorizontalTextAlignment="Center" />
+
+                                        <Label
+                                            Text="Pruebe con otro nombre o símbolo, o registre un nuevo elemento."
+                                            FontSize="13"
+                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </Border>
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -126,43 +167,12 @@
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
 
-                        <CollectionView.EmptyView>
-                            <Grid Padding="30">
-                                <VerticalStackLayout
-                                    IsVisible="{Binding MostrarVacio}"
-                                    Spacing="8"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center">
-
-                                    <Image
-                                        Source="iconchemicalelement.png"
-                                        WidthRequest="64"
-                                        HeightRequest="64"
-                                        Opacity="0.5" />
-
-                                    <Label
-                                        Text="No se encontraron elementos químicos"
-                                        FontSize="18"
-                                        FontFamily="MontserratBold"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource color_Negro}"
-                                        HorizontalTextAlignment="Center" />
-
-                                    <Label
-                                        Text="Pruebe con otro nombre o símbolo, o registre un nuevo elemento."
-                                        FontSize="13"
-                                        TextColor="{StaticResource color_GrisOscuro}"
-                                        HorizontalTextAlignment="Center" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </CollectionView.EmptyView>
-
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:ElementoQuimicoResponse">
-
                                 <Border
                                     Padding="16"
                                     MinimumHeightRequest="166"
+                                    HorizontalOptions="Fill"
                                     BackgroundColor="White"
                                     Stroke="#DDE7E3"
                                     StrokeThickness="1"
@@ -170,12 +180,14 @@
 
                                     <Grid
                                         RowDefinitions="*,Auto"
-                                        RowSpacing="14">
+                                        RowSpacing="14"
+                                        HorizontalOptions="Fill">
 
                                         <Grid
                                             Grid.Row="0"
                                             ColumnDefinitions="Auto,*,Auto"
-                                            ColumnSpacing="12">
+                                            ColumnSpacing="12"
+                                            HorizontalOptions="Fill">
 
                                             <Border
                                                 WidthRequest="58"
@@ -198,6 +210,8 @@
                                             <VerticalStackLayout
                                                 Grid.Column="1"
                                                 Spacing="4"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 VerticalOptions="Center">
 
                                                 <Label
@@ -206,13 +220,15 @@
                                                     FontFamily="MontserratBold"
                                                     FontAttributes="Bold"
                                                     TextColor="{StaticResource color_Negro}"
+                                                    MaxLines="1"
                                                     LineBreakMode="TailTruncation" />
 
-                                                <!-- Siempre muestra exactamente dos decimales. -->
                                                 <Label
                                                     Text="{Binding PesoEquivalenteFormateado}"
                                                     FontSize="13"
-                                                    TextColor="{StaticResource color_GrisOscuro}" />
+                                                    TextColor="{StaticResource color_GrisOscuro}"
+                                                    MaxLines="1"
+                                                    LineBreakMode="TailTruncation" />
                                             </VerticalStackLayout>
 
                                             <Label
@@ -220,6 +236,7 @@
                                                 Text="Activo"
                                                 Padding="9,5"
                                                 FontSize="11"
+                                                MaxLines="1"
                                                 TextColor="{StaticResource color_Verde}"
                                                 BackgroundColor="#EAF7EF"
                                                 VerticalOptions="Start" />
@@ -228,12 +245,15 @@
                                         <Grid
                                             Grid.Row="1"
                                             ColumnDefinitions="*,*,*"
-                                            ColumnSpacing="8">
+                                            ColumnSpacing="6"
+                                            HorizontalOptions="Fill">
 
                                             <Button
                                                 Grid.Column="0"
                                                 Text="Ver"
-                                                Padding="8,9"
+                                                Padding="6,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="#EEF5F2"
                                                 TextColor="{StaticResource color_Verde}"
                                                 CornerRadius="10"
@@ -243,7 +263,9 @@
                                             <Button
                                                 Grid.Column="1"
                                                 Text="Editar"
-                                                Padding="8,9"
+                                                Padding="6,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="{StaticResource BlueUpdate}"
                                                 TextColor="White"
                                                 CornerRadius="10"
@@ -254,7 +276,9 @@
                                             <Button
                                                 Grid.Column="2"
                                                 Text="Eliminar"
-                                                Padding="8,9"
+                                                Padding="6,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="{StaticResource RedDelete}"
                                                 TextColor="White"
                                                 CornerRadius="10"
@@ -267,30 +291,74 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
 
+                        <!--
+                            Paginación explícita. La colección conserva solamente
+                            la página visible y nunca acumula páginas anteriores.
+                        -->
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="10,16,10,24"
-                                Spacing="8"
+                            <Border
+                                x:Name="PaginacionElementos"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
                                 HorizontalOptions="Center">
 
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoMas}"
-                                    IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Naranja}" />
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
 
-                                <Label
-                                    IsVisible="{Binding MostrarFinLista}"
-                                    Text="Fin del listado"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-                            </VerticalStackLayout>
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="8">
+
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>
 
+                <!-- Relay únicamente durante esperas reales del servidor. -->
                 <Grid
                     IsVisible="{Binding IsBusy}"
-                    InputTransparent="True"
+                    InputTransparent="False"
                     BackgroundColor="#40FFFFFF">
 
                     <Border

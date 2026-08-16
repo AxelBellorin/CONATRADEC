@@ -1,6 +1,8 @@
 using CONATRADEC.Models;
+using Microsoft.Maui.ApplicationModel;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -8,7 +10,22 @@ namespace CONATRADEC.Services
 {
     public sealed class MunicipioApiService
     {
+        private const string CodigoMunicipioInactivo =
+            "MUNICIPIO_INACTIVO_EXISTENTE";
+
+        private const string OpcionReactivar =
+            "Reactivar y usar estos datos";
+
+        private const string OpcionCrearNuevo =
+            "Crear un registro diferente";
+
         private readonly HttpClient httpClient;
+
+        private readonly JsonSerializerOptions jsonOptions =
+            new(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            };
 
         private sealed record CacheEntry(
             List<MunicipioResponse> Items,
@@ -35,7 +52,7 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Listado completo conservado para formularios y selectores.
+        /// Listado completo histórico conservado para formularios y selectores.
         /// </summary>
         public Task<ApiResult<ObservableCollection<MunicipioResponse>>>
             GetMunicipiosResultAsync(
@@ -57,7 +74,7 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Listado geográfico utilizado por Terreno y Usuario.
+        /// Listado geográfico histórico utilizado por Terreno y Usuario.
         /// </summary>
         public Task<ApiResult<ObservableCollection<MunicipioResponse>>>
             GetMunicipiosConUbicacionResultAsync(
@@ -70,9 +87,6 @@ namespace CONATRADEC.Services
                 cancellationToken);
         }
 
-        /// <summary>
-        /// Consulta administrativa paginada con permisos backend.
-        /// </summary>
         public async Task<ApiResult<MunicipioPaginaResponse>>
             BuscarMunicipiosAsync(
                 int departamentoId,
@@ -106,7 +120,9 @@ namespace CONATRADEC.Services
             try
             {
                 using HttpResponseMessage response =
-                    await httpClient.GetAsync(ruta, cancellationToken);
+                    await httpClient.GetAsync(
+                        ruta,
+                        cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -121,7 +137,8 @@ namespace CONATRADEC.Services
                 PaginaAdminResponse<MunicipioAdminItem>? data =
                     await response.Content
                         .ReadFromJsonAsync<PaginaAdminResponse<MunicipioAdminItem>>(
-                            cancellationToken: cancellationToken);
+                            jsonOptions,
+                            cancellationToken);
 
                 if (data == null)
                 {
@@ -129,26 +146,28 @@ namespace CONATRADEC.Services
                         "El servidor no devolvió la página de municipios esperada.");
                 }
 
+                MunicipioAdminItem? ubicacion = data.Items
+                    .FirstOrDefault();
+
                 return ApiResult<MunicipioPaginaResponse>.Ok(
                     new MunicipioPaginaResponse
                     {
                         Items = data.Items
-                            .Where(item => item.MunicipioId > 0 && item.Activo)
-                            .Select(item => new MunicipioResponse
-                            {
-                                MunicipioId = item.MunicipioId,
-                                NombreMunicipio = item.Nombre,
-                                DepartamentoId = item.DepartamentoId,
-                                Activo = item.Activo,
-                                CantidadTerrenos = item.CantidadTerrenos,
-                                CantidadUsuarios = item.CantidadUsuarios
-                            })
+                            .Where(item =>
+                                item.MunicipioId > 0 &&
+                                item.Activo)
+                            .Select(MapearMunicipio)
                             .ToList(),
                         PaginaActual = data.PaginaActual,
                         TamanoPagina = data.TamanoPagina,
                         TotalRegistros = data.TotalRegistros,
                         TotalPaginas = data.TotalPaginas,
-                        DepartamentoId = departamentoId
+                        DepartamentoId = departamentoId,
+                        NombreDepartamento =
+                            ubicacion?.NombreDepartamento ?? string.Empty,
+                        PaisId = ubicacion?.PaisId ?? 0,
+                        NombrePais =
+                            ubicacion?.NombrePais ?? string.Empty
                     });
             }
             catch (TaskCanceledException)
@@ -179,29 +198,29 @@ namespace CONATRADEC.Services
             }
         }
 
-        public async Task<ApiResult<bool>> CreateMunicipioResultAsync(
-            MunicipioRequest municipio,
-            CancellationToken cancellationToken = default)
+        public async Task<ApiResult<MunicipioResponse>>
+            CreateMunicipioResultAsync(
+                MunicipioRequest municipio,
+                CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(municipio);
 
             if (!municipio.DepartamentoId.HasValue ||
                 municipio.DepartamentoId.Value <= 0)
             {
-                return ApiResult<bool>.Fail(
+                return ApiResult<MunicipioResponse>.Fail(
                     "No se recibió un departamento válido.");
             }
 
-            // Se conserva esta ruta para mantener la resolución centralizada
-            // de coincidencias con municipios eliminados.
-            ApiResult<bool> result = await ApiServiceHelper.SendAsync(
-                httpClient,
-                HttpMethod.Post,
-                "api/municipio/crear",
-                municipio,
-                "crear el municipio",
-                "Municipio creado correctamente.",
-                cancellationToken);
+            ApiResult<MunicipioResponse> result =
+                await EnviarMunicipioAdministracionAsync(
+                    HttpMethod.Post,
+                    "api/administracion/ubicaciones/municipios",
+                    municipio,
+                    "crear el municipio",
+                    "Municipio creado correctamente.",
+                    cancellationToken,
+                    manejarInactivo: true);
 
             if (result.Success)
                 LimpiarCache(municipio.DepartamentoId.Value);
@@ -209,33 +228,37 @@ namespace CONATRADEC.Services
             return result;
         }
 
-        public async Task<ApiResult<bool>> UpdateMunicipioResultAsync(
-            MunicipioRequest municipio,
-            CancellationToken cancellationToken = default)
+        public async Task<ApiResult<MunicipioResponse>>
+            UpdateMunicipioResultAsync(
+                MunicipioRequest municipio,
+                CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(municipio);
 
             if (!municipio.MunicipioId.HasValue ||
                 municipio.MunicipioId.Value <= 0)
             {
-                return ApiResult<bool>.Fail(
+                return ApiResult<MunicipioResponse>.Fail(
                     "No se recibió un identificador de municipio válido.");
             }
 
-            ApiResult<bool> result = await ApiServiceHelper.SendAsync(
-                httpClient,
-                HttpMethod.Put,
-                $"api/administracion/ubicaciones/municipios/{municipio.MunicipioId.Value}",
-                new MunicipioAdministracionRequest
-                {
-                    DepartamentoId = municipio.DepartamentoId ?? 0,
-                    Nombre = municipio.NombreMunicipio ?? string.Empty
-                },
-                "actualizar el municipio",
-                "Municipio actualizado correctamente.",
-                cancellationToken);
+            if (!municipio.DepartamentoId.HasValue ||
+                municipio.DepartamentoId.Value <= 0)
+            {
+                return ApiResult<MunicipioResponse>.Fail(
+                    "No se recibió un departamento válido.");
+            }
 
-            if (result.Success && municipio.DepartamentoId.HasValue)
+            ApiResult<MunicipioResponse> result =
+                await EnviarMunicipioAdministracionAsync(
+                    HttpMethod.Put,
+                    $"api/administracion/ubicaciones/municipios/{municipio.MunicipioId.Value}",
+                    municipio,
+                    "actualizar el municipio",
+                    "Municipio actualizado correctamente.",
+                    cancellationToken);
+
+            if (result.Success)
                 LimpiarCache(municipio.DepartamentoId.Value);
 
             return result;
@@ -311,30 +334,244 @@ namespace CONATRADEC.Services
             }
         }
 
-        // Métodos conservados para no afectar código existente.
-        public async Task<bool> CreateMunicipioAsync(MunicipioRequest municipio)
+        public async Task<bool> CreateMunicipioAsync(
+            MunicipioRequest municipio)
         {
-            ApiResult<bool> result =
+            ApiResult<MunicipioResponse> result =
                 await CreateMunicipioResultAsync(municipio);
 
-            return result.Success && result.Data == true;
+            return result.Success &&
+                   result.Data?.MunicipioId is > 0;
         }
 
-        public async Task<bool> UpdateMunicipioAsync(MunicipioRequest municipio)
+        public async Task<bool> UpdateMunicipioAsync(
+            MunicipioRequest municipio)
         {
-            ApiResult<bool> result =
+            ApiResult<MunicipioResponse> result =
                 await UpdateMunicipioResultAsync(municipio);
 
-            return result.Success && result.Data == true;
+            return result.Success &&
+                   result.Data?.MunicipioId is > 0;
         }
 
-        public async Task<bool> DeleteMunicipioAsync(MunicipioRequest municipio)
+        public async Task<bool> DeleteMunicipioAsync(
+            MunicipioRequest municipio)
         {
             ApiResult<bool> result =
                 await DeleteMunicipioResultAsync(municipio);
 
             return result.Success && result.Data == true;
         }
+
+        private async Task<ApiResult<MunicipioResponse>>
+            EnviarMunicipioAdministracionAsync(
+                HttpMethod method,
+                string route,
+                MunicipioRequest municipio,
+                string accion,
+                string mensajeExito,
+                CancellationToken cancellationToken,
+                bool manejarInactivo = false)
+        {
+            var request = new MunicipioAdministracionRequest
+            {
+                DepartamentoId = municipio.DepartamentoId ?? 0,
+                Nombre = municipio.NombreMunicipio ?? string.Empty
+            };
+
+            try
+            {
+                using var message =
+                    new HttpRequestMessage(method, route)
+                    {
+                        Content = JsonContent.Create(
+                            request,
+                            options: jsonOptions)
+                    };
+
+                using HttpResponseMessage response =
+                    await httpClient.SendAsync(
+                        message,
+                        cancellationToken);
+
+                UbicacionOperacionEnvelope<MunicipioAdminItem>? envelope =
+                    await LeerEnvelopeAsync<MunicipioAdminItem>(
+                        response,
+                        cancellationToken);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    if (envelope?.Data == null ||
+                        envelope.Data.MunicipioId <= 0)
+                    {
+                        return ApiResult<MunicipioResponse>.Fail(
+                            "La operación se procesó, pero el servidor no devolvió el municipio actualizado.");
+                    }
+
+                    return ApiResult<MunicipioResponse>.Ok(
+                        MapearMunicipio(envelope.Data),
+                        string.IsNullOrWhiteSpace(envelope.Message)
+                            ? mensajeExito
+                            : envelope.Message);
+                }
+
+                if (manejarInactivo &&
+                    response.StatusCode == HttpStatusCode.Conflict &&
+                    string.Equals(
+                        envelope?.Code,
+                        CodigoMunicipioInactivo,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    envelope?.Data?.MunicipioId > 0)
+                {
+                    return await ResolverMunicipioInactivoAsync(
+                        municipio,
+                        envelope.Data,
+                        cancellationToken);
+                }
+
+                return ApiResult<MunicipioResponse>.Fail(
+                    string.IsNullOrWhiteSpace(envelope?.Message)
+                        ? await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            $"No fue posible {accion}.",
+                            cancellationToken)
+                        : envelope.Message,
+                    (int)response.StatusCode);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<MunicipioResponse>.Fail(
+                    "La solicitud tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<MunicipioResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<MunicipioResponse>.Fail(
+                    "No fue posible comunicarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<MunicipioResponse>.Fail(
+                    "El servidor respondió con un formato inesperado.");
+            }
+            catch
+            {
+                return ApiResult<MunicipioResponse>.Fail(
+                    $"Ocurrió un error inesperado al {accion}.");
+            }
+        }
+
+        private async Task<ApiResult<MunicipioResponse>>
+            ResolverMunicipioInactivoAsync(
+                MunicipioRequest nuevoMunicipio,
+                MunicipioAdminItem inactivo,
+                CancellationToken cancellationToken)
+        {
+            string? decision =
+                await MostrarOpcionesMunicipioInactivoAsync(
+                    inactivo);
+
+            if (decision == OpcionReactivar)
+            {
+                var request = new MunicipioRequest
+                {
+                    MunicipioId = inactivo.MunicipioId,
+                    DepartamentoId = nuevoMunicipio.DepartamentoId,
+                    NombreMunicipio = nuevoMunicipio.NombreMunicipio
+                };
+
+                return await EnviarMunicipioAdministracionAsync(
+                    HttpMethod.Put,
+                    $"api/administracion/ubicaciones/municipios/{inactivo.MunicipioId}/reactivar",
+                    request,
+                    "reactivar el municipio",
+                    "Municipio reactivado correctamente.",
+                    cancellationToken);
+            }
+
+            if (decision == OpcionCrearNuevo)
+            {
+                return await EnviarMunicipioAdministracionAsync(
+                    HttpMethod.Post,
+                    "api/administracion/ubicaciones/municipios?crearNuevoSiExisteInactivo=true",
+                    nuevoMunicipio,
+                    "crear el municipio",
+                    "Municipio creado correctamente.",
+                    cancellationToken);
+            }
+
+            return ApiResult<MunicipioResponse>.Fail(
+                "La creación fue cancelada.");
+        }
+
+        private static async Task<string?>
+            MostrarOpcionesMunicipioInactivoAsync(
+                MunicipioAdminItem municipio)
+        {
+            return await MainThread.InvokeOnMainThreadAsync(
+                async () =>
+                {
+                    Page? pagina =
+                        Application.Current?
+                            .Windows
+                            .FirstOrDefault()?
+                            .Page;
+
+                    if (pagina == null)
+                        return null;
+
+                    string nombre =
+                        string.IsNullOrWhiteSpace(municipio.Nombre)
+                            ? "el municipio eliminado"
+                            : $"'{municipio.Nombre}'";
+
+                    return await pagina.DisplayActionSheet(
+                        $"Ya existe {nombre}. Puede reactivarlo conservando su identificador e historial.",
+                        "Cancelar",
+                        null,
+                        OpcionReactivar,
+                        OpcionCrearNuevo);
+                });
+        }
+
+        private async Task<UbicacionOperacionEnvelope<T>?>
+            LeerEnvelopeAsync<T>(
+                HttpResponseMessage response,
+                CancellationToken cancellationToken)
+        {
+            string contenido =
+                await response.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(contenido))
+                return null;
+
+            return JsonSerializer.Deserialize<
+                UbicacionOperacionEnvelope<T>>(
+                    contenido,
+                    jsonOptions);
+        }
+
+        private static MunicipioResponse MapearMunicipio(
+            MunicipioAdminItem item) =>
+            new()
+            {
+                MunicipioId = item.MunicipioId,
+                NombreMunicipio = item.Nombre ?? string.Empty,
+                DepartamentoId = item.DepartamentoId,
+                NombreDepartamento =
+                    item.NombreDepartamento ?? string.Empty,
+                PaisId = item.PaisId,
+                NombrePais = item.NombrePais ?? string.Empty,
+                Activo = item.Activo,
+                CantidadTerrenos = item.CantidadTerrenos,
+                CantidadUsuarios = item.CantidadUsuarios
+            };
 
         private static List<MunicipioResponse>? ObtenerCacheVigente(
             int departamentoId)
@@ -370,10 +607,21 @@ namespace CONATRADEC.Services
             public int TotalPaginas { get; set; }
         }
 
+        private sealed class UbicacionOperacionEnvelope<T>
+        {
+            public bool Success { get; set; }
+            public string? Code { get; set; }
+            public string? Message { get; set; }
+            public T? Data { get; set; }
+        }
+
         private sealed class MunicipioAdminItem
         {
             public int MunicipioId { get; set; }
             public int DepartamentoId { get; set; }
+            public string NombreDepartamento { get; set; } = string.Empty;
+            public int PaisId { get; set; }
+            public string NombrePais { get; set; } = string.Empty;
             public string Nombre { get; set; } = string.Empty;
             public bool Activo { get; set; }
             public int CantidadTerrenos { get; set; }

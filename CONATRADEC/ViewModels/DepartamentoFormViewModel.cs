@@ -248,10 +248,14 @@ namespace CONATRADEC.ViewModels
                 RefrescarComandos();
 
                 Departamento.NombreDepartamento =
-                    NombreDepartamento.ReplaceLineEndings(" ").Trim().ToUpperInvariant();
+                    NombreDepartamento
+                        .ReplaceLineEndings(" ")
+                        .Trim()
+                        .ToUpperInvariant();
+
                 Departamento.PaisId = PaisRequest.PaisId;
 
-                ApiResult<bool> resultado =
+                ApiResult<DepartamentoResponse> resultado =
                     Mode == FormMode.FormModeSelect.Create
                         ? await departamentoApiService
                             .CreateDepartamentoResultAsync(
@@ -262,18 +266,24 @@ namespace CONATRADEC.ViewModels
                                 Departamento,
                                 guardadoCts.Token);
 
-                if (!resultado.Success || resultado.Data != true)
+                if (!resultado.Success ||
+                    resultado.Data?.DepartamentoId is not > 0)
                 {
                     await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
+                Departamento =
+                    new DepartamentoRequest(resultado.Data);
+
                 if (Mode == FormMode.FormModeSelect.Create)
                 {
-                    // El POST no expone el ID creado: una única recarga de la
-                    // página actual garantiza orden y composición correctos.
+                    // El DTO real permite conservar el ID creado/reactivado.
+                    // Se consulta una única página al volver porque la inserción
+                    // puede modificar el orden global del catálogo.
                     UbicacionVisitaService.MarcarDepartamentosParaRecargar(
                         PaisRequest.PaisId);
+
                     UbicacionVisitaService.RegistrarDeltaDepartamentosPais(
                         PaisRequest.PaisId,
                         1);
@@ -326,16 +336,27 @@ namespace CONATRADEC.ViewModels
         private bool ValidarCampos()
         {
             LimpiarErrores();
+
             NombreDepartamento =
-                NombreDepartamento.ReplaceLineEndings(" ").Trim();
+                NombreDepartamento
+                    .ReplaceLineEndings(" ")
+                    .Trim();
 
             if (!PaisValido)
-                ErrorNombreDepartamento = "No se recibió un país válido.";
+            {
+                ErrorNombreDepartamento =
+                    "No se recibió un país válido.";
+            }
             else if (string.IsNullOrWhiteSpace(NombreDepartamento))
-                ErrorNombreDepartamento = "Ingrese el nombre del departamento.";
+            {
+                ErrorNombreDepartamento =
+                    "Ingrese el nombre del departamento.";
+            }
             else if (NombreDepartamento.Length > 80)
+            {
                 ErrorNombreDepartamento =
                     "El nombre no puede superar 80 caracteres.";
+            }
 
             return !TieneErrorNombreDepartamento;
         }
@@ -343,7 +364,9 @@ namespace CONATRADEC.ViewModels
         private bool HayCambios()
         {
             string nombreActual =
-                NombreDepartamento.ReplaceLineEndings(" ").Trim();
+                NombreDepartamento
+                    .ReplaceLineEndings(" ")
+                    .Trim();
 
             if (Mode == FormMode.FormModeSelect.Create)
                 return !string.IsNullOrWhiteSpace(nombreActual);
@@ -367,7 +390,9 @@ namespace CONATRADEC.ViewModels
                 ["TitlePage"] = $"Departamentos de {NombrePais}"
             };
 
-            return GoToAsyncParameters("//DepartamentoPage", parameters);
+            return GoToAsyncParameters(
+                "//DepartamentoPage",
+                parameters);
         }
 
         private void RefrescarComandos()

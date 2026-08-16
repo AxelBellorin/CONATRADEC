@@ -2,6 +2,7 @@ using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
@@ -21,6 +22,7 @@ namespace CONATRADEC.ViewModels
         private string errorNombre = string.Empty;
         private string errorPesoEquivalente = string.Empty;
         private FormMode.FormModeSelect mode;
+        private int guardadoEnCurso;
 
         public ElementoQuimicoFormViewModel()
             : this(new ElementoQuimicoApiService())
@@ -36,7 +38,10 @@ namespace CONATRADEC.ViewModels
 
             SaveCommand = new Command(
                 async () => await SaveAsync(),
-                () => CanSave && !IsBusy);
+                () =>
+                    CanSave &&
+                    !IsBusy &&
+                    Volatile.Read(ref guardadoEnCurso) == 0);
 
             CancelCommand = new Command(
                 async () => await CancelAsync(),
@@ -297,6 +302,20 @@ namespace CONATRADEC.ViewModels
         public bool MostrarBotonCancelar =>
             !IsReadOnly;
 
+        /// <summary>
+        /// Recibe modo y DTO en una sola operación desde IQueryAttributable.
+        /// Evita trabajar temporalmente con un modo que no corresponda al
+        /// registro recibido por Shell.
+        /// </summary>
+        public void Configurar(
+            FormMode.FormModeSelect nuevoModo,
+            ElementoQuimicoRequest elemento)
+        {
+            Mode = nuevoModo;
+            ElementoQuimico =
+                elemento ?? new ElementoQuimicoRequest();
+        }
+
         public void ActualizarPermisos()
         {
             LoadPagePermissions("elementoQuimicoPage");
@@ -308,9 +327,17 @@ namespace CONATRADEC.ViewModels
 
         public void CancelarOperaciones()
         {
+            CancellationTokenSource? source =
+                Interlocked.Exchange(
+                    ref guardadoCts,
+                    null);
+
+            if (source == null)
+                return;
+
             try
             {
-                guardadoCts?.Cancel();
+                source.Cancel();
             }
             catch (ObjectDisposedException)
             {
@@ -319,90 +346,143 @@ namespace CONATRADEC.ViewModels
 
         private async Task SaveAsync()
         {
-            if (!CanSave || IsBusy)
-                return;
-
-            if (!ValidarFormulario(
-                    out decimal pesoEquivalente))
+            if (!CanSave ||
+                IsBusy ||
+                Interlocked.CompareExchange(
+                    ref guardadoEnCurso,
+                    1,
+                    0) != 0)
             {
-                await MostrarAdvertenciaAsync(
-                    "Revise los campos marcados antes de continuar.");
-
                 return;
             }
-
-            if (!await ValidarInternetAsync())
-                return;
-
-            if (Mode == FormMode.FormModeSelect.Edit &&
-                !HayCambios(pesoEquivalente))
-            {
-                await MostrarInformacionAsync(
-                    "No hay cambios para guardar.");
-
-                return;
-            }
-
-            bool confirmar =
-                Mode == FormMode.FormModeSelect.Create
-                    ? await ConfirmarGuardadoAsync(
-                        "el elemento químico")
-                    : await ConfirmarActualizacionAsync(
-                        "el elemento químico");
-
-            if (!confirmar)
-                return;
-
-            guardadoCts?.Cancel();
-            guardadoCts?.Dispose();
-            guardadoCts = new CancellationTokenSource();
 
             try
             {
-                IsBusy = true;
-                RefrescarComandos();
-
-                ElementoQuimico.SimboloElementoQuimico =
-                    SimboloElementoQuimico
-                        .Trim()
-                        .ToUpperInvariant();
-
-                ElementoQuimico.NombreElementoQuimico =
-                    NombreElementoQuimico
-                        .Trim()
-                        .ToUpperInvariant();
-
-                ElementoQuimico.PesoEquivalenteElementoQuimico =
-                    RedondearDosDecimales(
-                        pesoEquivalente);
-
-                ApiResult<bool> resultado =
-                    Mode == FormMode.FormModeSelect.Create
-                        ? await elementoApiService
-                            .CreateElementoQuimicoResultAsync(
-                                ElementoQuimico,
-                                guardadoCts.Token)
-                        : await elementoApiService
-                            .UpdateElementoQuimicoResultAsync(
-                                ElementoQuimico,
-                                guardadoCts.Token);
-
-                if (!resultado.Success ||
-                    resultado.Data != true)
+                if (!ValidarFormulario(
+                        out decimal pesoEquivalente))
                 {
-                    await MostrarErrorAsync(resultado.Message);
+                    await MostrarAdvertenciaAsync(
+                        "Revise los campos marcados antes de continuar.");
+
                     return;
                 }
 
-                ElementoQuimicoListadoEstadoService
-                    .MarcarCambio();
+                if (!await ValidarInternetAsync())
+                    return;
 
-                await RegresarAlListadoAsync();
+                if (Mode == FormMode.FormModeSelect.Edit &&
+                    !HayCambios(pesoEquivalente))
+                {
+                    await MostrarInformacionAsync(
+                        "No hay cambios para guardar.");
 
-                await MostrarExitoAsync(
-                    string.IsNullOrWhiteSpace(resultado.Message)
-                        ? "Elemento químico guardado correctamente."
-                        : resultado.Message);
+                    return;
+                }
+
+                bool confirmar =
+                    Mode == FormMode.FormModeSelect.Create
+                        ? await ConfirmarGuardadoAsync(
+                            "el elemento químico")
+                        : await ConfirmarActualizacionAsync(
+                            "el elemento químico");
+
+                if (!confirmar)
+                    return;
+
+                CancellationTokenSource source =
+                    PrepararNuevoGuardado();
+
+                try
+                {
+                    IsBusy = true;
+                    RefrescarComandos();
+
+                    ElementoQuimico.SimboloElementoQuimico =
+                        SimboloElementoQuimico
+                            .Trim()
+                            .ToUpperInvariant();
+
+                    ElementoQuimico.NombreElementoQuimico =
+                        NombreElementoQuimico
+                            .Trim()
+                            .ToUpperInvariant();
+
+                    ElementoQuimico.PesoEquivalenteElementoQuimico =
+                        RedondearDosDecimales(
+                            pesoEquivalente);
+
+                    ApiResult<ElementoQuimicoResponse> resultado =
+                        Mode == FormMode.FormModeSelect.Create
+                            ? await elementoApiService
+                                .CreateElementoQuimicoAdminResultAsync(
+                                    ElementoQuimico,
+                                    source.Token)
+                            : await elementoApiService
+                                .UpdateElementoQuimicoAdminResultAsync(
+                                    ElementoQuimico,
+                                    source.Token);
+
+                    if (source.IsCancellationRequested ||
+                        !EsGuardadoActual(source))
+                    {
+                        return;
+                    }
+
+                    if (!resultado.Success ||
+                        resultado.Data?.ElementoQuimicosId is not > 0)
+                    {
+                        if (!EsCancelacionUsuario(resultado.Message))
+                            await MostrarErrorAsync(resultado.Message);
+
+                        return;
+                    }
+
+                    ElementoQuimicoResponse guardado =
+                        resultado.Data;
+
+                    bool nombreCambio =
+                        Mode == FormMode.FormModeSelect.Edit &&
+                        !string.Equals(
+                            nombreOriginal,
+                            guardado.NombreElementoQuimico?.Trim(),
+                            StringComparison.OrdinalIgnoreCase);
+
+                    /*
+                     * Crear/reactivar o cambiar el nombre puede alterar la
+                     * posición ordenada del registro. En esos casos se
+                     * recompone la página. Una edición sin cambio de nombre
+                     * queda disponible para actualización local del listado.
+                     */
+                    if (Mode == FormMode.FormModeSelect.Create ||
+                        nombreCambio)
+                    {
+                        ElementoQuimicoListadoEstadoService
+                            .MarcarParaRecargar();
+                    }
+                    else
+                    {
+                        ElementoQuimicoListadoEstadoService
+                            .RegistrarEdicionLocal(
+                                guardado);
+                    }
+
+                    ElementoQuimico =
+                        new ElementoQuimicoRequest(
+                            guardado);
+
+                    await RegresarAlListadoAsync();
+
+                    await MostrarExitoAsync(
+                        string.IsNullOrWhiteSpace(resultado.Message)
+                            ? "Elemento químico guardado correctamente."
+                            : resultado.Message);
+                }
+                finally
+                {
+                    IsBusy = false;
+                    LiberarGuardado(source);
+                    RefrescarComandos();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -416,7 +496,10 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                IsBusy = false;
+                Interlocked.Exchange(
+                    ref guardadoEnCurso,
+                    0);
+
                 RefrescarComandos();
             }
         }
@@ -562,6 +645,54 @@ namespace CONATRADEC.ViewModels
             SaveCommand.ChangeCanExecute();
             CancelCommand.ChangeCanExecute();
         }
+
+        private CancellationTokenSource PrepararNuevoGuardado()
+        {
+            var source =
+                new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref guardadoCts,
+                    source);
+
+            if (anterior != null)
+            {
+                try
+                {
+                    anterior.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+
+            return source;
+        }
+
+        private bool EsGuardadoActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref guardadoCts),
+                source);
+
+        private void LiberarGuardado(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref guardadoCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private static bool EsCancelacionUsuario(
+            string? mensaje) =>
+            !string.IsNullOrWhiteSpace(mensaje) &&
+            mensaje.Contains(
+                "cancel",
+                StringComparison.OrdinalIgnoreCase);
 
         private static string LimitarDosDecimales(
             string? valor)

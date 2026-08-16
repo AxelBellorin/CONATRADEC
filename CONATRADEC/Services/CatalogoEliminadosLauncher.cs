@@ -7,7 +7,8 @@ namespace CONATRADEC.Services
         private static bool abriendo;
 
         public static async Task AbrirAsync(
-            CatalogoEliminadoConfiguracion configuracion)
+            CatalogoEliminadoConfiguracion configuracion,
+            int? parentId = null)
         {
             if (abriendo)
                 return;
@@ -49,7 +50,8 @@ namespace CONATRADEC.Services
 
                 var pagina =
                     new CatalogoEliminadosPage(
-                        configuracion);
+                        configuracion,
+                        parentId);
 
                 await navigation.PushModalAsync(
                     new NavigationPage(pagina));

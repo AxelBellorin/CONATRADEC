@@ -257,7 +257,7 @@ namespace CONATRADEC.ViewModels
                 RefrescarComandos();
                 SincronizarModelo();
 
-                ApiResult<bool> resultado =
+                ApiResult<PaisResponse> resultado =
                     Mode == FormMode.FormModeSelect.Create
                         ? await paisApiService.CreatePaisResultAsync(
                             Pais,
@@ -266,21 +266,25 @@ namespace CONATRADEC.ViewModels
                             Pais,
                             guardadoCts.Token);
 
-                if (!resultado.Success || resultado.Data != true)
+                if (!resultado.Success ||
+                    resultado.Data == null ||
+                    resultado.Data.PaisId <= 0)
                 {
                     await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
+                Pais = new PaisRequest(resultado.Data);
+
                 if (Mode == FormMode.FormModeSelect.Create)
                 {
-                    // Sin ID devuelto no se adivina la posición global:
-                    // al volver se consulta una única página justificada.
+                    // El servidor ya devuelve el DTO real creado/reactivado.
+                    // La recarga sigue siendo justificada para ubicarlo dentro
+                    // del orden global cuando existen varias páginas.
                     UbicacionVisitaService.MarcarPaisesParaRecargar();
                 }
                 else
                 {
-                    // Editar reutiliza el objeto ya conocido por el listado.
                     UbicacionVisitaService.RegistrarPaisActualizado(Pais);
                 }
 
@@ -322,18 +326,33 @@ namespace CONATRADEC.ViewModels
 
         private void SincronizarModelo()
         {
-            Pais.NombrePais = NombrePais.ReplaceLineEndings(" ").Trim().ToUpperInvariant();
-            Pais.CodigoISOPais = CodigoISOPais.Trim().ToUpperInvariant();
+            Pais.NombrePais =
+                NombrePais
+                    .ReplaceLineEndings(" ")
+                    .Trim()
+                    .ToUpperInvariant();
+
+            Pais.CodigoISOPais =
+                CodigoISOPais
+                    .Trim()
+                    .ToUpperInvariant();
         }
 
         private bool HayCambios()
         {
-            string nombreActual = NombrePais.ReplaceLineEndings(" ").Trim();
-            string codigoActual = CodigoISOPais.Trim().ToUpperInvariant();
-            string nombreOriginal = Pais.NombrePais?.Trim() ?? string.Empty;
-            string codigoOriginal = Pais.CodigoISOPais?
-                .Trim()
-                .ToUpperInvariant()
+            string nombreActual =
+                NombrePais.ReplaceLineEndings(" ").Trim();
+
+            string codigoActual =
+                CodigoISOPais.Trim().ToUpperInvariant();
+
+            string nombreOriginal =
+                Pais.NombrePais?.Trim() ?? string.Empty;
+
+            string codigoOriginal =
+                Pais.CodigoISOPais?
+                    .Trim()
+                    .ToUpperInvariant()
                 ?? string.Empty;
 
             if (Mode == FormMode.FormModeSelect.Create)
@@ -356,8 +375,12 @@ namespace CONATRADEC.ViewModels
         private bool ValidarCampos()
         {
             LimpiarErrores();
-            NombrePais = NombrePais.ReplaceLineEndings(" ").Trim();
-            CodigoISOPais = CodigoISOPais.Trim().ToUpperInvariant();
+
+            NombrePais =
+                NombrePais.ReplaceLineEndings(" ").Trim();
+
+            CodigoISOPais =
+                CodigoISOPais.Trim().ToUpperInvariant();
 
             if (string.IsNullOrWhiteSpace(NombrePais))
                 ErrorNombrePais = "Ingrese el nombre del país.";
@@ -367,10 +390,13 @@ namespace CONATRADEC.ViewModels
             if (string.IsNullOrWhiteSpace(CodigoISOPais))
                 ErrorCodigoISOPais = "Ingrese el código ISO del país.";
             else if (!Regex.IsMatch(CodigoISOPais, "^[A-Z]{3}$"))
+            {
                 ErrorCodigoISOPais =
                     "El código ISO debe contener exactamente 3 letras.";
+            }
 
-            return !TieneErrorNombrePais && !TieneErrorCodigoISOPais;
+            return !TieneErrorNombrePais &&
+                   !TieneErrorCodigoISOPais;
         }
 
         private void LimpiarErrores()

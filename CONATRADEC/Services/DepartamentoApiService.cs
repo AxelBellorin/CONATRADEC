@@ -1,6 +1,8 @@
 using CONATRADEC.Models;
+using Microsoft.Maui.ApplicationModel;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -8,7 +10,22 @@ namespace CONATRADEC.Services
 {
     public sealed class DepartamentoApiService
     {
+        private const string CodigoDepartamentoInactivo =
+            "DEPARTAMENTO_INACTIVO_EXISTENTE";
+
+        private const string OpcionReactivar =
+            "Reactivar y usar estos datos";
+
+        private const string OpcionCrearNuevo =
+            "Crear un registro diferente";
+
         private readonly HttpClient httpClient;
+
+        private readonly JsonSerializerOptions jsonOptions =
+            new(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            };
 
         private sealed record CacheEntry(
             List<DepartamentoResponse> Items,
@@ -35,7 +52,8 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Endpoint completo conservado para pickers y formularios.
+        /// Endpoint completo conservado para pickers y formularios históricos.
+        /// La administración actual utiliza api/administracion/ubicaciones.
         /// </summary>
         public Task<ApiResult<ObservableCollection<DepartamentoResponse>>>
             GetDepartamentosResultAsync(
@@ -56,9 +74,6 @@ namespace CONATRADEC.Services
                 cancellationToken);
         }
 
-        /// <summary>
-        /// Endpoint administrativo paginado con validación de permisos backend.
-        /// </summary>
         public async Task<ApiResult<DepartamentoPaginaResponse>>
             BuscarDepartamentosAsync(
                 int paisId,
@@ -92,7 +107,9 @@ namespace CONATRADEC.Services
             try
             {
                 using HttpResponseMessage response =
-                    await httpClient.GetAsync(ruta, cancellationToken);
+                    await httpClient.GetAsync(
+                        ruta,
+                        cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -107,13 +124,20 @@ namespace CONATRADEC.Services
                 PaginaAdminResponse<DepartamentoAdminItem>? data =
                     await response.Content
                         .ReadFromJsonAsync<PaginaAdminResponse<DepartamentoAdminItem>>(
-                            cancellationToken: cancellationToken);
+                            jsonOptions,
+                            cancellationToken);
 
                 if (data == null)
                 {
                     return ApiResult<DepartamentoPaginaResponse>.Fail(
                         "El servidor no devolvió la página de departamentos esperada.");
                 }
+
+                string nombrePais = data.Items
+                    .Select(item => item.NombrePais)
+                    .FirstOrDefault(nombre =>
+                        !string.IsNullOrWhiteSpace(nombre))
+                    ?? string.Empty;
 
                 return ApiResult<DepartamentoPaginaResponse>.Ok(
                     new DepartamentoPaginaResponse
@@ -122,21 +146,14 @@ namespace CONATRADEC.Services
                             .Where(item =>
                                 item.DepartamentoId > 0 &&
                                 item.Activo)
-                            .Select(item => new DepartamentoResponse
-                            {
-                                DepartamentoId = item.DepartamentoId,
-                                NombreDepartamento = item.Nombre,
-                                PaisId = item.PaisId,
-                                Activo = item.Activo,
-                                CantidadMunicipios =
-                                    item.CantidadDependencias
-                            })
+                            .Select(MapearDepartamento)
                             .ToList(),
                         PaginaActual = data.PaginaActual,
                         TamanoPagina = data.TamanoPagina,
                         TotalRegistros = data.TotalRegistros,
                         TotalPaginas = data.TotalPaginas,
-                        PaisId = paisId
+                        PaisId = paisId,
+                        NombrePais = nombrePais
                     });
             }
             catch (TaskCanceledException)
@@ -167,28 +184,29 @@ namespace CONATRADEC.Services
             }
         }
 
-        public async Task<ApiResult<bool>> CreateDepartamentoResultAsync(
-            DepartamentoRequest departamento,
-            CancellationToken cancellationToken = default)
+        public async Task<ApiResult<DepartamentoResponse>>
+            CreateDepartamentoResultAsync(
+                DepartamentoRequest departamento,
+                CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(departamento);
 
-            if (!departamento.PaisId.HasValue || departamento.PaisId.Value <= 0)
+            if (!departamento.PaisId.HasValue ||
+                departamento.PaisId.Value <= 0)
             {
-                return ApiResult<bool>.Fail(
+                return ApiResult<DepartamentoResponse>.Fail(
                     "No se recibió un país válido.");
             }
 
-            // Se conserva esta ruta para mantener la detección/reactivación
-            // centralizada de registros eliminados en ApiServiceHelper.
-            ApiResult<bool> result = await ApiServiceHelper.SendAsync(
-                httpClient,
-                HttpMethod.Post,
-                "api/departamento/crear",
-                departamento,
-                "crear el departamento",
-                "Departamento creado correctamente.",
-                cancellationToken);
+            ApiResult<DepartamentoResponse> result =
+                await EnviarDepartamentoAdministracionAsync(
+                    HttpMethod.Post,
+                    "api/administracion/ubicaciones/departamentos",
+                    departamento,
+                    "crear el departamento",
+                    "Departamento creado correctamente.",
+                    cancellationToken,
+                    manejarInactivo: true);
 
             if (result.Success)
                 LimpiarCache(departamento.PaisId.Value);
@@ -196,33 +214,37 @@ namespace CONATRADEC.Services
             return result;
         }
 
-        public async Task<ApiResult<bool>> UpdateDepartamentoResultAsync(
-            DepartamentoRequest departamento,
-            CancellationToken cancellationToken = default)
+        public async Task<ApiResult<DepartamentoResponse>>
+            UpdateDepartamentoResultAsync(
+                DepartamentoRequest departamento,
+                CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(departamento);
 
             if (!departamento.DepartamentoId.HasValue ||
                 departamento.DepartamentoId.Value <= 0)
             {
-                return ApiResult<bool>.Fail(
+                return ApiResult<DepartamentoResponse>.Fail(
                     "No se recibió un identificador de departamento válido.");
             }
 
-            ApiResult<bool> result = await ApiServiceHelper.SendAsync(
-                httpClient,
-                HttpMethod.Put,
-                $"api/administracion/ubicaciones/departamentos/{departamento.DepartamentoId.Value}",
-                new DepartamentoAdministracionRequest
-                {
-                    PaisId = departamento.PaisId ?? 0,
-                    Nombre = departamento.NombreDepartamento ?? string.Empty
-                },
-                "actualizar el departamento",
-                "Departamento actualizado correctamente.",
-                cancellationToken);
+            if (!departamento.PaisId.HasValue ||
+                departamento.PaisId.Value <= 0)
+            {
+                return ApiResult<DepartamentoResponse>.Fail(
+                    "No se recibió un país válido.");
+            }
 
-            if (result.Success && departamento.PaisId.HasValue)
+            ApiResult<DepartamentoResponse> result =
+                await EnviarDepartamentoAdministracionAsync(
+                    HttpMethod.Put,
+                    $"api/administracion/ubicaciones/departamentos/{departamento.DepartamentoId.Value}",
+                    departamento,
+                    "actualizar el departamento",
+                    "Departamento actualizado correctamente.",
+                    cancellationToken);
+
+            if (result.Success)
                 LimpiarCache(departamento.PaisId.Value);
 
             return result;
@@ -290,7 +312,8 @@ namespace CONATRADEC.Services
                     .ToList()
                     ?? new List<DepartamentoResponse>();
 
-                CachePorPais[id] = new CacheEntry(items, DateTime.UtcNow);
+                CachePorPais[id] =
+                    new CacheEntry(items, DateTime.UtcNow);
 
                 return new ObservableCollection<DepartamentoResponse>(items);
             }
@@ -300,23 +323,24 @@ namespace CONATRADEC.Services
             }
         }
 
-        // Métodos conservados para no afectar código existente.
         public async Task<bool> CreateDepartamentoAsync(
             DepartamentoRequest departamento)
         {
-            ApiResult<bool> result =
+            ApiResult<DepartamentoResponse> result =
                 await CreateDepartamentoResultAsync(departamento);
 
-            return result.Success && result.Data == true;
+            return result.Success &&
+                   result.Data?.DepartamentoId is > 0;
         }
 
         public async Task<bool> UpdateDepartamentoAsync(
             DepartamentoRequest departamento)
         {
-            ApiResult<bool> result =
+            ApiResult<DepartamentoResponse> result =
                 await UpdateDepartamentoResultAsync(departamento);
 
-            return result.Success && result.Data == true;
+            return result.Success &&
+                   result.Data?.DepartamentoId is > 0;
         }
 
         public async Task<bool> DeleteDepartamentoAsync(
@@ -328,11 +352,223 @@ namespace CONATRADEC.Services
             return result.Success && result.Data == true;
         }
 
+        private async Task<ApiResult<DepartamentoResponse>>
+            EnviarDepartamentoAdministracionAsync(
+                HttpMethod method,
+                string route,
+                DepartamentoRequest departamento,
+                string accion,
+                string mensajeExito,
+                CancellationToken cancellationToken,
+                bool manejarInactivo = false)
+        {
+            var request = new DepartamentoAdministracionRequest
+            {
+                PaisId = departamento.PaisId ?? 0,
+                Nombre = departamento.NombreDepartamento ?? string.Empty
+            };
+
+            try
+            {
+                using var message =
+                    new HttpRequestMessage(method, route)
+                    {
+                        Content = JsonContent.Create(
+                            request,
+                            options: jsonOptions)
+                    };
+
+                using HttpResponseMessage response =
+                    await httpClient.SendAsync(
+                        message,
+                        cancellationToken);
+
+                UbicacionOperacionEnvelope<DepartamentoAdminItem>? envelope =
+                    await LeerEnvelopeAsync<DepartamentoAdminItem>(
+                        response,
+                        cancellationToken);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    if (envelope?.Data == null ||
+                        envelope.Data.DepartamentoId <= 0)
+                    {
+                        return ApiResult<DepartamentoResponse>.Fail(
+                            "La operación se procesó, pero el servidor no devolvió el departamento actualizado.");
+                    }
+
+                    return ApiResult<DepartamentoResponse>.Ok(
+                        MapearDepartamento(envelope.Data),
+                        string.IsNullOrWhiteSpace(envelope.Message)
+                            ? mensajeExito
+                            : envelope.Message);
+                }
+
+                if (manejarInactivo &&
+                    response.StatusCode == HttpStatusCode.Conflict &&
+                    string.Equals(
+                        envelope?.Code,
+                        CodigoDepartamentoInactivo,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    envelope?.Data?.DepartamentoId > 0)
+                {
+                    return await ResolverDepartamentoInactivoAsync(
+                        departamento,
+                        envelope.Data,
+                        cancellationToken);
+                }
+
+                return ApiResult<DepartamentoResponse>.Fail(
+                    string.IsNullOrWhiteSpace(envelope?.Message)
+                        ? await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            $"No fue posible {accion}.",
+                            cancellationToken)
+                        : envelope.Message,
+                    (int)response.StatusCode);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<DepartamentoResponse>.Fail(
+                    "La solicitud tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<DepartamentoResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<DepartamentoResponse>.Fail(
+                    "No fue posible comunicarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<DepartamentoResponse>.Fail(
+                    "El servidor respondió con un formato inesperado.");
+            }
+            catch
+            {
+                return ApiResult<DepartamentoResponse>.Fail(
+                    $"Ocurrió un error inesperado al {accion}.");
+            }
+        }
+
+        private async Task<ApiResult<DepartamentoResponse>>
+            ResolverDepartamentoInactivoAsync(
+                DepartamentoRequest nuevoDepartamento,
+                DepartamentoAdminItem inactivo,
+                CancellationToken cancellationToken)
+        {
+            string? decision =
+                await MostrarOpcionesDepartamentoInactivoAsync(
+                    inactivo);
+
+            if (decision == OpcionReactivar)
+            {
+                var request = new DepartamentoRequest
+                {
+                    DepartamentoId = inactivo.DepartamentoId,
+                    PaisId = nuevoDepartamento.PaisId,
+                    NombreDepartamento =
+                        nuevoDepartamento.NombreDepartamento
+                };
+
+                return await EnviarDepartamentoAdministracionAsync(
+                    HttpMethod.Put,
+                    $"api/administracion/ubicaciones/departamentos/{inactivo.DepartamentoId}/reactivar",
+                    request,
+                    "reactivar el departamento",
+                    "Departamento reactivado correctamente.",
+                    cancellationToken);
+            }
+
+            if (decision == OpcionCrearNuevo)
+            {
+                return await EnviarDepartamentoAdministracionAsync(
+                    HttpMethod.Post,
+                    "api/administracion/ubicaciones/departamentos?crearNuevoSiExisteInactivo=true",
+                    nuevoDepartamento,
+                    "crear el departamento",
+                    "Departamento creado correctamente.",
+                    cancellationToken);
+            }
+
+            return ApiResult<DepartamentoResponse>.Fail(
+                "La creación fue cancelada.");
+        }
+
+        private static async Task<string?>
+            MostrarOpcionesDepartamentoInactivoAsync(
+                DepartamentoAdminItem departamento)
+        {
+            return await MainThread.InvokeOnMainThreadAsync(
+                async () =>
+                {
+                    Page? pagina =
+                        Application.Current?
+                            .Windows
+                            .FirstOrDefault()?
+                            .Page;
+
+                    if (pagina == null)
+                        return null;
+
+                    string nombre =
+                        string.IsNullOrWhiteSpace(departamento.Nombre)
+                            ? "el departamento eliminado"
+                            : $"'{departamento.Nombre}'";
+
+                    return await pagina.DisplayActionSheet(
+                        $"Ya existe {nombre}. Puede reactivarlo conservando su identificador e historial.",
+                        "Cancelar",
+                        null,
+                        OpcionReactivar,
+                        OpcionCrearNuevo);
+                });
+        }
+
+        private async Task<UbicacionOperacionEnvelope<T>?>
+            LeerEnvelopeAsync<T>(
+                HttpResponseMessage response,
+                CancellationToken cancellationToken)
+        {
+            string contenido =
+                await response.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(contenido))
+                return null;
+
+            return JsonSerializer.Deserialize<
+                UbicacionOperacionEnvelope<T>>(
+                    contenido,
+                    jsonOptions);
+        }
+
+        private static DepartamentoResponse MapearDepartamento(
+            DepartamentoAdminItem item) =>
+            new()
+            {
+                DepartamentoId = item.DepartamentoId,
+                NombreDepartamento = item.Nombre ?? string.Empty,
+                PaisId = item.PaisId,
+                NombrePais = item.NombrePais ?? string.Empty,
+                Activo = item.Activo,
+                CantidadMunicipios =
+                    item.CantidadDependencias
+            };
+
         private static List<DepartamentoResponse>? ObtenerCacheVigente(
             int paisId)
         {
-            if (!CachePorPais.TryGetValue(paisId, out CacheEntry? entry))
+            if (!CachePorPais.TryGetValue(
+                    paisId,
+                    out CacheEntry? entry))
+            {
                 return null;
+            }
 
             if (DateTime.UtcNow - entry.CreadoUtc >= DuracionCache)
             {
@@ -358,10 +594,19 @@ namespace CONATRADEC.Services
             public int TotalPaginas { get; set; }
         }
 
+        private sealed class UbicacionOperacionEnvelope<T>
+        {
+            public bool Success { get; set; }
+            public string? Code { get; set; }
+            public string? Message { get; set; }
+            public T? Data { get; set; }
+        }
+
         private sealed class DepartamentoAdminItem
         {
             public int DepartamentoId { get; set; }
             public int PaisId { get; set; }
+            public string NombrePais { get; set; } = string.Empty;
             public string Nombre { get; set; } = string.Empty;
             public bool Activo { get; set; }
             public int CantidadDependencias { get; set; }

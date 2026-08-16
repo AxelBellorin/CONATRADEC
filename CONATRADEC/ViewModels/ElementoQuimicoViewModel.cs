@@ -10,17 +10,20 @@ namespace CONATRADEC.ViewModels
     {
         private readonly ElementoQuimicoApiService elementoApiService;
         private CancellationTokenSource? cargaCts;
+        private CancellationTokenSource? accionCts;
 
         private string textoBusqueda = string.Empty;
+        private string textoBusquedaAplicado = string.Empty;
         private string mensaje = string.Empty;
         private bool isRefreshing;
-        private bool cargandoMas;
         private bool navegando;
         private bool pantallaCargada;
-        private int paginaActual;
+        private int paginaActual = 1;
         private int totalPaginas = 1;
         private int totalRegistros;
+        private int tamanoPaginaActual;
         private int versionAplicada = -1;
+        private int eliminacionEnCurso;
 
         public ElementoQuimicoViewModel()
             : this(new ElementoQuimicoApiService())
@@ -33,6 +36,9 @@ namespace CONATRADEC.ViewModels
             this.elementoApiService = elementoApiService
                 ?? throw new ArgumentNullException(
                     nameof(elementoApiService));
+
+            tamanoPaginaActual =
+                ObtenerTamanoPagina();
 
             RegresarConfiguracionCommand = new Command(
                 async () => await EjecutarSeguroAsync(
@@ -64,7 +70,8 @@ namespace CONATRADEC.ViewModels
                     elemento != null &&
                     CanDelete &&
                     !IsBusy &&
-                    !Navegando);
+                    !Navegando &&
+                    Volatile.Read(ref eliminacionEnCurso) == 0);
 
             ViewCommand = new Command<ElementoQuimicoResponse>(
                 async elemento => await EjecutarSeguroAsync(
@@ -78,7 +85,7 @@ namespace CONATRADEC.ViewModels
 
             BuscarCommand = new Command(
                 async () => await EjecutarSeguroAsync(
-                    () => CargarAsync(true),
+                    AplicarBusquedaAsync,
                     "buscar elementos químicos"),
                 () => CanView && !IsBusy && !Navegando);
 
@@ -94,17 +101,28 @@ namespace CONATRADEC.ViewModels
                     "actualizar los elementos químicos"),
                 () => CanView && !IsBusy && !Navegando);
 
-            CargarMasCommand = new Command(
+            PaginaAnteriorCommand = new Command(
                 async () => await EjecutarSeguroAsync(
-                    () => CargarAsync(false),
-                    "cargar más elementos químicos"),
+                    IrPaginaAnteriorAsync,
+                    "cargar la página anterior"),
                 () =>
                     CanView &&
+                    PuedeIrAnterior &&
                     !IsBusy &&
-                    !CargandoMas &&
-                    !Navegando &&
-                    PuedeCargarMas);
+                    !Navegando);
+
+            PaginaSiguienteCommand = new Command(
+                async () => await EjecutarSeguroAsync(
+                    IrPaginaSiguienteAsync,
+                    "cargar la página siguiente"),
+                () =>
+                    CanView &&
+                    PuedeIrSiguiente &&
+                    !IsBusy &&
+                    !Navegando);
         }
+
+        public event EventHandler? SolicitarDesplazamientoInicio;
 
         public ObservableCollection<ElementoQuimicoResponse> List { get; } =
             new();
@@ -117,7 +135,8 @@ namespace CONATRADEC.ViewModels
         public Command BuscarCommand { get; }
         public Command LimpiarFiltrosCommand { get; }
         public Command RefrescarCommand { get; }
-        public Command CargarMasCommand { get; }
+        public Command PaginaAnteriorCommand { get; }
+        public Command PaginaSiguienteCommand { get; }
 
         public string TextoBusqueda
         {
@@ -167,21 +186,6 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool CargandoMas
-        {
-            get => cargandoMas;
-            private set
-            {
-                if (cargandoMas == value)
-                    return;
-
-                cargandoMas = value;
-                OnPropertyChanged();
-                ActualizarComandos();
-                NotificarEstadoLista();
-            }
-        }
-
         public bool Navegando
         {
             get => navegando;
@@ -207,6 +211,8 @@ namespace CONATRADEC.ViewModels
                 totalRegistros = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ResumenResultados));
+                OnPropertyChanged(nameof(RangoPaginaTexto));
+                OnPropertyChanged(nameof(MostrarPaginacion));
             }
         }
 
@@ -215,27 +221,65 @@ namespace CONATRADEC.ViewModels
                 ? "1 elemento encontrado"
                 : $"{TotalRegistros} elementos encontrados";
 
-        public bool PuedeCargarMas =>
+        public int PaginaActual =>
+            paginaActual;
+
+        public int TotalPaginas =>
+            totalPaginas;
+
+        public bool PuedeIrAnterior =>
+            pantallaCargada &&
+            paginaActual > 1;
+
+        public bool PuedeIrSiguiente =>
+            pantallaCargada &&
             paginaActual < totalPaginas;
+
+        public bool MostrarPaginacion =>
+            CanView &&
+            pantallaCargada &&
+            List.Count > 0;
+
+        public string PaginaTexto =>
+            $"Página {Math.Max(1, paginaActual)} de {Math.Max(1, totalPaginas)}";
+
+        public string RangoPaginaTexto
+        {
+            get
+            {
+                if (TotalRegistros <= 0 ||
+                    List.Count == 0)
+                {
+                    return "Sin registros en esta página";
+                }
+
+                int tamano =
+                    Math.Max(1, tamanoPaginaActual);
+
+                int inicio =
+                    ((Math.Max(1, paginaActual) - 1) * tamano) + 1;
+
+                int fin =
+                    Math.Min(
+                        inicio + List.Count - 1,
+                        TotalRegistros);
+
+                return $"Mostrando {inicio}-{fin} de {TotalRegistros}";
+            }
+        }
 
         public bool MostrarVacio =>
             CanView &&
             pantallaCargada &&
             !IsBusy &&
-            !CargandoMas &&
             List.Count == 0 &&
             !TieneMensaje;
 
-        public bool MostrarFinLista =>
-            CanView &&
-            pantallaCargada &&
-            List.Count > 0 &&
-            !PuedeCargarMas &&
-            !IsBusy &&
-            !CargandoMas;
-
         public bool MostrarAccesoDenegado =>
             !CanView;
+
+        public bool TienePaginaCargada =>
+            pantallaCargada;
 
         public void ActualizarPermisos()
         {
@@ -246,62 +290,196 @@ namespace CONATRADEC.ViewModels
             ActualizarComandos();
         }
 
+        /// <summary>
+        /// Una entrada nueva desde otra interfaz siempre inicia limpia:
+        /// página 1, sin filtro aplicado y con datos frescos del servidor.
+        /// </summary>
+        public async Task IniciarNuevaVisitaAsync()
+        {
+            if (!CanView || Navegando)
+                return;
+
+            CancelarCarga();
+
+            TextoBusqueda = string.Empty;
+            textoBusquedaAplicado = string.Empty;
+            Mensaje = string.Empty;
+            paginaActual = 1;
+            totalPaginas = 1;
+            TotalRegistros = 0;
+            tamanoPaginaActual = ObtenerTamanoPagina();
+            pantallaCargada = false;
+            versionAplicada = -1;
+
+            List.Clear();
+            NotificarEstadoLista();
+
+            await CargarPaginaAsync(
+                1,
+                cargaInicial: true);
+        }
+
+        /// <summary>
+        /// Al volver desde el formulario mantiene la misma visita. Una edición
+        /// que no altera el orden puede aplicarse localmente cuando no hay un
+        /// filtro aplicado. Cualquier cambio de composición recarga la página.
+        /// </summary>
         public async Task InicializarAsync()
         {
             if (!CanView || Navegando)
                 return;
 
+            if (!pantallaCargada)
+            {
+                await CargarPaginaAsync(
+                    1,
+                    cargaInicial: true);
+                return;
+            }
+
             int versionActual =
                 ElementoQuimicoListadoEstadoService.VersionActual;
 
-            if (pantallaCargada &&
-                versionAplicada == versionActual)
+            if (ElementoQuimicoListadoEstadoService
+                    .IntentarConsumirEdicion(
+                        out ElementoQuimicoResponse editado))
             {
-                return;
+                bool aplicadoLocalmente =
+                    string.IsNullOrWhiteSpace(
+                        textoBusquedaAplicado) &&
+                    AplicarEdicionLocal(editado);
+
+                if (aplicadoLocalmente)
+                {
+                    versionAplicada = versionActual;
+                    NotificarEstadoLista();
+                    return;
+                }
             }
 
-            await CargarAsync(true);
+            if (versionAplicada != versionActual)
+            {
+                await CargarPaginaAsync(
+                    Math.Max(1, paginaActual));
+            }
         }
 
-        public async Task CargarAsync(bool reiniciar)
+        public Task RecargarPaginaActualAsync() =>
+            CargarPaginaAsync(
+                Math.Max(1, paginaActual));
+
+        public void CancelarCarga()
         {
-            if (!CanView || Navegando)
-                return;
+            CancellationTokenSource? carga =
+                Interlocked.Exchange(
+                    ref cargaCts,
+                    null);
 
-            if (reiniciar && IsBusy)
-                return;
+            CancellationTokenSource? accion =
+                Interlocked.Exchange(
+                    ref accionCts,
+                    null);
 
-            if (!reiniciar &&
-                (CargandoMas || !PuedeCargarMas))
+            CancelarSeguro(carga);
+            CancelarSeguro(accion);
+
+            IsBusy = false;
+            IsRefreshing = false;
+            ActualizarComandos();
+        }
+
+        private async Task AplicarBusquedaAsync()
+        {
+            textoBusquedaAplicado =
+                (TextoBusqueda ?? string.Empty)
+                    .Trim();
+
+            await CargarPaginaAsync(
+                1,
+                desplazarAlInicio: true);
+        }
+
+        private async Task LimpiarFiltrosAsync()
+        {
+            TextoBusqueda = string.Empty;
+            textoBusquedaAplicado = string.Empty;
+
+            await CargarPaginaAsync(
+                1,
+                desplazarAlInicio: true);
+        }
+
+        private async Task RefrescarAsync()
+        {
+            IsRefreshing = true;
+
+            try
+            {
+                await CargarPaginaAsync(
+                    Math.Max(1, paginaActual));
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
+        }
+
+        private Task IrPaginaAnteriorAsync()
+        {
+            if (!PuedeIrAnterior)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                paginaActual - 1,
+                desplazarAlInicio: true);
+        }
+
+        private Task IrPaginaSiguienteAsync()
+        {
+            if (!PuedeIrSiguiente)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                paginaActual + 1,
+                desplazarAlInicio: true);
+        }
+
+        /// <summary>
+        /// Consulta una sola página y reemplaza la colección actual. Nunca
+        /// acumula páginas anteriores, manteniendo acotado el uso de memoria.
+        /// </summary>
+        private async Task CargarPaginaAsync(
+            int paginaSolicitada,
+            bool cargaInicial = false,
+            bool desplazarAlInicio = false)
+        {
+            if (!CanView ||
+                Navegando ||
+                IsBusy)
             {
                 return;
             }
+
+            paginaSolicitada =
+                Math.Max(1, paginaSolicitada);
 
             CancellationTokenSource source =
                 PrepararNuevaCarga();
 
             try
             {
-                if (reiniciar)
-                {
-                    IsBusy = true;
-                    Mensaje = string.Empty;
-                }
-                else
-                {
-                    CargandoMas = true;
-                }
+                IsBusy = true;
+                Mensaje = string.Empty;
+                ActualizarComandos();
 
-                int paginaSolicitada =
-                    reiniciar
-                        ? 1
-                        : paginaActual + 1;
+                int tamanoPagina =
+                    ObtenerTamanoPagina();
 
                 ApiResult<ElementoQuimicoPaginaResponse> resultado =
                     await elementoApiService.BuscarElementosAsync(
-                        TextoBusqueda,
+                        textoBusquedaAplicado,
                         paginaSolicitada,
-                        ObtenerTamanoPagina(),
+                        tamanoPagina,
                         source.Token);
 
                 if (source.IsCancellationRequested ||
@@ -319,17 +497,61 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                AplicarPagina(
-                    resultado.Data,
-                    reiniciar);
+                ElementoQuimicoPaginaResponse pagina =
+                    resultado.Data;
+
+                int paginasServidor =
+                    Math.Max(1, pagina.TotalPaginas);
+
+                /*
+                 * Si otro cliente redujo el total de páginas mientras esta
+                 * visita estaba abierta, se corrige una sola vez hacia la
+                 * última página válida.
+                 */
+                if (paginaSolicitada > paginasServidor &&
+                    pagina.TotalRegistros > 0)
+                {
+                    resultado =
+                        await elementoApiService.BuscarElementosAsync(
+                            textoBusquedaAplicado,
+                            paginasServidor,
+                            tamanoPagina,
+                            source.Token);
+
+                    if (source.IsCancellationRequested ||
+                        !EsCargaActual(source))
+                    {
+                        return;
+                    }
+
+                    if (!resultado.Success ||
+                        resultado.Data == null)
+                    {
+                        if (!EsMensajeCancelacion(resultado.Message))
+                            Mensaje = resultado.Message;
+
+                        return;
+                    }
+
+                    pagina = resultado.Data;
+                }
+
+                AplicarPagina(pagina);
 
                 pantallaCargada = true;
                 versionAplicada =
                     ElementoQuimicoListadoEstadoService.VersionActual;
+
+                if (!cargaInicial && desplazarAlInicio)
+                {
+                    SolicitarDesplazamientoInicio?.Invoke(
+                        this,
+                        EventArgs.Empty);
+                }
             }
             catch (OperationCanceledException)
             {
-                // Cancelación normal al navegar o reemplazar la búsqueda.
+                // Cancelación normal al navegar o reemplazar una consulta.
             }
             catch (ObjectDisposedException)
             {
@@ -352,15 +574,8 @@ namespace CONATRADEC.ViewModels
             {
                 if (EsCargaActual(source))
                 {
-                    if (reiniciar)
-                    {
-                        IsBusy = false;
-                        IsRefreshing = false;
-                    }
-                    else
-                    {
-                        CargandoMas = false;
-                    }
+                    IsBusy = false;
+                    IsRefreshing = false;
                 }
 
                 LiberarCarga(source);
@@ -369,84 +584,60 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public void CancelarCarga()
-        {
-            CancellationTokenSource? source =
-                Interlocked.Exchange(
-                    ref cargaCts,
-                    null);
-
-            CancelarSeguro(source);
-
-            IsBusy = false;
-            IsRefreshing = false;
-            CargandoMas = false;
-        }
-
         private void AplicarPagina(
-            ElementoQuimicoPaginaResponse pagina,
-            bool reiniciar)
+            ElementoQuimicoPaginaResponse pagina)
         {
-            if (reiniciar)
-                List.Clear();
-
-            HashSet<int> idsActuales =
-                List
-                    .Where(elemento =>
-                        elemento.ElementoQuimicosId.HasValue)
-                    .Select(elemento =>
-                        elemento.ElementoQuimicosId!.Value)
-                    .ToHashSet();
+            List.Clear();
 
             foreach (ElementoQuimicoResponse elemento
                      in pagina.Items)
             {
-                if (!elemento.ElementoQuimicosId.HasValue)
-                    continue;
-
-                if (idsActuales.Add(
-                        elemento.ElementoQuimicosId.Value))
-                {
+                if (elemento.ElementoQuimicosId is > 0)
                     List.Add(elemento);
-                }
             }
 
-            paginaActual = Math.Max(
-                1,
-                pagina.PaginaActual);
+            paginaActual =
+                Math.Max(1, pagina.PaginaActual);
 
-            totalPaginas = Math.Max(
-                1,
-                pagina.TotalPaginas);
+            totalPaginas =
+                Math.Max(1, pagina.TotalPaginas);
 
-            TotalRegistros = Math.Max(
-                0,
-                pagina.TotalRegistros);
+            tamanoPaginaActual =
+                pagina.TamanoPagina > 0
+                    ? pagina.TamanoPagina
+                    : ObtenerTamanoPagina();
+
+            TotalRegistros =
+                Math.Max(0, pagina.TotalRegistros);
 
             Mensaje = string.Empty;
-
-            OnPropertyChanged(nameof(PuedeCargarMas));
             NotificarEstadoLista();
         }
 
-        private async Task LimpiarFiltrosAsync()
+        private bool AplicarEdicionLocal(
+            ElementoQuimicoResponse editado)
         {
-            TextoBusqueda = string.Empty;
-            await CargarAsync(true);
-        }
+            if (editado.ElementoQuimicosId is not > 0)
+                return false;
 
-        private async Task RefrescarAsync()
-        {
-            IsRefreshing = true;
+            int indice = -1;
 
-            try
+            for (int i = 0; i < List.Count; i++)
             {
-                await CargarAsync(true);
+                if (List[i].ElementoQuimicosId ==
+                    editado.ElementoQuimicosId)
+                {
+                    indice = i;
+                    break;
+                }
             }
-            finally
-            {
-                IsRefreshing = false;
-            }
+
+            if (indice < 0)
+                return false;
+
+            List[indice] = editado;
+            Mensaje = string.Empty;
+            return true;
         }
 
         private Task OnAddAsync() =>
@@ -467,7 +658,7 @@ namespace CONATRADEC.ViewModels
         private Task OnEditAsync(
             ElementoQuimicoResponse? elemento)
         {
-            if (elemento == null)
+            if (elemento?.ElementoQuimicosId is not > 0)
                 return Task.CompletedTask;
 
             return NavegarAsync(
@@ -488,7 +679,7 @@ namespace CONATRADEC.ViewModels
         private Task OnViewAsync(
             ElementoQuimicoResponse? elemento)
         {
-            if (elemento == null)
+            if (elemento?.ElementoQuimicosId is not > 0)
                 return Task.CompletedTask;
 
             return NavegarAsync(
@@ -509,62 +700,140 @@ namespace CONATRADEC.ViewModels
         private async Task OnDeleteAsync(
             ElementoQuimicoResponse? elemento)
         {
-            if (elemento == null || IsBusy)
+            if (elemento?.ElementoQuimicosId is not > 0 ||
+                IsBusy ||
+                Interlocked.CompareExchange(
+                    ref eliminacionEnCurso,
+                    1,
+                    0) != 0)
+            {
                 return;
+            }
 
-            string identificacion =
-                $"{elemento.NombreElementoQuimico} " +
-                $"({elemento.SimboloElementoQuimico})";
-
-            bool confirmar =
-                await Application.Current!
-                    .MainPage!
-                    .DisplayAlert(
-                        "Eliminar elemento químico",
-                        "¿Desea eliminar este elemento químico?\n\n" +
-                        identificacion,
-                        "Eliminar",
-                        "Cancelar");
-
-            if (!confirmar)
-                return;
+            bool recargarPagina = false;
+            int paginaOriginal = paginaActual;
+            int paginaARecargar = paginaActual;
 
             try
             {
-                IsBusy = true;
-                ActualizarComandos();
+                string identificacion =
+                    $"{elemento.NombreElementoQuimico} " +
+                    $"({elemento.SimboloElementoQuimico})";
 
-                ApiResult<bool> resultado =
-                    await elementoApiService
-                        .DeleteElementoQuimicoResultAsync(
-                            new ElementoQuimicoRequest(elemento));
+                bool confirmar =
+                    await Application.Current!
+                        .MainPage!
+                        .DisplayAlert(
+                            "Eliminar elemento químico",
+                            "¿Desea eliminar este elemento químico?\n\n" +
+                            identificacion,
+                            "Eliminar",
+                            "Cancelar");
 
-                if (!resultado.Success)
-                {
-                    await MostrarToastAsync(resultado.Message);
+                if (!confirmar)
                     return;
+
+                CancellationTokenSource source =
+                    PrepararNuevaAccion();
+
+                try
+                {
+                    IsBusy = true;
+                    ActualizarComandos();
+
+                    int totalPaginasAntes =
+                        totalPaginas;
+
+                    ApiResult<bool> resultado =
+                        await elementoApiService
+                            .DeleteElementoQuimicoResultAsync(
+                                new ElementoQuimicoRequest(elemento),
+                                source.Token);
+
+                    if (source.IsCancellationRequested ||
+                        !EsAccionActual(source))
+                    {
+                        return;
+                    }
+
+                    if (!resultado.Success)
+                    {
+                        if (!EsMensajeCancelacion(resultado.Message))
+                            await MostrarToastAsync(resultado.Message);
+
+                        return;
+                    }
+
+                    List.Remove(elemento);
+
+                    TotalRegistros =
+                        Math.Max(0, TotalRegistros - 1);
+
+                    int nuevoTotalPaginas =
+                        TotalRegistros == 0
+                            ? 1
+                            : (int)Math.Ceiling(
+                                TotalRegistros /
+                                (double)Math.Max(
+                                    1,
+                                    tamanoPaginaActual));
+
+                    totalPaginas =
+                        Math.Max(1, nuevoTotalPaginas);
+
+                    if (paginaActual > totalPaginas)
+                        paginaActual = totalPaginas;
+
+                    paginaARecargar =
+                        Math.Max(1, paginaActual);
+
+                    /*
+                     * En una página intermedia hay que traer el primer registro
+                     * de la página siguiente para mantener la composición
+                     * correcta. En la última página la eliminación es local.
+                     */
+                    recargarPagina =
+                        TotalRegistros > 0 &&
+                        (paginaARecargar < totalPaginasAntes ||
+                         List.Count == 0);
+
+                    versionAplicada =
+                        ElementoQuimicoListadoEstadoService
+                            .MarcarCambio();
+
+                    await MostrarToastAsync(
+                        string.IsNullOrWhiteSpace(resultado.Message)
+                            ? "Elemento químico eliminado correctamente."
+                            : resultado.Message);
+
+                    NotificarEstadoLista();
                 }
-
-                List.Remove(elemento);
-
-                TotalRegistros = Math.Max(
-                    0,
-                    TotalRegistros - 1);
-
-                versionAplicada =
-                    ElementoQuimicoListadoEstadoService
-                        .MarcarCambio();
-
-                await MostrarToastAsync(
-                    string.IsNullOrWhiteSpace(resultado.Message)
-                        ? "Elemento químico eliminado correctamente."
-                        : resultado.Message);
+                finally
+                {
+                    IsBusy = false;
+                    LiberarAccion(source);
+                    ActualizarComandos();
+                    NotificarEstadoLista();
+                }
             }
             finally
             {
-                IsBusy = false;
+                Interlocked.Exchange(
+                    ref eliminacionEnCurso,
+                    0);
+
                 ActualizarComandos();
-                NotificarEstadoLista();
+            }
+
+            if (recargarPagina &&
+                CanView &&
+                !Navegando)
+            {
+                await CargarPaginaAsync(
+                    paginaARecargar,
+                    desplazarAlInicio:
+                        paginaARecargar != paginaOriginal ||
+                        List.Count == 0);
             }
         }
 
@@ -624,14 +893,20 @@ namespace CONATRADEC.ViewModels
             BuscarCommand.ChangeCanExecute();
             LimpiarFiltrosCommand.ChangeCanExecute();
             RefrescarCommand.ChangeCanExecute();
-            CargarMasCommand.ChangeCanExecute();
+            PaginaAnteriorCommand.ChangeCanExecute();
+            PaginaSiguienteCommand.ChangeCanExecute();
         }
 
         private void NotificarEstadoLista()
         {
+            OnPropertyChanged(nameof(PaginaActual));
+            OnPropertyChanged(nameof(TotalPaginas));
+            OnPropertyChanged(nameof(PuedeIrAnterior));
+            OnPropertyChanged(nameof(PuedeIrSiguiente));
+            OnPropertyChanged(nameof(MostrarPaginacion));
+            OnPropertyChanged(nameof(PaginaTexto));
+            OnPropertyChanged(nameof(RangoPaginaTexto));
             OnPropertyChanged(nameof(MostrarVacio));
-            OnPropertyChanged(nameof(MostrarFinLista));
-            OnPropertyChanged(nameof(PuedeCargarMas));
             OnPropertyChanged(nameof(ResumenResultados));
         }
 
@@ -655,10 +930,31 @@ namespace CONATRADEC.ViewModels
             return source;
         }
 
+        private CancellationTokenSource PrepararNuevaAccion()
+        {
+            var source =
+                new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref accionCts,
+                    source);
+
+            CancelarSeguro(anterior);
+
+            return source;
+        }
+
         private bool EsCargaActual(
             CancellationTokenSource source) =>
             ReferenceEquals(
                 Volatile.Read(ref cargaCts),
+                source);
+
+        private bool EsAccionActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref accionCts),
                 source);
 
         private void LiberarCarga(
@@ -666,6 +962,17 @@ namespace CONATRADEC.ViewModels
         {
             Interlocked.CompareExchange(
                 ref cargaCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private void LiberarAccion(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref accionCts,
                 null,
                 source);
 

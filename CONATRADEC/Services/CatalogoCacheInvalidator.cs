@@ -56,6 +56,15 @@ namespace CONATRADEC.Services
                             typeof(ElementoQuimicoApiService),
                             "cacheFormulario",
                             "cacheCreadoUtc");
+
+                        /*
+                         * La reactivación desde el modal común cambia la
+                         * composición del listado activo. Se incrementa la
+                         * versión para que, al cerrar el modal, se renueve la
+                         * página visible dentro de la misma visita.
+                         */
+                        ElementoQuimicoListadoEstadoService
+                            .MarcarParaRecargar();
                         break;
 
                     case CatalogoEliminadoCodigos.TipoCultivo:
