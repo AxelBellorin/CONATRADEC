@@ -1,10 +1,12 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Text.RegularExpressions;
 
 namespace CONATRADEC.ViewModels
 {
-    [QueryProperty(nameof(Mode), "Mode")]
+    [QueryProperty(
+        nameof(Mode),
+        "Mode")]
     [QueryProperty(
         nameof(Propietario),
         "Propietario")]
@@ -25,50 +27,49 @@ namespace CONATRADEC.ViewModels
             new();
 
         private FormMode.FormModeSelect mode;
-
         private PropietarioResponse? propietario;
-
-        private string identificacion =
-            string.Empty;
-
-        private string nombreCompleto =
-            string.Empty;
-
-        private string telefono =
-            string.Empty;
-
-        private string correo =
-            string.Empty;
-
-        private string direccion =
-            string.Empty;
-
+        private string identificacion = string.Empty;
+        private string nombreCompleto = string.Empty;
+        private string telefono = string.Empty;
+        private string correo = string.Empty;
+        private string direccion = string.Empty;
         private string? modoSeleccionTexto;
 
         public PropietarioFormViewModel()
         {
-            GuardarCommand = new Command(
-                async () => await GuardarAsync(),
-                () => ShowSaveButton && !IsBusy);
+            GuardarCommand =
+                new Command(
+                    async () =>
+                        await GuardarAsync(),
+                    () =>
+                        ShowSaveButton &&
+                        !IsBusy);
 
-            CancelarCommand = new Command(
-                async () => await RegresarAsync(),
-                () => !IsBusy);
+            CancelarCommand =
+                new Command(
+                    async () =>
+                        await RegresarAsync(),
+                    () =>
+                        !IsBusy);
 
-            EditarCommand = new Command(
-                () => Mode =
-                    FormMode.FormModeSelect.Edit,
-                () =>
-                    Mode ==
-                    FormMode.FormModeSelect.View &&
-                    CanEdit &&
-                    !IsBusy);
+            EditarCommand =
+                new Command(
+                    () =>
+                        Mode =
+                            FormMode
+                                .FormModeSelect
+                                .Edit,
+                    () =>
+                        Mode ==
+                            FormMode
+                                .FormModeSelect
+                                .View &&
+                        CanEdit &&
+                        !IsBusy);
         }
 
         public Command GuardarCommand { get; }
-
         public Command CancelarCommand { get; }
-
         public Command EditarCommand { get; }
 
         public FormMode.FormModeSelect Mode
@@ -127,49 +128,64 @@ namespace CONATRADEC.ViewModels
             get => modoSeleccionTexto;
             set
             {
+                if (modoSeleccionTexto == value)
+                    return;
+
                 modoSeleccionTexto = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(EsModoSeleccion));
             }
         }
+
+        public bool EsModoSeleccion =>
+            bool.TryParse(
+                ModoSeleccionTexto,
+                out bool seleccion) &&
+            seleccion;
 
         public string Identificacion
         {
             get => identificacion;
-            set => Asignar(
-                ref identificacion,
-                value);
+            set =>
+                Asignar(
+                    ref identificacion,
+                    value);
         }
 
         public string NombreCompleto
         {
             get => nombreCompleto;
-            set => Asignar(
-                ref nombreCompleto,
-                value);
+            set =>
+                Asignar(
+                    ref nombreCompleto,
+                    value);
         }
 
         public string Telefono
         {
             get => telefono;
-            set => Asignar(
-                ref telefono,
-                value);
+            set =>
+                Asignar(
+                    ref telefono,
+                    value);
         }
 
         public string Correo
         {
             get => correo;
-            set => Asignar(
-                ref correo,
-                value);
+            set =>
+                Asignar(
+                    ref correo,
+                    value);
         }
 
         public string Direccion
         {
             get => direccion;
-            set => Asignar(
-                ref direccion,
-                value);
+            set =>
+                Asignar(
+                    ref direccion,
+                    value);
         }
 
         public bool IsReadOnly =>
@@ -190,18 +206,18 @@ namespace CONATRADEC.ViewModels
 
         public bool ShowEditButton =>
             Mode ==
-            FormMode.FormModeSelect.View &&
+                FormMode
+                    .FormModeSelect
+                    .View &&
             CanEdit;
 
         public new bool CanAdd =>
-            PermissionService.Instance
-                .HasAdd(
-                    InterfazCodigos.Propietarios);
+            PermissionService.Instance.HasAdd(
+                InterfazCodigos.Propietarios);
 
         public new bool CanEdit =>
-            PermissionService.Instance
-                .HasUpdate(
-                    InterfazCodigos.Propietarios);
+            PermissionService.Instance.HasUpdate(
+                InterfazCodigos.Propietarios);
 
         public string Title =>
             Mode switch
@@ -215,7 +231,8 @@ namespace CONATRADEC.ViewModels
                 FormMode.FormModeSelect.View =>
                     "Detalle del propietario",
 
-                _ => "Propietario"
+                _ =>
+                    "Propietario"
             };
 
         private async Task GuardarAsync()
@@ -234,19 +251,16 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            string? error = Validar();
+            string? error =
+                Validar();
 
             if (error != null)
             {
-                await MostrarAdvertenciaAsync(error);
+                await MostrarAdvertenciaAsync(
+                    error);
                 return;
             }
 
-            /*
-             * El estado no se administra desde el formulario.
-             * Los propietarios nuevos y editados permanecen activos.
-             * La desactivación solo se realiza mediante Eliminar y permiso.
-             */
             var request =
                 new PropietarioGuardarRequest
                 {
@@ -257,24 +271,32 @@ namespace CONATRADEC.ViewModels
                         NombreCompleto.Trim(),
 
                     Telefono =
-                        Limpiar(Telefono),
+                        Limpiar(
+                            Telefono),
 
                     Correo =
-                        Limpiar(Correo),
+                        Limpiar(
+                            Correo),
 
                     Direccion =
-                        Limpiar(Direccion),
+                        Limpiar(
+                            Direccion),
 
-                    Activo = true
+                    Activo =
+                        true
                 };
 
             IsBusy = true;
             ActualizarComandos();
 
+            bool guardado = false;
+
             try
             {
                 if (Mode ==
-                    FormMode.FormModeSelect.Create)
+                    FormMode
+                        .FormModeSelect
+                        .Create)
                 {
                     ApiResult<int> result =
                         await service
@@ -289,8 +311,13 @@ namespace CONATRADEC.ViewModels
                         return;
                     }
 
+                    guardado = true;
+
                     await MostrarExitoAsync(
-                        "Propietario creado correctamente.");
+                        string.IsNullOrWhiteSpace(
+                            result.Message)
+                            ? "Propietario creado correctamente."
+                            : result.Message);
                 }
                 else
                 {
@@ -305,7 +332,8 @@ namespace CONATRADEC.ViewModels
                     ApiResult<bool> result =
                         await service
                             .ActualizarPropietarioResultAsync(
-                                Propietario.PropietarioId,
+                                Propietario
+                                    .PropietarioId,
                                 request);
 
                     if (!result.Success ||
@@ -316,17 +344,34 @@ namespace CONATRADEC.ViewModels
                         return;
                     }
 
-                    await MostrarExitoAsync(
-                        "Propietario actualizado correctamente.");
-                }
+                    guardado = true;
 
-                await RegresarAsync();
+                    await MostrarExitoAsync(
+                        string.IsNullOrWhiteSpace(
+                            result.Message)
+                            ? "Propietario actualizado correctamente."
+                            : result.Message);
+                }
             }
             finally
             {
                 IsBusy = false;
                 ActualizarComandos();
             }
+
+            if (!guardado)
+                return;
+
+            /*
+             * La lista conserva la misma visita, pero un alta o edición puede
+             * cambiar orden y búsqueda. Se renueva únicamente la página visible
+             * al volver, sin reiniciar toda la navegación.
+             */
+            PropietarioVisitaService
+                .MarcarListadoParaRecargar(
+                    EsModoSeleccion);
+
+            await RegresarAsync();
         }
 
         private async Task RegresarAsync()
@@ -335,28 +380,21 @@ namespace CONATRADEC.ViewModels
             {
                 /*
                  * El formulario siempre se abre desde la lista existente.
-                 * Se debe retirar esta página de la pila, no navegar hacia
-                 * otra lista nueva. La navegación anterior creaba una copia
-                 * adicional de Propietarios en cada Guardar o Regresar y era
-                 * la causa directa del ciclo del botón Atrás.
+                 * Se retira esta página de la pila para no crear duplicados.
                  */
-                await Shell.Current.GoToAsync("..");
+                await Shell.Current.GoToAsync(
+                    "..");
             }
             catch
             {
-                /*
-                 * Respaldo para una apertura excepcional sin página previa.
-                 */
-                if (bool.TryParse(
-                        ModoSeleccionTexto,
-                        out bool seleccion) &&
-                    seleccion)
+                if (EsModoSeleccion)
                 {
                     await GoToAsyncParameters(
                         AppRoutes.Propietarios,
                         new Dictionary<string, object>
                         {
-                            ["ModoSeleccion"] = "True"
+                            ["ModoSeleccion"] =
+                                "True"
                         });
                 }
                 else
@@ -376,7 +414,9 @@ namespace CONATRADEC.ViewModels
                     "La identificación es obligatoria.";
             }
 
-            if (Identificacion.Trim().Length > 50)
+            if (Identificacion
+                .Trim()
+                .Length > 50)
             {
                 return
                     "La identificación no puede superar 50 caracteres.";
@@ -389,21 +429,27 @@ namespace CONATRADEC.ViewModels
                     "El nombre completo es obligatorio.";
             }
 
-            if (NombreCompleto.Trim().Length > 150)
+            if (NombreCompleto
+                .Trim()
+                .Length > 150)
             {
                 return
                     "El nombre no puede superar 150 caracteres.";
             }
 
-            if (!string.IsNullOrWhiteSpace(Correo) &&
-                !CorreoRegex.IsMatch(Correo.Trim()))
+            if (!string.IsNullOrWhiteSpace(
+                    Correo) &&
+                !CorreoRegex.IsMatch(
+                    Correo.Trim()))
             {
                 return
                     "El correo electrónico no es válido.";
             }
 
-            if (!string.IsNullOrWhiteSpace(Telefono) &&
-                Telefono.Trim().Length > 25)
+            if (!string.IsNullOrWhiteSpace(
+                    Telefono) &&
+                Telefono.Trim().Length >
+                    25)
             {
                 return
                     "El teléfono no puede superar 25 caracteres.";
@@ -427,18 +473,21 @@ namespace CONATRADEC.ViewModels
             string? propertyName = null)
         {
             string nuevo =
-                valor ?? string.Empty;
+                valor ??
+                string.Empty;
 
             if (campo == nuevo)
                 return;
 
             campo = nuevo;
-            OnPropertyChanged(propertyName);
+            OnPropertyChanged(
+                propertyName);
         }
 
         private static string? Limpiar(
             string? valor) =>
-            string.IsNullOrWhiteSpace(valor)
+            string.IsNullOrWhiteSpace(
+                valor)
                 ? null
                 : valor.Trim();
     }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.propietarioFormPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -14,12 +14,13 @@
     <Grid>
         <ScrollView HorizontalScrollBarVisibility="Never">
             <Grid
-                Padding="{OnIdiom Phone='12,12,12,22', Tablet='20,18,20,26', Desktop='28,22,28,30'}"
-                ColumnDefinitions="{OnPlatform WinUI='*,8*,*', Default='0,*,0'}">
+                x:Name="ContenidoFormulario"
+                Padding="{OnIdiom Phone='12,12,12,22', Tablet='20,18,20,26', Desktop='28,22,28,30'}">
 
                 <VerticalStackLayout
-                    Grid.Column="1"
+                    x:Name="FormularioContainer"
                     MaximumWidthRequest="960"
+                    HorizontalOptions="Center"
                     Spacing="14">
 
                     <controls:ResponsiveCatalogHeader
@@ -33,21 +34,34 @@
 
                     <Border Style="{StaticResource ModernFormCard}">
                         <VerticalStackLayout Spacing="15">
+
                             <VerticalStackLayout Spacing="3">
-                                <Label Text="Información del propietario" Style="{StaticResource ModernSectionTitle}" />
+                                <Label
+                                    Text="Información del propietario"
+                                    Style="{StaticResource ModernSectionTitle}" />
                                 <Label
                                     Text="Mantenga estos datos actualizados para reutilizarlos en todos los terrenos asociados."
                                     Style="{StaticResource ModernCaption}" />
                             </VerticalStackLayout>
 
+                            <!--
+                                El Grid se reorganiza desde el code-behind según el
+                                ancho REAL del formulario. Una ventana WinUI estrecha
+                                pasa a una columna aunque siga siendo Desktop.
+                            -->
                             <Grid
-                                ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                                x:Name="CamposGrid"
+                                ColumnDefinitions="*"
                                 RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                                 ColumnSpacing="14"
                                 RowSpacing="12">
 
-                                <VerticalStackLayout Spacing="6">
-                                    <Label Text="Identificación" Style="{StaticResource ModernFieldLabel}" />
+                                <VerticalStackLayout
+                                    x:Name="CampoIdentificacion"
+                                    Spacing="6">
+                                    <Label
+                                        Text="Identificación"
+                                        Style="{StaticResource ModernFieldLabel}" />
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <Entry
                                             Text="{Binding Identificacion, Mode=TwoWay}"
@@ -59,10 +73,12 @@
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout
-                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                    Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                                    x:Name="CampoNombre"
+                                    Grid.Row="1"
                                     Spacing="6">
-                                    <Label Text="Nombre completo" Style="{StaticResource ModernFieldLabel}" />
+                                    <Label
+                                        Text="Nombre completo"
+                                        Style="{StaticResource ModernFieldLabel}" />
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <Entry
                                             Text="{Binding NombreCompleto, Mode=TwoWay}"
@@ -74,9 +90,12 @@
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout
-                                    Grid.Row="{OnPlatform WinUI=1, Default=2}"
+                                    x:Name="CampoTelefono"
+                                    Grid.Row="2"
                                     Spacing="6">
-                                    <Label Text="Teléfono" Style="{StaticResource ModernFieldLabel}" />
+                                    <Label
+                                        Text="Teléfono"
+                                        Style="{StaticResource ModernFieldLabel}" />
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <Entry
                                             Text="{Binding Telefono, Mode=TwoWay}"
@@ -89,10 +108,12 @@
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout
-                                    Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                                    Grid.Row="{OnPlatform WinUI=1, Default=3}"
+                                    x:Name="CampoCorreo"
+                                    Grid.Row="3"
                                     Spacing="6">
-                                    <Label Text="Correo" Style="{StaticResource ModernFieldLabel}" />
+                                    <Label
+                                        Text="Correo"
+                                        Style="{StaticResource ModernFieldLabel}" />
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <Entry
                                             Text="{Binding Correo, Mode=TwoWay}"
@@ -105,10 +126,12 @@
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout
-                                    Grid.Row="{OnPlatform WinUI=2, Default=4}"
-                                    Grid.ColumnSpan="{OnPlatform WinUI=2, Default=1}"
+                                    x:Name="CampoDireccion"
+                                    Grid.Row="4"
                                     Spacing="6">
-                                    <Label Text="Dirección" Style="{StaticResource ModernFieldLabel}" />
+                                    <Label
+                                        Text="Dirección"
+                                        Style="{StaticResource ModernFieldLabel}" />
                                     <Border
                                         BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMuted}, Dark={StaticResource SurfaceMutedDark}}"
                                         Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
@@ -142,21 +165,29 @@
                     </Border>
 
                     <Grid
-                        ColumnDefinitions="{OnPlatform WinUI='*,*', Default='*'}"
+                        x:Name="AccionesGrid"
+                        ColumnDefinitions="*"
                         RowDefinitions="Auto,Auto"
                         ColumnSpacing="10"
                         RowSpacing="9"
                         Margin="0,2,0,12">
+
                         <Button
+                            x:Name="GuardarButton"
                             Text="Guardar"
                             Style="{StaticResource ModernPrimaryButton}"
+                            MinimumWidthRequest="0"
+                            HorizontalOptions="Fill"
                             IsVisible="{Binding ShowSaveButton}"
                             Command="{Binding GuardarCommand}" />
+
                         <Button
-                            Grid.Column="{OnPlatform WinUI=1, Default=0}"
-                            Grid.Row="{OnPlatform WinUI=0, Default=1}"
+                            x:Name="RegresarButton"
+                            Grid.Row="1"
                             Text="Regresar"
                             Style="{StaticResource ModernNeutralButton}"
+                            MinimumWidthRequest="0"
+                            HorizontalOptions="Fill"
                             Command="{Binding CancelarCommand}" />
                     </Grid>
                 </VerticalStackLayout>
@@ -164,11 +195,11 @@
         </ScrollView>
 
         <Grid
-            Grid.RowSpan="2"
             ZIndex="100"
             IsVisible="{Binding IsBusy}"
             InputTransparent="False"
             BackgroundColor="#28000000">
+
             <Border
                 Padding="18,14"
                 HorizontalOptions="Center"
@@ -176,8 +207,11 @@
                 BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
                 Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                 StrokeShape="RoundRectangle 14">
+
                 <HorizontalStackLayout Spacing="10">
-                    <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" />
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="{StaticResource color_Verde}" />
                     <Label
                         Text="Procesando..."
                         VerticalOptions="Center"

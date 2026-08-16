@@ -1,4 +1,4 @@
-namespace CONATRADEC.Services
+﻿namespace CONATRADEC.Services
 {
     public sealed record CatalogoEliminadoConfiguracion(
         string Codigo,
@@ -22,6 +22,7 @@ namespace CONATRADEC.Services
         public const string TipoAnalisis = "tipo-analisis";
         public const string Usuario = "usuario";
         public const string Terreno = "terreno";
+        public const string Propietario = "propietario";
         public const string ExtraccionNutriente = "extraccion-nutriente";
         public const string RangoNutriente = "rango-nutriente";
         public const string CategoriaPublicacion = "categoria-publicacion";
@@ -99,6 +100,13 @@ namespace CONATRADEC.Services
                         "Se conserva el código único, las fotografías y las relaciones históricas.",
                         "terrenoPage"),
 
+                    [Propietario] = new(
+                        Propietario,
+                        "Propietarios eliminados",
+                        "propietario",
+                        "La reactivación conserva su identificación, historial y relaciones anteriores.",
+                        "PropietariosPage"),
+
                     [ExtraccionNutriente] = new(
                         ExtraccionNutriente,
                         "Parámetros de extracción eliminados",
@@ -129,8 +137,8 @@ namespace CONATRADEC.Services
                 };
 
         /// <summary>
-        /// Rutas de creación que serán atendidas por el nuevo flujo común.
-        /// Las demás operaciones continúan utilizando sus endpoints actuales.
+        /// Rutas de creación que serán atendidas por el flujo común.
+        /// Propietarios mantiene su servicio CRUD especializado.
         /// </summary>
         private static readonly IReadOnlyDictionary<string, string>
             RutasCreacion =
@@ -174,15 +182,12 @@ namespace CONATRADEC.Services
             string? titulo,
             out CatalogoEliminadoConfiguracion configuracion)
         {
-            string valor = Normalizar(titulo);
+            string valor =
+                Normalizar(titulo);
 
             /*
              * La pantalla principal "Rangos nutricionales" no muestra rangos
              * individuales: muestra tarjetas de tipos de cultivo.
-             *
-             * Por eso, el botón Eliminados de esa pantalla debe abrir
-             * "Tipos de cultivo eliminados". El botón rojo de sus tarjetas
-             * también desactiva un TipoCultivo, no un rango individual.
              */
             if (string.Equals(
                     valor,
@@ -196,8 +201,6 @@ namespace CONATRADEC.Services
 
             /*
              * En la pantalla de detalle el título es "Rangos de <cultivo>".
-             * Allí sí se administran ParametroRangoNutrienteCultivo y el
-             * botón Eliminados debe consultar los rangos individuales.
              */
             if (valor.StartsWith(
                     "rangos de ",
@@ -209,43 +212,48 @@ namespace CONATRADEC.Services
             }
 
             string? codigo =
-                valor.Contains("departamento")
-                    ? Departamento
-                    : valor.Contains("municipio")
-                        ? Municipio
-                        : valor.Contains("pais") ||
-                          valor.Contains("paises")
-                            ? Pais
-                            : valor.Contains("elemento") &&
-                              valor.Contains("quim")
-                                ? ElementoQuimico
-                                : valor.Contains("tipo") &&
-                                  valor.Contains("cultivo")
-                                    ? TipoCultivo
+                string.Equals(
+                    valor,
+                    "propietarios",
+                    StringComparison.Ordinal)
+                    ? Propietario
+                    : valor.Contains("departamento")
+                        ? Departamento
+                        : valor.Contains("municipio")
+                            ? Municipio
+                            : valor.Contains("pais") ||
+                              valor.Contains("paises")
+                                ? Pais
+                                : valor.Contains("elemento") &&
+                                  valor.Contains("quim")
+                                    ? ElementoQuimico
                                     : valor.Contains("tipo") &&
-                                      valor.Contains("analisis")
-                                        ? TipoAnalisis
-                                        : valor.Contains("usuario")
-                                            ? Usuario
-                                            : valor.Contains("terreno")
-                                                ? Terreno
-                                                : valor.Contains("extraccion")
-                                                    ? ExtraccionNutriente
-                                                    : valor.Contains("rango") &&
-                                                      valor.Contains("nutri")
-                                                        ? RangoNutriente
-                                                        : valor.Contains("publicacion") &&
-                                                          (valor.Contains("tipo") ||
-                                                           valor.Contains("categoria"))
-                                                            ? CategoriaPublicacion
-                                                            : valor.Contains("categoria") &&
-                                                              (valor.Contains("album") ||
-                                                               valor.Contains("botan"))
-                                                                ? CategoriaAlbum
-                                                                : valor == "roles" ||
-                                                                  valor.Contains("rol")
-                                                                    ? Rol
-                                                                    : null;
+                                      valor.Contains("cultivo")
+                                        ? TipoCultivo
+                                        : valor.Contains("tipo") &&
+                                          valor.Contains("analisis")
+                                            ? TipoAnalisis
+                                            : valor.Contains("usuario")
+                                                ? Usuario
+                                                : valor.Contains("terreno")
+                                                    ? Terreno
+                                                    : valor.Contains("extraccion")
+                                                        ? ExtraccionNutriente
+                                                        : valor.Contains("rango") &&
+                                                          valor.Contains("nutri")
+                                                            ? RangoNutriente
+                                                            : valor.Contains("publicacion") &&
+                                                              (valor.Contains("tipo") ||
+                                                               valor.Contains("categoria"))
+                                                                ? CategoriaPublicacion
+                                                                : valor.Contains("categoria") &&
+                                                                  (valor.Contains("album") ||
+                                                                   valor.Contains("botan"))
+                                                                    ? CategoriaAlbum
+                                                                    : valor == "roles" ||
+                                                                      valor.Contains("rol")
+                                                                        ? Rol
+                                                                        : null;
 
             return TryGet(
                 codigo,
@@ -277,21 +285,27 @@ namespace CONATRADEC.Services
                 out codigo!);
         }
 
-        private static string Normalizar(string? valor)
+        private static string Normalizar(
+            string? valor)
         {
             string texto =
                 (valor ?? string.Empty)
                     .Trim()
                     .ToLowerInvariant()
                     .Normalize(
-                        System.Text.NormalizationForm.FormD);
+                        System.Text
+                            .NormalizationForm
+                            .FormD);
 
             return new string(
                 texto
                     .Where(caracter =>
-                        System.Globalization.CharUnicodeInfo
-                            .GetUnicodeCategory(caracter) !=
-                        System.Globalization.UnicodeCategory
+                        System.Globalization
+                            .CharUnicodeInfo
+                            .GetUnicodeCategory(
+                                caracter) !=
+                        System.Globalization
+                            .UnicodeCategory
                             .NonSpacingMark)
                     .ToArray());
         }
