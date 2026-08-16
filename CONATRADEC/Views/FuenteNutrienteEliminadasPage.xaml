@@ -9,27 +9,18 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
-        <Grid
-            IsVisible="{Binding CanView}">
-
+    <Grid x:Name="ContenidoEliminadas">
+        <Grid IsVisible="{Binding CanView}">
             <RefreshView
                 IsRefreshing="{Binding IsRefreshing}"
                 Command="{Binding RefrescarCommand}">
-
                 <CollectionView
+                    x:Name="FuentesEliminadasCollectionView"
                     ItemsSource="{Binding Fuentes}"
                     SelectionMode="None">
 
-                    <!--
-                        Encabezado, búsqueda y mensaje forman parte del contenido
-                        desplazable. No se reparentan controles en ejecución.
-                    -->
                     <CollectionView.Header>
-                        <VerticalStackLayout
-                            Spacing="12"
-                            Padding="0,0,0,12">
-
+                        <VerticalStackLayout Spacing="12" Padding="0,0,0,12">
                             <controls:ResponsiveCatalogHeader
                                 Title="Fuentes eliminadas"
                                 Subtitle="Reactive fuentes de nutrientes conservando sus datos, clasificación, precio y aportes anteriores."
@@ -47,18 +38,25 @@
                                             Style="{StaticResource ModernSearchBar}" />
                                     </Border>
 
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                    <Grid
+                                        x:Name="FiltroEliminadasGrid"
+                                        ColumnDefinitions="*,Auto,Auto"
+                                        ColumnSpacing="8"
+                                        RowSpacing="8">
                                         <Label
+                                            x:Name="ResumenEliminadas"
                                             Text="{Binding Resumen}"
                                             VerticalOptions="Center"
                                             Style="{StaticResource ModernCaption}"
                                             FontSize="11.5" />
                                         <Button
+                                            x:Name="BuscarEliminadasButton"
                                             Grid.Column="1"
                                             Text="Buscar"
                                             Command="{Binding BuscarCommand}"
                                             Style="{StaticResource ModernPrimaryButton}" />
                                         <Button
+                                            x:Name="LimpiarEliminadasButton"
                                             Grid.Column="2"
                                             Text="Limpiar"
                                             Command="{Binding LimpiarCommand}"
@@ -77,29 +75,16 @@
                                     TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                     LineBreakMode="WordWrap" />
                             </Border>
-                        </VerticalStackLayout>
-                    </CollectionView.Header>
 
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout
-                            x:Name="FuentesEliminadasGrid"
-                            Orientation="Vertical"
-                            Span="1"
-                            HorizontalItemSpacing="12"
-                            VerticalItemSpacing="12" />
-                    </CollectionView.ItemsLayout>
-
-                    <CollectionView.EmptyView>
-                        <Grid Padding="12,24">
+                            <!-- Se mantiene dentro del Header para que los controles
+                                 sigan siendo utilizables aun con cero registros. -->
                             <Border
                                 IsVisible="{Binding MostrarVacio}"
                                 Style="{StaticResource ModernEmptyStateCard}"
                                 HorizontalOptions="Center"
-                                VerticalOptions="Start"
-                                MaximumWidthRequest="560">
-                                <VerticalStackLayout
-                                    HorizontalOptions="Center"
-                                    Spacing="8">
+                                MaximumWidthRequest="560"
+                                Margin="0,8,0,0">
+                                <VerticalStackLayout HorizontalOptions="Center" Spacing="8">
                                     <Border
                                         Style="{StaticResource ModernIconTile}"
                                         WidthRequest="58"
@@ -122,8 +107,17 @@
                                         HorizontalTextAlignment="Center" />
                                 </VerticalStackLayout>
                             </Border>
-                        </Grid>
-                    </CollectionView.EmptyView>
+                        </VerticalStackLayout>
+                    </CollectionView.Header>
+
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout
+                            x:Name="FuentesEliminadasGrid"
+                            Orientation="Vertical"
+                            Span="1"
+                            HorizontalItemSpacing="12"
+                            VerticalItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:FuenteNutrienteResponse">
@@ -185,9 +179,7 @@
                                     </Grid>
 
                                     <VerticalStackLayout Grid.Row="1" Spacing="7">
-                                        <Border
-                                            Style="{StaticResource ModernBadgeYellow}"
-                                            Padding="9,6">
+                                        <Border Style="{StaticResource ModernBadgeYellow}" Padding="9,6">
                                             <Label
                                                 Text="{Binding PrecioMostrar}"
                                                 FontFamily="MontserratBold"
@@ -218,7 +210,42 @@
                     </CollectionView.ItemTemplate>
 
                     <CollectionView.Footer>
-                        <BoxView HeightRequest="{OnIdiom Phone=18, Tablet=22, Desktop=26}" Opacity="0" />
+                        <Grid
+                            x:Name="PaginacionEliminadas"
+                            IsVisible="{Binding MostrarPaginacion}"
+                            Padding="0,16,0,26"
+                            ColumnDefinitions="Auto,*,Auto"
+                            RowDefinitions="Auto,Auto"
+                            ColumnSpacing="10"
+                            RowSpacing="5">
+                            <Button
+                                x:Name="AnteriorEliminadasButton"
+                                Text="Anterior"
+                                Command="{Binding PaginaAnteriorCommand}"
+                                Style="{StaticResource ModernNeutralButton}" />
+                            <VerticalStackLayout
+                                x:Name="TextoPaginacionEliminadas"
+                                Grid.Column="1"
+                                Spacing="2"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center">
+                                <Label
+                                    Text="{Binding PaginaTexto}"
+                                    Style="{StaticResource ModernSectionTitle}"
+                                    FontSize="12"
+                                    HorizontalTextAlignment="Center" />
+                                <Label
+                                    Text="{Binding RangoPaginaTexto}"
+                                    Style="{StaticResource ModernCaption}"
+                                    HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <Button
+                                x:Name="SiguienteEliminadasButton"
+                                Grid.Column="2"
+                                Text="Siguiente"
+                                Command="{Binding PaginaSiguienteCommand}"
+                                Style="{StaticResource ModernPrimaryButton}" />
+                        </Grid>
                     </CollectionView.Footer>
                 </CollectionView>
             </RefreshView>
@@ -226,12 +253,10 @@
 
         <Grid
             IsVisible="{Binding MostrarAccesoDenegado}"
-            Padding="{OnIdiom Phone=12, Tablet=20, Desktop=24}"
+            Padding="24"
             BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
             <Border Style="{StaticResource ModernAccessDeniedCard}">
-                <VerticalStackLayout
-                    Spacing="10"
-                    HorizontalOptions="Center">
+                <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                     <Image
                         Source="iconpermission.png"
                         WidthRequest="62"

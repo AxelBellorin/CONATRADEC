@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 
@@ -62,6 +62,50 @@ namespace CONATRADEC.Models
                 })
                 .ToList() ?? new List<FuenteNutrienteElementoQuimicoRequest>();
         }
+    }
+
+    /// <summary>
+    /// Contrato exclusivo de la API administrativa moderna.
+    /// Envía en una sola operación la fuente, sus aportes y su clasificación.
+    /// Los contratos históricos se conservan intactos para otros consumidores.
+    /// </summary>
+    public sealed class FuenteNutrienteAdministracionRequest
+    {
+        [JsonPropertyName("fuenteNutrientesId")]
+        public int? FuenteNutrientesId { get; set; }
+
+        [JsonPropertyName("nombreNutriente")]
+        public string NombreNutriente { get; set; } = string.Empty;
+
+        [JsonPropertyName("descripcionNutriente")]
+        public string DescripcionNutriente { get; set; } = string.Empty;
+
+        [JsonPropertyName("precioNutriente")]
+        public decimal PrecioNutriente { get; set; }
+
+        [JsonPropertyName("categoria")]
+        public string Categoria { get; set; } =
+            FuenteNutrienteCategoriaOption.CodigoBalanceNutricional;
+
+        [JsonPropertyName("prnt")]
+        public decimal? Prnt { get; set; }
+
+        [JsonPropertyName("descripcionParametro")]
+        public string? DescripcionParametro { get; set; }
+
+        [JsonPropertyName("elementosQuimicos")]
+        public List<FuenteNutrienteElementoQuimicoRequest> ElementosQuimicos { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Parámetro único de navegación para Crear/Editar/Ver.
+    /// Evita que Mode y Fuente lleguen desincronizados en Shell.
+    /// </summary>
+    public sealed class FuenteNutrienteFormNavigationContext
+    {
+        public FormMode.FormModeSelect Mode { get; set; }
+
+        public FuenteNutrienteRequest Fuente { get; set; } = new();
     }
 
     public class FuenteNutrienteElementoQuimicoRequest

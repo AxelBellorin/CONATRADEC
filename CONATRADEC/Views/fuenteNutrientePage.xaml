@@ -40,6 +40,7 @@
             </Grid>
 
             <Grid
+                x:Name="ContenidoFuentes"
                 IsVisible="{Binding CanView}"
                 Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
 
@@ -47,10 +48,9 @@
                     IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
                     <CollectionView
+                        x:Name="FuentesCollectionView"
                         ItemsSource="{Binding List}"
-                        SelectionMode="None"
-                        RemainingItemsThreshold="3"
-                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                        SelectionMode="None">
 
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout
@@ -62,9 +62,10 @@
                         </CollectionView.ItemsLayout>
 
                         <!--
-                            Encabezado, búsqueda, clasificación, matriz y mensajes
-                            forman parte del desplazamiento natural de la colección.
-                            Se conservan los nombres utilizados por el code-behind.
+                            Encabezado, búsqueda, clasificación, mensajes y estado
+                            vacío forman parte del desplazamiento natural. No se usa
+                            CollectionView.EmptyView para evitar que WinUI sustituya
+                            los controles interactivos cuando la página queda vacía.
                         -->
                         <CollectionView.Header>
                             <VerticalStackLayout Padding="0,0,0,14" Spacing="12">
@@ -82,18 +83,18 @@
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <SearchBar
                                             Placeholder="Buscar por nombre o descripción"
-                                            Text="{Binding TextoBusqueda}"
+                                            Text="{Binding TextoBusqueda, Mode=TwoWay}"
                                             SearchCommand="{Binding BuscarCommand}"
                                             Style="{StaticResource ModernSearchBar}" />
                                     </Border>
                                 </Border>
 
-                                <Border Style="{StaticResource ModernCard}" Padding="{OnIdiom Phone=12, Tablet=14, Desktop=16}">
+                                <Border Style="{StaticResource ModernCard}" Padding="14">
                                     <VerticalStackLayout Spacing="11">
                                         <VerticalStackLayout Spacing="3">
                                             <Label Text="Buscar y clasificar" Style="{StaticResource ModernSectionTitle}" />
                                             <Label
-                                                Text="Filtre por nombre, descripción o tipo de fuente."
+                                                Text="Filtre por nombre, descripción o tipo de fuente. Los cambios se aplican al presionar Buscar."
                                                 Style="{StaticResource ModernCaption}" />
                                         </VerticalStackLayout>
 
@@ -115,16 +116,19 @@
                                             ColumnSpacing="10"
                                             RowSpacing="8">
                                             <Label
+                                                x:Name="ResumenFuentesLabel"
                                                 Text="{Binding ResumenResultados}"
                                                 Style="{StaticResource ModernPageSubtitle}"
                                                 VerticalOptions="Center" />
                                             <Button
+                                                x:Name="BuscarFuentesButton"
                                                 Grid.Column="1"
                                                 Text="Buscar"
                                                 Style="{StaticResource ModernPrimaryButton}"
                                                 HeightRequest="44"
                                                 Command="{Binding BuscarCommand}" />
                                             <Button
+                                                x:Name="LimpiarFuentesButton"
                                                 Grid.Column="2"
                                                 Text="Limpiar"
                                                 Style="{StaticResource ModernNeutralButton}"
@@ -137,13 +141,13 @@
                                 <Border
                                     IsVisible="{Binding MostrarSeccionTablaComposicion}"
                                     Style="{StaticResource ModernCard}"
-                                    Padding="{OnIdiom Phone=12, Tablet=14, Desktop=16}">
+                                    Padding="14">
                                     <VerticalStackLayout Spacing="10">
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                             <VerticalStackLayout Spacing="2">
                                                 <Label Text="Matriz de composición" Style="{StaticResource ModernSectionTitle}" />
                                                 <Label
-                                                    Text="Se carga bajo demanda para mantener rápida la pantalla."
+                                                    Text="Se carga bajo demanda usando únicamente los filtros ya aplicados al listado."
                                                     Style="{StaticResource ModernCaption}" />
                                             </VerticalStackLayout>
                                             <Button
@@ -178,16 +182,23 @@
                                         </Border>
 
                                         <Label
-                                            Text="No hay fuentes con aportes químicos para los filtros seleccionados."
+                                            Text="No hay fuentes con aportes químicos para los filtros aplicados."
                                             IsVisible="{Binding MostrarMensajeTablaVacia}"
                                             Style="{StaticResource ModernPageSubtitle}"
                                             HorizontalTextAlignment="Center" />
 
+                                        <!--
+                                            La matriz necesita desplazamiento propio en ambos ejes.
+                                            Su altura máxima se ajusta desde code-behind según el
+                                            tamaño real de la ventana para no bloquear el scroll
+                                            natural del listado padre.
+                                        -->
                                         <ScrollView
-                                            Orientation="Horizontal"
+                                            x:Name="MatrizComposicionScrollView"
+                                            Orientation="Both"
                                             IsVisible="{Binding MostrarTablaConDatos}"
                                             HorizontalScrollBarVisibility="Default"
-                                            VerticalScrollBarVisibility="Never">
+                                            VerticalScrollBarVisibility="Default">
                                             <VerticalStackLayout Spacing="0">
                                                 <HorizontalStackLayout Spacing="0">
                                                     <Border
@@ -276,14 +287,11 @@
                                     Style="{StaticResource ModernWarningBanner}">
                                     <Label Text="{Binding Mensaje}" Style="{StaticResource ModernPageSubtitle}" />
                                 </Border>
-                            </VerticalStackLayout>
-                        </CollectionView.Header>
 
-                        <CollectionView.EmptyView>
-                            <Grid Padding="20,30">
                                 <Border
                                     IsVisible="{Binding MostrarVacio}"
                                     Style="{StaticResource ModernEmptyStateCard}"
+                                    Margin="0,6,0,0"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Start"
                                     MaximumWidthRequest="560">
@@ -308,8 +316,8 @@
                                             HorizontalTextAlignment="Center" />
                                     </VerticalStackLayout>
                                 </Border>
-                            </Grid>
-                        </CollectionView.EmptyView>
+                            </VerticalStackLayout>
+                        </CollectionView.Header>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:FuenteNutrienteResponse">
@@ -419,19 +427,52 @@
                         </CollectionView.ItemTemplate>
 
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="10,16,10,24"
-                                Spacing="8"
+                            <Border
+                                x:Name="PaginacionFuentes"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="14,13"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
                                 HorizontalOptions="Center">
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoMas}"
-                                    IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Verde}" />
-                                <Label
-                                    IsVisible="{Binding MostrarFinLista}"
-                                    Text="Fin del listado"
-                                    Style="{StaticResource ModernCaption}" />
-                            </VerticalStackLayout>
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>

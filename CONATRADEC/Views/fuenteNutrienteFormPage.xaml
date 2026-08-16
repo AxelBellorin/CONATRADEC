@@ -16,7 +16,6 @@
                 x:Name="FormularioContainer"
                 MaximumWidthRequest="1100"
                 HorizontalOptions="Center"
-                Padding="{OnIdiom Phone='14,14,14,24', Tablet='22,18,22,28', Desktop='28,22,28,32'}"
                 Spacing="14">
 
                 <Border Style="{StaticResource ModernHeroCard}">
@@ -143,7 +142,7 @@
                             <Border
                                 Style="{StaticResource ModernInputBorder}"
                                 Padding="10,2"
-                                MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}">
+                                MinimumHeightRequest="54">
                                 <Border.Triggers>
                                     <DataTrigger TargetType="Border" Binding="{Binding TieneErrorCategoria}" Value="True">
                                         <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
@@ -157,8 +156,8 @@
                                     ItemDisplayBinding="{Binding Nombre}"
                                     SelectedItem="{Binding CategoriaSeleccionada}"
                                     IsEnabled="{Binding IsFormEnabled}"
-                                    HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
-                                    MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                    HeightRequest="52"
+                                    MinimumHeightRequest="52"
                                     VerticalOptions="Center" />
                             </Border>
                             <Label
@@ -171,7 +170,7 @@
                         <Border
                             IsVisible="{Binding MostrarDatosEnmiendaCalcarea}"
                             Style="{StaticResource ModernInfoBanner}"
-                            Padding="{OnIdiom Phone=13, Tablet=16, Desktop=17}">
+                            Padding="15">
                             <VerticalStackLayout Spacing="13">
                                 <VerticalStackLayout Spacing="3">
                                     <Label
@@ -185,11 +184,12 @@
                                 </VerticalStackLayout>
 
                                 <Grid
-                                    ColumnDefinitions="{OnIdiom Phone='*', Tablet='1*,2*', Desktop='1*,2*'}"
-                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Tablet='Auto', Desktop='Auto'}"
+                                    x:Name="EnmiendaDatosGrid"
+                                    ColumnDefinitions="*"
+                                    RowDefinitions="Auto,Auto"
                                     ColumnSpacing="13"
                                     RowSpacing="12">
-                                    <VerticalStackLayout Spacing="6">
+                                    <VerticalStackLayout x:Name="PrntSection" Spacing="6">
                                         <Label Text="PRNT" Style="{StaticResource ModernFieldLabel}" />
                                         <Border Style="{StaticResource ModernInputBorder}" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}">
                                             <Entry
@@ -208,8 +208,8 @@
                                     </VerticalStackLayout>
 
                                     <VerticalStackLayout
-                                        Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                                        Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                        x:Name="DescripcionParametroSection"
+                                        Grid.Row="1"
                                         Spacing="6">
                                         <Label Text="Descripción del parámetro" Style="{StaticResource ModernFieldLabel}" />
                                         <Border
@@ -268,11 +268,6 @@
                             FontSize="11"
                             TextColor="{StaticResource RedDelete}" />
 
-                        <!--
-                            La lista de elementos químicos es pequeña y forma parte
-                            natural del formulario. BindableLayout evita anidar un
-                            CollectionView dentro del ScrollView principal.
-                        -->
                         <VerticalStackLayout
                             BindableLayout.ItemsSource="{Binding Aportes}"
                             Spacing="9">
@@ -299,7 +294,7 @@
                                                 <Border
                                                     Style="{StaticResource ModernInputBorder}"
                                                     Padding="10,2"
-                                                    MinimumHeightRequest="{OnIdiom Phone=52, Tablet=56, Desktop=62}"
+                                                    MinimumHeightRequest="54"
                                                     BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}">
                                                     <Picker
                                                         Style="{StaticResource ModernPicker}"
@@ -308,8 +303,8 @@
                                                         ItemDisplayBinding="{Binding NombreElementoQuimico}"
                                                         SelectedItem="{Binding ElementoSeleccionado}"
                                                         IsEnabled="{Binding Source={x:Reference FuenteNutrienteFormPageRoot}, Path=BindingContext.IsFormEnabled}"
-                                                        HeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
-                                                        MinimumHeightRequest="{OnIdiom Phone=50, Tablet=54, Desktop=60}"
+                                                        HeightRequest="52"
+                                                        MinimumHeightRequest="52"
                                                         VerticalOptions="Center" />
                                                 </Border>
                                             </VerticalStackLayout>
@@ -346,28 +341,29 @@
                 </Border>
 
                 <Grid
-                    ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*', Desktop='*,*'}"
+                    x:Name="AccionesGrid"
+                    ColumnDefinitions="*"
                     RowDefinitions="Auto,Auto"
                     ColumnSpacing="10"
                     RowSpacing="9"
                     Margin="0,2,0,12">
                     <Button
+                        x:Name="GuardarButton"
                         Text="Guardar"
                         Style="{StaticResource ModernPrimaryButton}"
                         IsVisible="{Binding ShowSaveButton}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding SaveCommand}" />
                     <Button
-                        Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                        Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                        x:Name="CancelarButton"
+                        Grid.Row="1"
                         Text="Cancelar"
                         Style="{StaticResource ModernNeutralButton}"
                         IsVisible="{Binding IsFormEnabled}"
                         IsEnabled="{Binding NotIsBusy}"
                         Command="{Binding CancelCommand}" />
                     <Button
-                        Grid.Column="0"
-                        Grid.ColumnSpan="{OnIdiom Phone=1, Tablet=2, Desktop=2}"
+                        x:Name="RegresarButton"
                         Text="Regresar"
                         Style="{StaticResource ModernNeutralButton}"
                         IsVisible="{Binding IsReadOnly}"
@@ -377,7 +373,6 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Relay de carga: solo se anima mientras IsBusy sea verdadero. -->
         <Grid
             ZIndex="100"
             IsVisible="{Binding IsBusy}"

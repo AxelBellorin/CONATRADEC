@@ -1,6 +1,5 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
-using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
 using System.Threading;
@@ -9,40 +8,32 @@ namespace CONATRADEC.ViewModels
 {
     public sealed class FuenteNutrienteViewModel : GlobalService
     {
-        private readonly FuenteNutrienteConsultaApiService
-            consultaApiService;
-
-        /*
-         * Se conserva el servicio CRUD existente para eliminar.
-         * Crear, editar y clasificar continúan usando exactamente
-         * la misma lógica del formulario actual.
-         */
-        private readonly FuenteNutrienteApiService
-            fuenteNutrienteApiService;
+        private readonly FuenteNutrienteConsultaApiService consultaApiService;
+        private readonly FuenteNutrienteApiService fuenteNutrienteApiService;
 
         private CancellationTokenSource? cargaCts;
         private CancellationTokenSource? composicionCts;
+        private CancellationTokenSource? accionCts;
 
-        private string textoBusqueda =
-            string.Empty;
-
-        private string mensaje =
-            string.Empty;
-
-        private string mensajeComposicion =
-            string.Empty;
+        private string textoBusqueda = string.Empty;
+        private string textoBusquedaAplicado = string.Empty;
+        private string categoriaAplicadaCodigo =
+            FuenteNutrienteCategoriaOption.CodigoTodas;
+        private string mensaje = string.Empty;
+        private string mensajeComposicion = string.Empty;
 
         private bool isRefreshing;
-        private bool cargandoMas;
         private bool cargandoComposicion;
         private bool navegando;
         private bool pantallaCargada;
         private bool mostrarTablaComposicion;
 
-        private int paginaActual;
+        private int paginaActual = 1;
         private int totalPaginas = 1;
         private int totalRegistros;
-        private int versionFiltro;
+        private int tamanoPaginaActual;
+        private int versionAplicada = -1;
+        private int eliminacionEnCurso;
 
         private FuenteNutrienteCategoriaOption?
             filtroCategoriaSeleccionada;
@@ -67,6 +58,9 @@ namespace CONATRADEC.ViewModels
                 fuenteNutrienteApiService
                 ?? throw new ArgumentNullException(
                     nameof(fuenteNutrienteApiService));
+
+            tamanoPaginaActual =
+                ObtenerTamanoPagina();
 
             CargarFiltrosCategoria();
 
@@ -97,7 +91,7 @@ namespace CONATRADEC.ViewModels
                             () => OnEditAsync(fuente),
                             "editar la fuente"),
                     fuente =>
-                        fuente != null &&
+                        fuente?.FuenteNutrientesId is > 0 &&
                         CanEdit &&
                         !IsBusy &&
                         !Navegando);
@@ -109,7 +103,7 @@ namespace CONATRADEC.ViewModels
                             () => OnViewAsync(fuente),
                             "consultar la fuente"),
                     fuente =>
-                        fuente != null &&
+                        fuente?.FuenteNutrientesId is > 0 &&
                         CanView &&
                         !IsBusy &&
                         !Navegando);
@@ -121,16 +115,16 @@ namespace CONATRADEC.ViewModels
                             () => OnDeleteAsync(fuente),
                             "eliminar la fuente"),
                     fuente =>
-                        fuente != null &&
+                        fuente?.FuenteNutrientesId is > 0 &&
                         CanDelete &&
                         !IsBusy &&
-                        !Navegando);
+                        !Navegando &&
+                        Volatile.Read(ref eliminacionEnCurso) == 0);
 
             BuscarCommand =
                 new Command(
                     async () => await EjecutarSeguroAsync(
-                        () => CargarAsync(
-                            reiniciar: true),
+                        AplicarBusquedaAsync,
                         "buscar fuentes"),
                     () =>
                         CanView &&
@@ -157,18 +151,27 @@ namespace CONATRADEC.ViewModels
                         !IsBusy &&
                         !Navegando);
 
-            CargarMasCommand =
+            PaginaAnteriorCommand =
                 new Command(
                     async () => await EjecutarSeguroAsync(
-                        () => CargarAsync(
-                            reiniciar: false),
-                        "cargar más fuentes"),
+                        IrPaginaAnteriorAsync,
+                        "cargar la página anterior"),
                     () =>
                         CanView &&
+                        PuedeIrAnterior &&
                         !IsBusy &&
-                        !CargandoMas &&
-                        !Navegando &&
-                        PuedeCargarMas);
+                        !Navegando);
+
+            PaginaSiguienteCommand =
+                new Command(
+                    async () => await EjecutarSeguroAsync(
+                        IrPaginaSiguienteAsync,
+                        "cargar la página siguiente"),
+                    () =>
+                        CanView &&
+                        PuedeIrSiguiente &&
+                        !IsBusy &&
+                        !Navegando);
 
             ToggleTablaComposicionCommand =
                 new Command(
@@ -178,26 +181,24 @@ namespace CONATRADEC.ViewModels
                     () =>
                         CanView &&
                         MostrarSeccionTablaComposicion &&
-                        !CargandoComposicion);
+                        !CargandoComposicion &&
+                        !IsBusy &&
+                        !Navegando);
         }
 
-        public ObservableCollection<FuenteNutrienteResponse>
-            List { get; } =
-                new();
+        public event EventHandler? SolicitarDesplazamientoInicio;
 
-        public ObservableCollection<
-            FuenteNutrienteCategoriaOption>
-            FiltrosCategoria { get; } =
-                new();
+        public ObservableCollection<FuenteNutrienteResponse>
+            List { get; } = new();
+
+        public ObservableCollection<FuenteNutrienteCategoriaOption>
+            FiltrosCategoria { get; } = new();
 
         public ObservableCollection<string>
-            ElementosTabla { get; } =
-                new();
+            ElementosTabla { get; } = new();
 
-        public ObservableCollection<
-            FuenteNutrienteTablaDinamicaRow>
-            TablaComposicion { get; } =
-                new();
+        public ObservableCollection<FuenteNutrienteTablaDinamicaRow>
+            TablaComposicion { get; } = new();
 
         public Command RegresarConfiguracionCommand { get; }
         public Command AddCommand { get; }
@@ -207,7 +208,8 @@ namespace CONATRADEC.ViewModels
         public Command BuscarCommand { get; }
         public Command LimpiarFiltrosCommand { get; }
         public Command RefrescarCommand { get; }
-        public Command CargarMasCommand { get; }
+        public Command PaginaAnteriorCommand { get; }
+        public Command PaginaSiguienteCommand { get; }
         public Command ToggleTablaComposicionCommand { get; }
 
         public string TextoBusqueda
@@ -216,17 +218,15 @@ namespace CONATRADEC.ViewModels
             set
             {
                 string nuevoValor =
-                    value ??
-                    string.Empty;
+                    value ?? string.Empty;
 
                 if (textoBusqueda == nuevoValor)
                     return;
 
-                textoBusqueda =
-                    nuevoValor;
-
+                textoBusqueda = nuevoValor;
                 OnPropertyChanged();
 
+                // Escribir no genera HTTP; únicamente invalida la matriz visible.
                 InvalidarComposicion();
             }
         }
@@ -244,18 +244,11 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                filtroCategoriaSeleccionada =
-                    value;
-
+                filtroCategoriaSeleccionada = value;
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(MostrarSeccionTablaComposicion));
 
+                // La categoría se aplica solo con Buscar.
                 InvalidarComposicion();
-                ActualizarComandos();
-
-                if (pantallaCargada)
-                    SolicitarRecargaPorFiltro();
             }
         }
 
@@ -265,23 +258,19 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 string nuevoValor =
-                    value ??
-                    string.Empty;
+                    value ?? string.Empty;
 
                 if (mensaje == nuevoValor)
                     return;
 
-                mensaje =
-                    nuevoValor;
-
+                mensaje = nuevoValor;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneMensaje));
             }
         }
 
         public bool TieneMensaje =>
-            !string.IsNullOrWhiteSpace(
-                Mensaje);
+            !string.IsNullOrWhiteSpace(Mensaje);
 
         public string MensajeComposicion
         {
@@ -289,24 +278,19 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 string nuevoValor =
-                    value ??
-                    string.Empty;
+                    value ?? string.Empty;
 
                 if (mensajeComposicion == nuevoValor)
                     return;
 
-                mensajeComposicion =
-                    nuevoValor;
-
+                mensajeComposicion = nuevoValor;
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TieneMensajeComposicion));
+                OnPropertyChanged(nameof(TieneMensajeComposicion));
             }
         }
 
         public bool TieneMensajeComposicion =>
-            !string.IsNullOrWhiteSpace(
-                MensajeComposicion);
+            !string.IsNullOrWhiteSpace(MensajeComposicion);
 
         public bool IsRefreshing
         {
@@ -316,28 +300,9 @@ namespace CONATRADEC.ViewModels
                 if (isRefreshing == value)
                     return;
 
-                isRefreshing =
-                    value;
-
+                isRefreshing = value;
                 OnPropertyChanged();
                 ActualizarComandos();
-            }
-        }
-
-        public bool CargandoMas
-        {
-            get => cargandoMas;
-            private set
-            {
-                if (cargandoMas == value)
-                    return;
-
-                cargandoMas =
-                    value;
-
-                OnPropertyChanged();
-                ActualizarComandos();
-                NotificarEstadoLista();
             }
         }
 
@@ -349,9 +314,7 @@ namespace CONATRADEC.ViewModels
                 if (cargandoComposicion == value)
                     return;
 
-                cargandoComposicion =
-                    value;
-
+                cargandoComposicion = value;
                 OnPropertyChanged();
                 ActualizarComandos();
                 NotificarEstadoComposicion();
@@ -366,9 +329,7 @@ namespace CONATRADEC.ViewModels
                 if (navegando == value)
                     return;
 
-                navegando =
-                    value;
-
+                navegando = value;
                 OnPropertyChanged();
                 ActualizarComandos();
             }
@@ -382,13 +343,9 @@ namespace CONATRADEC.ViewModels
                 if (mostrarTablaComposicion == value)
                     return;
 
-                mostrarTablaComposicion =
-                    value;
-
+                mostrarTablaComposicion = value;
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(TextoBotonTablaComposicion));
-
+                OnPropertyChanged(nameof(TextoBotonTablaComposicion));
                 NotificarEstadoComposicion();
             }
         }
@@ -399,9 +356,10 @@ namespace CONATRADEC.ViewModels
                 : "Ver matriz";
 
         public bool MostrarSeccionTablaComposicion =>
-            FiltroCategoriaSeleccionada?.Codigo !=
-            FuenteNutrienteCategoriaOption
-                .CodigoEnmiendaCalcarea;
+            !string.Equals(
+                categoriaAplicadaCodigo,
+                FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea,
+                StringComparison.OrdinalIgnoreCase);
 
         public bool MostrarTablaConDatos =>
             MostrarSeccionTablaComposicion &&
@@ -425,12 +383,11 @@ namespace CONATRADEC.ViewModels
                 if (totalRegistros == value)
                     return;
 
-                totalRegistros =
-                    value;
-
+                totalRegistros = value;
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(ResumenResultados));
+                OnPropertyChanged(nameof(ResumenResultados));
+                OnPropertyChanged(nameof(RangoPaginaTexto));
+                OnPropertyChanged(nameof(MostrarPaginacion));
             }
         }
 
@@ -439,25 +396,57 @@ namespace CONATRADEC.ViewModels
                 ? "1 fuente encontrada"
                 : $"{TotalRegistros} fuentes encontradas";
 
-        public bool PuedeCargarMas =>
-            paginaActual <
-            totalPaginas;
+        public int PaginaActual => paginaActual;
+
+        public int TotalPaginas => totalPaginas;
+
+        public bool PuedeIrAnterior =>
+            pantallaCargada &&
+            paginaActual > 1;
+
+        public bool PuedeIrSiguiente =>
+            pantallaCargada &&
+            paginaActual < totalPaginas;
+
+        public bool MostrarPaginacion =>
+            CanView &&
+            pantallaCargada &&
+            List.Count > 0;
+
+        public string PaginaTexto =>
+            $"Página {Math.Max(1, paginaActual)} de {Math.Max(1, totalPaginas)}";
+
+        public string RangoPaginaTexto
+        {
+            get
+            {
+                if (TotalRegistros <= 0 ||
+                    List.Count == 0)
+                {
+                    return "Sin registros en esta página";
+                }
+
+                int tamano =
+                    Math.Max(1, tamanoPaginaActual);
+
+                int inicio =
+                    ((Math.Max(1, paginaActual) - 1) * tamano) + 1;
+
+                int fin =
+                    Math.Min(
+                        inicio + List.Count - 1,
+                        TotalRegistros);
+
+                return $"Mostrando {inicio}-{fin} de {TotalRegistros}";
+            }
+        }
 
         public bool MostrarVacio =>
             CanView &&
             pantallaCargada &&
             !IsBusy &&
-            !CargandoMas &&
             List.Count == 0 &&
             !TieneMensaje;
-
-        public bool MostrarFinLista =>
-            CanView &&
-            pantallaCargada &&
-            List.Count > 0 &&
-            !PuedeCargarMas &&
-            !IsBusy &&
-            !CargandoMas;
 
         public bool MostrarAccesoDenegado =>
             !CanView;
@@ -467,71 +456,226 @@ namespace CONATRADEC.ViewModels
             LoadPagePermissions(
                 "fuenteNutrientePage");
 
-            OnPropertyChanged(
-                nameof(MostrarAccesoDenegado));
-
+            OnPropertyChanged(nameof(MostrarAccesoDenegado));
             NotificarEstadoLista();
             NotificarEstadoComposicion();
             ActualizarComandos();
         }
 
-        /// <summary>
-        /// Se recarga la primera página al volver del formulario.
-        /// La consulta es paginada y no descarga toda la matriz.
-        /// </summary>
-        public Task InicializarAsync() =>
-            CargarAsync(
-                reiniciar: true);
+        public async Task IniciarNuevaVisitaAsync()
+        {
+            if (!CanView || Navegando)
+                return;
 
-        public async Task CargarAsync(
-            bool reiniciar)
+            CancelarCargas();
+
+            TextoBusqueda = string.Empty;
+            textoBusquedaAplicado = string.Empty;
+            categoriaAplicadaCodigo =
+                FuenteNutrienteCategoriaOption.CodigoTodas;
+
+            filtroCategoriaSeleccionada =
+                FiltrosCategoria.FirstOrDefault();
+            OnPropertyChanged(nameof(FiltroCategoriaSeleccionada));
+
+            Mensaje = string.Empty;
+            paginaActual = 1;
+            totalPaginas = 1;
+            TotalRegistros = 0;
+            tamanoPaginaActual = ObtenerTamanoPagina();
+            pantallaCargada = false;
+            versionAplicada = -1;
+
+            List.Clear();
+            InvalidarComposicion();
+            NotificarEstadoLista();
+
+            await CargarPaginaAsync(
+                1,
+                cargaInicial: true);
+        }
+
+        public async Task InicializarAsync()
+        {
+            if (!CanView || Navegando)
+                return;
+
+            if (!pantallaCargada)
+            {
+                await CargarPaginaAsync(
+                    1,
+                    cargaInicial: true);
+                return;
+            }
+
+            int versionActual =
+                FuenteNutrienteListadoEstadoService.VersionActual;
+
+            if (FuenteNutrienteListadoEstadoService
+                    .IntentarConsumirEdicion(
+                        out FuenteNutrienteResponse editada))
+            {
+                bool sinFiltrosAplicados =
+                    string.IsNullOrWhiteSpace(textoBusquedaAplicado) &&
+                    string.Equals(
+                        categoriaAplicadaCodigo,
+                        FuenteNutrienteCategoriaOption.CodigoTodas,
+                        StringComparison.OrdinalIgnoreCase);
+
+                if (sinFiltrosAplicados &&
+                    AplicarEdicionLocal(editada))
+                {
+                    versionAplicada = versionActual;
+                    InvalidarComposicion();
+                    NotificarEstadoLista();
+                    return;
+                }
+            }
+
+            if (versionAplicada != versionActual)
+            {
+                await CargarPaginaAsync(
+                    Math.Max(1, paginaActual));
+            }
+        }
+
+        public Task RecargarPaginaActualAsync() =>
+            CargarPaginaAsync(
+                Math.Max(1, paginaActual));
+
+        public void CancelarCargas()
+        {
+            CancellationTokenSource? carga =
+                Interlocked.Exchange(
+                    ref cargaCts,
+                    null);
+
+            CancellationTokenSource? composicion =
+                Interlocked.Exchange(
+                    ref composicionCts,
+                    null);
+
+            CancellationTokenSource? accion =
+                Interlocked.Exchange(
+                    ref accionCts,
+                    null);
+
+            CancelarSeguro(carga);
+            CancelarSeguro(composicion);
+            CancelarSeguro(accion);
+
+            IsBusy = false;
+            IsRefreshing = false;
+            CargandoComposicion = false;
+            ActualizarComandos();
+        }
+
+        private async Task AplicarBusquedaAsync()
+        {
+            textoBusquedaAplicado =
+                (TextoBusqueda ?? string.Empty).Trim();
+
+            categoriaAplicadaCodigo =
+                ObtenerCodigoCategoriaSeleccionada();
+
+            InvalidarComposicion();
+            OnPropertyChanged(nameof(MostrarSeccionTablaComposicion));
+
+            await CargarPaginaAsync(
+                1,
+                desplazarAlInicio: true);
+        }
+
+        private async Task LimpiarFiltrosAsync()
+        {
+            TextoBusqueda = string.Empty;
+            textoBusquedaAplicado = string.Empty;
+            categoriaAplicadaCodigo =
+                FuenteNutrienteCategoriaOption.CodigoTodas;
+
+            filtroCategoriaSeleccionada =
+                FiltrosCategoria.FirstOrDefault();
+            OnPropertyChanged(nameof(FiltroCategoriaSeleccionada));
+
+            InvalidarComposicion();
+            OnPropertyChanged(nameof(MostrarSeccionTablaComposicion));
+
+            await CargarPaginaAsync(
+                1,
+                desplazarAlInicio: true);
+        }
+
+        private async Task RefrescarAsync()
+        {
+            IsRefreshing = true;
+
+            try
+            {
+                InvalidarComposicion();
+
+                await CargarPaginaAsync(
+                    Math.Max(1, paginaActual));
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
+        }
+
+        private Task IrPaginaAnteriorAsync()
+        {
+            if (!PuedeIrAnterior)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                paginaActual - 1,
+                desplazarAlInicio: true);
+        }
+
+        private Task IrPaginaSiguienteAsync()
+        {
+            if (!PuedeIrSiguiente)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                paginaActual + 1,
+                desplazarAlInicio: true);
+        }
+
+        private async Task CargarPaginaAsync(
+            int paginaSolicitada,
+            bool cargaInicial = false,
+            bool desplazarAlInicio = false)
         {
             if (!CanView ||
-                Navegando)
+                Navegando ||
+                IsBusy)
             {
                 return;
             }
 
-            if (!reiniciar &&
-                (CargandoMas ||
-                 !PuedeCargarMas))
-            {
-                return;
-            }
+            paginaSolicitada =
+                Math.Max(1, paginaSolicitada);
 
             CancellationTokenSource source =
                 PrepararNuevaCarga();
 
             try
             {
-                if (reiniciar)
-                {
-                    IsBusy =
-                        true;
+                IsBusy = true;
+                Mensaje = string.Empty;
+                ActualizarComandos();
 
-                    Mensaje =
-                        string.Empty;
-                }
-                else
-                {
-                    CargandoMas =
-                        true;
-                }
+                int tamanoPagina =
+                    ObtenerTamanoPagina();
 
-                int paginaSolicitada =
-                    reiniciar
-                        ? 1
-                        : paginaActual + 1;
-
-                ApiResult<FuenteNutrientePaginaResponse>
-                    resultado =
-                        await consultaApiService
-                            .BuscarAsync(
-                                TextoBusqueda,
-                                ObtenerCodigoCategoria(),
-                                paginaSolicitada,
-                                ObtenerTamanoPagina(),
-                                source.Token);
+                ApiResult<FuenteNutrientePaginaResponse> resultado =
+                    await consultaApiService.BuscarAsync(
+                        textoBusquedaAplicado,
+                        categoriaAplicadaCodigo,
+                        paginaSolicitada,
+                        tamanoPagina,
+                        source.Token);
 
                 if (source.IsCancellationRequested ||
                     !EsCargaActual(source))
@@ -542,30 +686,68 @@ namespace CONATRADEC.ViewModels
                 if (!resultado.Success ||
                     resultado.Data == null)
                 {
-                    if (!EsMensajeCancelacion(
-                            resultado.Message))
-                    {
-                        Mensaje =
-                            resultado.Message;
-                    }
+                    if (!EsMensajeCancelacion(resultado.Message))
+                        Mensaje = resultado.Message;
 
                     return;
                 }
 
-                AplicarPagina(
-                    resultado.Data,
-                    reiniciar);
+                FuenteNutrientePaginaResponse pagina =
+                    resultado.Data;
 
-                pantallaCargada =
-                    true;
+                int paginasServidor =
+                    Math.Max(1, pagina.TotalPaginas);
+
+                if (paginaSolicitada > paginasServidor &&
+                    pagina.TotalRegistros > 0)
+                {
+                    resultado =
+                        await consultaApiService.BuscarAsync(
+                            textoBusquedaAplicado,
+                            categoriaAplicadaCodigo,
+                            paginasServidor,
+                            tamanoPagina,
+                            source.Token);
+
+                    if (source.IsCancellationRequested ||
+                        !EsCargaActual(source))
+                    {
+                        return;
+                    }
+
+                    if (!resultado.Success ||
+                        resultado.Data == null)
+                    {
+                        if (!EsMensajeCancelacion(resultado.Message))
+                            Mensaje = resultado.Message;
+
+                        return;
+                    }
+
+                    pagina = resultado.Data;
+                }
+
+                AplicarPagina(pagina);
+
+                pantallaCargada = true;
+                versionAplicada =
+                    FuenteNutrienteListadoEstadoService.VersionActual;
+
+                if (!cargaInicial &&
+                    desplazarAlInicio)
+                {
+                    SolicitarDesplazamientoInicio?.Invoke(
+                        this,
+                        EventArgs.Empty);
+                }
             }
             catch (OperationCanceledException)
             {
-                // Cancelación normal al navegar o reemplazar filtros.
+                // Cancelación normal al navegar o reemplazar una consulta.
             }
             catch (ObjectDisposedException)
             {
-                // La página se cerró mientras terminaba la solicitud.
+                // La solicitud terminó mientras se abandonaba la pantalla.
             }
             catch (Exception ex)
             {
@@ -584,19 +766,8 @@ namespace CONATRADEC.ViewModels
             {
                 if (EsCargaActual(source))
                 {
-                    if (reiniciar)
-                    {
-                        IsBusy =
-                            false;
-
-                        IsRefreshing =
-                            false;
-                    }
-                    else
-                    {
-                        CargandoMas =
-                            false;
-                    }
+                    IsBusy = false;
+                    IsRefreshing = false;
                 }
 
                 LiberarCarga(source);
@@ -605,134 +776,54 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public void CancelarCargas()
-        {
-            CancellationTokenSource? carga =
-                Interlocked.Exchange(
-                    ref cargaCts,
-                    null);
-
-            CancellationTokenSource? composicion =
-                Interlocked.Exchange(
-                    ref composicionCts,
-                    null);
-
-            CancelarSeguro(
-                carga);
-
-            CancelarSeguro(
-                composicion);
-
-            IsBusy =
-                false;
-
-            IsRefreshing =
-                false;
-
-            CargandoMas =
-                false;
-
-            CargandoComposicion =
-                false;
-        }
-
         private void AplicarPagina(
-            FuenteNutrientePaginaResponse pagina,
-            bool reiniciar)
+            FuenteNutrientePaginaResponse pagina)
         {
-            if (reiniciar)
-                List.Clear();
+            List.Clear();
 
-            HashSet<int> idsActuales =
-                List
-                    .Where(item =>
-                        item.FuenteNutrientesId.HasValue)
-                    .Select(item =>
-                        item.FuenteNutrientesId!.Value)
-                    .ToHashSet();
-
-            foreach (FuenteNutrienteResponse item
+            foreach (FuenteNutrienteResponse fuente
                      in pagina.Items)
             {
-                if (!item.FuenteNutrientesId.HasValue ||
-                    item.FuenteNutrientesId.Value <= 0)
-                {
-                    continue;
-                }
-
-                if (idsActuales.Add(
-                        item.FuenteNutrientesId.Value))
-                {
-                    List.Add(
-                        item);
-                }
+                if (fuente.FuenteNutrientesId is > 0)
+                    List.Add(fuente);
             }
 
             paginaActual =
-                Math.Max(
-                    1,
-                    pagina.PaginaActual);
+                Math.Max(1, pagina.PaginaActual);
 
             totalPaginas =
-                Math.Max(
-                    1,
-                    pagina.TotalPaginas);
+                Math.Max(1, pagina.TotalPaginas);
+
+            tamanoPaginaActual =
+                pagina.TamanoPagina > 0
+                    ? pagina.TamanoPagina
+                    : ObtenerTamanoPagina();
 
             TotalRegistros =
-                Math.Max(
-                    0,
-                    pagina.TotalRegistros);
+                Math.Max(0, pagina.TotalRegistros);
 
-            Mensaje =
-                string.Empty;
-
-            OnPropertyChanged(
-                nameof(PuedeCargarMas));
-
+            Mensaje = string.Empty;
             NotificarEstadoLista();
         }
 
-        private async Task LimpiarFiltrosAsync()
+        private bool AplicarEdicionLocal(
+            FuenteNutrienteResponse editada)
         {
-            textoBusqueda =
-                string.Empty;
+            if (editada.FuenteNutrientesId is not > 0)
+                return false;
 
-            OnPropertyChanged(
-                nameof(TextoBusqueda));
-
-            filtroCategoriaSeleccionada =
-                FiltrosCategoria
-                    .FirstOrDefault();
-
-            OnPropertyChanged(
-                nameof(FiltroCategoriaSeleccionada));
-
-            OnPropertyChanged(
-                nameof(MostrarSeccionTablaComposicion));
-
-            InvalidarComposicion();
-
-            await CargarAsync(
-                reiniciar: true);
-        }
-
-        private async Task RefrescarAsync()
-        {
-            IsRefreshing =
-                true;
-
-            try
+            for (int i = 0; i < List.Count; i++)
             {
-                InvalidarComposicion();
+                if (List[i].FuenteNutrientesId ==
+                    editada.FuenteNutrientesId)
+                {
+                    List[i] = editada;
+                    Mensaje = string.Empty;
+                    return true;
+                }
+            }
 
-                await CargarAsync(
-                    reiniciar: true);
-            }
-            finally
-            {
-                IsRefreshing =
-                    false;
-            }
+            return false;
         }
 
         private async Task ToggleTablaComposicionAsync()
@@ -742,15 +833,11 @@ namespace CONATRADEC.ViewModels
 
             if (MostrarTablaComposicion)
             {
-                MostrarTablaComposicion =
-                    false;
-
+                MostrarTablaComposicion = false;
                 return;
             }
 
-            MostrarTablaComposicion =
-                true;
-
+            MostrarTablaComposicion = true;
             await CargarComposicionAsync();
         }
 
@@ -761,22 +848,16 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                CargandoComposicion =
-                    true;
-
-                MensajeComposicion =
-                    string.Empty;
-
+                CargandoComposicion = true;
+                MensajeComposicion = string.Empty;
                 ElementosTabla.Clear();
                 TablaComposicion.Clear();
 
-                ApiResult<List<FuenteNutrienteResponse>>
-                    resultado =
-                        await consultaApiService
-                            .ObtenerComposicionAsync(
-                                TextoBusqueda,
-                                ObtenerCodigoCategoria(),
-                                source.Token);
+                ApiResult<List<FuenteNutrienteResponse>> resultado =
+                    await consultaApiService.ObtenerComposicionAsync(
+                        textoBusquedaAplicado,
+                        categoriaAplicadaCodigo,
+                        source.Token);
 
                 if (source.IsCancellationRequested ||
                     !EsCargaComposicionActual(source))
@@ -787,12 +868,8 @@ namespace CONATRADEC.ViewModels
                 if (!resultado.Success ||
                     resultado.Data == null)
                 {
-                    if (!EsMensajeCancelacion(
-                            resultado.Message))
-                    {
-                        MensajeComposicion =
-                            resultado.Message;
-                    }
+                    if (!EsMensajeCancelacion(resultado.Message))
+                        MensajeComposicion = resultado.Message;
 
                     return;
                 }
@@ -824,14 +901,9 @@ namespace CONATRADEC.ViewModels
             finally
             {
                 if (EsCargaComposicionActual(source))
-                {
-                    CargandoComposicion =
-                        false;
-                }
+                    CargandoComposicion = false;
 
-                LiberarCargaComposicion(
-                    source);
-
+                LiberarCargaComposicion(source);
                 NotificarEstadoComposicion();
             }
         }
@@ -841,39 +913,29 @@ namespace CONATRADEC.ViewModels
         {
             List<FuenteNutrienteResponse> fuentesConAporte =
                 fuentes
-                    .Where(
-                        FuenteTieneAporteElementoQuimico)
+                    .Where(FuenteTieneAporteElementoQuimico)
                     .OrderBy(item =>
-                        item.NombreNutriente ??
-                        string.Empty)
+                        item.NombreNutriente ?? string.Empty)
                     .ToList();
 
             List<string> simbolos =
                 fuentesConAporte
                     .SelectMany(item =>
                         item.ElementosQuimicos ??
-                        new List<
-                            FuenteNutrienteElementoQuimicoResponse>())
+                        new List<FuenteNutrienteElementoQuimicoResponse>())
                     .Where(item =>
                         !string.IsNullOrWhiteSpace(
                             item.SimboloElementoQuimico) &&
                         (item.CantidadAporte ?? 0) > 0)
                     .Select(item =>
-                        item.SimboloElementoQuimico!
-                            .Trim())
-                    .Distinct(
-                        StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(
-                        ObtenerOrdenElemento)
-                    .ThenBy(item =>
-                        item)
+                        item.SimboloElementoQuimico!.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(ObtenerOrdenElemento)
+                    .ThenBy(item => item)
                     .ToList();
 
             foreach (string simbolo in simbolos)
-            {
-                ElementosTabla.Add(
-                    simbolo);
-            }
+                ElementosTabla.Add(simbolo);
 
             foreach (FuenteNutrienteResponse fuente
                      in fuentesConAporte)
@@ -891,31 +953,23 @@ namespace CONATRADEC.ViewModels
 
                 foreach (string simbolo in simbolos)
                 {
-                    FuenteNutrienteElementoQuimicoResponse?
-                        aporte =
-                            fuente.ElementosQuimicos?
-                                .FirstOrDefault(item =>
-                                    string.Equals(
-                                        item.SimboloElementoQuimico?
-                                            .Trim(),
-                                        simbolo,
-                                        StringComparison
-                                            .OrdinalIgnoreCase));
+                    FuenteNutrienteElementoQuimicoResponse? aporte =
+                        fuente.ElementosQuimicos?
+                            .FirstOrDefault(item =>
+                                string.Equals(
+                                    item.SimboloElementoQuimico?.Trim(),
+                                    simbolo,
+                                    StringComparison.OrdinalIgnoreCase));
 
                     fila.Celdas.Add(
                         new FuenteNutrienteTablaDinamicaCell
                         {
-                            SimboloElemento =
-                                simbolo,
-
-                            Valor =
-                                aporte?.CantidadAporte ??
-                                0
+                            SimboloElemento = simbolo,
+                            Valor = aporte?.CantidadAporte ?? 0
                         });
                 }
 
-                TablaComposicion.Add(
-                    fila);
+                TablaComposicion.Add(fila);
             }
 
             NotificarEstadoComposicion();
@@ -928,48 +982,14 @@ namespace CONATRADEC.ViewModels
                     ref composicionCts,
                     null);
 
-            CancelarSeguro(
-                source);
+            CancelarSeguro(source);
 
-            MostrarTablaComposicion =
-                false;
-
-            CargandoComposicion =
-                false;
-
-            MensajeComposicion =
-                string.Empty;
-
+            MostrarTablaComposicion = false;
+            CargandoComposicion = false;
+            MensajeComposicion = string.Empty;
             ElementosTabla.Clear();
             TablaComposicion.Clear();
-
             NotificarEstadoComposicion();
-        }
-
-        private void SolicitarRecargaPorFiltro()
-        {
-            int version =
-                Interlocked.Increment(
-                    ref versionFiltro);
-
-            MainThread.BeginInvokeOnMainThread(
-                async () =>
-                {
-                    await Task.Delay(
-                        120);
-
-                    if (version !=
-                        Volatile.Read(
-                            ref versionFiltro))
-                    {
-                        return;
-                    }
-
-                    await EjecutarSeguroAsync(
-                        () => CargarAsync(
-                            reiniciar: true),
-                        "aplicar el filtro de fuentes");
-                });
         }
 
         private Task OnAddAsync() =>
@@ -978,19 +998,19 @@ namespace CONATRADEC.ViewModels
                 new Dictionary<string, object>
                 {
                     {
-                        "Mode",
-                        FormMode.FormModeSelect.Create
-                    },
-                    {
-                        "Fuente",
-                        new FuenteNutrienteRequest()
+                        "ContextoFuente",
+                        new FuenteNutrienteFormNavigationContext
+                        {
+                            Mode = FormMode.FormModeSelect.Create,
+                            Fuente = new FuenteNutrienteRequest()
+                        }
                     }
                 });
 
         private Task OnEditAsync(
             FuenteNutrienteResponse? fuente)
         {
-            if (fuente == null)
+            if (fuente?.FuenteNutrientesId is not > 0)
                 return Task.CompletedTask;
 
             return NavegarAsync(
@@ -998,13 +1018,12 @@ namespace CONATRADEC.ViewModels
                 new Dictionary<string, object>
                 {
                     {
-                        "Mode",
-                        FormMode.FormModeSelect.Edit
-                    },
-                    {
-                        "Fuente",
-                        new FuenteNutrienteRequest(
-                            fuente)
+                        "ContextoFuente",
+                        new FuenteNutrienteFormNavigationContext
+                        {
+                            Mode = FormMode.FormModeSelect.Edit,
+                            Fuente = new FuenteNutrienteRequest(fuente)
+                        }
                     }
                 });
         }
@@ -1012,7 +1031,7 @@ namespace CONATRADEC.ViewModels
         private Task OnViewAsync(
             FuenteNutrienteResponse? fuente)
         {
-            if (fuente == null)
+            if (fuente?.FuenteNutrientesId is not > 0)
                 return Task.CompletedTask;
 
             return NavegarAsync(
@@ -1020,13 +1039,12 @@ namespace CONATRADEC.ViewModels
                 new Dictionary<string, object>
                 {
                     {
-                        "Mode",
-                        FormMode.FormModeSelect.View
-                    },
-                    {
-                        "Fuente",
-                        new FuenteNutrienteRequest(
-                            fuente)
+                        "ContextoFuente",
+                        new FuenteNutrienteFormNavigationContext
+                        {
+                            Mode = FormMode.FormModeSelect.View,
+                            Fuente = new FuenteNutrienteRequest(fuente)
+                        }
                     }
                 });
         }
@@ -1034,68 +1052,130 @@ namespace CONATRADEC.ViewModels
         private async Task OnDeleteAsync(
             FuenteNutrienteResponse? fuente)
         {
-            if (fuente == null ||
-                IsBusy)
+            if (fuente?.FuenteNutrientesId is not > 0 ||
+                IsBusy ||
+                Interlocked.CompareExchange(
+                    ref eliminacionEnCurso,
+                    1,
+                    0) != 0)
             {
                 return;
             }
 
-            bool confirmar =
-                await Application.Current!
-                    .MainPage!
-                    .DisplayAlert(
-                        "Eliminar fuente",
-                        $"¿Desea eliminar la fuente '{fuente.NombreNutriente}'?",
-                        "Eliminar",
-                        "Cancelar");
-
-            if (!confirmar)
-                return;
+            bool recargarPagina = false;
+            int paginaOriginal = paginaActual;
+            int paginaARecargar = paginaActual;
 
             try
             {
-                IsBusy =
-                    true;
+                bool confirmar =
+                    await Application.Current!
+                        .MainPage!
+                        .DisplayAlert(
+                            "Eliminar fuente",
+                            $"¿Desea eliminar la fuente '{fuente.NombreNutriente}'?",
+                            "Eliminar",
+                            "Cancelar");
 
-                ActualizarComandos();
-
-                ApiResult<bool> resultado =
-                    await fuenteNutrienteApiService
-                        .DeleteFuenteNutrienteResultAsync(
-                            new FuenteNutrienteRequest(
-                                fuente));
-
-                if (!resultado.Success)
-                {
-                    await MostrarToastAsync(
-                        resultado.Message);
-
+                if (!confirmar)
                     return;
-                }
 
-                List.Remove(
-                    fuente);
+                CancellationTokenSource source =
+                    PrepararNuevaAccion();
 
-                TotalRegistros =
-                    Math.Max(
-                        0,
-                        TotalRegistros - 1);
+                try
+                {
+                    IsBusy = true;
+                    ActualizarComandos();
 
-                InvalidarComposicion();
+                    int totalPaginasAntes =
+                        totalPaginas;
 
-                await MostrarToastAsync(
-                    string.IsNullOrWhiteSpace(
-                        resultado.Message)
+                    ApiResult<bool> resultado =
+                        await fuenteNutrienteApiService
+                            .DeleteFuenteNutrienteAdminResultAsync(
+                                fuente.FuenteNutrientesId.Value,
+                                source.Token);
+
+                    if (source.IsCancellationRequested ||
+                        !EsAccionActual(source))
+                    {
+                        return;
+                    }
+
+                    if (!resultado.Success)
+                    {
+                        if (!EsMensajeCancelacion(resultado.Message))
+                            await MostrarToastAsync(resultado.Message);
+
+                        return;
+                    }
+
+                    List.Remove(fuente);
+                    TotalRegistros =
+                        Math.Max(0, TotalRegistros - 1);
+
+                    int nuevoTotalPaginas =
+                        TotalRegistros == 0
+                            ? 1
+                            : (int)Math.Ceiling(
+                                TotalRegistros /
+                                (double)Math.Max(
+                                    1,
+                                    tamanoPaginaActual));
+
+                    totalPaginas =
+                        Math.Max(1, nuevoTotalPaginas);
+
+                    if (paginaActual > totalPaginas)
+                        paginaActual = totalPaginas;
+
+                    paginaARecargar =
+                        Math.Max(1, paginaActual);
+
+                    recargarPagina =
+                        TotalRegistros > 0 &&
+                        (paginaARecargar < totalPaginasAntes ||
+                         List.Count == 0);
+
+                    versionAplicada =
+                        FuenteNutrienteListadoEstadoService.MarcarCambio();
+
+                    InvalidarComposicion();
+
+                    await MostrarToastAsync(
+                        string.IsNullOrWhiteSpace(resultado.Message)
                             ? "Fuente eliminada correctamente."
                             : resultado.Message);
+
+                    NotificarEstadoLista();
+                }
+                finally
+                {
+                    IsBusy = false;
+                    LiberarAccion(source);
+                    ActualizarComandos();
+                    NotificarEstadoLista();
+                }
             }
             finally
             {
-                IsBusy =
-                    false;
+                Interlocked.Exchange(
+                    ref eliminacionEnCurso,
+                    0);
 
                 ActualizarComandos();
-                NotificarEstadoLista();
+            }
+
+            if (recargarPagina &&
+                CanView &&
+                !Navegando)
+            {
+                await CargarPaginaAsync(
+                    paginaARecargar,
+                    desplazarAlInicio:
+                        paginaARecargar != paginaOriginal ||
+                        List.Count == 0);
             }
         }
 
@@ -1106,8 +1186,7 @@ namespace CONATRADEC.ViewModels
             if (Navegando)
                 return;
 
-            Navegando =
-                true;
+            Navegando = true;
 
             try
             {
@@ -1115,8 +1194,7 @@ namespace CONATRADEC.ViewModels
 
                 if (parametros == null)
                 {
-                    await GoToAsyncParameters(
-                        ruta);
+                    await GoToAsyncParameters(ruta);
                 }
                 else
                 {
@@ -1127,8 +1205,7 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                Navegando =
-                    false;
+                Navegando = false;
             }
         }
 
@@ -1139,62 +1216,43 @@ namespace CONATRADEC.ViewModels
             FiltrosCategoria.Add(
                 new FuenteNutrienteCategoriaOption
                 {
-                    Codigo =
-                        FuenteNutrienteCategoriaOption
-                            .CodigoTodas,
-
-                    Nombre =
-                        "Todas"
+                    Codigo = FuenteNutrienteCategoriaOption.CodigoTodas,
+                    Nombre = "Todas"
                 });
 
             FiltrosCategoria.Add(
                 new FuenteNutrienteCategoriaOption
                 {
                     Codigo =
-                        FuenteNutrienteCategoriaOption
-                            .CodigoBalanceNutricional,
-
-                    Nombre =
-                        "Balance nutricional"
+                        FuenteNutrienteCategoriaOption.CodigoBalanceNutricional,
+                    Nombre = "Balance nutricional"
                 });
 
             FiltrosCategoria.Add(
                 new FuenteNutrienteCategoriaOption
                 {
                     Codigo =
-                        FuenteNutrienteCategoriaOption
-                            .CodigoEnmiendaCalcarea,
-
-                    Nombre =
-                        "Enmienda calcárea"
+                        FuenteNutrienteCategoriaOption.CodigoEnmiendaCalcarea,
+                    Nombre = "Enmienda calcárea"
                 });
 
             FiltrosCategoria.Add(
                 new FuenteNutrienteCategoriaOption
                 {
                     Codigo =
-                        FuenteNutrienteCategoriaOption
-                            .CodigoFertilizacionMixta,
-
-                    Nombre =
-                        "Fertilización mixta"
+                        FuenteNutrienteCategoriaOption.CodigoFertilizacionMixta,
+                    Nombre = "Fertilización mixta"
                 });
 
             filtroCategoriaSeleccionada =
-                FiltrosCategoria
-                    .FirstOrDefault();
+                FiltrosCategoria.FirstOrDefault();
 
-            OnPropertyChanged(
-                nameof(FiltroCategoriaSeleccionada));
-
-            OnPropertyChanged(
-                nameof(MostrarSeccionTablaComposicion));
+            OnPropertyChanged(nameof(FiltroCategoriaSeleccionada));
         }
 
-        private string ObtenerCodigoCategoria() =>
+        private string ObtenerCodigoCategoriaSeleccionada() =>
             FiltroCategoriaSeleccionada?.Codigo ??
-            FuenteNutrienteCategoriaOption
-                .CodigoTodas;
+            FuenteNutrienteCategoriaOption.CodigoTodas;
 
         private async Task EjecutarSeguroAsync(
             Func<Task> accion,
@@ -1222,40 +1280,34 @@ namespace CONATRADEC.ViewModels
             BuscarCommand.ChangeCanExecute();
             LimpiarFiltrosCommand.ChangeCanExecute();
             RefrescarCommand.ChangeCanExecute();
-            CargarMasCommand.ChangeCanExecute();
+            PaginaAnteriorCommand.ChangeCanExecute();
+            PaginaSiguienteCommand.ChangeCanExecute();
             ToggleTablaComposicionCommand.ChangeCanExecute();
         }
 
         private void NotificarEstadoLista()
         {
-            OnPropertyChanged(
-                nameof(MostrarVacio));
-
-            OnPropertyChanged(
-                nameof(MostrarFinLista));
-
-            OnPropertyChanged(
-                nameof(PuedeCargarMas));
-
-            OnPropertyChanged(
-                nameof(ResumenResultados));
+            OnPropertyChanged(nameof(PaginaActual));
+            OnPropertyChanged(nameof(TotalPaginas));
+            OnPropertyChanged(nameof(PuedeIrAnterior));
+            OnPropertyChanged(nameof(PuedeIrSiguiente));
+            OnPropertyChanged(nameof(MostrarPaginacion));
+            OnPropertyChanged(nameof(PaginaTexto));
+            OnPropertyChanged(nameof(RangoPaginaTexto));
+            OnPropertyChanged(nameof(MostrarVacio));
+            OnPropertyChanged(nameof(ResumenResultados));
+            OnPropertyChanged(nameof(MostrarSeccionTablaComposicion));
         }
 
         private void NotificarEstadoComposicion()
         {
-            OnPropertyChanged(
-                nameof(MostrarTablaConDatos));
-
-            OnPropertyChanged(
-                nameof(MostrarMensajeTablaVacia));
-
-            OnPropertyChanged(
-                nameof(TextoBotonTablaComposicion));
+            OnPropertyChanged(nameof(MostrarTablaConDatos));
+            OnPropertyChanged(nameof(MostrarMensajeTablaVacia));
+            OnPropertyChanged(nameof(TextoBotonTablaComposicion));
         }
 
-        private static bool
-            FuenteTieneAporteElementoQuimico(
-                FuenteNutrienteResponse fuente) =>
+        private static bool FuenteTieneAporteElementoQuimico(
+            FuenteNutrienteResponse fuente) =>
             fuente.ElementosQuimicos != null &&
             fuente.ElementosQuimicos.Any(item =>
                 !string.IsNullOrWhiteSpace(
@@ -1264,9 +1316,7 @@ namespace CONATRADEC.ViewModels
 
         private static int ObtenerOrdenElemento(
             string simbolo) =>
-            simbolo
-                .Trim()
-                .ToUpperInvariant() switch
+            simbolo.Trim().ToUpperInvariant() switch
             {
                 "N" => 1,
                 "P" => 2,
@@ -1280,57 +1330,65 @@ namespace CONATRADEC.ViewModels
             };
 
         private static int ObtenerTamanoPagina() =>
-            DeviceInfo.Platform ==
-            DevicePlatform.WinUI
+            DeviceInfo.Platform == DevicePlatform.WinUI
                 ? 40
                 : 20;
 
-        private CancellationTokenSource
-            PrepararNuevaCarga()
+        private CancellationTokenSource PrepararNuevaCarga()
         {
-            var source =
-                new CancellationTokenSource();
+            var source = new CancellationTokenSource();
 
             CancellationTokenSource? anterior =
                 Interlocked.Exchange(
                     ref cargaCts,
                     source);
 
-            CancelarSeguro(
-                anterior);
-
+            CancelarSeguro(anterior);
             return source;
         }
 
-        private CancellationTokenSource
-            PrepararNuevaCargaComposicion()
+        private CancellationTokenSource PrepararNuevaCargaComposicion()
         {
-            var source =
-                new CancellationTokenSource();
+            var source = new CancellationTokenSource();
 
             CancellationTokenSource? anterior =
                 Interlocked.Exchange(
                     ref composicionCts,
                     source);
 
-            CancelarSeguro(
-                anterior);
+            CancelarSeguro(anterior);
+            return source;
+        }
 
+        private CancellationTokenSource PrepararNuevaAccion()
+        {
+            var source = new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref accionCts,
+                    source);
+
+            CancelarSeguro(anterior);
             return source;
         }
 
         private bool EsCargaActual(
             CancellationTokenSource source) =>
             ReferenceEquals(
-                Volatile.Read(
-                    ref cargaCts),
+                Volatile.Read(ref cargaCts),
                 source);
 
         private bool EsCargaComposicionActual(
             CancellationTokenSource source) =>
             ReferenceEquals(
-                Volatile.Read(
-                    ref composicionCts),
+                Volatile.Read(ref composicionCts),
+                source);
+
+        private bool EsAccionActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref accionCts),
                 source);
 
         private void LiberarCarga(
@@ -1349,6 +1407,17 @@ namespace CONATRADEC.ViewModels
         {
             Interlocked.CompareExchange(
                 ref composicionCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private void LiberarAccion(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref accionCts,
                 null,
                 source);
 
