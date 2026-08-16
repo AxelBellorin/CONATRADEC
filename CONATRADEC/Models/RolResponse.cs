@@ -25,5 +25,14 @@ namespace CONATRADEC.Models
             CantidadInterfaces == 1
                 ? "1 interfaz con permisos"
                 : $"{CantidadInterfaces} interfaces con permisos";
+
+        public bool EsAdministrador =>
+            string.Equals(
+                NombreMostrar,
+                "ADMINISTRADOR",
+                StringComparison.OrdinalIgnoreCase);
+
+        public bool EsEditable =>
+            !EsAdministrador;
     }
 }

@@ -1,5 +1,23 @@
-﻿namespace CONATRADEC.Services
+using CONATRADEC.Models;
+
+namespace CONATRADEC.Services
 {
+    public enum PropietarioMutacionListadoTipo
+    {
+        Creado,
+        Actualizado
+    }
+
+    /// <summary>
+    /// Cambio confirmado por el servidor que puede aplicarse al listado al
+    /// regresar del formulario sin ejecutar un GET cuando la composición de
+    /// la página visible puede determinarse con seguridad.
+    /// </summary>
+    public sealed record PropietarioMutacionListado(
+        PropietarioMutacionListadoTipo Tipo,
+        PropietarioResponse Actual,
+        PropietarioResponse? Anterior = null);
+
     /// <summary>
     /// Estado temporal del módulo Propietarios durante una visita.
     ///
@@ -17,6 +35,9 @@
 
         private const string ClaveRecargarListado =
             "listado:recargar";
+
+        private const string ClaveMutacionListado =
+            "listado:mutacion";
 
         public static bool AsegurarVisita(
             bool modoSeleccion) =>
@@ -40,8 +61,8 @@
 
         /// <summary>
         /// Marca que el listado debe consultar nuevamente la página visible.
-        /// Se usa después de Crear/Editar, reactivar un eliminado o modificar
-        /// relaciones que cambian la cantidad de terrenos del propietario.
+        /// Se utiliza únicamente cuando el cambio no puede reconstruirse de
+        /// forma segura con los datos disponibles durante la visita.
         /// </summary>
         public static void MarcarListadoParaRecargar(
             bool modoSeleccion)
@@ -72,6 +93,56 @@
                        ClaveRecargarListado,
                        out bool recargar) &&
                    recargar;
+        }
+
+        /// <summary>
+        /// El formulario regresa inmediatamente al listado después de guardar,
+        /// por lo que basta conservar una única mutación pendiente.
+        /// </summary>
+        public static void RegistrarMutacion(
+            bool modoSeleccion,
+            PropietarioMutacionListado mutacion)
+        {
+            ArgumentNullException.ThrowIfNull(mutacion);
+            ArgumentNullException.ThrowIfNull(mutacion.Actual);
+
+            string modulo =
+                ObtenerModulo(modoSeleccion);
+
+            if (!InterfazVisitaCacheService.EstaActiva(modulo))
+                return;
+
+            InterfazVisitaCacheService.Guardar(
+                modulo,
+                ClaveMutacionListado,
+                mutacion);
+        }
+
+        public static bool ConsumirMutacion(
+            bool modoSeleccion,
+            out PropietarioMutacionListado mutacion)
+        {
+            string modulo =
+                ObtenerModulo(modoSeleccion);
+
+            if (!InterfazVisitaCacheService.EstaActiva(modulo))
+            {
+                mutacion = null!;
+                return false;
+            }
+
+            return InterfazVisitaCacheService.IntentarConsumir(
+                modulo,
+                ClaveMutacionListado,
+                out mutacion);
+        }
+
+        public static void DescartarMutacion(
+            bool modoSeleccion)
+        {
+            InterfazVisitaCacheService.Eliminar(
+                ObtenerModulo(modoSeleccion),
+                ClaveMutacionListado);
         }
 
         /// <summary>

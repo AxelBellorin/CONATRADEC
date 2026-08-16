@@ -9,6 +9,10 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+    </Shell.BackButtonBehavior>
+
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid>
             <!-- Acceso denegado -->
@@ -48,6 +52,7 @@
 
             <!-- Contenido -->
             <Grid
+                x:Name="ContenidoRoles"
                 IsVisible="{Binding CanView}"
                 Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}">
 
@@ -56,16 +61,13 @@
                     Command="{Binding RefrescarCommand}">
 
                     <CollectionView
+                        x:Name="RolesCollectionView"
                         ItemsSource="{Binding List}"
-                        SelectionMode="None"
-                        RemainingItemsThreshold="3"
-                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                        SelectionMode="None">
 
                         <!--
-                            Encabezado, búsqueda y mensajes pertenecen desde el
-                            inicio al Header del CollectionView. De esta forma
-                            salen de pantalla con el scroll natural sin mover
-                            vistas entre padres en tiempo de ejecución.
+                            Encabezado y búsqueda pertenecen al flujo normal del
+                            CollectionView y desaparecen con el scroll natural.
                         -->
                         <CollectionView.Header>
                             <VerticalStackLayout
@@ -113,6 +115,7 @@
                             <Grid Padding="12,24">
                                 <Border
                                     IsVisible="{Binding MostrarVacio}"
+                                    InputTransparent="True"
                                     Style="{StaticResource ModernEmptyStateCard}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Start"
@@ -216,6 +219,7 @@
                                                 Text="Editar"
                                                 Style="{StaticResource ModernUpdateButton}"
                                                 IsVisible="{Binding Source={x:Reference RolPageRoot}, Path=BindingContext.CanEdit}"
+                                                IsEnabled="{Binding EsEditable}"
                                                 Command="{Binding Source={x:Reference RolPageRoot}, Path=BindingContext.EditCommand}"
                                                 CommandParameter="{Binding .}" />
                                             <Button
@@ -223,6 +227,7 @@
                                                 Text="Eliminar"
                                                 Style="{StaticResource ModernDangerButton}"
                                                 IsVisible="{Binding Source={x:Reference RolPageRoot}, Path=BindingContext.CanDelete}"
+                                                IsEnabled="{Binding EsEditable}"
                                                 Command="{Binding Source={x:Reference RolPageRoot}, Path=BindingContext.DeleteCommand}"
                                                 CommandParameter="{Binding .}" />
                                         </Grid>
@@ -232,37 +237,89 @@
                         </CollectionView.ItemTemplate>
 
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="10,16,10,24"
-                                Spacing="8"
+                            <Border
+                                x:Name="PaginacionRoles"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
                                 HorizontalOptions="Center">
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoMas}"
-                                    IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Verde}" />
-                                <Label
-                                    IsVisible="{Binding MostrarFinLista}"
-                                    Text="Fin del listado"
-                                    Style="{StaticResource ModernCaption}" />
-                            </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Pressed="PaginacionRoles_Pressed"
+                                            Clicked="PaginacionRoles_Clicked"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Pressed="PaginacionRoles_Pressed"
+                                            Clicked="PaginacionRoles_Clicked"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>
 
                 <Grid
-                    IsVisible="{Binding IsBusy}"
+                    IsVisible="{Binding MostrandoRelay}"
                     InputTransparent="False"
-                    BackgroundColor="#36000000">
+                    BackgroundColor="#50000000"
+                    ZIndex="100">
                     <Border
-                        Padding="18,14"
+                        Padding="20,16"
                         BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
                         Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                         StrokeShape="RoundRectangle 15"
                         HorizontalOptions="Center"
                         VerticalOptions="Center">
                         <HorizontalStackLayout Spacing="10">
-                            <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" />
-                            <Label Text="Cargando..." FontFamily="MontserratBold" FontSize="12" VerticalOptions="Center" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                            <ActivityIndicator
+                                IsRunning="{Binding MostrandoRelay}"
+                                Color="{StaticResource color_Naranja}" />
+                            <VerticalStackLayout Spacing="1" VerticalOptions="Center">
+                                <Label
+                                    Text="{Binding TituloRelay}"
+                                    FontFamily="MontserratBold"
+                                    FontSize="12"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                <Label
+                                    Text="{Binding DetalleRelay}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="10"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                            </VerticalStackLayout>
                         </HorizontalStackLayout>
                     </Border>
                 </Grid>

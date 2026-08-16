@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Services;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
@@ -67,11 +67,38 @@ namespace CONATRADEC.Views
                 return;
             }
 
+            /*
+             * Una recarga obligatoria tiene prioridad sobre una mutación local:
+             * por ejemplo, una reactivación o una reasignación de terreno.
+             */
             if (PropietarioVisitaService
                 .ConsumirRecargaListado(
                     viewModel.EsModoSeleccion))
             {
+                PropietarioVisitaService
+                    .DescartarMutacion(
+                        viewModel.EsModoSeleccion);
+
                 await viewModel.RecargarPaginaActualAsync();
+                return;
+            }
+
+            if (PropietarioVisitaService
+                .ConsumirMutacion(
+                    viewModel.EsModoSeleccion,
+                    out PropietarioMutacionListado mutacion))
+            {
+                bool requiereGet =
+                    viewModel
+                        .AplicarMutacionPendiente(
+                            mutacion);
+
+                if (requiereGet)
+                {
+                    await viewModel
+                        .RecargarPaginaActualAsync();
+                }
+
                 return;
             }
 

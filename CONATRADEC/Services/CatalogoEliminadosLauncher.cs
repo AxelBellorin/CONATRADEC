@@ -23,6 +23,30 @@ namespace CONATRADEC.Services
                 if (navigation == null)
                     return;
 
+                /*
+                 * Roles utiliza su ventana especializada porque requiere
+                 * paginación real de servidor y comunicación con la visita del
+                 * listado activo. Los demás catálogos conservan exactamente el
+                 * flujo común existente.
+                 */
+                if (string.Equals(
+                        configuracion.Codigo,
+                        CatalogoEliminadoCodigos.Rol,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    var paginaRoles =
+                        new rolEliminadosPage();
+
+                    await navigation.PushModalAsync(
+                        new NavigationPage(paginaRoles));
+
+                    await Task.Yield();
+                    await paginaRoles
+                        .InicializarDespuesDeMostrarAsync();
+
+                    return;
+                }
+
                 var pagina =
                     new CatalogoEliminadosPage(
                         configuracion);

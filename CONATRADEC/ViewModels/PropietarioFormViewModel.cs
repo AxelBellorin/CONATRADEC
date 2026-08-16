@@ -1,20 +1,17 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Text.RegularExpressions;
 
 namespace CONATRADEC.ViewModels
 {
-    [QueryProperty(
-        nameof(Mode),
-        "Mode")]
-    [QueryProperty(
-        nameof(Propietario),
-        "Propietario")]
-    [QueryProperty(
-        nameof(ModoSeleccionTexto),
-        "ModoSeleccion")]
+    /// <summary>
+    /// Formulario de Propietarios con recepción atómica de parámetros.
+    /// IQueryAttributable evita que View/Edit puedan observar temporalmente
+    /// el valor por defecto del enum y terminar en Create por accidente.
+    /// </summary>
     public sealed class PropietarioFormViewModel :
-        GlobalService
+        GlobalService,
+        IQueryAttributable
     {
         private static readonly Regex CorreoRegex =
             new(
@@ -26,7 +23,13 @@ namespace CONATRADEC.ViewModels
         private readonly PropietarioApiService service =
             new();
 
-        private FormMode.FormModeSelect mode;
+        /*
+         * Se inicia deliberadamente en View. Create solo se habilita después
+         * de recibir explícitamente Mode=Create en la navegación.
+         */
+        private FormMode.FormModeSelect mode =
+            FormMode.FormModeSelect.View;
+
         private PropietarioResponse? propietario;
         private string identificacion = string.Empty;
         private string nombreCompleto = string.Empty;
@@ -34,6 +37,9 @@ namespace CONATRADEC.ViewModels
         private string correo = string.Empty;
         private string direccion = string.Empty;
         private string? modoSeleccionTexto;
+        private bool parametrosRecibidos;
+        private bool parametrosValidos;
+        private bool validacionNavegacionEjecutada;
 
         public PropietarioFormViewModel()
         {
@@ -42,6 +48,7 @@ namespace CONATRADEC.ViewModels
                     async () =>
                         await GuardarAsync(),
                     () =>
+                        ParametrosValidos &&
                         ShowSaveButton &&
                         !IsBusy);
 
@@ -60,10 +67,12 @@ namespace CONATRADEC.ViewModels
                                 .FormModeSelect
                                 .Edit,
                     () =>
+                        ParametrosValidos &&
                         Mode ==
                             FormMode
                                 .FormModeSelect
                                 .View &&
+                        Propietario?.PropietarioId > 0 &&
                         CanEdit &&
                         !IsBusy);
         }
@@ -72,29 +81,27 @@ namespace CONATRADEC.ViewModels
         public Command CancelarCommand { get; }
         public Command EditarCommand { get; }
 
+        public bool ParametrosValidos =>
+            parametrosValidos;
+
         public FormMode.FormModeSelect Mode
         {
             get => mode;
-            set
+            private set
             {
                 if (mode == value)
                     return;
 
                 mode = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(IsReadOnly));
-                OnPropertyChanged(nameof(ShowSaveButton));
-                OnPropertyChanged(nameof(ShowEditButton));
-                OnPropertyChanged(nameof(Title));
-
-                ActualizarComandos();
+                NotificarModo();
             }
         }
 
         public PropietarioResponse? Propietario
         {
             get => propietario;
-            set
+            private set
             {
                 propietario = value;
 
@@ -120,13 +127,14 @@ namespace CONATRADEC.ViewModels
                 }
 
                 OnPropertyChanged();
+                ActualizarComandos();
             }
         }
 
         public string? ModoSeleccionTexto
         {
             get => modoSeleccionTexto;
-            set
+            private set
             {
                 if (modoSeleccionTexto == value)
                     return;
@@ -189,10 +197,14 @@ namespace CONATRADEC.ViewModels
         }
 
         public bool IsReadOnly =>
+            !ParametrosValidos ||
             Mode ==
-            FormMode.FormModeSelect.View;
+                FormMode
+                    .FormModeSelect
+                    .View;
 
         public bool ShowSaveButton =>
+            ParametrosValidos &&
             Mode switch
             {
                 FormMode.FormModeSelect.Create =>
@@ -205,10 +217,12 @@ namespace CONATRADEC.ViewModels
             };
 
         public bool ShowEditButton =>
+            ParametrosValidos &&
             Mode ==
                 FormMode
                     .FormModeSelect
                     .View &&
+            Propietario?.PropietarioId > 0 &&
             CanEdit;
 
         public new bool CanAdd =>
@@ -219,25 +233,141 @@ namespace CONATRADEC.ViewModels
             PermissionService.Instance.HasUpdate(
                 InterfazCodigos.Propietarios);
 
-        public string Title =>
-            Mode switch
+        public string Title
+        {
+            get
             {
-                FormMode.FormModeSelect.Create =>
-                    "Crear propietario",
+                if (!ParametrosValidos)
+                    return "Propietario";
 
-                FormMode.FormModeSelect.Edit =>
-                    "Editar propietario",
+                return Mode switch
+                {
+                    FormMode.FormModeSelect.Create =>
+                        "Crear propietario",
 
-                FormMode.FormModeSelect.View =>
-                    "Detalle del propietario",
+                    FormMode.FormModeSelect.Edit =>
+                        "Editar propietario",
 
-                _ =>
-                    "Propietario"
-            };
+                    FormMode.FormModeSelect.View =>
+                        "Detalle del propietario",
+
+                    _ =>
+                        "Propietario"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Shell entrega todos los parámetros de la navegación en un único
+        /// diccionario. Se validan como una unidad antes de habilitar acciones.
+        /// </summary>
+        public void ApplyQueryAttributes(
+            IDictionary<string, object> query)
+        {
+            parametrosRecibidos = true;
+
+            bool modoValido =
+                TryObtenerModo(
+                    query,
+                    out FormMode.FormModeSelect modoSolicitado);
+
+            bool seleccion =
+                TryObtenerBool(
+                    query,
+                    "ModoSeleccion");
+
+            PropietarioResponse? recibido =
+                TryObtenerPropietario(
+                    query);
+
+            bool requierePropietario =
+                modoValido &&
+                (modoSolicitado ==
+                    FormMode.FormModeSelect.View ||
+                 modoSolicitado ==
+                    FormMode.FormModeSelect.Edit);
+
+            bool propietarioValido =
+                !requierePropietario ||
+                recibido?.PropietarioId > 0;
+
+            parametrosValidos =
+                modoValido &&
+                propietarioValido;
+
+            ModoSeleccionTexto =
+                seleccion.ToString();
+
+            if (!parametrosValidos)
+            {
+                Mode =
+                    FormMode
+                        .FormModeSelect
+                        .View;
+
+                Propietario = null;
+                LimpiarFormulario();
+                NotificarModo();
+                return;
+            }
+
+            if (modoSolicitado ==
+                FormMode.FormModeSelect.Create)
+            {
+                Propietario = null;
+                LimpiarFormulario();
+            }
+            else
+            {
+                Propietario =
+                    ClonarPropietario(
+                        recibido!);
+            }
+
+            Mode =
+                modoSolicitado;
+
+            OnPropertyChanged(nameof(ParametrosValidos));
+            NotificarModo();
+        }
+
+        /// <summary>
+        /// Segunda barrera contra rutas incompletas. View/Edit nunca se
+        /// reinterpretan como Create; si faltan datos se informa y se regresa.
+        /// </summary>
+        public async Task<bool>
+            ValidarNavegacionAsync()
+        {
+            if (ParametrosValidos)
+                return true;
+
+            if (validacionNavegacionEjecutada)
+                return false;
+
+            validacionNavegacionEjecutada = true;
+
+            // Permite que Shell termine de entregar los atributos.
+            await Task.Yield();
+
+            if (ParametrosValidos)
+                return true;
+
+            string mensaje =
+                parametrosRecibidos
+                    ? "No se recibieron todos los datos necesarios para abrir el propietario."
+                    : "No fue posible recibir los parámetros de navegación del propietario.";
+
+            await MostrarErrorAsync(
+                mensaje);
+
+            await RegresarAsync();
+            return false;
+        }
 
         private async Task GuardarAsync()
         {
             if (IsBusy ||
+                !ParametrosValidos ||
                 IsReadOnly ||
                 !ShowSaveButton)
             {
@@ -289,7 +419,8 @@ namespace CONATRADEC.ViewModels
             IsBusy = true;
             ActualizarComandos();
 
-            bool guardado = false;
+            PropietarioMutacionListado? mutacion = null;
+            string mensajeExito = string.Empty;
 
             try
             {
@@ -311,13 +442,22 @@ namespace CONATRADEC.ViewModels
                         return;
                     }
 
-                    guardado = true;
+                    PropietarioResponse creado =
+                        ConstruirPropietario(
+                            result.Data,
+                            request,
+                            null);
 
-                    await MostrarExitoAsync(
+                    mutacion =
+                        new PropietarioMutacionListado(
+                            PropietarioMutacionListadoTipo.Creado,
+                            creado);
+
+                    mensajeExito =
                         string.IsNullOrWhiteSpace(
                             result.Message)
                             ? "Propietario creado correctamente."
-                            : result.Message);
+                            : result.Message;
                 }
                 else
                 {
@@ -328,6 +468,10 @@ namespace CONATRADEC.ViewModels
                             "No se encontró el propietario.");
                         return;
                     }
+
+                    PropietarioResponse anterior =
+                        ClonarPropietario(
+                            Propietario);
 
                     ApiResult<bool> result =
                         await service
@@ -344,13 +488,27 @@ namespace CONATRADEC.ViewModels
                         return;
                     }
 
-                    guardado = true;
+                    PropietarioResponse actualizado =
+                        ConstruirPropietario(
+                            Propietario.PropietarioId,
+                            request,
+                            anterior);
 
-                    await MostrarExitoAsync(
+                    Propietario =
+                        ClonarPropietario(
+                            actualizado);
+
+                    mutacion =
+                        new PropietarioMutacionListado(
+                            PropietarioMutacionListadoTipo.Actualizado,
+                            actualizado,
+                            anterior);
+
+                    mensajeExito =
                         string.IsNullOrWhiteSpace(
                             result.Message)
                             ? "Propietario actualizado correctamente."
-                            : result.Message);
+                            : result.Message;
                 }
             }
             finally
@@ -359,17 +517,20 @@ namespace CONATRADEC.ViewModels
                 ActualizarComandos();
             }
 
-            if (!guardado)
+            if (mutacion == null)
                 return;
 
             /*
-             * La lista conserva la misma visita, pero un alta o edición puede
-             * cambiar orden y búsqueda. Se renueva únicamente la página visible
-             * al volver, sin reiniciar toda la navegación.
+             * El listado decidirá si puede aplicar el DTO localmente o si un
+             * cambio de orden/filtro exige un único GET de la página visible.
              */
             PropietarioVisitaService
-                .MarcarListadoParaRecargar(
-                    EsModoSeleccion);
+                .RegistrarMutacion(
+                    EsModoSeleccion,
+                    mutacion);
+
+            await MostrarExitoAsync(
+                mensajeExito);
 
             await RegresarAsync();
         }
@@ -378,10 +539,6 @@ namespace CONATRADEC.ViewModels
         {
             try
             {
-                /*
-                 * El formulario siempre se abre desde la lista existente.
-                 * Se retira esta página de la pila para no crear duplicados.
-                 */
                 await Shell.Current.GoToAsync(
                     "..");
             }
@@ -458,11 +615,30 @@ namespace CONATRADEC.ViewModels
             return null;
         }
 
+        private void NotificarModo()
+        {
+            OnPropertyChanged(nameof(ParametrosValidos));
+            OnPropertyChanged(nameof(IsReadOnly));
+            OnPropertyChanged(nameof(ShowSaveButton));
+            OnPropertyChanged(nameof(ShowEditButton));
+            OnPropertyChanged(nameof(Title));
+            ActualizarComandos();
+        }
+
         private void ActualizarComandos()
         {
             GuardarCommand.ChangeCanExecute();
             CancelarCommand.ChangeCanExecute();
             EditarCommand.ChangeCanExecute();
+        }
+
+        private void LimpiarFormulario()
+        {
+            Identificacion = string.Empty;
+            NombreCompleto = string.Empty;
+            Telefono = string.Empty;
+            Correo = string.Empty;
+            Direccion = string.Empty;
         }
 
         private void Asignar(
@@ -482,6 +658,157 @@ namespace CONATRADEC.ViewModels
             campo = nuevo;
             OnPropertyChanged(
                 propertyName);
+        }
+
+        private static PropietarioResponse
+            ConstruirPropietario(
+                int propietarioId,
+                PropietarioGuardarRequest request,
+                PropietarioResponse? anterior)
+        {
+            return new PropietarioResponse
+            {
+                PropietarioId =
+                    propietarioId,
+
+                Identificacion =
+                    request.Identificacion,
+
+                NombreCompleto =
+                    request.NombreCompleto,
+
+                Telefono =
+                    request.Telefono,
+
+                Correo =
+                    request.Correo,
+
+                Direccion =
+                    request.Direccion,
+
+                Activo =
+                    true,
+
+                FechaRegistroUtc =
+                    anterior?.FechaRegistroUtc ??
+                    DateTime.UtcNow,
+
+                TotalTerrenos =
+                    anterior?.TotalTerrenos ??
+                    0,
+
+                UsuarioPortalId =
+                    anterior?.UsuarioPortalId,
+
+                UsuarioPortal =
+                    anterior?.UsuarioPortal
+            };
+        }
+
+        private static PropietarioResponse
+            ClonarPropietario(
+                PropietarioResponse item)
+        {
+            return new PropietarioResponse
+            {
+                PropietarioId =
+                    item.PropietarioId,
+
+                Identificacion =
+                    item.Identificacion,
+
+                NombreCompleto =
+                    item.NombreCompleto,
+
+                Telefono =
+                    item.Telefono,
+
+                Correo =
+                    item.Correo,
+
+                Direccion =
+                    item.Direccion,
+
+                Activo =
+                    item.Activo,
+
+                FechaRegistroUtc =
+                    item.FechaRegistroUtc,
+
+                TotalTerrenos =
+                    item.TotalTerrenos,
+
+                UsuarioPortalId =
+                    item.UsuarioPortalId,
+
+                UsuarioPortal =
+                    item.UsuarioPortal
+            };
+        }
+
+        private static bool TryObtenerModo(
+            IDictionary<string, object> query,
+            out FormMode.FormModeSelect modo)
+        {
+            modo =
+                FormMode
+                    .FormModeSelect
+                    .View;
+
+            if (!query.TryGetValue(
+                    "Mode",
+                    out object? valor) ||
+                valor == null)
+            {
+                return false;
+            }
+
+            if (valor is FormMode.FormModeSelect tipado)
+            {
+                modo = tipado;
+                return Enum.IsDefined(modo);
+            }
+
+            return Enum.TryParse(
+                       valor.ToString(),
+                       true,
+                       out modo) &&
+                   Enum.IsDefined(modo);
+        }
+
+        private static bool TryObtenerBool(
+            IDictionary<string, object> query,
+            string clave)
+        {
+            if (!query.TryGetValue(
+                    clave,
+                    out object? valor) ||
+                valor == null)
+            {
+                return false;
+            }
+
+            if (valor is bool booleano)
+                return booleano;
+
+            return bool.TryParse(
+                       valor.ToString(),
+                       out bool resultado) &&
+                   resultado;
+        }
+
+        private static PropietarioResponse?
+            TryObtenerPropietario(
+                IDictionary<string, object> query)
+        {
+            if (!query.TryGetValue(
+                    "Propietario",
+                    out object? valor))
+            {
+                return null;
+            }
+
+            return valor as PropietarioResponse;
         }
 
         private static string? Limpiar(

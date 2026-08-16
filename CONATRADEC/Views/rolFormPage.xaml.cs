@@ -1,46 +1,52 @@
 using CONATRADEC.Models;
-using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.Devices;
-using static CONATRADEC.Models.FormMode;
 
 namespace CONATRADEC.Views
 {
-    [QueryProperty(nameof(Mode), "Mode")]
-    [QueryProperty(nameof(Rol), "Rol")]
     public partial class rolFormPage : ContentPage
     {
         private readonly RolFormViewModel viewModel = new();
-
-        public FormModeSelect Mode
-        {
-            set => viewModel.Mode = value;
-        }
-
-        public RolRequest Rol
-        {
-            set => viewModel.Rol =
-                value ?? new RolRequest();
-        }
 
         public rolFormPage()
         {
             InitializeComponent();
             BindingContext = viewModel;
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
+
+            Shell.SetNavBarIsVisible(
+                this,
+                false);
+
+            Shell.SetBackButtonBehavior(
+                this,
+                new BackButtonBehavior
+                {
+                    IsVisible = false,
+                    IsEnabled = false
+                });
+
+            Shell.Current.FlyoutBehavior =
+                FlyoutBehavior.Disabled;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            viewModel.LoadPagePermissions("rolPage");
+            Shell.SetNavBarIsVisible(
+                this,
+                false);
+
+            viewModel.ActualizarPermisos();
+
+            if (!await viewModel.ValidarNavegacionAsync())
+                return;
 
             bool denegado =
                 !viewModel.CanView ||
-                (viewModel.Mode == FormModeSelect.Create &&
+                (viewModel.Mode == FormMode.FormModeSelect.Create &&
                  !viewModel.CanAdd) ||
-                (viewModel.Mode == FormModeSelect.Edit &&
+                (viewModel.Mode == FormMode.FormModeSelect.Edit &&
                  !viewModel.CanEdit);
 
             if (denegado)
@@ -50,11 +56,19 @@ namespace CONATRADEC.Views
                     "No tiene permisos para realizar esta operación.",
                     "Aceptar");
 
-                await Shell.Current.GoToAsync(AppRoutes.Roles);
+                if (viewModel.CancelCommand.CanExecute(null))
+                    viewModel.CancelCommand.Execute(null);
+
                 return;
             }
 
             AjustarAnchoFormulario(Width);
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarOperaciones();
+            base.OnDisappearing();
         }
 
         protected override void OnSizeAllocated(
@@ -63,6 +77,14 @@ namespace CONATRADEC.Views
         {
             base.OnSizeAllocated(width, height);
             AjustarAnchoFormulario(width);
+        }
+
+        protected override bool OnBackButtonPressed()
+        {
+            if (viewModel.CancelCommand.CanExecute(null))
+                viewModel.CancelCommand.Execute(null);
+
+            return true;
         }
 
         private void AjustarAnchoFormulario(double ancho)
@@ -74,14 +96,18 @@ namespace CONATRADEC.Views
             }
 
             double margen =
-                DeviceInfo.Platform == DevicePlatform.WinUI
-                    ? 72
-                    : 32;
+                ancho < 600
+                    ? 24
+                    : ancho < 900
+                        ? 40
+                        : DeviceInfo.Current.Platform == DevicePlatform.WinUI
+                            ? 72
+                            : 56;
 
             FormularioContainer.WidthRequest =
                 Math.Min(
                     Math.Max(280, ancho - margen),
-                    1100);
+                    900);
         }
     }
 }

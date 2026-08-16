@@ -6,7 +6,7 @@ namespace CONATRADEC.Services
     public static class AppRoutes
     {
         /*
-         * Las rutas de propietarios y Diagnóstico IA son dinámicas.
+         * Las rutas de propietarios, Roles y Diagnóstico IA son dinámicas.
          * El constructor estático garantiza su registro antes de navegar.
          */
         static AppRoutes()
@@ -23,6 +23,14 @@ namespace CONATRADEC.Services
                 PropietarioTerrenos,
                 typeof(propietarioTerrenosPage));
 
+            /*
+             * RolFormPage también existe como ShellContent histórico. Se usa
+             * una ruta interna con nombre diferente para apilar el formulario
+             * sobre RolPage y conservar la misma visita al regresar.
+             */
+            Routing.RegisterRoute(
+                RolFormularioInterno,
+                typeof(rolFormPage));
         }
 
         public const string Login =
@@ -48,6 +56,9 @@ namespace CONATRADEC.Services
 
         public const string Roles =
             "//RolPage";
+
+        public static readonly string RolFormularioInterno =
+            "RolFormularioInterno";
 
         public const string MatrizPermisos =
             "//MatrizPermisosPage";

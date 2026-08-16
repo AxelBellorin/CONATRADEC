@@ -368,6 +368,9 @@
 		<MauiXaml Update="Views\RevisionAnalizadorFotografiaPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\rolEliminadosPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\VisorFotografiaFitosanitariaPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

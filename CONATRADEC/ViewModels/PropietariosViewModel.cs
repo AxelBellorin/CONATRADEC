@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
@@ -501,6 +501,36 @@ namespace CONATRADEC.ViewModels
                 "Actualizando propietarios...",
                 "Aplicando los cambios realizados dentro del módulo");
 
+        /// <summary>
+        /// Aplica un alta/edición confirmada por el servidor sin consultar
+        /// nuevamente cuando la página visible no puede cambiar de composición.
+        /// Devuelve true únicamente si hace falta un GET.
+        /// </summary>
+        public bool AplicarMutacionPendiente(
+            PropietarioMutacionListado mutacion)
+        {
+            if (mutacion == null ||
+                mutacion.Actual.PropietarioId <= 0 ||
+                !pantallaCargada)
+            {
+                return true;
+            }
+
+            return mutacion.Tipo switch
+            {
+                PropietarioMutacionListadoTipo.Actualizado =>
+                    !AplicarActualizacionLocal(
+                        mutacion),
+
+                PropietarioMutacionListadoTipo.Creado =>
+                    !AplicarCreacionLocal(
+                        mutacion.Actual),
+
+                _ =>
+                    true
+            };
+        }
+
         public void CancelarCarga()
         {
             CancellationTokenSource? source =
@@ -846,6 +876,10 @@ namespace CONATRADEC.ViewModels
             await VerAsync(propietario);
         }
 
+        /// <summary>
+        /// Ver reutiliza directamente el DTO completo de la página visible.
+        /// No ejecuta GET por ID.
+        /// </summary>
         private async Task VerAsync(
             PropietarioResponse? propietario)
         {
@@ -859,13 +893,6 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            PropietarioResponse? actual =
-                await ObtenerDetalleActualAsync(
-                    propietario.PropietarioId);
-
-            if (actual == null)
-                return;
-
             await NavegarAsync(
                 AppRoutes.PropietarioFormulario,
                 new Dictionary<string, object>
@@ -873,14 +900,19 @@ namespace CONATRADEC.ViewModels
                     ["Mode"] =
                         FormMode.FormModeSelect.View,
                     ["Propietario"] =
-                        actual,
+                        ClonarPropietario(
+                            propietario),
                     ["ModoSeleccion"] =
                         "False"
                 },
                 "Abriendo propietario...",
-                "Preparando la información actual para consulta");
+                "Preparando la información para consulta");
         }
 
+        /// <summary>
+        /// Editar reutiliza directamente el DTO completo de la página visible.
+        /// No ejecuta GET por ID.
+        /// </summary>
         private async Task EditarAsync(
             PropietarioResponse? propietario)
         {
@@ -894,19 +926,10 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            PropietarioResponse? actual =
-                await ObtenerDetalleActualAsync(
-                    propietario.PropietarioId);
-
-            if (actual == null)
-                return;
-
-            if (!actual.Activo)
+            if (!propietario.Activo)
             {
                 await MostrarAdvertenciaAsync(
                     "El propietario ya no se encuentra activo.");
-                PropietarioVisitaService
-                    .MarcarAdministracionParaRecargar();
                 return;
             }
 
@@ -917,74 +940,13 @@ namespace CONATRADEC.ViewModels
                     ["Mode"] =
                         FormMode.FormModeSelect.Edit,
                     ["Propietario"] =
-                        actual,
+                        ClonarPropietario(
+                            propietario),
                     ["ModoSeleccion"] =
                         "False"
                 },
                 "Abriendo propietario...",
-                "Preparando la información actual para edición");
-        }
-
-        /// <summary>
-        /// Ver y Editar consultan el propietario actual por ID para no abrir
-        /// una copia que pudo quedar desactualizada en la página visible.
-        /// </summary>
-        private async Task<PropietarioResponse?>
-            ObtenerDetalleActualAsync(
-                int propietarioId)
-        {
-            if (propietarioId <= 0)
-                return null;
-
-            CancellationTokenSource source =
-                PrepararCarga();
-
-            try
-            {
-                MostrarRelay(
-                    "Consultando propietario...",
-                    "Obteniendo la información actual del servidor");
-
-                IsBusy = true;
-                ActualizarComandos();
-
-                ApiResult<PropietarioResponse> resultado =
-                    await service.ObtenerPorIdAsync(
-                        propietarioId,
-                        source.Token);
-
-                if (source.IsCancellationRequested ||
-                    !EsCargaActual(source))
-                {
-                    return null;
-                }
-
-                if (!resultado.Success ||
-                    resultado.Data == null)
-                {
-                    if (!EsCancelacion(
-                            resultado.Message))
-                    {
-                        await MostrarErrorAsync(
-                            resultado.Message);
-                    }
-
-                    return null;
-                }
-
-                return resultado.Data;
-            }
-            finally
-            {
-                if (EsCargaActual(source))
-                {
-                    IsBusy = false;
-                    OcultarRelay();
-                }
-
-                LiberarCarga(source);
-                ActualizarComandos();
-            }
+                "Preparando la información para edición");
         }
 
         private async Task VerTerrenosAsync(
@@ -1054,10 +1016,6 @@ namespace CONATRADEC.ViewModels
                 return;
 
             bool eliminado = false;
-            int paginaDestino =
-                Math.Max(
-                    1,
-                    paginaActual);
 
             try
             {
@@ -1096,19 +1054,323 @@ namespace CONATRADEC.ViewModels
                 ActualizarComandos();
             }
 
+            if (!eliminado)
+                return;
+
             /*
-             * Se consulta nuevamente la página para completar el hueco que
-             * deja la eliminación y evitar saltarse el registro desplazado
-             * desde la página siguiente.
+             * Si es la última página no existe un registro posterior que deba
+             * desplazarse para completar el hueco: se resuelve localmente.
+             * En páginas intermedias se hace un único GET porque hay que traer
+             * el primer registro de la página siguiente.
              */
-            if (eliminado)
+            bool requiereRecarga =
+                paginaActual <
+                totalPaginas;
+
+            if (!requiereRecarga)
             {
+                int paginaAntesEliminar =
+                    paginaActual;
+
+                Propietarios.Remove(
+                    propietario);
+
+                TotalRegistros =
+                    Math.Max(
+                        0,
+                        TotalRegistros - 1);
+
+                RecalcularPaginasLocales();
+
+                /*
+                 * Si desapareció el único registro de una página posterior,
+                 * necesitamos cargar la nueva última página. Se conserva la
+                 * página anterior al recálculo porque éste puede reducirla.
+                 */
+                if (Propietarios.Count == 0 &&
+                    TotalRegistros > 0 &&
+                    paginaAntesEliminar > 1)
+                {
+                    requiereRecarga = true;
+                }
+                else
+                {
+                    ActualizarEstadoLista();
+                }
+            }
+
+            if (requiereRecarga)
+            {
+                int paginaDestino =
+                    Math.Min(
+                        Math.Max(
+                            1,
+                            paginaActual),
+                        Math.Max(
+                            1,
+                            totalPaginas));
+
                 await CargarPaginaAsync(
                     paginaDestino,
                     false,
                     "Actualizando propietarios...",
                     "Ajustando la página después de la eliminación");
             }
+        }
+
+        private bool AplicarActualizacionLocal(
+            PropietarioMutacionListado mutacion)
+        {
+            PropietarioResponse? anterior =
+                mutacion.Anterior;
+
+            if (anterior == null)
+                return false;
+
+            PropietarioResponse actual =
+                mutacion.Actual;
+
+            int indice =
+                EncontrarIndice(
+                    actual.PropietarioId);
+
+            if (indice < 0)
+                return false;
+
+            /*
+             * Nombre e identificación determinan el ORDER BY del backend.
+             * Si cambian, la posición global puede cruzar páginas.
+             */
+            if (!Iguales(
+                    anterior.NombreCompleto,
+                    actual.NombreCompleto) ||
+                !Iguales(
+                    anterior.Identificacion,
+                    actual.Identificacion))
+            {
+                return false;
+            }
+
+            /*
+             * Con búsqueda activa, el correo también participa en el filtro.
+             * Si alguno de los campos buscables cambia, se reconstruye una vez.
+             */
+            if (!string.IsNullOrWhiteSpace(
+                    textoBusquedaAplicado) &&
+                (!Iguales(
+                    anterior.NombreCompleto,
+                    actual.NombreCompleto) ||
+                 !Iguales(
+                    anterior.Identificacion,
+                    actual.Identificacion) ||
+                 !Iguales(
+                    anterior.Correo,
+                    actual.Correo)))
+            {
+                return false;
+            }
+
+            Propietarios[indice] =
+                ClonarPropietario(
+                    actual);
+
+            ActualizarEstadoLista();
+            return true;
+        }
+
+        private bool AplicarCreacionLocal(
+            PropietarioResponse creado)
+        {
+            bool coincideFiltro =
+                CoincideBusqueda(
+                    creado,
+                    textoBusquedaAplicado);
+
+            /*
+             * Si el nuevo propietario no coincide con la búsqueda aplicada, la
+             * página filtrada no cambia y no hace falta ningún GET.
+             */
+            if (!coincideFiltro)
+                return true;
+
+            /*
+             * Solo es completamente seguro insertar localmente cuando toda la
+             * colección filtrada cabe en una única página conocida.
+             */
+            bool unicaPaginaCompletaEnMemoria =
+                paginaActual == 1 &&
+                totalPaginas <= 1 &&
+                TotalRegistros <
+                    Math.Max(
+                        1,
+                        tamanoPaginaActual);
+
+            if (!unicaPaginaCompletaEnMemoria)
+                return false;
+
+            Propietarios.Add(
+                ClonarPropietario(
+                    creado));
+
+            OrdenarPaginaLocal();
+
+            TotalRegistros =
+                TotalRegistros + 1;
+
+            RecalcularPaginasLocales();
+            ActualizarEstadoLista();
+
+            return true;
+        }
+
+        private void OrdenarPaginaLocal()
+        {
+            List<PropietarioResponse> ordenados =
+                Propietarios
+                    .OrderBy(
+                        item =>
+                            item.NombreCompleto,
+                        StringComparer.CurrentCultureIgnoreCase)
+                    .ThenBy(
+                        item =>
+                            item.Identificacion,
+                        StringComparer.CurrentCultureIgnoreCase)
+                    .ThenBy(
+                        item =>
+                            item.PropietarioId)
+                    .ToList();
+
+            Propietarios.Clear();
+
+            foreach (PropietarioResponse item
+                     in ordenados)
+            {
+                Propietarios.Add(item);
+            }
+        }
+
+        private void RecalcularPaginasLocales()
+        {
+            int tamano =
+                Math.Max(
+                    1,
+                    tamanoPaginaActual);
+
+            totalPaginas =
+                TotalRegistros == 0
+                    ? 1
+                    : (int)Math.Ceiling(
+                        TotalRegistros /
+                        (double)tamano);
+
+            paginaActual =
+                Math.Min(
+                    Math.Max(
+                        1,
+                        paginaActual),
+                    Math.Max(
+                        1,
+                        totalPaginas));
+
+            ActualizarEstadoLista();
+        }
+
+        private int EncontrarIndice(
+            int propietarioId)
+        {
+            for (int i = 0;
+                 i < Propietarios.Count;
+                 i++)
+            {
+                if (Propietarios[i].PropietarioId ==
+                    propietarioId)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private static bool CoincideBusqueda(
+            PropietarioResponse item,
+            string filtro)
+        {
+            if (string.IsNullOrWhiteSpace(
+                    filtro))
+            {
+                return true;
+            }
+
+            return Contiene(
+                       item.Identificacion,
+                       filtro) ||
+                   Contiene(
+                       item.NombreCompleto,
+                       filtro) ||
+                   Contiene(
+                       item.Correo,
+                       filtro);
+        }
+
+        private static bool Contiene(
+            string? valor,
+            string filtro) =>
+            (valor ??
+             string.Empty)
+                .Contains(
+                    filtro,
+                    StringComparison.OrdinalIgnoreCase);
+
+        private static bool Iguales(
+            string? izquierda,
+            string? derecha) =>
+            string.Equals(
+                izquierda?.Trim() ??
+                    string.Empty,
+                derecha?.Trim() ??
+                    string.Empty,
+                StringComparison.Ordinal);
+
+        private static PropietarioResponse
+            ClonarPropietario(
+                PropietarioResponse item)
+        {
+            return new PropietarioResponse
+            {
+                PropietarioId =
+                    item.PropietarioId,
+
+                Identificacion =
+                    item.Identificacion,
+
+                NombreCompleto =
+                    item.NombreCompleto,
+
+                Telefono =
+                    item.Telefono,
+
+                Correo =
+                    item.Correo,
+
+                Direccion =
+                    item.Direccion,
+
+                Activo =
+                    item.Activo,
+
+                FechaRegistroUtc =
+                    item.FechaRegistroUtc,
+
+                TotalTerrenos =
+                    item.TotalTerrenos,
+
+                UsuarioPortalId =
+                    item.UsuarioPortalId,
+
+                UsuarioPortal =
+                    item.UsuarioPortal
+            };
         }
 
         private async Task NavegarAsync(

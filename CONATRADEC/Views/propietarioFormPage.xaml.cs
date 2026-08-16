@@ -1,4 +1,4 @@
-﻿using CONATRADEC.ViewModels;
+using CONATRADEC.ViewModels;
 using System.ComponentModel;
 
 namespace CONATRADEC.Views
@@ -26,12 +26,18 @@ namespace CONATRADEC.Views
             OcultarNavegacionNativa();
         }
 
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
 
             OcultarNavegacionNativa();
             AplicarDiseno(Width);
+
+            /*
+             * Valida el paquete completo de navegación antes de permitir que
+             * View/Edit interactúen con el formulario.
+             */
+            await viewModel.ValidarNavegacionAsync();
         }
 
         protected override void OnDisappearing()

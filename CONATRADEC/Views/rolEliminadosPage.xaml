@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.rolEliminadosPage"
+    x:Name="RolEliminadosPageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
+
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+    </Shell.BackButtonBehavior>
+
+    <Grid
+        x:Name="ContenidoRolesEliminados"
+        Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}">
+
+        <Grid IsVisible="{Binding CanView}">
+            <RefreshView
+                IsRefreshing="{Binding IsRefreshing}"
+                Command="{Binding RefrescarCommand}">
+
+                <CollectionView
+                    x:Name="RegistrosCollection"
+                    ItemsSource="{Binding Registros}"
+                    SelectionMode="None">
+
+                    <CollectionView.Header>
+                        <VerticalStackLayout
+                            Spacing="12"
+                            Padding="0,0,0,12">
+
+                            <!--
+                                Cabecera propia para evitar que el botón automático
+                                "Eliminados" del encabezado de catálogos vuelva a
+                                abrir este mismo modal de forma recursiva.
+                            -->
+                            <Border Style="{StaticResource ModernHeroCard}">
+                                <VerticalStackLayout Spacing="8">
+                                    <Button
+                                        Text="← Cerrar"
+                                        Command="{Binding CerrarCommand}"
+                                        Style="{StaticResource ModernNeutralButton}"
+                                        MinimumWidthRequest="0"
+                                        HorizontalOptions="Start" />
+                                    <Label
+                                        Text="{Binding Titulo}"
+                                        Style="{StaticResource ModernPageTitle}"
+                                        TextColor="{StaticResource color_Verde}" />
+                                    <Label
+                                        Text="{Binding Descripcion}"
+                                        Style="{StaticResource ModernPageSubtitle}" />
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Style="{StaticResource ModernFormCard}">
+                                <VerticalStackLayout Spacing="10">
+                                    <Border Style="{StaticResource ModernInputBorder}">
+                                        <SearchBar
+                                            Placeholder="Buscar rol eliminado"
+                                            Text="{Binding TextoBusqueda, Mode=TwoWay}"
+                                            SearchCommand="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernSearchBar}" />
+                                    </Border>
+
+                                    <Grid
+                                        x:Name="AccionesBusquedaGrid"
+                                        ColumnDefinitions="*,Auto,Auto"
+                                        ColumnSpacing="8"
+                                        RowSpacing="8">
+                                        <Label
+                                            x:Name="ResumenLabel"
+                                            Text="{Binding Resumen}"
+                                            VerticalOptions="Center"
+                                            Style="{StaticResource ModernCaption}"
+                                            FontSize="11.5" />
+                                        <Button
+                                            x:Name="BuscarButton"
+                                            Grid.Column="1"
+                                            Text="Buscar"
+                                            Command="{Binding BuscarCommand}"
+                                            Style="{StaticResource ModernPrimaryButton}"
+                                            MinimumWidthRequest="0" />
+                                        <Button
+                                            x:Name="LimpiarButton"
+                                            Grid.Column="2"
+                                            Text="Limpiar"
+                                            Command="{Binding LimpiarCommand}"
+                                            Style="{StaticResource ModernNeutralButton}"
+                                            MinimumWidthRequest="0" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border
+                                IsVisible="{Binding TieneMensaje}"
+                                Style="{StaticResource ModernWarningBanner}">
+                                <Label
+                                    Text="{Binding Mensaje}"
+                                    FontFamily="MontserratMedium"
+                                    FontSize="12"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                    LineBreakMode="WordWrap" />
+                            </Border>
+
+                            <Border
+                                IsVisible="{Binding MostrarVacio}"
+                                InputTransparent="True"
+                                Style="{StaticResource ModernEmptyStateCard}"
+                                Margin="0,8,0,12"
+                                HorizontalOptions="Center"
+                                MaximumWidthRequest="560">
+                                <VerticalStackLayout
+                                    HorizontalOptions="Center"
+                                    Spacing="8">
+                                    <Border
+                                        Style="{StaticResource ModernIconTile}"
+                                        WidthRequest="58"
+                                        HeightRequest="58">
+                                        <Label
+                                            Text="✓"
+                                            FontSize="27"
+                                            TextColor="{StaticResource color_Verde}"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Border>
+                                    <Label
+                                        Text="No hay roles eliminados"
+                                        Style="{StaticResource ModernSectionTitle}"
+                                        FontSize="18"
+                                        HorizontalTextAlignment="Center" />
+                                    <Label
+                                        Text="Todos los roles están activos o no coinciden con la búsqueda actual."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
+                    </CollectionView.Header>
+
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout
+                            x:Name="RegistrosGrid"
+                            Orientation="Vertical"
+                            Span="1"
+                            HorizontalItemSpacing="12"
+                            VerticalItemSpacing="12" />
+                    </CollectionView.ItemsLayout>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:RolResponse">
+                            <Border
+                                Style="{StaticResource ModernCatalogCard}"
+                                MinimumHeightRequest="190">
+                                <Grid
+                                    RowDefinitions="Auto,Auto,Auto"
+                                    RowSpacing="12">
+
+                                    <Grid
+                                        ColumnDefinitions="Auto,*,Auto"
+                                        ColumnSpacing="12">
+                                        <Border
+                                            WidthRequest="54"
+                                            HeightRequest="54"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource BrandCoffeeSoft}, Dark={StaticResource BrandCoffeeSoftDark}}"
+                                            Stroke="Transparent"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 14">
+                                            <Label
+                                                Text="RL"
+                                                FontSize="17"
+                                                FontFamily="MontserratBold"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <VerticalStackLayout
+                                            Grid.Column="1"
+                                            Spacing="3"
+                                            VerticalOptions="Center">
+                                            <Label
+                                                Text="{Binding NombreMostrar}"
+                                                FontSize="16"
+                                                FontFamily="MontserratBold"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                                MaxLines="1"
+                                                LineBreakMode="TailTruncation" />
+                                            <Label
+                                                Text="{Binding DescripcionMostrar}"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="11.5"
+                                                TextColor="{StaticResource color_Cafe}"
+                                                MaxLines="2"
+                                                LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+
+                                        <Border
+                                            Grid.Column="2"
+                                            Style="{StaticResource ModernDangerBanner}"
+                                            Padding="8,4"
+                                            VerticalOptions="Start">
+                                            <Label
+                                                Text="Eliminado"
+                                                FontFamily="MontserratBold"
+                                                FontSize="9.5"
+                                                TextColor="{StaticResource RedDelete}" />
+                                        </Border>
+                                    </Grid>
+
+                                    <Grid
+                                        Grid.Row="1"
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="8">
+                                        <Border Style="{StaticResource ModernBadgeBlue}" Padding="9,7">
+                                            <Label
+                                                Text="{Binding UsuariosTexto}"
+                                                FontFamily="MontserratBold"
+                                                FontSize="10.5"
+                                                HorizontalTextAlignment="Center"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        </Border>
+                                        <Border
+                                            Grid.Column="1"
+                                            Style="{StaticResource ModernBadgeYellow}"
+                                            Padding="9,7">
+                                            <Label
+                                                Text="{Binding InterfacesTexto}"
+                                                FontFamily="MontserratMedium"
+                                                FontSize="10.5"
+                                                HorizontalTextAlignment="Center"
+                                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        </Border>
+                                    </Grid>
+
+                                    <Button
+                                        Grid.Row="2"
+                                        Text="Reactivar rol"
+                                        IsVisible="{Binding Source={x:Reference RolEliminadosPageRoot}, Path=BindingContext.CanEdit}"
+                                        Command="{Binding Source={x:Reference RolEliminadosPageRoot}, Path=BindingContext.ReactivarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        Style="{StaticResource ModernSecondaryButton}"
+                                        HorizontalOptions="Fill" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+
+                    <CollectionView.Footer>
+                        <VerticalStackLayout Spacing="0">
+                            <Border
+                                x:Name="PaginacionEliminados"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
+                                HorizontalOptions="Center">
+
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="10">
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Pressed="PaginacionEliminados_Pressed"
+                                            Clicked="PaginacionEliminados_Clicked"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Pressed="PaginacionEliminados_Pressed"
+                                            Clicked="PaginacionEliminados_Clicked"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <BoxView
+                                HeightRequest="{OnIdiom Phone=18, Tablet=22, Desktop=26}"
+                                Opacity="0" />
+                        </VerticalStackLayout>
+                    </CollectionView.Footer>
+                </CollectionView>
+            </RefreshView>
+        </Grid>
+
+        <Grid
+            IsVisible="{Binding MostrarAccesoDenegado}"
+            Padding="{OnIdiom Phone=12, Tablet=20, Desktop=24}"
+            BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
+            <Border Style="{StaticResource ModernAccessDeniedCard}">
+                <VerticalStackLayout
+                    Spacing="10"
+                    HorizontalOptions="Center">
+                    <Image
+                        Source="iconpermission.png"
+                        WidthRequest="62"
+                        HeightRequest="62"
+                        Opacity="0.68" />
+                    <Label
+                        Text="Sin permiso de lectura"
+                        Style="{StaticResource ModernSectionTitle}"
+                        FontSize="20"
+                        HorizontalTextAlignment="Center" />
+                    <Label
+                        Text="Su usuario no puede consultar los roles eliminados."
+                        Style="{StaticResource ModernPageSubtitle}"
+                        HorizontalTextAlignment="Center" />
+                    <Button
+                        Text="Cerrar"
+                        Command="{Binding CerrarCommand}"
+                        Style="{StaticResource ModernPrimaryButton}"
+                        HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <Grid
+            IsVisible="{Binding MostrandoRelay}"
+            InputTransparent="False"
+            BackgroundColor="#66000000"
+            ZIndex="100">
+            <Border
+                Padding="22,18"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 16">
+                <HorizontalStackLayout Spacing="12">
+                    <ActivityIndicator
+                        IsRunning="{Binding MostrandoRelay}"
+                        Color="{StaticResource color_Naranja}"
+                        WidthRequest="26"
+                        HeightRequest="26" />
+                    <VerticalStackLayout
+                        Spacing="1"
+                        VerticalOptions="Center">
+                        <Label
+                            Text="{Binding TituloRelay}"
+                            FontFamily="MontserratBold"
+                            FontSize="12"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                        <Label
+                            Text="{Binding DetalleRelay}"
+                            FontFamily="MontserratMedium"
+                            FontSize="10"
+                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>
