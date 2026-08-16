@@ -13,6 +13,14 @@ namespace CONATRADEC.Models
         [JsonIgnore]
         public TerrenoPropietarioResponse? Propietario { get; set; }
 
+        /// <summary>
+        /// Contexto administrativo recibido desde el DTO paginado.
+        /// No se envía al backend al guardar; únicamente evita volver a
+        /// descargar todos los municipios para resolver País/Departamento.
+        /// </summary>
+        [JsonIgnore]
+        public TerrenoUbicacionResponse? Ubicacion { get; set; }
+
         public string? DireccionTerreno { get; set; }
 
         public decimal? ExtensionManzanaTerreno { get; set; }
@@ -48,6 +56,7 @@ namespace CONATRADEC.Models
                 terreno.Propietario?.PropietarioId ??
                 terreno.PropietarioId;
             Propietario = terreno.Propietario;
+            Ubicacion = terreno.Ubicacion;
             DireccionTerreno = terreno.DireccionTerreno;
             ExtensionManzanaTerreno =
                 terreno.ExtensionManzanaTerreno;

@@ -19,6 +19,7 @@
 		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
 		<WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
 
+		
 		<PackageId>ConatraCafeSoil</PackageId>
 
 		<ApplicationTitle>ConatraCafé Soil</ApplicationTitle>

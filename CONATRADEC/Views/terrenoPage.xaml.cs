@@ -1,16 +1,25 @@
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
-using System.Windows.Input;
 using Microsoft.Maui.Devices;
+using System.Windows.Input;
 
 namespace CONATRADEC.Views
 {
     public partial class terrenoPage : ContentPage
     {
+        /*
+         * Cada tarjeta necesita un ancho útil suficiente para que métricas,
+         * textos y acciones no se recorten en WinUI reducido ni en tablet.
+         */
+        private const double AnchoMinimoTarjeta = 430;
+        private const double EspaciadoTarjetas = 12;
+
         private readonly TerrenoViewModel viewModel = new();
 
         private bool accionesCompactas;
         private bool navegandoAConfiguracion;
+        private int cantidadAntesCargaManual = -1;
+        private int modoFiltrosFecha = -1;
 
         private Button? cargarMasRespaldoButton;
 
@@ -66,15 +75,15 @@ namespace CONATRADEC.Views
             }
 
             /*
-             * El comportamiento responsive conserva las columnas normales.
-             * Este ajuste adicional solo fuerza una columna mientras no haya
-             * registros, permitiendo que EmptyView use todo el ancho.
+             * Mientras no existan registros se conserva una sola columna para
+             * que EmptyView use todo el ancho. Con datos, las columnas se
+             * calculan por el ancho útil real de cada tarjeta.
              */
             viewModel.List.CollectionChanged +=
                 (_, _) => AjustarSpanTerrenos();
 
             TerrenosCollectionView.SizeChanged +=
-                (_, _) => AjustarSpanTerrenos();
+                (_, _) => AjustarDiseno(Width);
 
             ConfigurarBotonCargaManual();
 
@@ -102,8 +111,7 @@ namespace CONATRADEC.Views
             if (!viewModel.CanView)
                 return;
 
-            AjustarAccionesBusqueda(Width);
-            AjustarSpanTerrenos();
+            AjustarDiseno(Width);
 
             await viewModel.InicializarAsync();
         }
@@ -121,8 +129,59 @@ namespace CONATRADEC.Views
         {
             base.OnSizeAllocated(width, height);
 
-            AjustarAccionesBusqueda(width);
+            AjustarDiseno(width);
+        }
+
+        private void AjustarDiseno(double width)
+        {
+            if (width <= 0)
+                return;
+
+            AjustarPaddingContenido(width);
+            AjustarAccionesBusqueda(ObtenerAnchoUtilContenido(width));
+            AjustarFiltrosAvanzados(ObtenerAnchoUtilContenido(width));
             AjustarSpanTerrenos();
+        }
+
+        private void AjustarPaddingContenido(double width)
+        {
+            if (ContenidoPrincipal != null)
+            {
+                ContenidoPrincipal.Padding =
+                    width < 600
+                        ? new Thickness(12, 12, 12, 20)
+                        : width < 900
+                            ? new Thickness(18, 16, 18, 24)
+                            : new Thickness(24, 20, 24, 28);
+            }
+
+            if (ContenidoSinPermiso != null)
+            {
+                double padding =
+                    width < 600
+                        ? 16
+                        : width < 900
+                            ? 24
+                            : 28;
+
+                ContenidoSinPermiso.Padding =
+                    new Thickness(padding);
+            }
+        }
+
+        private double ObtenerAnchoUtilContenido(double width)
+        {
+            if (TerrenosCollectionView?.Width > 0)
+                return TerrenosCollectionView.Width;
+
+            double paddingHorizontal =
+                width < 600
+                    ? 24
+                    : width < 900
+                        ? 36
+                        : 48;
+
+            return Math.Max(0, width - paddingHorizontal);
         }
 
         private void TerrenosCollectionView_Scrolled(
@@ -193,26 +252,16 @@ namespace CONATRADEC.Views
                 return gridLayout.Span;
             }
 
-            /*
-             * Respaldo por ancho para los casos en que WinUI todavía no haya
-             * terminado de aplicar el ResponsiveGridItemsLayoutBehavior.
-             */
             double width =
                 TerrenosCollectionView?.Width ?? 0;
 
-            if (width >= 1380)
-                return 3;
-
-            if (width >= 760)
-                return 2;
-
-            return 1;
+            return CalcularSpanTerrenos(width);
         }
 
         /// <summary>
         /// Mantiene una sola columna mientras no existen terrenos para que
-        /// EmptyView ocupe el ancho completo. Cuando hay datos se conserva
-        /// exactamente la misma distribución de 1, 2 o 3 columnas.
+        /// EmptyView ocupe el ancho completo. Cuando hay datos se usa el ancho
+        /// mínimo real de tarjeta en lugar de breakpoints de tipo de dispositivo.
         /// </summary>
         private void AjustarSpanTerrenos()
         {
@@ -225,7 +274,7 @@ namespace CONATRADEC.Views
             double width =
                 TerrenosCollectionView.Width > 0
                     ? TerrenosCollectionView.Width
-                    : Width;
+                    : ObtenerAnchoUtilContenido(Width);
 
             if (width <= 0)
                 return;
@@ -233,14 +282,31 @@ namespace CONATRADEC.Views
             int span =
                 viewModel.List.Count == 0
                     ? 1
-                    : width >= 1380
-                        ? 3
-                        : width >= 760
-                            ? 2
-                            : 1;
+                    : CalcularSpanTerrenos(width);
 
             if (gridLayout.Span != span)
                 gridLayout.Span = span;
+        }
+
+        private static int CalcularSpanTerrenos(double width)
+        {
+            if (width <= 0)
+                return 1;
+
+            double requeridoTres =
+                (AnchoMinimoTarjeta * 3) +
+                (EspaciadoTarjetas * 2);
+
+            if (width >= requeridoTres)
+                return 3;
+
+            double requeridoDos =
+                (AnchoMinimoTarjeta * 2) +
+                EspaciadoTarjetas;
+
+            return width >= requeridoDos
+                ? 2
+                : 1;
         }
 
         private void EjecutarCargaMasSiDisponible()
@@ -258,9 +324,8 @@ namespace CONATRADEC.Views
 
         /// <summary>
         /// Agrega un respaldo manual en el footer del CollectionView.
-        /// Si WinUI no vuelve a disparar correctamente el evento de scroll,
-        /// el usuario siempre puede solicitar la siguiente página sin perder
-        /// filtros, ordenamiento ni posición actual.
+        /// En Android/Tablet este botón representa el cambio controlado hacia
+        /// la siguiente página de resultados.
         /// </summary>
         private void ConfigurarBotonCargaManual()
         {
@@ -278,7 +343,7 @@ namespace CONATRADEC.Views
                     FontFamily = "MontserratBold",
                     FontSize = 12,
                     HeightRequest = 46,
-                    MinimumWidthRequest = 190,
+                    MinimumWidthRequest = 0,
                     Padding = new Thickness(18, 8),
                     CornerRadius = 12,
                     HorizontalOptions = LayoutOptions.Center,
@@ -295,9 +360,84 @@ namespace CONATRADEC.Views
                 Button.CommandProperty,
                 nameof(TerrenoViewModel.CargarMasCommand));
 
+            cargarMasRespaldoButton.Pressed +=
+                CargarMasRespaldoButton_Pressed;
+
+            cargarMasRespaldoButton.Clicked +=
+                CargarMasRespaldoButton_Clicked;
+
             footer.Children.Insert(
                 0,
                 cargarMasRespaldoButton);
+        }
+
+        private void CargarMasRespaldoButton_Pressed(
+            object? sender,
+            EventArgs e)
+        {
+            cantidadAntesCargaManual =
+                viewModel.List.Count;
+        }
+
+        /// <summary>
+        /// Después de cargar manualmente la siguiente página, coloca el primer
+        /// registro nuevo al inicio visible. La precarga automática de WinUI no
+        /// usa este evento y por tanto conserva un scroll continuo sin saltos.
+        /// </summary>
+        private async void CargarMasRespaldoButton_Clicked(
+            object? sender,
+            EventArgs e)
+        {
+            int primerIndiceNuevaPagina =
+                cantidadAntesCargaManual >= 0
+                    ? cantidadAntesCargaManual
+                    : viewModel.List.Count;
+
+            bool operacionDetectada = false;
+
+            for (int intento = 0; intento < 240; intento++)
+            {
+                if (viewModel.CargandoMas ||
+                    viewModel.List.Count > primerIndiceNuevaPagina)
+                {
+                    operacionDetectada = true;
+                }
+
+                if (operacionDetectada &&
+                    !viewModel.CargandoMas)
+                {
+                    if (viewModel.List.Count > primerIndiceNuevaPagina)
+                    {
+                        await DesplazarTerrenosAIndiceAsync(
+                            primerIndiceNuevaPagina);
+                    }
+
+                    cantidadAntesCargaManual = -1;
+                    return;
+                }
+
+                await Task.Delay(50);
+            }
+
+            cantidadAntesCargaManual = -1;
+        }
+
+        private async Task DesplazarTerrenosAIndiceAsync(int indice)
+        {
+            if (TerrenosCollectionView == null ||
+                indice < 0 ||
+                indice >= viewModel.List.Count)
+            {
+                return;
+            }
+
+            // Da tiempo al CollectionView para materializar el nuevo bloque.
+            await Task.Delay(60);
+
+            TerrenosCollectionView.ScrollTo(
+                indice,
+                position: ScrollToPosition.Start,
+                animate: false);
         }
 
         private async Task RegresarConfiguracionAsync()
@@ -334,7 +474,7 @@ namespace CONATRADEC.Views
         }
 
         /// <summary>
-        /// En teléfono, Buscar ocupa toda la primera fila y las acciones
+        /// En ancho estrecho, Buscar ocupa toda la primera fila y las acciones
         /// Filtros/Limpiar comparten una segunda fila.
         /// </summary>
         private void AjustarAccionesBusqueda(double width)
@@ -345,7 +485,7 @@ namespace CONATRADEC.Views
                 return;
             }
 
-            bool compacto = width < 600;
+            bool compacto = width < 640;
 
             if (accionesCompactas == compacto)
                 return;
@@ -424,6 +564,313 @@ namespace CONATRADEC.Views
             Grid.SetRow(limpiar, 0);
             Grid.SetColumn(limpiar, 2);
             Grid.SetColumnSpan(limpiar, 1);
+        }
+
+        /// <summary>
+        /// Reorganiza todos los filtros usando el ancho útil real de la página.
+        /// Esto evita que OnIdiom Desktop mantenga varias columnas en una
+        /// ventana WinUI pequeña y cubre también tablet vertical/dividida.
+        /// </summary>
+        private void AjustarFiltrosAvanzados(double width)
+        {
+            if (width <= 0)
+                return;
+
+            int columnasTexto =
+                width >= 700
+                    ? 2
+                    : 1;
+
+            ConfigurarGridUniforme(
+                FiltrosTextoGrid,
+                new View[]
+                {
+                    FiltroCodigoSection,
+                    FiltroPropietarioSection,
+                    FiltroIdentificacionSection,
+                    FiltroDireccionSection
+                },
+                columnasTexto);
+
+            int columnasUbicacion =
+                width >= 900
+                    ? 3
+                    : width >= 620
+                        ? 2
+                        : 1;
+
+            ConfigurarGridUniforme(
+                FiltrosUbicacionGrid,
+                new View[]
+                {
+                    FiltroPaisBorder,
+                    FiltroDepartamentoBorder,
+                    FiltroMunicipioBorder
+                },
+                columnasUbicacion);
+
+            AjustarGridFecha(width);
+
+            int columnasExtension =
+                width >= 900
+                    ? 3
+                    : width >= 620
+                        ? 2
+                        : 1;
+
+            ConfigurarGridUniforme(
+                FiltrosExtensionGrid,
+                new View[]
+                {
+                    FiltroExtensionMinimaSection,
+                    FiltroExtensionMaximaSection,
+                    FiltroOrdenSection
+                },
+                columnasExtension);
+
+            if (AplicarFiltrosButton != null)
+            {
+                AplicarFiltrosButton.HorizontalOptions =
+                    width < 620
+                        ? LayoutOptions.Fill
+                        : LayoutOptions.End;
+            }
+        }
+
+        private void AjustarGridFecha(double width)
+        {
+            if (FiltrosFechaGrid == null)
+                return;
+
+            int nuevoModo =
+                width >= 900
+                    ? 2
+                    : width < 430
+                        ? 0
+                        : 1;
+
+            if (modoFiltrosFecha == nuevoModo)
+                return;
+
+            modoFiltrosFecha = nuevoModo;
+
+            FiltrosFechaGrid.ColumnDefinitions.Clear();
+            FiltrosFechaGrid.RowDefinitions.Clear();
+
+            RestablecerPosicion(FiltroFechaSwitch);
+            RestablecerPosicion(FiltroFechaLabel);
+            RestablecerPosicion(FiltroFechaDesdeBorder);
+            RestablecerPosicion(FiltroFechaHastaBorder);
+
+            if (nuevoModo == 2)
+            {
+                FiltrosFechaGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Auto));
+                FiltrosFechaGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Star));
+                FiltrosFechaGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Star));
+                FiltrosFechaGrid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Star));
+                FiltrosFechaGrid.RowDefinitions.Add(
+                    new RowDefinition(GridLength.Auto));
+
+                Grid.SetColumn(FiltroFechaSwitch, 0);
+                Grid.SetColumn(FiltroFechaLabel, 1);
+                Grid.SetColumn(FiltroFechaDesdeBorder, 2);
+                Grid.SetColumn(FiltroFechaHastaBorder, 3);
+                return;
+            }
+
+            FiltrosFechaGrid.ColumnDefinitions.Add(
+                new ColumnDefinition(GridLength.Star));
+            FiltrosFechaGrid.ColumnDefinitions.Add(
+                new ColumnDefinition(GridLength.Star));
+            FiltrosFechaGrid.RowDefinitions.Add(
+                new RowDefinition(GridLength.Auto));
+            FiltrosFechaGrid.RowDefinitions.Add(
+                new RowDefinition(GridLength.Auto));
+
+            Grid.SetRow(FiltroFechaSwitch, 0);
+            Grid.SetColumn(FiltroFechaSwitch, 0);
+
+            Grid.SetRow(FiltroFechaLabel, 0);
+            Grid.SetColumn(FiltroFechaLabel, 1);
+
+            Grid.SetRow(FiltroFechaDesdeBorder, 1);
+            Grid.SetColumn(FiltroFechaDesdeBorder, 0);
+
+            Grid.SetRow(FiltroFechaHastaBorder, 1);
+            Grid.SetColumn(FiltroFechaHastaBorder, 1);
+
+            if (nuevoModo == 0)
+            {
+                FiltrosFechaGrid.RowDefinitions.Add(
+                    new RowDefinition(GridLength.Auto));
+
+                Grid.SetColumn(FiltroFechaDesdeBorder, 0);
+                Grid.SetColumnSpan(FiltroFechaDesdeBorder, 2);
+
+                Grid.SetRow(FiltroFechaHastaBorder, 2);
+                Grid.SetColumn(FiltroFechaHastaBorder, 0);
+                Grid.SetColumnSpan(FiltroFechaHastaBorder, 2);
+            }
+        }
+
+        private static void ConfigurarGridUniforme(
+            Grid grid,
+            IReadOnlyList<View> elementos,
+            int columnas)
+        {
+            if (grid == null || elementos.Count == 0)
+                return;
+
+            columnas = Math.Clamp(
+                columnas,
+                1,
+                elementos.Count);
+
+            int filas =
+                (int)Math.Ceiling(
+                    elementos.Count / (double)columnas);
+
+            bool estructuraCorrecta =
+                grid.ColumnDefinitions.Count == columnas &&
+                grid.RowDefinitions.Count == filas;
+
+            if (estructuraCorrecta)
+                return;
+
+            grid.ColumnDefinitions.Clear();
+            grid.RowDefinitions.Clear();
+
+            for (int columna = 0; columna < columnas; columna++)
+            {
+                grid.ColumnDefinitions.Add(
+                    new ColumnDefinition(GridLength.Star));
+            }
+
+            for (int fila = 0; fila < filas; fila++)
+            {
+                grid.RowDefinitions.Add(
+                    new RowDefinition(GridLength.Auto));
+            }
+
+            for (int indice = 0; indice < elementos.Count; indice++)
+            {
+                View elemento = elementos[indice];
+                RestablecerPosicion(elemento);
+
+                Grid.SetRow(
+                    elemento,
+                    indice / columnas);
+
+                Grid.SetColumn(
+                    elemento,
+                    indice % columnas);
+            }
+
+            /*
+             * Cuando quedan tres controles sobre dos columnas, el último ocupa
+             * el ancho completo para no dejar media fila vacía innecesariamente.
+             */
+            if (columnas == 2 &&
+                elementos.Count == 3)
+            {
+                Grid.SetColumn(
+                    elementos[2],
+                    0);
+                Grid.SetColumnSpan(
+                    elementos[2],
+                    2);
+            }
+        }
+
+        private static void RestablecerPosicion(View view)
+        {
+            Grid.SetRow(view, 0);
+            Grid.SetColumn(view, 0);
+            Grid.SetRowSpan(view, 1);
+            Grid.SetColumnSpan(view, 1);
+        }
+
+        private void TerrenoMetricasGrid_SizeChanged(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is not Grid grid ||
+                grid.Width <= 0)
+            {
+                return;
+            }
+
+            List<View> metricas =
+                grid.Children
+                    .OfType<View>()
+                    .ToList();
+
+            if (metricas.Count == 0)
+                return;
+
+            int columnas =
+                grid.Width >= 520
+                    ? 3
+                    : grid.Width >= 340
+                        ? 2
+                        : 1;
+
+            ConfigurarGridUniforme(
+                grid,
+                metricas,
+                columnas);
+        }
+
+        private void TerrenoAccionesGrid_SizeChanged(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is not Grid grid ||
+                grid.Width <= 0)
+            {
+                return;
+            }
+
+            List<View> acciones =
+                grid.Children
+                    .OfType<Button>()
+                    .Where(button => button.IsVisible)
+                    .Cast<View>()
+                    .ToList();
+
+            if (acciones.Count == 0)
+                return;
+
+            int columnas =
+                grid.Width < 360 &&
+                acciones.Count >= 3
+                    ? 2
+                    : acciones.Count;
+
+            ConfigurarGridUniforme(
+                grid,
+                acciones,
+                columnas);
+
+            if (grid.Width < 360 &&
+                acciones.Count == 3)
+            {
+                Grid.SetRow(acciones[0], 0);
+                Grid.SetColumn(acciones[0], 0);
+                Grid.SetColumnSpan(acciones[0], 2);
+
+                Grid.SetRow(acciones[1], 1);
+                Grid.SetColumn(acciones[1], 0);
+                Grid.SetColumnSpan(acciones[1], 1);
+
+                Grid.SetRow(acciones[2], 1);
+                Grid.SetColumn(acciones[2], 1);
+                Grid.SetColumnSpan(acciones[2], 1);
+            }
         }
     }
 }

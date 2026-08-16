@@ -12,6 +12,15 @@ namespace CONATRADEC.Views
         private const string MarcaEncabezadoPropio =
             "CONATRADEC_FORM_BACK_WRAPPER";
 
+        /*
+         * Los formularios se reorganizan según el ancho útil real de la tarjeta,
+         * no únicamente según el tipo de dispositivo. Esto cubre Windows
+         * redimensionado, tablet vertical y ventanas divididas.
+         */
+        private const double AnchoMinimoDosColumnas = 760;
+        private const double AnchoMinimoTresColumnasUbicacion = 960;
+        private const double AnchoMinimoDosColumnasUbicacion = 640;
+
         private UserFormViewModel viewModel = new();
         private readonly SemaphoreSlim inicializacionLock = new(1, 1);
 
@@ -451,12 +460,25 @@ namespace CONATRADEC.Views
                     ? 72
                     : 32;
 
-            FormularioContainer.WidthRequest =
+            double anchoFormulario =
                 Math.Min(
                     Math.Max(280, ancho - margen),
                     1100);
 
-            bool amplio = ancho >= 700;
+            FormularioContainer.WidthRequest =
+                anchoFormulario;
+
+            int columnasAccesoContacto =
+                anchoFormulario >= AnchoMinimoDosColumnas
+                    ? 2
+                    : 1;
+
+            int columnasUbicacion =
+                anchoFormulario >= AnchoMinimoTresColumnasUbicacion
+                    ? 3
+                    : anchoFormulario >= AnchoMinimoDosColumnasUbicacion
+                        ? 2
+                        : 1;
 
             AjustarGrid(
                 AccesoGrid,
@@ -467,8 +489,7 @@ namespace CONATRADEC.Views
                     NombreSection,
                     IdentificacionSection
                 },
-                amplio,
-                2);
+                columnasAccesoContacto);
 
             AjustarGrid(
                 ContactoGrid,
@@ -479,8 +500,7 @@ namespace CONATRADEC.Views
                     FechaSection,
                     RolSection
                 },
-                amplio,
-                2);
+                columnasAccesoContacto);
 
             AjustarGrid(
                 UbicacionGrid,
@@ -490,20 +510,23 @@ namespace CONATRADEC.Views
                     DepartamentoSection,
                     MunicipioSection
                 },
-                amplio,
-                3);
+                columnasUbicacion);
         }
 
         private static void AjustarGrid(
             Grid grid,
             IReadOnlyList<View> secciones,
-            bool amplio,
-            int columnasAmplias)
+            int columnas)
         {
             grid.ColumnDefinitions.Clear();
             grid.RowDefinitions.Clear();
 
-            int columnas = amplio ? columnasAmplias : 1;
+            columnas =
+                Math.Clamp(
+                    columnas,
+                    1,
+                    Math.Max(1, secciones.Count));
+
             int filas =
                 (int)Math.Ceiling(
                     secciones.Count / (double)columnas);

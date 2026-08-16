@@ -10,10 +10,11 @@ namespace CONATRADEC.Services
     {
         private readonly HttpClient httpClient;
 
-        private readonly JsonSerializerOptions jsonOptions = new(JsonSerializerDefaults.Web)
-        {
-            PropertyNameCaseInsensitive = true
-        };
+        private readonly JsonSerializerOptions jsonOptions =
+            new(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            };
 
         public TerrenoApiService()
             : this(ApiClientService.Client)
@@ -30,8 +31,13 @@ namespace CONATRADEC.Services
         // MÉTODOS CON RESULTADO DETALLADO
         // =========================================================
 
-        public async Task<ApiResult<ObservableCollection<TerrenoResponse>>> GetTerrenosResultAsync(
-            CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Endpoint histórico conservado porque todavía puede tener consumidores
+        /// fuera de la administración paginada de Terrenos.
+        /// </summary>
+        public async Task<ApiResult<ObservableCollection<TerrenoResponse>>>
+            GetTerrenosResultAsync(
+                CancellationToken cancellationToken = default)
         {
             try
             {
@@ -42,14 +48,17 @@ namespace CONATRADEC.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
-                        ObtenerMensajeHttp(response.StatusCode, "cargar los terrenos"),
+                        ObtenerMensajeHttp(
+                            response.StatusCode,
+                            "cargar los terrenos"),
                         (int)response.StatusCode);
                 }
 
-                var terrenos = await response.Content
-                    .ReadFromJsonAsync<ObservableCollection<TerrenoResponse>>(
-                        jsonOptions,
-                        cancellationToken);
+                ObservableCollection<TerrenoResponse>? terrenos =
+                    await response.Content
+                        .ReadFromJsonAsync<ObservableCollection<TerrenoResponse>>(
+                            jsonOptions,
+                            cancellationToken);
 
                 var terrenosActivos = terrenos == null
                     ? new ObservableCollection<TerrenoResponse>()
@@ -59,7 +68,8 @@ namespace CONATRADEC.Services
                 return ApiResult<ObservableCollection<TerrenoResponse>>.Ok(
                     terrenosActivos);
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
                     "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
@@ -79,7 +89,7 @@ namespace CONATRADEC.Services
                 return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
                     "El servidor respondió, pero los datos de terrenos no tienen el formato esperado.");
             }
-            catch (Exception)
+            catch
             {
                 return ApiResult<ObservableCollection<TerrenoResponse>>.Fail(
                     "Ocurrió un error inesperado al cargar los terrenos.");
@@ -116,11 +126,14 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
+                TerrenoVisitaService.MarcarListadoParaRecargar();
+
                 return ApiResult<bool>.Ok(
                     true,
                     "Terreno guardado correctamente.");
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<bool>.Fail(
                     "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
@@ -134,16 +147,17 @@ namespace CONATRADEC.Services
                 return ApiResult<bool>.Fail(
                     "No fue posible conectarse con el servidor. Verifique su conexión.");
             }
-            catch (Exception)
+            catch
             {
                 return ApiResult<bool>.Fail(
                     "Ocurrió un error inesperado al crear el terreno.");
             }
         }
 
-        public async Task<ApiResult<TerrenoResponse>> CreateTerrenoRetornandoResultAsync(
-            TerrenoRequest terreno,
-            CancellationToken cancellationToken = default)
+        public async Task<ApiResult<TerrenoResponse>>
+            CreateTerrenoRetornandoResultAsync(
+                TerrenoRequest terreno,
+                CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(terreno);
 
@@ -171,59 +185,47 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
-                string contenido = await response.Content.ReadAsStringAsync(cancellationToken);
-                var terrenoCreado = IntentarLeerTerrenoCreado(contenido);
+                string contenido = await response.Content
+                    .ReadAsStringAsync(cancellationToken);
 
-                if (terrenoCreado != null &&
-                    terrenoCreado.TerrenoId.HasValue &&
-                    terrenoCreado.TerrenoId.Value > 0)
+                TerrenoResponse? terrenoCreado =
+                    IntentarLeerTerrenoCreado(contenido);
+
+                if (terrenoCreado?.TerrenoId is not > 0)
                 {
-                    return ApiResult<TerrenoResponse>.Ok(
-                        terrenoCreado,
-                        "Terreno guardado correctamente.");
+                    /*
+                     * El backend actual devuelve el DTO creado. No se ejecuta
+                     * un GET de todos los terrenos como mecanismo de respaldo,
+                     * porque eso volvería a cargar más de 1,800 registros para
+                     * identificar una sola creación.
+                     */
+                    return ApiResult<TerrenoResponse>.Fail(
+                        "El terreno fue procesado, pero el servidor no devolvió el registro creado.");
                 }
 
-                if (!string.IsNullOrWhiteSpace(terreno.CodigoTerreno))
-                {
-                    var resultadoTerrenos = await GetTerrenosResultAsync(cancellationToken);
+                TerrenoVisitaService.MarcarListadoParaRecargar();
 
-                    if (resultadoTerrenos.Success && resultadoTerrenos.Data != null)
-                    {
-                        var terrenoEncontrado = resultadoTerrenos.Data
-                            .Where(t => string.Equals(
-                                t.CodigoTerreno?.Trim(),
-                                terreno.CodigoTerreno.Trim(),
-                                StringComparison.OrdinalIgnoreCase))
-                            .OrderByDescending(t => t.TerrenoId ?? 0)
-                            .FirstOrDefault();
-
-                        if (terrenoEncontrado != null)
-                        {
-                            return ApiResult<TerrenoResponse>.Ok(
-                                terrenoEncontrado,
-                                "Terreno guardado correctamente.");
-                        }
-                    }
-                }
-
-                return ApiResult<TerrenoResponse>.Fail(
-                    "El terreno fue procesado, pero no fue posible identificar el registro creado.");
+                return ApiResult<TerrenoResponse>.Ok(
+                    terrenoCreado,
+                    "Terreno guardado correctamente.");
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<TerrenoResponse>.Fail(
                     "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
             }
             catch (OperationCanceledException)
             {
-                return ApiResult<TerrenoResponse>.Fail("La operación fue cancelada.");
+                return ApiResult<TerrenoResponse>.Fail(
+                    "La operación fue cancelada.");
             }
             catch (HttpRequestException)
             {
                 return ApiResult<TerrenoResponse>.Fail(
                     "No fue posible conectarse con el servidor. Verifique su conexión.");
             }
-            catch (Exception)
+            catch
             {
                 return ApiResult<TerrenoResponse>.Fail(
                     "Ocurrió un error inesperado al crear el terreno.");
@@ -249,13 +251,6 @@ namespace CONATRADEC.Services
                     terreno,
                     cancellationToken);
 
-                //if (!response.IsSuccessStatusCode)
-                //{
-                //    return ApiResult<bool>.Fail(
-                //        ObtenerMensajeHttp(response.StatusCode, "actualizar el terreno"),
-                //        (int)response.StatusCode);
-                //}
-
                 if (!response.IsSuccessStatusCode)
                 {
                     string contenido = await response.Content
@@ -273,11 +268,17 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
+                // Un cambio puede mover el registro a otra página según los
+                // filtros/orden global. Al volver al listado se consulta solo
+                // la página activa, nunca el universo completo.
+                TerrenoVisitaService.MarcarListadoParaRecargar();
+
                 return ApiResult<bool>.Ok(
                     true,
                     "Terreno actualizado correctamente.");
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<bool>.Fail(
                     "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
@@ -291,7 +292,7 @@ namespace CONATRADEC.Services
                 return ApiResult<bool>.Fail(
                     "No fue posible conectarse con el servidor. Verifique su conexión.");
             }
-            catch (Exception)
+            catch
             {
                 return ApiResult<bool>.Fail(
                     "Ocurrió un error inesperado al actualizar el terreno.");
@@ -319,7 +320,9 @@ namespace CONATRADEC.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     return ApiResult<bool>.Fail(
-                        ObtenerMensajeHttp(response.StatusCode, "eliminar el terreno"),
+                        ObtenerMensajeHttp(
+                            response.StatusCode,
+                            "eliminar el terreno"),
                         (int)response.StatusCode);
                 }
 
@@ -327,7 +330,8 @@ namespace CONATRADEC.Services
                     true,
                     "Terreno eliminado correctamente.");
             }
-            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<bool>.Fail(
                     "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
@@ -341,7 +345,7 @@ namespace CONATRADEC.Services
                 return ApiResult<bool>.Fail(
                     "No fue posible conectarse con el servidor. Verifique su conexión.");
             }
-            catch (Exception)
+            catch
             {
                 return ApiResult<bool>.Fail(
                     "Ocurrió un error inesperado al eliminar el terreno.");
@@ -350,13 +354,13 @@ namespace CONATRADEC.Services
 
         // =========================================================
         // MÉTODOS ANTERIORES
-        // Se conservan para no romper TerrenoFormViewModel ni otros
-        // módulos que ya utilizan estas firmas.
+        // Se conservan para no romper formularios ni otros consumidores.
         // =========================================================
 
         public async Task<ObservableCollection<TerrenoResponse>> GetTerrenosAsync()
         {
-            var resultado = await GetTerrenosResultAsync();
+            ApiResult<ObservableCollection<TerrenoResponse>> resultado =
+                await GetTerrenosResultAsync();
 
             return resultado.Success && resultado.Data != null
                 ? resultado.Data
@@ -365,25 +369,28 @@ namespace CONATRADEC.Services
 
         public async Task<bool> CreateTerrenoAsync(TerrenoRequest terreno)
         {
-            var resultado = await CreateTerrenoResultAsync(terreno);
+            ApiResult<bool> resultado = await CreateTerrenoResultAsync(terreno);
             return resultado.Success;
         }
 
-        public async Task<TerrenoResponse?> CreateTerrenoRetornandoAsync(TerrenoRequest terreno)
+        public async Task<TerrenoResponse?> CreateTerrenoRetornandoAsync(
+            TerrenoRequest terreno)
         {
-            var resultado = await CreateTerrenoRetornandoResultAsync(terreno);
+            ApiResult<TerrenoResponse> resultado =
+                await CreateTerrenoRetornandoResultAsync(terreno);
+
             return resultado.Success ? resultado.Data : null;
         }
 
         public async Task<bool> UpdateTerrenoAsync(TerrenoRequest terreno)
         {
-            var resultado = await UpdateTerrenoResultAsync(terreno);
+            ApiResult<bool> resultado = await UpdateTerrenoResultAsync(terreno);
             return resultado.Success;
         }
 
         public async Task<bool> DeleteTerrenoAsync(TerrenoRequest terreno)
         {
-            var resultado = await DeleteTerrenoResultAsync(terreno);
+            ApiResult<bool> resultado = await DeleteTerrenoResultAsync(terreno);
             return resultado.Success;
         }
 
@@ -399,27 +406,20 @@ namespace CONATRADEC.Services
             {
                 HttpStatusCode.BadRequest =>
                     $"Los datos enviados no son válidos para {operacion}.",
-
                 HttpStatusCode.Unauthorized =>
                     "La sesión no es válida o ha expirado.",
-
                 HttpStatusCode.Forbidden =>
                     $"No tiene permisos para {operacion}.",
-
                 HttpStatusCode.NotFound =>
                     "No se encontró el terreno solicitado.",
-
                 HttpStatusCode.Conflict =>
                     $"No fue posible {operacion} porque existe un conflicto con los datos.",
-
                 HttpStatusCode.InternalServerError =>
                     "El servidor presentó un error interno. Intente nuevamente.",
-
                 HttpStatusCode.BadGateway or
                 HttpStatusCode.ServiceUnavailable or
                 HttpStatusCode.GatewayTimeout =>
                     "El servidor no está disponible temporalmente. Intente nuevamente.",
-
                 _ =>
                     $"No fue posible {operacion}. Código del servidor: {(int)statusCode}."
             };
@@ -433,21 +433,18 @@ namespace CONATRADEC.Services
                     return null;
 
                 using var document = JsonDocument.Parse(contenido);
-                var root = document.RootElement;
+                JsonElement root = document.RootElement;
 
                 if (root.ValueKind != JsonValueKind.Object)
                     return null;
 
-                var directo = JsonSerializer.Deserialize<TerrenoResponse>(
-                    root.GetRawText(),
-                    jsonOptions);
+                TerrenoResponse? directo =
+                    JsonSerializer.Deserialize<TerrenoResponse>(
+                        root.GetRawText(),
+                        jsonOptions);
 
-                if (directo != null &&
-                    directo.TerrenoId.HasValue &&
-                    directo.TerrenoId.Value > 0)
-                {
+                if (directo?.TerrenoId is > 0)
                     return directo;
-                }
 
                 string[] posiblesNodos =
                 {
@@ -458,21 +455,21 @@ namespace CONATRADEC.Services
                     "item"
                 };
 
-                foreach (var nodo in posiblesNodos)
+                foreach (string nodo in posiblesNodos)
                 {
-                    if (TryGetPropertyIgnoreCase(root, nodo, out var elemento) &&
+                    if (TryGetPropertyIgnoreCase(
+                            root,
+                            nodo,
+                            out JsonElement elemento) &&
                         elemento.ValueKind == JsonValueKind.Object)
                     {
-                        var desdeNodo = JsonSerializer.Deserialize<TerrenoResponse>(
-                            elemento.GetRawText(),
-                            jsonOptions);
+                        TerrenoResponse? desdeNodo =
+                            JsonSerializer.Deserialize<TerrenoResponse>(
+                                elemento.GetRawText(),
+                                jsonOptions);
 
-                        if (desdeNodo != null &&
-                            desdeNodo.TerrenoId.HasValue &&
-                            desdeNodo.TerrenoId.Value > 0)
-                        {
+                        if (desdeNodo?.TerrenoId is > 0)
                             return desdeNodo;
-                        }
                     }
                 }
 
@@ -498,12 +495,12 @@ namespace CONATRADEC.Services
             string propertyName,
             out JsonElement value)
         {
-            foreach (var property in element.EnumerateObject())
+            foreach (JsonProperty property in element.EnumerateObject())
             {
                 if (string.Equals(
-                    property.Name,
-                    propertyName,
-                    StringComparison.OrdinalIgnoreCase))
+                        property.Name,
+                        propertyName,
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     value = property.Value;
                     return true;
@@ -521,8 +518,13 @@ namespace CONATRADEC.Services
         {
             value = 0;
 
-            if (!TryGetPropertyIgnoreCase(element, propertyName, out var property))
+            if (!TryGetPropertyIgnoreCase(
+                    element,
+                    propertyName,
+                    out JsonElement property))
+            {
                 return false;
+            }
 
             if (property.ValueKind == JsonValueKind.Number &&
                 property.TryGetInt32(out value))

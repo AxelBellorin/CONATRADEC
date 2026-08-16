@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
@@ -19,6 +19,7 @@ namespace CONATRADEC.ViewModels
         private CancellationTokenSource? cargaCts;
         private CancellationTokenSource? ubicacionCts;
 
+        // Valores escritos actualmente en la interfaz.
         private string textoBusqueda = string.Empty;
         private string codigoFiltro = string.Empty;
         private string propietarioFiltro = string.Empty;
@@ -27,7 +28,27 @@ namespace CONATRADEC.ViewModels
         private string extensionMinimaTexto = string.Empty;
         private string extensionMaximaTexto = string.Empty;
         private string ordenarSeleccionado = "Código (A-Z)";
+
+        // Instantánea de los filtros realmente aplicados al servidor. Escribir
+        // nuevos valores no modifica la paginación hasta presionar Buscar.
+        private string textoBusquedaAplicado = string.Empty;
+        private string codigoFiltroAplicado = string.Empty;
+        private string propietarioFiltroAplicado = string.Empty;
+        private string identificacionFiltroAplicado = string.Empty;
+        private string direccionFiltroAplicado = string.Empty;
+        private int? paisIdAplicado;
+        private int? departamentoIdAplicado;
+        private int? municipioIdAplicado;
+        private DateOnly? fechaDesdeAplicada;
+        private DateOnly? fechaHastaAplicada;
+        private decimal? extensionMinimaAplicada;
+        private decimal? extensionMaximaAplicada;
+        private string ordenarPorAplicado = "codigo";
+        private bool descendenteAplicado;
+
         private string mensaje = string.Empty;
+        private string tituloRelay = "Procesando...";
+        private string detalleRelay = "Espere un momento.";
 
         private PaisResponse? paisSeleccionado;
         private DepartamentoResponse? departamentoSeleccionado;
@@ -36,19 +57,20 @@ namespace CONATRADEC.ViewModels
         private bool mostrarFiltrosAvanzados;
         private bool filtrarPorFecha;
         private bool isRefreshing;
-        private bool cargandoMas;
         private bool navegando;
         private bool ubicacionCargando;
         private bool pantallaCargada;
         private bool catalogosCargados;
         private bool actualizandoUbicacionInterna;
+        private bool mostrandoRelay;
 
         private DateTime fechaDesde = DateTime.Today.AddYears(-1);
         private DateTime fechaHasta = DateTime.Today;
 
-        private int paginaActual;
+        private int paginaActual = 1;
         private int totalPaginas = 1;
         private int totalRegistros;
+        private int tamanoPaginaActual;
 
         public TerrenoViewModel()
             : this(
@@ -90,28 +112,46 @@ namespace CONATRADEC.ViewModels
                 "Menor extensión"
             };
 
+            RegresarConfiguracionCommand = new Command(
+                async () => await EjecutarSeguroAsync(
+                    SalirAConfiguracionAsync,
+                    "regresar a configuración"),
+                () => !IsBusy && !Navegando);
+
             AddCommand = new Command(
-                async () => await EjecutarSeguroAsync(OnAddAsync, "abrir el formulario de terreno"),
+                async () => await EjecutarSeguroAsync(
+                    OnAddAsync,
+                    "abrir el formulario de terreno"),
                 () => CanAdd && !IsBusy && !Navegando);
 
             EditCommand = new Command<TerrenoResponse>(
-                async item => await EjecutarSeguroAsync(() => OnEditAsync(item), "editar el terreno"),
+                async item => await EjecutarSeguroAsync(
+                    () => OnEditAsync(item),
+                    "editar el terreno"),
                 item => item != null && CanEdit && !IsBusy && !Navegando);
 
             DeleteCommand = new Command<TerrenoResponse>(
-                async item => await EjecutarSeguroAsync(() => OnDeleteAsync(item), "eliminar el terreno"),
+                async item => await EjecutarSeguroAsync(
+                    () => OnDeleteAsync(item),
+                    "eliminar el terreno"),
                 item => item != null && CanDelete && !IsBusy && !Navegando);
 
             ViewCommand = new Command<TerrenoResponse>(
-                async item => await EjecutarSeguroAsync(() => OnViewAsync(item), "abrir el terreno"),
+                async item => await EjecutarSeguroAsync(
+                    () => OnViewAsync(item),
+                    "abrir el terreno"),
                 item => item != null && CanView && !IsBusy && !Navegando);
 
             BuscarCommand = new Command(
-                async () => await EjecutarSeguroAsync(() => CargarAsync(true), "buscar terrenos"),
+                async () => await EjecutarSeguroAsync(
+                    BuscarAsync,
+                    "buscar terrenos"),
                 () => CanView && !IsBusy && !Navegando);
 
             LimpiarFiltrosCommand = new Command(
-                async () => await EjecutarSeguroAsync(LimpiarFiltrosAsync, "limpiar los filtros"),
+                async () => await EjecutarSeguroAsync(
+                    LimpiarFiltrosAsync,
+                    "limpiar los filtros"),
                 () => CanView && !IsBusy && !Navegando);
 
             AlternarFiltrosCommand = new Command(
@@ -119,12 +159,22 @@ namespace CONATRADEC.ViewModels
                 () => CanView && !Navegando);
 
             RefrescarCommand = new Command(
-                async () => await EjecutarSeguroAsync(RefrescarAsync, "actualizar los terrenos"),
+                async () => await EjecutarSeguroAsync(
+                    RefrescarAsync,
+                    "actualizar los terrenos"),
                 () => CanView && !IsBusy && !Navegando);
 
-            CargarMasCommand = new Command(
-                async () => await EjecutarSeguroAsync(() => CargarAsync(false), "cargar más terrenos"),
-                () => CanView && !IsBusy && !CargandoMas && !Navegando && PuedeCargarMas);
+            PaginaAnteriorCommand = new Command(
+                async () => await EjecutarSeguroAsync(
+                    IrPaginaAnteriorAsync,
+                    "cargar la página anterior"),
+                () => CanView && PuedeIrAnterior && !IsBusy && !Navegando);
+
+            PaginaSiguienteCommand = new Command(
+                async () => await EjecutarSeguroAsync(
+                    IrPaginaSiguienteAsync,
+                    "cargar la página siguiente"),
+                () => CanView && PuedeIrSiguiente && !IsBusy && !Navegando);
         }
 
         public ObservableCollection<TerrenoResponse> List { get; }
@@ -133,6 +183,7 @@ namespace CONATRADEC.ViewModels
         public ObservableCollection<MunicipioResponse> Municipios { get; }
         public ObservableCollection<string> Ordenamientos { get; }
 
+        public Command RegresarConfiguracionCommand { get; }
         public Command AddCommand { get; }
         public Command<TerrenoResponse> EditCommand { get; }
         public Command<TerrenoResponse> DeleteCommand { get; }
@@ -141,7 +192,8 @@ namespace CONATRADEC.ViewModels
         public Command LimpiarFiltrosCommand { get; }
         public Command AlternarFiltrosCommand { get; }
         public Command RefrescarCommand { get; }
-        public Command CargarMasCommand { get; }
+        public Command PaginaAnteriorCommand { get; }
+        public Command PaginaSiguienteCommand { get; }
 
         public string TextoBusqueda
         {
@@ -346,21 +398,6 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool CargandoMas
-        {
-            get => cargandoMas;
-            private set
-            {
-                if (cargandoMas == value)
-                    return;
-
-                cargandoMas = value;
-                OnPropertyChanged();
-                ActualizarComandos();
-                NotificarEstadoLista();
-            }
-        }
-
         public bool Navegando
         {
             get => navegando;
@@ -388,49 +425,178 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public bool MostrandoRelay
+        {
+            get => mostrandoRelay;
+            private set
+            {
+                if (mostrandoRelay == value)
+                    return;
+
+                mostrandoRelay = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string TituloRelay
+        {
+            get => tituloRelay;
+            private set
+            {
+                string nuevoValor = value ?? string.Empty;
+
+                if (tituloRelay == nuevoValor)
+                    return;
+
+                tituloRelay = nuevoValor;
+                OnPropertyChanged();
+            }
+        }
+
+        public string DetalleRelay
+        {
+            get => detalleRelay;
+            private set
+            {
+                string nuevoValor = value ?? string.Empty;
+
+                if (detalleRelay == nuevoValor)
+                    return;
+
+                detalleRelay = nuevoValor;
+                OnPropertyChanged();
+            }
+        }
+
         public bool TieneMensaje => !string.IsNullOrWhiteSpace(Mensaje);
         public bool TieneTerrenos => List.Count > 0;
-        public bool MostrarVacio => pantallaCargada && !TieneTerrenos && !IsBusy;
-        public bool PuedeCargarMas => paginaActual < totalPaginas;
-        public bool MostrarFinLista => pantallaCargada && TieneTerrenos && !PuedeCargarMas && !CargandoMas;
+        public bool MostrarAccesoDenegado => !CanView;
+        public bool TienePaginaCargada => pantallaCargada;
+
+        public bool MostrarVacio =>
+            CanView && pantallaCargada && !IsBusy && List.Count == 0 && !TieneMensaje;
+
+        public bool PuedeIrAnterior =>
+            pantallaCargada && paginaActual > 1;
+
+        public bool PuedeIrSiguiente =>
+            pantallaCargada && paginaActual < totalPaginas;
+
+        public bool MostrarPaginacion =>
+            CanView && pantallaCargada && List.Count > 0;
+
+        public int PaginaActual => paginaActual;
+        public int TotalPaginas => totalPaginas;
 
         public string TotalTexto => totalRegistros == 1
             ? "1 terreno"
             : $"{totalRegistros:N0} terrenos";
 
+        public string PaginaTexto =>
+            $"Página {Math.Max(1, paginaActual)} de {Math.Max(1, totalPaginas)}";
+
+        public string RangoPaginaTexto
+        {
+            get
+            {
+                if (totalRegistros <= 0 || List.Count == 0)
+                    return "Sin registros en esta página";
+
+                int tamano = Math.Max(1, tamanoPaginaActual);
+                int inicio = ((Math.Max(1, paginaActual) - 1) * tamano) + 1;
+                int fin = Math.Min(inicio + List.Count - 1, totalRegistros);
+
+                return $"Mostrando {inicio}-{fin} de {totalRegistros}";
+            }
+        }
+
         public void ActualizarPermisos()
         {
             LoadPagePermissions("terrenoPage");
+            OnPropertyChanged(nameof(MostrarAccesoDenegado));
             ActualizarComandos();
+            NotificarEstadoLista();
         }
 
-        public async Task InicializarAsync()
+        public async Task IniciarNuevaVisitaAsync()
         {
             if (!CanView || Navegando)
                 return;
 
+            // AsegurarVisita ya creó el contenedor de la nueva visita.
+            // Se reinicia únicamente el estado propio del listado.
+            CancelarCarga();
+            RestablecerFiltrosLocales();
+            RestablecerFiltrosAplicados();
+            List.Clear();
+            paginaActual = 1;
+            totalPaginas = 1;
+            totalRegistros = 0;
+            tamanoPaginaActual = ObtenerTamanoPagina();
+            pantallaCargada = false;
+            catalogosCargados = false;
+            Paises.Clear();
+            Departamentos.Clear();
+            Municipios.Clear();
+
             await CargarCatalogosAsync();
-            await CargarAsync(true);
+            await CargarPaginaAsync(
+                1,
+                "Cargando terrenos...",
+                "Consultando información actual del servidor");
+        }
+
+        public async Task InicializarAsync()
+        {
+            if (!CanView || Navegando || pantallaCargada)
+                return;
+
+            await CargarCatalogosAsync();
+            await CargarPaginaAsync(
+                1,
+                "Cargando terrenos...",
+                "Consultando información actual del servidor");
+        }
+
+        public Task RecargarPaginaActualAsync()
+        {
+            if (!CanView || Navegando)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                Math.Max(1, paginaActual),
+                "Actualizando terrenos...",
+                "Consultando nuevamente la página actual");
         }
 
         public void CancelarCarga()
         {
-            CancellationTokenSource? carga = Interlocked.Exchange(ref cargaCts, null);
+            CancellationTokenSource? carga =
+                Interlocked.Exchange(ref cargaCts, null);
             CancelarSeguro(carga);
 
-            CancellationTokenSource? ubicacion = Interlocked.Exchange(ref ubicacionCts, null);
+            CancellationTokenSource? ubicacion =
+                Interlocked.Exchange(ref ubicacionCts, null);
             CancelarSeguro(ubicacion);
 
             IsBusy = false;
             IsRefreshing = false;
-            CargandoMas = false;
             UbicacionCargando = false;
+            OcultarRelay();
         }
 
         private async Task CargarCatalogosAsync()
         {
             if (catalogosCargados)
                 return;
+
+            if (TerrenoVisitaService.IntentarObtenerPaises(
+                    out List<PaisResponse> cache))
+            {
+                AplicarPaises(cache);
+                catalogosCargados = true;
+                return;
+            }
 
             ApiResult<ObservableCollection<PaisResponse>> result =
                 await paisApiService.GetPaisResultAsync();
@@ -441,12 +607,22 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            Paises.Clear();
+            List<PaisResponse> items = result.Data
+                .Where(x => x.PaisId > 0)
+                .OrderBy(x => x.NombrePais)
+                .ToList();
 
-            foreach (PaisResponse pais in result.Data.OrderBy(x => x.NombrePais))
-                Paises.Add(pais);
-
+            AplicarPaises(items);
+            TerrenoVisitaService.GuardarPaises(items);
             catalogosCargados = true;
+        }
+
+        private void AplicarPaises(IEnumerable<PaisResponse> items)
+        {
+            Paises.Clear();
+            foreach (PaisResponse item in items)
+                Paises.Add(item);
+            OnPropertyChanged(nameof(Paises));
         }
 
         private async Task CargarDepartamentosPorPaisAsync(PaisResponse? pais)
@@ -460,6 +636,15 @@ namespace CONATRADEC.ViewModels
 
                 if (pais?.PaisId is not > 0)
                     return;
+
+                if (TerrenoVisitaService.IntentarObtenerDepartamentos(
+                        pais.PaisId,
+                        out List<DepartamentoResponse> cache))
+                {
+                    if (!source.IsCancellationRequested && EsUbicacionActual(source))
+                        AplicarDepartamentos(cache);
+                    return;
+                }
 
                 ApiResult<ObservableCollection<DepartamentoResponse>> result =
                     await departamentoApiService.GetDepartamentosResultAsync(
@@ -475,11 +660,12 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                foreach (DepartamentoResponse item in result.Data
-                             .OrderBy(x => x.NombreDepartamento))
-                {
-                    Departamentos.Add(item);
-                }
+                List<DepartamentoResponse> items = result.Data
+                    .OrderBy(x => x.NombreDepartamento)
+                    .ToList();
+
+                AplicarDepartamentos(items);
+                TerrenoVisitaService.GuardarDepartamentos(pais.PaisId, items);
             }
             catch (OperationCanceledException)
             {
@@ -507,9 +693,20 @@ namespace CONATRADEC.ViewModels
                 if (departamento?.DepartamentoId is not > 0)
                     return;
 
+                int departamentoId = departamento.DepartamentoId.Value;
+
+                if (TerrenoVisitaService.IntentarObtenerMunicipios(
+                        departamentoId,
+                        out List<MunicipioResponse> cache))
+                {
+                    if (!source.IsCancellationRequested && EsUbicacionActual(source))
+                        AplicarMunicipios(cache);
+                    return;
+                }
+
                 ApiResult<ObservableCollection<MunicipioResponse>> result =
                     await municipioApiService.GetMunicipiosResultAsync(
-                        departamento.DepartamentoId,
+                        departamentoId,
                         source.Token);
 
                 if (source.IsCancellationRequested || !EsUbicacionActual(source))
@@ -521,11 +718,14 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                foreach (MunicipioResponse item in result.Data
-                             .OrderBy(x => x.NombreMunicipio))
-                {
-                    Municipios.Add(item);
-                }
+                List<MunicipioResponse> items = result.Data
+                    .OrderBy(x => x.NombreMunicipio)
+                    .ToList();
+
+                AplicarMunicipios(items);
+                TerrenoVisitaService.GuardarMunicipios(
+                    departamentoId,
+                    items);
             }
             catch (OperationCanceledException)
             {
@@ -540,55 +740,77 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CargarAsync(bool reiniciar)
+        private void AplicarDepartamentos(IEnumerable<DepartamentoResponse> items)
+        {
+            Departamentos.Clear();
+            foreach (DepartamentoResponse item in items)
+                Departamentos.Add(item);
+            OnPropertyChanged(nameof(Departamentos));
+        }
+
+        private void AplicarMunicipios(IEnumerable<MunicipioResponse> items)
+        {
+            Municipios.Clear();
+            foreach (MunicipioResponse item in items)
+                Municipios.Add(item);
+            OnPropertyChanged(nameof(Municipios));
+        }
+
+        private async Task BuscarAsync()
+        {
+            if (!ValidarFiltros())
+                return;
+
+            AplicarFiltrosActuales();
+
+            await CargarPaginaAsync(
+                1,
+                "Buscando terrenos...",
+                "Consultando los registros que coinciden con los filtros");
+        }
+
+        private Task IrPaginaAnteriorAsync()
+        {
+            if (!PuedeIrAnterior)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                paginaActual - 1,
+                "Cargando página anterior...",
+                "Consultando la página anterior de terrenos");
+        }
+
+        private Task IrPaginaSiguienteAsync()
+        {
+            if (!PuedeIrSiguiente)
+                return Task.CompletedTask;
+
+            return CargarPaginaAsync(
+                paginaActual + 1,
+                "Cargando página siguiente...",
+                "Consultando la siguiente página de terrenos");
+        }
+
+        private async Task CargarPaginaAsync(
+            int paginaSolicitada,
+            string tituloOperacion,
+            string detalleOperacion)
         {
             if (!CanView || Navegando)
                 return;
 
-            if (reiniciar && IsBusy)
-                return;
-
-            if (!reiniciar && (CargandoMas || !PuedeCargarMas))
-                return;
-
-            if (!ValidarFiltros())
-                return;
-
+            paginaSolicitada = Math.Max(1, paginaSolicitada);
             CancellationTokenSource source = PrepararCarga();
 
             try
             {
-                if (reiniciar)
-                {
-                    IsBusy = true;
-                    Mensaje = string.Empty;
-                }
-                else
-                {
-                    CargandoMas = true;
-                }
-
-                int pagina = reiniciar ? 1 : paginaActual + 1;
-                (string ordenarPor, bool descendente) = ResolverOrdenamiento();
+                MostrarRelay(tituloOperacion, detalleOperacion);
+                IsBusy = true;
+                Mensaje = string.Empty;
 
                 ApiResult<TerrenoBusquedaPaginadaResponse> result =
-                    await busquedaApiService.BuscarAsync(
-                        TextoBusqueda,
-                        CodigoFiltro,
-                        PropietarioFiltro,
-                        IdentificacionFiltro,
-                        DireccionFiltro,
-                        PaisSeleccionado?.PaisId,
-                        DepartamentoSeleccionado?.DepartamentoId,
-                        MunicipioSeleccionado?.MunicipioId,
-                        FiltrarPorFecha ? DateOnly.FromDateTime(FechaDesde) : null,
-                        FiltrarPorFecha ? DateOnly.FromDateTime(FechaHasta) : null,
-                        ParseDecimal(ExtensionMinimaTexto),
-                        ParseDecimal(ExtensionMaximaTexto),
-                        ordenarPor,
-                        descendente,
-                        pagina,
-                        ObtenerTamanoPagina(),
+                    await ConsultarPaginaAsync(
+                        paginaSolicitada,
                         source.Token);
 
                 if (source.IsCancellationRequested || !EsCargaActual(source))
@@ -598,11 +820,34 @@ namespace CONATRADEC.ViewModels
                 {
                     if (!EsMensajeCancelacion(result.Message))
                         Mensaje = result.Message;
-
                     return;
                 }
 
-                AplicarPagina(result.Data, reiniciar);
+                TerrenoBusquedaPaginadaResponse pagina = result.Data;
+
+                // Si una eliminación o cambio externo redujo el total de páginas,
+                // se corrige una sola vez hacia la última página válida.
+                int totalPaginasRespuesta = Math.Max(1, pagina.TotalPages);
+                if (paginaSolicitada > totalPaginasRespuesta && pagina.Total > 0)
+                {
+                    result = await ConsultarPaginaAsync(
+                        totalPaginasRespuesta,
+                        source.Token);
+
+                    if (source.IsCancellationRequested || !EsCargaActual(source))
+                        return;
+
+                    if (!result.Success || result.Data == null)
+                    {
+                        if (!EsMensajeCancelacion(result.Message))
+                            Mensaje = result.Message;
+                        return;
+                    }
+
+                    pagina = result.Data;
+                }
+
+                AplicarPagina(pagina);
             }
             catch (OperationCanceledException)
             {
@@ -616,15 +861,9 @@ namespace CONATRADEC.ViewModels
             {
                 if (EsCargaActual(source))
                 {
-                    if (reiniciar)
-                    {
-                        IsBusy = false;
-                        IsRefreshing = false;
-                    }
-                    else
-                    {
-                        CargandoMas = false;
-                    }
+                    IsBusy = false;
+                    IsRefreshing = false;
+                    OcultarRelay();
                 }
 
                 LiberarCarga(source);
@@ -633,28 +872,43 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private void AplicarPagina(
-            TerrenoBusquedaPaginadaResponse pagina,
-            bool reiniciar)
+        private Task<ApiResult<TerrenoBusquedaPaginadaResponse>> ConsultarPaginaAsync(
+            int pagina,
+            CancellationToken cancellationToken) =>
+            busquedaApiService.BuscarAsync(
+                textoBusquedaAplicado,
+                codigoFiltroAplicado,
+                propietarioFiltroAplicado,
+                identificacionFiltroAplicado,
+                direccionFiltroAplicado,
+                paisIdAplicado,
+                departamentoIdAplicado,
+                municipioIdAplicado,
+                fechaDesdeAplicada,
+                fechaHastaAplicada,
+                extensionMinimaAplicada,
+                extensionMaximaAplicada,
+                ordenarPorAplicado,
+                descendenteAplicado,
+                pagina,
+                ObtenerTamanoPagina(),
+                cancellationToken);
+
+        private void AplicarPagina(TerrenoBusquedaPaginadaResponse pagina)
         {
-            if (reiniciar)
-                List.Clear();
+            List.Clear();
 
             foreach (TerrenoResponse item in pagina.Data)
-            {
-                if (item.TerrenoId.HasValue &&
-                    List.Any(x => x.TerrenoId == item.TerrenoId))
-                {
-                    continue;
-                }
-
                 List.Add(item);
-            }
 
             paginaActual = Math.Max(1, pagina.Page);
             totalPaginas = Math.Max(1, pagina.TotalPages);
             totalRegistros = Math.Max(0, pagina.Total);
+            tamanoPaginaActual = pagina.PageSize > 0
+                ? pagina.PageSize
+                : ObtenerTamanoPagina();
             pantallaCargada = true;
+            Mensaje = string.Empty;
 
             NotificarEstadoLista();
         }
@@ -666,13 +920,15 @@ namespace CONATRADEC.ViewModels
             decimal? extensionMinima = ParseDecimal(ExtensionMinimaTexto);
             decimal? extensionMaxima = ParseDecimal(ExtensionMaximaTexto);
 
-            if (!string.IsNullOrWhiteSpace(ExtensionMinimaTexto) && !extensionMinima.HasValue)
+            if (!string.IsNullOrWhiteSpace(ExtensionMinimaTexto) &&
+                !extensionMinima.HasValue)
             {
                 Mensaje = "La extensión mínima no tiene un formato válido.";
                 return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(ExtensionMaximaTexto) && !extensionMaxima.HasValue)
+            if (!string.IsNullOrWhiteSpace(ExtensionMaximaTexto) &&
+                !extensionMaxima.HasValue)
             {
                 Mensaje = "La extensión máxima no tiene un formato válido.";
                 return false;
@@ -701,7 +957,40 @@ namespace CONATRADEC.ViewModels
             return true;
         }
 
+        private void AplicarFiltrosActuales()
+        {
+            textoBusquedaAplicado = TextoBusqueda.Trim();
+            codigoFiltroAplicado = CodigoFiltro.Trim();
+            propietarioFiltroAplicado = PropietarioFiltro.Trim();
+            identificacionFiltroAplicado = IdentificacionFiltro.Trim();
+            direccionFiltroAplicado = DireccionFiltro.Trim();
+            paisIdAplicado = PaisSeleccionado?.PaisId;
+            departamentoIdAplicado = DepartamentoSeleccionado?.DepartamentoId;
+            municipioIdAplicado = MunicipioSeleccionado?.MunicipioId;
+            fechaDesdeAplicada = FiltrarPorFecha
+                ? DateOnly.FromDateTime(FechaDesde)
+                : null;
+            fechaHastaAplicada = FiltrarPorFecha
+                ? DateOnly.FromDateTime(FechaHasta)
+                : null;
+            extensionMinimaAplicada = ParseDecimal(ExtensionMinimaTexto);
+            extensionMaximaAplicada = ParseDecimal(ExtensionMaximaTexto);
+
+            (ordenarPorAplicado, descendenteAplicado) = ResolverOrdenamiento();
+        }
+
         private async Task LimpiarFiltrosAsync()
+        {
+            RestablecerFiltrosLocales();
+            RestablecerFiltrosAplicados();
+
+            await CargarPaginaAsync(
+                1,
+                "Actualizando terrenos...",
+                "Quitando filtros y consultando la primera página");
+        }
+
+        private void RestablecerFiltrosLocales()
         {
             textoBusqueda = string.Empty;
             codigoFiltro = string.Empty;
@@ -716,7 +1005,6 @@ namespace CONATRADEC.ViewModels
             fechaHasta = DateTime.Today;
 
             actualizandoUbicacionInterna = true;
-
             try
             {
                 paisSeleccionado = null;
@@ -744,16 +1032,35 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(PaisSeleccionado));
             OnPropertyChanged(nameof(DepartamentoSeleccionado));
             OnPropertyChanged(nameof(MunicipioSeleccionado));
+        }
 
-            await CargarAsync(true);
+        private void RestablecerFiltrosAplicados()
+        {
+            textoBusquedaAplicado = string.Empty;
+            codigoFiltroAplicado = string.Empty;
+            propietarioFiltroAplicado = string.Empty;
+            identificacionFiltroAplicado = string.Empty;
+            direccionFiltroAplicado = string.Empty;
+            paisIdAplicado = null;
+            departamentoIdAplicado = null;
+            municipioIdAplicado = null;
+            fechaDesdeAplicada = null;
+            fechaHastaAplicada = null;
+            extensionMinimaAplicada = null;
+            extensionMaximaAplicada = null;
+            ordenarPorAplicado = "codigo";
+            descendenteAplicado = false;
         }
 
         private async Task RefrescarAsync()
         {
+            IsRefreshing = true;
             try
             {
-                IsRefreshing = true;
-                await CargarAsync(true);
+                await CargarPaginaAsync(
+                    Math.Max(1, paginaActual),
+                    "Actualizando terrenos...",
+                    "Consultando nuevamente la página actual");
             }
             finally
             {
@@ -761,21 +1068,22 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task OnAddAsync()
-        {
-            var parameters = new Dictionary<string, object>
-            {
-                ["Mode"] = FormMode.FormModeSelect.Create,
-                ["Terreno"] = new TerrenoRequest(new TerrenoResponse())
-            };
-
-            await NavegarAsync(AppRoutes.TerrenoFormulario, parameters);
-        }
+        private Task OnAddAsync() =>
+            NavegarAsync(
+                AppRoutes.TerrenoFormulario,
+                new Dictionary<string, object>
+                {
+                    ["Mode"] = FormMode.FormModeSelect.Create,
+                    ["Terreno"] = new TerrenoRequest()
+                },
+                "Abriendo nuevo terreno...",
+                "Preparando el formulario de registro");
 
         private Task OnEditAsync(TerrenoResponse? item)
         {
-            if (item == null)
-                return Task.CompletedTask;
+            if (item?.TerrenoId is null or <= 0)
+                return MostrarErrorAsync(
+                    "No se recibió un terreno válido para editar.");
 
             return NavegarAsync(
                 AppRoutes.TerrenoFormulario,
@@ -783,13 +1091,16 @@ namespace CONATRADEC.ViewModels
                 {
                     ["Mode"] = FormMode.FormModeSelect.Edit,
                     ["Terreno"] = new TerrenoRequest(item)
-                });
+                },
+                "Abriendo terreno...",
+                "Preparando la edición del terreno seleccionado");
         }
 
         private Task OnViewAsync(TerrenoResponse? item)
         {
-            if (item == null)
-                return Task.CompletedTask;
+            if (item?.TerrenoId is null or <= 0)
+                return MostrarErrorAsync(
+                    "No se recibió un terreno válido para consultar.");
 
             return NavegarAsync(
                 AppRoutes.TerrenoFormulario,
@@ -797,12 +1108,14 @@ namespace CONATRADEC.ViewModels
                 {
                     ["Mode"] = FormMode.FormModeSelect.View,
                     ["Terreno"] = new TerrenoRequest(item)
-                });
+                },
+                "Abriendo terreno...",
+                "Preparando el detalle del terreno seleccionado");
         }
 
         private async Task OnDeleteAsync(TerrenoResponse? item)
         {
-            if (item == null)
+            if (item?.TerrenoId is null or <= 0)
                 return;
 
             bool confirmar = await ConfirmarAsync(
@@ -814,13 +1127,24 @@ namespace CONATRADEC.ViewModels
             if (!confirmar)
                 return;
 
-            IsBusy = true;
+            CancellationTokenSource source = PrepararCarga();
+            bool recargarPaginaAnterior = false;
+            int paginaDestino = Math.Max(1, paginaActual);
 
             try
             {
+                MostrarRelay(
+                    "Eliminando terreno...",
+                    "Desactivando el registro en el servidor");
+                IsBusy = true;
+
                 ApiResult<bool> resultado =
                     await terrenoApiService.DeleteTerrenoResultAsync(
-                        new TerrenoRequest(item));
+                        new TerrenoRequest(item),
+                        source.Token);
+
+                if (source.IsCancellationRequested || !EsCargaActual(source))
+                    return;
 
                 if (!resultado.Success)
                 {
@@ -830,19 +1154,66 @@ namespace CONATRADEC.ViewModels
 
                 List.Remove(item);
                 totalRegistros = Math.Max(0, totalRegistros - 1);
-                NotificarEstadoLista();
+                RecalcularPaginasLocales();
+
+                if (List.Count == 0 && totalRegistros > 0 && paginaActual > 1)
+                {
+                    paginaDestino = Math.Min(
+                        paginaActual - 1,
+                        Math.Max(1, totalPaginas));
+                    recargarPaginaAnterior = true;
+                }
 
                 await MostrarExitoAsync("Terreno eliminado correctamente.");
             }
             finally
             {
-                IsBusy = false;
+                if (EsCargaActual(source))
+                {
+                    IsBusy = false;
+                    OcultarRelay();
+                }
+
+                LiberarCarga(source);
+                NotificarEstadoLista();
             }
+
+            if (recargarPaginaAnterior)
+            {
+                await CargarPaginaAsync(
+                    paginaDestino,
+                    "Actualizando terrenos...",
+                    "Ajustando la página después de la eliminación");
+            }
+        }
+
+        private void RecalcularPaginasLocales()
+        {
+            int tamano = Math.Max(1, tamanoPaginaActual);
+            totalPaginas = totalRegistros == 0
+                ? 1
+                : (int)Math.Ceiling(totalRegistros / (double)tamano);
+            paginaActual = Math.Min(
+                Math.Max(1, paginaActual),
+                Math.Max(1, totalPaginas));
+        }
+
+        private async Task SalirAConfiguracionAsync()
+        {
+            TerrenoVisitaService.FinalizarVisita();
+
+            await NavegarAsync(
+                AppRoutes.Configuracion,
+                null,
+                "Regresando a configuración...",
+                "Cerrando la administración de terrenos");
         }
 
         private async Task NavegarAsync(
             string ruta,
-            IDictionary<string, object>? parametros = null)
+            IDictionary<string, object>? parametros,
+            string tituloOperacion,
+            string detalleOperacion)
         {
             if (Navegando)
                 return;
@@ -852,11 +1223,13 @@ namespace CONATRADEC.ViewModels
             try
             {
                 CancelarCarga();
+                MostrarRelay(tituloOperacion, detalleOperacion);
                 await Task.Yield();
                 await GoToAsyncParameters(ruta, parametros);
             }
             finally
             {
+                OcultarRelay();
                 Navegando = false;
             }
         }
@@ -896,7 +1269,6 @@ namespace CONATRADEC.ViewModels
         private void LimpiarDepartamentoYMunicipio()
         {
             actualizandoUbicacionInterna = true;
-
             try
             {
                 departamentoSeleccionado = null;
@@ -915,7 +1287,6 @@ namespace CONATRADEC.ViewModels
         private void LimpiarMunicipio()
         {
             actualizandoUbicacionInterna = true;
-
             try
             {
                 municipioSeleccionado = null;
@@ -945,7 +1316,8 @@ namespace CONATRADEC.ViewModels
         private CancellationTokenSource PrepararCarga()
         {
             var source = new CancellationTokenSource();
-            CancellationTokenSource? anterior = Interlocked.Exchange(ref cargaCts, source);
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref cargaCts, source);
             CancelarSeguro(anterior);
             return source;
         }
@@ -962,7 +1334,8 @@ namespace CONATRADEC.ViewModels
         private CancellationTokenSource PrepararUbicacion()
         {
             var source = new CancellationTokenSource();
-            CancellationTokenSource? anterior = Interlocked.Exchange(ref ubicacionCts, source);
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref ubicacionCts, source);
             CancelarSeguro(anterior);
             return source;
         }
@@ -991,10 +1364,8 @@ namespace CONATRADEC.ViewModels
         }
 
         private static bool EsMensajeCancelacion(string? mensaje) =>
-            string.Equals(
-                mensaje,
-                "La operación fue cancelada.",
-                StringComparison.OrdinalIgnoreCase);
+            !string.IsNullOrWhiteSpace(mensaje) &&
+            mensaje.Contains("cancel", StringComparison.OrdinalIgnoreCase);
 
         private async Task EjecutarSeguroAsync(Func<Task> accion, string operacion)
         {
@@ -1010,21 +1381,41 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
+                OcultarRelay();
                 await MostrarErrorInesperadoAsync(operacion, ex);
             }
+        }
+
+        private void MostrarRelay(string titulo, string detalle)
+        {
+            TituloRelay = titulo;
+            DetalleRelay = detalle;
+            MostrandoRelay = true;
+        }
+
+        private void OcultarRelay()
+        {
+            MostrandoRelay = false;
         }
 
         private void NotificarEstadoLista()
         {
             OnPropertyChanged(nameof(TieneTerrenos));
             OnPropertyChanged(nameof(MostrarVacio));
-            OnPropertyChanged(nameof(PuedeCargarMas));
-            OnPropertyChanged(nameof(MostrarFinLista));
+            OnPropertyChanged(nameof(MostrarPaginacion));
+            OnPropertyChanged(nameof(PuedeIrAnterior));
+            OnPropertyChanged(nameof(PuedeIrSiguiente));
+            OnPropertyChanged(nameof(PaginaActual));
+            OnPropertyChanged(nameof(TotalPaginas));
+            OnPropertyChanged(nameof(PaginaTexto));
+            OnPropertyChanged(nameof(RangoPaginaTexto));
             OnPropertyChanged(nameof(TotalTexto));
+            ActualizarComandos();
         }
 
         private void ActualizarComandos()
         {
+            RegresarConfiguracionCommand.ChangeCanExecute();
             AddCommand.ChangeCanExecute();
             EditCommand.ChangeCanExecute();
             DeleteCommand.ChangeCanExecute();
@@ -1033,7 +1424,8 @@ namespace CONATRADEC.ViewModels
             LimpiarFiltrosCommand.ChangeCanExecute();
             AlternarFiltrosCommand.ChangeCanExecute();
             RefrescarCommand.ChangeCanExecute();
-            CargarMasCommand.ChangeCanExecute();
+            PaginaAnteriorCommand.ChangeCanExecute();
+            PaginaSiguienteCommand.ChangeCanExecute();
         }
     }
 }

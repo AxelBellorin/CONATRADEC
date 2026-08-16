@@ -27,10 +27,6 @@
                     RemainingItemsThreshold="3"
                     RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
 
-                    <CollectionView.Behaviors>
-                        <controls:ResponsiveGridItemsLayoutBehavior />
-                    </CollectionView.Behaviors>
-
                     <CollectionView.ItemsLayout>
                         <GridItemsLayout
                             Orientation="Vertical"
@@ -41,8 +37,8 @@
 
                     <!--
                         Encabezado, búsqueda y filtros forman parte del contenido
-                        desplazable. Se conserva la misma colección y los mismos
-                        nombres usados por la paginación y el diseño responsivo.
+                        desplazable. La distribución se ajusta por ancho real en
+                        terrenoPage.xaml.cs para funcionar también en WinUI estrecho.
                     -->
                     <CollectionView.Header>
                         <VerticalStackLayout Spacing="10" Padding="0,0,0,10">
@@ -76,21 +72,27 @@
                                         <Button
                                             Text="Buscar"
                                             Command="{Binding BuscarCommand}"
-                                            Style="{StaticResource ModernPrimaryButton}" />
+                                            Style="{StaticResource ModernPrimaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
 
                                         <Button
                                             Grid.Column="1"
                                             Text="{Binding TextoBotonFiltros}"
                                             Command="{Binding AlternarFiltrosCommand}"
                                             Style="{StaticResource ModernSecondaryButton}"
-                                            HeightRequest="48" />
+                                            HeightRequest="48"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
 
                                         <Button
                                             Grid.Column="2"
                                             Text="Limpiar"
                                             Command="{Binding LimpiarFiltrosCommand}"
                                             Style="{StaticResource ModernNeutralButton}"
-                                            HeightRequest="48" />
+                                            HeightRequest="48"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
                                     </Grid>
                                 </VerticalStackLayout>
                             </Border>
@@ -103,22 +105,32 @@
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                         <VerticalStackLayout Spacing="2">
                                             <Label Text="Búsqueda avanzada" Style="{StaticResource ModernSectionTitle}" />
-                                            <Label Text="Combine uno o varios criterios para reducir el listado." Style="{StaticResource ModernPageSubtitle}" FontSize="11" />
+                                            <Label
+                                                Text="Combine uno o varios criterios para reducir el listado."
+                                                Style="{StaticResource ModernPageSubtitle}"
+                                                FontSize="11" />
                                         </VerticalStackLayout>
                                         <Border
                                             Grid.Column="1"
                                             Style="{StaticResource ModernBadgeGreen}"
                                             VerticalOptions="Start">
-                                            <Label Text="Filtros" FontFamily="MontserratBold" FontSize="9.5" TextColor="{StaticResource color_Verde}" />
+                                            <Label
+                                                Text="Filtros"
+                                                FontFamily="MontserratBold"
+                                                FontSize="9.5"
+                                                TextColor="{StaticResource color_Verde}" />
                                         </Border>
                                     </Grid>
 
                                     <Grid
-                                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*', Desktop='*,*'}"
-                                        RowDefinitions="Auto,Auto,Auto,Auto"
+                                        x:Name="FiltrosTextoGrid"
+                                        ColumnDefinitions="*,*"
+                                        RowDefinitions="Auto,Auto"
                                         ColumnSpacing="12"
                                         RowSpacing="10">
-                                        <VerticalStackLayout Spacing="5">
+                                        <VerticalStackLayout
+                                            x:Name="FiltroCodigoSection"
+                                            Spacing="5">
                                             <Label Text="Código" Style="{StaticResource ModernFieldLabel}" />
                                             <Border Style="{StaticResource ModernInputBorder}">
                                                 <Entry
@@ -129,8 +141,8 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                            x:Name="FiltroPropietarioSection"
+                                            Grid.Column="1"
                                             Spacing="5">
                                             <Label Text="Propietario" Style="{StaticResource ModernFieldLabel}" />
                                             <Border Style="{StaticResource ModernInputBorder}">
@@ -142,7 +154,8 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Row="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
+                                            x:Name="FiltroIdentificacionSection"
+                                            Grid.Row="1"
                                             Spacing="5">
                                             <Label Text="Identificación" Style="{StaticResource ModernFieldLabel}" />
                                             <Border Style="{StaticResource ModernInputBorder}">
@@ -154,8 +167,9 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                                            Grid.Row="{OnIdiom Phone=3, Tablet=1, Desktop=1}"
+                                            x:Name="FiltroDireccionSection"
+                                            Grid.Column="1"
+                                            Grid.Row="1"
                                             Spacing="5">
                                             <Label Text="Dirección" Style="{StaticResource ModernFieldLabel}" />
                                             <Border Style="{StaticResource ModernInputBorder}">
@@ -167,16 +181,24 @@
                                         </VerticalStackLayout>
                                     </Grid>
 
-                                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+                                    <BoxView
+                                        HeightRequest="1"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
 
-                                    <Label Text="Ubicación administrativa" Style="{StaticResource ModernFieldLabel}" FontSize="12" />
+                                    <Label
+                                        Text="Ubicación administrativa"
+                                        Style="{StaticResource ModernFieldLabel}"
+                                        FontSize="12" />
 
                                     <Grid
-                                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*,*', Desktop='*,*,*'}"
-                                        RowDefinitions="Auto,Auto,Auto"
+                                        x:Name="FiltrosUbicacionGrid"
+                                        ColumnDefinitions="*,*,*"
+                                        RowDefinitions="Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="8">
-                                        <Border Style="{StaticResource ModernInputBorder}">
+                                        <Border
+                                            x:Name="FiltroPaisBorder"
+                                            Style="{StaticResource ModernInputBorder}">
                                             <Picker
                                                 Title="Todos los países"
                                                 ItemsSource="{Binding Paises}"
@@ -186,8 +208,8 @@
                                         </Border>
 
                                         <Border
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                            x:Name="FiltroDepartamentoBorder"
+                                            Grid.Column="1"
                                             Style="{StaticResource ModernInputBorder}">
                                             <Picker
                                                 Title="Todos los departamentos"
@@ -198,8 +220,8 @@
                                         </Border>
 
                                         <Border
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
-                                            Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
+                                            x:Name="FiltroMunicipioBorder"
+                                            Grid.Column="2"
                                             Style="{StaticResource ModernInputBorder}">
                                             <Picker
                                                 Title="Todos los municipios"
@@ -224,17 +246,22 @@
                                             VerticalOptions="Center" />
                                     </HorizontalStackLayout>
 
-                                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
+                                    <BoxView
+                                        HeightRequest="1"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
 
                                     <Grid
-                                        ColumnDefinitions="{OnIdiom Phone='Auto,*', Tablet='Auto,*,*,*', Desktop='Auto,*,*,*'}"
-                                        RowDefinitions="Auto,Auto"
+                                        x:Name="FiltrosFechaGrid"
+                                        ColumnDefinitions="Auto,*,*,*"
+                                        RowDefinitions="Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="8">
                                         <Switch
+                                            x:Name="FiltroFechaSwitch"
                                             IsToggled="{Binding FiltrarPorFecha}"
                                             OnColor="{StaticResource color_Verde}" />
                                         <Label
+                                            x:Name="FiltroFechaLabel"
                                             Grid.Column="1"
                                             Text="Filtrar fecha de ingreso"
                                             VerticalOptions="Center"
@@ -243,8 +270,8 @@
                                             TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
 
                                         <Border
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
-                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                            x:Name="FiltroFechaDesdeBorder"
+                                            Grid.Column="2"
                                             IsVisible="{Binding FiltrarPorFecha}"
                                             Style="{StaticResource ModernInputBorder}">
                                             <DatePicker
@@ -253,8 +280,8 @@
                                         </Border>
 
                                         <Border
-                                            Grid.Column="{OnIdiom Phone=1, Tablet=3, Desktop=3}"
-                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                            x:Name="FiltroFechaHastaBorder"
+                                            Grid.Column="3"
                                             IsVisible="{Binding FiltrarPorFecha}"
                                             Style="{StaticResource ModernInputBorder}">
                                             <DatePicker
@@ -264,11 +291,14 @@
                                     </Grid>
 
                                     <Grid
-                                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*,*', Desktop='*,*,*'}"
-                                        RowDefinitions="Auto,Auto,Auto"
+                                        x:Name="FiltrosExtensionGrid"
+                                        ColumnDefinitions="*,*,*"
+                                        RowDefinitions="Auto"
                                         ColumnSpacing="10"
                                         RowSpacing="8">
-                                        <VerticalStackLayout Spacing="5">
+                                        <VerticalStackLayout
+                                            x:Name="FiltroExtensionMinimaSection"
+                                            Spacing="5">
                                             <Label Text="Extensión mínima (mz)" Style="{StaticResource ModernFieldLabel}" />
                                             <Border Style="{StaticResource ModernInputBorder}">
                                                 <Entry
@@ -280,8 +310,8 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                            x:Name="FiltroExtensionMaximaSection"
+                                            Grid.Column="1"
                                             Spacing="5">
                                             <Label Text="Extensión máxima (mz)" Style="{StaticResource ModernFieldLabel}" />
                                             <Border Style="{StaticResource ModernInputBorder}">
@@ -294,8 +324,8 @@
                                         </VerticalStackLayout>
 
                                         <VerticalStackLayout
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
-                                            Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
+                                            x:Name="FiltroOrdenSection"
+                                            Grid.Column="2"
                                             Spacing="5">
                                             <Label Text="Ordenar por" Style="{StaticResource ModernFieldLabel}" />
                                             <Border Style="{StaticResource ModernInputBorder}">
@@ -308,9 +338,11 @@
                                     </Grid>
 
                                     <Button
+                                        x:Name="AplicarFiltrosButton"
                                         Text="Aplicar filtros"
                                         Command="{Binding BuscarCommand}"
                                         Style="{StaticResource ModernPrimaryButton}"
+                                        MinimumWidthRequest="0"
                                         HorizontalOptions="End" />
                                 </VerticalStackLayout>
                             </Border>
@@ -338,7 +370,9 @@
 
                                 <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                        <VerticalStackLayout Spacing="3">
+                                        <VerticalStackLayout
+                                            Spacing="3"
+                                            MinimumWidthRequest="0">
                                             <Label
                                                 Text="{Binding CodigoTerreno}"
                                                 FontFamily="MontserratBold"
@@ -363,16 +397,19 @@
                                                 Text="{Binding ExtensionManzanaTerreno, StringFormat='{0:F2} mz'}"
                                                 FontFamily="MontserratBold"
                                                 FontSize="10.5"
+                                                MaxLines="1"
+                                                LineBreakMode="TailTruncation"
                                                 TextColor="{StaticResource color_Verde}" />
                                         </Border>
                                     </Grid>
 
                                     <Grid
                                         Grid.Row="1"
-                                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='*,*,*', Desktop='*,*,*'}"
-                                        RowDefinitions="Auto,Auto,Auto"
+                                        ColumnDefinitions="*,*,*"
+                                        RowDefinitions="Auto"
                                         ColumnSpacing="8"
-                                        RowSpacing="6">
+                                        RowSpacing="6"
+                                        SizeChanged="TerrenoMetricasGrid_SizeChanged">
                                         <Border Style="{StaticResource ModernMetricSurface}">
                                             <VerticalStackLayout Spacing="1">
                                                 <Label Text="MUNICIPIO" Style="{StaticResource ModernCaption}" FontSize="8.5" />
@@ -387,8 +424,7 @@
                                         </Border>
 
                                         <Border
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                            Grid.Column="1"
                                             Style="{StaticResource ModernMetricSurface}">
                                             <VerticalStackLayout Spacing="1">
                                                 <Label Text="DEPARTAMENTO" Style="{StaticResource ModernCaption}" FontSize="8.5" />
@@ -403,8 +439,7 @@
                                         </Border>
 
                                         <Border
-                                            Grid.Column="{OnIdiom Phone=0, Tablet=2, Desktop=2}"
-                                            Grid.Row="{OnIdiom Phone=2, Tablet=0, Desktop=0}"
+                                            Grid.Column="2"
                                             Style="{StaticResource ModernMetricSurface}">
                                             <VerticalStackLayout Spacing="1">
                                                 <Label Text="INGRESO" Style="{StaticResource ModernCaption}" FontSize="8.5" />
@@ -412,6 +447,8 @@
                                                     Text="{Binding FechaIngresoTerreno, StringFormat='{0:dd/MM/yyyy}'}"
                                                     FontFamily="MontserratMedium"
                                                     FontSize="10.5"
+                                                    MaxLines="1"
+                                                    LineBreakMode="TailTruncation"
                                                     TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
                                             </VerticalStackLayout>
                                         </Border>
@@ -420,26 +457,35 @@
                                     <Grid
                                         Grid.Row="2"
                                         ColumnDefinitions="*,*,*"
-                                        ColumnSpacing="8">
+                                        RowDefinitions="Auto"
+                                        ColumnSpacing="8"
+                                        RowSpacing="8"
+                                        SizeChanged="TerrenoAccionesGrid_SizeChanged">
                                         <Button
                                             Text="Ver"
                                             Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.ViewCommand}"
                                             CommandParameter="{Binding .}"
-                                            Style="{StaticResource ModernSecondaryButton}" />
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
                                         <Button
                                             Grid.Column="1"
                                             Text="Editar"
                                             Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.EditCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.CanEdit}"
-                                            Style="{StaticResource ModernUpdateButton}" />
+                                            Style="{StaticResource ModernUpdateButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
                                         <Button
                                             Grid.Column="2"
                                             Text="Eliminar"
                                             Command="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.DeleteCommand}"
                                             CommandParameter="{Binding .}"
                                             IsVisible="{Binding Source={x:Reference TerrenosRoot}, Path=BindingContext.CanDelete}"
-                                            Style="{StaticResource ModernDangerButton}" />
+                                            Style="{StaticResource ModernDangerButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -504,7 +550,12 @@
                     VerticalOptions="Center">
                     <HorizontalStackLayout Spacing="10">
                         <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" />
-                        <Label Text="Cargando terrenos..." FontFamily="MontserratBold" FontSize="12" VerticalOptions="Center" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                        <Label
+                            Text="Cargando terrenos..."
+                            FontFamily="MontserratBold"
+                            FontSize="12"
+                            VerticalOptions="Center"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                     </HorizontalStackLayout>
                 </Border>
             </Grid>

@@ -23,6 +23,7 @@ namespace CONATRADEC.ViewModels
     public class TerrenoFormViewModel : GlobalService
     {
         private readonly TerrenoApiService terrenoApiService = new();
+        private readonly TerrenoDetalleActualApiService terrenoDetalleApiService = new();
         private readonly PaisApiService paisApiService = new();
         private readonly DepartamentoApiService departamentoApiService = new();
         private readonly MunicipioApiService municipioApiService = new();
@@ -249,33 +250,23 @@ namespace CONATRADEC.ViewModels
             get => propietarioSeleccionado;
             set
             {
-                if (ReferenceEquals(
-                        propietarioSeleccionado,
-                        value))
-                {
+                if (ReferenceEquals(propietarioSeleccionado, value))
                     return;
-                }
 
                 propietarioSeleccionado = value;
 
                 if (Terreno is not null && value is not null)
                 {
-                    Terreno.PropietarioId =
-                        value.PropietarioId;
+                    Terreno.PropietarioId = value.PropietarioId;
                     Terreno.Propietario = value;
                 }
 
                 OnPropertyChanged();
-                OnPropertyChanged(
-                    nameof(PropietarioIdentificacion));
-                OnPropertyChanged(
-                    nameof(PropietarioNombre));
-                OnPropertyChanged(
-                    nameof(PropietarioTelefono));
-                OnPropertyChanged(
-                    nameof(PropietarioCorreo));
-                OnPropertyChanged(
-                    nameof(TienePropietarioSeleccionado));
+                OnPropertyChanged(nameof(PropietarioIdentificacion));
+                OnPropertyChanged(nameof(PropietarioNombre));
+                OnPropertyChanged(nameof(PropietarioTelefono));
+                OnPropertyChanged(nameof(PropietarioCorreo));
+                OnPropertyChanged(nameof(TienePropietarioSeleccionado));
             }
         }
 
@@ -713,6 +704,17 @@ namespace CONATRADEC.ViewModels
         private async Task<bool> CargarPaisesAsync(
             CancellationToken cancellationToken)
         {
+            if (TerrenoVisitaService.IntentarObtenerPaises(
+                    out List<PaisResponse> cache))
+            {
+                Paises.Clear();
+                foreach (PaisResponse pais in cache)
+                    Paises.Add(pais);
+
+                OnPropertyChanged(nameof(Paises));
+                return true;
+            }
+
             ApiResult<ObservableCollection<PaisResponse>> result =
                 await paisApiService.GetPaisResultAsync(cancellationToken);
 
@@ -724,14 +726,16 @@ namespace CONATRADEC.ViewModels
                 return false;
             }
 
+            List<PaisResponse> items = result.Data
+                .Where(pais => pais.PaisId > 0)
+                .OrderBy(pais => pais.NombrePais)
+                .ToList();
+
             Paises.Clear();
+            foreach (PaisResponse pais in items)
+                Paises.Add(pais);
 
-            foreach (PaisResponse pais in result.Data)
-            {
-                if (pais.PaisId > 0)
-                    Paises.Add(pais);
-            }
-
+            TerrenoVisitaService.GuardarPaises(items);
             OnPropertyChanged(nameof(Paises));
             return true;
         }
@@ -744,17 +748,36 @@ namespace CONATRADEC.ViewModels
             if (!paisId.HasValue || paisId.Value <= 0)
                 return false;
 
-            ApiResult<ObservableCollection<DepartamentoResponse>> result =
-                await departamentoApiService.GetDepartamentosResultAsync(
-                    paisId,
-                    cancellationToken);
+            List<DepartamentoResponse> items;
 
-            if (!result.Success || result.Data == null)
+            if (TerrenoVisitaService.IntentarObtenerDepartamentos(
+                    paisId.Value,
+                    out List<DepartamentoResponse> cache))
             {
-                if (mostrarError && !cancellationToken.IsCancellationRequested)
-                    await MostrarErrorAsync(result.Message);
+                items = cache;
+            }
+            else
+            {
+                ApiResult<ObservableCollection<DepartamentoResponse>> result =
+                    await departamentoApiService.GetDepartamentosResultAsync(
+                        paisId,
+                        cancellationToken);
 
-                return false;
+                if (!result.Success || result.Data == null)
+                {
+                    if (mostrarError && !cancellationToken.IsCancellationRequested)
+                        await MostrarErrorAsync(result.Message);
+
+                    return false;
+                }
+
+                items = result.Data
+                    .OrderBy(item => item.NombreDepartamento)
+                    .ToList();
+
+                TerrenoVisitaService.GuardarDepartamentos(
+                    paisId.Value,
+                    items);
             }
 
             if (!actualizandoSeleccionInterna &&
@@ -764,8 +787,7 @@ namespace CONATRADEC.ViewModels
             }
 
             Departamentos.Clear();
-
-            foreach (DepartamentoResponse departamento in result.Data)
+            foreach (DepartamentoResponse departamento in items)
                 Departamentos.Add(departamento);
 
             OnPropertyChanged(nameof(Departamentos));
@@ -780,35 +802,59 @@ namespace CONATRADEC.ViewModels
             if (!departamentoId.HasValue || departamentoId.Value <= 0)
                 return false;
 
-            ApiResult<ObservableCollection<MunicipioResponse>> result =
-                await municipioApiService.GetMunicipiosResultAsync(
-                    departamentoId,
-                    cancellationToken);
+            List<MunicipioResponse> items;
 
-            if (!result.Success || result.Data == null)
+            if (TerrenoVisitaService.IntentarObtenerMunicipios(
+                    departamentoId.Value,
+                    out List<MunicipioResponse> cache))
             {
-                if (mostrarError && !cancellationToken.IsCancellationRequested)
-                    await MostrarErrorAsync(result.Message);
+                items = cache;
+            }
+            else
+            {
+                ApiResult<ObservableCollection<MunicipioResponse>> result =
+                    await municipioApiService.GetMunicipiosResultAsync(
+                        departamentoId,
+                        cancellationToken);
 
-                return false;
+                if (!result.Success || result.Data == null)
+                {
+                    if (mostrarError && !cancellationToken.IsCancellationRequested)
+                        await MostrarErrorAsync(result.Message);
+
+                    return false;
+                }
+
+                items = result.Data
+                    .OrderBy(item => item.NombreMunicipio)
+                    .ToList();
+
+                TerrenoVisitaService.GuardarMunicipios(
+                    departamentoId.Value,
+                    items);
             }
 
             if (!actualizandoSeleccionInterna &&
-                DepartamentoSeleccionado?.DepartamentoId !=
-                departamentoId.Value)
+                DepartamentoSeleccionado?.DepartamentoId != departamentoId.Value)
             {
                 return false;
             }
 
             Municipios.Clear();
-
-            foreach (MunicipioResponse municipio in result.Data)
+            foreach (MunicipioResponse municipio in items)
                 Municipios.Add(municipio);
 
             OnPropertyChanged(nameof(Municipios));
             return true;
         }
 
+        /// <summary>
+        /// Resuelve País -> Departamento -> Municipio sin descargar el catálogo
+        /// completo de municipios. El listado paginado ya trae los tres IDs en
+        /// Terreno.Ubicacion. Solo se hace un GET puntual del terreno como
+        /// compatibilidad si algún consumidor histórico abre el formulario con
+        /// un TerrenoRequest incompleto.
+        /// </summary>
         private async Task ResolverSeleccionPorMunicipioIdAsync(
             int? municipioId,
             CancellationToken cancellationToken)
@@ -816,22 +862,37 @@ namespace CONATRADEC.ViewModels
             if (!municipioId.HasValue || municipioId.Value <= 0)
                 return;
 
-            ApiResult<ObservableCollection<MunicipioResponse>> ubicacionesResult =
-                await municipioApiService
-                    .GetMunicipiosConUbicacionResultAsync(cancellationToken);
+            TerrenoUbicacionResponse? ubicacion = Terreno?.Ubicacion;
 
-            if (!ubicacionesResult.Success ||
-                ubicacionesResult.Data == null)
+            if (ubicacion?.PaisId is null or <= 0 ||
+                ubicacion.DepartamentoId is null or <= 0)
             {
-                if (!cancellationToken.IsCancellationRequested)
-                    await MostrarErrorAsync(ubicacionesResult.Message);
+                if (Terreno?.TerrenoId is > 0)
+                {
+                    ApiResult<TerrenoResponse> detalle =
+                        await terrenoDetalleApiService.ObtenerAsync(
+                            Terreno.TerrenoId.Value,
+                            cancellationToken);
 
-                return;
+                    if (!detalle.Success || detalle.Data == null)
+                    {
+                        if (!cancellationToken.IsCancellationRequested)
+                            await MostrarErrorAsync(detalle.Message);
+                        return;
+                    }
+
+                    ubicacion = detalle.Data.Ubicacion;
+                    Terreno.Ubicacion = ubicacion;
+
+                    if (Terreno.Propietario == null &&
+                        detalle.Data.Propietario != null)
+                    {
+                        Terreno.Propietario = detalle.Data.Propietario;
+                        Terreno.PropietarioId = detalle.Data.PropietarioId;
+                        PropietarioSeleccionado = detalle.Data.Propietario;
+                    }
+                }
             }
-
-            MunicipioResponse? ubicacion =
-                ubicacionesResult.Data.FirstOrDefault(
-                    item => item.MunicipioId == municipioId.Value);
 
             if (ubicacion?.PaisId is null or <= 0 ||
                 ubicacion.DepartamentoId is null or <= 0)
@@ -841,7 +902,6 @@ namespace CONATRADEC.ViewModels
                     await MostrarErrorAsync(
                         "No fue posible determinar la ubicación administrativa del terreno.");
                 }
-
                 return;
             }
 
@@ -855,29 +915,32 @@ namespace CONATRADEC.ViewModels
                     await MostrarErrorAsync(
                         "El país del terreno no está disponible o se encuentra inactivo.");
                 }
-
                 return;
             }
 
-            ApiResult<ObservableCollection<DepartamentoResponse>>
-                departamentosResult =
-                    await departamentoApiService.GetDepartamentosResultAsync(
-                        pais.PaisId,
-                        cancellationToken);
-
-            if (!departamentosResult.Success ||
-                departamentosResult.Data == null)
+            // Durante la resolución interna se permite cargar la cascada sin que
+            // los setters disparen consultas adicionales.
+            actualizandoSeleccionInterna = true;
+            try
             {
-                if (!cancellationToken.IsCancellationRequested)
-                    await MostrarErrorAsync(departamentosResult.Message);
-
-                return;
+                paisSeleccionado = pais;
+                OnPropertyChanged(nameof(PaisSeleccionado));
+            }
+            finally
+            {
+                actualizandoSeleccionInterna = false;
             }
 
-            DepartamentoResponse? departamento =
-                departamentosResult.Data.FirstOrDefault(
-                    item => item.DepartamentoId ==
-                        ubicacion.DepartamentoId.Value);
+            bool departamentosCargados = await CargarDepartamentosAsync(
+                pais.PaisId,
+                cancellationToken,
+                mostrarError: true);
+
+            if (!departamentosCargados)
+                return;
+
+            DepartamentoResponse? departamento = Departamentos.FirstOrDefault(
+                item => item.DepartamentoId == ubicacion.DepartamentoId.Value);
 
             if (departamento == null)
             {
@@ -886,26 +949,30 @@ namespace CONATRADEC.ViewModels
                     await MostrarErrorAsync(
                         "El departamento del terreno no está disponible o se encuentra inactivo.");
                 }
-
                 return;
             }
 
-            ApiResult<ObservableCollection<MunicipioResponse>> municipiosResult =
-                await municipioApiService.GetMunicipiosResultAsync(
-                    departamento.DepartamentoId,
-                    cancellationToken);
-
-            if (!municipiosResult.Success || municipiosResult.Data == null)
+            actualizandoSeleccionInterna = true;
+            try
             {
-                if (!cancellationToken.IsCancellationRequested)
-                    await MostrarErrorAsync(municipiosResult.Message);
-
-                return;
+                departamentoSeleccionado = departamento;
+                OnPropertyChanged(nameof(DepartamentoSeleccionado));
+            }
+            finally
+            {
+                actualizandoSeleccionInterna = false;
             }
 
-            MunicipioResponse? municipio =
-                municipiosResult.Data.FirstOrDefault(
-                    item => item.MunicipioId == municipioId.Value);
+            bool municipiosCargados = await CargarMunicipiosAsync(
+                departamento.DepartamentoId,
+                cancellationToken,
+                mostrarError: true);
+
+            if (!municipiosCargados)
+                return;
+
+            MunicipioResponse? municipio = Municipios.FirstOrDefault(
+                item => item.MunicipioId == municipioId.Value);
 
             if (municipio == null)
             {
@@ -914,31 +981,14 @@ namespace CONATRADEC.ViewModels
                     await MostrarErrorAsync(
                         "El municipio del terreno no está disponible o se encuentra inactivo.");
                 }
-
                 return;
             }
 
             try
             {
                 actualizandoSeleccionInterna = true;
-
-                Departamentos.Clear();
-                foreach (DepartamentoResponse item in departamentosResult.Data)
-                    Departamentos.Add(item);
-
-                Municipios.Clear();
-                foreach (MunicipioResponse item in municipiosResult.Data)
-                    Municipios.Add(item);
-
-                paisSeleccionado = pais;
-                departamentoSeleccionado = departamento;
                 municipioSeleccionado = municipio;
-
-                OnPropertyChanged(nameof(PaisSeleccionado));
-                OnPropertyChanged(nameof(DepartamentoSeleccionado));
                 OnPropertyChanged(nameof(MunicipioSeleccionado));
-                OnPropertyChanged(nameof(Departamentos));
-                OnPropertyChanged(nameof(Municipios));
                 NotificarDisponibilidadPickers();
             }
             finally
@@ -1400,19 +1450,18 @@ namespace CONATRADEC.ViewModels
         {
             return new TerrenoRequest
             {
-                // En creación queda vacío: el backend genera el código.
-                // En edición se conserva como dato inmutable.
                 CodigoTerreno = Mode == FormMode.FormModeSelect.Create
                     ? null
                     : Terreno?.CodigoTerreno,
                 PropietarioId =
                     PropietarioSeleccionado?.PropietarioId ??
                     Terreno?.PropietarioId,
+                Propietario = PropietarioSeleccionado,
+                Ubicacion = CrearUbicacionActual(),
                 DireccionTerreno = DireccionTerreno?.Trim(),
                 ExtensionManzanaTerreno = ExtensionManzanaTerreno,
                 CantidadQuintalesOro = CantidadQuintalesOro ?? 0,
                 CantidadPlantasTerreno = CantidadPlantasTerreno ?? 0,
-                // La API asigna la fecha real al crear y la conserva al editar.
                 FechaIngresoTerreno = Terreno?.FechaIngresoTerreno ??
                     DateOnly.FromDateTime(DateTime.Today),
                 MunicipioId = MunicipioSeleccionado?.MunicipioId ??
@@ -1432,8 +1481,8 @@ namespace CONATRADEC.ViewModels
             destino.PropietarioId =
                 PropietarioSeleccionado?.PropietarioId ??
                 Terreno?.PropietarioId;
-            destino.Propietario =
-                PropietarioSeleccionado;
+            destino.Propietario = PropietarioSeleccionado;
+            destino.Ubicacion = CrearUbicacionActual();
             destino.DireccionTerreno = DireccionTerreno;
             destino.ExtensionManzanaTerreno = ExtensionManzanaTerreno;
             destino.CantidadQuintalesOro = CantidadQuintalesOro;
@@ -1446,10 +1495,33 @@ namespace CONATRADEC.ViewModels
             destino.Longitud = Longitud;
         }
 
+        private TerrenoUbicacionResponse? CrearUbicacionActual()
+        {
+            if (MunicipioSeleccionado?.MunicipioId is not > 0 &&
+                Terreno?.Ubicacion == null)
+            {
+                return null;
+            }
+
+            return new TerrenoUbicacionResponse
+            {
+                PaisId = PaisSeleccionado?.PaisId ?? Terreno?.Ubicacion?.PaisId,
+                NombrePais = PaisSeleccionado?.NombrePais ?? Terreno?.Ubicacion?.NombrePais,
+                DepartamentoId = DepartamentoSeleccionado?.DepartamentoId ??
+                    Terreno?.Ubicacion?.DepartamentoId,
+                NombreDepartamento = DepartamentoSeleccionado?.NombreDepartamento ??
+                    Terreno?.Ubicacion?.NombreDepartamento,
+                MunicipioId = MunicipioSeleccionado?.MunicipioId ??
+                    Terreno?.Ubicacion?.MunicipioId ??
+                    Terreno?.MunicipioId,
+                NombreMunicipio = MunicipioSeleccionado?.NombreMunicipio ??
+                    Terreno?.Ubicacion?.NombreMunicipio
+            };
+        }
+
         private bool ValidateFieldsData()
         {
-            if (PropietarioSeleccionado?.PropietarioId
-                is null or <= 0)
+            if (PropietarioSeleccionado?.PropietarioId is null or <= 0)
             {
                 MostrarValidacion(
                     "Debe seleccionar un propietario registrado.");
@@ -1570,18 +1642,14 @@ namespace CONATRADEC.ViewModels
             }
 
             return (PropietarioSeleccionado?.PropietarioId ??
-                       Terreno.PropietarioId) !=
-                       propietarioOriginalId ||
+                       Terreno.PropietarioId) != propietarioOriginalId ||
                    !string.Equals(
                        DireccionTerreno,
                        Terreno.DireccionTerreno,
                        StringComparison.Ordinal) ||
-                   ExtensionManzanaTerreno !=
-                       Terreno.ExtensionManzanaTerreno ||
-                   CantidadQuintalesOro !=
-                       Terreno.CantidadQuintalesOro ||
-                   CantidadPlantasTerreno !=
-                       Terreno.CantidadPlantasTerreno ||
+                   ExtensionManzanaTerreno != Terreno.ExtensionManzanaTerreno ||
+                   CantidadQuintalesOro != Terreno.CantidadQuintalesOro ||
+                   CantidadPlantasTerreno != Terreno.CantidadPlantasTerreno ||
                    Latitud != Terreno.Latitud ||
                    Longitud != Terreno.Longitud ||
                    (MunicipioSeleccionado?.MunicipioId ??
@@ -1717,8 +1785,7 @@ namespace CONATRADEC.ViewModels
 
         private void LimpiarFotosSiSonDeTerrenoAnterior()
         {
-            bool hayFotosCargadasDesdeApi =
-                fotosCargadasTerrenoId.HasValue;
+            bool hayFotosCargadasDesdeApi = fotosCargadasTerrenoId.HasValue;
             bool hayFotosExistentes = FotosTerreno.Any(f => !f.EsNueva);
 
             if (hayFotosCargadasDesdeApi || hayFotosExistentes)

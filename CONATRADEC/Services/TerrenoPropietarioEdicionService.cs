@@ -8,8 +8,13 @@ using System.Threading;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Sincroniza el formulario de terreno con la relación propietario-terreno
-    /// vigente antes de mostrar Ver o Editar.
+    /// Completa el contexto de edición de un terreno únicamente cuando el DTO
+    /// recibido por navegación no trae información suficiente.
+    ///
+    /// El listado paginado ya incluye propietario y ubicación administrativa,
+    /// por lo que Ver/Editar no deben ejecutar otro GET durante la misma visita.
+    /// Los GET dirigidos se conservan solamente como recuperación para flujos
+    /// históricos que todavía puedan enviar un TerrenoRequest incompleto.
     /// </summary>
     public sealed class TerrenoPropietarioEdicionService
     {
@@ -85,7 +90,41 @@ namespace CONATRADEC.Services
                 terrenoFormPage pagina = contexto.Value.Pagina;
                 TerrenoFormViewModel viewModel = contexto.Value.ViewModel;
                 int terrenoId = contexto.Value.TerrenoId;
+                TerrenoRequest? terreno = viewModel.Terreno;
 
+                /*
+                 * El DTO del listado administrativo ya transporta todo lo que
+                 * necesita el formulario para propietario y ubicación. Durante
+                 * la misma visita esa información es la fuente correcta y evita
+                 * un GET /api/terreno/{id} por cada Ver/Editar.
+                 */
+                if (TienePropietarioCompleto(terreno) &&
+                    TieneUbicacionCompleta(terreno))
+                {
+                    return;
+                }
+
+                /*
+                 * Si solamente falta materializar el propietario y ya tenemos
+                 * su ID, se consulta ese registro puntual en vez de descargar
+                 * o refrescar nuevamente el terreno completo.
+                 */
+                if (TieneUbicacionCompleta(terreno) &&
+                    ObtenerPropietarioId(terreno) is > 0)
+                {
+                    await CompletarPropietarioPorIdAsync(
+                        pagina,
+                        viewModel,
+                        terrenoId,
+                        cancellationToken);
+                    return;
+                }
+
+                /*
+                 * Compatibilidad con consumidores históricos que todavía
+                 * pudieran navegar con un TerrenoRequest incompleto. Es un GET
+                 * dirigido por ID y nunca una descarga del catálogo completo.
+                 */
                 ApiResult<TerrenoResponse> resultado =
                     await terrenoDetalleApiService.ObtenerAsync(
                         terrenoId,
@@ -185,16 +224,11 @@ namespace CONATRADEC.Services
             CancellationToken cancellationToken)
         {
             int? propietarioId =
-                viewModel.Terreno?.Propietario?.PropietarioId ??
-                viewModel.Terreno?.PropietarioId;
+                ObtenerPropietarioId(viewModel.Terreno);
 
             if (propietarioId is null or <= 0)
                 return;
 
-            /*
-             * Antes se descargaba el catálogo completo de propietarios para
-             * localizar uno. Ahora se consulta únicamente el propietario por ID.
-             */
             ApiResult<PropietarioResponse> resultado =
                 await propietarioApiService.ObtenerDisponiblePorIdAsync(
                     propietarioId.Value,
@@ -235,6 +269,22 @@ namespace CONATRADEC.Services
                 viewModel.PropietarioSeleccionado = propietarioTerreno;
             });
         }
+
+        private static int? ObtenerPropietarioId(
+            TerrenoRequest? terreno) =>
+            terreno?.Propietario?.PropietarioId ??
+            terreno?.PropietarioId;
+
+        private static bool TienePropietarioCompleto(
+            TerrenoRequest? terreno) =>
+            terreno?.Propietario?.PropietarioId is > 0;
+
+        private static bool TieneUbicacionCompleta(
+            TerrenoRequest? terreno) =>
+            terreno?.MunicipioId is > 0 &&
+            terreno.Ubicacion?.MunicipioId is > 0 &&
+            terreno.Ubicacion.DepartamentoId is > 0 &&
+            terreno.Ubicacion.PaisId is > 0;
 
         private static void CancelarYLiberar(
             CancellationTokenSource? source)

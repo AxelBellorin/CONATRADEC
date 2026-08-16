@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using Microsoft.Maui.Devices;
 using System.Collections.ObjectModel;
@@ -10,8 +10,10 @@ namespace CONATRADEC.ViewModels
         private readonly CatalogoEliminadoConfiguracion configuracion;
         private readonly CatalogosEliminadosApiService apiService;
         private readonly UsuariosInactivosApiService usuariosInactivosApiService;
+        private readonly TerrenosInactivosApiService terrenosInactivosApiService;
         private readonly List<CatalogoEliminadoItem> originales = new();
 
+        private CancellationTokenSource? cargaCts;
         private string textoBusqueda = string.Empty;
         private string textoBusquedaAplicado = string.Empty;
         private string mensaje = string.Empty;
@@ -32,32 +34,43 @@ namespace CONATRADEC.ViewModels
             : this(
                 configuracion,
                 new CatalogosEliminadosApiService(),
-                new UsuariosInactivosApiService())
+                new UsuariosInactivosApiService(),
+                new TerrenosInactivosApiService())
+        {
+        }
+
+        // Se conserva la firma anterior para no romper pruebas ni consumidores
+        // que construyen el ViewModel con los servicios de Usuarios.
+        public CatalogoEliminadosViewModel(
+            CatalogoEliminadoConfiguracion configuracion,
+            CatalogosEliminadosApiService apiService,
+            UsuariosInactivosApiService usuariosInactivosApiService)
+            : this(
+                configuracion,
+                apiService,
+                usuariosInactivosApiService,
+                new TerrenosInactivosApiService())
         {
         }
 
         public CatalogoEliminadosViewModel(
             CatalogoEliminadoConfiguracion configuracion,
             CatalogosEliminadosApiService apiService,
-            UsuariosInactivosApiService usuariosInactivosApiService)
+            UsuariosInactivosApiService usuariosInactivosApiService,
+            TerrenosInactivosApiService terrenosInactivosApiService)
         {
-            this.configuracion =
-                configuracion ??
+            this.configuracion = configuracion ??
                 throw new ArgumentNullException(nameof(configuracion));
-
-            this.apiService =
-                apiService ??
+            this.apiService = apiService ??
                 throw new ArgumentNullException(nameof(apiService));
+            this.usuariosInactivosApiService = usuariosInactivosApiService ??
+                throw new ArgumentNullException(nameof(usuariosInactivosApiService));
+            this.terrenosInactivosApiService = terrenosInactivosApiService ??
+                throw new ArgumentNullException(nameof(terrenosInactivosApiService));
 
-            this.usuariosInactivosApiService =
-                usuariosInactivosApiService ??
-                throw new ArgumentNullException(
-                    nameof(usuariosInactivosApiService));
-
-            // Usuarios inactivos abre como modal y OnAppearing puede ejecutarse
-            // antes del primer frame visible. Se prepara el relay desde la
-            // construcción para que la carga inicial sea visible desde el
-            // primer render, sin afectar búsquedas ni cambios de página.
+            // Los catálogos paginados abren como modal. Se prepara el relay
+            // desde la construcción para que la consulta inicial sea visible
+            // desde el primer frame de Windows y Android.
             cargandoInicial = UsaPaginacionServidor;
             mostrandoRelay = UsaPaginacionServidor;
 
@@ -67,53 +80,36 @@ namespace CONATRADEC.ViewModels
                 detalleRelay = "Consultando información actual del servidor";
             }
 
-            BuscarCommand =
-                new Command(
-                    async () => await EjecutarBusquedaAsync(),
-                    () => CanView && !IsBusy);
+            BuscarCommand = new Command(
+                async () => await EjecutarBusquedaAsync(),
+                () => CanView && !IsBusy);
 
-            LimpiarCommand =
-                new Command(
-                    async () => await LimpiarFiltroAsync(),
-                    () => CanView && !IsBusy);
+            LimpiarCommand = new Command(
+                async () => await LimpiarFiltroAsync(),
+                () => CanView && !IsBusy);
 
-            RefrescarCommand =
-                new Command(
-                    async () => await RefrescarAsync(),
-                    () => CanView && !IsBusy);
+            RefrescarCommand = new Command(
+                async () => await RefrescarAsync(),
+                () => CanView && !IsBusy);
 
-            ReactivarCommand =
-                new Command<CatalogoEliminadoItem>(
-                    async item => await ReactivarAsync(item),
-                    item =>
-                        item != null &&
-                        CanEdit &&
-                        !IsBusy);
+            ReactivarCommand = new Command<CatalogoEliminadoItem>(
+                async item => await ReactivarAsync(item),
+                item => item != null && CanEdit && !IsBusy);
 
-            PaginaAnteriorCommand =
-                new Command(
-                    async () => await IrPaginaAnteriorAsync(),
-                    () =>
-                        UsaPaginacionServidor &&
-                        PuedeIrAnterior &&
-                        !IsBusy);
+            PaginaAnteriorCommand = new Command(
+                async () => await IrPaginaAnteriorAsync(),
+                () => UsaPaginacionServidor && PuedeIrAnterior && !IsBusy);
 
-            PaginaSiguienteCommand =
-                new Command(
-                    async () => await IrPaginaSiguienteAsync(),
-                    () =>
-                        UsaPaginacionServidor &&
-                        PuedeIrSiguiente &&
-                        !IsBusy);
+            PaginaSiguienteCommand = new Command(
+                async () => await IrPaginaSiguienteAsync(),
+                () => UsaPaginacionServidor && PuedeIrSiguiente && !IsBusy);
 
-            CerrarCommand =
-                new Command(
-                    async () => await CerrarAsync(),
-                    () => !IsBusy);
+            CerrarCommand = new Command(
+                async () => await CerrarAsync(),
+                () => !IsBusy);
         }
 
-        public ObservableCollection<CatalogoEliminadoItem>
-            Registros { get; } = new();
+        public ObservableCollection<CatalogoEliminadoItem> Registros { get; } = new();
 
         public Command BuscarCommand { get; }
         public Command LimpiarCommand { get; }
@@ -129,11 +125,26 @@ namespace CONATRADEC.ViewModels
         public string PlaceholderBusqueda =>
             $"Buscar {configuracion.Singular} eliminado";
 
-        private bool UsaPaginacionServidor =>
+        private bool EsUsuario =>
             string.Equals(
                 configuracion.Codigo,
                 CatalogoEliminadoCodigos.Usuario,
                 StringComparison.OrdinalIgnoreCase);
+
+        private bool EsTerreno =>
+            string.Equals(
+                configuracion.Codigo,
+                CatalogoEliminadoCodigos.Terreno,
+                StringComparison.OrdinalIgnoreCase);
+
+        private bool UsaPaginacionServidor => EsUsuario || EsTerreno;
+
+        private string NombrePlural =>
+            EsUsuario
+                ? "usuarios eliminados"
+                : EsTerreno
+                    ? "terrenos eliminados"
+                    : "registros eliminados";
 
         public string TextoBusqueda
         {
@@ -141,7 +152,6 @@ namespace CONATRADEC.ViewModels
             set
             {
                 string nuevoValor = value ?? string.Empty;
-
                 if (textoBusqueda == nuevoValor)
                     return;
 
@@ -156,7 +166,6 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 string nuevoValor = value ?? string.Empty;
-
                 if (mensaje == nuevoValor)
                     return;
 
@@ -225,7 +234,6 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 string nuevoValor = value ?? string.Empty;
-
                 if (tituloRelay == nuevoValor)
                     return;
 
@@ -240,7 +248,6 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 string nuevoValor = value ?? string.Empty;
-
                 if (detalleRelay == nuevoValor)
                     return;
 
@@ -249,9 +256,7 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool TieneMensaje =>
-            !string.IsNullOrWhiteSpace(Mensaje);
-
+        public bool TieneMensaje => !string.IsNullOrWhiteSpace(Mensaje);
         public bool MostrarAccesoDenegado => !CanView;
 
         public bool MostrarVacio =>
@@ -279,12 +284,8 @@ namespace CONATRADEC.ViewModels
 
         public int PaginaActual => paginaActual;
         public int TotalPaginas => totalPaginas;
-
-        public bool PuedeIrAnterior =>
-            pantallaCargada && paginaActual > 1;
-
-        public bool PuedeIrSiguiente =>
-            pantallaCargada && paginaActual < totalPaginas;
+        public bool PuedeIrAnterior => pantallaCargada && paginaActual > 1;
+        public bool PuedeIrSiguiente => pantallaCargada && paginaActual < totalPaginas;
 
         public bool MostrarPaginacion =>
             UsaPaginacionServidor &&
@@ -341,11 +342,12 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            textoBusquedaAplicado = string.Empty;
+            tamanoPaginaActual = ObtenerTamanoPagina();
+
             if (UsaPaginacionServidor)
             {
-                textoBusquedaAplicado = string.Empty;
-                tamanoPaginaActual = ObtenerTamanoPagina();
-                await CargarUsuariosInactivosAsync(
+                await CargarPaginaServidorAsync(
                     1,
                     true,
                     "Cargando registros eliminados...",
@@ -360,6 +362,23 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public void CancelarCarga()
+        {
+            CancellationTokenSource? source =
+                Interlocked.Exchange(ref cargaCts, null);
+
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
         private async Task EjecutarBusquedaAsync()
         {
             if (!CanView || IsBusy)
@@ -367,13 +386,12 @@ namespace CONATRADEC.ViewModels
 
             if (UsaPaginacionServidor)
             {
-                textoBusquedaAplicado =
-                    (TextoBusqueda ?? string.Empty).Trim();
+                textoBusquedaAplicado = TextoBusqueda.Trim();
 
-                await CargarUsuariosInactivosAsync(
+                await CargarPaginaServidorAsync(
                     1,
                     false,
-                    "Buscando usuarios eliminados...",
+                    $"Buscando {NombrePlural}...",
                     "Consultando los registros que coinciden con la búsqueda");
                 return;
             }
@@ -391,10 +409,10 @@ namespace CONATRADEC.ViewModels
             if (UsaPaginacionServidor)
             {
                 textoBusquedaAplicado = string.Empty;
-                await CargarUsuariosInactivosAsync(
+                await CargarPaginaServidorAsync(
                     1,
                     false,
-                    "Actualizando usuarios eliminados...",
+                    $"Actualizando {NombrePlural}...",
                     "Quitando filtros y consultando la primera página");
                 return;
             }
@@ -413,10 +431,10 @@ namespace CONATRADEC.ViewModels
             {
                 if (UsaPaginacionServidor)
                 {
-                    await CargarUsuariosInactivosAsync(
+                    await CargarPaginaServidorAsync(
                         Math.Max(1, paginaActual),
                         false,
-                        "Actualizando usuarios eliminados...",
+                        $"Actualizando {NombrePlural}...",
                         "Consultando nuevamente la página actual");
                 }
                 else
@@ -438,11 +456,11 @@ namespace CONATRADEC.ViewModels
             if (!UsaPaginacionServidor || !PuedeIrAnterior)
                 return Task.CompletedTask;
 
-            return CargarUsuariosInactivosAsync(
+            return CargarPaginaServidorAsync(
                 paginaActual - 1,
                 false,
                 "Cargando página anterior...",
-                "Consultando la página anterior de usuarios eliminados");
+                $"Consultando la página anterior de {NombrePlural}");
         }
 
         private Task IrPaginaSiguienteAsync()
@@ -450,14 +468,14 @@ namespace CONATRADEC.ViewModels
             if (!UsaPaginacionServidor || !PuedeIrSiguiente)
                 return Task.CompletedTask;
 
-            return CargarUsuariosInactivosAsync(
+            return CargarPaginaServidorAsync(
                 paginaActual + 1,
                 false,
                 "Cargando página siguiente...",
-                "Consultando la siguiente página de usuarios eliminados");
+                $"Consultando la siguiente página de {NombrePlural}");
         }
 
-        private async Task CargarUsuariosInactivosAsync(
+        private async Task CargarPaginaServidorAsync(
             int paginaSolicitada,
             bool cargaInicial,
             string? tituloOperacion = null,
@@ -467,6 +485,7 @@ namespace CONATRADEC.ViewModels
                 return;
 
             paginaSolicitada = Math.Max(1, paginaSolicitada);
+            CancellationTokenSource source = PrepararCarga();
 
             try
             {
@@ -485,47 +504,139 @@ namespace CONATRADEC.ViewModels
                 ActualizarComandos();
                 NotificarEstado();
 
-                ApiResult<UsuarioInactivoPaginaResponse> resultado =
-                    await usuariosInactivosApiService.BuscarAsync(
-                        textoBusquedaAplicado,
+                PaginaEliminados? pagina =
+                    await ConsultarPaginaServidorAsync(
                         paginaSolicitada,
-                        ObtenerTamanoPagina());
+                        source.Token);
 
-                if (!resultado.Success || resultado.Data == null)
-                {
-                    Registros.Clear();
-                    TotalRegistros = 0;
-                    paginaActual = 1;
-                    totalPaginas = 1;
-                    pantallaCargada = true;
-
-                    Mensaje = string.IsNullOrWhiteSpace(resultado.Message)
-                        ? "No fue posible cargar los usuarios inactivos."
-                        : resultado.Message;
-
+                if (source.IsCancellationRequested || !EsCargaActual(source))
                     return;
-                }
 
-                AplicarPaginaUsuarios(resultado.Data);
+                if (pagina == null)
+                    return;
+
+                AplicarPaginaServidor(pagina);
                 pantallaCargada = true;
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancelación normal al cerrar el modal o reemplazar la carga.
             }
             catch (Exception ex)
             {
                 Mensaje =
-                    "Ocurrió un error inesperado al cargar los usuarios inactivos.";
-
+                    $"Ocurrió un error inesperado al cargar {NombrePlural}.";
                 await MostrarToastAsync("Error: " + ex.Message);
             }
             finally
             {
-                IsBusy = false;
-                CargandoInicial = false;
-                CargandoListado = false;
-                IsRefreshing = false;
-                OcultarRelay();
+                if (EsCargaActual(source))
+                {
+                    IsBusy = false;
+                    CargandoInicial = false;
+                    CargandoListado = false;
+                    IsRefreshing = false;
+                    OcultarRelay();
+                }
+
+                LiberarCarga(source);
                 ActualizarComandos();
                 NotificarEstado();
             }
+        }
+
+        private async Task<PaginaEliminados?> ConsultarPaginaServidorAsync(
+            int paginaSolicitada,
+            CancellationToken cancellationToken)
+        {
+            if (EsUsuario)
+            {
+                ApiResult<UsuarioInactivoPaginaResponse> resultado =
+                    await usuariosInactivosApiService.BuscarAsync(
+                        textoBusquedaAplicado,
+                        paginaSolicitada,
+                        ObtenerTamanoPagina(),
+                        cancellationToken);
+
+                if (!resultado.Success || resultado.Data == null)
+                {
+                    AplicarErrorCarga(
+                        resultado.Message,
+                        "No fue posible cargar los usuarios inactivos.");
+                    return null;
+                }
+
+                UsuarioInactivoPaginaResponse data = resultado.Data;
+                return new PaginaEliminados(
+                    data.Items,
+                    data.PaginaActual,
+                    data.TamanoPagina,
+                    data.TotalRegistros,
+                    data.TotalPaginas);
+            }
+
+            if (EsTerreno)
+            {
+                ApiResult<TerrenoInactivoPaginaResponse> resultado =
+                    await terrenosInactivosApiService.BuscarAsync(
+                        textoBusquedaAplicado,
+                        paginaSolicitada,
+                        ObtenerTamanoPagina(),
+                        cancellationToken);
+
+                if (!resultado.Success || resultado.Data == null)
+                {
+                    AplicarErrorCarga(
+                        resultado.Message,
+                        "No fue posible cargar los terrenos eliminados.");
+                    return null;
+                }
+
+                TerrenoInactivoPaginaResponse data = resultado.Data;
+                return new PaginaEliminados(
+                    data.Items,
+                    data.PaginaActual,
+                    data.TamanoPagina,
+                    data.TotalRegistros,
+                    data.TotalPaginas);
+            }
+
+            return null;
+        }
+
+        private void AplicarErrorCarga(
+            string? mensajeResultado,
+            string mensajePredeterminado)
+        {
+            Registros.Clear();
+            TotalRegistros = 0;
+            paginaActual = 1;
+            totalPaginas = 1;
+            pantallaCargada = true;
+
+            Mensaje = string.IsNullOrWhiteSpace(mensajeResultado)
+                ? mensajePredeterminado
+                : mensajeResultado;
+        }
+
+        private void AplicarPaginaServidor(PaginaEliminados pagina)
+        {
+            Registros.Clear();
+
+            foreach (CatalogoEliminadoItem item in pagina.Items)
+            {
+                if (item.Id > 0 && !item.Activo)
+                    Registros.Add(item);
+            }
+
+            paginaActual = Math.Max(1, pagina.PaginaActual);
+            totalPaginas = Math.Max(1, pagina.TotalPaginas);
+            tamanoPaginaActual = pagina.TamanoPagina > 0
+                ? pagina.TamanoPagina
+                : ObtenerTamanoPagina();
+            TotalRegistros = Math.Max(0, pagina.TotalRegistros);
+            Mensaje = string.Empty;
+            NotificarEstado();
         }
 
         private async Task CargarCatalogoCompletoAsync(
@@ -536,6 +647,8 @@ namespace CONATRADEC.ViewModels
             if (!CanView || IsBusy)
                 return;
 
+            CancellationTokenSource source = PrepararCarga();
+
             try
             {
                 MostrarRelay(
@@ -553,9 +666,13 @@ namespace CONATRADEC.ViewModels
                 ActualizarComandos();
                 NotificarEstado();
 
-                ApiResult<ObservableCollection<CatalogoEliminadoItem>>
-                    resultado =
-                        await apiService.ListarAsync(configuracion.Codigo);
+                ApiResult<ObservableCollection<CatalogoEliminadoItem>> resultado =
+                    await apiService.ListarAsync(
+                        configuracion.Codigo,
+                        source.Token);
+
+                if (source.IsCancellationRequested || !EsCargaActual(source))
+                    return;
 
                 if (!resultado.Success || resultado.Data == null)
                 {
@@ -563,11 +680,9 @@ namespace CONATRADEC.ViewModels
                     Registros.Clear();
                     TotalRegistros = 0;
                     pantallaCargada = true;
-
                     Mensaje = string.IsNullOrWhiteSpace(resultado.Message)
                         ? "No fue posible cargar los registros eliminados."
                         : resultado.Message;
-
                     return;
                 }
 
@@ -580,52 +695,35 @@ namespace CONATRADEC.ViewModels
                 pantallaCargada = true;
                 AplicarFiltroLocal();
             }
+            catch (OperationCanceledException)
+            {
+            }
             catch (Exception ex)
             {
                 Mensaje =
                     "Ocurrió un error inesperado al cargar los registros eliminados.";
-
                 await MostrarToastAsync("Error: " + ex.Message);
             }
             finally
             {
-                IsBusy = false;
-                CargandoInicial = false;
-                CargandoListado = false;
-                IsRefreshing = false;
-                OcultarRelay();
+                if (EsCargaActual(source))
+                {
+                    IsBusy = false;
+                    CargandoInicial = false;
+                    CargandoListado = false;
+                    IsRefreshing = false;
+                    OcultarRelay();
+                }
+
+                LiberarCarga(source);
                 ActualizarComandos();
                 NotificarEstado();
             }
         }
 
-        private void AplicarPaginaUsuarios(
-            UsuarioInactivoPaginaResponse pagina)
-        {
-            Registros.Clear();
-
-            foreach (CatalogoEliminadoItem item in pagina.Items)
-            {
-                if (item.Id > 0 && !item.Activo)
-                    Registros.Add(item);
-            }
-
-            paginaActual = Math.Max(1, pagina.PaginaActual);
-            totalPaginas = Math.Max(1, pagina.TotalPaginas);
-            tamanoPaginaActual =
-                pagina.TamanoPagina > 0
-                    ? pagina.TamanoPagina
-                    : ObtenerTamanoPagina();
-
-            TotalRegistros = Math.Max(0, pagina.TotalRegistros);
-            Mensaje = string.Empty;
-            NotificarEstado();
-        }
-
         private void AplicarFiltroLocal()
         {
             string filtro = TextoBusqueda.Trim();
-
             IEnumerable<CatalogoEliminadoItem> consulta = originales;
 
             if (!string.IsNullOrWhiteSpace(filtro))
@@ -638,7 +736,6 @@ namespace CONATRADEC.ViewModels
             }
 
             Registros.Clear();
-
             foreach (CatalogoEliminadoItem item in consulta)
                 Registros.Add(item);
 
@@ -650,8 +747,7 @@ namespace CONATRADEC.ViewModels
             NotificarEstado();
         }
 
-        private async Task ReactivarAsync(
-            CatalogoEliminadoItem? item)
+        private async Task ReactivarAsync(CatalogoEliminadoItem? item)
         {
             if (item == null || item.Id <= 0 || IsBusy)
                 return;
@@ -672,12 +768,11 @@ namespace CONATRADEC.ViewModels
             if (pagina == null)
                 return;
 
-            bool confirmar =
-                await pagina.DisplayAlert(
-                    "Reactivar registro",
-                    $"¿Desea reactivar '{item.Titulo}' conservando su identificador e historial?",
-                    "Reactivar",
-                    "Cancelar");
+            bool confirmar = await pagina.DisplayAlert(
+                "Reactivar registro",
+                $"¿Desea reactivar '{item.Titulo}' conservando su identificador e historial?",
+                "Reactivar",
+                "Cancelar");
 
             if (!confirmar)
                 return;
@@ -689,7 +784,7 @@ namespace CONATRADEC.ViewModels
             try
             {
                 MostrarRelay(
-                    "Reactivando usuario...",
+                    $"Reactivando {configuracion.Singular}...",
                     "Restaurando el registro en el servidor");
 
                 IsBusy = true;
@@ -720,10 +815,10 @@ namespace CONATRADEC.ViewModels
                     TotalRegistros = Math.Max(0, TotalRegistros - 1);
                     RecalcularPaginasServidor();
 
-                    // El registro vuelve al listado activo. Su posición global
-                    // depende del orden del servidor, por lo que al cerrar este
-                    // modal se renovará únicamente la página activa de Usuarios.
-                    UsuarioVisitaService.MarcarListadoParaRecargar();
+                    if (EsUsuario)
+                        UsuarioVisitaService.MarcarListadoParaRecargar();
+                    else if (EsTerreno)
+                        TerrenoVisitaService.MarcarListadoParaRecargar();
 
                     if (Registros.Count == 0 &&
                         TotalRegistros > 0 &&
@@ -732,15 +827,12 @@ namespace CONATRADEC.ViewModels
                         paginaDestino = Math.Min(
                             paginaActual - 1,
                             Math.Max(1, totalPaginas));
-
                         recargarPagina = true;
                     }
                 }
                 else
                 {
-                    originales.RemoveAll(
-                        registro => registro.Id == item.Id);
-
+                    originales.RemoveAll(registro => registro.Id == item.Id);
                     Registros.Remove(item);
                     TotalRegistros = Registros.Count;
                 }
@@ -755,10 +847,10 @@ namespace CONATRADEC.ViewModels
 
             if (recargarPagina)
             {
-                await CargarUsuariosInactivosAsync(
+                await CargarPaginaServidorAsync(
                     paginaDestino,
                     false,
-                    "Actualizando usuarios eliminados...",
+                    $"Actualizando {NombrePlural}...",
                     "Ajustando la página después de la reactivación");
             }
 
@@ -769,11 +861,9 @@ namespace CONATRADEC.ViewModels
         {
             int tamano = Math.Max(1, tamanoPaginaActual);
 
-            totalPaginas =
-                TotalRegistros == 0
-                    ? 1
-                    : (int)Math.Ceiling(
-                        TotalRegistros / (double)tamano);
+            totalPaginas = TotalRegistros == 0
+                ? 1
+                : (int)Math.Ceiling(TotalRegistros / (double)tamano);
 
             paginaActual = Math.Min(
                 Math.Max(1, paginaActual),
@@ -782,13 +872,9 @@ namespace CONATRADEC.ViewModels
             NotificarEstado();
         }
 
-        private static bool Contiene(
-            string? valor,
-            string filtro) =>
+        private static bool Contiene(string? valor, string filtro) =>
             (valor ?? string.Empty)
-                .Contains(
-                    filtro,
-                    StringComparison.OrdinalIgnoreCase);
+                .Contains(filtro, StringComparison.OrdinalIgnoreCase);
 
         private async Task CerrarAsync()
         {
@@ -800,16 +886,12 @@ namespace CONATRADEC.ViewModels
                 MostrarRelay(
                     "Regresando...",
                     UsaPaginacionServidor
-                        ? "Cerrando usuarios eliminados y volviendo al listado"
+                        ? $"Cerrando {NombrePlural} y volviendo al listado"
                         : "Cerrando los registros eliminados");
 
                 IsBusy = true;
                 ActualizarComandos();
-
-                // El modal ya está visible. Se cede un ciclo al UI para que el
-                // relay se pinte antes de iniciar la animación de cierre.
                 await Task.Yield();
-
                 await Shell.Current.Navigation.PopModalAsync();
             }
             finally
@@ -821,9 +903,36 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private void MostrarRelay(
-            string titulo,
-            string detalle)
+        private CancellationTokenSource PrepararCarga()
+        {
+            var source = new CancellationTokenSource();
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref cargaCts, source);
+
+            if (anterior != null)
+            {
+                try
+                {
+                    anterior.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+
+            return source;
+        }
+
+        private bool EsCargaActual(CancellationTokenSource source) =>
+            ReferenceEquals(Volatile.Read(ref cargaCts), source);
+
+        private void LiberarCarga(CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(ref cargaCts, null, source);
+            source.Dispose();
+        }
+
+        private void MostrarRelay(string titulo, string detalle)
         {
             TituloRelay = titulo;
             DetalleRelay = detalle;
@@ -861,8 +970,13 @@ namespace CONATRADEC.ViewModels
         }
 
         private static int ObtenerTamanoPagina() =>
-            DeviceInfo.Platform == DevicePlatform.WinUI
-                ? 40
-                : 20;
+            DeviceInfo.Platform == DevicePlatform.WinUI ? 40 : 20;
+
+        private sealed record PaginaEliminados(
+            IReadOnlyCollection<CatalogoEliminadoItem> Items,
+            int PaginaActual,
+            int TamanoPagina,
+            int TotalRegistros,
+            int TotalPaginas);
     }
 }

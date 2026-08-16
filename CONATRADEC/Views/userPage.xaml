@@ -54,6 +54,7 @@
 
             <!-- Contenido -->
             <Grid
+                x:Name="ContenidoUsuarios"
                 IsVisible="{Binding CanView}"
                 Padding="{OnIdiom Phone='12,12,12,20', Tablet='18,16,18,24', Desktop='24,20,24,28'}">
 
@@ -62,6 +63,7 @@
                     Command="{Binding RefrescarCommand}">
 
                     <CollectionView
+                        x:Name="UsuariosCollectionView"
                         ItemsSource="{Binding UsersList}"
                         SelectionMode="None">
 
@@ -150,20 +152,22 @@
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
 
-
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:UserResponse">
                                 <Border
                                     Style="{StaticResource ModernCatalogCard}"
-                                    MinimumHeightRequest="230">
+                                    MinimumHeightRequest="230"
+                                    HorizontalOptions="Fill">
 
                                     <Grid
                                         RowDefinitions="Auto,Auto,Auto"
-                                        RowSpacing="13">
+                                        RowSpacing="13"
+                                        HorizontalOptions="Fill">
 
                                         <Grid
                                             ColumnDefinitions="Auto,*,Auto"
-                                            ColumnSpacing="12">
+                                            ColumnSpacing="12"
+                                            HorizontalOptions="Fill">
 
                                             <Border
                                                 WidthRequest="62"
@@ -191,7 +195,8 @@
                                             <VerticalStackLayout
                                                 Grid.Column="1"
                                                 Spacing="3"
-                                                VerticalOptions="Center">
+                                                VerticalOptions="Center"
+                                                HorizontalOptions="Fill">
                                                 <Label
                                                     Text="{Binding NombreMostrar}"
                                                     FontSize="16"
@@ -204,7 +209,9 @@
                                                     Text="{Binding NombreUsuario, StringFormat='@{0}'}"
                                                     FontFamily="MontserratBold"
                                                     FontSize="11.5"
-                                                    TextColor="{StaticResource color_Verde}" />
+                                                    TextColor="{StaticResource color_Verde}"
+                                                    MaxLines="1"
+                                                    LineBreakMode="TailTruncation" />
                                                 <Label
                                                     Text="{Binding CorreoMostrar}"
                                                     FontFamily="MontserratMedium"
@@ -217,46 +224,72 @@
                                             <Border
                                                 Grid.Column="2"
                                                 Style="{StaticResource ModernBadgeGreen}"
-                                                VerticalOptions="Start">
+                                                VerticalOptions="Start"
+                                                HorizontalOptions="End"
+                                                MaximumWidthRequest="120">
                                                 <Label
                                                     Text="{Binding ProcedenciaMostrar}"
                                                     FontFamily="MontserratBold"
                                                     FontSize="9.5"
-                                                    TextColor="{StaticResource color_Verde}" />
+                                                    TextColor="{StaticResource color_Verde}"
+                                                    MaxLines="1"
+                                                    LineBreakMode="TailTruncation" />
                                             </Border>
                                         </Grid>
 
                                         <Grid
                                             Grid.Row="1"
                                             ColumnDefinitions="*,*"
-                                            ColumnSpacing="8">
-                                            <Border Style="{StaticResource ModernBadgeBlue}" Padding="9,7">
+                                            ColumnSpacing="8"
+                                            HorizontalOptions="Fill">
+                                            <Border
+                                                Style="{StaticResource ModernBadgeBlue}"
+                                                Padding="9,7"
+                                                HorizontalOptions="Fill">
                                                 <VerticalStackLayout Spacing="1">
                                                     <Label Text="ROL" FontFamily="MontserratBold" FontSize="8.5" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" HorizontalTextAlignment="Center" />
                                                     <Label Text="{Binding RolMostrar}" FontFamily="MontserratBold" FontSize="10.5" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" MaxLines="1" LineBreakMode="TailTruncation" />
                                                 </VerticalStackLayout>
                                             </Border>
-                                            <Border Grid.Column="1" Style="{StaticResource ModernBadgeYellow}" Padding="9,7">
+                                            <Border
+                                                Grid.Column="1"
+                                                Style="{StaticResource ModernBadgeYellow}"
+                                                Padding="9,7"
+                                                HorizontalOptions="Fill">
                                                 <VerticalStackLayout Spacing="1">
-                                                    <Label Text="IDENTIFICACIÓN" FontFamily="MontserratBold" FontSize="8.5" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" HorizontalTextAlignment="Center" />
+                                                    <Label Text="IDENTIFICACIÓN" FontFamily="MontserratBold" FontSize="8.5" TextColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation" />
                                                     <Label Text="{Binding IdentificacionMostrar}" FontFamily="MontserratMedium" FontSize="10.5" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" MaxLines="1" LineBreakMode="TailTruncation" />
                                                 </VerticalStackLayout>
                                             </Border>
                                         </Grid>
 
+                                        <!--
+                                            WinUI aplica un ancho mínimo nativo a Button.
+                                            MinimumWidthRequest=0 permite que las tres acciones
+                                            respeten realmente las columnas * cuando la ventana
+                                            es estrecha, sin desbordar la tarjeta.
+                                        -->
                                         <Grid
                                             Grid.Row="2"
                                             ColumnDefinitions="*,*,*"
-                                            ColumnSpacing="8">
+                                            ColumnSpacing="6"
+                                            HorizontalOptions="Fill">
                                             <Button
+                                                Grid.Column="0"
                                                 Text="Ver"
                                                 Style="{StaticResource ModernSecondaryButton}"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
+                                                Padding="6,8"
                                                 Command="{Binding Source={x:Reference UserPageRoot}, Path=BindingContext.ViewUserCommand}"
                                                 CommandParameter="{Binding .}" />
                                             <Button
                                                 Grid.Column="1"
                                                 Text="Editar"
                                                 Style="{StaticResource ModernUpdateButton}"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
+                                                Padding="6,8"
                                                 IsVisible="{Binding Source={x:Reference UserPageRoot}, Path=BindingContext.CanEdit}"
                                                 Command="{Binding Source={x:Reference UserPageRoot}, Path=BindingContext.EditUserCommand}"
                                                 CommandParameter="{Binding .}" />
@@ -264,6 +297,9 @@
                                                 Grid.Column="2"
                                                 Text="Eliminar"
                                                 Style="{StaticResource ModernDangerButton}"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
+                                                Padding="6,8"
                                                 IsVisible="{Binding Source={x:Reference UserPageRoot}, Path=BindingContext.CanDelete}"
                                                 IsEnabled="{Binding PuedeDesactivar}"
                                                 Command="{Binding Source={x:Reference UserPageRoot}, Path=BindingContext.DeleteUserCommand}"
@@ -289,11 +325,6 @@
                                 MaximumWidthRequest="560"
                                 HorizontalOptions="Center">
 
-                                <!--
-                                    Composición única y estable para Windows, tablet
-                                    y móvil. La información ocupa una fila propia y
-                                    los botones comparten exactamente el ancho disponible.
-                                -->
                                 <VerticalStackLayout Spacing="11">
                                     <VerticalStackLayout
                                         Spacing="2"
@@ -314,22 +345,28 @@
 
                                     <Grid
                                         ColumnDefinitions="*,*"
-                                        ColumnSpacing="10">
+                                        ColumnSpacing="8">
                                         <Button
                                             Grid.Column="0"
                                             Text="← Anterior"
+                                            Clicked="PaginacionUsuarios_Clicked"
                                             Command="{Binding PaginaAnteriorCommand}"
                                             IsEnabled="{Binding PuedeIrAnterior}"
                                             Style="{StaticResource ModernSecondaryButton}"
-                                            HorizontalOptions="Fill" />
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
 
                                         <Button
                                             Grid.Column="1"
                                             Text="Siguiente →"
+                                            Clicked="PaginacionUsuarios_Clicked"
                                             Command="{Binding PaginaSiguienteCommand}"
                                             IsEnabled="{Binding PuedeIrSiguiente}"
                                             Style="{StaticResource ModernSecondaryButton}"
-                                            HorizontalOptions="Fill" />
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
                                     </Grid>
                                 </VerticalStackLayout>
                             </Border>
@@ -338,49 +375,49 @@
                 </RefreshView>
             </Grid>
 
-        <!--
-            Relay único para toda operación asíncrona del módulo Usuarios.
-            Se muestra en carga, búsqueda, paginación, navegación y acciones
-            de escritura, y siempre se libera al finalizar la operación.
-        -->
-        <Grid
-            IsVisible="{Binding MostrandoRelay}"
-            InputTransparent="False"
-            BackgroundColor="#66000000"
-            ZIndex="100">
+            <!--
+                Relay único para toda operación asíncrona del módulo Usuarios.
+                Se muestra en carga, búsqueda, paginación, navegación y acciones
+                de escritura, y siempre se libera al finalizar la operación.
+            -->
+            <Grid
+                IsVisible="{Binding MostrandoRelay}"
+                InputTransparent="False"
+                BackgroundColor="#66000000"
+                ZIndex="100">
 
-            <Border
-                Padding="22,18"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
-                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
-                StrokeThickness="1"
-                StrokeShape="RoundRectangle 16">
+                <Border
+                    Padding="22,18"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceCard}, Dark={StaticResource SurfaceCardDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 16">
 
-                <HorizontalStackLayout Spacing="12">
-                    <ActivityIndicator
-                        IsRunning="{Binding MostrandoRelay}"
-                        Color="{StaticResource color_Naranja}"
-                        WidthRequest="26"
-                        HeightRequest="26" />
-                    <VerticalStackLayout
-                        Spacing="1"
-                        VerticalOptions="Center">
-                        <Label
-                            Text="{Binding TituloRelay}"
-                            FontFamily="MontserratBold"
-                            FontSize="12"
-                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
-                        <Label
-                            Text="{Binding DetalleRelay}"
-                            FontFamily="MontserratMedium"
-                            FontSize="10"
-                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
-                    </VerticalStackLayout>
-                </HorizontalStackLayout>
-            </Border>
-        </Grid>
+                    <HorizontalStackLayout Spacing="12">
+                        <ActivityIndicator
+                            IsRunning="{Binding MostrandoRelay}"
+                            Color="{StaticResource color_Naranja}"
+                            WidthRequest="26"
+                            HeightRequest="26" />
+                        <VerticalStackLayout
+                            Spacing="1"
+                            VerticalOptions="Center">
+                            <Label
+                                Text="{Binding TituloRelay}"
+                                FontFamily="MontserratBold"
+                                FontSize="12"
+                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                            <Label
+                                Text="{Binding DetalleRelay}"
+                                FontFamily="MontserratMedium"
+                                FontSize="10"
+                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                        </VerticalStackLayout>
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>
