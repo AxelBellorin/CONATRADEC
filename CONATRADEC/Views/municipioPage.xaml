@@ -9,14 +9,13 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="{OnPlatform WinUI='Transparent', Default={StaticResource color_Blanco}}">
 
+    <Shell.BackButtonBehavior>
+        <BackButtonBehavior IsVisible="False" IsEnabled="False" />
+    </Shell.BackButtonBehavior>
+
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid>
-
-            <!-- Acceso denegado -->
-            <Grid
-                IsVisible="{Binding MostrarAccesoDenegado}"
-                Padding="24">
-
+            <Grid IsVisible="{Binding MostrarAccesoDenegado}" Padding="24">
                 <Border
                     MaximumWidthRequest="620"
                     Padding="28"
@@ -26,69 +25,27 @@
                     Stroke="#E5E7EB"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 18">
-
-                    <VerticalStackLayout
-                        Spacing="10"
-                        HorizontalOptions="Center">
-
-                        <Image
-                            Source="iconpermission.png"
-                            WidthRequest="64"
-                            HeightRequest="64"
-                            Opacity="0.65" />
-
-                        <Label
-                            Text="Sin permiso de lectura"
-                            FontSize="21"
-                            FontFamily="MontserratBold"
-                            FontAttributes="Bold"
-                            TextColor="{StaticResource color_Negro}"
-                            HorizontalTextAlignment="Center" />
-
-                        <Label
-                            Text="Su usuario no tiene permiso para consultar el catálogo de municipios."
-                            FontSize="14"
-                            TextColor="{StaticResource color_GrisOscuro}"
-                            HorizontalTextAlignment="Center" />
-
-                        <Button
-                            Text="Regresar a departamentos"
-                            Margin="0,8,0,0"
-                            Padding="16,10"
-                            BackgroundColor="{StaticResource color_Verde}"
-                            TextColor="White"
-                            CornerRadius="11"
-                            Command="{Binding ReturnCommand}" />
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Image Source="iconpermission.png" WidthRequest="64" HeightRequest="64" Opacity="0.65" />
+                        <Label Text="Sin permiso de lectura" FontSize="21" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" HorizontalTextAlignment="Center" />
+                        <Label Text="Su usuario no tiene permiso para consultar el catálogo de municipios." FontSize="14" TextColor="{StaticResource color_GrisOscuro}" HorizontalTextAlignment="Center" />
+                        <Button Text="Regresar a departamentos" Margin="0,8,0,0" Padding="16,10" BackgroundColor="{StaticResource color_Verde}" TextColor="White" CornerRadius="11" Command="{Binding ReturnCommand}" />
                     </VerticalStackLayout>
                 </Border>
             </Grid>
 
-            <!-- Contenido principal -->
             <Grid
+                x:Name="ContenidoMunicipios"
                 IsVisible="{Binding CanView}"
-                Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
-
-<RefreshView
-                        IsRefreshing="{Binding IsRefreshing}"
-                    Command="{Binding RefrescarCommand}">
-
+                Padding="14,14,14,22">
+                <RefreshView IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefrescarCommand}">
                     <CollectionView
                         x:Name="MunicipiosCollectionView"
                         ItemsSource="{Binding List}"
-                        SelectionMode="None"
-                        RemainingItemsThreshold="3"
-                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                        SelectionMode="None">
 
-                        <!--
-                            Encabezado, búsqueda y mensajes forman parte del
-                            contenido desplazable. No se reparentan controles
-                            ni se cambia su padre visual en tiempo de ejecución.
-                        -->
                         <CollectionView.Header>
-                            <VerticalStackLayout
-                                Spacing="14"
-                                Padding="0,0,0,14">
-
+                            <VerticalStackLayout Spacing="14" Padding="0,0,0,14">
                                 <controls:ResponsiveCatalogHeader
                                     Title="{Binding TitlePage}"
                                     Subtitle="Administre los municipios y consulte sus relaciones."
@@ -100,13 +57,13 @@
                                     ContextText="{Binding CodigoPais}"
                                     IsContextVisible="{Binding MostrarCodigoPais}" />
 
-                                <!-- Búsqueda -->
                                 <controls:ResponsiveSearchPanel
                                     Placeholder="Buscar municipio por nombre"
                                     SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
                                     SummaryText="{Binding ResumenResultados}"
                                     SearchCommand="{Binding BuscarCommand}"
                                     ClearCommand="{Binding LimpiarFiltrosCommand}" />
+
                                 <Border
                                     IsVisible="{Binding TieneMensaje}"
                                     Padding="12"
@@ -114,14 +71,8 @@
                                     Stroke="#F2C94C"
                                     StrokeThickness="1"
                                     StrokeShape="RoundRectangle 12">
-
-                                    <Label
-                                        Text="{Binding Mensaje}"
-                                        FontSize="13"
-                                        TextColor="{StaticResource color_Negro}" />
+                                    <Label Text="{Binding Mensaje}" FontSize="13" TextColor="{StaticResource color_Negro}" />
                                 </Border>
-
-                                <!-- Listado -->
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -135,40 +86,21 @@
                         </CollectionView.ItemsLayout>
 
                         <CollectionView.EmptyView>
-                            <Grid Padding="30">
-
+                            <Grid Padding="30" InputTransparent="True">
                                 <VerticalStackLayout
                                     IsVisible="{Binding MostrarVacio}"
                                     Spacing="8"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Center">
-
-                                    <Image
-                                        Source="iconcountry.png"
-                                        WidthRequest="64"
-                                        HeightRequest="64"
-                                        Opacity="0.5" />
-
-                                    <Label
-                                        Text="No se encontraron municipios"
-                                        FontSize="18"
-                                        FontFamily="MontserratBold"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource color_Negro}"
-                                        HorizontalTextAlignment="Center" />
-
-                                    <Label
-                                        Text="Pruebe con otro nombre o registre un nuevo municipio."
-                                        FontSize="13"
-                                        TextColor="{StaticResource color_GrisOscuro}"
-                                        HorizontalTextAlignment="Center" />
+                                    <Image Source="iconcountry.png" WidthRequest="64" HeightRequest="64" Opacity="0.5" />
+                                    <Label Text="No se encontraron municipios" FontSize="18" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" HorizontalTextAlignment="Center" />
+                                    <Label Text="Pruebe con otro nombre o registre un nuevo municipio." FontSize="13" TextColor="{StaticResource color_GrisOscuro}" HorizontalTextAlignment="Center" />
                                 </VerticalStackLayout>
                             </Grid>
                         </CollectionView.EmptyView>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:MunicipioResponse">
-
                                 <Border
                                     Padding="16"
                                     MinimumHeightRequest="176"
@@ -176,132 +108,31 @@
                                     Stroke="#DDE7E3"
                                     StrokeThickness="1"
                                     StrokeShape="RoundRectangle 16">
-
-                                    <Grid
-                                        RowDefinitions="Auto,Auto,Auto"
-                                        RowSpacing="12">
-
-                                        <!-- Datos principales -->
-                                        <Grid
-                                            Grid.Row="0"
-                                            ColumnDefinitions="Auto,*,Auto"
-                                            ColumnSpacing="12">
-
-                                            <Border
-                                                WidthRequest="48"
-                                                HeightRequest="48"
-                                                Padding="11"
-                                                BackgroundColor="#EEF5F2"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 13">
-
-                                                <Image
-                                                    Source="iconcountry.png"
-                                                    Aspect="AspectFit" />
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                            <Border WidthRequest="48" HeightRequest="48" Padding="11" BackgroundColor="#EEF5F2" StrokeThickness="0" StrokeShape="RoundRectangle 13">
+                                                <Image Source="iconcountry.png" Aspect="AspectFit" />
                                             </Border>
-
-                                            <VerticalStackLayout
-                                                Grid.Column="1"
-                                                Spacing="3"
-                                                VerticalOptions="Center">
-
-                                                <Label
-                                                    Text="{Binding NombreMunicipio}"
-                                                    FontSize="17"
-                                                    FontFamily="MontserratBold"
-                                                    FontAttributes="Bold"
-                                                    TextColor="{StaticResource color_Negro}"
-                                                    LineBreakMode="TailTruncation" />
-
-                                                <Label
-                                                    Text="{Binding NombreDepartamento}"
-                                                    FontSize="12"
-                                                    TextColor="{StaticResource color_GrisOscuro}"
-                                                    LineBreakMode="TailTruncation" />
+                                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                                <Label Text="{Binding NombreMunicipio}" FontSize="17" FontFamily="MontserratBold" FontAttributes="Bold" TextColor="{StaticResource color_Negro}" LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding NombreDepartamento}" FontSize="12" TextColor="{StaticResource color_GrisOscuro}" LineBreakMode="TailTruncation" />
                                             </VerticalStackLayout>
-
-                                            <Label
-                                                Grid.Column="2"
-                                                Text="Activo"
-                                                Padding="9,5"
-                                                FontSize="11"
-                                                TextColor="{StaticResource color_Verde}"
-                                                BackgroundColor="#EAF7EF"
-                                                VerticalOptions="Start" />
+                                            <Label Grid.Column="2" Text="Activo" Padding="9,5" FontSize="11" TextColor="{StaticResource color_Verde}" BackgroundColor="#EAF7EF" VerticalOptions="Start" />
                                         </Grid>
 
-                                        <!-- Conteos -->
-                                        <Grid
-                                            Grid.Row="1"
-                                            ColumnDefinitions="*,*"
-                                            ColumnSpacing="8">
-
-                                            <Border
-                                                Grid.Column="0"
-                                                Padding="10,7"
-                                                BackgroundColor="#F7F1EC"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 9">
-
-                                                <Label
-                                                    Text="{Binding ResumenTerrenos}"
-                                                    FontSize="11"
-                                                    HorizontalTextAlignment="Center"
-                                                    TextColor="{StaticResource color_Cafe}" />
+                                        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                            <Border Grid.Column="0" Padding="10,7" BackgroundColor="#F7F1EC" StrokeThickness="0" StrokeShape="RoundRectangle 9">
+                                                <Label Text="{Binding ResumenTerrenos}" FontSize="11" HorizontalTextAlignment="Center" TextColor="{StaticResource color_Cafe}" />
                                             </Border>
-
-                                            <Border
-                                                Grid.Column="1"
-                                                Padding="10,7"
-                                                BackgroundColor="#EEF4FF"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 9">
-
-                                                <Label
-                                                    Text="{Binding ResumenUsuarios}"
-                                                    FontSize="11"
-                                                    HorizontalTextAlignment="Center"
-                                                    TextColor="{StaticResource color_Negro}" />
+                                            <Border Grid.Column="1" Padding="10,7" BackgroundColor="#EEF4FF" StrokeThickness="0" StrokeShape="RoundRectangle 9">
+                                                <Label Text="{Binding ResumenUsuarios}" FontSize="11" HorizontalTextAlignment="Center" TextColor="{StaticResource color_Negro}" />
                                             </Border>
                                         </Grid>
 
-                                        <!-- Acciones -->
-                                        <Grid
-                                            Grid.Row="2"
-                                            ColumnDefinitions="*,*,*"
-                                            ColumnSpacing="8">
-
-                                            <Button
-                                                Grid.Column="0"
-                                                Text="Ver"
-                                                Padding="8,9"
-                                                BackgroundColor="#EEF5F2"
-                                                TextColor="{StaticResource color_Verde}"
-                                                CornerRadius="10"
-                                                Command="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.ViewCommand}"
-                                                CommandParameter="{Binding .}" />
-
-                                            <Button
-                                                Grid.Column="1"
-                                                Text="Editar"
-                                                Padding="8,9"
-                                                BackgroundColor="{StaticResource BlueUpdate}"
-                                                TextColor="White"
-                                                CornerRadius="10"
-                                                IsVisible="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.CanEdit}"
-                                                Command="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.EditCommand}"
-                                                CommandParameter="{Binding .}" />
-
-                                            <Button
-                                                Grid.Column="2"
-                                                Text="Eliminar"
-                                                Padding="8,9"
-                                                BackgroundColor="{StaticResource RedDelete}"
-                                                TextColor="White"
-                                                CornerRadius="10"
-                                                IsVisible="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.CanDelete}"
-                                                Command="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.DeleteCommand}"
-                                                CommandParameter="{Binding .}" />
+                                        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                            <Button Grid.Column="0" Text="Ver" Padding="8,9" BackgroundColor="#EEF5F2" TextColor="{StaticResource color_Verde}" CornerRadius="10" Command="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.ViewCommand}" CommandParameter="{Binding .}" />
+                                            <Button Grid.Column="1" Text="Editar" Padding="8,9" BackgroundColor="{StaticResource BlueUpdate}" TextColor="White" CornerRadius="10" IsVisible="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.CanEdit}" Command="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.EditCommand}" CommandParameter="{Binding .}" />
+                                            <Button Grid.Column="2" Text="Eliminar" Padding="8,9" BackgroundColor="{StaticResource RedDelete}" TextColor="White" CornerRadius="10" IsVisible="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.CanDelete}" Command="{Binding Source={x:Reference MunicipioPageRoot}, Path=BindingContext.DeleteCommand}" CommandParameter="{Binding .}" />
                                         </Grid>
                                     </Grid>
                                 </Border>
@@ -309,51 +140,50 @@
                         </CollectionView.ItemTemplate>
 
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="10,16,10,24"
-                                Spacing="8"
+                            <Border
+                                x:Name="PaginacionMunicipios"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="12,12"
+                                BackgroundColor="White"
+                                Stroke="#DDE7E3"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 16"
+                                MaximumWidthRequest="560"
                                 HorizontalOptions="Center">
-
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoMas}"
-                                    IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Naranja}" />
-
-                                <Label
-                                    IsVisible="{Binding MostrarFinLista}"
-                                    Text="Fin del listado"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}"
-                                    HorizontalTextAlignment="Center" />
-                            </VerticalStackLayout>
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                        <Label Text="{Binding PaginaTexto}" FontFamily="MontserratBold" FontSize="12" HorizontalTextAlignment="Center" TextColor="{StaticResource color_Negro}" />
+                                        <Label Text="{Binding RangoPaginaTexto}" FontSize="10" HorizontalTextAlignment="Center" TextColor="{StaticResource color_GrisOscuro}" />
+                                    </VerticalStackLayout>
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                        <Button Grid.Column="0" Text="← Anterior" Pressed="PaginacionMunicipios_Pressed" Clicked="PaginacionMunicipios_Clicked" Command="{Binding PaginaAnteriorCommand}" IsEnabled="{Binding PuedeIrAnterior}" Style="{StaticResource ModernSecondaryButton}" MinimumWidthRequest="0" HorizontalOptions="Fill" />
+                                        <Button Grid.Column="1" Text="Siguiente →" Pressed="PaginacionMunicipios_Pressed" Clicked="PaginacionMunicipios_Clicked" Command="{Binding PaginaSiguienteCommand}" IsEnabled="{Binding PuedeIrSiguiente}" Style="{StaticResource ModernSecondaryButton}" MinimumWidthRequest="0" HorizontalOptions="Fill" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>
 
-                <!-- Indicador de carga -->
                 <Grid
-                    IsVisible="{Binding IsBusy}"
-                    InputTransparent="True"
-                    BackgroundColor="#40FFFFFF">
-
+                    IsVisible="{Binding MostrandoRelay}"
+                    InputTransparent="False"
+                    BackgroundColor="#50000000"
+                    ZIndex="100">
                     <Border
-                        Padding="18"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center"
+                        Padding="20,16"
                         BackgroundColor="White"
                         Stroke="#DDE7E3"
-                        StrokeShape="RoundRectangle 14">
-
+                        StrokeShape="RoundRectangle 15"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
                         <HorizontalStackLayout Spacing="10">
-
-                            <ActivityIndicator
-                                IsRunning="True"
-                                Color="{StaticResource color_Naranja}" />
-
-                            <Label
-                                Text="Cargando municipios..."
-                                VerticalOptions="Center"
-                                TextColor="{StaticResource color_Negro}" />
+                            <ActivityIndicator IsRunning="{Binding MostrandoRelay}" Color="{StaticResource color_Naranja}" />
+                            <VerticalStackLayout Spacing="1" VerticalOptions="Center">
+                                <Label Text="{Binding TituloRelay}" FontFamily="MontserratBold" FontSize="12" TextColor="{StaticResource color_Negro}" />
+                                <Label Text="{Binding DetalleRelay}" FontSize="10" TextColor="{StaticResource color_GrisOscuro}" />
+                            </VerticalStackLayout>
                         </HorizontalStackLayout>
                     </Border>
                 </Grid>

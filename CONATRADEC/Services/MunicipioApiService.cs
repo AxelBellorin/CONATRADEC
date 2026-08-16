@@ -71,7 +71,7 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Búsqueda paginada utilizada por la pantalla administrativa.
+        /// Consulta administrativa paginada con permisos backend.
         /// </summary>
         public async Task<ApiResult<MunicipioPaginaResponse>>
             BuscarMunicipiosAsync(
@@ -91,16 +91,16 @@ namespace CONATRADEC.Services
             tamanoPagina = Math.Clamp(tamanoPagina, 5, 100);
 
             string ruta =
-                "api/municipio/buscar" +
+                "api/administracion/ubicaciones/municipios" +
                 $"?departamentoId={departamentoId}" +
                 $"&pagina={pagina}" +
                 $"&tamanoPagina={tamanoPagina}" +
-                "&orden=nombre" +
-                "&direccion=asc";
+                "&incluirInactivos=false";
 
             if (!string.IsNullOrWhiteSpace(buscar))
             {
-                ruta += $"&buscar={Uri.EscapeDataString(buscar.Trim())}";
+                ruta +=
+                    $"&buscar={Uri.EscapeDataString(buscar.Trim())}";
             }
 
             try
@@ -118,12 +118,38 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
-                MunicipioPaginaResponse? data =
-                    await response.Content.ReadFromJsonAsync<MunicipioPaginaResponse>(
-                        cancellationToken: cancellationToken);
+                PaginaAdminResponse<MunicipioAdminItem>? data =
+                    await response.Content
+                        .ReadFromJsonAsync<PaginaAdminResponse<MunicipioAdminItem>>(
+                            cancellationToken: cancellationToken);
+
+                if (data == null)
+                {
+                    return ApiResult<MunicipioPaginaResponse>.Fail(
+                        "El servidor no devolvió la página de municipios esperada.");
+                }
 
                 return ApiResult<MunicipioPaginaResponse>.Ok(
-                    data ?? new MunicipioPaginaResponse());
+                    new MunicipioPaginaResponse
+                    {
+                        Items = data.Items
+                            .Where(item => item.MunicipioId > 0 && item.Activo)
+                            .Select(item => new MunicipioResponse
+                            {
+                                MunicipioId = item.MunicipioId,
+                                NombreMunicipio = item.Nombre,
+                                DepartamentoId = item.DepartamentoId,
+                                Activo = item.Activo,
+                                CantidadTerrenos = item.CantidadTerrenos,
+                                CantidadUsuarios = item.CantidadUsuarios
+                            })
+                            .ToList(),
+                        PaginaActual = data.PaginaActual,
+                        TamanoPagina = data.TamanoPagina,
+                        TotalRegistros = data.TotalRegistros,
+                        TotalPaginas = data.TotalPaginas,
+                        DepartamentoId = departamentoId
+                    });
             }
             catch (TaskCanceledException)
                 when (!cancellationToken.IsCancellationRequested)
@@ -166,6 +192,8 @@ namespace CONATRADEC.Services
                     "No se recibió un departamento válido.");
             }
 
+            // Se conserva esta ruta para mantener la resolución centralizada
+            // de coincidencias con municipios eliminados.
             ApiResult<bool> result = await ApiServiceHelper.SendAsync(
                 httpClient,
                 HttpMethod.Post,
@@ -197,8 +225,12 @@ namespace CONATRADEC.Services
             ApiResult<bool> result = await ApiServiceHelper.SendAsync(
                 httpClient,
                 HttpMethod.Put,
-                $"api/municipio/actualizar/{municipio.MunicipioId.Value}",
-                municipio,
+                $"api/administracion/ubicaciones/municipios/{municipio.MunicipioId.Value}",
+                new MunicipioAdministracionRequest
+                {
+                    DepartamentoId = municipio.DepartamentoId ?? 0,
+                    Nombre = municipio.NombreMunicipio ?? string.Empty
+                },
                 "actualizar el municipio",
                 "Municipio actualizado correctamente.",
                 cancellationToken);
@@ -223,10 +255,10 @@ namespace CONATRADEC.Services
             }
 
             ApiResult<bool> result =
-                await ApiServiceHelper.SendAsync<MunicipioRequest>(
+                await ApiServiceHelper.SendAsync<MunicipioAdministracionRequest>(
                     httpClient,
                     HttpMethod.Delete,
-                    $"api/municipio/eliminar/{municipio.MunicipioId.Value}",
+                    $"api/administracion/ubicaciones/municipios/{municipio.MunicipioId.Value}",
                     null,
                     "eliminar el municipio",
                     "Municipio eliminado correctamente.",
@@ -280,8 +312,7 @@ namespace CONATRADEC.Services
         }
 
         // Métodos conservados para no afectar código existente.
-        public async Task<bool> CreateMunicipioAsync(
-            MunicipioRequest municipio)
+        public async Task<bool> CreateMunicipioAsync(MunicipioRequest municipio)
         {
             ApiResult<bool> result =
                 await CreateMunicipioResultAsync(municipio);
@@ -289,8 +320,7 @@ namespace CONATRADEC.Services
             return result.Success && result.Data == true;
         }
 
-        public async Task<bool> UpdateMunicipioAsync(
-            MunicipioRequest municipio)
+        public async Task<bool> UpdateMunicipioAsync(MunicipioRequest municipio)
         {
             ApiResult<bool> result =
                 await UpdateMunicipioResultAsync(municipio);
@@ -298,8 +328,7 @@ namespace CONATRADEC.Services
             return result.Success && result.Data == true;
         }
 
-        public async Task<bool> DeleteMunicipioAsync(
-            MunicipioRequest municipio)
+        public async Task<bool> DeleteMunicipioAsync(MunicipioRequest municipio)
         {
             ApiResult<bool> result =
                 await DeleteMunicipioResultAsync(municipio);
@@ -330,6 +359,31 @@ namespace CONATRADEC.Services
         {
             if (departamentoId > 0)
                 CachePorDepartamento.TryRemove(departamentoId, out _);
+        }
+
+        private sealed class PaginaAdminResponse<T>
+        {
+            public List<T> Items { get; set; } = new();
+            public int PaginaActual { get; set; }
+            public int TamanoPagina { get; set; }
+            public int TotalRegistros { get; set; }
+            public int TotalPaginas { get; set; }
+        }
+
+        private sealed class MunicipioAdminItem
+        {
+            public int MunicipioId { get; set; }
+            public int DepartamentoId { get; set; }
+            public string Nombre { get; set; } = string.Empty;
+            public bool Activo { get; set; }
+            public int CantidadTerrenos { get; set; }
+            public int CantidadUsuarios { get; set; }
+        }
+
+        private sealed class MunicipioAdministracionRequest
+        {
+            public int DepartamentoId { get; set; }
+            public string Nombre { get; set; } = string.Empty;
         }
     }
 }

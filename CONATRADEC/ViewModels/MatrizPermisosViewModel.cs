@@ -7,6 +7,14 @@ using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
+    /// <summary>
+    /// Administración de la matriz de permisos.
+    ///
+    /// Esta pantalla es un caso especial: roles e interfaces forman catálogos
+    /// pequeños que deben trabajarse como una unidad, por lo que no se fuerza
+    /// paginación. Las matrices consultadas se reutilizan únicamente durante la
+    /// visita actual y se liberan al abandonar el módulo.
+    /// </summary>
     public sealed class MatrizPermisosViewModel : GlobalService
     {
         private readonly AdministracionConsultaApiService
@@ -22,12 +30,17 @@ namespace CONATRADEC.ViewModels
         private readonly Dictionary<int, PermisoSnapshot>
             snapshot = new();
 
+        private readonly Dictionary<int, List<InterfazCacheItem>>
+            matricesVisita = new();
+
         private RolResponse? rolSeleccionado;
         private string filtro = string.Empty;
         private string estado =
             "Seleccione un rol para consultar sus permisos.";
         private bool usuarioPuedeEditar;
+        private bool visitaActiva;
         private int versionFiltro;
+        private int operacionesActivas;
 
         public ObservableCollection<RolResponse>
             Roles { get; } = new();
@@ -51,13 +64,13 @@ namespace CONATRADEC.ViewModels
         {
             RegresarConfiguracionCommand =
                 new Command(
-                    async () => await GoToAsyncParameters(
-                        AppRoutes.Configuracion),
+                    async () =>
+                        await IntentarRegresarConfiguracionAsync(),
                     () => !IsBusy);
 
             RefrescarCommand =
                 new Command(
-                    async () => await CargarRolesAsync(),
+                    async () => await RefrescarAsync(),
                     () => !IsBusy);
 
             GuardarCommand =
@@ -67,7 +80,7 @@ namespace CONATRADEC.ViewModels
 
             RevertirCambiosCommand =
                 new Command(
-                    RevertirCambios,
+                    () => RevertirCambios(mostrarEstado: true),
                     () => PuedeRevertir);
 
             MarcarColumnaCommand =
@@ -100,7 +113,7 @@ namespace CONATRADEC.ViewModels
         public RolResponse? RolSeleccionado
         {
             get => rolSeleccionado;
-            set
+            private set
             {
                 if (rolSeleccionado?.RolId == value?.RolId)
                     return;
@@ -108,25 +121,12 @@ namespace CONATRADEC.ViewModels
                 rolSeleccionado = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(EsAdministrador));
+                OnPropertyChanged(nameof(TieneRolSeleccionado));
                 OnPropertyChanged(nameof(PuedeEditar));
 
-                CancelarPermisos();
-                LimpiarPermisos();
-
-                if (value?.RolId is > 0)
-                {
-                    Estado =
-                        $"Cargando permisos para {value.NombreMostrar}...";
-
-                    _ = CargarPermisosAsync(value);
-                }
-                else
-                {
-                    Estado =
-                        "Seleccione un rol para consultar sus permisos.";
-                }
-
+                ActualizarEdicionItems();
                 ActualizarComandos();
+                NotificarEstado();
             }
         }
 
@@ -182,27 +182,17 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool EsAdministrador
-        {
-            get
-            {
-                string nombre =
-                    RolSeleccionado?.NombreRol?
-                        .Trim()
-                        .ToUpperInvariant() ??
-                    string.Empty;
+        public bool EsAdministrador =>
+            EsRolAdministrador(RolSeleccionado);
 
-                return nombre is
-                    "ADMINISTRADOR" or
-                    "ADMIN";
-            }
-        }
+        public bool TieneRolSeleccionado =>
+            RolSeleccionado?.RolId is > 0;
 
         public bool PuedeEditar =>
             UsuarioPuedeEditar &&
             !EsAdministrador &&
             !IsBusy &&
-            RolSeleccionado?.RolId is > 0;
+            TieneRolSeleccionado;
 
         public bool MostrarAccesoDenegado =>
             !CanView;
@@ -211,21 +201,24 @@ namespace CONATRADEC.ViewModels
             PermisosVisibles.Count > 0;
 
         public bool MostrarVacio =>
-            RolSeleccionado != null &&
+            TieneRolSeleccionado &&
             !IsBusy &&
             PermisosVisibles.Count == 0;
 
+        public bool TieneCambiosPendientes =>
+            Permisos.Any(item => item.IsDirty);
+
         public bool PuedeGuardar =>
             PuedeEditar &&
-            Permisos.Any(item => item.IsDirty);
+            TieneCambiosPendientes;
 
         public bool PuedeRevertir =>
             !IsBusy &&
-            Permisos.Any(item => item.IsDirty);
+            TieneCambiosPendientes;
 
         public void ActualizarPermisosPagina()
         {
-            LoadPagePermissions("matrizPermisosPage");
+            LoadPagePermissions(InterfazCodigos.MatrizPermisos);
             UsuarioPuedeEditar = CanEdit;
 
             OnPropertyChanged(nameof(MostrarAccesoDenegado));
@@ -233,40 +226,196 @@ namespace CONATRADEC.ViewModels
             NotificarEstado();
         }
 
-        public async Task InicializarAsync()
+        /// <summary>
+        /// Comienza una visita fresca. Como la página es un ShellContent y su
+        /// instancia puede sobrevivir a la navegación, se limpian expresamente
+        /// roles, filtros y matrices retenidas de una visita anterior.
+        /// </summary>
+        public async Task IniciarVisitaAsync()
         {
-            if (Roles.Count == 0)
-                await CargarRolesAsync();
+            if (visitaActiva)
+                return;
+
+            visitaActiva = true;
+            CancelarOperaciones();
+            matricesVisita.Clear();
+            LimpiarPermisos();
+            Roles.Clear();
+            RolSeleccionado = null;
+            EstablecerFiltroSinRetraso(string.Empty);
+
+            Estado =
+                "Seleccione un rol para consultar sus permisos.";
+
+            if (CanView)
+                await CargarRolesAsync(rolASeleccionarId: null);
+        }
+
+        /// <summary>
+        /// Finaliza la visita y libera todas las referencias que solo tienen
+        /// sentido dentro del módulo actual.
+        /// </summary>
+        public void FinalizarVisita()
+        {
+            visitaActiva = false;
+            CancelarOperaciones();
+            Interlocked.Increment(ref versionFiltro);
+
+            matricesVisita.Clear();
+            LimpiarPermisos();
+            Roles.Clear();
+            RolSeleccionado = null;
+            EstablecerFiltroSinRetraso(string.Empty);
+
+            Estado =
+                "Seleccione un rol para consultar sus permisos.";
         }
 
         public void CancelarOperaciones()
         {
-            CancelarYDescartar(ref cargaRolesCts);
-            CancelarYDescartar(ref cargaPermisosCts);
-            CancelarYDescartar(ref guardarCts);
+            CancelarActual(ref cargaRolesCts);
+            CancelarActual(ref cargaPermisosCts);
+            CancelarActual(ref guardarCts);
         }
 
-        private async Task CargarRolesAsync()
+        /// <summary>
+        /// Cambio de rol solicitado por el Picker. Si existen cambios sin
+        /// guardar, el usuario debe decidir explícitamente si desea descartarlos.
+        /// </summary>
+        public async Task<bool> CambiarRolAsync(
+            RolResponse? nuevoRol)
         {
-            CancelarYDescartar(ref cargaRolesCts);
-            cargaRolesCts = new CancellationTokenSource();
-            CancellationToken token = cargaRolesCts.Token;
+            int? actualId = RolSeleccionado?.RolId;
+            int? nuevoId = nuevoRol?.RolId;
+
+            if (actualId == nuevoId)
+                return true;
+
+            if (TieneCambiosPendientes)
+            {
+                bool descartar =
+                    await ConfirmarSalidaSinGuardarAsync();
+
+                if (!descartar)
+                    return false;
+            }
+
+            CancelarActual(ref cargaPermisosCts);
+            LimpiarPermisos();
+            RolSeleccionado = nuevoRol;
+
+            if (nuevoRol?.RolId is not > 0)
+            {
+                Estado =
+                    "Seleccione un rol para consultar sus permisos.";
+                return true;
+            }
+
+            int rolId = nuevoRol.RolId.Value;
+
+            if (matricesVisita.TryGetValue(
+                    rolId,
+                    out List<InterfazCacheItem>? cache))
+            {
+                MostrarPermisosDesdeCache(cache);
+                Estado =
+                    $"Permisos cargados para {nuevoRol.NombreMostrar}.";
+                return true;
+            }
+
+            Estado =
+                $"Cargando permisos para {nuevoRol.NombreMostrar}...";
+
+            await CargarPermisosAsync(nuevoRol);
+            return RolSeleccionado?.RolId == rolId;
+        }
+
+        public async Task<bool> IntentarRegresarConfiguracionAsync()
+        {
+            if (IsBusy)
+                return false;
+
+            if (TieneCambiosPendientes)
+            {
+                bool descartar =
+                    await ConfirmarSalidaSinGuardarAsync();
+
+                if (!descartar)
+                    return false;
+
+                // El usuario confirmó que no conservará estos cambios.
+                RevertirCambios(mostrarEstado: false);
+            }
+
+            await GoToAsyncParameters(AppRoutes.Configuracion);
+            return true;
+        }
+
+        /// <summary>
+        /// Protege navegaciones iniciadas desde el menú global del FooterTemplate.
+        /// Las navegaciones de seguridad hacia Login se excluyen en el code-behind.
+        /// </summary>
+        public async Task<bool> ConfirmarDescarteParaNavegacionExternaAsync()
+        {
+            if (!TieneCambiosPendientes)
+                return true;
+
+            bool descartar =
+                await ConfirmarSalidaSinGuardarAsync();
+
+            if (!descartar)
+                return false;
+
+            RevertirCambios(mostrarEstado: false);
+            return true;
+        }
+
+        private async Task RefrescarAsync()
+        {
+            if (IsBusy)
+                return;
+
+            if (TieneCambiosPendientes)
+            {
+                bool descartar =
+                    await ConfirmarSalidaSinGuardarAsync();
+
+                if (!descartar)
+                    return;
+            }
+
+            int? rolAnteriorId = RolSeleccionado?.RolId;
+
+            CancelarActual(ref cargaPermisosCts);
+            matricesVisita.Clear();
+            LimpiarPermisos();
+            RolSeleccionado = null;
+
+            await CargarRolesAsync(rolAnteriorId);
+        }
+
+        private async Task CargarRolesAsync(
+            int? rolASeleccionarId)
+        {
+            CancellationTokenSource source =
+                CrearOperacion(ref cargaRolesCts);
+
+            CancellationToken token = source.Token;
+            IniciarOperacionOcupada();
 
             try
             {
-                IsBusy = true;
                 Estado = "Cargando roles...";
-                ActualizarComandos();
 
-                ApiResult<RolAdministracionPaginaResponse> resultado =
-                    await consultaApiService.BuscarRolesAsync(
-                        null,
-                        1,
-                        100,
-                        token);
+                ApiResult<List<RolResponse>> resultado =
+                    await consultaApiService
+                        .ObtenerRolesMatrizAsync(token);
 
-                if (token.IsCancellationRequested)
+                if (token.IsCancellationRequested ||
+                    !visitaActiva)
+                {
                     return;
+                }
 
                 if (!resultado.Success ||
                     resultado.Data == null)
@@ -275,96 +424,100 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                var rolesCargados =
-                    new List<RolResponse>(
-                        resultado.Data.Items);
-
-                for (int pagina = 2;
-                     pagina <= resultado.Data.TotalPaginas;
-                     pagina++)
-                {
-                    ApiResult<RolAdministracionPaginaResponse>
-                        paginaResultado =
-                            await consultaApiService
-                                .BuscarRolesAsync(
-                                    null,
-                                    pagina,
-                                    100,
-                                    token);
-
-                    if (token.IsCancellationRequested)
-                        return;
-
-                    if (!paginaResultado.Success ||
-                        paginaResultado.Data == null)
-                    {
-                        Estado = paginaResultado.Message;
-                        return;
-                    }
-
-                    rolesCargados.AddRange(
-                        paginaResultado.Data.Items);
-                }
-
-                int? rolAnterior = RolSeleccionado?.RolId;
-
-                /*
-                 * Se limpia la selección antes de reemplazar los objetos
-                 * para que un refresco recargue también los permisos.
-                 */
-                RolSeleccionado = null;
                 Roles.Clear();
 
-                foreach (RolResponse rol in rolesCargados)
+                foreach (RolResponse rol in resultado.Data
+                             .Where(item => item.RolId is > 0)
+                             .OrderBy(item => item.NombreMostrar)
+                             .ThenBy(item => item.RolId))
+                {
                     Roles.Add(rol);
+                }
 
-                RolSeleccionado =
-                    rolAnterior is > 0
-                        ? Roles.FirstOrDefault(item =>
-                            item.RolId == rolAnterior)
-                        : null;
+                if (Roles.Count == 0)
+                {
+                    RolSeleccionado = null;
+                    Estado = "No existen roles activos.";
+                    return;
+                }
+
+                if (rolASeleccionarId is > 0)
+                {
+                    RolResponse? anterior =
+                        Roles.FirstOrDefault(item =>
+                            item.RolId == rolASeleccionarId);
+
+                    if (anterior != null)
+                    {
+                        RolSeleccionado = anterior;
+                        Estado =
+                            $"Cargando permisos para {anterior.NombreMostrar}...";
+
+                        await CargarPermisosAsync(anterior);
+                        return;
+                    }
+                }
 
                 Estado =
-                    Roles.Count == 0
-                        ? "No existen roles activos."
-                        : "Seleccione un rol para consultar sus permisos.";
+                    "Seleccione un rol para consultar sus permisos.";
             }
             catch (OperationCanceledException)
             {
             }
             catch (Exception ex)
             {
-                Estado =
-                    "No fue posible cargar los roles.";
+                if (!token.IsCancellationRequested)
+                {
+                    Estado = "No fue posible cargar los roles.";
 
-                await MostrarErrorInesperadoAsync(
-                    "cargar los roles de la matriz",
-                    ex);
+                    await MostrarErrorInesperadoAsync(
+                        "cargar los roles de la matriz",
+                        ex);
+                }
             }
             finally
             {
-                IsBusy = false;
-                ActualizarComandos();
-                NotificarEstado();
+                LiberarOperacion(
+                    ref cargaRolesCts,
+                    source);
+
+                FinalizarOperacionOcupada();
             }
         }
 
         private async Task CargarPermisosAsync(
             RolResponse rolSolicitado)
         {
-            if (rolSolicitado.RolId is not > 0)
+            if (!visitaActiva ||
+                rolSolicitado.RolId is not > 0)
+            {
                 return;
+            }
 
-            CancelarYDescartar(ref cargaPermisosCts);
-            cargaPermisosCts = new CancellationTokenSource();
-            CancellationToken token = cargaPermisosCts.Token;
             int rolId = rolSolicitado.RolId.Value;
+
+            if (matricesVisita.TryGetValue(
+                    rolId,
+                    out List<InterfazCacheItem>? cache))
+            {
+                if (RolSeleccionado?.RolId == rolId)
+                {
+                    MostrarPermisosDesdeCache(cache);
+                    Estado =
+                        $"Permisos cargados para {rolSolicitado.NombreMostrar}.";
+                }
+
+                return;
+            }
+
+            CancellationTokenSource source =
+                CrearOperacion(ref cargaPermisosCts);
+
+            CancellationToken token = source.Token;
+            IniciarOperacionOcupada();
 
             try
             {
-                IsBusy = true;
-                ActualizarComandos();
-
                 ApiResult<MatrizPermisosResponse> resultado =
                     await matrizApiService
                         .GetMatrizByRolIdResultAsync(
@@ -372,6 +525,7 @@ namespace CONATRADEC.ViewModels
                             token);
 
                 if (token.IsCancellationRequested ||
+                    !visitaActiva ||
                     RolSeleccionado?.RolId != rolId)
                 {
                     return;
@@ -384,40 +538,13 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
-                LimpiarPermisos();
+                List<InterfazCacheItem> cacheNueva =
+                    ConsolidarRespuesta(
+                        resultado.Data.Interfaz);
 
-                foreach (InterfazResponse item
-                         in resultado.Data.Interfaz
-                             .OrderBy(item =>
-                                 item.NombreMostrar)
-                             .ThenBy(item =>
-                                 item.NombreInterfaz))
-                {
-                    /*
-                     * Se conserva el comportamiento anterior del rol
-                     * Administrador: lectura y actualización siempre
-                     * visibles y la fila permanece protegida.
-                     */
-                    if (EsAdministrador)
-                    {
-                        item.Leer = true;
-                        item.Actualizar = true;
-                    }
+                matricesVisita[rolId] = cacheNueva;
+                MostrarPermisosDesdeCache(cacheNueva);
 
-                    item.CanEdit =
-                        UsuarioPuedeEditar &&
-                        !EsAdministrador;
-
-                    item.AcceptChanges();
-                    item.PropertyChanged += Item_PropertyChanged;
-
-                    Permisos.Add(item);
-
-                    snapshot[item.InterfazId] =
-                        PermisoSnapshot.From(item);
-                }
-
-                AplicarFiltro();
                 Estado =
                     $"Permisos cargados para {rolSolicitado.NombreMostrar}.";
             }
@@ -439,41 +566,43 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                IsBusy = false;
-                ActualizarComandos();
-                NotificarEstado();
+                LiberarOperacion(
+                    ref cargaPermisosCts,
+                    source);
+
+                FinalizarOperacionOcupada();
             }
         }
 
         private async Task GuardarAsync()
         {
             if (!PuedeGuardar ||
-                RolSeleccionado == null)
+                RolSeleccionado?.RolId is not > 0)
             {
                 return;
             }
 
             bool confirmar =
-                await Application.Current!
-                    .MainPage!
-                    .DisplayAlert(
-                        "Guardar permisos",
-                        $"¿Desea actualizar los permisos de " +
-                        $"'{RolSeleccionado.NombreMostrar}'?",
-                        "Guardar",
-                        "Cancelar");
+                await ConfirmarAsync(
+                    "Guardar permisos",
+                    $"¿Desea actualizar los permisos de " +
+                    $"'{RolSeleccionado.NombreMostrar}'?",
+                    "Guardar",
+                    "Cancelar");
 
             if (!confirmar)
                 return;
 
-            CancelarYDescartar(ref guardarCts);
-            guardarCts = new CancellationTokenSource();
+            CancellationTokenSource source =
+                CrearOperacion(ref guardarCts);
+
+            CancellationToken token = source.Token;
+            int rolId = RolSeleccionado.RolId.Value;
+            IniciarOperacionOcupada();
 
             try
             {
-                IsBusy = true;
                 Estado = "Guardando permisos...";
-                ActualizarComandos();
 
                 var request =
                     new MatrizPermisosRequest
@@ -489,9 +618,16 @@ namespace CONATRADEC.ViewModels
                 ApiResult<bool> resultado =
                     await matrizApiService.GuardarMatrizResultAsync(
                         request,
-                        guardarCts.Token);
+                        token);
 
-                if (!resultado.Success)
+                if (token.IsCancellationRequested ||
+                    RolSeleccionado?.RolId != rolId)
+                {
+                    return;
+                }
+
+                if (!resultado.Success ||
+                    resultado.Data != true)
                 {
                     Estado = resultado.Message;
                     await MostrarToastAsync(resultado.Message);
@@ -507,6 +643,9 @@ namespace CONATRADEC.ViewModels
                         PermisoSnapshot.From(item);
                 }
 
+                matricesVisita[rolId] =
+                    CrearCacheDesdePermisos(Permisos);
+
                 Estado =
                     string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Permisos guardados correctamente."
@@ -519,21 +658,31 @@ namespace CONATRADEC.ViewModels
             }
             catch (Exception ex)
             {
-                Estado =
-                    "No fue posible guardar los permisos.";
+                if (!token.IsCancellationRequested)
+                {
+                    Estado =
+                        "No fue posible guardar los permisos.";
 
-                await MostrarErrorInesperadoAsync(
-                    "guardar la matriz de permisos",
-                    ex);
+                    await MostrarErrorInesperadoAsync(
+                        "guardar la matriz de permisos",
+                        ex);
+                }
             }
             finally
             {
-                IsBusy = false;
-                ActualizarComandos();
-                NotificarEstado();
+                LiberarOperacion(
+                    ref guardarCts,
+                    source);
+
+                FinalizarOperacionOcupada();
             }
         }
 
+        /// <summary>
+        /// Las acciones masivas se aplican únicamente sobre las interfaces que
+        /// el usuario está viendo. De esta forma un filtro nunca modifica filas
+        /// ocultas de manera sorpresiva.
+        /// </summary>
         private void MarcarColumna(string? columna)
         {
             if (!PuedeEditar)
@@ -544,7 +693,8 @@ namespace CONATRADEC.ViewModels
                     .Trim()
                     .ToLowerInvariant();
 
-            foreach (InterfazResponse item in Permisos)
+            foreach (InterfazResponse item
+                     in PermisosVisibles.ToList())
             {
                 if (!item.CanEdit)
                     continue;
@@ -569,7 +719,9 @@ namespace CONATRADEC.ViewModels
                 }
             }
 
-            Estado = "Hay cambios pendientes por guardar.";
+            if (TieneCambiosPendientes)
+                Estado = "Hay cambios pendientes por guardar.";
+
             ActualizarComandos();
         }
 
@@ -585,11 +737,14 @@ namespace CONATRADEC.ViewModels
             }
 
             item.SetAll(valor);
-            Estado = "Hay cambios pendientes por guardar.";
+
+            if (TieneCambiosPendientes)
+                Estado = "Hay cambios pendientes por guardar.";
+
             ActualizarComandos();
         }
 
-        private void RevertirCambios()
+        private void RevertirCambios(bool mostrarEstado)
         {
             foreach (InterfazResponse item in Permisos)
             {
@@ -607,29 +762,37 @@ namespace CONATRADEC.ViewModels
                 item.AcceptChanges();
             }
 
-            Estado = "Cambios revertidos.";
+            if (mostrarEstado)
+                Estado = "Cambios revertidos.";
+
             ActualizarComandos();
         }
 
         private async Task AplicarFiltroConRetrasoAsync(
             int version)
         {
-            await Task.Delay(250);
-
-            if (version !=
-                Volatile.Read(ref versionFiltro))
+            try
             {
-                return;
-            }
+                await Task.Delay(250);
 
-            await MainThread.InvokeOnMainThreadAsync(
-                AplicarFiltro);
+                if (version !=
+                    Volatile.Read(ref versionFiltro))
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(
+                    AplicarFiltro);
+            }
+            catch
+            {
+                // El filtro es local y nunca debe interrumpir la pantalla.
+            }
         }
 
         private void AplicarFiltro()
         {
-            string texto =
-                Filtro.Trim();
+            string texto = Filtro.Trim();
 
             PermisosVisibles.Clear();
 
@@ -650,14 +813,91 @@ namespace CONATRADEC.ViewModels
             NotificarEstado();
         }
 
+        private void MostrarPermisosDesdeCache(
+            IEnumerable<InterfazCacheItem> cache)
+        {
+            LimpiarPermisos();
+
+            bool administrador = EsAdministrador;
+
+            foreach (InterfazCacheItem dato in cache
+                         .OrderBy(item => item.NombreMostrar)
+                         .ThenBy(item => item.NombreInterfaz))
+            {
+                var item = new InterfazResponse(
+                    dato.InterfazId,
+                    dato.NombreInterfaz,
+                    dato.NombreAmigableInterfaz,
+                    administrador ? true : dato.Leer,
+                    dato.Agregar,
+                    administrador ? true : dato.Actualizar,
+                    dato.Eliminar)
+                {
+                    CanEdit =
+                        UsuarioPuedeEditar &&
+                        !administrador
+                };
+
+                item.AcceptChanges();
+                item.PropertyChanged += Item_PropertyChanged;
+
+                Permisos.Add(item);
+                snapshot[item.InterfazId] =
+                    PermisoSnapshot.From(item);
+            }
+
+            AplicarFiltro();
+        }
+
+        private static List<InterfazCacheItem>
+            ConsolidarRespuesta(
+                IEnumerable<InterfazResponse> interfaces)
+        {
+            return interfaces
+                .Where(item => item.InterfazId > 0)
+                .GroupBy(item => item.InterfazId)
+                .Select(grupo =>
+                {
+                    InterfazResponse primero = grupo.First();
+
+                    return new InterfazCacheItem(
+                        primero.InterfazId,
+                        primero.NombreInterfaz ?? string.Empty,
+                        primero.NombreAmigableInterfaz ?? string.Empty,
+                        grupo.Any(item => item.Leer),
+                        grupo.Any(item => item.Agregar),
+                        grupo.Any(item => item.Actualizar),
+                        grupo.Any(item => item.Eliminar));
+                })
+                .OrderBy(item => item.NombreMostrar)
+                .ThenBy(item => item.NombreInterfaz)
+                .ToList();
+        }
+
+        private static List<InterfazCacheItem>
+            CrearCacheDesdePermisos(
+                IEnumerable<InterfazResponse> permisos) =>
+            permisos
+                .Select(item =>
+                    new InterfazCacheItem(
+                        item.InterfazId,
+                        item.NombreInterfaz,
+                        item.NombreAmigableInterfaz,
+                        item.Leer,
+                        item.Agregar,
+                        item.Actualizar,
+                        item.Eliminar))
+                .ToList();
+
         private void ActualizarEdicionItems()
         {
+            bool puedeEditar =
+                UsuarioPuedeEditar &&
+                !EsAdministrador &&
+                !IsBusy;
+
             foreach (InterfazResponse item in Permisos)
-            {
-                item.CanEdit =
-                    UsuarioPuedeEditar &&
-                    !EsAdministrador;
-            }
+                item.CanEdit = puedeEditar;
         }
 
         private void Item_PropertyChanged(
@@ -672,7 +912,7 @@ namespace CONATRADEC.ViewModels
                 nameof(Permiso.IsDirty))
             {
                 Estado =
-                    Permisos.Any(item => item.IsDirty)
+                    TieneCambiosPendientes
                         ? "Hay cambios pendientes por guardar."
                         : "Permisos sin cambios.";
 
@@ -692,29 +932,118 @@ namespace CONATRADEC.ViewModels
             NotificarEstado();
         }
 
-        private void CancelarPermisos()
+        private void EstablecerFiltroSinRetraso(string valor)
         {
-            CancelarYDescartar(ref cargaPermisosCts);
+            string nuevo = valor ?? string.Empty;
+
+            if (filtro == nuevo)
+                return;
+
+            filtro = nuevo;
+            Interlocked.Increment(ref versionFiltro);
+            OnPropertyChanged(nameof(Filtro));
+            AplicarFiltro();
         }
 
-        private static void CancelarYDescartar(
+        private void IniciarOperacionOcupada()
+        {
+            if (Interlocked.Increment(
+                    ref operacionesActivas) == 1)
+            {
+                IsBusy = true;
+            }
+
+            ActualizarEdicionItems();
+            ActualizarComandos();
+            NotificarEstado();
+        }
+
+        private void FinalizarOperacionOcupada()
+        {
+            int restantes =
+                Interlocked.Decrement(ref operacionesActivas);
+
+            if (restantes <= 0)
+            {
+                Interlocked.Exchange(
+                    ref operacionesActivas,
+                    0);
+
+                IsBusy = false;
+            }
+
+            ActualizarEdicionItems();
+            ActualizarComandos();
+            NotificarEstado();
+        }
+
+        private static CancellationTokenSource CrearOperacion(
+            ref CancellationTokenSource? destino)
+        {
+            var nueva = new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(ref destino, nueva);
+
+            CancelarSeguro(anterior);
+            return nueva;
+        }
+
+        private static void CancelarActual(
             ref CancellationTokenSource? source)
         {
             CancellationTokenSource? actual =
                 Interlocked.Exchange(ref source, null);
 
-            if (actual == null)
+            CancelarSeguro(actual);
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
                 return;
 
             try
             {
-                actual.Cancel();
+                source.Cancel();
             }
             catch (ObjectDisposedException)
             {
             }
+        }
 
-            actual.Dispose();
+        private static void LiberarOperacion(
+            ref CancellationTokenSource? destino,
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref destino,
+                null,
+                source);
+
+            try
+            {
+                source.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        private static bool EsRolAdministrador(
+            RolResponse? rol)
+        {
+            string nombre = rol?.NombreMostrar ?? string.Empty;
+
+            return string.Equals(
+                       nombre,
+                       "ADMINISTRADOR",
+                       StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(
+                       nombre,
+                       "ADMIN",
+                       StringComparison.OrdinalIgnoreCase);
         }
 
         private void ActualizarComandos()
@@ -731,12 +1060,14 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(PuedeEditar));
             OnPropertyChanged(nameof(PuedeGuardar));
             OnPropertyChanged(nameof(PuedeRevertir));
+            OnPropertyChanged(nameof(TieneCambiosPendientes));
         }
 
         private void NotificarEstado()
         {
             OnPropertyChanged(nameof(TienePermisos));
             OnPropertyChanged(nameof(MostrarVacio));
+            OnPropertyChanged(nameof(TieneRolSeleccionado));
         }
 
         private readonly record struct PermisoSnapshot(
@@ -752,6 +1083,21 @@ namespace CONATRADEC.ViewModels
                     item.Agregar,
                     item.Actualizar,
                     item.Eliminar);
+        }
+
+        private readonly record struct InterfazCacheItem(
+            int InterfazId,
+            string NombreInterfaz,
+            string NombreAmigableInterfaz,
+            bool Leer,
+            bool Agregar,
+            bool Actualizar,
+            bool Eliminar)
+        {
+            public string NombreMostrar =>
+                InterfazCodigos.ObtenerNombreAmigable(
+                    NombreInterfaz,
+                    NombreAmigableInterfaz);
         }
     }
 }

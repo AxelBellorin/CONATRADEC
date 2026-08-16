@@ -1,60 +1,86 @@
 using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
-    [QueryProperty(nameof(Pais), "Pais")]
-    [QueryProperty(nameof(Departamento), "Departamento")]
-    [QueryProperty(nameof(TitlePage), "TitlePage")]
-    public partial class municipioPage : ContentPage
+    public partial class municipioPage : ContentPage, IQueryAttributable
     {
-        private readonly MunicipioViewModel viewModel = new();
+        private const double AnchoMinimoTarjeta = 380;
+        private const double EspaciadoTarjetas = 12;
 
+        private readonly MunicipioViewModel viewModel = new();
+        private readonly SemaphoreSlim inicializacionLock = new(1, 1);
+        private readonly SemaphoreSlim procesamientoLock = new(1, 1);
+
+        private PaisRequest paisPendiente = new();
+        private DepartamentoRequest departamentoPendiente = new();
+        private string tituloPendiente = string.Empty;
+        private long versionParametros;
+        private long versionInicializada;
+        private bool parametrosValidos;
         private bool paginaVisible;
-        private bool permisosCargados;
-        private int cantidadColumnasActual;
+        private bool navegacionShellSuscrita;
+        private bool salidaExternaPendiente;
+        private int columnasActuales;
+        private int paginaAntesCambio = -1;
+        private int versionVisitaAplicada;
 
         public municipioPage()
         {
             InitializeComponent();
-
-            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
             BindingContext = viewModel;
+            Shell.Current.FlyoutBehavior = FlyoutBehavior.Disabled;
 
-            /*
-             * El estado vacío debe utilizar todo el ancho disponible.
-             * Cuando aparecen registros se restaura automáticamente la
-             * cantidad de columnas correspondiente al ancho de pantalla.
-             */
             viewModel.List.CollectionChanged +=
-                (_, _) => AjustarCantidadColumnas(Width);
+                (_, _) => AjustarColumnas(Width);
         }
 
-        public string TitlePage
+        public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
-            set => viewModel.TitlePage = value;
-        }
+            bool tienePais =
+                query.TryGetValue("Pais", out object? paisValue) &&
+                paisValue is PaisRequest pais &&
+                pais.PaisId > 0;
 
-        public PaisRequest Pais
-        {
-            set
+            bool tieneDepartamento =
+                query.TryGetValue("Departamento", out object? departamentoValue) &&
+                departamentoValue is DepartamentoRequest departamento &&
+                departamento.DepartamentoId is > 0;
+
+            parametrosValidos = tienePais && tieneDepartamento;
+
+            if (tienePais)
+                paisPendiente = (PaisRequest)paisValue!;
+
+            if (tieneDepartamento)
             {
-                viewModel.PaisRequest = value ?? new PaisRequest();
+                departamentoPendiente = (DepartamentoRequest)departamentoValue!;
 
-                if (paginaVisible && permisosCargados)
-                    _ = IntentarInicializarAsync();
+                if (tienePais &&
+                    departamentoPendiente.PaisId.HasValue &&
+                    departamentoPendiente.PaisId.Value != paisPendiente.PaisId)
+                {
+                    parametrosValidos = false;
+                }
+                else if (tienePais && !departamentoPendiente.PaisId.HasValue)
+                {
+                    departamentoPendiente.PaisId = paisPendiente.PaisId;
+                }
             }
-        }
 
-        public DepartamentoRequest Departamento
-        {
-            set
+            tituloPendiente =
+                query.TryGetValue("TitlePage", out object? tituloValue) &&
+                tituloValue is string titulo
+                    ? titulo
+                    : string.Empty;
+
+            Interlocked.Increment(ref versionParametros);
+
+            if (paginaVisible)
             {
-                viewModel.DepartamentoRequest =
-                    value ?? new DepartamentoRequest();
-
-                if (paginaVisible && permisosCargados)
-                    _ = IntentarInicializarAsync();
+                Dispatcher.Dispatch(
+                    () => _ = ProcesarAparicionAsync());
             }
         }
 
@@ -63,67 +89,278 @@ namespace CONATRADEC.Views
             base.OnAppearing();
 
             paginaVisible = true;
-            viewModel.ActualizarPermisos();
-            permisosCargados = true;
+            salidaExternaPendiente = false;
+            SuscribirNavegacionShell();
+            UbicacionVisitaService.AsegurarVisita();
 
-            AjustarCantidadColumnas(Width);
-            await IntentarInicializarAsync();
+            viewModel.ActualizarPermisos();
+            AjustarDiseno(Width);
+            await ProcesarAparicionAsync();
         }
 
         protected override void OnDisappearing()
         {
             paginaVisible = false;
+
+            if (salidaExternaPendiente)
+            {
+                UbicacionVisitaService.FinalizarVisita();
+                salidaExternaPendiente = false;
+            }
+
+            DesuscribirNavegacionShell();
             viewModel.CancelarCarga();
             base.OnDisappearing();
         }
 
-        protected override void OnSizeAllocated(
-            double width,
-            double height)
+        protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
-            AjustarCantidadColumnas(width);
+            AjustarDiseno(width);
         }
 
-        private async Task IntentarInicializarAsync()
+        protected override bool OnBackButtonPressed()
         {
-            if (!paginaVisible ||
-                !permisosCargados ||
-                !viewModel.UbicacionValida)
+            if (viewModel.ReturnCommand.CanExecute(null))
+                viewModel.ReturnCommand.Execute(null);
+
+            return true;
+        }
+
+        private async Task ProcesarAparicionAsync()
+        {
+            await procesamientoLock.WaitAsync();
+
+            try
             {
+                if (!paginaVisible)
+                    return;
+
+                if (!await AplicarParametrosPendientesAsync())
+                    return;
+
+            if (!viewModel.CanView || !viewModel.UbicacionValida)
+                return;
+
+            int versionVisita = UbicacionVisitaService.VersionActual;
+            if (versionVisitaAplicada != versionVisita)
+            {
+                versionVisitaAplicada = versionVisita;
+                await viewModel.IniciarNuevaVisitaAsync();
                 return;
             }
 
-            await viewModel.InicializarAsync();
+            int departamentoId =
+                viewModel.DepartamentoRequest.DepartamentoId!.Value;
+
+            if (UbicacionVisitaService.ConsumirRecargaMunicipios(
+                    departamentoId))
+            {
+                await viewModel.RecargarPaginaActualAsync();
+                return;
+            }
+
+            bool requiereGet = viewModel.AplicarCambiosPendientes();
+            if (requiereGet)
+            {
+                await viewModel.RecargarPaginaActualAsync();
+                return;
+            }
+
+                if (!viewModel.TienePaginaCargada)
+                    await viewModel.InicializarAsync();
+            }
+            finally
+            {
+                procesamientoLock.Release();
+            }
         }
 
-        private void AjustarCantidadColumnas(double width)
+        private async Task<bool> AplicarParametrosPendientesAsync()
         {
-            if (width <= 0 || MunicipiosGridLayout == null)
+            await inicializacionLock.WaitAsync();
+
+            try
+            {
+                long actual = Volatile.Read(ref versionParametros);
+
+                // Shell puede aplicar los parámetros después de OnAppearing.
+                // Sin una versión recibida todavía, no se asume un error.
+                if (actual <= 0)
+                    return false;
+
+                if (versionInicializada == actual)
+                    return parametrosValidos;
+
+                versionInicializada = actual;
+
+                if (!parametrosValidos)
+                {
+                    await MostrarErrorNavegacionAsync();
+                    return false;
+                }
+
+                viewModel.PaisRequest = paisPendiente;
+                viewModel.DepartamentoRequest = departamentoPendiente;
+                viewModel.TitlePage = tituloPendiente;
+                AjustarDiseno(Width);
+                return true;
+            }
+            finally
+            {
+                inicializacionLock.Release();
+            }
+        }
+
+        private async Task MostrarErrorNavegacionAsync()
+        {
+            await DisplayAlert(
+                "No fue posible abrir municipios",
+                "No se recibieron correctamente el país y el departamento requeridos.",
+                "Aceptar");
+
+            await Shell.Current.GoToAsync(AppRoutes.Paises);
+        }
+
+        private void AjustarDiseno(double width)
+        {
+            if (width <= 0)
                 return;
 
-            /*
-             * Con la colección vacía se fuerza una sola columna para que el
-             * EmptyView ocupe todo el ancho en tablet y Windows. Al cargarse
-             * elementos se conserva exactamente el diseño responsivo previo.
-             */
-            int nuevasColumnas =
+            if (ContenidoMunicipios != null)
+            {
+                ContenidoMunicipios.Padding =
+                    width < 600
+                        ? new Thickness(12, 12, 12, 20)
+                        : width < 900
+                            ? new Thickness(18, 16, 18, 24)
+                            : new Thickness(24, 20, 24, 28);
+            }
+
+            AjustarColumnas(width);
+
+            if (PaginacionMunicipios != null)
+            {
+                PaginacionMunicipios.WidthRequest =
+                    Math.Min(560, ObtenerAnchoUtil(width));
+            }
+        }
+
+        private void AjustarColumnas(double width)
+        {
+            if (MunicipiosGridLayout == null)
+                return;
+
+            int columnas =
                 viewModel.List.Count == 0
                     ? 1
-                    : width >= 1200
-                        ? 3
-                        : width >= 700
-                            ? 2
-                            : 1;
+                    : CalcularColumnas(ObtenerAnchoUtil(width));
 
-            if (cantidadColumnasActual == nuevasColumnas &&
-                MunicipiosGridLayout.Span == nuevasColumnas)
+            if (columnasActuales == columnas &&
+                MunicipiosGridLayout.Span == columnas)
             {
                 return;
             }
 
-            cantidadColumnasActual = nuevasColumnas;
-            MunicipiosGridLayout.Span = nuevasColumnas;
+            columnasActuales = columnas;
+            MunicipiosGridLayout.Span = columnas;
+        }
+
+        private static int CalcularColumnas(double anchoUtil)
+        {
+            if (anchoUtil >=
+                (AnchoMinimoTarjeta * 3) + (EspaciadoTarjetas * 2))
+            {
+                return 3;
+            }
+
+            return anchoUtil >=
+                   (AnchoMinimoTarjeta * 2) + EspaciadoTarjetas
+                ? 2
+                : 1;
+        }
+
+        private static double ObtenerAnchoUtil(double width)
+        {
+            double padding = width < 600 ? 24 : width < 900 ? 36 : 48;
+            return Math.Max(0, width - padding);
+        }
+
+        private void PaginacionMunicipios_Pressed(object? sender, EventArgs e)
+        {
+            paginaAntesCambio = viewModel.PaginaActual;
+        }
+
+        private async void PaginacionMunicipios_Clicked(object? sender, EventArgs e)
+        {
+            int paginaOrigen =
+                paginaAntesCambio > 0
+                    ? paginaAntesCambio
+                    : viewModel.PaginaActual;
+
+            bool operacionDetectada = false;
+
+            for (int intento = 0; intento < 240; intento++)
+            {
+                if (viewModel.IsBusy || viewModel.PaginaActual != paginaOrigen)
+                    operacionDetectada = true;
+
+                if (operacionDetectada && !viewModel.IsBusy)
+                {
+                    if (viewModel.PaginaActual != paginaOrigen &&
+                        viewModel.List.Count > 0)
+                    {
+                        await DesplazarListadoAlInicioAsync();
+                    }
+
+                    paginaAntesCambio = -1;
+                    return;
+                }
+
+                await Task.Delay(50);
+            }
+
+            paginaAntesCambio = -1;
+        }
+
+        private async Task DesplazarListadoAlInicioAsync()
+        {
+            if (MunicipiosCollectionView == null || viewModel.List.Count == 0)
+                return;
+
+            await Task.Delay(60);
+            MunicipiosCollectionView.ScrollTo(
+                0,
+                position: ScrollToPosition.Start,
+                animate: false);
+        }
+
+        private void SuscribirNavegacionShell()
+        {
+            if (navegacionShellSuscrita || Shell.Current == null)
+                return;
+
+            Shell.Current.Navigating += Shell_Navigating;
+            navegacionShellSuscrita = true;
+        }
+
+        private void DesuscribirNavegacionShell()
+        {
+            if (!navegacionShellSuscrita || Shell.Current == null)
+                return;
+
+            Shell.Current.Navigating -= Shell_Navigating;
+            navegacionShellSuscrita = false;
+        }
+
+        private void Shell_Navigating(object? sender, ShellNavigatingEventArgs e)
+        {
+            string ruta = e.Target?.Location?.OriginalString ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(ruta))
+                return;
+
+            salidaExternaPendiente =
+                !paisPage.EsRutaInternaUbicaciones(ruta);
         }
     }
 }

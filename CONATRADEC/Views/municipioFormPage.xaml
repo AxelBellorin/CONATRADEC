@@ -7,10 +7,10 @@
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <Grid
+        x:Name="ContenidoMunicipioFormulario"
         RowDefinitions="Auto,*"
-        Padding="{OnIdiom Phone='12,10,12,20', Tablet='20,14,20,26', Desktop='28,16,28,30'}">
+        Padding="12,10,12,20">
 
-        <!-- Mantiene el mismo CancelCommand y comportamiento de regreso existente. -->
         <Button
             Grid.Row="0"
             Text="←"
@@ -90,18 +90,12 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!--
-            Capa de carga de la operación actual.
-            Bloquea temporalmente la interacción para evitar dobles acciones
-            y deja claro que la aplicación continúa trabajando.
-        -->
         <Grid
             Grid.RowSpan="2"
             ZIndex="100"
             IsVisible="{Binding IsBusy}"
             InputTransparent="False"
             BackgroundColor="#4A0B1511">
-
             <Border
                 Padding="18,14"
                 HorizontalOptions="Center"
@@ -110,20 +104,9 @@
                 Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                 StrokeThickness="1"
                 StrokeShape="RoundRectangle 14">
-
                 <HorizontalStackLayout Spacing="10">
-                    <ActivityIndicator
-                        IsRunning="{Binding IsBusy}"
-                        Color="{StaticResource color_Verde}"
-                        WidthRequest="24"
-                        HeightRequest="24" />
-
-                    <Label
-                        Text="Procesando municipio..."
-                        VerticalOptions="Center"
-                        FontFamily="MontserratBold"
-                        FontSize="12"
-                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" WidthRequest="24" HeightRequest="24" />
+                    <Label Text="Procesando municipio..." VerticalOptions="Center" FontFamily="MontserratBold" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                 </HorizontalStackLayout>
             </Border>
         </Grid>

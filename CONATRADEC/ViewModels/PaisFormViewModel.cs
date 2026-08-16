@@ -1,6 +1,7 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
@@ -8,6 +9,7 @@ namespace CONATRADEC.ViewModels
     {
         private readonly PaisApiService paisApiService;
         private CancellationTokenSource? guardadoCts;
+        private int guardadoEnCurso;
 
         private PaisRequest pais = new();
         private string nombrePais = string.Empty;
@@ -24,12 +26,11 @@ namespace CONATRADEC.ViewModels
         public PaisFormViewModel(PaisApiService paisApiService)
         {
             this.paisApiService = paisApiService
-                ?? throw new ArgumentNullException(
-                    nameof(paisApiService));
+                ?? throw new ArgumentNullException(nameof(paisApiService));
 
             SaveCommand = new Command(
                 async () => await SaveAsync(),
-                () => !IsReadOnly && !IsBusy);
+                () => CanSave && !IsBusy);
 
             CancelCommand = new Command(
                 async () => await CancelAsync(),
@@ -45,7 +46,6 @@ namespace CONATRADEC.ViewModels
             set
             {
                 string nuevoValor = value ?? string.Empty;
-
                 if (nombrePais == nuevoValor)
                     return;
 
@@ -75,12 +75,8 @@ namespace CONATRADEC.ViewModels
                 codigoISOPais = nuevoValor;
                 OnPropertyChanged();
 
-                if (Regex.IsMatch(
-                        codigoISOPais,
-                        "^[A-Z]{3}$"))
-                {
+                if (Regex.IsMatch(codigoISOPais, "^[A-Z]{3}$"))
                     ErrorCodigoISOPais = string.Empty;
-                }
             }
         }
 
@@ -124,13 +120,8 @@ namespace CONATRADEC.ViewModels
             set
             {
                 pais = value ?? new PaisRequest();
-
-                NombrePais =
-                    pais.NombrePais ?? string.Empty;
-
-                CodigoISOPais =
-                    pais.CodigoISOPais ?? string.Empty;
-
+                NombrePais = pais.NombrePais ?? string.Empty;
+                CodigoISOPais = pais.CodigoISOPais ?? string.Empty;
                 LimpiarErrores();
                 OnPropertyChanged();
             }
@@ -145,13 +136,12 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 mode = value;
-
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
+                OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(ShowSaveButton));
                 OnPropertyChanged(nameof(Title));
                 OnPropertyChanged(nameof(Subtitulo));
-
                 RefrescarComandos();
             }
         }
@@ -159,23 +149,23 @@ namespace CONATRADEC.ViewModels
         public bool IsReadOnly =>
             Mode == FormMode.FormModeSelect.View;
 
-        public bool ShowSaveButton =>
-            Mode != FormMode.FormModeSelect.View;
+        public bool CanSave =>
+            Mode switch
+            {
+                FormMode.FormModeSelect.Create => CanAdd,
+                FormMode.FormModeSelect.Edit => CanEdit,
+                _ => false
+            };
+
+        public bool ShowSaveButton => CanSave;
 
         public string Title =>
             Mode switch
             {
-                FormMode.FormModeSelect.Create =>
-                    "Crear país",
-
-                FormMode.FormModeSelect.Edit =>
-                    "Editar país",
-
-                FormMode.FormModeSelect.View =>
-                    "Detalles del país",
-
-                _ =>
-                    "País"
+                FormMode.FormModeSelect.Create => "Crear país",
+                FormMode.FormModeSelect.Edit => "Editar país",
+                FormMode.FormModeSelect.View => "Detalles del país",
+                _ => "País"
             };
 
         public string Subtitulo =>
@@ -183,16 +173,20 @@ namespace CONATRADEC.ViewModels
             {
                 FormMode.FormModeSelect.Create =>
                     "Registre el nombre oficial y el código ISO de tres letras.",
-
                 FormMode.FormModeSelect.Edit =>
                     "Actualice la información general del país seleccionado.",
-
                 FormMode.FormModeSelect.View =>
                     "Consulte la información registrada para este país.",
-
-                _ =>
-                    string.Empty
+                _ => string.Empty
             };
+
+        public void ActualizarPermisos()
+        {
+            LoadPagePermissions("paisPage");
+            OnPropertyChanged(nameof(CanSave));
+            OnPropertyChanged(nameof(ShowSaveButton));
+            RefrescarComandos();
+        }
 
         public void CancelarOperaciones()
         {
@@ -207,21 +201,48 @@ namespace CONATRADEC.ViewModels
 
         private async Task SaveAsync()
         {
-            if (IsBusy || IsReadOnly)
+            if (Interlocked.CompareExchange(
+                    ref guardadoEnCurso,
+                    1,
+                    0) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                await SaveCoreAsync();
+            }
+            finally
+            {
+                Volatile.Write(ref guardadoEnCurso, 0);
+            }
+        }
+
+        private async Task SaveCoreAsync()
+        {
+            if (!CanSave || IsBusy || IsReadOnly)
                 return;
 
             if (!ValidarCampos())
             {
                 await MostrarAdvertenciaAsync(
                     "Revise los campos marcados antes de continuar.");
-
                 return;
             }
 
-            bool confirmar =
-                Mode == FormMode.FormModeSelect.Create
-                    ? await ConfirmarGuardadoAsync("el país")
-                    : await ConfirmarActualizacionAsync("el país");
+            if (!await ValidarInternetAsync())
+                return;
+
+            if (Mode == FormMode.FormModeSelect.Edit && !HayCambios())
+            {
+                await MostrarInformacionAsync("No hay cambios para guardar.");
+                return;
+            }
+
+            bool confirmar = Mode == FormMode.FormModeSelect.Create
+                ? await ConfirmarGuardadoAsync("el país")
+                : await ConfirmarActualizacionAsync("el país");
 
             if (!confirmar)
                 return;
@@ -245,14 +266,23 @@ namespace CONATRADEC.ViewModels
                             Pais,
                             guardadoCts.Token);
 
-                if (!resultado.Success ||
-                    resultado.Data != true)
+                if (!resultado.Success || resultado.Data != true)
                 {
                     await MostrarErrorAsync(resultado.Message);
                     return;
                 }
 
-                PaisListadoEstadoService.MarcarCambio();
+                if (Mode == FormMode.FormModeSelect.Create)
+                {
+                    // Sin ID devuelto no se adivina la posición global:
+                    // al volver se consulta una única página justificada.
+                    UbicacionVisitaService.MarcarPaisesParaRecargar();
+                }
+                else
+                {
+                    // Editar reutiliza el objeto ya conocido por el listado.
+                    UbicacionVisitaService.RegistrarPaisActualizado(Pais);
+                }
 
                 await GoToAsyncParameters(AppRoutes.Paises);
 
@@ -263,13 +293,10 @@ namespace CONATRADEC.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // La página se cerró durante el guardado.
             }
             catch (Exception ex)
             {
-                await MostrarErrorInesperadoAsync(
-                    "guardar el país",
-                    ex);
+                await MostrarErrorInesperadoAsync("guardar el país", ex);
             }
             finally
             {
@@ -283,11 +310,9 @@ namespace CONATRADEC.ViewModels
             if (IsBusy)
                 return;
 
-            if (HayCambios())
+            if (!IsReadOnly && HayCambios())
             {
-                bool confirmar =
-                    await ConfirmarSalidaSinGuardarAsync();
-
+                bool confirmar = await ConfirmarSalidaSinGuardarAsync();
                 if (!confirmar)
                     return;
             }
@@ -297,29 +322,25 @@ namespace CONATRADEC.ViewModels
 
         private void SincronizarModelo()
         {
-            Pais.NombrePais =
-                NombrePais.Trim();
-
-            Pais.CodigoISOPais =
-                CodigoISOPais.Trim().ToUpperInvariant();
+            Pais.NombrePais = NombrePais.ReplaceLineEndings(" ").Trim().ToUpperInvariant();
+            Pais.CodigoISOPais = CodigoISOPais.Trim().ToUpperInvariant();
         }
 
         private bool HayCambios()
         {
-            string nombreActual =
-                NombrePais.Trim();
-
-            string codigoActual =
-                CodigoISOPais.Trim().ToUpperInvariant();
-
-            string nombreOriginal =
-                Pais.NombrePais?.Trim() ?? string.Empty;
-
-            string codigoOriginal =
-                Pais.CodigoISOPais?
-                    .Trim()
-                    .ToUpperInvariant()
+            string nombreActual = NombrePais.ReplaceLineEndings(" ").Trim();
+            string codigoActual = CodigoISOPais.Trim().ToUpperInvariant();
+            string nombreOriginal = Pais.NombrePais?.Trim() ?? string.Empty;
+            string codigoOriginal = Pais.CodigoISOPais?
+                .Trim()
+                .ToUpperInvariant()
                 ?? string.Empty;
+
+            if (Mode == FormMode.FormModeSelect.Create)
+            {
+                return !string.IsNullOrWhiteSpace(nombreActual) ||
+                       !string.IsNullOrWhiteSpace(codigoActual);
+            }
 
             return
                 !string.Equals(
@@ -335,40 +356,21 @@ namespace CONATRADEC.ViewModels
         private bool ValidarCampos()
         {
             LimpiarErrores();
-
-            NombrePais =
-                NombrePais.ReplaceLineEndings(" ").Trim();
-
-            CodigoISOPais =
-                CodigoISOPais.Trim().ToUpperInvariant();
+            NombrePais = NombrePais.ReplaceLineEndings(" ").Trim();
+            CodigoISOPais = CodigoISOPais.Trim().ToUpperInvariant();
 
             if (string.IsNullOrWhiteSpace(NombrePais))
-            {
-                ErrorNombrePais =
-                    "Ingrese el nombre del país.";
-            }
+                ErrorNombrePais = "Ingrese el nombre del país.";
             else if (NombrePais.Length > 80)
-            {
-                ErrorNombrePais =
-                    "El nombre no puede superar 80 caracteres.";
-            }
+                ErrorNombrePais = "El nombre no puede superar 80 caracteres.";
 
             if (string.IsNullOrWhiteSpace(CodigoISOPais))
-            {
-                ErrorCodigoISOPais =
-                    "Ingrese el código ISO del país.";
-            }
-            else if (!Regex.IsMatch(
-                         CodigoISOPais,
-                         "^[A-Z]{3}$"))
-            {
+                ErrorCodigoISOPais = "Ingrese el código ISO del país.";
+            else if (!Regex.IsMatch(CodigoISOPais, "^[A-Z]{3}$"))
                 ErrorCodigoISOPais =
                     "El código ISO debe contener exactamente 3 letras.";
-            }
 
-            return
-                !TieneErrorNombrePais &&
-                !TieneErrorCodigoISOPais;
+            return !TieneErrorNombrePais && !TieneErrorCodigoISOPais;
         }
 
         private void LimpiarErrores()

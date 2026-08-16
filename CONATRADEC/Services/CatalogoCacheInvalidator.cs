@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace CONATRADEC.Services
 {
@@ -14,8 +14,7 @@ namespace CONATRADEC.Services
             BindingFlags.NonPublic |
             BindingFlags.Public;
 
-        public static void Limpiar(
-            string catalogo)
+        public static void Limpiar(string catalogo)
         {
             try
             {
@@ -26,18 +25,30 @@ namespace CONATRADEC.Services
                             typeof(PaisApiService),
                             "cacheFormulario",
                             "cacheCreadoUtc");
+
+                        // La lista activa cambia de composición tras reactivar.
+                        UbicacionVisitaService.MarcarPaisesParaRecargar();
                         break;
 
                     case CatalogoEliminadoCodigos.Departamento:
                         LimpiarColeccion(
                             typeof(DepartamentoApiService),
                             "CachePorPais");
+
+                        // La reactivación cambia tanto la lista del país actual
+                        // como el conteo mostrado en la tarjeta de País.
+                        UbicacionVisitaService.MarcarDepartamentosParaRecargar();
+                        UbicacionVisitaService.MarcarPaisesParaRecargar();
                         break;
 
                     case CatalogoEliminadoCodigos.Municipio:
                         LimpiarColeccion(
                             typeof(MunicipioApiService),
                             "CachePorDepartamento");
+
+                        // También cambia el conteo de municipios del padre.
+                        UbicacionVisitaService.MarcarMunicipiosParaRecargar();
+                        UbicacionVisitaService.MarcarDepartamentosParaRecargar();
                         break;
 
                     case CatalogoEliminadoCodigos.ElementoQuimico:
@@ -53,16 +64,14 @@ namespace CONATRADEC.Services
                             "cacheFormulario",
                             "cacheCreadoUtc");
 
-                        AnalisisSueloApiService
-                            .LimpiarCacheTiposCultivo();
+                        AnalisisSueloApiService.LimpiarCacheTiposCultivo();
 
                         /*
                          * La reactivación se realiza desde el modal común de
                          * eliminados. Se marca el listado administrativo para
                          * que, al cerrar el modal, renueve la página visible.
                          */
-                        TipoCultivoListadoEstadoService
-                            .MarcarCambio();
+                        TipoCultivoListadoEstadoService.MarcarCambio();
                         break;
 
                     case CatalogoEliminadoCodigos.TipoAnalisis:
@@ -73,8 +82,7 @@ namespace CONATRADEC.Services
                         break;
 
                     case CatalogoEliminadoCodigos.CategoriaPublicacion:
-                        PublicacionListadoEstadoService
-                            .MarcarActualizacion();
+                        PublicacionListadoEstadoService.MarcarActualizacion();
                         break;
                 }
             }
@@ -94,23 +102,16 @@ namespace CONATRADEC.Services
         {
             foreach (string nombre in campos)
             {
-                FieldInfo? campo =
-                    tipo.GetField(
-                        nombre,
-                        Flags);
+                FieldInfo? campo = tipo.GetField(nombre, Flags);
 
                 if (campo == null)
                     continue;
 
-                object? valor =
-                    campo.FieldType.IsValueType
-                        ? Activator.CreateInstance(
-                            campo.FieldType)
-                        : null;
+                object? valor = campo.FieldType.IsValueType
+                    ? Activator.CreateInstance(campo.FieldType)
+                    : null;
 
-                campo.SetValue(
-                    null,
-                    valor);
+                campo.SetValue(null, valor);
             }
         }
 
@@ -118,21 +119,14 @@ namespace CONATRADEC.Services
             Type tipo,
             string campoNombre)
         {
-            object? coleccion =
-                tipo.GetField(
-                        campoNombre,
-                        Flags)
-                    ?.GetValue(null);
+            object? coleccion = tipo.GetField(campoNombre, Flags)?.GetValue(null);
 
             coleccion?
                 .GetType()
                 .GetMethod(
                     "Clear",
-                    BindingFlags.Instance |
-                    BindingFlags.Public)
-                ?.Invoke(
-                    coleccion,
-                    null);
+                    BindingFlags.Instance | BindingFlags.Public)
+                ?.Invoke(coleccion, null);
         }
     }
 }

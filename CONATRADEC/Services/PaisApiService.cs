@@ -26,6 +26,10 @@ namespace CONATRADEC.Services
                 ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
+        /// <summary>
+        /// Endpoint histórico completo conservado exclusivamente para
+        /// formularios y selectores que requieren el catálogo completo.
+        /// </summary>
         public Task<ApiResult<ObservableCollection<PaisResponse>>>
             GetPaisResultAsync(
                 CancellationToken cancellationToken = default)
@@ -37,6 +41,10 @@ namespace CONATRADEC.Services
                 cancellationToken);
         }
 
+        /// <summary>
+        /// Consulta administrativa paginada. Utiliza el controlador de
+        /// administración de ubicaciones, que valida permisos en backend.
+        /// </summary>
         public async Task<ApiResult<PaisPaginaResponse>>
             BuscarPaisesAsync(
                 string? buscar,
@@ -48,11 +56,10 @@ namespace CONATRADEC.Services
             tamanoPagina = Math.Clamp(tamanoPagina, 5, 100);
 
             string ruta =
-                "api/pais/buscar" +
+                "api/administracion/ubicaciones/paises" +
                 $"?pagina={pagina}" +
                 $"&tamanoPagina={tamanoPagina}" +
-                "&orden=nombre" +
-                "&direccion=asc";
+                "&incluirInactivos=false";
 
             if (!string.IsNullOrWhiteSpace(buscar))
             {
@@ -77,13 +84,37 @@ namespace CONATRADEC.Services
                         (int)response.StatusCode);
                 }
 
-                PaisPaginaResponse? data =
+                PaginaAdminResponse<PaisAdminItem>? data =
                     await response.Content
-                        .ReadFromJsonAsync<PaisPaginaResponse>(
+                        .ReadFromJsonAsync<PaginaAdminResponse<PaisAdminItem>>(
                             cancellationToken: cancellationToken);
 
+                if (data == null)
+                {
+                    return ApiResult<PaisPaginaResponse>.Fail(
+                        "El servidor no devolvió la página de países esperada.");
+                }
+
                 return ApiResult<PaisPaginaResponse>.Ok(
-                    data ?? new PaisPaginaResponse());
+                    new PaisPaginaResponse
+                    {
+                        Items = data.Items
+                            .Where(item => item.PaisId > 0 && item.Activo)
+                            .Select(item => new PaisResponse
+                            {
+                                PaisId = item.PaisId,
+                                NombrePais = item.Nombre,
+                                CodigoISOPais = item.CodigoIso,
+                                Activo = item.Activo,
+                                CantidadDepartamentos =
+                                    item.CantidadDependencias
+                            })
+                            .ToList(),
+                        PaginaActual = data.PaginaActual,
+                        TamanoPagina = data.TamanoPagina,
+                        TotalRegistros = data.TotalRegistros,
+                        TotalPaginas = data.TotalPaginas
+                    });
             }
             catch (TaskCanceledException)
                 when (!cancellationToken.IsCancellationRequested)
@@ -149,8 +180,12 @@ namespace CONATRADEC.Services
             ApiResult<bool> result = await ApiServiceHelper.SendAsync(
                 httpClient,
                 HttpMethod.Put,
-                $"api/pais/actualizarPais/{pais.PaisId}",
-                pais,
+                $"api/administracion/ubicaciones/paises/{pais.PaisId}",
+                new PaisAdministracionRequest
+                {
+                    Nombre = pais.NombrePais ?? string.Empty,
+                    CodigoIso = pais.CodigoISOPais ?? string.Empty
+                },
                 "actualizar el país",
                 "País actualizado correctamente.",
                 cancellationToken);
@@ -174,10 +209,10 @@ namespace CONATRADEC.Services
             }
 
             ApiResult<bool> result =
-                await ApiServiceHelper.SendAsync<PaisRequest>(
+                await ApiServiceHelper.SendAsync<PaisAdministracionRequest>(
                     httpClient,
                     HttpMethod.Delete,
-                    $"api/pais/eliminarPais/{pais.PaisId}",
+                    $"api/administracion/ubicaciones/paises/{pais.PaisId}",
                     null,
                     "eliminar el país",
                     "País eliminado correctamente.",
@@ -256,6 +291,30 @@ namespace CONATRADEC.Services
         {
             cacheFormulario = null;
             cacheCreadoUtc = default;
+        }
+
+        private sealed class PaginaAdminResponse<T>
+        {
+            public List<T> Items { get; set; } = new();
+            public int PaginaActual { get; set; }
+            public int TamanoPagina { get; set; }
+            public int TotalRegistros { get; set; }
+            public int TotalPaginas { get; set; }
+        }
+
+        private sealed class PaisAdminItem
+        {
+            public int PaisId { get; set; }
+            public string Nombre { get; set; } = string.Empty;
+            public string CodigoIso { get; set; } = string.Empty;
+            public bool Activo { get; set; }
+            public int CantidadDependencias { get; set; }
+        }
+
+        private sealed class PaisAdministracionRequest
+        {
+            public string Nombre { get; set; } = string.Empty;
+            public string CodigoIso { get; set; } = string.Empty;
         }
     }
 }

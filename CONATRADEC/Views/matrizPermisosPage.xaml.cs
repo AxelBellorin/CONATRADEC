@@ -1,13 +1,14 @@
+using CONATRADEC.Models;
 using CONATRADEC.ViewModels;
-using Microsoft.Maui.Devices;
 
 namespace CONATRADEC.Views
 {
     public partial class matrizPermisosPage : ContentPage
     {
         private readonly MatrizPermisosViewModel viewModel = new();
-
-        private bool anchoCompactoActual;
+        private bool ajustandoSelector;
+        private bool navegacionSuscrita;
+        private bool protegiendoNavegacion;
 
         public matrizPermisosPage()
         {
@@ -26,15 +27,16 @@ namespace CONATRADEC.Views
             if (!viewModel.CanView)
                 return;
 
-            AjustarDistribucion(Width, Height);
-
-            await viewModel.InicializarAsync();
+            SuscribirNavegacion();
+            AjustarDistribucion(Width);
+            await viewModel.IniciarVisitaAsync();
+            SincronizarSelector();
         }
 
         protected override void OnDisappearing()
         {
-            viewModel.CancelarOperaciones();
-
+            DesuscribirNavegacion();
+            viewModel.FinalizarVisita();
             base.OnDisappearing();
         }
 
@@ -43,112 +45,189 @@ namespace CONATRADEC.Views
             double height)
         {
             base.OnSizeAllocated(width, height);
-
-            AjustarDistribucion(width, height);
+            AjustarDistribucion(width);
         }
 
         /// <summary>
-        /// La matriz prioriza el listado de permisos.
-        ///
-        /// En teléfono se limita más la altura del panel superior para
-        /// dejar mayor espacio visible al listado de permisos. Tablet y
-        /// escritorio conservan exactamente la distribución estable actual.
+        /// El Picker no cambia directamente el ViewModel porque antes de
+        /// abandonar un rol pueden existir permisos pendientes de guardar.
+        /// El ViewModel confirma el descarte y solo entonces acepta el cambio.
         /// </summary>
-        private void AjustarDistribucion(
-            double width,
-            double height)
+        private async void RolPicker_SelectedIndexChanged(
+            object? sender,
+            EventArgs e)
         {
-            if (width <= 0 ||
-                height <= 0 ||
-                PanelSuperiorScroll == null)
+            if (ajustandoSelector ||
+                sender is not Picker picker)
             {
                 return;
             }
 
-            bool esTelefono =
-                DeviceInfo.Current.Idiom ==
-                DeviceIdiom.Phone;
+            RolResponse? solicitado =
+                picker.SelectedItem as RolResponse;
 
-            bool alturaCompacta =
-                height < 760;
+            bool aceptado =
+                await viewModel.CambiarRolAsync(solicitado);
 
-            double porcentajeSuperior;
-            double minimoSuperior;
-            double maximoSuperior;
-
-            if (esTelefono)
+            if (!aceptado ||
+                picker.SelectedItem != viewModel.RolSeleccionado)
             {
-                /*
-                 * En teléfono el panel superior funciona como una zona
-                 * auxiliar desplazable. Se limita su altura para priorizar
-                 * la matriz de permisos, que es el contenido principal.
-                 */
-                porcentajeSuperior = 0.28;
-                minimoSuperior = 150;
-                maximoSuperior = 220;
+                SincronizarSelector();
+            }
+        }
+
+        private void SincronizarSelector()
+        {
+            if (RolPicker == null)
+                return;
+
+            ajustandoSelector = true;
+
+            try
+            {
+                RolPicker.SelectedItem =
+                    viewModel.RolSeleccionado;
+            }
+            finally
+            {
+                ajustandoSelector = false;
+            }
+        }
+
+        private void SuscribirNavegacion()
+        {
+            if (navegacionSuscrita || Shell.Current == null)
+                return;
+
+            Shell.Current.Navigating += Shell_Navigating;
+            navegacionSuscrita = true;
+        }
+
+        private void DesuscribirNavegacion()
+        {
+            if (!navegacionSuscrita || Shell.Current == null)
+                return;
+
+            Shell.Current.Navigating -= Shell_Navigating;
+            navegacionSuscrita = false;
+        }
+
+        /// <summary>
+        /// Protege las salidas iniciadas desde la navegación global incluida en
+        /// FooterTemplate. Login y SinPermisos nunca se bloquean porque son
+        /// destinos de seguridad y cierre de sesión.
+        /// </summary>
+        private async void Shell_Navigating(
+            object? sender,
+            ShellNavigatingEventArgs e)
+        {
+            if (protegiendoNavegacion ||
+                !e.CanCancel ||
+                !viewModel.TieneCambiosPendientes ||
+                EsNavegacionDeSeguridad(e))
+            {
+                return;
+            }
+
+            var deferral = e.GetDeferral();
+            if (deferral == null)
+                return;
+
+            protegiendoNavegacion = true;
+
+            try
+            {
+                bool permitir =
+                    await viewModel
+                        .ConfirmarDescarteParaNavegacionExternaAsync();
+
+                if (!permitir)
+                    e.Cancel();
+            }
+            finally
+            {
+                protegiendoNavegacion = false;
+                deferral.Complete();
+            }
+        }
+
+        private static bool EsNavegacionDeSeguridad(
+            ShellNavigatingEventArgs e)
+        {
+            string destino =
+                e.Target?.Location?.OriginalString ??
+                string.Empty;
+
+            return destino.Contains(
+                       "LoginPage",
+                       StringComparison.OrdinalIgnoreCase) ||
+                   destino.Contains(
+                       "SinPermisosPage",
+                       StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Intercepta el botón físico de Android y el equivalente de Windows
+        /// para no perder silenciosamente cambios pendientes.
+        /// </summary>
+        protected override bool OnBackButtonPressed()
+        {
+            _ = RegresarDesdeSistemaAsync();
+            return true;
+        }
+
+        private async Task RegresarDesdeSistemaAsync()
+        {
+            await viewModel.IntentarRegresarConfiguracionAsync();
+        }
+
+        /// <summary>
+        /// La adaptación depende del ancho real disponible. Una ventana Windows
+        /// angosta recibe el mismo tratamiento que cualquier pantalla angosta,
+        /// sin depender de DeviceIdiom.
+        /// </summary>
+        private void AjustarDistribucion(double width)
+        {
+            if (width <= 0 ||
+                ContenidoPrincipal == null)
+            {
+                return;
+            }
+
+            bool anchoMuyCompacto = width < 520;
+            bool anchoCompacto = width < 820;
+
+            if (anchoMuyCompacto)
+            {
+                ContenidoPrincipal.Padding =
+                    new Thickness(10, 10, 10, 18);
+
+                BotonGuardar.Text = "Guardar";
+                BotonGuardar.Padding = new Thickness(10, 8);
+                BotonRevertir.Padding = new Thickness(10, 8);
+                AccionesInferioresGrid.ColumnSpacing = 7;
+            }
+            else if (anchoCompacto)
+            {
+                ContenidoPrincipal.Padding =
+                    new Thickness(15, 14, 15, 22);
+
+                BotonGuardar.Text = "Guardar";
+                BotonGuardar.Padding = new Thickness(13, 9);
+                BotonRevertir.Padding = new Thickness(13, 9);
+                AccionesInferioresGrid.ColumnSpacing = 10;
             }
             else
             {
-                /*
-                 * Tablet y Windows conservan la distribución estable que
-                 * ya funciona correctamente en pantallas amplias.
-                 */
-                porcentajeSuperior =
-                    alturaCompacta
-                        ? 0.34
-                        : 0.42;
+                ContenidoPrincipal.Padding =
+                    new Thickness(24, 20, 24, 26);
 
-                minimoSuperior =
-                    alturaCompacta
-                        ? 175
-                        : 245;
-
-                maximoSuperior =
-                    alturaCompacta
-                        ? 250
-                        : 390;
+                BotonGuardar.Text = "Guardar cambios";
+                BotonGuardar.Padding = new Thickness(16, 9);
+                BotonRevertir.Padding = new Thickness(14, 9);
+                AccionesInferioresGrid.ColumnSpacing = 12;
             }
 
-            PanelSuperiorScroll.MaximumHeightRequest =
-                Math.Clamp(
-                    height * porcentajeSuperior,
-                    minimoSuperior,
-                    maximoSuperior);
-
-            PermisosList.MinimumHeightRequest =
-                esTelefono
-                    ? 220
-                    : alturaCompacta
-                        ? 230
-                        : 290;
-
-            bool anchoCompacto =
-                width < 720;
-
-            if (anchoCompactoActual == anchoCompacto)
-                return;
-
-            anchoCompactoActual = anchoCompacto;
-
-            BotonGuardar.Text =
-                anchoCompacto
-                    ? "Guardar"
-                    : "Guardar cambios";
-
-            BotonRevertir.Padding =
-                anchoCompacto
-                    ? new Thickness(11, 8)
-                    : new Thickness(16, 10);
-
-            BotonGuardar.Padding =
-                anchoCompacto
-                    ? new Thickness(12, 8)
-                    : new Thickness(18, 10);
-
-            AccionesInferioresGrid.Padding =
-                alturaCompacta
-                    ? new Thickness(0, 1)
-                    : new Thickness(0, 4);
         }
     }
 }

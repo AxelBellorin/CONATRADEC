@@ -1,5 +1,6 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
@@ -7,6 +8,7 @@ namespace CONATRADEC.ViewModels
     {
         private readonly MunicipioApiService municipioApiService;
         private CancellationTokenSource? guardadoCts;
+        private int guardadoEnCurso;
 
         private DepartamentoRequest departamentoRequest = new();
         private PaisRequest paisRequest = new();
@@ -44,7 +46,8 @@ namespace CONATRADEC.ViewModels
             set
             {
                 municipioRequest = value ?? new MunicipioRequest();
-                NombreMunicipio = municipioRequest.NombreMunicipio ?? string.Empty;
+                NombreMunicipio =
+                    municipioRequest.NombreMunicipio ?? string.Empty;
                 nombreOriginal = NombreMunicipio.Trim();
                 LimpiarErrores();
                 OnPropertyChanged();
@@ -57,13 +60,11 @@ namespace CONATRADEC.ViewModels
             set
             {
                 departamentoRequest = value ?? new DepartamentoRequest();
-
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(NombreDepartamento));
                 OnPropertyChanged(nameof(DepartamentoValido));
                 OnPropertyChanged(nameof(UbicacionValida));
                 OnPropertyChanged(nameof(Subtitulo));
-
                 RefrescarComandos();
             }
         }
@@ -74,7 +75,6 @@ namespace CONATRADEC.ViewModels
             set
             {
                 paisRequest = value ?? new PaisRequest();
-
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(NombrePais));
                 OnPropertyChanged(nameof(CodigoPais));
@@ -82,7 +82,6 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(PaisValido));
                 OnPropertyChanged(nameof(UbicacionValida));
                 OnPropertyChanged(nameof(Subtitulo));
-
                 RefrescarComandos();
             }
         }
@@ -93,7 +92,6 @@ namespace CONATRADEC.ViewModels
             set
             {
                 string nuevoValor = value ?? string.Empty;
-
                 if (nombreMunicipio == nuevoValor)
                     return;
 
@@ -131,7 +129,6 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 mode = value;
-
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsReadOnly));
                 OnPropertyChanged(nameof(CanSave));
@@ -139,7 +136,6 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(Title));
                 OnPropertyChanged(nameof(Subtitulo));
                 OnPropertyChanged(nameof(TextoBotonCancelar));
-
                 RefrescarComandos();
             }
         }
@@ -154,9 +150,15 @@ namespace CONATRADEC.ViewModels
                 ? "País seleccionado"
                 : PaisRequest.NombrePais;
 
-        public string CodigoPais => PaisRequest.CodigoISOPais ?? string.Empty;
-        public bool MostrarCodigoPais => !string.IsNullOrWhiteSpace(CodigoPais);
-        public bool DepartamentoValido => DepartamentoRequest.DepartamentoId is > 0;
+        public string CodigoPais =>
+            PaisRequest.CodigoISOPais ?? string.Empty;
+
+        public bool MostrarCodigoPais =>
+            !string.IsNullOrWhiteSpace(CodigoPais);
+
+        public bool DepartamentoValido =>
+            DepartamentoRequest.DepartamentoId is > 0;
+
         public bool PaisValido => PaisRequest.PaisId > 0;
         public bool UbicacionValida => DepartamentoValido && PaisValido;
 
@@ -201,7 +203,6 @@ namespace CONATRADEC.ViewModels
         public void ActualizarPermisos()
         {
             LoadPagePermissions("municipioPage");
-
             OnPropertyChanged(nameof(CanSave));
             OnPropertyChanged(nameof(ShowSaveButton));
             RefrescarComandos();
@@ -219,6 +220,26 @@ namespace CONATRADEC.ViewModels
         }
 
         private async Task SaveAsync()
+        {
+            if (Interlocked.CompareExchange(
+                    ref guardadoEnCurso,
+                    1,
+                    0) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                await SaveCoreAsync();
+            }
+            finally
+            {
+                Volatile.Write(ref guardadoEnCurso, 0);
+            }
+        }
+
+        private async Task SaveCoreAsync()
         {
             if (!CanSave || IsBusy)
                 return;
@@ -256,8 +277,7 @@ namespace CONATRADEC.ViewModels
                 RefrescarComandos();
 
                 MunicipioRequest.NombreMunicipio =
-                    NombreMunicipio.ReplaceLineEndings(" ").Trim();
-
+                    NombreMunicipio.ReplaceLineEndings(" ").Trim().ToUpperInvariant();
                 MunicipioRequest.DepartamentoId =
                     DepartamentoRequest.DepartamentoId;
 
@@ -278,13 +298,19 @@ namespace CONATRADEC.ViewModels
 
                 int departamentoId = DepartamentoRequest.DepartamentoId!.Value;
 
-                MunicipioListadoEstadoService.MarcarCambio(departamentoId);
-
-                // Crear un municipio cambia el conteo de la tarjeta Departamento.
                 if (Mode == FormMode.FormModeSelect.Create)
                 {
-                    DepartamentoListadoEstadoService.MarcarCambio(
-                        PaisRequest.PaisId);
+                    UbicacionVisitaService.MarcarMunicipiosParaRecargar(
+                        departamentoId);
+                    UbicacionVisitaService.RegistrarDeltaMunicipiosDepartamento(
+                        departamentoId,
+                        1);
+                }
+                else
+                {
+                    UbicacionVisitaService.RegistrarMunicipioActualizado(
+                        departamentoId,
+                        MunicipioRequest);
                 }
 
                 await ReturnToListAsync();
@@ -296,7 +322,6 @@ namespace CONATRADEC.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // La página se cerró durante el guardado.
             }
             catch (Exception ex)
             {
@@ -317,7 +342,6 @@ namespace CONATRADEC.ViewModels
             if (!IsReadOnly && HayCambios())
             {
                 bool confirmar = await ConfirmarSalidaSinGuardarAsync();
-
                 if (!confirmar)
                     return;
             }
@@ -328,23 +352,16 @@ namespace CONATRADEC.ViewModels
         private bool ValidarCampos()
         {
             LimpiarErrores();
-
             NombreMunicipio =
                 NombreMunicipio.ReplaceLineEndings(" ").Trim();
 
             if (!UbicacionValida)
-            {
                 ErrorNombreMunicipio = "No se recibió una ubicación válida.";
-            }
             else if (string.IsNullOrWhiteSpace(NombreMunicipio))
-            {
                 ErrorNombreMunicipio = "Ingrese el nombre del municipio.";
-            }
             else if (NombreMunicipio.Length > 80)
-            {
                 ErrorNombreMunicipio =
                     "El nombre no puede superar 80 caracteres.";
-            }
 
             return !TieneErrorNombreMunicipio;
         }
@@ -372,12 +389,10 @@ namespace CONATRADEC.ViewModels
         {
             var parametros = new Dictionary<string, object>
             {
-                { "Pais", PaisRequest },
-                { "Departamento", DepartamentoRequest },
-                {
-                    "TitlePage",
+                ["Pais"] = PaisRequest,
+                ["Departamento"] = DepartamentoRequest,
+                ["TitlePage"] =
                     $"Municipios de {NombreDepartamento} - {NombrePais}"
-                }
             };
 
             return GoToAsyncParameters("//MunicipioPage", parametros);

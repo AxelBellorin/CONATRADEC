@@ -6,7 +6,7 @@
     Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
-    <Grid Padding="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}">
+    <Grid x:Name="ContenidoDepartamentoFormulario" Padding="12,12,12,20">
         <ScrollView HorizontalScrollBarVisibility="Never">
             <VerticalStackLayout MaximumWidthRequest="920" HorizontalOptions="Center" Spacing="14">
                 <Border Style="{StaticResource ModernHeroCard}">
@@ -63,17 +63,11 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!--
-            Capa de carga de la operación actual.
-            Bloquea temporalmente la interacción para evitar dobles acciones
-            y deja claro que la aplicación continúa trabajando.
-        -->
         <Grid
             ZIndex="100"
             IsVisible="{Binding IsBusy}"
             InputTransparent="False"
             BackgroundColor="#4A0B1511">
-
             <Border
                 Padding="18,14"
                 HorizontalOptions="Center"
@@ -82,20 +76,9 @@
                 Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                 StrokeThickness="1"
                 StrokeShape="RoundRectangle 14">
-
                 <HorizontalStackLayout Spacing="10">
-                    <ActivityIndicator
-                        IsRunning="{Binding IsBusy}"
-                        Color="{StaticResource color_Verde}"
-                        WidthRequest="24"
-                        HeightRequest="24" />
-
-                    <Label
-                        Text="Procesando departamento..."
-                        VerticalOptions="Center"
-                        FontFamily="MontserratBold"
-                        FontSize="12"
-                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" WidthRequest="24" HeightRequest="24" />
+                    <Label Text="Procesando departamento..." VerticalOptions="Center" FontFamily="MontserratBold" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                 </HorizontalStackLayout>
             </Border>
         </Grid>

@@ -74,6 +74,19 @@ namespace CONATRADEC.Services
                 cancellationToken);
         }
 
+        /// <summary>
+        /// Obtiene el catálogo liviano de roles activos utilizado únicamente
+        /// por el selector de la Matriz de permisos. La Matriz necesita el
+        /// conjunto completo, por lo que no se fuerza paginación artificial.
+        /// </summary>
+        public Task<ApiResult<List<RolResponse>>>
+            ObtenerRolesMatrizAsync(
+                CancellationToken cancellationToken = default) =>
+            GetAsync<List<RolResponse>>(
+                "api/administracion/permisos/roles",
+                "No fue posible cargar los roles de la matriz.",
+                cancellationToken);
+
         public async Task<ApiResult<MatrizPermisosResponse>>
             ObtenerPermisosRolAsync(
                 int rolId,
