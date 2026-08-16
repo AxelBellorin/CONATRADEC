@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="CONATRADEC.Views.tipoCultivoPage"
     x:Name="TipoCultivoPageRoot"
@@ -55,6 +55,7 @@
                             Text="Regresar a configuración"
                             Margin="0,8,0,0"
                             Padding="16,10"
+                            MinimumWidthRequest="0"
                             BackgroundColor="{StaticResource color_Verde}"
                             TextColor="White"
                             CornerRadius="11"
@@ -65,18 +66,19 @@
 
             <!-- Contenido principal -->
             <Grid
+                x:Name="ContenidoTiposCultivo"
                 IsVisible="{Binding CanView}"
                 Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
-<RefreshView
-                        IsRefreshing="{Binding IsRefreshing}"
+                <RefreshView
+                    IsRefreshing="{Binding IsRefreshing}"
                     Command="{Binding RefrescarCommand}">
 
                     <CollectionView
+                        x:Name="TiposCultivoCollectionView"
                         ItemsSource="{Binding List}"
                         SelectionMode="None"
-                        RemainingItemsThreshold="3"
-                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                        ItemSizingStrategy="MeasureFirstItem">
 
                         <!--
                             Encabezado, búsqueda y mensajes forman parte del
@@ -97,13 +99,13 @@
                                     PrimaryCommand="{Binding AddCommand}"
                                     IsPrimaryVisible="{Binding CanAdd}" />
 
-                                <!-- Búsqueda -->
                                 <controls:ResponsiveSearchPanel
                                     Placeholder="Buscar por nombre o descripción"
                                     SearchText="{Binding TextoBusqueda, Mode=TwoWay}"
                                     SummaryText="{Binding ResumenResultados}"
                                     SearchCommand="{Binding BuscarCommand}"
                                     ClearCommand="{Binding LimpiarFiltrosCommand}" />
+
                                 <Border
                                     IsVisible="{Binding TieneMensaje}"
                                     Padding="12"
@@ -117,8 +119,6 @@
                                         FontSize="13"
                                         TextColor="{StaticResource color_Negro}" />
                                 </Border>
-
-                                <!-- Listado -->
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -133,7 +133,6 @@
 
                         <CollectionView.EmptyView>
                             <Grid Padding="30">
-
                                 <VerticalStackLayout
                                     IsVisible="{Binding MostrarVacio}"
                                     Spacing="8"
@@ -165,10 +164,10 @@
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:TipoCultivoResponse">
-
                                 <Border
                                     Padding="16"
                                     MinimumHeightRequest="212"
+                                    HorizontalOptions="Fill"
                                     BackgroundColor="White"
                                     Stroke="#DDE7E3"
                                     StrokeThickness="1"
@@ -176,13 +175,15 @@
 
                                     <Grid
                                         RowDefinitions="Auto,Auto,Auto"
-                                        RowSpacing="12">
+                                        RowSpacing="12"
+                                        HorizontalOptions="Fill">
 
                                         <!-- Datos principales -->
                                         <Grid
                                             Grid.Row="0"
                                             ColumnDefinitions="Auto,*,Auto"
-                                            ColumnSpacing="12">
+                                            ColumnSpacing="12"
+                                            HorizontalOptions="Fill">
 
                                             <Border
                                                 WidthRequest="52"
@@ -200,6 +201,8 @@
                                             <VerticalStackLayout
                                                 Grid.Column="1"
                                                 Spacing="3"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 VerticalOptions="Center">
 
                                                 <Label
@@ -208,6 +211,7 @@
                                                     FontFamily="MontserratBold"
                                                     FontAttributes="Bold"
                                                     TextColor="{StaticResource color_Negro}"
+                                                    MaxLines="1"
                                                     LineBreakMode="TailTruncation" />
 
                                                 <Label
@@ -223,6 +227,7 @@
                                                 Text="Activo"
                                                 Padding="9,5"
                                                 FontSize="11"
+                                                MaxLines="1"
                                                 TextColor="{StaticResource color_Verde}"
                                                 BackgroundColor="#EAF7EF"
                                                 VerticalOptions="Start" />
@@ -232,20 +237,23 @@
                                         <Grid
                                             Grid.Row="1"
                                             ColumnDefinitions="*,*"
-                                            ColumnSpacing="8">
+                                            ColumnSpacing="8"
+                                            HorizontalOptions="Fill">
 
                                             <Border
                                                 Grid.Column="0"
                                                 Padding="10,7"
                                                 BackgroundColor="#FFF7E6"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 9">
+                                                StrokeShape="RoundRectangle 9"
+                                                HorizontalOptions="Fill">
 
                                                 <Label
                                                     Text="{Binding ResumenRangos}"
                                                     FontSize="11"
                                                     HorizontalTextAlignment="Center"
-                                                    TextColor="{StaticResource color_Negro}" />
+                                                    TextColor="{StaticResource color_Negro}"
+                                                    LineBreakMode="WordWrap" />
                                             </Border>
 
                                             <Border
@@ -253,13 +261,15 @@
                                                 Padding="10,7"
                                                 BackgroundColor="#EEF4FF"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 9">
+                                                StrokeShape="RoundRectangle 9"
+                                                HorizontalOptions="Fill">
 
                                                 <Label
                                                     Text="{Binding ResumenAnalisis}"
                                                     FontSize="11"
                                                     HorizontalTextAlignment="Center"
-                                                    TextColor="{StaticResource color_Negro}" />
+                                                    TextColor="{StaticResource color_Negro}"
+                                                    LineBreakMode="WordWrap" />
                                             </Border>
                                         </Grid>
 
@@ -267,12 +277,15 @@
                                         <Grid
                                             Grid.Row="2"
                                             ColumnDefinitions="*,*,*"
-                                            ColumnSpacing="8">
+                                            ColumnSpacing="6"
+                                            HorizontalOptions="Fill">
 
                                             <Button
                                                 Grid.Column="0"
                                                 Text="Ver"
-                                                Padding="8,9"
+                                                Padding="6,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="#EEF5F2"
                                                 TextColor="{StaticResource color_Verde}"
                                                 CornerRadius="10"
@@ -282,7 +295,9 @@
                                             <Button
                                                 Grid.Column="1"
                                                 Text="Editar"
-                                                Padding="8,9"
+                                                Padding="6,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="{StaticResource BlueUpdate}"
                                                 TextColor="White"
                                                 CornerRadius="10"
@@ -293,7 +308,9 @@
                                             <Button
                                                 Grid.Column="2"
                                                 Text="Eliminar"
-                                                Padding="8,9"
+                                                Padding="6,9"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
                                                 BackgroundColor="{StaticResource RedDelete}"
                                                 TextColor="White"
                                                 CornerRadius="10"
@@ -306,23 +323,70 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
 
+                        <!--
+                            Paginación explícita. La colección conserva solamente
+                            la página actual y no acumula páginas anteriores.
+                        -->
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="10,16,10,24"
-                                Spacing="8"
+                            <Border
+                                x:Name="PaginacionTiposCultivo"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
                                 HorizontalOptions="Center">
 
-                                <ActivityIndicator
-                                    IsRunning="{Binding CargandoMas}"
-                                    IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Naranja}" />
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
 
-                                <Label
-                                    IsVisible="{Binding MostrarFinLista}"
-                                    Text="Fin del listado"
-                                    FontSize="12"
-                                    TextColor="{StaticResource color_GrisOscuro}" />
-                            </VerticalStackLayout>
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="8">
+
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Pressed="PaginacionTiposCultivo_Pressed"
+                                            Clicked="PaginacionTiposCultivo_Clicked"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Pressed="PaginacionTiposCultivo_Pressed"
+                                            Clicked="PaginacionTiposCultivo_Clicked"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>
@@ -330,7 +394,7 @@
                 <!-- Indicador de carga -->
                 <Grid
                     IsVisible="{Binding IsBusy}"
-                    InputTransparent="True"
+                    InputTransparent="False"
                     BackgroundColor="#40FFFFFF">
 
                     <Border
@@ -342,7 +406,6 @@
                         StrokeShape="RoundRectangle 14">
 
                         <HorizontalStackLayout Spacing="10">
-
                             <ActivityIndicator
                                 IsRunning="True"
                                 Color="{StaticResource color_Naranja}" />

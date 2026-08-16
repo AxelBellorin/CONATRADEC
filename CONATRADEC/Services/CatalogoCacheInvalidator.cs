@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace CONATRADEC.Services
 {
@@ -55,6 +55,14 @@ namespace CONATRADEC.Services
 
                         AnalisisSueloApiService
                             .LimpiarCacheTiposCultivo();
+
+                        /*
+                         * La reactivación se realiza desde el modal común de
+                         * eliminados. Se marca el listado administrativo para
+                         * que, al cerrar el modal, renueve la página visible.
+                         */
+                        TipoCultivoListadoEstadoService
+                            .MarcarCambio();
                         break;
 
                     case CatalogoEliminadoCodigos.TipoAnalisis:

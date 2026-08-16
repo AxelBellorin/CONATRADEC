@@ -1,4 +1,4 @@
-using CONATRADEC.Models;
+﻿using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -194,6 +194,91 @@ namespace CONATRADEC.Services
                 return ApiResult<TipoCultivoPaginaResponse>
                     .Fail(
                         "Ocurrió un error inesperado al cargar los tipos de cultivo.");
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el registro activo actual antes de abrir Ver o Editar.
+        /// Evita navegar con una copia potencialmente antigua del listado.
+        /// </summary>
+        public async Task<ApiResult<TipoCultivoResponse>>
+            GetByIdAsync(
+                int id,
+                CancellationToken cancellationToken = default)
+        {
+            if (id <= 0)
+            {
+                return ApiResult<TipoCultivoResponse>
+                    .Fail(
+                        "El identificador del tipo de cultivo no es válido.");
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        $"api/configuracion/tipos-cultivo/{id}",
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<TipoCultivoResponse>
+                        .Fail(
+                            await ApiServiceHelper
+                                .ReadResponseMessageAsync(
+                                    response,
+                                    "No fue posible obtener el tipo de cultivo.",
+                                    cancellationToken),
+                            (int)response.StatusCode);
+                }
+
+                TipoCultivoResponse? data =
+                    await response.Content
+                        .ReadFromJsonAsync<TipoCultivoResponse>(
+                            cancellationToken:
+                                cancellationToken);
+
+                if (data == null ||
+                    data.TipoCultivoId <= 0)
+                {
+                    return ApiResult<TipoCultivoResponse>
+                        .Fail(
+                            "El servidor no devolvió un tipo de cultivo válido.");
+                }
+
+                return ApiResult<TipoCultivoResponse>
+                    .Ok(data);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<TipoCultivoResponse>
+                    .Fail(
+                        "La consulta del tipo de cultivo tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<TipoCultivoResponse>
+                    .Fail(
+                        "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<TipoCultivoResponse>
+                    .Fail(
+                        "No fue posible comunicarse con el servidor para obtener el tipo de cultivo.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<TipoCultivoResponse>
+                    .Fail(
+                        "El servidor respondió, pero el tipo de cultivo no tiene el formato esperado.");
+            }
+            catch
+            {
+                return ApiResult<TipoCultivoResponse>
+                    .Fail(
+                        "Ocurrió un error inesperado al obtener el tipo de cultivo.");
             }
         }
 
