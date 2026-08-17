@@ -600,10 +600,10 @@ namespace CONATRADEC.ViewModels
 
                 ApiResult<bool> resultado =
                     Mode == FormMode.FormModeSelect.Create
-                        ? await apiService.CreateAsync(
+                        ? await apiService.CreateDesdeRangosAsync(
                             Item,
                             operacionCts.Token)
-                        : await apiService.UpdateAsync(
+                        : await apiService.UpdateDesdeRangosAsync(
                             Item,
                             operacionCts.Token);
 
@@ -612,6 +612,13 @@ namespace CONATRADEC.ViewModels
                     await MostrarErrorAsync(resultado.Message);
                     return;
                 }
+
+                RangoNutrienteVisitaService
+                    .MarcarDetalleParaRecargar(
+                        Categoria.TipoCultivoId);
+
+                RangoNutrienteVisitaService
+                    .MarcarListadoPrincipalParaRecargar();
 
                 await RegresarADetalleAsync();
 
@@ -644,11 +651,7 @@ namespace CONATRADEC.ViewModels
             }
 
             return GoToAsyncParameters(
-                AppRoutes.RangoNutrienteDetalle,
-                new Dictionary<string, object>
-                {
-                    ["Categoria"] = Categoria!
-                });
+                AppRoutes.Regresar);
         }
 
         private static bool TryParseDosDecimales(

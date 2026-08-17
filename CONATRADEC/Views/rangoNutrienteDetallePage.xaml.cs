@@ -1,6 +1,7 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
+using System.Threading;
 
 namespace CONATRADEC.Views
 {
@@ -8,11 +9,18 @@ namespace CONATRADEC.Views
         ContentPage,
         IQueryAttributable
     {
-        private RangoNutrienteDetalleViewModel
+        private readonly RangoNutrienteDetalleViewModel
             viewModel = new();
 
-        private bool parametrosAplicados;
-        private bool paginaMostrada;
+        private readonly SemaphoreSlim inicializacionLock =
+            new(1, 1);
+
+        private bool parametrosNavegacionValidos;
+        private bool paginaVisible;
+        private long versionParametros;
+        private long versionInicializada;
+        private long generacionVisitaCargada;
+        private int tipoCultivoCargado;
         private int cantidadColumnasActual;
 
         public rangoNutrienteDetallePage()
@@ -28,13 +36,31 @@ namespace CONATRADEC.Views
         public void ApplyQueryAttributes(
             IDictionary<string, object> query)
         {
-            if (query.TryGetValue(
+            parametrosNavegacionValidos =
+                query.TryGetValue(
                     "Categoria",
                     out object? categoria) &&
-                categoria is RangoNutrienteCategoriaItem item)
+                categoria is RangoNutrienteCategoriaItem item &&
+                item.TipoCultivoId > 0;
+
+            if (parametrosNavegacionValidos)
             {
-                viewModel.Categoria = item;
-                parametrosAplicados = true;
+                viewModel.Categoria =
+                    (RangoNutrienteCategoriaItem)categoria!;
+            }
+
+            Interlocked.Increment(ref versionParametros);
+
+            /*
+             * Shell puede aplicar los atributos antes o después de
+             * OnAppearing. La versión de parámetros evita temporizadores y
+             * garantiza que cada navegación se procese una sola vez.
+             */
+            if (paginaVisible)
+            {
+                Dispatcher.Dispatch(
+                    () =>
+                        _ = InicializarParametrosPendientesAsync());
             }
         }
 
@@ -42,74 +68,16 @@ namespace CONATRADEC.Views
         {
             base.OnAppearing();
 
-            /*
-             * El cultivo seleccionado pertenece al contexto maestro y debe
-             * conservarse. El filtro, la paginación y la colección de rangos no:
-             * al volver del formulario se reconstruye únicamente el ViewModel
-             * de la lista usando la misma categoría.
-             */
-            if (paginaMostrada)
-            {
-                RangoNutrienteCategoriaItem? categoria =
-                    viewModel.Categoria;
-
-                viewModel.CancelarCarga();
-                viewModel = new RangoNutrienteDetalleViewModel
-                {
-                    Categoria = categoria
-                };
-                BindingContext = viewModel;
-            }
-            else
-            {
-                paginaMostrada = true;
-            }
-
+            paginaVisible = true;
             viewModel.ActualizarPermisos();
-
-            if (!viewModel.CanView)
-            {
-                await DisplayAlert(
-                    "Permiso denegado",
-                    "No tiene permisos para consultar los rangos nutricionales.",
-                    "Aceptar");
-
-                await Shell.Current.GoToAsync(
-                    AppRoutes.RangosNutrientes);
-
-                return;
-            }
-
             AjustarCantidadColumnas(Width);
 
-            for (int intento = 0;
-                 intento < 20 &&
-                 !parametrosAplicados;
-                 intento++)
-            {
-                await Task.Delay(25);
-            }
-
-            if (!parametrosAplicados ||
-                viewModel.Categoria == null ||
-                viewModel.Categoria.TipoCultivoId <= 0)
-            {
-                await DisplayAlert(
-                    "Tipo de cultivo no válido",
-                    "No fue posible identificar el tipo de cultivo seleccionado.",
-                    "Aceptar");
-
-                await Shell.Current.GoToAsync(
-                    AppRoutes.RangosNutrientes);
-
-                return;
-            }
-
-            await viewModel.InicializarAsync();
+            await InicializarParametrosPendientesAsync();
         }
 
         protected override void OnDisappearing()
         {
+            paginaVisible = false;
             viewModel.CancelarCarga();
             base.OnDisappearing();
         }
@@ -120,6 +88,100 @@ namespace CONATRADEC.Views
         {
             base.OnSizeAllocated(width, height);
             AjustarCantidadColumnas(width);
+        }
+
+        private async Task InicializarParametrosPendientesAsync()
+        {
+            await inicializacionLock.WaitAsync();
+
+            try
+            {
+                long versionActual =
+                    Volatile.Read(ref versionParametros);
+
+                if (versionActual <= 0 &&
+                    !parametrosNavegacionValidos)
+                {
+                    return;
+                }
+
+                if (versionActual > 0 &&
+                    versionInicializada != versionActual)
+                {
+                    versionInicializada = versionActual;
+                }
+
+                if (!viewModel.CanView)
+                {
+                    await DisplayAlert(
+                        "Permiso denegado",
+                        "No tiene permisos para consultar los rangos nutricionales.",
+                        "Aceptar");
+
+                    await Shell.Current.GoToAsync(
+                        AppRoutes.Regresar);
+
+                    return;
+                }
+
+                if (!parametrosNavegacionValidos ||
+                    viewModel.Categoria == null ||
+                    viewModel.Categoria.TipoCultivoId <= 0)
+                {
+                    await DisplayAlert(
+                        "Tipo de cultivo no válido",
+                        "No fue posible identificar el tipo de cultivo seleccionado.",
+                        "Aceptar");
+
+                    await Shell.Current.GoToAsync(
+                        AppRoutes.Regresar);
+
+                    return;
+                }
+
+                RangoNutrienteVisitaService.AsegurarVisita();
+
+                long generacionActual =
+                    RangoNutrienteVisitaService.GeneracionActual;
+
+                int tipoCultivoActual =
+                    viewModel.Categoria.TipoCultivoId;
+
+                bool cambioContexto =
+                    generacionVisitaCargada != generacionActual ||
+                    tipoCultivoCargado != tipoCultivoActual;
+
+                if (cambioContexto)
+                {
+                    generacionVisitaCargada = generacionActual;
+                    tipoCultivoCargado = tipoCultivoActual;
+
+                    /*
+                     * Una visita nueva o un cultivo distinto siempre parte de
+                     * datos frescos. Los retornos desde formularios dentro de
+                     * la misma visita conservan filtro, páginas y colección.
+                     */
+                    RangoNutrienteVisitaService
+                        .ConsumirRecargaDetalle(tipoCultivoActual);
+
+                    await viewModel.IniciarNuevaVisitaAsync();
+                    return;
+                }
+
+                if (RangoNutrienteVisitaService
+                    .ConsumirRecargaDetalle(tipoCultivoActual))
+                {
+                    await viewModel.RecargarVentanaActualAsync();
+                    return;
+                }
+
+                if (!viewModel.TienePaginaCargada)
+                    await viewModel.InicializarAsync();
+            }
+            finally
+            {
+                inicializacionLock.Release();
+            }
         }
 
         private void AjustarCantidadColumnas(double width)

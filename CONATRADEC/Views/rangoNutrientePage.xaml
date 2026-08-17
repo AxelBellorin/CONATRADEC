@@ -20,7 +20,8 @@
                             Source="iconpermission.png"
                             WidthRequest="62"
                             HeightRequest="62"
-                            Opacity="0.68" />
+                            Opacity="0.68"
+                            SemanticProperties.Description="Acceso restringido" />
                         <Label
                             Text="Sin permiso de lectura"
                             Style="{StaticResource ModernSectionTitle}"
@@ -33,7 +34,8 @@
                         <Button
                             Text="Regresar a configuración"
                             Style="{StaticResource ModernPrimaryButton}"
-                            Command="{Binding RegresarConfiguracionCommand}" />
+                            Command="{Binding RegresarConfiguracionCommand}"
+                            SemanticProperties.Description="Regresar a la pantalla de configuración" />
                     </VerticalStackLayout>
                 </Border>
             </Grid>
@@ -61,9 +63,11 @@
                         </CollectionView.ItemsLayout>
 
                         <!--
-                            Encabezado, búsqueda y mensajes forman parte del
-                            contenido desplazable. No se mueven controles ni
-                            se cambia su padre visual en tiempo de ejecución.
+                            Encabezado, búsqueda, mensajes y estado vacío forman
+                            parte del contenido desplazable. El estado vacío no
+                            usa CollectionView.EmptyView para evitar que WinUI
+                            capture la interacción de Buscar/Limpiar cuando no
+                            existen resultados.
                         -->
                         <CollectionView.Header>
                             <VerticalStackLayout
@@ -91,17 +95,15 @@
                                     Style="{StaticResource ModernWarningBanner}">
                                     <Label Text="{Binding Mensaje}" Style="{StaticResource ModernPageSubtitle}" />
                                 </Border>
-                            </VerticalStackLayout>
-                        </CollectionView.Header>
 
-                        <CollectionView.EmptyView>
-                            <Grid Padding="20,30">
                                 <Border
                                     IsVisible="{Binding MostrarVacio}"
+                                    InputTransparent="True"
                                     Style="{StaticResource ModernEmptyStateCard}"
                                     HorizontalOptions="Center"
                                     VerticalOptions="Start"
-                                    MaximumWidthRequest="560">
+                                    MaximumWidthRequest="560"
+                                    Margin="20,18,20,6">
                                     <VerticalStackLayout Spacing="9" HorizontalOptions="Center">
                                         <Border Style="{StaticResource ModernIconTile}">
                                             <Label
@@ -123,8 +125,8 @@
                                             HorizontalTextAlignment="Center" />
                                     </VerticalStackLayout>
                                 </Border>
-                            </Grid>
-                        </CollectionView.EmptyView>
+                            </VerticalStackLayout>
+                        </CollectionView.Header>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:RangoNutrienteCategoriaItem">
@@ -179,21 +181,24 @@
                                                 Style="{StaticResource ModernPrimaryButton}"
                                                 HeightRequest="44"
                                                 Command="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.OpenCategoryCommand}"
-                                                CommandParameter="{Binding .}" />
+                                                CommandParameter="{Binding .}"
+                                                SemanticProperties.Description="Abrir los rangos nutricionales de este cultivo" />
                                             <Button
                                                 Grid.Column="1"
                                                 Text="Editar"
                                                 Style="{StaticResource ModernUpdateButton}"
                                                 IsVisible="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.CanEdit}"
                                                 Command="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.EditCategoryCommand}"
-                                                CommandParameter="{Binding .}" />
+                                                CommandParameter="{Binding .}"
+                                                SemanticProperties.Description="Editar este tipo de cultivo" />
                                             <Button
                                                 Grid.Column="2"
                                                 Text="Eliminar"
                                                 Style="{StaticResource ModernDangerButton}"
                                                 IsVisible="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.CanDelete}"
                                                 Command="{Binding Source={x:Reference RangoPageRoot}, Path=BindingContext.DeleteCategoryCommand}"
-                                                CommandParameter="{Binding .}" />
+                                                CommandParameter="{Binding .}"
+                                                SemanticProperties.Description="Eliminar este tipo de cultivo" />
                                         </Grid>
                                     </Grid>
                                 </Border>
@@ -205,7 +210,8 @@
                                 <ActivityIndicator
                                     IsRunning="{Binding CargandoMas}"
                                     IsVisible="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Verde}" />
+                                    Color="{StaticResource color_Verde}"
+                                    SemanticProperties.Description="Cargando más tipos de cultivo" />
                                 <Label
                                     IsVisible="{Binding MostrarFinLista}"
                                     Text="Fin del listado"
@@ -233,7 +239,8 @@
                                 IsRunning="{Binding IsBusy}"
                                 Color="{StaticResource color_Verde}"
                                 WidthRequest="24"
-                                HeightRequest="24" />
+                                HeightRequest="24"
+                                SemanticProperties.Description="Cargando tipos de cultivo" />
                             <Label
                                 Text="Cargando cultivos..."
                                 VerticalOptions="Center"

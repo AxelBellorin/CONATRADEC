@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using System.Collections.ObjectModel;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -353,6 +353,91 @@ namespace CONATRADEC.Services
                         httpClient,
                         HttpMethod.Put,
                         $"api/configuracion/tipos-cultivo/{id}/eliminar",
+                        null,
+                        "No fue posible eliminar el tipo de cultivo.",
+                        "Tipo de cultivo desactivado correctamente.",
+                        cancellationToken);
+
+            if (result.Success)
+                LimpiarCaches();
+
+            return result;
+        }
+
+        /// <summary>
+        /// CRUD administrativo usado exclusivamente por Rangos nutricionales.
+        /// Mantiene intactos los endpoints históricos de Tipos de cultivo y
+        /// utiliza la API protegida por permisos del módulo actual.
+        /// </summary>
+        public async Task<ApiResult<bool>>
+            CreateDesdeRangosAsync(
+                TipoCultivoRequest request,
+                CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper.SendAsync(
+                    httpClient,
+                    HttpMethod.Post,
+                    "api/configuracion/rangos-nutrientes/cultivos",
+                    request,
+                    "No fue posible crear el tipo de cultivo.",
+                    "Tipo de cultivo creado correctamente.",
+                    cancellationToken);
+
+            if (result.Success)
+                LimpiarCaches();
+
+            return result;
+        }
+
+        public async Task<ApiResult<bool>>
+            UpdateDesdeRangosAsync(
+                TipoCultivoRequest request,
+                CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            if (request.TipoCultivoId <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "El identificador del tipo de cultivo no es válido.");
+            }
+
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper.SendAsync(
+                    httpClient,
+                    HttpMethod.Put,
+                    $"api/configuracion/rangos-nutrientes/cultivos/{request.TipoCultivoId}",
+                    request,
+                    "No fue posible actualizar el tipo de cultivo.",
+                    "Tipo de cultivo actualizado correctamente.",
+                    cancellationToken);
+
+            if (result.Success)
+                LimpiarCaches();
+
+            return result;
+        }
+
+        public async Task<ApiResult<bool>>
+            DeleteDesdeRangosAsync(
+                int id,
+                CancellationToken cancellationToken = default)
+        {
+            if (id <= 0)
+            {
+                return ApiResult<bool>.Fail(
+                    "El identificador del tipo de cultivo no es válido.");
+            }
+
+            ApiResult<bool> result =
+                await ConfiguracionApiServiceHelper
+                    .SendAsync<object>(
+                        httpClient,
+                        HttpMethod.Put,
+                        $"api/configuracion/rangos-nutrientes/cultivos/{id}/eliminar",
                         null,
                         "No fue posible eliminar el tipo de cultivo.",
                         "Tipo de cultivo desactivado correctamente.",

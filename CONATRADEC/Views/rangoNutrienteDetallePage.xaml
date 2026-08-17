@@ -32,9 +32,10 @@
                     </CollectionView.ItemsLayout>
 
                     <!--
-                        Encabezado, búsqueda y mensajes forman parte del
-                        contenido desplazable. No se reparentan controles
-                        durante la ejecución.
+                        Encabezado, búsqueda, mensajes y estado vacío forman
+                        parte del contenido desplazable. El estado vacío no
+                        usa CollectionView.EmptyView para mantener operativos
+                        Buscar/Limpiar en WinUI cuando la consulta devuelve 0.
                     -->
                     <CollectionView.Header>
                         <VerticalStackLayout
@@ -62,17 +63,15 @@
                                 Style="{StaticResource ModernWarningBanner}">
                                 <Label Text="{Binding Mensaje}" Style="{StaticResource ModernPageSubtitle}" />
                             </Border>
-                        </VerticalStackLayout>
-                    </CollectionView.Header>
 
-                    <CollectionView.EmptyView>
-                        <Grid Padding="20,30">
                             <Border
                                 IsVisible="{Binding MostrarVacio}"
+                                InputTransparent="True"
                                 Style="{StaticResource ModernEmptyStateCard}"
                                 HorizontalOptions="Center"
                                 VerticalOptions="Start"
-                                MaximumWidthRequest="560">
+                                MaximumWidthRequest="560"
+                                Margin="20,18,20,6">
                                 <VerticalStackLayout Spacing="9" HorizontalOptions="Center">
                                     <Border Style="{StaticResource ModernIconTile}">
                                         <Label
@@ -94,8 +93,8 @@
                                         HorizontalTextAlignment="Center" />
                                 </VerticalStackLayout>
                             </Border>
-                        </Grid>
-                    </CollectionView.EmptyView>
+                        </VerticalStackLayout>
+                    </CollectionView.Header>
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:RangoNutrienteResponse">
@@ -149,21 +148,24 @@
                                             Text="Ver"
                                             Style="{StaticResource ModernSecondaryButton}"
                                             Command="{Binding Source={x:Reference DetallePageRoot}, Path=BindingContext.ViewCommand}"
-                                            CommandParameter="{Binding .}" />
+                                            CommandParameter="{Binding .}"
+                                            SemanticProperties.Description="Consultar este rango nutricional" />
                                         <Button
                                             Grid.Column="1"
                                             Text="Editar"
                                             Style="{StaticResource ModernUpdateButton}"
                                             IsVisible="{Binding Source={x:Reference DetallePageRoot}, Path=BindingContext.CanEdit}"
                                             Command="{Binding Source={x:Reference DetallePageRoot}, Path=BindingContext.EditCommand}"
-                                            CommandParameter="{Binding .}" />
+                                            CommandParameter="{Binding .}"
+                                            SemanticProperties.Description="Editar este rango nutricional" />
                                         <Button
                                             Grid.Column="2"
                                             Text="Eliminar"
                                             Style="{StaticResource ModernDangerButton}"
                                             IsVisible="{Binding Source={x:Reference DetallePageRoot}, Path=BindingContext.CanDelete}"
                                             Command="{Binding Source={x:Reference DetallePageRoot}, Path=BindingContext.DeleteCommand}"
-                                            CommandParameter="{Binding .}" />
+                                            CommandParameter="{Binding .}"
+                                            SemanticProperties.Description="Eliminar este rango nutricional" />
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -175,7 +177,8 @@
                             <ActivityIndicator
                                 IsRunning="{Binding CargandoMas}"
                                 IsVisible="{Binding CargandoMas}"
-                                Color="{StaticResource color_Verde}" />
+                                Color="{StaticResource color_Verde}"
+                                SemanticProperties.Description="Cargando más rangos nutricionales" />
                             <Label
                                 IsVisible="{Binding MostrarFinLista}"
                                 Text="Fin del listado"
@@ -203,7 +206,8 @@
                             IsRunning="{Binding IsBusy}"
                             Color="{StaticResource color_Verde}"
                             WidthRequest="24"
-                            HeightRequest="24" />
+                            HeightRequest="24"
+                            SemanticProperties.Description="Cargando rangos nutricionales" />
                         <Label
                             Text="Cargando rangos..."
                             VerticalOptions="Center"

@@ -30,7 +30,8 @@
                                 WidthRequest="28"
                                 HeightRequest="28"
                                 HorizontalOptions="Center"
-                                VerticalOptions="Center" />
+                                VerticalOptions="Center"
+                                SemanticProperties.Description="Rango nutricional" />
                         </Border>
 
                         <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
@@ -88,7 +89,8 @@
                                         SelectedItem="{Binding ElementoSeleccionado}"
                                         ItemDisplayBinding="{Binding Texto}"
                                         Title="Seleccione un elemento"
-                                        IsEnabled="{Binding IsEditable}" />
+                                        IsEnabled="{Binding IsEditable}"
+                                        SemanticProperties.Description="Elemento químico del rango nutricional" />
                                 </Border>
                                 <Label
                                     Text="{Binding ErrorElemento}"
@@ -120,7 +122,8 @@
                                         Placeholder="Ejemplo: 10.50"
                                         Keyboard="Numeric"
                                         MaxLength="12"
-                                        IsReadOnly="{Binding IsReadOnly}" />
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        SemanticProperties.Description="Valor mínimo del rango en libras por manzana" />
                                 </Border>
                                 <Label
                                     Text="{Binding ErrorMinimo}"
@@ -144,7 +147,8 @@
                                         Placeholder="Ejemplo: 25.00"
                                         Keyboard="Numeric"
                                         MaxLength="12"
-                                        IsReadOnly="{Binding IsReadOnly}" />
+                                        IsReadOnly="{Binding IsReadOnly}"
+                                        SemanticProperties.Description="Valor máximo del rango en libras por manzana" />
                                 </Border>
                                 <Label
                                     Text="{Binding ErrorMaximo}"
@@ -207,7 +211,8 @@
                                         TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                         PlaceholderColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}"
                                         FontFamily="MontserratMedium"
-                                        FontSize="13" />
+                                        FontSize="13"
+                                        SemanticProperties.Description="Descripción del rango nutricional" />
                                 </Border>
                                 <Label Text="Máximo 150 caracteres." Style="{StaticResource ModernCaption}" />
                                 <Label
@@ -231,7 +236,8 @@
                         Style="{StaticResource ModernPrimaryButton}"
                         Command="{Binding SaveCommand}"
                         IsVisible="{Binding ShowSaveButton}"
-                        IsEnabled="{Binding NotIsBusy}" />
+                        IsEnabled="{Binding NotIsBusy}"
+                        SemanticProperties.Description="Guardar el rango nutricional" />
                     <Button
                         Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                         Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
@@ -239,7 +245,8 @@
                         Style="{StaticResource ModernNeutralButton}"
                         Command="{Binding CancelCommand}"
                         IsVisible="{Binding IsEditable}"
-                        IsEnabled="{Binding NotIsBusy}" />
+                        IsEnabled="{Binding NotIsBusy}"
+                        SemanticProperties.Description="Cancelar y regresar a los rangos del cultivo" />
                     <Button
                         Grid.Column="0"
                         Grid.ColumnSpan="{OnIdiom Phone=1, Tablet=2, Desktop=2}"
@@ -247,7 +254,8 @@
                         Style="{StaticResource ModernNeutralButton}"
                         Command="{Binding CancelCommand}"
                         IsVisible="{Binding IsReadOnly}"
-                        IsEnabled="{Binding NotIsBusy}" />
+                        IsEnabled="{Binding NotIsBusy}"
+                        SemanticProperties.Description="Regresar a los rangos del cultivo" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
@@ -271,7 +279,8 @@
                         IsRunning="{Binding IsBusy}"
                         Color="{StaticResource color_Verde}"
                         WidthRequest="24"
-                        HeightRequest="24" />
+                        HeightRequest="24"
+                        SemanticProperties.Description="Procesando rango nutricional" />
                     <Label
                         Text="Procesando rango nutricional..."
                         VerticalOptions="Center"

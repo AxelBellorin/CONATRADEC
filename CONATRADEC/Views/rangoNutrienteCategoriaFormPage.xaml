@@ -29,7 +29,8 @@
                                 WidthRequest="28"
                                 HeightRequest="28"
                                 HorizontalOptions="Center"
-                                VerticalOptions="Center" />
+                                VerticalOptions="Center"
+                                SemanticProperties.Description="Tipo de cultivo" />
                         </Border>
                         <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
                             <Label Text="{Binding Title}" Style="{StaticResource ModernPageTitle}" />
@@ -63,7 +64,8 @@
                                     Text="{Binding Nombre}"
                                     Placeholder="Ejemplo: CAFÉ"
                                     MaxLength="80"
-                                    IsReadOnly="{Binding IsReadOnly}" />
+                                    IsReadOnly="{Binding IsReadOnly}"
+                                    SemanticProperties.Description="Nombre del tipo de cultivo" />
                             </Border>
                             <Label
                                 Text="{Binding ErrorNombre}"
@@ -95,7 +97,8 @@
                                     TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                     PlaceholderColor="{AppThemeBinding Light={StaticResource TextTertiary}, Dark={StaticResource TextTertiaryDark}}"
                                     FontFamily="MontserratMedium"
-                                    FontSize="13" />
+                                    FontSize="13"
+                                    SemanticProperties.Description="Descripción del tipo de cultivo" />
                             </Border>
                             <Label Text="Máximo 150 caracteres." Style="{StaticResource ModernCaption}" />
                             <Label
@@ -118,7 +121,8 @@
                         Style="{StaticResource ModernPrimaryButton}"
                         Command="{Binding SaveCommand}"
                         IsVisible="{Binding ShowSaveButton}"
-                        IsEnabled="{Binding NotIsBusy}" />
+                        IsEnabled="{Binding NotIsBusy}"
+                        SemanticProperties.Description="Guardar el tipo de cultivo" />
                     <Button
                         Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
                         Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
@@ -126,7 +130,8 @@
                         Style="{StaticResource ModernNeutralButton}"
                         Command="{Binding CancelCommand}"
                         IsVisible="{Binding IsEditable}"
-                        IsEnabled="{Binding NotIsBusy}" />
+                        IsEnabled="{Binding NotIsBusy}"
+                        SemanticProperties.Description="Cancelar y regresar a rangos nutricionales" />
                     <Button
                         Grid.Column="0"
                         Grid.ColumnSpan="{OnIdiom Phone=1, Tablet=2, Desktop=2}"
@@ -134,7 +139,8 @@
                         Style="{StaticResource ModernNeutralButton}"
                         Command="{Binding CancelCommand}"
                         IsVisible="{Binding IsReadOnly}"
-                        IsEnabled="{Binding NotIsBusy}" />
+                        IsEnabled="{Binding NotIsBusy}"
+                        SemanticProperties.Description="Regresar a rangos nutricionales" />
                 </Grid>
             </VerticalStackLayout>
         </ScrollView>
@@ -157,7 +163,8 @@
                         IsRunning="{Binding IsBusy}"
                         Color="{StaticResource color_Verde}"
                         WidthRequest="24"
-                        HeightRequest="24" />
+                        HeightRequest="24"
+                        SemanticProperties.Description="Procesando tipo de cultivo" />
                     <Label
                         Text="Procesando cultivo..."
                         VerticalOptions="Center"

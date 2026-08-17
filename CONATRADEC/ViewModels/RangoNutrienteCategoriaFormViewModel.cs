@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 
 namespace CONATRADEC.ViewModels
@@ -205,7 +205,7 @@ namespace CONATRADEC.ViewModels
             }
 
             await GoToAsyncParameters(
-                AppRoutes.RangosNutrientes);
+                AppRoutes.Regresar);
         }
 
         private async Task SaveAsync()
@@ -250,8 +250,8 @@ namespace CONATRADEC.ViewModels
 
                 ApiResult<bool> result =
                     Mode == FormMode.FormModeSelect.Create
-                        ? await apiService.CreateAsync(Item)
-                        : await apiService.UpdateAsync(Item);
+                        ? await apiService.CreateDesdeRangosAsync(Item)
+                        : await apiService.UpdateDesdeRangosAsync(Item);
 
                 if (!result.Success)
                 {
@@ -260,8 +260,11 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
+                RangoNutrienteVisitaService
+                    .MarcarListadoPrincipalParaRecargar();
+
                 await GoToAsyncParameters(
-                    AppRoutes.RangosNutrientes);
+                    AppRoutes.Regresar);
 
                 await MostrarExitoAsync(
                     result.Message);

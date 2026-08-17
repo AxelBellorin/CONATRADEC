@@ -93,7 +93,7 @@ namespace CONATRADEC.ViewModels
             BackCommand =
                 new Command(
                     async () => await EjecutarSeguroAsync(
-                        () => NavegarAsync(AppRoutes.RangosNutrientes),
+                        () => NavegarAsync(AppRoutes.Regresar),
                         "regresar a los cultivos"),
                     () => !IsBusy && !Navegando);
 
@@ -102,21 +102,36 @@ namespace CONATRADEC.ViewModels
                     async () => await EjecutarSeguroAsync(
                         () => CargarAsync(true),
                         "buscar rangos nutricionales"),
-                    () => CanView && !Navegando);
+                    () =>
+                        CanView &&
+                        !IsBusy &&
+                        !IsRefreshing &&
+                        !CargandoMas &&
+                        !Navegando);
 
             LimpiarFiltrosCommand =
                 new Command(
                     async () => await EjecutarSeguroAsync(
                         LimpiarFiltrosAsync,
                         "limpiar la búsqueda"),
-                    () => CanView && !Navegando);
+                    () =>
+                        CanView &&
+                        !IsBusy &&
+                        !IsRefreshing &&
+                        !CargandoMas &&
+                        !Navegando);
 
             RefrescarCommand =
                 new Command(
                     async () => await EjecutarSeguroAsync(
                         RefrescarAsync,
                         "actualizar los rangos"),
-                    () => CanView && !Navegando);
+                    () =>
+                        CanView &&
+                        !IsBusy &&
+                        !IsRefreshing &&
+                        !CargandoMas &&
+                        !Navegando);
 
             CargarMasCommand =
                 new Command(
@@ -126,6 +141,7 @@ namespace CONATRADEC.ViewModels
                     () =>
                         CanView &&
                         !IsBusy &&
+                        !IsRefreshing &&
                         !CargandoMas &&
                         !Navegando &&
                         PuedeCargarMas);
@@ -275,6 +291,9 @@ namespace CONATRADEC.ViewModels
             !IsBusy &&
             !CargandoMas;
 
+        public bool TienePaginaCargada =>
+            pantallaCargada;
+
         public void ActualizarPermisos()
         {
             LoadPagePermissions("rangoNutrientePage");
@@ -282,8 +301,39 @@ namespace CONATRADEC.ViewModels
             NotificarEstadoLista();
         }
 
-        public Task InicializarAsync() =>
-            CargarAsync(true);
+        public async Task IniciarNuevaVisitaAsync()
+        {
+            if (!CanView ||
+                Categoria == null ||
+                Categoria.TipoCultivoId <= 0 ||
+                Navegando)
+            {
+                return;
+            }
+
+            CancelarCarga();
+
+            TextoBusqueda = string.Empty;
+            Mensaje = string.Empty;
+            Aportes.Clear();
+            paginaActual = 0;
+            totalPaginas = 1;
+            TotalRegistros = 0;
+            pantallaCargada = false;
+
+            OnPropertyChanged(nameof(PuedeCargarMas));
+            NotificarEstadoLista();
+
+            await CargarAsync(true);
+        }
+
+        public Task InicializarAsync()
+        {
+            if (TienePaginaCargada)
+                return Task.CompletedTask;
+
+            return CargarAsync(true);
+        }
 
         public async Task CargarAsync(bool reiniciar)
         {
@@ -295,11 +345,11 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (!reiniciar &&
-                (CargandoMas || !PuedeCargarMas))
-            {
+            if (IsBusy || CargandoMas)
                 return;
-            }
+
+            if (!reiniciar && !PuedeCargarMas)
+                return;
 
             CancellationTokenSource source =
                 PrepararNuevaCarga();
@@ -387,6 +437,166 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        /// <summary>
+        /// Actualiza las páginas ya materializadas de la visita sin destruir la
+        /// colección válida hasta completar toda la respuesta del servidor.
+        /// </summary>
+        public async Task RecargarVentanaActualAsync()
+        {
+            if (!CanView ||
+                Categoria == null ||
+                Categoria.TipoCultivoId <= 0 ||
+                Navegando ||
+                IsBusy ||
+                CargandoMas)
+            {
+                return;
+            }
+
+            if (!TienePaginaCargada)
+            {
+                await CargarAsync(true);
+                return;
+            }
+
+            int paginasObjetivo =
+                Math.Max(1, paginaActual);
+
+            CancellationTokenSource source =
+                PrepararNuevaCarga();
+
+            /*
+             * El gesto de RefreshView ya comunica la actualización. Durante
+             * ese flujo conservamos los datos visibles y evitamos superponer
+             * el bloqueo de carga inicial. Las recargas causadas por un CRUD
+             * sí mantienen el indicador bloqueante para impedir acciones
+             * concurrentes mientras se reconcilia la ventana paginada.
+             */
+            bool mostrarCargaBloqueante = !IsRefreshing;
+
+            try
+            {
+                if (mostrarCargaBloqueante)
+                    IsBusy = true;
+
+                Mensaje = string.Empty;
+
+                int tamanoPagina = ObtenerTamanoPagina();
+                var nuevosItems =
+                    new List<RangoNutrienteResponse>();
+                var ids = new HashSet<int>();
+
+                RangoNutrientePaginaResponse? primeraPagina = null;
+                int paginasAConsultar = paginasObjetivo;
+
+                for (int numeroPagina = 1;
+                     numeroPagina <= paginasAConsultar;
+                     numeroPagina++)
+                {
+                    ApiResult<RangoNutrientePaginaResponse> resultado =
+                        await consultaApiService.BuscarRangosAsync(
+                            Categoria.TipoCultivoId,
+                            TextoBusqueda,
+                            numeroPagina,
+                            tamanoPagina,
+                            source.Token);
+
+                    if (source.IsCancellationRequested ||
+                        !EsCargaActual(source))
+                    {
+                        return;
+                    }
+
+                    if (!resultado.Success ||
+                        resultado.Data == null)
+                    {
+                        if (!EsMensajeCancelacion(resultado.Message))
+                            Mensaje = resultado.Message;
+
+                        return;
+                    }
+
+                    RangoNutrientePaginaResponse pagina =
+                        resultado.Data;
+
+                    primeraPagina ??= pagina;
+
+                    if (numeroPagina == 1)
+                    {
+                        int paginasServidor =
+                            Math.Max(1, pagina.TotalPaginas);
+
+                        paginasAConsultar =
+                            Math.Min(
+                                paginasObjetivo,
+                                paginasServidor);
+                    }
+
+                    foreach (RangoNutrienteResponse item
+                             in pagina.Items)
+                    {
+                        int id =
+                            item.ParametroRangoNutrienteCultivoId;
+
+                        if (id > 0 && ids.Add(id))
+                            nuevosItems.Add(item);
+                    }
+                }
+
+                if (primeraPagina == null)
+                    return;
+
+                Aportes.Clear();
+
+                foreach (RangoNutrienteResponse item in nuevosItems)
+                    Aportes.Add(item);
+
+                paginaActual = paginasAConsultar;
+                totalPaginas =
+                    Math.Max(1, primeraPagina.TotalPaginas);
+                TotalRegistros =
+                    Math.Max(0, primeraPagina.TotalRegistros);
+                Mensaje = string.Empty;
+                pantallaCargada = true;
+
+                OnPropertyChanged(nameof(PuedeCargarMas));
+                NotificarEstadoLista();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (Exception ex)
+            {
+                if (!source.IsCancellationRequested &&
+                    EsCargaActual(source))
+                {
+                    Mensaje =
+                        "No fue posible actualizar los rangos nutricionales.";
+
+                    await MostrarErrorInesperadoAsync(
+                        "actualizar los rangos nutricionales",
+                        ex);
+                }
+            }
+            finally
+            {
+                if (EsCargaActual(source))
+                {
+                    if (mostrarCargaBloqueante)
+                        IsBusy = false;
+
+                    IsRefreshing = false;
+                }
+
+                LiberarCarga(source);
+                ActualizarComandos();
+                NotificarEstadoLista();
+            }
+        }
+
         public void CancelarCarga()
         {
             CancellationTokenSource? source =
@@ -445,7 +655,7 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                await CargarAsync(true);
+                await RecargarVentanaActualAsync();
             }
             finally
             {
@@ -507,13 +717,16 @@ namespace CONATRADEC.ViewModels
             if (!confirmar)
                 return;
 
+            bool eliminado = false;
+            string mensajeExito = string.Empty;
+
             try
             {
                 IsBusy = true;
                 ActualizarComandos();
 
                 ApiResult<bool> resultado =
-                    await apiService.DeleteAsync(
+                    await apiService.DeleteDesdeRangosAsync(
                         item.ParametroRangoNutrienteCultivoId);
 
                 if (!resultado.Success)
@@ -526,10 +739,14 @@ namespace CONATRADEC.ViewModels
                 TotalRegistros =
                     Math.Max(0, TotalRegistros - 1);
 
-                await MostrarToastAsync(
+                RangoNutrienteVisitaService
+                    .MarcarListadoPrincipalParaRecargar();
+
+                eliminado = true;
+                mensajeExito =
                     string.IsNullOrWhiteSpace(resultado.Message)
                         ? "Rango eliminado correctamente."
-                        : resultado.Message);
+                        : resultado.Message;
             }
             finally
             {
@@ -537,6 +754,12 @@ namespace CONATRADEC.ViewModels
                 ActualizarComandos();
                 NotificarEstadoLista();
             }
+
+            if (!eliminado)
+                return;
+
+            await RecargarVentanaActualAsync();
+            await MostrarToastAsync(mensajeExito);
         }
 
         private async Task NavegarAsync(

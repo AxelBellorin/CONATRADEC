@@ -2,6 +2,7 @@ using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.Devices;
+using System.Threading;
 using static CONATRADEC.Models.FormMode;
 
 namespace CONATRADEC.Views
@@ -13,7 +14,13 @@ namespace CONATRADEC.Views
         private readonly RangoNutrienteFormViewModel
             viewModel = new();
 
-        private bool parametrosAplicados;
+        private readonly SemaphoreSlim inicializacionLock =
+            new(1, 1);
+
+        private bool parametrosNavegacionValidos;
+        private bool paginaVisible;
+        private long versionParametros;
+        private long versionInicializada;
 
         public rangoNutrienteFormPage()
         {
@@ -28,95 +35,61 @@ namespace CONATRADEC.Views
         public void ApplyQueryAttributes(
             IDictionary<string, object> query)
         {
-            if (!query.TryGetValue(
+            bool tieneModo =
+                query.TryGetValue(
                     "Mode",
-                    out object? modeObject) ||
-                modeObject is not FormModeSelect mode)
-            {
-                return;
-            }
+                    out object? modeObject) &&
+                modeObject is FormModeSelect;
 
-            if (!query.TryGetValue(
+            bool tieneCategoria =
+                query.TryGetValue(
                     "Categoria",
-                    out object? categoriaObject) ||
-                categoriaObject is not
-                    RangoNutrienteCategoriaItem tipoCultivo)
-            {
-                return;
-            }
+                    out object? categoriaObject) &&
+                categoriaObject is RangoNutrienteCategoriaItem categoria &&
+                categoria.TipoCultivoId > 0;
 
-            if (!query.TryGetValue(
+            bool tieneItem =
+                query.TryGetValue(
                     "Item",
-                    out object? itemObject) ||
-                itemObject is not RangoNutrienteRequest item)
+                    out object? itemObject) &&
+                itemObject is RangoNutrienteRequest;
+
+            parametrosNavegacionValidos =
+                tieneModo &&
+                tieneCategoria &&
+                tieneItem;
+
+            if (parametrosNavegacionValidos)
             {
-                return;
+                viewModel.PrepararNavegacion(
+                    (FormModeSelect)modeObject!,
+                    (RangoNutrienteCategoriaItem)categoriaObject!,
+                    (RangoNutrienteRequest)itemObject!);
             }
 
-            viewModel.PrepararNavegacion(
-                mode,
-                tipoCultivo,
-                item);
+            Interlocked.Increment(ref versionParametros);
 
-            parametrosAplicados = true;
+            if (paginaVisible)
+            {
+                Dispatcher.Dispatch(
+                    () =>
+                        _ = InicializarParametrosPendientesAsync());
+            }
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
 
-            viewModel.LoadPagePermissions(
-                "rangoNutrientePage");
-
-            bool denied =
-                !viewModel.CanView ||
-                (viewModel.Mode == FormModeSelect.Create &&
-                 !viewModel.CanAdd) ||
-                (viewModel.Mode == FormModeSelect.Edit &&
-                 !viewModel.CanEdit);
-
-            if (denied)
-            {
-                await DisplayAlert(
-                    "Permiso denegado",
-                    "No tiene permisos para realizar esta operación.",
-                    "Aceptar");
-
-                await Shell.Current.GoToAsync(
-                    AppRoutes.RangosNutrientes);
-
-                return;
-            }
-
-            for (int intento = 0;
-                 intento < 20 &&
-                 (!parametrosAplicados ||
-                  !viewModel.TieneTipoCultivoValido);
-                 intento++)
-            {
-                await Task.Delay(25);
-            }
-
-            if (!parametrosAplicados ||
-                !viewModel.TieneTipoCultivoValido)
-            {
-                await DisplayAlert(
-                    "Tipo de cultivo no válido",
-                    "No fue posible identificar el tipo de cultivo seleccionado.",
-                    "Aceptar");
-
-                await Shell.Current.GoToAsync(
-                    AppRoutes.RangosNutrientes);
-
-                return;
-            }
-
+            paginaVisible = true;
             AjustarDiseno(Width);
-            await viewModel.InitializeAsync();
+
+            await InicializarParametrosPendientesAsync();
         }
 
         protected override void OnDisappearing()
         {
+            paginaVisible = false;
             viewModel.CancelarOperaciones();
             base.OnDisappearing();
         }
@@ -127,6 +100,69 @@ namespace CONATRADEC.Views
         {
             base.OnSizeAllocated(width, height);
             AjustarDiseno(width);
+        }
+
+        private async Task InicializarParametrosPendientesAsync()
+        {
+            await inicializacionLock.WaitAsync();
+
+            try
+            {
+                long versionActual =
+                    Volatile.Read(ref versionParametros);
+
+                if (versionActual <= 0 ||
+                    versionInicializada == versionActual)
+                {
+                    return;
+                }
+
+                versionInicializada = versionActual;
+
+                viewModel.LoadPagePermissions(
+                    "rangoNutrientePage");
+
+                bool denied =
+                    !viewModel.CanView ||
+                    (viewModel.Mode == FormModeSelect.Create &&
+                     !viewModel.CanAdd) ||
+                    (viewModel.Mode == FormModeSelect.Edit &&
+                     !viewModel.CanEdit);
+
+                if (denied)
+                {
+                    await DisplayAlert(
+                        "Permiso denegado",
+                        "No tiene permisos para realizar esta operación.",
+                        "Aceptar");
+
+                    await Shell.Current.GoToAsync(
+                        AppRoutes.Regresar);
+
+                    return;
+                }
+
+                if (!parametrosNavegacionValidos ||
+                    !viewModel.TieneTipoCultivoValido)
+                {
+                    await DisplayAlert(
+                        "Tipo de cultivo no válido",
+                        "No fue posible identificar el tipo de cultivo seleccionado.",
+                        "Aceptar");
+
+                    await Shell.Current.GoToAsync(
+                        AppRoutes.Regresar);
+
+                    return;
+                }
+
+                RangoNutrienteVisitaService.AsegurarVisita();
+                await viewModel.InitializeAsync();
+            }
+            finally
+            {
+                inicializacionLock.Release();
+            }
         }
 
         private void AjustarDiseno(double anchoPagina)
