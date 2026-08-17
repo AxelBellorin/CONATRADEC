@@ -320,9 +320,9 @@ namespace CONATRADEC.ViewModels
         }
 
         /// <summary>
-        /// Al volver desde el formulario mantiene la misma visita. Una edición
-        /// que no altera el orden puede aplicarse localmente cuando no hay un
-        /// filtro aplicado. Cualquier cambio de composición recarga la página.
+        /// Al volver desde el formulario mantiene la misma visita. Cuando hubo
+        /// una mutación confirmada, la página visible se vuelve a consultar al
+        /// servidor para aceptar el estado persistido y cualquier dato derivado.
         /// </summary>
         public async Task InicializarAsync()
         {
@@ -340,25 +340,16 @@ namespace CONATRADEC.ViewModels
             int versionActual =
                 ElementoQuimicoListadoEstadoService.VersionActual;
 
-            if (ElementoQuimicoListadoEstadoService
-                    .IntentarConsumirEdicion(
-                        out ElementoQuimicoResponse editado))
-            {
-                bool aplicadoLocalmente =
-                    string.IsNullOrWhiteSpace(
-                        textoBusquedaAplicado) &&
-                    AplicarEdicionLocal(editado);
-
-                if (aplicadoLocalmente)
-                {
-                    versionAplicada = versionActual;
-                    NotificarEstadoLista();
-                    return;
-                }
-            }
-
             if (versionAplicada != versionActual)
             {
+                /*
+                 * Si la mutación provenía de una edición, se descarta la copia
+                 * temporal porque la página será reconstruida desde servidor.
+                 */
+                ElementoQuimicoListadoEstadoService
+                    .IntentarConsumirEdicion(
+                        out _);
+
                 await CargarPaginaAsync(
                     Math.Max(1, paginaActual));
             }
@@ -614,32 +605,6 @@ namespace CONATRADEC.ViewModels
             NotificarEstadoLista();
         }
 
-        private bool AplicarEdicionLocal(
-            ElementoQuimicoResponse editado)
-        {
-            if (editado.ElementoQuimicosId is not > 0)
-                return false;
-
-            int indice = -1;
-
-            for (int i = 0; i < List.Count; i++)
-            {
-                if (List[i].ElementoQuimicosId ==
-                    editado.ElementoQuimicosId)
-                {
-                    indice = i;
-                    break;
-                }
-            }
-
-            if (indice < 0)
-                return false;
-
-            List[indice] = editado;
-            Mensaje = string.Empty;
-            return true;
-        }
-
         private Task OnAddAsync() =>
             NavegarAsync(
                 "//ElementoQuimicoFormPage",
@@ -656,45 +621,104 @@ namespace CONATRADEC.ViewModels
                 });
 
         private Task OnEditAsync(
-            ElementoQuimicoResponse? elemento)
-        {
-            if (elemento?.ElementoQuimicosId is not > 0)
-                return Task.CompletedTask;
-
-            return NavegarAsync(
-                "//ElementoQuimicoFormPage",
-                new Dictionary<string, object>
-                {
-                    {
-                        "Mode",
-                        FormMode.FormModeSelect.Edit
-                    },
-                    {
-                        "ElementoQuimico",
-                        new ElementoQuimicoRequest(elemento)
-                    }
-                });
-        }
+            ElementoQuimicoResponse? elemento) =>
+            AbrirDetalleActualAsync(
+                elemento,
+                FormMode.FormModeSelect.Edit);
 
         private Task OnViewAsync(
-            ElementoQuimicoResponse? elemento)
-        {
-            if (elemento?.ElementoQuimicosId is not > 0)
-                return Task.CompletedTask;
+            ElementoQuimicoResponse? elemento) =>
+            AbrirDetalleActualAsync(
+                elemento,
+                FormMode.FormModeSelect.View);
 
-            return NavegarAsync(
-                "//ElementoQuimicoFormPage",
-                new Dictionary<string, object>
+        /// <summary>
+        /// Ver y Editar siempre consultan el registro por ID antes de navegar.
+        /// Así el formulario recibe el estado actual persistido y no una copia
+        /// potencialmente antigua de la tarjeta de la página.
+        /// </summary>
+        private async Task AbrirDetalleActualAsync(
+            ElementoQuimicoResponse? elemento,
+            FormMode.FormModeSelect modo)
+        {
+            if (elemento?.ElementoQuimicosId is not > 0 ||
+                IsBusy ||
+                Navegando)
+            {
+                return;
+            }
+
+            CancellationTokenSource source =
+                PrepararNuevaAccion();
+
+            bool accionLiberada = false;
+
+            try
+            {
+                IsBusy = true;
+                ActualizarComandos();
+
+                ApiResult<ElementoQuimicoResponse> resultado =
+                    await elementoApiService
+                        .GetElementoQuimicoAdminByIdResultAsync(
+                            elemento.ElementoQuimicosId.Value,
+                            source.Token);
+
+                if (source.IsCancellationRequested ||
+                    !EsAccionActual(source))
                 {
+                    return;
+                }
+
+                if (!resultado.Success ||
+                    resultado.Data?.ElementoQuimicosId is not > 0)
+                {
+                    if (!EsMensajeCancelacion(resultado.Message))
                     {
-                        "Mode",
-                        FormMode.FormModeSelect.View
-                    },
-                    {
-                        "ElementoQuimico",
-                        new ElementoQuimicoRequest(elemento)
+                        await MostrarToastAsync(
+                            string.IsNullOrWhiteSpace(resultado.Message)
+                                ? "No fue posible cargar el elemento químico."
+                                : resultado.Message);
                     }
-                });
+
+                    return;
+                }
+
+                ElementoQuimicoRequest actual =
+                    new(resultado.Data);
+
+                /*
+                 * La consulta ya terminó. Se libera el estado Busy antes de
+                 * navegar para no cancelar el detalle recién obtenido.
+                 */
+                IsBusy = false;
+                LiberarAccion(source);
+                accionLiberada = true;
+
+                await NavegarAsync(
+                    "//ElementoQuimicoFormPage",
+                    new Dictionary<string, object>
+                    {
+                        {
+                            "Mode",
+                            modo
+                        },
+                        {
+                            "ElementoQuimico",
+                            actual
+                        }
+                    });
+            }
+            finally
+            {
+                if (!accionLiberada)
+                {
+                    IsBusy = false;
+                    LiberarAccion(source);
+                }
+
+                ActualizarComandos();
+            }
         }
 
         private async Task OnDeleteAsync(
@@ -710,9 +734,8 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            bool recargarPagina = false;
-            int paginaOriginal = paginaActual;
             int paginaARecargar = paginaActual;
+            bool eliminado = false;
 
             try
             {
@@ -741,9 +764,6 @@ namespace CONATRADEC.ViewModels
                     IsBusy = true;
                     ActualizarComandos();
 
-                    int totalPaginasAntes =
-                        totalPaginas;
-
                     ApiResult<bool> resultado =
                         await elementoApiService
                             .DeleteElementoQuimicoResultAsync(
@@ -764,49 +784,23 @@ namespace CONATRADEC.ViewModels
                         return;
                     }
 
-                    List.Remove(elemento);
-
-                    TotalRegistros =
-                        Math.Max(0, TotalRegistros - 1);
-
-                    int nuevoTotalPaginas =
-                        TotalRegistros == 0
-                            ? 1
-                            : (int)Math.Ceiling(
-                                TotalRegistros /
-                                (double)Math.Max(
-                                    1,
-                                    tamanoPaginaActual));
-
-                    totalPaginas =
-                        Math.Max(1, nuevoTotalPaginas);
-
-                    if (paginaActual > totalPaginas)
-                        paginaActual = totalPaginas;
+                    /*
+                     * No se elimina el objeto localmente. El servidor vuelve a
+                     * ser la fuente de verdad y CargarPaginaAsync determina si
+                     * la página actual sigue existiendo.
+                     */
+                    ElementoQuimicoListadoEstadoService
+                        .MarcarParaRecargar();
 
                     paginaARecargar =
                         Math.Max(1, paginaActual);
 
-                    /*
-                     * En una página intermedia hay que traer el primer registro
-                     * de la página siguiente para mantener la composición
-                     * correcta. En la última página la eliminación es local.
-                     */
-                    recargarPagina =
-                        TotalRegistros > 0 &&
-                        (paginaARecargar < totalPaginasAntes ||
-                         List.Count == 0);
-
-                    versionAplicada =
-                        ElementoQuimicoListadoEstadoService
-                            .MarcarCambio();
+                    eliminado = true;
 
                     await MostrarToastAsync(
                         string.IsNullOrWhiteSpace(resultado.Message)
                             ? "Elemento químico eliminado correctamente."
                             : resultado.Message);
-
-                    NotificarEstadoLista();
                 }
                 finally
                 {
@@ -825,15 +819,13 @@ namespace CONATRADEC.ViewModels
                 ActualizarComandos();
             }
 
-            if (recargarPagina &&
+            if (eliminado &&
                 CanView &&
                 !Navegando)
             {
                 await CargarPaginaAsync(
                     paginaARecargar,
-                    desplazarAlInicio:
-                        paginaARecargar != paginaOriginal ||
-                        List.Count == 0);
+                    desplazarAlInicio: true);
             }
         }
 

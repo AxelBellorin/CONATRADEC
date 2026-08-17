@@ -232,6 +232,84 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
+        /// Obtiene un registro activo directamente desde la API administrativa.
+        /// Ver y Editar utilizan esta consulta para no abrir datos antiguos
+        /// conservados en la tarjeta de la página.
+        /// </summary>
+        public async Task<ApiResult<ElementoQuimicoResponse>>
+            GetElementoQuimicoAdminByIdResultAsync(
+                int id,
+                CancellationToken cancellationToken = default)
+        {
+            if (id <= 0)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "El identificador del elemento químico no es válido.");
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        $"{RutaAdministrativa}/{id}",
+                        cancellationToken);
+
+                string contenido =
+                    await response.Content.ReadAsStringAsync(
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<ElementoQuimicoResponse>.Fail(
+                        ApiErrorMessageParser.Parse(
+                            response.StatusCode,
+                            contenido,
+                            "No fue posible cargar el elemento químico."),
+                        (int)response.StatusCode);
+                }
+
+                ElementoQuimicoResponse? data =
+                    JsonSerializer.Deserialize<ElementoQuimicoResponse>(
+                        contenido,
+                        JsonOptions);
+
+                if (data?.ElementoQuimicosId is not > 0)
+                {
+                    return ApiResult<ElementoQuimicoResponse>.Fail(
+                        "El servidor respondió, pero no devolvió un elemento químico válido.");
+                }
+
+                return ApiResult<ElementoQuimicoResponse>.Ok(data);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "La carga del elemento químico tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "No fue posible comunicarse con el servidor para cargar el elemento químico.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "El servidor respondió, pero el elemento químico no tiene el formato esperado.");
+            }
+            catch
+            {
+                return ApiResult<ElementoQuimicoResponse>.Fail(
+                    "Ocurrió un error inesperado al cargar el elemento químico.");
+            }
+        }
+
+        /// <summary>
         /// Crea mediante la API administrativa. Si la identidad coincide con
         /// un registro inactivo conserva el comportamiento histórico: permite
         /// reactivarlo con los datos escritos o crear un registro diferente.
