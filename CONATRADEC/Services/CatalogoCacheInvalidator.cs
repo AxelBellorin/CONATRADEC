@@ -94,6 +94,16 @@ namespace CONATRADEC.Services
                         TipoAnalisisSueloListadoEstadoService.MarcarCambio();
                         break;
 
+                    case CatalogoEliminadoCodigos.ExtraccionNutriente:
+                        /*
+                         * Reactivar una extracción modifica el listado activo.
+                         * La misma visita conserva búsqueda y página, pero debe
+                         * reconstruir la página visible desde el servidor.
+                         */
+                        ExtraccionNutrienteListadoEstadoService
+                            .MarcarParaRecargar();
+                        break;
+
                     case CatalogoEliminadoCodigos.CategoriaPublicacion:
                         PublicacionListadoEstadoService.MarcarActualizacion();
                         break;

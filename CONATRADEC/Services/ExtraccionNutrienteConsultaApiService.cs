@@ -5,11 +5,14 @@ using System.Text.Json;
 namespace CONATRADEC.Services
 {
     /// <summary>
-    /// Servicio paginado para el listado administrativo.
-    /// El CRUD permanece en ExtraccionNutrienteApiService.
+    /// Consultas administrativas de Extracción de nutrientes.
+    /// Utiliza la API protegida para paginación y detalle fresco por ID.
     /// </summary>
     public sealed class ExtraccionNutrienteConsultaApiService
     {
+        private const string RutaBase =
+            "api/administracion/extraccion-nutrientes";
+
         private readonly HttpClient httpClient;
 
         private readonly JsonSerializerOptions jsonOptions =
@@ -23,10 +26,12 @@ namespace CONATRADEC.Services
         {
         }
 
-        public ExtraccionNutrienteConsultaApiService(HttpClient httpClient)
+        public ExtraccionNutrienteConsultaApiService(
+            HttpClient httpClient)
         {
             this.httpClient = httpClient
-                ?? throw new ArgumentNullException(nameof(httpClient));
+                ?? throw new ArgumentNullException(
+                    nameof(httpClient));
         }
 
         public async Task<ApiResult<ExtraccionNutrientePaginaResponse>> BuscarAsync(
@@ -39,17 +44,22 @@ namespace CONATRADEC.Services
             tamanoPagina = Math.Clamp(tamanoPagina, 5, 100);
 
             string ruta =
-                "api/configuracion/extraccion-nutrientes/buscar" +
+                RutaBase +
                 $"?pagina={pagina}" +
                 $"&tamanoPagina={tamanoPagina}";
 
             if (!string.IsNullOrWhiteSpace(buscar))
-                ruta += $"&buscar={Uri.EscapeDataString(buscar.Trim())}";
+            {
+                ruta +=
+                    $"&buscar={Uri.EscapeDataString(buscar.Trim())}";
+            }
 
             try
             {
                 using HttpResponseMessage response =
-                    await httpClient.GetAsync(ruta, cancellationToken);
+                    await httpClient.GetAsync(
+                        ruta,
+                        cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -95,6 +105,72 @@ namespace CONATRADEC.Services
             {
                 return ApiResult<ExtraccionNutrientePaginaResponse>.Fail(
                     "Ocurrió un error inesperado al cargar los parámetros.");
+            }
+        }
+
+        public async Task<ApiResult<ExtraccionNutrienteResponse>> GetByIdAsync(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            if (id <= 0)
+            {
+                return ApiResult<ExtraccionNutrienteResponse>.Fail(
+                    "El identificador del parámetro de extracción no es válido.");
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        $"{RutaBase}/{id}",
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResult<ExtraccionNutrienteResponse>.Fail(
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            "No fue posible cargar el parámetro de extracción.",
+                            cancellationToken),
+                        (int)response.StatusCode);
+                }
+
+                ExtraccionNutrienteResponse? data =
+                    await response.Content.ReadFromJsonAsync<
+                        ExtraccionNutrienteResponse>(
+                        jsonOptions,
+                        cancellationToken);
+
+                return data?.ParametroExtraccionNutrienteCafeId is > 0
+                    ? ApiResult<ExtraccionNutrienteResponse>.Ok(data)
+                    : ApiResult<ExtraccionNutrienteResponse>.Fail(
+                        "El servidor no devolvió un parámetro de extracción válido.");
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<ExtraccionNutrienteResponse>.Fail(
+                    "La consulta tardó demasiado. Intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<ExtraccionNutrienteResponse>.Fail(
+                    "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<ExtraccionNutrienteResponse>.Fail(
+                    "No fue posible comunicarse con el servidor.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<ExtraccionNutrienteResponse>.Fail(
+                    "El servidor respondió con un formato inesperado.");
+            }
+            catch
+            {
+                return ApiResult<ExtraccionNutrienteResponse>.Fail(
+                    "Ocurrió un error inesperado al cargar el parámetro.");
             }
         }
     }

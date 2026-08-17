@@ -209,7 +209,7 @@ namespace CONATRADEC.ViewModels
 
                 Task<ApiResult<ObservableCollection<ExtraccionNutrienteResponse>>>
                     extraccionesTask =
-                        apiService.GetAsync();
+                        apiService.GetAdministracionAsync();
 
                 await Task.WhenAll(
                     elementosTask,
@@ -454,6 +454,13 @@ namespace CONATRADEC.ViewModels
                     await MostrarErrorAsync(result.Message);
                     return;
                 }
+
+                /*
+                 * El listado de la misma visita debe aceptar nuevamente el
+                 * estado persistido por el servidor al regresar del formulario.
+                 */
+                ExtraccionNutrienteListadoEstadoService
+                    .MarcarParaRecargar();
 
                 await GoToAsyncParameters(
                     AppRoutes.ExtraccionNutrientes);
