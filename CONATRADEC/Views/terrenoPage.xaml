@@ -354,6 +354,37 @@
                                     FontSize="11.5"
                                     TextColor="{AppThemeBinding Light=#8B541E, Dark=#E6C28D}" />
                             </Border>
+                            <!--
+                                Estado vacío dentro del Header para evitar que EmptyView
+                                capture la interacción de búsqueda en WinUI.
+                            -->
+                            <Grid Padding="12,24"
+                                IsVisible="{Binding MostrarVacio}"
+                                InputTransparent="True">
+                                <Border
+                                    IsVisible="{Binding MostrarVacio}"
+                                    Style="{StaticResource ModernEmptyStateCard}">
+                                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                        <Border
+                                            Style="{StaticResource ModernIconTile}"
+                                            WidthRequest="54"
+                                            HeightRequest="54"
+                                            Padding="11">
+                                            <Image Source="iconland.png" Aspect="AspectFit" Opacity="0.62" />
+                                        </Border>
+                                        <Label
+                                            Text="No hay terrenos para mostrar"
+                                            Style="{StaticResource ModernSectionTitle}"
+                                            FontSize="17"
+                                            HorizontalTextAlignment="Center" />
+                                        <Label
+                                            Text="Cambie los filtros o actualice la lista."
+                                            Style="{StaticResource ModernPageSubtitle}"
+                                            HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+
                         </VerticalStackLayout>
                     </CollectionView.Header>
 
@@ -489,33 +520,6 @@
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
-
-                    <CollectionView.EmptyView>
-                        <Grid Padding="12,24">
-                            <Border
-                                IsVisible="{Binding MostrarVacio}"
-                                Style="{StaticResource ModernEmptyStateCard}">
-                                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                                    <Border
-                                        Style="{StaticResource ModernIconTile}"
-                                        WidthRequest="54"
-                                        HeightRequest="54"
-                                        Padding="11">
-                                        <Image Source="iconland.png" Aspect="AspectFit" Opacity="0.62" />
-                                    </Border>
-                                    <Label
-                                        Text="No hay terrenos para mostrar"
-                                        Style="{StaticResource ModernSectionTitle}"
-                                        FontSize="17"
-                                        HorizontalTextAlignment="Center" />
-                                    <Label
-                                        Text="Cambie los filtros o actualice la lista."
-                                        Style="{StaticResource ModernPageSubtitle}"
-                                        HorizontalTextAlignment="Center" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </Grid>
-                    </CollectionView.EmptyView>
 
                     <!--
                         Paginación explícita: la colección contiene únicamente

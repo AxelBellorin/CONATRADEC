@@ -119,6 +119,43 @@
                                         FontSize="13"
                                         TextColor="{StaticResource color_Negro}" />
                                 </Border>
+
+
+                                <!--
+                                    Estado vacío dentro del Header. En WinUI se evita
+                                    CollectionView.EmptyView porque puede capturar la
+                                    interacción cuando la búsqueda devuelve cero registros.
+                                -->
+                                <Grid
+                                    Padding="30"
+                                    IsVisible="{Binding MostrarVacio}"
+                                    InputTransparent="True">
+                                    <VerticalStackLayout
+                                        Spacing="8"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center">
+    
+                                        <Image
+                                            Source="iconcultivo.png"
+                                            WidthRequest="64"
+                                            HeightRequest="64"
+                                            Opacity="0.5" />
+    
+                                        <Label
+                                            Text="No se encontraron tipos de cultivo"
+                                            FontSize="18"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}"
+                                            HorizontalTextAlignment="Center" />
+    
+                                        <Label
+                                            Text="Pruebe con otro término o registre un nuevo cultivo."
+                                            FontSize="13"
+                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </Grid>
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -131,36 +168,7 @@
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
 
-                        <CollectionView.EmptyView>
-                            <Grid Padding="30">
-                                <VerticalStackLayout
-                                    IsVisible="{Binding MostrarVacio}"
-                                    Spacing="8"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center">
 
-                                    <Image
-                                        Source="iconcultivo.png"
-                                        WidthRequest="64"
-                                        HeightRequest="64"
-                                        Opacity="0.5" />
-
-                                    <Label
-                                        Text="No se encontraron tipos de cultivo"
-                                        FontSize="18"
-                                        FontFamily="MontserratBold"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource color_Negro}"
-                                        HorizontalTextAlignment="Center" />
-
-                                    <Label
-                                        Text="Pruebe con otro término o registre un nuevo cultivo."
-                                        FontSize="13"
-                                        TextColor="{StaticResource color_GrisOscuro}"
-                                        HorizontalTextAlignment="Center" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </CollectionView.EmptyView>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:TipoCultivoResponse">

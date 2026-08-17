@@ -99,6 +99,41 @@
                                         FontSize="12"
                                         TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                                 </Border>
+                                <!--
+                                    Estado vacío dentro del Header para evitar que EmptyView
+                                    capture la interacción de búsqueda en WinUI.
+                                -->
+                                <Grid Padding="12,24"
+                                    IsVisible="{Binding MostrarVacio}"
+                                    InputTransparent="True">
+                                    <Border
+                                        IsVisible="{Binding MostrarVacio}"
+                                        InputTransparent="True"
+                                        Style="{StaticResource ModernEmptyStateCard}"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Start"
+                                        MaximumWidthRequest="560">
+                                        <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                            <Border
+                                                Style="{StaticResource ModernIconTile}"
+                                                WidthRequest="54"
+                                                HeightRequest="54"
+                                                Padding="11">
+                                                <Image Source="iconrol.png" Aspect="AspectFit" Opacity="0.62" />
+                                            </Border>
+                                            <Label
+                                                Text="No se encontraron roles"
+                                                Style="{StaticResource ModernSectionTitle}"
+                                                FontSize="17"
+                                                HorizontalTextAlignment="Center" />
+                                            <Label
+                                                Text="Cambie la búsqueda o registre un nuevo rol."
+                                                Style="{StaticResource ModernPageSubtitle}"
+                                                HorizontalTextAlignment="Center" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </Grid>
+
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -110,37 +145,6 @@
                                 HorizontalItemSpacing="12"
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
-
-                        <CollectionView.EmptyView>
-                            <Grid Padding="12,24">
-                                <Border
-                                    IsVisible="{Binding MostrarVacio}"
-                                    InputTransparent="True"
-                                    Style="{StaticResource ModernEmptyStateCard}"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Start"
-                                    MaximumWidthRequest="560">
-                                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                                        <Border
-                                            Style="{StaticResource ModernIconTile}"
-                                            WidthRequest="54"
-                                            HeightRequest="54"
-                                            Padding="11">
-                                            <Image Source="iconrol.png" Aspect="AspectFit" Opacity="0.62" />
-                                        </Border>
-                                        <Label
-                                            Text="No se encontraron roles"
-                                            Style="{StaticResource ModernSectionTitle}"
-                                            FontSize="17"
-                                            HorizontalTextAlignment="Center" />
-                                        <Label
-                                            Text="Cambie la búsqueda o registre un nuevo rol."
-                                            Style="{StaticResource ModernPageSubtitle}"
-                                            HorizontalTextAlignment="Center" />
-                                    </VerticalStackLayout>
-                                </Border>
-                            </Grid>
-                        </CollectionView.EmptyView>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:RolResponse">

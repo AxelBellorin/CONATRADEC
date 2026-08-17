@@ -118,6 +118,53 @@
                                         FontSize="13"
                                         TextColor="{StaticResource color_Negro}" />
                                 </Border>
+                                <!--
+                                    Estado vacío dentro del Header para evitar que EmptyView
+                                    capture la interacción de búsqueda en WinUI.
+                                -->
+                                <Grid Padding="30"
+                                    IsVisible="{Binding MostrarVacio}"
+                                    InputTransparent="True">
+
+                                    <VerticalStackLayout
+                                        IsVisible="{Binding MostrarVacio}"
+                                        Spacing="8"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center">
+
+                                        <Border
+                                            WidthRequest="64"
+                                            HeightRequest="64"
+                                            BackgroundColor="#EEF5F2"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 18">
+
+                                            <Label
+                                                Text="AS"
+                                                FontSize="22"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                TextColor="{StaticResource color_Verde}"
+                                                HorizontalOptions="Center"
+                                                VerticalOptions="Center" />
+                                        </Border>
+
+                                        <Label
+                                            Text="No se encontraron tipos de análisis"
+                                            FontSize="18"
+                                            FontFamily="MontserratBold"
+                                            FontAttributes="Bold"
+                                            TextColor="{StaticResource color_Negro}"
+                                            HorizontalTextAlignment="Center" />
+
+                                        <Label
+                                            Text="Pruebe con otro término o registre un nuevo tipo."
+                                            FontSize="13"
+                                            TextColor="{StaticResource color_GrisOscuro}"
+                                            HorizontalTextAlignment="Center" />
+                                    </VerticalStackLayout>
+                                </Grid>
+
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
@@ -129,49 +176,6 @@
                                 HorizontalItemSpacing="12"
                                 VerticalItemSpacing="12" />
                         </CollectionView.ItemsLayout>
-
-                        <CollectionView.EmptyView>
-                            <Grid Padding="30">
-
-                                <VerticalStackLayout
-                                    IsVisible="{Binding MostrarVacio}"
-                                    Spacing="8"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center">
-
-                                    <Border
-                                        WidthRequest="64"
-                                        HeightRequest="64"
-                                        BackgroundColor="#EEF5F2"
-                                        StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 18">
-
-                                        <Label
-                                            Text="AS"
-                                            FontSize="22"
-                                            FontFamily="MontserratBold"
-                                            FontAttributes="Bold"
-                                            TextColor="{StaticResource color_Verde}"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
-                                    </Border>
-
-                                    <Label
-                                        Text="No se encontraron tipos de análisis"
-                                        FontSize="18"
-                                        FontFamily="MontserratBold"
-                                        FontAttributes="Bold"
-                                        TextColor="{StaticResource color_Negro}"
-                                        HorizontalTextAlignment="Center" />
-
-                                    <Label
-                                        Text="Pruebe con otro término o registre un nuevo tipo."
-                                        FontSize="13"
-                                        TextColor="{StaticResource color_GrisOscuro}"
-                                        HorizontalTextAlignment="Center" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </CollectionView.EmptyView>
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:TipoAnalisisSueloResponse">
