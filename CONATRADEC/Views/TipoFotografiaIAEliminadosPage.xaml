@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.TipoFotografiaIAEliminadosPage"
+    x:Name="PageRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:CONATRADEC.Controls"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F7F8F7">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
+                <CollectionView.Header>
+                    <VerticalStackLayout Spacing="14" Padding="0,0,0,14">
+                        <controls:ResponsiveCatalogHeader
+                            Title="Tipos de fotografía eliminados"
+                            Subtitle="Registros inactivos conservados históricamente. Recuperar vuelve a activarlos sin crear un ID nuevo."
+                            BackText="← Tipos activos"
+                            BackCommand="{Binding RegresarCommand}"
+                            IsPrimaryVisible="False" />
+
+                        <Border
+                            IsVisible="{Binding SinPermisoLectura}"
+                            Padding="16"
+                            BackgroundColor="#FFF9E8"
+                            Stroke="#E2B93B"
+                            StrokeShape="RoundRectangle 12">
+                            <Label
+                                Text="No tiene permiso para consultar los tipos de fotografía eliminados."
+                                HorizontalTextAlignment="Center"
+                                TextColor="#6B5710" />
+                        </Border>
+
+                        <Border
+                            IsVisible="{Binding CanView}"
+                            Padding="12"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 13">
+                            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="9">
+                                <SearchBar
+                                    Grid.Row="0"
+                                    Placeholder="Buscar eliminados"
+                                    Text="{Binding TextoBusqueda}"
+                                    SearchCommand="{Binding BuscarCommand}"
+                                    BackgroundColor="Transparent" />
+
+                                <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="7">
+                                    <Button
+                                        Grid.Column="0"
+                                        Text="Buscar"
+                                        Command="{Binding BuscarCommand}"
+                                        MinimumWidthRequest="0"
+                                        HeightRequest="44"
+                                        FontSize="11"
+                                        Padding="6,7"
+                                        BackgroundColor="#3B655B"
+                                        TextColor="White" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Limpiar"
+                                        Command="{Binding LimpiarCommand}"
+                                        MinimumWidthRequest="0"
+                                        HeightRequest="44"
+                                        FontSize="11"
+                                        Padding="6,7"
+                                        BackgroundColor="#EEF2F0"
+                                        TextColor="#263A35" />
+                                    <Button
+                                        Grid.Column="2"
+                                        Text="Actualizar"
+                                        Command="{Binding ActualizarCommand}"
+                                        MinimumWidthRequest="0"
+                                        HeightRequest="44"
+                                        FontSize="11"
+                                        Padding="6,7"
+                                        BackgroundColor="#E3EFEA"
+                                        TextColor="#3B655B" />
+                                </Grid>
+
+                                <Label
+                                    Grid.Row="2"
+                                    Text="{Binding BusquedaAplicadaTexto}"
+                                    FontSize="12"
+                                    TextColor="#7A8581" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            IsVisible="{Binding SinRegistros}"
+                            InputTransparent="True"
+                            Padding="22"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 14">
+                            <Label
+                                Text="No se encontraron tipos de fotografía eliminados."
+                                HorizontalTextAlignment="Center"
+                                TextColor="#7A8581" />
+                        </Border>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:TipoFotografiaIAItem">
+                        <Border
+                            Padding="16"
+                            BackgroundColor="White"
+                            Stroke="#E8C7C7"
+                            StrokeShape="RoundRectangle 14">
+                            <VerticalStackLayout Spacing="7">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <Label
+                                        Text="{Binding NombreMostrar}"
+                                        FontSize="18"
+                                        FontAttributes="Bold"
+                                        TextColor="#263A35" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="Inactivo"
+                                        FontAttributes="Bold"
+                                        TextColor="#B42318" />
+                                </Grid>
+                                <Label Text="{Binding CodigoTexto}" FontSize="12" TextColor="#7A8581" />
+                                <Label Text="{Binding Descripcion}" TextColor="#5E6B67" LineBreakMode="WordWrap" />
+                                <Button
+                                    Text="Recuperar"
+                                    Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.RecuperarCommand}"
+                                    CommandParameter="{Binding .}"
+                                    HeightRequest="44"
+                                    HorizontalOptions="Fill"
+                                    BackgroundColor="#E3EFEA"
+                                    TextColor="#3B655B" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Grid
+                IsVisible="{Binding IsBusy}"
+                InputTransparent="False"
+                BackgroundColor="#80FFFFFF">
+                <Border
+                    Padding="20"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#D9E3DF"
+                    StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" Color="#3B655B" />
+                        <Label Text="{Binding MensajeEstado}" TextColor="#263A35" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+        </Grid>
+    </ContentView>
+</ContentPage>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
-    x:Class="CONATRADEC.Views.MotivoDevolucionTecnicoPage"
+    x:Class="CONATRADEC.Views.MotivoDevolucionTecnicoEliminadosPage"
     x:Name="PaginaRaiz"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -11,26 +11,21 @@
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid Padding="{OnIdiom Phone='12,12,12,22', Tablet='18,16,18,26', Desktop='24,20,24,30'}">
-            <CollectionView
-                ItemsSource="{Binding Items}"
-                SelectionMode="None">
-
+            <CollectionView ItemsSource="{Binding Items}" SelectionMode="None">
                 <CollectionView.Header>
                     <VerticalStackLayout Spacing="14" Padding="0,0,0,14">
                         <controls:ResponsiveCatalogHeader
-                            Title="Motivos de devolución al técnico"
-                            Subtitle="Administre únicamente los motivos activos. Los registros desactivados se conservan en Eliminados para mantener la trazabilidad histórica."
-                            BackText="← Configuración"
+                            Title="Motivos de devolución eliminados"
+                            Subtitle="Registros inactivos conservados históricamente. Recuperar vuelve a activarlos sin crear un identificador nuevo."
+                            BackText="← Motivos activos"
                             BackCommand="{Binding RegresarCommand}"
-                            PrimaryText="Nuevo motivo"
-                            PrimaryCommand="{Binding NuevoCommand}"
-                            IsPrimaryVisible="{Binding CanAdd}" />
+                            IsPrimaryVisible="False" />
 
                         <Border
                             IsVisible="{Binding SinPermisoLectura}"
                             Style="{StaticResource ModernWarningBanner}">
                             <Label
-                                Text="No tiene permiso para consultar este catálogo."
+                                Text="No tiene permiso para consultar los motivos eliminados."
                                 HorizontalTextAlignment="Center"
                                 FontFamily="MontserratMedium"
                                 TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
@@ -43,7 +38,7 @@
                                 <Border Grid.Row="0" Style="{StaticResource ModernInputBorder}">
                                     <Entry
                                         Text="{Binding TextoBusqueda}"
-                                        Placeholder="Código, nombre, descripción o instrucción"
+                                        Placeholder="Buscar eliminados"
                                         ReturnType="Search"
                                         ReturnCommand="{Binding BuscarCommand}"
                                         ClearButtonVisibility="WhileEditing"
@@ -51,9 +46,10 @@
                                 </Border>
 
                                 <Grid
-                                    x:Name="AccionesBusquedaGrid"
+                                    x:Name="AccionesEliminadosGrid"
                                     Grid.Row="1"
-                                    ColumnDefinitions="*,*,*,*"
+                                    ColumnDefinitions="*,*,*"
+                                    RowDefinitions="Auto"
                                     ColumnSpacing="7"
                                     RowSpacing="7">
                                     <Button
@@ -63,7 +59,8 @@
                                         Command="{Binding BuscarCommand}"
                                         Style="{StaticResource ModernPrimaryButton}"
                                         MinimumWidthRequest="0"
-                                        HeightRequest="44" />
+                                        HeightRequest="44"
+                                        Padding="5,7" />
                                     <Button
                                         x:Name="LimpiarButton"
                                         Grid.Column="1"
@@ -71,7 +68,8 @@
                                         Command="{Binding LimpiarCommand}"
                                         Style="{StaticResource ModernNeutralButton}"
                                         MinimumWidthRequest="0"
-                                        HeightRequest="44" />
+                                        HeightRequest="44"
+                                        Padding="5,7" />
                                     <Button
                                         x:Name="ActualizarButton"
                                         Grid.Column="2"
@@ -79,15 +77,8 @@
                                         Command="{Binding ActualizarCommand}"
                                         Style="{StaticResource ModernSecondaryButton}"
                                         MinimumWidthRequest="0"
-                                        HeightRequest="44" />
-                                    <Button
-                                        x:Name="EliminadosButton"
-                                        Grid.Column="3"
-                                        Text="Eliminados"
-                                        Command="{Binding EliminadosCommand}"
-                                        Style="{StaticResource ModernDangerSoftButton}"
-                                        MinimumWidthRequest="0"
-                                        HeightRequest="44" />
+                                        HeightRequest="44"
+                                        Padding="5,7" />
                                 </Grid>
 
                                 <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -101,7 +92,7 @@
                                         Text="{Binding Resumen}"
                                         FontFamily="MontserratBold"
                                         FontSize="11"
-                                        TextColor="{StaticResource color_Verde}"
+                                        TextColor="{StaticResource color_Cafe}"
                                         VerticalOptions="Center" />
                                 </Grid>
                             </Grid>
@@ -112,47 +103,16 @@
                             InputTransparent="True"
                             Style="{StaticResource ModernEmptyStateCard}">
                             <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                                <Border
-                                    Style="{StaticResource ModernIconTile}"
-                                    WidthRequest="56"
-                                    HeightRequest="56">
-                                    <Label
-                                        Text="↩"
-                                        FontSize="25"
-                                        TextColor="{StaticResource color_Verde}"
-                                        HorizontalOptions="Center"
-                                        VerticalOptions="Center" />
-                                </Border>
                                 <Label
-                                    Text="No se encontraron motivos activos"
+                                    Text="No se encontraron motivos eliminados"
                                     Style="{StaticResource ModernSectionTitle}"
                                     FontSize="17"
                                     HorizontalTextAlignment="Center" />
                                 <Label
-                                    Text="Cambie la búsqueda o use Limpiar para volver a consultar todo el catálogo activo."
+                                    Text="Use Limpiar para consultar todos los registros inactivos."
                                     Style="{StaticResource ModernPageSubtitle}"
                                     HorizontalTextAlignment="Center" />
                             </VerticalStackLayout>
-                        </Border>
-
-                        <Border
-                            IsVisible="{Binding TieneMensajeEstado}"
-                            Style="{StaticResource ModernWarningBanner}">
-                            <HorizontalStackLayout Spacing="10">
-                                <ActivityIndicator
-                                    IsRunning="{Binding IsBusy}"
-                                    IsVisible="{Binding IsBusy}"
-                                    Color="{StaticResource color_Cafe}"
-                                    WidthRequest="20"
-                                    HeightRequest="20" />
-                                <Label
-                                    Text="{Binding MensajeEstado}"
-                                    VerticalTextAlignment="Center"
-                                    FontFamily="MontserratMedium"
-                                    FontSize="12"
-                                    TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
-                                    LineBreakMode="WordWrap" />
-                            </HorizontalStackLayout>
                         </Border>
                     </VerticalStackLayout>
                 </CollectionView.Header>
@@ -164,7 +124,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:MotivoDevolucionTecnicoItem">
                         <Border Style="{StaticResource ModernCatalogCard}">
-                            <VerticalStackLayout Spacing="9">
+                            <VerticalStackLayout Spacing="8">
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                     <VerticalStackLayout Spacing="2">
                                         <Label
@@ -174,33 +134,25 @@
                                             FontSize="17"
                                             TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                             LineBreakMode="WordWrap" />
-                                        <HorizontalStackLayout Spacing="12">
-                                            <Label
-                                                Text="{Binding CodigoTexto}"
-                                                FontFamily="MontserratBold"
-                                                FontSize="10.5"
-                                                TextColor="{StaticResource color_Verde}" />
-                                            <Label
-                                                Text="{Binding OrdenTexto}"
-                                                FontFamily="MontserratMedium"
-                                                FontSize="10.5"
-                                                TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
-                                        </HorizontalStackLayout>
+                                        <Label
+                                            Text="{Binding CodigoTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="10.5"
+                                            TextColor="{StaticResource color_Cafe}" />
                                     </VerticalStackLayout>
-
                                     <Border
                                         Grid.Column="1"
                                         Padding="9,4"
-                                        BackgroundColor="{AppThemeBinding Light={StaticResource BrandGreenSoft}, Dark={StaticResource BrandGreenSoftDark}}"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource BrandCoffeeSoft}, Dark={StaticResource BrandCoffeeSoftDark}}"
                                         Stroke="Transparent"
                                         StrokeThickness="0"
                                         StrokeShape="RoundRectangle 9"
                                         VerticalOptions="Start">
                                         <Label
-                                            Text="Activo"
+                                            Text="Inactivo"
                                             FontFamily="MontserratBold"
                                             FontSize="10"
-                                            TextColor="{StaticResource color_Verde}" />
+                                            TextColor="{StaticResource color_Cafe}" />
                                     </Border>
                                 </Grid>
 
@@ -214,46 +166,26 @@
                                 <Border Style="{StaticResource ModernSoftPanel}">
                                     <VerticalStackLayout Spacing="4">
                                         <Label
-                                            Text="Instrucción sugerida"
-                                            Style="{StaticResource ModernFieldLabel}"
-                                            TextColor="{StaticResource color_Verde}" />
-                                        <Label
                                             Text="{Binding InstruccionSugerida}"
                                             Style="{StaticResource ModernCaption}"
-                                            FontSize="11.5"
                                             LineBreakMode="WordWrap" />
                                         <Label
                                             Text="{Binding TipoCorreccionTexto}"
                                             FontFamily="MontserratBold"
-                                            FontAttributes="Bold"
                                             FontSize="11"
                                             TextColor="{StaticResource color_Cafe}"
                                             LineBreakMode="WordWrap" />
                                     </VerticalStackLayout>
                                 </Border>
 
-                                <FlexLayout
-                                    Direction="Row"
-                                    Wrap="Wrap"
-                                    JustifyContent="End"
-                                    AlignItems="Center">
-                                    <Button
-                                        Text="Editar"
-                                        Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.EditarCommand}"
-                                        CommandParameter="{Binding .}"
-                                        IsVisible="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.CanEdit}"
-                                        Style="{StaticResource ModernUpdateButton}"
-                                        WidthRequest="120"
-                                        Margin="4" />
-                                    <Button
-                                        Text="Desactivar"
-                                        Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.EliminarCommand}"
-                                        CommandParameter="{Binding .}"
-                                        IsVisible="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.CanDelete}"
-                                        Style="{StaticResource ModernDangerSoftButton}"
-                                        WidthRequest="120"
-                                        Margin="4" />
-                                </FlexLayout>
+                                <Button
+                                    Text="Recuperar"
+                                    Command="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.RecuperarCommand}"
+                                    CommandParameter="{Binding .}"
+                                    IsVisible="{Binding Source={x:Reference PaginaRaiz}, Path=BindingContext.CanEdit}"
+                                    Style="{StaticResource ModernSecondaryButton}"
+                                    HeightRequest="44"
+                                    HorizontalOptions="Fill" />
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>

@@ -6,9 +6,8 @@ namespace CONATRADEC.Services
 {
     /// <summary>
     /// En línea consulta páginas en la API. Sin conexión crea una fotografía
-    /// local filtrada al cargar la primera página y la reutiliza al pedir las
-    /// siguientes, evitando releer y deserializar todas las bases SQLite en
-    /// cada operación de "cargar más".
+    /// local filtrada y la reutiliza al paginar para evitar releer SQLite en
+    /// cada movimiento de página.
     /// </summary>
     public sealed class AnalisisListadoOptimizadoApiService
     {
@@ -50,11 +49,6 @@ namespace CONATRADEC.Services
         {
             if (ModoSesionService.EsOffline)
             {
-                /*
-                 * El cliente no puede ampliar el alcance offline por su cuenta.
-                 * Sin el permiso explícito de lectura global, cualquier petición
-                 * queda forzada a los análisis propios.
-                 */
                 bool puedeVerTodos =
                     PermissionService.Instance.HasRead(
                         InterfazCodigos.AnalisisSueloTodos);
@@ -156,31 +150,73 @@ namespace CONATRADEC.Services
 
                 AnalisisListadoPaginadoResponse data = envelope.Data;
 
+                /*
+                 * Si otro usuario eliminó registros y la página solicitada dejó
+                 * de existir, se consulta la última página válida. Es un caso
+                 * excepcional de normalización y evita dejar la interfaz en una
+                 * página vacía fuera del rango real del servidor.
+                 */
+                if (data.TotalPaginas > 0 &&
+                    data.Pagina > data.TotalPaginas &&
+                    Math.Max(1, pagina) != data.TotalPaginas)
+                {
+                    return await ListarAsync(
+                        soloPropios,
+                        usuarioId,
+                        buscar,
+                        fechaDesde,
+                        fechaHasta,
+                        data.TotalPaginas,
+                        tamanoPagina,
+                        cancellationToken);
+                }
+
                 GuardarResumenesSilenciosamente(data.Items ?? new());
 
-                if (Math.Max(1, pagina) == 1)
-                {
-                    List<AnalisisGuardadoResumen> pendientes =
-                        await AnalisisOfflineDatabaseService.Instance
-                            .ListarResumenPendienteAsync();
+                /*
+                 * Los pendientes locales forman parte del total visible incluso
+                 * cuando el usuario navega por páginas posteriores. Solo se
+                 * insertan delante de la primera página para no duplicarlos.
+                 * TotalPaginas/TieneMas siguen siendo los valores del servidor:
+                 * así nunca se inventa una página HTTP que la API no posee.
+                 */
+                List<AnalisisGuardadoResumen> pendientes =
+                    await AnalisisOfflineDatabaseService.Instance
+                        .ListarResumenPendienteAsync();
 
-                    if (pendientes.Count > 0)
+                bool puedeVerTodos =
+                    PermissionService.Instance.HasRead(
+                        InterfazCodigos.AnalisisSueloTodos);
+
+                bool soloPropiosPendientes =
+                    soloPropios || !puedeVerTodos;
+
+                int? usuarioPendientes =
+                    puedeVerTodos && !soloPropiosPendientes
+                        ? usuarioId
+                        : null;
+
+                List<AnalisisGuardadoResumen> pendientesFiltrados =
+                    FiltrarResumenesLocales(
+                        pendientes,
+                        soloPropiosPendientes,
+                        usuarioPendientes,
+                        buscar,
+                        fechaDesde,
+                        fechaHasta);
+
+                if (pendientesFiltrados.Count > 0)
+                {
+                    data.TotalRegistros += pendientesFiltrados.Count;
+
+                    if (Math.Max(1, pagina) == 1)
                     {
-                        data.Items = pendientes
+                        data.Items = pendientesFiltrados
                             .Concat(data.Items)
                             .GroupBy(item =>
                                 item.AnalisisSueloCalculoId)
                             .Select(group => group.First())
                             .ToList();
-
-                        data.TotalRegistros += pendientes.Count;
-                        data.TotalPaginas = Math.Max(
-                            1,
-                            (int)Math.Ceiling(
-                                data.TotalRegistros /
-                                (double)Math.Max(1, data.TamanoPagina)));
-                        data.TieneMas =
-                            data.Pagina < data.TotalPaginas;
                     }
                 }
 
@@ -440,10 +476,6 @@ namespace CONATRADEC.Services
                 DateTime? fechaDesde,
                 DateTime? fechaHasta)
         {
-            /*
-             * Las tres lecturas no dependen una de otra. Ejecutarlas en
-             * paralelo reduce la espera inicial de la primera página offline.
-             */
             Task<List<AnalisisGuardadoResumen>> historialTask =
                 AnalisisHistorialLocalService.Instance.ListarAsync();
 
@@ -480,12 +512,32 @@ namespace CONATRADEC.Services
                     !idsPendientes.Contains(
                         item.AnalisisSueloCalculoId));
 
-            IEnumerable<AnalisisGuardadoResumen> query =
+            IEnumerable<AnalisisGuardadoResumen> combinados =
                 pendientes
                     .Concat(historial)
                     .Concat(sincronizadosLocales)
                     .GroupBy(ClaveLogica)
                     .Select(group => group.First());
+
+            return FiltrarResumenesLocales(
+                combinados,
+                soloPropios,
+                usuarioId,
+                buscar,
+                fechaDesde,
+                fechaHasta);
+        }
+
+        private static List<AnalisisGuardadoResumen>
+            FiltrarResumenesLocales(
+                IEnumerable<AnalisisGuardadoResumen> items,
+                bool soloPropios,
+                int? usuarioId,
+                string? buscar,
+                DateTime? fechaDesde,
+                DateTime? fechaHasta)
+        {
+            IEnumerable<AnalisisGuardadoResumen> query = items;
 
             int usuarioActual = int.TryParse(
                 Preferences.Get(
@@ -534,6 +586,8 @@ namespace CONATRADEC.Services
 
             return query
                 .OrderByDescending(ObtenerFecha)
+                .ThenByDescending(item =>
+                    item.AnalisisSueloCalculoId)
                 .ToList();
         }
 
@@ -572,12 +626,16 @@ namespace CONATRADEC.Services
             int pagina,
             int tamanoPagina)
         {
-            int page = Math.Max(1, pagina);
             int pageSize = Math.Clamp(tamanoPagina, 4, 30);
             int totalPages = Math.Max(
                 1,
                 (int)Math.Ceiling(
                     items.Count / (double)pageSize));
+
+            int page = Math.Clamp(
+                Math.Max(1, pagina),
+                1,
+                totalPages);
 
             bool puedeVerTodos =
                 PermissionService.Instance.HasRead(
@@ -590,10 +648,6 @@ namespace CONATRADEC.Services
                 TotalRegistros = items.Count,
                 TotalPaginas = totalPages,
                 TieneMas = page < totalPages,
-                /*
-                 * La propiedad se conserva con el nombre histórico para no
-                 * romper bindings. Su significado es permiso de alcance global.
-                 */
                 EsAdministrador = puedeVerTodos,
                 Items = items
                     .Skip((page - 1) * pageSize)

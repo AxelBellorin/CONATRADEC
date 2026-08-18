@@ -43,7 +43,8 @@
                             <Label
                                 Text="El código queda asociado a fotografías históricas y no puede cambiarse después de crear el registro."
                                 FontSize="12"
-                                TextColor="#7A8581" />
+                                TextColor="#7A8581"
+                                LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="5">
@@ -85,9 +86,10 @@
                                 AutoSize="TextChanges"
                                 Placeholder="Indique qué síntomas, estructuras o daños debe observar con mayor atención." />
                             <Label
-                                Text="Esta instrucción se incorpora al prompt de cada fotografía seleccionada con este tipo."
+                                Text="Esta instrucción se incorpora al contexto del análisis para las fotografías seleccionadas con este tipo."
                                 FontSize="12"
-                                TextColor="#3B655B" />
+                                TextColor="#3B655B"
+                                LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="5">
@@ -111,6 +113,7 @@
                                 Grid.Column="0"
                                 Text="Cancelar"
                                 Command="{Binding CancelarCommand}"
+                                MinimumWidthRequest="0"
                                 HeightRequest="48"
                                 BackgroundColor="#EEF2F0"
                                 TextColor="#263A35" />
@@ -119,6 +122,7 @@
                                 Text="Guardar"
                                 Command="{Binding GuardarCommand}"
                                 IsVisible="{Binding MostrarGuardar}"
+                                MinimumWidthRequest="0"
                                 HeightRequest="48"
                                 BackgroundColor="#3B655B"
                                 TextColor="White" />
@@ -126,6 +130,32 @@
                     </VerticalStackLayout>
                 </Border>
             </ScrollView>
+
+            <Grid
+                Grid.RowSpan="2"
+                IsVisible="{Binding IsBusy}"
+                InputTransparent="False"
+                BackgroundColor="#80FFFFFF">
+                <Border
+                    Padding="20"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#D9E3DF"
+                    StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            WidthRequest="34"
+                            HeightRequest="34"
+                            Color="#3B655B" />
+                        <Label
+                            Text="{Binding MensajeEstado}"
+                            HorizontalTextAlignment="Center"
+                            TextColor="#263A35" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>

@@ -2,6 +2,7 @@ using CONATRADEC.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -29,6 +30,9 @@ namespace CONATRADEC.Services
 
         private const string EndpointListado =
             "api/guardar-todo";
+
+        private const string CodigoConflictoEdicion =
+            "ANALYSIS_EDIT_CONFLICT";
 
         private readonly HttpClient httpClient;
 
@@ -445,25 +449,26 @@ namespace CONATRADEC.Services
                             $"No fue posible {accion} el análisis. " +
                             $"Código HTTP {(int)response.StatusCode}.");
 
-                    if (resultado != null)
+                    GuardarTodoResponse respuestaError =
+                        resultado ??
+                        new GuardarTodoResponse();
+
+                    respuestaError.Success = false;
+                    respuestaError.StatusCode =
+                        (int)response.StatusCode;
+
+                    if (string.IsNullOrWhiteSpace(
+                            respuestaError.Message))
                     {
-                        resultado.Success = false;
-
-                        if (string.IsNullOrWhiteSpace(
-                                resultado.Message))
-                        {
-                            resultado.Message =
-                                mensajeError;
-                        }
-
-                        return resultado;
+                        respuestaError.Message = mensajeError;
                     }
 
-                    return new GuardarTodoResponse
-                    {
-                        Success = false,
-                        Message = mensajeError
-                    };
+                    await IntentarResolverConflictoEdicionAsync(
+                        method,
+                        endpoint,
+                        respuestaError);
+
+                    return respuestaError;
                 }
 
                 GuardarTodoResponse respuestaFinal =
@@ -476,6 +481,9 @@ namespace CONATRADEC.Services
                             accion +
                             "."
                     };
+
+                respuestaFinal.StatusCode =
+                    (int)response.StatusCode;
 
                 if (respuestaFinal.Success)
                 {
@@ -515,6 +523,92 @@ namespace CONATRADEC.Services
                         ex.Message
                 };
             }
+        }
+
+        /// <summary>
+        /// El backend rechaza una edición cuando la versión vista por el
+        /// usuario ya no es la actual. En ese caso se vuelve a preparar el
+        /// análisis desde la API y se abre el formulario con datos frescos.
+        /// Nunca se transforma el conflicto en un guardado exitoso.
+        /// </summary>
+        private static async Task IntentarResolverConflictoEdicionAsync(
+            HttpMethod method,
+            string endpoint,
+            GuardarTodoResponse respuesta)
+        {
+            if (method != HttpMethod.Put ||
+                respuesta.StatusCode !=
+                    (int)HttpStatusCode.Conflict ||
+                !string.Equals(
+                    respuesta.Code,
+                    CodigoConflictoEdicion,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            int id = ObtenerUltimoEntero(endpoint);
+            if (id <= 0)
+                return;
+
+            try
+            {
+                AnalisisGuardadoResumen? resumen =
+                    AnalisisEdicionService.Instance
+                        .ContextoActual?
+                        .Resumen;
+
+                (bool success, string message) =
+                    await AnalisisEdicionService.Instance
+                        .PrepararAsync(id, resumen);
+
+                if (!success)
+                {
+                    respuesta.Message =
+                        (respuesta.Message + " " +
+                         "Además, no fue posible recargar los datos actuales: " +
+                         message).Trim();
+                    return;
+                }
+
+                await CalculoAnalisisTemporalService.Instance
+                    .LimpiarTodoAsync();
+
+                SeleccionElementosComplementariosService
+                    .Limpiar();
+
+                respuesta.Message =
+                    "El análisis fue modificado por otra operación después de que usted lo abrió. " +
+                    "La actualización fue rechazada para proteger la información y ya se cargaron los datos actuales del servidor.";
+
+                var navegacion = new GlobalService();
+                await navegacion.GoToAsyncParameters(
+                    "//NuevoAnalisisFormPage");
+            }
+            catch (Exception ex)
+            {
+                respuesta.Message =
+                    (respuesta.Message + " " +
+                     "No fue posible abrir automáticamente la versión actual: " +
+                     ex.Message).Trim();
+            }
+        }
+
+        private static int ObtenerUltimoEntero(string valor)
+        {
+            string ultimo =
+                (valor ?? string.Empty)
+                    .Split(
+                        '/',
+                        StringSplitOptions.RemoveEmptyEntries)
+                    .LastOrDefault() ??
+                string.Empty;
+
+            return int.TryParse(
+                    ultimo,
+                    out int resultado)
+                ? resultado
+                : 0;
         }
 
         private static void NormalizarAntesDeEnviar(
@@ -669,11 +763,6 @@ namespace CONATRADEC.Services
             if (resultado.MezclaTotalQq <= 0 &&
                 resultado.TotalLibras > 0)
             {
-                /*
-                 * Un quintal equivale a 100 libras.
-                 * Se usa únicamente como recuperación cuando la API de
-                 * cálculo entregó los detalles pero dejó la cabecera en 0.
-                 */
                 resultado.MezclaTotalQq =
                     resultado.TotalLibras / 100m;
             }
@@ -765,7 +854,7 @@ namespace CONATRADEC.Services
                                 .EnumerateArray()
                                 .Where(x =>
                                     x.ValueKind ==
-                                    JsonValueKind.String)
+                                        JsonValueKind.String)
                                 .Select(x =>
                                     x.GetString())
                                 .FirstOrDefault(x =>

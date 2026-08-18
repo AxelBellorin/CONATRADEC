@@ -10,6 +10,9 @@ namespace CONATRADEC.Models
         [JsonPropertyName("message")]
         public string Message { get; set; } = string.Empty;
 
+        [JsonPropertyName("code")]
+        public string? Code { get; set; }
+
         [JsonPropertyName("data")]
         public GuardarTodoResponseData? Data { get; set; }
 
@@ -18,6 +21,22 @@ namespace CONATRADEC.Models
 
         [JsonPropertyName("inner")]
         public string? Inner { get; set; }
+
+        [JsonPropertyName("versionActual")]
+        public int? VersionActual { get; set; }
+
+        [JsonPropertyName("etagActual")]
+        public string? ETagActual { get; set; }
+
+        [JsonPropertyName("fechaUltimaModificacionUtc")]
+        public DateTime? FechaUltimaModificacionUtc { get; set; }
+
+        /// <summary>
+        /// Código HTTP recibido. Es información local del cliente y no forma
+        /// parte del contrato JSON que se envía al servidor.
+        /// </summary>
+        [JsonIgnore]
+        public int? StatusCode { get; set; }
     }
 
     public sealed class GuardarTodoResponseData

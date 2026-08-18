@@ -25,8 +25,22 @@ namespace CONATRADEC.Views
                 _ => Guid.Empty
             };
 
+            viewModel.AplicarId(bitacoraId);
+
             if (bitacoraId != Guid.Empty)
-                _ = viewModel.CargarAsync(bitacoraId);
+                _ = viewModel.InicializarAsync();
+        }
+
+        protected override async void OnAppearing()
+        {
+            base.OnAppearing();
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+            base.OnDisappearing();
         }
     }
 }

@@ -1,11 +1,11 @@
 using CONATRADEC.Models;
-using System.Net;
 using System.Net.Http.Json;
 
 namespace CONATRADEC.Services
 {
     public sealed class BitacoraApiService
     {
+        private const string RutaBase = "api/bitacora/v2";
         private readonly HttpClient httpClient;
 
         public BitacoraApiService() : this(ApiClientService.Client)
@@ -28,6 +28,7 @@ namespace CONATRADEC.Services
             string? buscar,
             int pagina,
             int tamanoPagina,
+            DateTime? corteConsultaUtc = null,
             CancellationToken cancellationToken = default)
         {
             var parametros = new List<string>
@@ -42,10 +43,10 @@ namespace CONATRADEC.Services
                 parametros.Add($"usuarioId={usuarioId.Value}");
 
             if (!string.IsNullOrWhiteSpace(accion))
-                parametros.Add($"accion={Uri.EscapeDataString(accion)}");
+                parametros.Add($"accion={Uri.EscapeDataString(accion.Trim())}");
 
             if (!string.IsNullOrWhiteSpace(modulo))
-                parametros.Add($"modulo={Uri.EscapeDataString(modulo)}");
+                parametros.Add($"modulo={Uri.EscapeDataString(modulo.Trim())}");
 
             if (exitoso.HasValue)
                 parametros.Add($"exitoso={exitoso.Value.ToString().ToLowerInvariant()}");
@@ -53,8 +54,14 @@ namespace CONATRADEC.Services
             if (!string.IsNullOrWhiteSpace(buscar))
                 parametros.Add($"buscar={Uri.EscapeDataString(buscar.Trim())}");
 
+            if (corteConsultaUtc.HasValue)
+            {
+                parametros.Add(
+                    $"corteConsultaUtc={Uri.EscapeDataString(corteConsultaUtc.Value.ToString("O"))}");
+            }
+
             return GetAsync<BitacoraPaginadaResponse>(
-                "api/bitacora?" + string.Join("&", parametros),
+                RutaBase + "?" + string.Join("&", parametros),
                 cancellationToken);
         }
 
@@ -62,13 +69,13 @@ namespace CONATRADEC.Services
             Guid bitacoraId,
             CancellationToken cancellationToken = default) =>
             GetAsync<BitacoraDetalleItem>(
-                $"api/bitacora/{bitacoraId}",
+                $"{RutaBase}/{bitacoraId}",
                 cancellationToken);
 
         public Task<ApiResult<BitacoraCatalogosResponse>> CatalogosAsync(
             CancellationToken cancellationToken = default) =>
             GetAsync<BitacoraCatalogosResponse>(
-                "api/bitacora/catalogos",
+                $"{RutaBase}/catalogos",
                 cancellationToken);
 
         private async Task<ApiResult<T>> GetAsync<T>(
@@ -77,26 +84,19 @@ namespace CONATRADEC.Services
         {
             try
             {
+                SesionInactividadService.Instance.RegistrarActividad();
+
                 using HttpResponseMessage response = await httpClient.GetAsync(
                     endpoint,
                     cancellationToken);
 
-                if (response.StatusCode == HttpStatusCode.Forbidden)
-                {
-                    return ApiResult<T>.Fail(
-                        "No tiene permiso para consultar la bitácora.",
-                        (int)response.StatusCode);
-                }
-
                 if (!response.IsSuccessStatusCode)
                 {
-                    string contenido = await response.Content.ReadAsStringAsync(
-                        cancellationToken);
-
                     return ApiResult<T>.Fail(
-                        string.IsNullOrWhiteSpace(contenido)
-                            ? "No fue posible consultar la bitácora."
-                            : contenido,
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            "No fue posible consultar la bitácora.",
+                            cancellationToken),
                         (int)response.StatusCode);
                 }
 
@@ -109,9 +109,15 @@ namespace CONATRADEC.Services
                     : ApiResult<T>.Ok(data);
             }
             catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
             {
                 return ApiResult<T>.Fail(
-                    "La consulta tardó demasiado. Revise su conexión.");
+                    "La consulta tardó demasiado. Revise su conexión e intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (HttpRequestException)
             {

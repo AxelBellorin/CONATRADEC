@@ -13,6 +13,9 @@ namespace CONATRADEC.Services
         public static readonly string PaginaFormulario =
             nameof(TipoFotografiaIAFormPage);
 
+        public static readonly string PaginaEliminados =
+            nameof(TipoFotografiaIAEliminadosPage);
+
         static TipoFotografiaIARoutes()
         {
             Routing.RegisterRoute(
@@ -22,6 +25,10 @@ namespace CONATRADEC.Services
             Routing.RegisterRoute(
                 PaginaFormulario,
                 typeof(TipoFotografiaIAFormPage));
+
+            Routing.RegisterRoute(
+                PaginaEliminados,
+                typeof(TipoFotografiaIAEliminadosPage));
         }
     }
 }

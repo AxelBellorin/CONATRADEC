@@ -104,6 +104,7 @@ namespace CONATRADEC.Models
         public int TamanoPagina { get; set; }
         public int TotalRegistros { get; set; }
         public int TotalPaginas { get; set; }
+        public DateTime CorteConsultaUtc { get; set; }
     }
 
     public sealed class BitacoraUsuarioFiltro

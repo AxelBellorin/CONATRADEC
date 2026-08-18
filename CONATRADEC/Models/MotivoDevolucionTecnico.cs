@@ -18,10 +18,15 @@ namespace CONATRADEC.Models
         public bool Activo { get; set; }
         public DateTime FechaCreacionUtc { get; set; }
         public DateTime FechaModificacionUtc { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
 
         public string NombreMostrar => string.IsNullOrWhiteSpace(Nombre)
             ? Codigo.Replace('_', ' ')
             : Nombre;
+
+        public string CodigoTexto => $"Código: {Codigo}";
+
+        public string OrdenTexto => $"Orden: {Orden}";
 
         public string TipoCorreccionTexto => RequiereNuevaFotografia
             ? "Requiere una nueva fotografía"
@@ -30,6 +35,7 @@ namespace CONATRADEC.Models
                 : "Requiere atención técnica";
 
         public string EstadoTexto => Activo ? "Activo" : "Inactivo";
+        public bool Inactivo => !Activo;
     }
 
     public sealed class MotivoDevolucionTecnicoRequest
@@ -41,6 +47,7 @@ namespace CONATRADEC.Models
         public bool RequiereNuevaFotografia { get; set; }
         public bool PermiteCorregirMetadatos { get; set; } = true;
         public int Orden { get; set; } = 1;
+        public string RowVersion { get; set; } = string.Empty;
     }
 
     public sealed class DevolucionTecnicoFotografiaV2

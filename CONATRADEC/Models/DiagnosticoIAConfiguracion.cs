@@ -9,6 +9,7 @@ namespace CONATRADEC.Models
         public DateTime FechaModificacionUtc { get; set; }
         public int? UsuarioModificacionId { get; set; }
         public string UsuarioModificacion { get; set; } = string.Empty;
+        public string RowVersion { get; set; } = string.Empty;
         public List<DiagnosticoIAConfiguracionHistorialItem>
             Historial { get; set; } = [];
 
@@ -64,5 +65,6 @@ namespace CONATRADEC.Models
     {
         public int MaximoRevisionesGemini { get; set; } = 2;
         public bool RevisionesIlimitadas { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
     }
 }

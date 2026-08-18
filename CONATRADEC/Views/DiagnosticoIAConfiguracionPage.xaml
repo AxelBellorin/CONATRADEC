@@ -11,12 +11,9 @@
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid
+            x:Name="RootGrid"
             Padding="{OnIdiom Phone='14,14,14,22', Tablet='20,18,20,26', Desktop='26,22,26,28'}">
 
-            <!--
-                Toda la configuración, incluido el encabezado, comparte un único
-                desplazamiento vertical natural.
-            -->
             <ScrollView>
                 <VerticalStackLayout
                     Spacing="14"
@@ -29,6 +26,25 @@
                         BackText="Regresar"
                         BackCommand="{Binding RegresarCommand}"
                         IsPrimaryVisible="False" />
+
+                    <Border
+                        IsVisible="{Binding SinPermisoLectura}"
+                        Padding="18"
+                        BackgroundColor="#FFF9E8"
+                        Stroke="#E2B93B"
+                        StrokeShape="RoundRectangle 13">
+                        <VerticalStackLayout Spacing="8">
+                            <Label
+                                Text="Acceso restringido"
+                                FontSize="20"
+                                FontAttributes="Bold"
+                                TextColor="#6B5710" />
+                            <Label
+                                Text="No tiene permiso para consultar esta configuración. Regrese a Configuración o solicite el permiso de lectura correspondiente."
+                                TextColor="#6B5710"
+                                LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Border>
 
                     <Border
                         Padding="14"
@@ -47,159 +63,204 @@
                         </HorizontalStackLayout>
                     </Border>
 
-                    <HorizontalStackLayout
-                        Spacing="8"
-                        HorizontalOptions="End">
+                    <VerticalStackLayout
+                        Spacing="14"
+                        IsVisible="{Binding CanView}">
+
                         <Button
                             Text="Actualizar"
                             Command="{Binding ActualizarCommand}"
-                            WidthRequest="170"
+                            MinimumWidthRequest="0"
+                            MaximumWidthRequest="220"
                             HeightRequest="46"
+                            HorizontalOptions="End"
                             BackgroundColor="#EEF2F0"
                             TextColor="#263A35" />
-                    </HorizontalStackLayout>
 
-                    <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#C8DED6"
-                        StrokeShape="RoundRectangle 15"
-                        IsVisible="{Binding PuedeAdministrarTiposFotografia}">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                            <VerticalStackLayout Spacing="5">
+                        <Border
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 15"
+                            IsVisible="{Binding PuedeAdministrarTiposFotografia}">
+                            <Grid
+                                x:Name="TiposFotografiaGrid"
+                                ColumnDefinitions="*,Auto"
+                                ColumnSpacing="14"
+                                RowSpacing="10">
+                                <VerticalStackLayout
+                                    x:Name="TiposFotografiaTexto"
+                                    Spacing="5">
+                                    <Label
+                                        Text="Tipos de fotografía para la IA"
+                                        FontSize="20"
+                                        FontAttributes="Bold"
+                                        TextColor="#263A35" />
+                                    <Label
+                                        Text="Administre las partes o evidencias disponibles y la instrucción específica que Gemini utilizará para prestar mayor atención a cada fotografía."
+                                        TextColor="#5E6B67"
+                                        LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                                <Button
+                                    x:Name="AdministrarTiposButton"
+                                    Grid.Column="1"
+                                    Text="Administrar catálogo"
+                                    Command="{Binding AdministrarTiposFotografiaCommand}"
+                                    WidthRequest="190"
+                                    MinimumWidthRequest="0"
+                                    HeightRequest="46"
+                                    VerticalOptions="Center"
+                                    HorizontalOptions="End"
+                                    BackgroundColor="#3B655B"
+                                    TextColor="White" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 15">
+                            <VerticalStackLayout Spacing="12">
                                 <Label
-                                    Text="Tipos de fotografía para la IA"
-                                    FontSize="20"
+                                    Text="Límite de revisiones adicionales"
+                                    FontSize="21"
                                     FontAttributes="Bold"
                                     TextColor="#263A35" />
                                 <Label
-                                    Text="Administre las partes o evidencias disponibles y la instrucción específica que Gemini utilizará para prestar mayor atención a cada fotografía."
-                                    TextColor="#5E6B67" />
+                                    Text="{Binding ResumenActual}"
+                                    TextColor="#5E6B67"
+                                    LineBreakMode="WordWrap" />
+                                <Label
+                                    Text="{Binding UltimaModificacion}"
+                                    FontSize="12"
+                                    TextColor="#7A8581"
+                                    LineBreakMode="WordWrap" />
+
+                                <HorizontalStackLayout Spacing="8">
+                                    <CheckBox
+                                        IsChecked="{Binding RevisionesIlimitadas}"
+                                        IsEnabled="{Binding CanEdit}"
+                                        Color="#3B655B" />
+                                    <Label
+                                        Text="Permitir revisiones ilimitadas"
+                                        VerticalTextAlignment="Center"
+                                        TextColor="#263A35" />
+                                </HorizontalStackLayout>
+
+                                <VerticalStackLayout
+                                    Spacing="4"
+                                    IsVisible="{Binding MostrarCampoMaximo}">
+                                    <Label
+                                        Text="Cantidad máxima (1 a 20)"
+                                        FontAttributes="Bold"
+                                        TextColor="#263A35" />
+                                    <Entry
+                                        Text="{Binding MaximoRevisionesTexto}"
+                                        Keyboard="Numeric"
+                                        MaximumWidthRequest="180"
+                                        HorizontalOptions="Start"
+                                        IsReadOnly="{Binding SoloLectura}" />
+                                </VerticalStackLayout>
+
+                                <Label
+                                    Text="{Binding AyudaLimite}"
+                                    TextColor="#5E6B67"
+                                    LineBreakMode="WordWrap" />
+
+                                <Button
+                                    Text="Guardar límite"
+                                    Command="{Binding GuardarCommand}"
+                                    IsVisible="{Binding CanEdit}"
+                                    MinimumWidthRequest="0"
+                                    MaximumWidthRequest="220"
+                                    HeightRequest="46"
+                                    HorizontalOptions="End"
+                                    BackgroundColor="#9B552C"
+                                    TextColor="White" />
                             </VerticalStackLayout>
-                            <Button
-                                Grid.Column="1"
-                                Text="Administrar catálogo"
-                                Command="{Binding AdministrarTiposFotografiaCommand}"
-                                WidthRequest="190"
-                                HeightRequest="46"
-                                VerticalOptions="Center"
-                                BackgroundColor="#3B655B"
-                                TextColor="White" />
-                        </Grid>
-                    </Border>
+                        </Border>
 
-                    <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#D9E3DF"
-                        StrokeShape="RoundRectangle 15">
-                        <VerticalStackLayout Spacing="12">
-                            <Label
-                                Text="Límite de revisiones adicionales"
-                                FontSize="21"
-                                FontAttributes="Bold"
-                                TextColor="#263A35" />
-                            <Label
-                                Text="{Binding ResumenActual}"
-                                TextColor="#5E6B67" />
-                            <Label
-                                Text="{Binding UltimaModificacion}"
-                                FontSize="12"
-                                TextColor="#7A8581" />
-
-                            <HorizontalStackLayout Spacing="8">
-                                <CheckBox
-                                    IsChecked="{Binding RevisionesIlimitadas}"
-                                    IsEnabled="{Binding CanEdit}"
-                                    Color="#3B655B" />
+                        <Border
+                            Padding="18"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 15">
+                            <VerticalStackLayout Spacing="10">
                                 <Label
-                                    Text="Permitir revisiones ilimitadas"
-                                    VerticalTextAlignment="Center"
-                                    TextColor="#263A35" />
-                            </HorizontalStackLayout>
-
-                            <VerticalStackLayout
-                                Spacing="4"
-                                IsVisible="{Binding MostrarCampoMaximo}">
-                                <Label
-                                    Text="Cantidad máxima (1 a 20)"
+                                    Text="Historial de cambios del límite"
+                                    FontSize="19"
                                     FontAttributes="Bold"
                                     TextColor="#263A35" />
-                                <Entry
-                                    Text="{Binding MaximoRevisionesTexto}"
-                                    Keyboard="Numeric"
-                                    MaximumWidthRequest="180"
-                                    HorizontalOptions="Start"
-                                    IsReadOnly="{Binding SoloLectura}" />
+
+                                <CollectionView
+                                    ItemsSource="{Binding Historial}"
+                                    SelectionMode="None"
+                                    HeightRequest="260">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:DiagnosticoIAConfiguracionHistorialItem">
+                                            <Border
+                                                Padding="10"
+                                                Margin="0,0,0,7"
+                                                BackgroundColor="#FAFCFB"
+                                                Stroke="#E2E9E6"
+                                                StrokeShape="RoundRectangle 10">
+                                                <VerticalStackLayout Spacing="3">
+                                                    <Label
+                                                        Text="{Binding UsuarioTexto}"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#263A35"
+                                                        LineBreakMode="WordWrap" />
+                                                    <Label
+                                                        Text="{Binding CambioTexto}"
+                                                        TextColor="#5E6B67"
+                                                        LineBreakMode="WordWrap" />
+                                                    <Label
+                                                        Text="{Binding FechaTexto}"
+                                                        FontSize="12"
+                                                        TextColor="#7A8581" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+
+                                <Label
+                                    Text="Todavía no hay cambios registrados."
+                                    IsVisible="{Binding SinHistorial}"
+                                    HorizontalTextAlignment="Center"
+                                    InputTransparent="True"
+                                    TextColor="#7A8581" />
                             </VerticalStackLayout>
-
-                            <Label
-                                Text="{Binding AyudaLimite}"
-                                TextColor="#5E6B67" />
-
-                            <Button
-                                Text="Guardar límite"
-                                Command="{Binding GuardarCommand}"
-                                IsVisible="{Binding CanEdit}"
-                                WidthRequest="170"
-                                HeightRequest="46"
-                                HorizontalOptions="End"
-                                BackgroundColor="#9B552C"
-                                TextColor="White" />
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <Border
-                        Padding="18"
-                        BackgroundColor="White"
-                        Stroke="#D9E3DF"
-                        StrokeShape="RoundRectangle 15">
-                        <VerticalStackLayout Spacing="10">
-                            <Label
-                                Text="Historial de cambios del límite"
-                                FontSize="19"
-                                FontAttributes="Bold"
-                                TextColor="#263A35" />
-
-                            <CollectionView
-                                ItemsSource="{Binding Historial}"
-                                SelectionMode="None"
-                                HeightRequest="260">
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:DiagnosticoIAConfiguracionHistorialItem">
-                                        <Border
-                                            Padding="10"
-                                            Margin="0,0,0,7"
-                                            BackgroundColor="#FAFCFB"
-                                            Stroke="#E2E9E6"
-                                            StrokeShape="RoundRectangle 10">
-                                            <VerticalStackLayout Spacing="3">
-                                                <Label
-                                                    Text="{Binding UsuarioTexto}"
-                                                    FontAttributes="Bold"
-                                                    TextColor="#263A35" />
-                                                <Label
-                                                    Text="{Binding CambioTexto}"
-                                                    TextColor="#5E6B67" />
-                                                <Label
-                                                    Text="{Binding FechaTexto}"
-                                                    FontSize="12"
-                                                    TextColor="#7A8581" />
-                                            </VerticalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-
-                            <Label
-                                Text="Todavía no hay cambios registrados."
-                                IsVisible="{Binding SinHistorial}"
-                                HorizontalTextAlignment="Center"
-                                TextColor="#7A8581" />
-                        </VerticalStackLayout>
-                    </Border>
+                        </Border>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </ScrollView>
+
+            <Grid
+                IsVisible="{Binding IsBusy}"
+                InputTransparent="False"
+                BackgroundColor="#80FFFFFF">
+                <Border
+                    Padding="20"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BackgroundColor="White"
+                    Stroke="#D9E3DF"
+                    StrokeShape="RoundRectangle 14">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <ActivityIndicator
+                            IsRunning="{Binding IsBusy}"
+                            WidthRequest="34"
+                            HeightRequest="34"
+                            Color="#3B655B" />
+                        <Label
+                            Text="{Binding MensajeEstado}"
+                            HorizontalTextAlignment="Center"
+                            TextColor="#263A35" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
         </Grid>
     </ContentView>
 </ContentPage>

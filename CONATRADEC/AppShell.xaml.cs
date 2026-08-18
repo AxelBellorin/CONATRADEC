@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using CONATRADEC.Views;
@@ -236,6 +236,11 @@ namespace CONATRADEC
                     new CancellationTokenSource(
                         TimeSpan.FromSeconds(12));
 
+                /*
+                 * El endpoint v2 de comprobación es técnico y exige una sesión
+                 * JWT válida, no un permiso administrativo. De esta forma una
+                 * actualización obligatoria también llega a usuarios normales.
+                 */
                 ActualizacionDisponible? actualizacion =
                     await ActualizacionAplicacionService
                         .Instance
@@ -282,7 +287,14 @@ namespace CONATRADEC
                     false,
                     new Dictionary<string, object>
                     {
-                        ["Actualizacion"] = actualizacion
+                        ["Actualizacion"] = actualizacion,
+
+                        /*
+                         * Esta navegación proviene del mantenimiento técnico del
+                         * cliente y puede abrir la página aunque la persona no
+                         * tenga visible la tarjeta administrativa en Configuración.
+                         */
+                        ["AccesoSistema"] = true
                     });
             }
             catch (OperationCanceledException)

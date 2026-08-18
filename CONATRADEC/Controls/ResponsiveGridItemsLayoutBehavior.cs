@@ -3,11 +3,15 @@ namespace CONATRADEC.Controls
     /// <summary>
     /// Ajusta únicamente la cantidad de columnas de un CollectionView según
     /// el ancho real disponible. No modifica datos, comandos ni navegación.
+    ///
+    /// El cálculo usa un ancho mínimo útil por tarjeta, igual que Usuarios y
+    /// Terrenos, para evitar tarjetas demasiado estrechas en tablet o WinUI.
     /// </summary>
-    public sealed class ResponsiveGridItemsLayoutBehavior : Behavior<CollectionView>
+    public sealed class ResponsiveGridItemsLayoutBehavior :
+        Behavior<CollectionView>
     {
-        private const double TwoColumnsBreakpoint = 760;
-        private const double ThreeColumnsBreakpoint = 1380;
+        private const double AnchoMinimoTarjeta = 430;
+        private const double EspaciadoTarjetas = 12;
 
         private CollectionView? collectionView;
 
@@ -28,13 +32,16 @@ namespace CONATRADEC.Controls
             base.OnDetachingFrom(bindable);
         }
 
-        private void OnLoaded(object? sender, EventArgs e) => ApplyLayout();
+        private void OnLoaded(object? sender, EventArgs e) =>
+            ApplyLayout();
 
-        private void OnSizeChanged(object? sender, EventArgs e) => ApplyLayout();
+        private void OnSizeChanged(object? sender, EventArgs e) =>
+            ApplyLayout();
 
         private void ApplyLayout()
         {
             CollectionView? current = collectionView;
+
             if (current?.ItemsLayout is not GridItemsLayout gridLayout)
                 return;
 
@@ -42,11 +49,20 @@ namespace CONATRADEC.Controls
             if (availableWidth <= 0)
                 return;
 
-            int span = availableWidth >= ThreeColumnsBreakpoint
-                ? 3
-                : availableWidth >= TwoColumnsBreakpoint
-                    ? 2
-                    : 1;
+            double requeridoTres =
+                (AnchoMinimoTarjeta * 3) +
+                (EspaciadoTarjetas * 2);
+
+            double requeridoDos =
+                (AnchoMinimoTarjeta * 2) +
+                EspaciadoTarjetas;
+
+            int span =
+                availableWidth >= requeridoTres
+                    ? 3
+                    : availableWidth >= requeridoDos
+                        ? 2
+                        : 1;
 
             if (gridLayout.Span != span)
                 gridLayout.Span = span;

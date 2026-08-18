@@ -16,6 +16,7 @@ namespace CONATRADEC.ViewModels
         private string descripcion = string.Empty;
         private string instruccionIA = string.Empty;
         private string ordenTexto = "1";
+        private string mensajeEstado = string.Empty;
 
         public TipoFotografiaIAFormViewModel()
         {
@@ -133,6 +134,19 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public string MensajeEstado
+        {
+            get => mensajeEstado;
+            private set
+            {
+                if (mensajeEstado == value)
+                    return;
+
+                mensajeEstado = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
         public bool EsCrear =>
             string.Equals(Modo, "Crear", StringComparison.OrdinalIgnoreCase);
 
@@ -152,7 +166,7 @@ namespace CONATRADEC.ViewModels
                 : "Detalle del tipo de fotografía";
 
         public string SubtituloPagina =>
-            "La instrucción orienta a Gemini sobre qué debe observar con mayor atención en cada imagen.";
+            "La instrucción se incorpora al contexto que recibe Gemini para cada tipo utilizado en la inspección.";
 
         private bool PuedeGuardar =>
             !IsBusy &&
@@ -216,6 +230,13 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            if (EsEditar && string.IsNullOrWhiteSpace(Item?.RowVersion))
+            {
+                await MostrarAdvertenciaAsync(
+                    "El registro no tiene una versión válida. Regrese al listado y ábralo nuevamente.");
+                return;
+            }
+
             bool confirmar = EsCrear
                 ? await ConfirmarGuardadoAsync("tipo de fotografía")
                 : await ConfirmarActualizacionAsync("tipo de fotografía");
@@ -224,6 +245,7 @@ namespace CONATRADEC.ViewModels
                 return;
 
             IsBusy = true;
+            MensajeEstado = "Guardando tipo de fotografía...";
             ActualizarComandos();
 
             try
@@ -234,17 +256,34 @@ namespace CONATRADEC.ViewModels
                     Nombre = nombreNormalizado,
                     Descripcion = descripcionNormalizada,
                     InstruccionIA = instruccionNormalizada,
-                    Orden = orden
+                    Orden = orden,
+                    RowVersion = Item?.RowVersion ?? string.Empty
                 };
 
                 ApiResult<TipoFotografiaIAItem> result = EsCrear
-                    ? await api.CrearAsync(request)
-                    : await api.ActualizarAsync(
+                    ? await api.CrearV2Async(request)
+                    : await api.ActualizarV2Async(
                         Item?.TipoFotografiaIAId ?? 0,
                         request);
 
                 if (!result.Success)
                 {
+                    if (result.StatusCode == 409 && EsEditar && Item != null)
+                    {
+                        await GlobalService.MostrarAdvertenciaAsync(
+                            string.IsNullOrWhiteSpace(result.Message)
+                                ? "El registro fue modificado por otro usuario. Se cargarán los datos actualizados."
+                                : result.Message);
+
+                        ApiResult<TipoFotografiaIAItem> fresco =
+                            await api.ObtenerV2Async(Item.TipoFotografiaIAId);
+
+                        if (fresco.Success && fresco.Data != null)
+                            Item = fresco.Data;
+
+                        return;
+                    }
+
                     await GlobalService.MostrarErrorAsync(result.Message);
                     return;
                 }
@@ -258,6 +297,7 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
+                MensajeEstado = string.Empty;
                 IsBusy = false;
                 ActualizarComandos();
             }

@@ -16,17 +16,17 @@
 
             <Grid RowDefinitions="Auto,*">
                 <!--
-                    El encabezado principal y el SearchBar se mantienen fuera del
-                    CollectionView. En WinUI esto evita que el campo de búsqueda
-                    sea re-medido por la virtualización mientras se escribe.
+                    El encabezado y la búsqueda permanecen fuera del CollectionView
+                    para evitar re-mediciones del SearchBar en WinUI.
                 -->
                 <VerticalStackLayout
+                    x:Name="EncabezadoPrincipal"
                     Grid.Row="0"
-                    Margin="{OnIdiom Phone='12,12,12,8', Tablet='18,18,18,10', Desktop='22,22,22,12'}"
+                    Margin="12,12,12,8"
                     Spacing="10">
 
                     <Border Style="{StaticResource ModernHeroCard}">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                             <VerticalStackLayout Spacing="4" VerticalOptions="Center">
                                 <Label
                                     Text="Análisis de suelo"
@@ -42,8 +42,9 @@
                                 Text="+ Nuevo análisis"
                                 Style="{StaticResource ModernPrimaryButton}"
                                 HeightRequest="46"
-                                Padding="{OnIdiom Phone='12,9', Tablet='16,9', Desktop='18,9'}"
-                                FontSize="{OnIdiom Phone=11, Tablet=12, Desktop=12.5}"
+                                MinimumWidthRequest="0"
+                                Padding="10,9"
+                                FontSize="11"
                                 Command="{Binding NuevoAnalisisCommand}"
                                 IsVisible="{Binding CanAdd}"
                                 VerticalOptions="Center" />
@@ -71,17 +72,14 @@
 
                     <CollectionView
                         x:Name="AnalisisCollectionView"
-                        Margin="{OnIdiom Phone='12,0,12,0', Tablet='18,0,18,0', Desktop='22,0,22,0'}"
+                        Margin="12,0,12,0"
                         ItemsSource="{Binding AnalisisGuardados}"
                         SelectionMode="None"
-                        ItemSizingStrategy="MeasureFirstItem"
-                        RemainingItemsThreshold="2"
-                        RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                        ItemSizingStrategy="MeasureFirstItem">
 
                         <!--
-                            El número de columnas responde al ancho real disponible:
-                            1 en móvil/ventanas estrechas, 2 en tablet/Windows medio y
-                            3 cuando Windows dispone de espacio amplio.
+                            El número de columnas depende del ancho útil real de
+                            las tarjetas, no del tipo de dispositivo.
                         -->
                         <CollectionView.Behaviors>
                             <controls:ResponsiveGridItemsLayoutBehavior />
@@ -97,10 +95,14 @@
 
                         <CollectionView.Header>
                             <VerticalStackLayout
-                                Padding="{OnIdiom Phone='0,4,0,12', Tablet='0,6,0,14', Desktop='0,8,0,16'}"
+                                Padding="0,4,0,12"
                                 Spacing="12">
 
-                                <!-- Selección del alcance antes de listar -->
+                                <!--
+                                    Cambiar el alcance solo modifica filtros escritos.
+                                    La consulta se ejecuta únicamente al presionar
+                                    Aplicar filtros / Buscar.
+                                -->
                                 <Border
                                     IsVisible="{Binding MostrarSelectorAlcance}"
                                     Style="{StaticResource ModernCard}">
@@ -111,7 +113,7 @@
                                                 Text="Alcance del listado"
                                                 Style="{StaticResource ModernSectionTitle}" />
                                             <Label
-                                                Text="Seleccione qué análisis desea consultar antes de cargar la lista."
+                                                Text="Seleccione el alcance y presione Aplicar filtros para consultar."
                                                 Style="{StaticResource ModernPageSubtitle}" />
                                         </VerticalStackLayout>
 
@@ -125,11 +127,12 @@
                                         <Button
                                             Text="{Binding TextoBotonListar}"
                                             Command="{Binding ListarCommand}"
-                                            Style="{StaticResource ModernPrimaryButton}" />
+                                            Style="{StaticResource ModernPrimaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
                                     </VerticalStackLayout>
                                 </Border>
 
-                                <!-- Carga inicial -->
                                 <Border
                                     IsVisible="{Binding CargandoListado}"
                                     Style="{StaticResource ModernSoftPanel}"
@@ -143,7 +146,7 @@
                                             WidthRequest="22"
                                             HeightRequest="22" />
                                         <Label
-                                            Text="Cargando los primeros análisis..."
+                                            Text="Actualizando análisis..."
                                             VerticalOptions="Center"
                                             FontFamily="MontserratBold"
                                             FontSize="12"
@@ -151,28 +154,44 @@
                                     </HorizontalStackLayout>
                                 </Border>
 
-                                <!-- Filtros adicionales; el campo de texto está fuera de la lista. -->
                                 <Border
                                     IsVisible="{Binding SeHaListado}"
                                     Style="{StaticResource ModernCard}">
 
                                     <VerticalStackLayout Spacing="12">
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                            <VerticalStackLayout Spacing="2">
+                                        <Grid
+                                            x:Name="FiltrosCabeceraGrid"
+                                            ColumnDefinitions="*,Auto,Auto"
+                                            ColumnSpacing="7">
+                                            <VerticalStackLayout
+                                                x:Name="FiltrosTituloContenedor"
+                                                Spacing="2">
                                                 <Label
                                                     Text="Filtros adicionales"
                                                     Style="{StaticResource ModernSectionTitle}" />
                                                 <Label
-                                                    Text="Aplique filtros por usuario o fecha de guardado."
+                                                    Text="Los cambios no consultan el servidor hasta presionar Buscar."
                                                     Style="{StaticResource ModernPageSubtitle}" />
                                             </VerticalStackLayout>
 
                                             <Button
                                                 Grid.Column="1"
+                                                Text="Buscar"
+                                                Command="{Binding BuscarCommand}"
+                                                Style="{StaticResource ModernPrimaryButton}"
+                                                HeightRequest="40"
+                                                MinimumWidthRequest="0"
+                                                Padding="10,7"
+                                                VerticalOptions="Center" />
+
+                                            <Button
+                                                Grid.Column="2"
                                                 Text="Limpiar"
                                                 Command="{Binding LimpiarFiltrosCommand}"
                                                 Style="{StaticResource ModernNeutralButton}"
                                                 HeightRequest="40"
+                                                MinimumWidthRequest="0"
+                                                Padding="10,7"
                                                 VerticalOptions="Center" />
                                         </Grid>
 
@@ -206,11 +225,12 @@
                                         </Grid>
 
                                         <Grid
+                                            x:Name="RangoFechasGrid"
                                             IsVisible="{Binding UsarFiltroRangoFecha}"
                                             ColumnDefinitions="*,*"
                                             ColumnSpacing="10">
 
-                                            <VerticalStackLayout Spacing="5">
+                                            <VerticalStackLayout x:Name="FechaDesdeContenedor" Spacing="5">
                                                 <Label
                                                     Text="Desde"
                                                     Style="{StaticResource ModernFieldLabel}" />
@@ -222,7 +242,10 @@
                                                 </Border>
                                             </VerticalStackLayout>
 
-                                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                            <VerticalStackLayout
+                                                x:Name="FechaHastaContenedor"
+                                                Grid.Column="1"
+                                                Spacing="5">
                                                 <Label
                                                     Text="Hasta"
                                                     Style="{StaticResource ModernFieldLabel}" />
@@ -244,7 +267,6 @@
                                     </VerticalStackLayout>
                                 </Border>
 
-                                <!-- Mensaje de error o información -->
                                 <Border
                                     IsVisible="{Binding TieneMensaje}"
                                     Padding="12"
@@ -258,7 +280,6 @@
                                         FontSize="12" />
                                 </Border>
 
-                                <!-- Estado antes de ejecutar el listado -->
                                 <Border
                                     IsVisible="{Binding MostrarEsperaInicial}"
                                     Style="{StaticResource ModernSoftPanel}">
@@ -279,7 +300,6 @@
                                     </VerticalStackLayout>
                                 </Border>
 
-                                <!-- Lista vacía después de consultar -->
                                 <Border
                                     IsVisible="{Binding MostrarListaVacia}"
                                     Style="{StaticResource ModernSoftPanel}">
@@ -302,22 +322,17 @@
                             </VerticalStackLayout>
                         </CollectionView.Header>
 
-                        <!-- =================================================
-                             TARJETAS DE ANÁLISIS
-                             Todos los comandos y bindings originales se conservan.
-                             ================================================= -->
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:AnalisisGuardadoResumen">
                                 <Border
                                     Style="{StaticResource ModernCard}"
-                                    Padding="{OnIdiom Phone=14, Tablet=15, Desktop=16}"
+                                    Padding="14"
                                     Margin="0,2">
 
                                     <Grid
                                         RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                                         RowSpacing="10">
 
-                                        <!-- Identificación -->
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                             <VerticalStackLayout Spacing="2">
                                                 <Label
@@ -359,7 +374,7 @@
                                             <Border
                                                 Grid.Column="1"
                                                 Style="{StaticResource ModernBadgeGreen}"
-                                                Padding="9,6"
+                                                Padding="8,6"
                                                 VerticalOptions="Start">
                                                 <VerticalStackLayout Spacing="1">
                                                     <Label
@@ -378,7 +393,6 @@
                                             </Border>
                                         </Grid>
 
-                                        <!-- Laboratorio / fecha de registro -->
                                         <Grid
                                             Grid.Row="1"
                                             ColumnDefinitions="*,Auto"
@@ -404,11 +418,10 @@
                                             HeightRequest="1"
                                             BackgroundColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}" />
 
-                                        <!-- Métricas principales -->
                                         <Grid
                                             Grid.Row="3"
                                             ColumnDefinitions="*,*,*"
-                                            ColumnSpacing="7">
+                                            ColumnSpacing="6">
 
                                             <Border Style="{StaticResource ModernMetricSurface}">
                                                 <VerticalStackLayout Spacing="2">
@@ -438,7 +451,9 @@
                                                         Text="{Binding TamanoFincaTexto}"
                                                         FontFamily="MontserratBold"
                                                         FontSize="15"
-                                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                                        MaxLines="1"
+                                                        LineBreakMode="TailTruncation" />
                                                 </VerticalStackLayout>
                                             </Border>
 
@@ -454,7 +469,7 @@
                                                     <Label
                                                         Text="{Binding ProduccionTexto}"
                                                         FontFamily="MontserratBold"
-                                                        FontSize="13.5"
+                                                        FontSize="13"
                                                         TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                                         MaxLines="1"
                                                         LineBreakMode="TailTruncation" />
@@ -462,7 +477,6 @@
                                             </Border>
                                         </Grid>
 
-                                        <!-- Procesos calculados -->
                                         <FlexLayout
                                             Grid.Row="4"
                                             Direction="Row"
@@ -503,16 +517,23 @@
                                             </Border>
                                         </FlexLayout>
 
-                                        <!-- Acciones: mismas funciones y comandos -->
+                                        <!--
+                                            MinimumWidthRequest=0 evita el ancho mínimo nativo de
+                                            Button en WinUI cuando la ventana se vuelve estrecha.
+                                        -->
                                         <Grid
                                             Grid.Row="5"
                                             Margin="0,1,0,0"
                                             ColumnDefinitions="*,*,*"
-                                            ColumnSpacing="7">
+                                            ColumnSpacing="6"
+                                            HorizontalOptions="Fill">
 
                                             <Button
                                                 Text="Ver"
                                                 Style="{StaticResource ModernSecondaryButton}"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
+                                                Padding="5,8"
                                                 IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanView}"
                                                 Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.VisualizarCommand}"
                                                 CommandParameter="{Binding .}" />
@@ -521,6 +542,9 @@
                                                 Grid.Column="1"
                                                 Text="Editar"
                                                 Style="{StaticResource ModernUpdateButton}"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
+                                                Padding="5,8"
                                                 IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanEdit}"
                                                 Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EditarCommand}"
                                                 CommandParameter="{Binding .}" />
@@ -529,6 +553,9 @@
                                                 Grid.Column="2"
                                                 Text="Eliminar"
                                                 Style="{StaticResource ModernDangerButton}"
+                                                MinimumWidthRequest="0"
+                                                HorizontalOptions="Fill"
+                                                Padding="5,8"
                                                 IsVisible="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.CanDelete}"
                                                 Command="{Binding Source={x:Reference MainPageRoot}, Path=BindingContext.EliminarCommand}"
                                                 CommandParameter="{Binding .}" />
@@ -538,29 +565,68 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
 
+                        <!-- Paginación explícita: nunca se anexan páginas. -->
                         <CollectionView.Footer>
-                            <VerticalStackLayout
-                                Padding="16,14,16,30"
-                                Spacing="8"
+                            <Border
+                                x:Name="PaginacionAnalisis"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="12"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
                                 HorizontalOptions="Center">
-                                <ActivityIndicator
-                                    IsVisible="{Binding CargandoMas}"
-                                    IsRunning="{Binding CargandoMas}"
-                                    Color="{StaticResource color_Verde}" />
-                                <Label
-                                    IsVisible="{Binding MostrarFinLista}"
-                                    Text="No hay más análisis por cargar."
-                                    FontFamily="MontserratMedium"
-                                    FontSize="11"
-                                    TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
-                            </VerticalStackLayout>
+
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="8">
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Clicked="PaginacionAnalisis_Clicked"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
+
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Clicked="PaginacionAnalisis_Clicked"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill"
+                                            Padding="6,8" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
                         </CollectionView.Footer>
                     </CollectionView>
                 </RefreshView>
             </Grid>
         </ContentView>
 
-        <!-- Estado sin permiso: se conserva la lógica actual -->
         <ContentView
             x:Name="ContenidoSinPermiso"
             IsVisible="False"
@@ -601,7 +667,6 @@
             </Grid>
         </ContentView>
 
-        <!-- Capa de carga general -->
         <Grid
             IsVisible="{Binding IsBusy}"
             BackgroundColor="#660B1511"

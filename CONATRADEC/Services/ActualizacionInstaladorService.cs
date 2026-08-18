@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using Microsoft.Maui.ApplicationModel;
 
 #if ANDROID
@@ -7,6 +7,10 @@ using Android.OS;
 using Android.Provider;
 using AndroidFileProvider =
     AndroidX.Core.Content.FileProvider;
+#endif
+
+#if WINDOWS
+using System.Diagnostics;
 #endif
 
 namespace CONATRADEC.Services
@@ -101,6 +105,39 @@ namespace CONATRADEC.Services
                 "Android abrió el instalador de la actualización.");
 
 #elif WINDOWS
+            string extension =
+                Path.GetExtension(rutaArchivo)
+                    .ToLowerInvariant();
+
+            /*
+             * CONATRADEC para Windows se distribuye actualmente como aplicación
+             * desempaquetada mediante instalador EXE (Inno Setup). Launcher es
+             * apropiado para archivos asociados, pero para un EXE debemos pedir
+             * explícitamente al Shell de Windows que ejecute el instalador.
+             */
+            if (extension == ".exe")
+            {
+                Process? proceso = Process.Start(
+                    new ProcessStartInfo
+                    {
+                        FileName = rutaArchivo,
+                        WorkingDirectory =
+                            Path.GetDirectoryName(rutaArchivo) ??
+                            AppContext.BaseDirectory,
+                        UseShellExecute = true
+                    });
+
+                return proceso is not null
+                    ? new ResultadoInstalacionActualizacion(
+                        true,
+                        false,
+                        "Windows abrió el instalador de la actualización.")
+                    : new ResultadoInstalacionActualizacion(
+                        false,
+                        false,
+                        "Windows no pudo iniciar el instalador de la actualización.");
+            }
+
             bool abierto =
                 await Launcher.Default.OpenAsync(
                     new OpenFileRequest(
@@ -113,7 +150,7 @@ namespace CONATRADEC.Services
                 ? new ResultadoInstalacionActualizacion(
                     true,
                     false,
-                    "Windows abrió el instalador de la actualización.")
+                    "Windows abrió el paquete de actualización.")
                 : new ResultadoInstalacionActualizacion(
                     false,
                     false,

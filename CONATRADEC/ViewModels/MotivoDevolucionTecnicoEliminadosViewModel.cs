@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace CONATRADEC.ViewModels
 {
-    public sealed class MotivoDevolucionTecnicoViewModel : GlobalService
+    public sealed class MotivoDevolucionTecnicoEliminadosViewModel : GlobalService
     {
         private readonly MotivoDevolucionTecnicoApiService api = new();
         private string textoBusqueda = string.Empty;
@@ -12,15 +12,11 @@ namespace CONATRADEC.ViewModels
         private string mensajeEstado = string.Empty;
         private bool inicializado;
 
-        public MotivoDevolucionTecnicoViewModel()
+        public MotivoDevolucionTecnicoEliminadosViewModel()
         {
             RegresarCommand = new Command(
                 async () => await GoToAsyncParameters(AppRoutes.Regresar),
                 () => !IsBusy);
-
-            ActualizarCommand = new Command(
-                async () => await CargarAsync(),
-                () => !IsBusy && CanView);
 
             BuscarCommand = new Command(
                 async () => await BuscarAsync(),
@@ -30,34 +26,22 @@ namespace CONATRADEC.ViewModels
                 async () => await LimpiarAsync(),
                 () => !IsBusy && CanView);
 
-            NuevoCommand = new Command(
-                async () => await AbrirFormularioAsync(null),
-                () => !IsBusy && CanAdd);
-
-            EliminadosCommand = new Command(
-                async () => await GoToAsyncParameters(
-                    MotivoDevolucionTecnicoRoutes.Eliminados),
+            ActualizarCommand = new Command(
+                async () => await CargarAsync(),
                 () => !IsBusy && CanView);
 
-            EditarCommand = new Command<MotivoDevolucionTecnicoItem>(
-                async item => await AbrirFormularioAsync(item),
-                item => item?.Activo == true && !IsBusy && CanEdit);
-
-            EliminarCommand = new Command<MotivoDevolucionTecnicoItem>(
-                async item => await EliminarAsync(item),
-                item => item?.Activo == true && !IsBusy && CanDelete);
+            RecuperarCommand = new Command<MotivoDevolucionTecnicoItem>(
+                async item => await RecuperarAsync(item),
+                item => item?.Inactivo == true && !IsBusy && CanEdit);
         }
 
         public ObservableCollection<MotivoDevolucionTecnicoItem> Items { get; } = [];
 
         public Command RegresarCommand { get; }
-        public Command ActualizarCommand { get; }
         public Command BuscarCommand { get; }
         public Command LimpiarCommand { get; }
-        public Command NuevoCommand { get; }
-        public Command EliminadosCommand { get; }
-        public Command<MotivoDevolucionTecnicoItem> EditarCommand { get; }
-        public Command<MotivoDevolucionTecnicoItem> EliminarCommand { get; }
+        public Command ActualizarCommand { get; }
+        public Command<MotivoDevolucionTecnicoItem> RecuperarCommand { get; }
 
         public string TextoBusqueda
         {
@@ -84,70 +68,46 @@ namespace CONATRADEC.ViewModels
 
                 mensajeEstado = nuevo;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(TieneMensajeEstado));
             }
         }
-
-        public bool TieneMensajeEstado =>
-            !string.IsNullOrWhiteSpace(MensajeEstado);
 
         public bool SinRegistros =>
             inicializado && CanView && !IsBusy && Items.Count == 0;
 
         public bool SinPermisoLectura => !CanView;
 
-        public string Resumen => Items.Count == 1
-            ? "1 motivo activo"
-            : $"{Items.Count} motivos activos";
-
         public string BusquedaAplicadaTexto =>
             string.IsNullOrWhiteSpace(textoBusquedaAplicado)
                 ? "Sin filtro de búsqueda aplicado."
                 : $"Filtro aplicado: “{textoBusquedaAplicado}”.";
 
+        public string Resumen => Items.Count == 1
+            ? "1 motivo eliminado"
+            : $"{Items.Count} motivos eliminados";
+
         public async Task InicializarAsync()
         {
-            MotivoDevolucionTecnicoRoutes.AsegurarRegistro();
             ActualizarPermisos();
             inicializado = true;
 
             if (CanView)
                 await CargarAsync();
             else
-                NotificarEstadoLista();
+                NotificarLista();
         }
 
-        /// <summary>
-        /// Regresar de Crear/Editar/Eliminados pertenece a la misma visita.
-        /// Se conservan búsqueda escrita/aplicada y demás estado del ViewModel,
-        /// pero se refrescan los datos del servidor.
-        /// </summary>
-        public async Task RecargarVisitaAsync()
-        {
-            ActualizarPermisos();
-
-            if (CanView)
-                await CargarAsync();
-            else
-                NotificarEstadoLista();
-        }
-
-        public void ActualizarPermisos()
+        private void ActualizarPermisos()
         {
             var permiso = PermissionService.Instance.Get(
                 MotivoDevolucionTecnicoRoutes.InterfazConfiguracion);
 
             CanView = permiso?.leer == true;
-            CanAdd = permiso?.agregar == true;
             CanEdit = permiso?.actualizar == true;
-            CanDelete = permiso?.eliminar == true;
 
             OnPropertyChanged(nameof(CanView));
-            OnPropertyChanged(nameof(CanAdd));
             OnPropertyChanged(nameof(CanEdit));
-            OnPropertyChanged(nameof(CanDelete));
             OnPropertyChanged(nameof(SinPermisoLectura));
-            NotificarEstadoLista();
+            NotificarLista();
             ActualizarComandos();
         }
 
@@ -172,14 +132,14 @@ namespace CONATRADEC.ViewModels
                 return;
 
             IsBusy = true;
-            MensajeEstado = "Cargando motivos de devolución...";
+            MensajeEstado = "Cargando motivos eliminados...";
             ActualizarComandos();
-            NotificarEstadoLista();
+            NotificarLista();
 
             try
             {
                 ApiResult<List<MotivoDevolucionTecnicoItem>> resultado =
-                    await api.ListarAdministracionV2Async(
+                    await api.ListarEliminadosV2Async(
                         textoBusquedaAplicado);
 
                 if (!resultado.Success || resultado.Data == null)
@@ -196,33 +156,21 @@ namespace CONATRADEC.ViewModels
             {
                 MensajeEstado = string.Empty;
                 IsBusy = false;
-                NotificarEstadoLista();
+                NotificarLista();
                 ActualizarComandos();
             }
         }
 
-        private async Task AbrirFormularioAsync(
+        private async Task RecuperarAsync(
             MotivoDevolucionTecnicoItem? item)
         {
-            if (IsBusy)
-                return;
-
-            MotivoDevolucionTecnicoRoutes.AsegurarRegistro();
-            await GoToAsyncParameters(
-                MotivoDevolucionTecnicoRoutes.CrearRutaFormulario(
-                    item?.MotivoDevolucionTecnicoId));
-        }
-
-        private async Task EliminarAsync(
-            MotivoDevolucionTecnicoItem? item)
-        {
-            if (item == null || !CanDelete || IsBusy)
+            if (item == null || !CanEdit || IsBusy)
                 return;
 
             bool confirmar = await ConfirmarAsync(
-                "Desactivar motivo",
-                $"¿Desea desactivar «{item.NombreMostrar}»? Las devoluciones históricas conservarán el código, nombre e instrucciones asociados.",
-                "Desactivar",
+                "Recuperar motivo",
+                $"¿Desea recuperar «{item.NombreMostrar}»? Volverá a estar disponible para nuevas devoluciones.",
+                "Recuperar",
                 "Cancelar");
 
             if (!confirmar)
@@ -230,13 +178,13 @@ namespace CONATRADEC.ViewModels
 
             bool recargar = false;
             IsBusy = true;
-            MensajeEstado = "Desactivando motivo...";
+            MensajeEstado = "Recuperando motivo...";
             ActualizarComandos();
 
             try
             {
                 ApiResult<bool> resultado =
-                    await api.EliminarV2Async(
+                    await api.RecuperarV2Async(
                         item.MotivoDevolucionTecnicoId,
                         item.RowVersion);
 
@@ -247,7 +195,7 @@ namespace CONATRADEC.ViewModels
                         recargar = true;
                         await MostrarAdvertenciaAsync(
                             string.IsNullOrWhiteSpace(resultado.Message)
-                                ? "El motivo cambió en el servidor. Se actualizará el listado."
+                                ? "El motivo cambió en el servidor. Se actualizará la lista de eliminados."
                                 : resultado.Message);
                     }
                     else
@@ -261,7 +209,7 @@ namespace CONATRADEC.ViewModels
                     recargar = true;
                     await MostrarExitoAsync(
                         string.IsNullOrWhiteSpace(resultado.Message)
-                            ? "Motivo desactivado correctamente."
+                            ? "Motivo recuperado correctamente."
                             : resultado.Message);
                 }
             }
@@ -276,7 +224,7 @@ namespace CONATRADEC.ViewModels
                 await CargarAsync();
         }
 
-        private void NotificarEstadoLista()
+        private void NotificarLista()
         {
             OnPropertyChanged(nameof(SinRegistros));
             OnPropertyChanged(nameof(Resumen));
@@ -291,13 +239,10 @@ namespace CONATRADEC.ViewModels
         private void ActualizarComandos()
         {
             RegresarCommand.ChangeCanExecute();
-            ActualizarCommand.ChangeCanExecute();
             BuscarCommand.ChangeCanExecute();
             LimpiarCommand.ChangeCanExecute();
-            NuevoCommand.ChangeCanExecute();
-            EliminadosCommand.ChangeCanExecute();
-            EditarCommand.ChangeCanExecute();
-            EliminarCommand.ChangeCanExecute();
+            ActualizarCommand.ChangeCanExecute();
+            RecuperarCommand.ChangeCanExecute();
         }
     }
 }

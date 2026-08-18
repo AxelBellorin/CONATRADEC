@@ -8,7 +8,7 @@ namespace CONATRADEC.ViewModels
     {
         private readonly TipoFotografiaIAApiService api = new();
         private string textoBusqueda = string.Empty;
-        private bool mostrarInactivos;
+        private string textoBusquedaAplicado = string.Empty;
         private bool inicializado;
         private string mensajeEstado = string.Empty;
 
@@ -27,7 +27,16 @@ namespace CONATRADEC.ViewModels
                 () => !IsBusy && CanView);
 
             BuscarCommand = new Command(
-                async () => await CargarAsync(),
+                async () => await BuscarAsync(),
+                () => !IsBusy && CanView);
+
+            LimpiarCommand = new Command(
+                async () => await LimpiarAsync(),
+                () => !IsBusy && CanView);
+
+            EliminadosCommand = new Command(
+                async () => await GoToAsyncParameters(
+                    TipoFotografiaIARoutes.PaginaEliminados),
                 () => !IsBusy && CanView);
 
             VerCommand = new Command<TipoFotografiaIAItem>(
@@ -41,17 +50,9 @@ namespace CONATRADEC.ViewModels
             EliminarCommand = new Command<TipoFotografiaIAItem>(
                 async item => await EliminarAsync(item),
                 item =>
-                    item?.Activo == true &&
-                    !string.Equals(
-                        item.Codigo,
-                        "EVIDENCIA",
-                        StringComparison.OrdinalIgnoreCase) &&
+                    item?.PuedeDesactivarse == true &&
                     !IsBusy &&
                     CanDelete);
-
-            RecuperarCommand = new Command<TipoFotografiaIAItem>(
-                async item => await RecuperarAsync(item),
-                item => item?.Inactivo == true && !IsBusy && CanEdit);
         }
 
         public ObservableCollection<TipoFotografiaIAItem> Items { get; } = [];
@@ -60,10 +61,11 @@ namespace CONATRADEC.ViewModels
         public Command NuevoCommand { get; }
         public Command ActualizarCommand { get; }
         public Command BuscarCommand { get; }
+        public Command LimpiarCommand { get; }
+        public Command EliminadosCommand { get; }
         public Command<TipoFotografiaIAItem> VerCommand { get; }
         public Command<TipoFotografiaIAItem> EditarCommand { get; }
         public Command<TipoFotografiaIAItem> EliminarCommand { get; }
-        public Command<TipoFotografiaIAItem> RecuperarCommand { get; }
 
         public string TextoBusqueda
         {
@@ -76,22 +78,6 @@ namespace CONATRADEC.ViewModels
 
                 textoBusqueda = nuevo;
                 OnPropertyChanged();
-            }
-        }
-
-        public bool MostrarInactivos
-        {
-            get => mostrarInactivos;
-            set
-            {
-                if (mostrarInactivos == value)
-                    return;
-
-                mostrarInactivos = value;
-                OnPropertyChanged();
-
-                if (inicializado && !IsBusy)
-                    _ = CargarAsync();
             }
         }
 
@@ -115,14 +101,29 @@ namespace CONATRADEC.ViewModels
         public bool SinRegistros =>
             inicializado && !IsBusy && Items.Count == 0;
 
+        public bool SinPermisoLectura => !CanView;
+
         public string Resumen => Items.Count == 1
-            ? "1 tipo de fotografía"
-            : $"{Items.Count} tipos de fotografía";
+            ? "1 tipo de fotografía activo"
+            : $"{Items.Count} tipos de fotografía activos";
+
+        public string BusquedaAplicadaTexto =>
+            string.IsNullOrWhiteSpace(textoBusquedaAplicado)
+                ? "Sin filtro de búsqueda aplicado."
+                : $"Filtro aplicado: “{textoBusquedaAplicado}”.";
 
         public async Task InicializarAsync()
         {
             ActualizarPermisos();
             inicializado = true;
+
+            if (CanView)
+                await CargarAsync();
+        }
+
+        public async Task RecargarVisitaAsync()
+        {
+            ActualizarPermisos();
 
             if (CanView)
                 await CargarAsync();
@@ -142,7 +143,23 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(CanAdd));
             OnPropertyChanged(nameof(CanEdit));
             OnPropertyChanged(nameof(CanDelete));
+            OnPropertyChanged(nameof(SinPermisoLectura));
             ActualizarComandos();
+        }
+
+        private async Task BuscarAsync()
+        {
+            textoBusquedaAplicado = (TextoBusqueda ?? string.Empty).Trim();
+            OnPropertyChanged(nameof(BusquedaAplicadaTexto));
+            await CargarAsync();
+        }
+
+        private async Task LimpiarAsync()
+        {
+            TextoBusqueda = string.Empty;
+            textoBusquedaAplicado = string.Empty;
+            OnPropertyChanged(nameof(BusquedaAplicadaTexto));
+            await CargarAsync();
         }
 
         private async Task CargarAsync()
@@ -157,9 +174,8 @@ namespace CONATRADEC.ViewModels
             try
             {
                 ApiResult<List<TipoFotografiaIAItem>> result =
-                    await api.ListarAdministracionAsync(
-                        MostrarInactivos,
-                        TextoBusqueda);
+                    await api.ListarAdministracionV2Async(
+                        textoBusquedaAplicado);
 
                 if (!result.Success || result.Data == null)
                 {
@@ -197,16 +213,50 @@ namespace CONATRADEC.ViewModels
             TipoFotografiaIAItem? item,
             string modo)
         {
-            if (item == null)
+            if (item == null || IsBusy)
                 return;
 
-            await GoToAsyncParameters(
-                TipoFotografiaIARoutes.PaginaFormulario,
-                new Dictionary<string, object>
+            IsBusy = true;
+            MensajeEstado = "Cargando registro actualizado...";
+            ActualizarComandos();
+
+            try
+            {
+                ApiResult<TipoFotografiaIAItem> result =
+                    await api.ObtenerV2Async(item.TipoFotografiaIAId);
+
+                if (!result.Success || result.Data == null)
                 {
-                    ["Modo"] = modo,
-                    ["Item"] = item
-                });
+                    await MostrarErrorAsync(result.Message);
+                    return;
+                }
+
+                if (string.Equals(modo, "Editar", StringComparison.OrdinalIgnoreCase) &&
+                    !result.Data.Activo)
+                {
+                    await MostrarErrorAsync(
+                        "El registro fue desactivado por otro usuario. Actualice el listado antes de editarlo.");
+                    return;
+                }
+
+                IsBusy = false;
+                MensajeEstado = string.Empty;
+                ActualizarComandos();
+
+                await GoToAsyncParameters(
+                    TipoFotografiaIARoutes.PaginaFormulario,
+                    new Dictionary<string, object>
+                    {
+                        ["Modo"] = modo,
+                        ["Item"] = result.Data
+                    });
+            }
+            finally
+            {
+                IsBusy = false;
+                MensajeEstado = string.Empty;
+                ActualizarComandos();
+            }
         }
 
         private async Task EliminarAsync(TipoFotografiaIAItem? item)
@@ -220,81 +270,51 @@ namespace CONATRADEC.ViewModels
             if (!confirmar)
                 return;
 
+            bool recargar = false;
             IsBusy = true;
+            MensajeEstado = "Desactivando tipo de fotografía...";
             ActualizarComandos();
 
             try
             {
                 ApiResult<bool> result =
-                    await api.EliminarAsync(item.TipoFotografiaIAId);
+                    await api.EliminarV2Async(
+                        item.TipoFotografiaIAId,
+                        item.RowVersion);
 
                 if (!result.Success)
                 {
-                    await MostrarErrorAsync(result.Message);
-                    return;
+                    if (result.StatusCode == 409)
+                    {
+                        recargar = true;
+                        await GlobalService.MostrarAdvertenciaAsync(
+                            string.IsNullOrWhiteSpace(result.Message)
+                                ? "El registro cambió en el servidor. Se actualizará el listado."
+                                : result.Message);
+                    }
+                    else
+                    {
+                        await MostrarErrorAsync(result.Message);
+                    }
                 }
-
-                await MostrarExitoAsync(
-                    string.IsNullOrWhiteSpace(result.Message)
-                        ? "Tipo de fotografía desactivado correctamente."
-                        : result.Message);
-
-                await CargarDespuesDeOperacionAsync();
+                else
+                {
+                    recargar = true;
+                    await MostrarExitoAsync(
+                        string.IsNullOrWhiteSpace(result.Message)
+                            ? "Tipo de fotografía desactivado correctamente."
+                            : result.Message);
+                }
             }
             finally
             {
                 IsBusy = false;
+                MensajeEstado = string.Empty;
                 ActualizarComandos();
             }
-        }
 
-        private async Task RecuperarAsync(TipoFotografiaIAItem? item)
-        {
-            if (item == null)
-                return;
-
-            bool confirmar = await ConfirmarAsync(
-                "Recuperar tipo de fotografía",
-                $"¿Desea recuperar {item.NombreMostrar}?",
-                "Recuperar",
-                "Cancelar");
-
-            if (!confirmar)
-                return;
-
-            IsBusy = true;
-            ActualizarComandos();
-
-            try
-            {
-                ApiResult<bool> result =
-                    await api.RecuperarAsync(item.TipoFotografiaIAId);
-
-                if (!result.Success)
-                {
-                    await MostrarErrorAsync(result.Message);
-                    return;
-                }
-
-                await MostrarExitoAsync(
-                    string.IsNullOrWhiteSpace(result.Message)
-                        ? "Tipo de fotografía recuperado correctamente."
-                        : result.Message);
-
-                await CargarDespuesDeOperacionAsync();
-            }
-            finally
-            {
-                IsBusy = false;
-                ActualizarComandos();
-            }
-        }
-
-        private async Task CargarDespuesDeOperacionAsync()
-        {
-            IsBusy = false;
-            await CargarAsync();
-            IsBusy = true;
+            if (recargar)
+                await CargarAsync();
         }
 
         private static Task MostrarErrorAsync(string mensaje) =>
@@ -309,10 +329,11 @@ namespace CONATRADEC.ViewModels
             NuevoCommand.ChangeCanExecute();
             ActualizarCommand.ChangeCanExecute();
             BuscarCommand.ChangeCanExecute();
+            LimpiarCommand.ChangeCanExecute();
+            EliminadosCommand.ChangeCanExecute();
             VerCommand.ChangeCanExecute();
             EditarCommand.ChangeCanExecute();
             EliminarCommand.ChangeCanExecute();
-            RecuperarCommand.ChangeCanExecute();
         }
     }
 }

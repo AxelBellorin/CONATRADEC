@@ -160,7 +160,7 @@ namespace CONATRADEC.Services
         {
             DiagnosticoIAProcesamientoEstado inicio =
                 await PostAsync<DiagnosticoIAProcesamientoEstado>(
-                    $"api/diagnostico-ia/{diagnosticoId}/decision-tecnico/solicitar-nueva-evaluacion",
+                    $"api/diagnostico-ia-revisiones/v2/{diagnosticoId}/tecnico",
                     new
                     {
                         motivo = motivo?.Trim() ?? string.Empty,
@@ -238,7 +238,7 @@ namespace CONATRADEC.Services
         {
             DiagnosticoIAProcesamientoEstado inicio =
                 await PostAsync<DiagnosticoIAProcesamientoEstado>(
-                    $"api/diagnostico-ia-procesamiento/{diagnosticoId}/segunda-revision",
+                    $"api/diagnostico-ia-revisiones/v2/{diagnosticoId}/analizador",
                     new
                     {
                         retroalimentacionAnalizador = retroalimentacion,

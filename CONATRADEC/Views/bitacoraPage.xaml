@@ -4,28 +4,25 @@
     x:Name="BitacoraPageRoot"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-        Shell.NavBarIsVisible="False"
+    Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <ContentView ControlTemplate="{StaticResource FooterTemplate}">
         <Grid>
             <CollectionView
+                x:Name="RegistrosCollectionView"
                 ItemsSource="{Binding Registros}"
                 SelectionMode="None"
-                ItemSizingStrategy="MeasureFirstItem">
+                ItemSizingStrategy="MeasureAllItems">
 
                 <CollectionView.Header>
                     <VerticalStackLayout
-                        Padding="{OnIdiom Phone='12,12,12,10', Tablet='18,16,18,12', Desktop='24,20,24,14'}"
+                        x:Name="ContenidoBitacora"
+                        Padding="24,20,24,14"
                         Spacing="12"
                         MaximumWidthRequest="1280"
                         HorizontalOptions="Center">
 
-                        <!--
-                            Encabezado propio para Bitácora. Se evita el solapamiento
-                            del botón primario en móvil dejando cada acción en su
-                            propia fila dentro del contenido desplazable.
-                        -->
                         <Border Style="{StaticResource ModernHeroCard}">
                             <VerticalStackLayout Spacing="12">
                                 <Button
@@ -45,11 +42,11 @@
                                 </VerticalStackLayout>
 
                                 <Button
-                                    Text="Actualizar"
+                                    Text="Actualizar resultados"
                                     Style="{StaticResource ModernPrimaryButton}"
                                     HorizontalOptions="Fill"
                                     IsEnabled="{Binding NotIsBusy}"
-                                    Command="{Binding BuscarCommand}" />
+                                    Command="{Binding ActualizarCommand}" />
                             </VerticalStackLayout>
                         </Border>
 
@@ -172,6 +169,7 @@
                                         <Entry
                                             Placeholder="Usuario, endpoint, descripción o correlación"
                                             Text="{Binding TextoBusqueda}"
+                                            MaxLength="200"
                                             ReturnType="Search"
                                             IsEnabled="{Binding NotIsBusy}"
                                             ReturnCommand="{Binding BuscarCommand}"
@@ -185,10 +183,17 @@
                                         IsEnabled="{Binding NotIsBusy}"
                                         Command="{Binding BuscarCommand}" />
                                 </Grid>
+
+                                <Label
+                                    Text="Los cambios en los filtros se aplican únicamente al pulsar Buscar. Cambiar de página conserva exactamente la consulta aplicada."
+                                    Style="{StaticResource ModernCaption}"
+                                    LineBreakMode="WordWrap" />
                             </VerticalStackLayout>
                         </Border>
 
-                        <VerticalStackLayout Spacing="2">
+                        <VerticalStackLayout
+                            Spacing="2"
+                            IsVisible="{Binding MostrarResumenResultados}">
                             <Label
                                 Text="{Binding ResumenResultados}"
                                 FontFamily="MontserratBold"
@@ -202,10 +207,6 @@
                                 MaxLines="2" />
                         </VerticalStackLayout>
 
-                        <!--
-                            Se conserva fuera de EmptyView por compatibilidad con
-                            WinUI cuando el origen queda vacío con Header y Footer.
-                        -->
                         <Border
                             IsVisible="{Binding MostrarSinResultados}"
                             Style="{StaticResource ModernEmptyStateCard}"
@@ -242,9 +243,7 @@
                     <DataTemplate>
                         <Border
                             Margin="{OnIdiom Phone='12,5', Tablet='18,6', Desktop='24,6'}"
-                            HeightRequest="{OnIdiom Phone=218, Tablet=222, Desktop=224}"
-                            MinimumHeightRequest="{OnIdiom Phone=218, Tablet=222, Desktop=224}"
-                            MaximumHeightRequest="{OnIdiom Phone=218, Tablet=222, Desktop=224}"
+                            MinimumHeightRequest="200"
                             MaximumWidthRequest="1280"
                             HorizontalOptions="Fill"
                             Style="{StaticResource ModernCatalogCard}">
@@ -255,16 +254,8 @@
                                     CommandParameter="{Binding .}" />
                             </Border.GestureRecognizers>
 
-                            <Grid
-                                RowDefinitions="56,40,74"
-                                RowSpacing="8">
-
-                                <!--
-                                    Encabezado de altura fija. Los valores variables se recortan
-                                    visualmente sin modificar la geometría del registro.
-                                -->
+                            <VerticalStackLayout Spacing="10">
                                 <Grid
-                                    Grid.Row="0"
                                     ColumnDefinitions="Auto,*,Auto"
                                     ColumnSpacing="12">
                                     <Border
@@ -290,7 +281,7 @@
                                             FontAttributes="Bold"
                                             FontSize="15"
                                             TextColor="{StaticResource color_Verde}"
-                                            MaxLines="1"
+                                            MaxLines="2"
                                             LineBreakMode="TailTruncation" />
                                         <Label
                                             Text="{Binding Modulo}"
@@ -298,14 +289,13 @@
                                             FontAttributes="Bold"
                                             FontSize="13"
                                             TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
-                                            MaxLines="1"
+                                            MaxLines="2"
                                             LineBreakMode="TailTruncation" />
                                     </VerticalStackLayout>
 
                                     <Border
                                         Grid.Column="2"
                                         Padding="9,4"
-                                        MinimumWidthRequest="{OnIdiom Phone=112, Tablet=118, Desktop=120}"
                                         StrokeThickness="0"
                                         StrokeShape="RoundRectangle 9"
                                         HorizontalOptions="End"
@@ -338,87 +328,61 @@
                                     </Border>
                                 </Grid>
 
-                                <!--
-                                    Se reserva exactamente el mismo bloque para la descripción.
-                                    El texto completo continúa disponible en el detalle.
-                                -->
                                 <Label
-                                    Grid.Row="1"
                                     Text="{Binding Descripcion}"
                                     FontFamily="MontserratMedium"
                                     FontSize="12.5"
                                     TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
-                                    LineBreakMode="TailTruncation"
-                                    MaxLines="2"
-                                    VerticalTextAlignment="Start" />
+                                    LineBreakMode="WordWrap"
+                                    MaxLines="3" />
 
-                                <!--
-                                    Rejilla fija de metadatos. Ningún valor puede aumentar la
-                                    altura de la tarjeta; los textos extensos se truncan en la lista.
-                                -->
                                 <Grid
-                                    Grid.Row="2"
                                     ColumnDefinitions="*,*"
-                                    RowDefinitions="24,24,24"
+                                    RowDefinitions="Auto,Auto,Auto"
                                     ColumnSpacing="12"
-                                    RowSpacing="1"
-                                    VerticalOptions="Fill">
-
+                                    RowSpacing="5">
                                     <Label
-                                        Grid.Row="0"
-                                        Grid.Column="0"
                                         Text="{Binding FechaHoraTexto}"
                                         Style="{StaticResource ModernCaption}"
                                         MaxLines="1"
-                                        LineBreakMode="TailTruncation"
-                                        VerticalTextAlignment="Center" />
-
+                                        LineBreakMode="TailTruncation" />
                                     <Label
-                                        Grid.Row="0"
                                         Grid.Column="1"
                                         Text="{Binding UsuarioTexto}"
                                         Style="{StaticResource ModernCaption}"
                                         MaxLines="1"
-                                        LineBreakMode="TailTruncation"
-                                        VerticalTextAlignment="Center" />
-
+                                        LineBreakMode="TailTruncation" />
                                     <Label
                                         Grid.Row="1"
-                                        Grid.Column="0"
                                         Text="{Binding RolTexto}"
                                         Style="{StaticResource ModernCaption}"
                                         MaxLines="1"
-                                        LineBreakMode="TailTruncation"
-                                        VerticalTextAlignment="Center" />
-
+                                        LineBreakMode="TailTruncation" />
                                     <Label
                                         Grid.Row="1"
                                         Grid.Column="1"
                                         Text="{Binding DuracionTexto}"
                                         Style="{StaticResource ModernCaption}"
                                         MaxLines="1"
-                                        LineBreakMode="TailTruncation"
-                                        VerticalTextAlignment="Center" />
-
+                                        LineBreakMode="TailTruncation" />
                                     <Label
                                         Grid.Row="2"
-                                        Grid.Column="0"
                                         Grid.ColumnSpan="2"
                                         Text="{Binding CambiosTexto}"
                                         Style="{StaticResource ModernCaption}"
                                         MaxLines="1"
-                                        LineBreakMode="TailTruncation"
-                                        VerticalTextAlignment="Center" />
+                                        LineBreakMode="TailTruncation" />
                                 </Grid>
-                            </Grid>
+                            </VerticalStackLayout>
                         </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
 
                 <CollectionView.Footer>
                     <Grid
+                        x:Name="PaginacionBitacora"
                         IsVisible="{Binding MostrarPaginacion}"
-                        Padding="{OnIdiom Phone='12,16,12,28', Tablet='18,18,18,30', Desktop='24,20,24,32'}"
+                        Padding="12,16,12,28"
                         ColumnDefinitions="Auto,*,Auto"
                         ColumnSpacing="10"
                         MaximumWidthRequest="620"
@@ -447,7 +411,6 @@
                 </CollectionView.Footer>
             </CollectionView>
 
-            <!-- Relay real: sólo anima mientras el ViewModel está ocupado. -->
             <Grid
                 IsVisible="{Binding IsBusy}"
                 BackgroundColor="#66000000"

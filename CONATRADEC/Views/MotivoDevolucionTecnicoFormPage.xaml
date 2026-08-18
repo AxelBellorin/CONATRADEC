@@ -24,6 +24,16 @@
                         IsPrimaryVisible="False" />
 
                     <Border
+                        IsVisible="{Binding SinPermisoOperacion}"
+                        Style="{StaticResource ModernWarningBanner}">
+                        <Label
+                            Text="{Binding MensajeSinPermiso}"
+                            HorizontalTextAlignment="Center"
+                            FontFamily="MontserratMedium"
+                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                    </Border>
+
+                    <Border
                         IsVisible="{Binding TieneMensajeEstado}"
                         Style="{StaticResource ModernWarningBanner}">
                         <HorizontalStackLayout Spacing="10">
@@ -43,7 +53,9 @@
                         </HorizontalStackLayout>
                     </Border>
 
-                    <Border Style="{StaticResource ModernFormCard}">
+                    <Border
+                        IsVisible="{Binding PuedeMostrarFormulario}"
+                        Style="{StaticResource ModernFormCard}">
                         <VerticalStackLayout Spacing="14">
                             <VerticalStackLayout Spacing="3">
                                 <Label
@@ -51,20 +63,21 @@
                                     Style="{StaticResource ModernSectionTitle}"
                                     FontSize="18" />
                                 <Label
-                                    Text="Defina el código, nombre e instrucciones que recibirá el técnico cuando se solicite una corrección."
+                                    Text="El código identifica históricamente el motivo y no puede cambiarse después de crearlo."
                                     Style="{StaticResource ModernPageSubtitle}" />
                             </VerticalStackLayout>
 
                             <Grid
-                                RowDefinitions="Auto,Auto"
+                                x:Name="IdentificacionGrid"
+                                ColumnDefinitions="*,170"
+                                RowDefinitions="Auto"
                                 ColumnSpacing="12"
                                 RowSpacing="11">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="{OnIdiom Phone=105, Tablet=145, Desktop=170}" />
-                                </Grid.ColumnDefinitions>
-
-                                <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="4">
+                                <VerticalStackLayout
+                                    x:Name="CodigoStack"
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    Spacing="4">
                                     <Label Text="Código *" Style="{StaticResource ModernFieldLabel}" />
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <Entry
@@ -84,27 +97,49 @@
                                     </Border>
                                 </VerticalStackLayout>
 
-                                <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="4">
+                                <VerticalStackLayout
+                                    x:Name="OrdenStack"
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Spacing="4">
                                     <Label Text="Orden *" Style="{StaticResource ModernFieldLabel}" />
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <Entry
                                             Text="{Binding OrdenTexto}"
                                             Keyboard="Numeric"
                                             MaxLength="3"
-                                            Style="{StaticResource ModernEntry}" />
-                                    </Border>
-                                </VerticalStackLayout>
-
-                                <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="4">
-                                    <Label Text="Nombre *" Style="{StaticResource ModernFieldLabel}" />
-                                    <Border Style="{StaticResource ModernInputBorder}">
-                                        <Entry
-                                            Text="{Binding Nombre}"
-                                            MaxLength="140"
-                                            Style="{StaticResource ModernEntry}" />
+                                            Style="{StaticResource ModernEntry}">
+                                            <Entry.Triggers>
+                                                <DataTrigger
+                                                    TargetType="Entry"
+                                                    Binding="{Binding PuedeEditarFormulario}"
+                                                    Value="False">
+                                                    <Setter Property="IsReadOnly" Value="True" />
+                                                </DataTrigger>
+                                            </Entry.Triggers>
+                                        </Entry>
                                     </Border>
                                 </VerticalStackLayout>
                             </Grid>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Nombre *" Style="{StaticResource ModernFieldLabel}" />
+                                <Border Style="{StaticResource ModernInputBorder}">
+                                    <Entry
+                                        Text="{Binding Nombre}"
+                                        MaxLength="140"
+                                        Style="{StaticResource ModernEntry}">
+                                        <Entry.Triggers>
+                                            <DataTrigger
+                                                TargetType="Entry"
+                                                Binding="{Binding PuedeEditarFormulario}"
+                                                Value="False">
+                                                <Setter Property="IsReadOnly" Value="True" />
+                                            </DataTrigger>
+                                        </Entry.Triggers>
+                                    </Entry>
+                                </Border>
+                            </VerticalStackLayout>
 
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Descripción" Style="{StaticResource ModernFieldLabel}" />
@@ -120,7 +155,16 @@
                                         BackgroundColor="Transparent"
                                         FontFamily="MontserratMedium"
                                         FontSize="13"
-                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}">
+                                        <Editor.Triggers>
+                                            <DataTrigger
+                                                TargetType="Editor"
+                                                Binding="{Binding PuedeEditarFormulario}"
+                                                Value="False">
+                                                <Setter Property="IsReadOnly" Value="True" />
+                                            </DataTrigger>
+                                        </Editor.Triggers>
+                                    </Editor>
                                 </Border>
                             </VerticalStackLayout>
 
@@ -138,29 +182,42 @@
                                         BackgroundColor="Transparent"
                                         FontFamily="MontserratMedium"
                                         FontSize="13"
-                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}">
+                                        <Editor.Triggers>
+                                            <DataTrigger
+                                                TargetType="Editor"
+                                                Binding="{Binding PuedeEditarFormulario}"
+                                                Value="False">
+                                                <Setter Property="IsReadOnly" Value="True" />
+                                            </DataTrigger>
+                                        </Editor.Triggers>
+                                    </Editor>
                                 </Border>
                             </VerticalStackLayout>
 
                             <Border Style="{StaticResource ModernSoftPanel}">
                                 <VerticalStackLayout Spacing="10">
-                                    <HorizontalStackLayout Spacing="8">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                                         <CheckBox
                                             IsChecked="{Binding RequiereNuevaFotografia}"
+                                            IsEnabled="{Binding PuedeEditarFormulario}"
                                             Color="{StaticResource color_Cafe}"
                                             VerticalOptions="Center" />
                                         <Label
+                                            Grid.Column="1"
                                             Text="Requiere una nueva fotografía"
                                             VerticalTextAlignment="Center"
                                             FontFamily="MontserratBold"
                                             FontAttributes="Bold"
                                             FontSize="12"
-                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
-                                    </HorizontalStackLayout>
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                            LineBreakMode="WordWrap" />
+                                    </Grid>
 
-                                    <HorizontalStackLayout Spacing="8">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                                         <CheckBox
                                             IsChecked="{Binding PermiteCorregirMetadatos}"
+                                            IsEnabled="{Binding PuedeEditarFormulario}"
                                             Color="{StaticResource color_Verde}"
                                             VerticalOptions="Center">
                                             <CheckBox.Triggers>
@@ -173,13 +230,14 @@
                                             </CheckBox.Triggers>
                                         </CheckBox>
                                         <Label
+                                            Grid.Column="1"
                                             Text="Permite corregir tipo de fotografía y fecha sobre la evidencia actual"
                                             VerticalTextAlignment="Center"
                                             FontFamily="MontserratMedium"
                                             FontSize="12"
                                             TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}"
                                             LineBreakMode="WordWrap" />
-                                    </HorizontalStackLayout>
+                                    </Grid>
 
                                     <Label
                                         Text="{Binding AyudaCorreccion}"
@@ -189,16 +247,25 @@
                             </Border>
 
                             <Grid
+                                x:Name="PieAccionesGrid"
                                 ColumnDefinitions="*,Auto"
-                                ColumnSpacing="10">
+                                RowDefinitions="Auto"
+                                ColumnSpacing="10"
+                                RowSpacing="8">
                                 <Label
+                                    x:Name="CamposObligatoriosLabel"
+                                    Grid.Row="0"
+                                    Grid.Column="0"
                                     Text="Los campos marcados con * son obligatorios."
                                     Style="{StaticResource ModernCaption}"
                                     VerticalOptions="Center" />
                                 <Button
+                                    x:Name="GuardarButton"
+                                    Grid.Row="0"
                                     Grid.Column="1"
                                     Text="Guardar motivo"
                                     Command="{Binding GuardarCommand}"
+                                    IsVisible="{Binding MostrarGuardar}"
                                     Style="{StaticResource ModernPrimaryButton}"
                                     MinimumWidthRequest="170" />
                             </Grid>
@@ -219,19 +286,19 @@
                     Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 15">
-                    <HorizontalStackLayout Spacing="10">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
                         <ActivityIndicator
                             IsRunning="{Binding IsBusy}"
                             Color="{StaticResource color_Naranja}"
-                            WidthRequest="24"
-                            HeightRequest="24" />
+                            WidthRequest="28"
+                            HeightRequest="28" />
                         <Label
-                            Text="Procesando motivo..."
-                            VerticalOptions="Center"
+                            Text="{Binding MensajeEstado}"
+                            HorizontalTextAlignment="Center"
                             FontFamily="MontserratBold"
                             FontSize="11.5"
                             TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
-                    </HorizontalStackLayout>
+                    </VerticalStackLayout>
                 </Border>
             </Grid>
         </Grid>

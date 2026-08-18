@@ -6,6 +6,9 @@ namespace CONATRADEC.Services
 {
     public sealed class DiagnosticoIAConfiguracionApiService
     {
+        private const string RutaV2 =
+            "api/diagnostico-ia/configuracion/v2";
+
         private static readonly JsonSerializerOptions JsonOptions =
             new(JsonSerializerDefaults.Web)
             {
@@ -33,7 +36,7 @@ namespace CONATRADEC.Services
 
             using HttpResponseMessage response =
                 await client.GetAsync(
-                    "api/diagnostico-ia/configuracion",
+                    RutaV2,
                     cancellationToken);
 
             return await LeerRespuestaAsync(
@@ -50,7 +53,7 @@ namespace CONATRADEC.Services
 
             using HttpResponseMessage response =
                 await client.PutAsJsonAsync(
-                    "api/diagnostico-ia/configuracion",
+                    RutaV2,
                     request,
                     JsonOptions,
                     cancellationToken);

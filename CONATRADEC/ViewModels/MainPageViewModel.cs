@@ -1,6 +1,5 @@
 ﻿using CONATRADEC.Models;
 using CONATRADEC.Services;
-using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 using System.Collections.ObjectModel;
@@ -18,27 +17,37 @@ namespace CONATRADEC.ViewModels
         private readonly GuardarTodoApiService
             guardarTodoApiService = new();
 
+        // Filtros escritos: pueden cambiar libremente sin ejecutar HTTP.
         private string textoBusqueda = string.Empty;
-        private string mensaje = string.Empty;
-        private string errorRangoFecha = string.Empty;
         private bool usarFiltroRangoFecha;
         private DateTime fechaDesde = DateTime.Today.AddDays(-6);
         private DateTime fechaHasta = DateTime.Today;
+        private string alcanceListadoSeleccionado = AlcanceTodos;
+        private UsuarioFiltroAnalisis? usuarioFiltroSeleccionado;
+
+        // Filtros aplicados: son la fuente de verdad para refrescar y paginar.
+        private string textoBusquedaAplicado = string.Empty;
+        private bool usarFiltroRangoFechaAplicado;
+        private DateTime? fechaDesdeAplicada;
+        private DateTime? fechaHastaAplicada;
+        private string alcanceListadoAplicado = AlcanceTodos;
+        private int? usuarioFiltroAplicado;
+
+        private string mensaje = string.Empty;
+        private string errorRangoFecha = string.Empty;
         private bool esAdministrador;
         private bool seHaListado;
         private bool isRefreshing;
         private bool cargandoListado;
-        private bool cargandoMas;
         private bool cargandoUsuarios;
         private bool usuariosCargados;
         private bool ultimaCargaExitosa;
-        private int paginaActual;
+        private int paginaActual = 1;
         private int totalPaginas = 1;
         private int totalRegistros;
-        private string alcanceListadoSeleccionado = AlcanceTodos;
-        private UsuarioFiltroAnalisis? usuarioFiltroSeleccionado;
+        private int tamanoPaginaActual;
+
         private CancellationTokenSource? cargaCancellationTokenSource;
-        private CancellationTokenSource? filtroCancellationTokenSource;
         private CancellationTokenSource? usuariosCancellationTokenSource;
 
         public MainPageViewModel()
@@ -56,47 +65,50 @@ namespace CONATRADEC.ViewModels
             };
 
             ListarCommand = new Command(
-                async () => await ListarManualmenteAsync(),
-                () => !IsBusy && !CargandoListado && CanView);
+                async () => await AplicarFiltrosYBuscarAsync(),
+                PuedeEjecutarInteraccionListado);
 
             ActualizarCommand = new Command(
                 async () => await ActualizarAsync(),
-                () => !IsBusy && !CargandoListado && SeHaListado && CanView);
+                () => PuedeEjecutarConsulta() && SeHaListado);
 
             BuscarCommand = new Command(
-                async () => await RecargarPorFiltroAsync(),
-                () => !IsBusy && !CargandoListado && SeHaListado && CanView);
+                async () => await AplicarFiltrosYBuscarAsync(),
+                () => PuedeEjecutarInteraccionListado() && SeHaListado);
 
-            CargarMasCommand = new Command(
-                async () => await CargarMasAsync(),
-                () => !IsBusy && !CargandoListado && !CargandoMas &&
-                      PuedeCargarMas && CanView);
+            PaginaAnteriorCommand = new Command(
+                async () => await IrPaginaAsync(paginaActual - 1),
+                () => PuedeEjecutarInteraccionListado() && PuedeIrAnterior);
+
+            PaginaSiguienteCommand = new Command(
+                async () => await IrPaginaAsync(paginaActual + 1),
+                () => PuedeEjecutarInteraccionListado() && PuedeIrSiguiente);
 
             VisualizarCommand =
                 new Command<AnalisisGuardadoResumen>(
                     async item => await VisualizarAsync(item),
-                    item => !IsBusy && !CargandoListado &&
+                    item => !IsBusy && !CargandoListado && !IsRefreshing &&
                             item != null && CanView);
 
             EditarCommand =
                 new Command<AnalisisGuardadoResumen>(
                     async item => await EditarAsync(item),
-                    item => !IsBusy && !CargandoListado &&
+                    item => !IsBusy && !CargandoListado && !IsRefreshing &&
                             item != null && CanEdit);
 
             EliminarCommand =
                 new Command<AnalisisGuardadoResumen>(
                     async item => await EliminarAsync(item),
-                    item => !IsBusy && !CargandoListado &&
+                    item => !IsBusy && !CargandoListado && !IsRefreshing &&
                             item != null && CanDelete);
 
             LimpiarFiltrosCommand = new Command(
                 async () => await LimpiarFiltrosAsync(),
-                () => !IsBusy && !CargandoListado && SeHaListado);
+                () => PuedeEjecutarInteraccionListado() && SeHaListado);
 
             NuevoAnalisisCommand = new Command(
                 async () => await NuevoAnalisisAsync(),
-                () => !IsBusy && !CargandoListado && CanAdd);
+                () => !IsBusy && !CargandoListado && !IsRefreshing && CanAdd);
         }
 
         public ObservableCollection<AnalisisGuardadoResumen>
@@ -111,7 +123,8 @@ namespace CONATRADEC.ViewModels
         public Command ListarCommand { get; }
         public Command ActualizarCommand { get; }
         public Command BuscarCommand { get; }
-        public Command CargarMasCommand { get; }
+        public Command PaginaAnteriorCommand { get; }
+        public Command PaginaSiguienteCommand { get; }
         public Command LimpiarFiltrosCommand { get; }
         public Command NuevoAnalisisCommand { get; }
         public Command<AnalisisGuardadoResumen> VisualizarCommand { get; }
@@ -142,6 +155,7 @@ namespace CONATRADEC.ViewModels
 
                 isRefreshing = value;
                 OnPropertyChanged();
+                ActualizarComandos();
             }
         }
 
@@ -175,26 +189,16 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool CargandoMas
-        {
-            get => cargandoMas;
-            private set
-            {
-                if (cargandoMas == value)
-                    return;
-
-                cargandoMas = value;
-                OnPropertyChanged();
-                ActualizarComandos();
-            }
-        }
-
         public string Mensaje
         {
             get => mensaje;
             private set
             {
-                mensaje = value ?? string.Empty;
+                string nuevo = value ?? string.Empty;
+                if (mensaje == nuevo)
+                    return;
+
+                mensaje = nuevo;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneMensaje));
             }
@@ -209,13 +213,11 @@ namespace CONATRADEC.ViewModels
             set
             {
                 string nuevo = value ?? string.Empty;
-
                 if (textoBusqueda == nuevo)
                     return;
 
                 textoBusqueda = nuevo;
                 OnPropertyChanged();
-                ProgramarRecargaFiltros();
             }
         }
 
@@ -228,8 +230,8 @@ namespace CONATRADEC.ViewModels
                     return;
 
                 usarFiltroRangoFecha = value;
+                ErrorRangoFecha = string.Empty;
                 OnPropertyChanged();
-                ProgramarRecargaFiltros();
             }
         }
 
@@ -239,15 +241,12 @@ namespace CONATRADEC.ViewModels
             set
             {
                 DateTime nueva = value.Date;
-
                 if (fechaDesde == nueva)
                     return;
 
                 fechaDesde = nueva;
+                ErrorRangoFecha = string.Empty;
                 OnPropertyChanged();
-
-                if (UsarFiltroRangoFecha)
-                    ProgramarRecargaFiltros();
             }
         }
 
@@ -257,15 +256,12 @@ namespace CONATRADEC.ViewModels
             set
             {
                 DateTime nueva = value.Date;
-
                 if (fechaHasta == nueva)
                     return;
 
                 fechaHasta = nueva;
+                ErrorRangoFecha = string.Empty;
                 OnPropertyChanged();
-
-                if (UsarFiltroRangoFecha)
-                    ProgramarRecargaFiltros();
             }
         }
 
@@ -285,8 +281,7 @@ namespace CONATRADEC.ViewModels
 
         /*
          * Se conserva el nombre histórico EsAdministrador para no romper el
-         * XAML existente. Desde esta versión significa "puede ver análisis de
-         * todos los usuarios" y depende exclusivamente del permiso dedicado.
+         * XAML existente. Su significado es permiso de alcance global.
          */
         public bool EsAdministrador
         {
@@ -312,7 +307,7 @@ namespace CONATRADEC.ViewModels
             set
             {
                 string nuevo = string.IsNullOrWhiteSpace(value)
-                    ? AlcanceTodos
+                    ? (EsAdministrador ? AlcanceTodos : AlcancePropios)
                     : value;
 
                 if (alcanceListadoSeleccionado == nuevo)
@@ -323,22 +318,10 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(ListarSoloPropios));
                 OnPropertyChanged(nameof(PuedeFiltrarPorUsuario));
 
+                // Cambiar alcance solo modifica la interfaz. No ejecuta HTTP.
                 usuarioFiltroSeleccionado =
                     UsuariosFiltro.FirstOrDefault();
-
                 OnPropertyChanged(nameof(UsuarioFiltroSeleccionado));
-
-                if (SeHaListado)
-                {
-                    if (!ListarSoloPropios &&
-                        !usuariosCargados &&
-                        !CargandoUsuarios)
-                    {
-                        _ = CargarUsuariosFiltroAsync();
-                    }
-
-                    ProgramarRecargaFiltros();
-                }
             }
         }
 
@@ -353,6 +336,7 @@ namespace CONATRADEC.ViewModels
             EsAdministrador &&
             !ListarSoloPropios &&
             SeHaListado &&
+            usuariosCargados &&
             UsuariosFiltro.Count > 0 &&
             !CargandoUsuarios;
 
@@ -366,9 +350,6 @@ namespace CONATRADEC.ViewModels
 
                 usuarioFiltroSeleccionado = value;
                 OnPropertyChanged();
-
-                if (PuedeFiltrarPorUsuario)
-                    ProgramarRecargaFiltros();
             }
         }
 
@@ -389,6 +370,7 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(SubtituloListaVacia));
                 OnPropertyChanged(nameof(TotalMostradoTexto));
                 OnPropertyChanged(nameof(PuedeFiltrarPorUsuario));
+                OnPropertyChanged(nameof(MostrarPaginacion));
                 ActualizarComandos();
             }
         }
@@ -398,40 +380,74 @@ namespace CONATRADEC.ViewModels
         public bool MostrarEsperaInicial =>
             NoSeHaListado && !CargandoListado;
 
-        public bool TieneAnalisis => AnalisisGuardados.Count > 0;
+        public bool TieneAnalisis =>
+            AnalisisGuardados.Count > 0;
 
         public bool MostrarListaVacia =>
             SeHaListado &&
             !TieneAnalisis &&
-            !IsBusy;
+            !IsBusy &&
+            !CargandoListado;
 
-        public bool PuedeCargarMas =>
-            SeHaListado && paginaActual < totalPaginas;
-
+        /// <summary>
+        /// Indica si la última consulta del listado terminó correctamente.
+        /// MainPage la utiliza para confirmar una actualización pendiente
+        /// únicamente después de recibir datos válidos del origen actual.
+        /// </summary>
         public bool UltimaCargaExitosa => ultimaCargaExitosa;
 
-        public bool MostrarFinLista =>
+        public int PaginaActual =>
+            Math.Max(1, paginaActual);
+
+        public int TotalPaginas =>
+            Math.Max(1, totalPaginas);
+
+        public bool PuedeIrAnterior =>
+            SeHaListado && paginaActual > 1;
+
+        public bool PuedeIrSiguiente =>
+            SeHaListado && paginaActual < totalPaginas;
+
+        public bool MostrarPaginacion =>
+            CanView &&
             SeHaListado &&
-            TieneAnalisis &&
-            !PuedeCargarMas &&
-            !CargandoMas;
+            (AnalisisGuardados.Count > 0 || totalPaginas > 1);
+
+        public string PaginaTexto =>
+            $"Página {PaginaActual} de {TotalPaginas}";
+
+        public string RangoPaginaTexto
+        {
+            get
+            {
+                if (totalRegistros <= 0 ||
+                    AnalisisGuardados.Count == 0)
+                {
+                    return "Sin registros en esta página";
+                }
+
+                return AnalisisGuardados.Count == 1
+                    ? $"1 análisis en esta página · {totalRegistros} en total"
+                    : $"{AnalisisGuardados.Count} análisis en esta página · {totalRegistros} en total";
+            }
+        }
 
         public string TextoBotonListar =>
-            SeHaListado ? "Actualizar lista" : "Listar análisis";
+            SeHaListado ? "Aplicar filtros" : "Listar análisis";
 
         public string MensajeListaVacia =>
             SeHaListado
                 ? "No hay análisis para mostrar"
-                : "Los análisis se cargan bajo demanda";
+                : "Preparando el listado";
 
         public string SubtituloListaVacia =>
             SeHaListado
                 ? "Cambie los filtros o cree un nuevo análisis."
-                : "Presione Listar análisis para cargar los primeros registros.";
+                : "Los primeros registros se cargarán al ingresar al módulo.";
 
         public string TotalMostradoTexto =>
             !SeHaListado
-                ? "Listado bajo demanda"
+                ? "Cargando información fresca"
                 : totalRegistros == 1
                     ? "1 análisis encontrado"
                     : $"{totalRegistros} análisis encontrados";
@@ -450,102 +466,230 @@ namespace CONATRADEC.ViewModels
                 OnPropertyChanged(nameof(AlcanceListadoSeleccionado));
                 OnPropertyChanged(nameof(ListarSoloPropios));
             }
-            else if (string.Equals(
-                         alcanceListadoSeleccionado,
-                         AlcancePropios,
-                         StringComparison.OrdinalIgnoreCase) &&
-                     !SeHaListado)
-            {
-                /*
-                 * Una nueva sesión con alcance global inicia mostrando todos.
-                 * Después el usuario puede seleccionar "Solo mis análisis".
-                 */
-                alcanceListadoSeleccionado = AlcanceTodos;
-                OnPropertyChanged(nameof(AlcanceListadoSeleccionado));
-                OnPropertyChanged(nameof(ListarSoloPropios));
-            }
 
             ActualizarComandos();
         }
 
-        public async Task CargarAnalisisAsync(
-            bool mostrarIndicador = true,
-            bool reiniciar = true)
+        /// <summary>
+        /// Reinicia exclusivamente el estado del listado al comenzar una visita
+        /// real y obtiene la primera página fresca. Los subflujos internos no
+        /// llaman este método y por eso conservan filtros y página.
+        /// </summary>
+        public async Task IniciarNuevaVisitaAsync()
         {
-            if (!CanView)
+            CancelarCarga();
+
+            AnalisisGuardados.Clear();
+            UsuariosFiltro.Clear();
+            usuariosCargados = false;
+            usuarioFiltroSeleccionado = null;
+
+            textoBusqueda = string.Empty;
+            usarFiltroRangoFecha = false;
+            fechaDesde = DateTime.Today.AddDays(-6);
+            fechaHasta = DateTime.Today;
+            errorRangoFecha = string.Empty;
+
+            alcanceListadoSeleccionado =
+                EsAdministrador ? AlcanceTodos : AlcancePropios;
+
+            paginaActual = 1;
+            totalPaginas = 1;
+            totalRegistros = 0;
+            tamanoPaginaActual = ObtenerTamanoPagina();
+            ultimaCargaExitosa = false;
+            SeHaListado = false;
+            Mensaje = string.Empty;
+
+            OnPropertyChanged(nameof(TextoBusqueda));
+            OnPropertyChanged(nameof(UsarFiltroRangoFecha));
+            OnPropertyChanged(nameof(FechaDesde));
+            OnPropertyChanged(nameof(FechaHasta));
+            OnPropertyChanged(nameof(ErrorRangoFecha));
+            OnPropertyChanged(nameof(TieneErrorRangoFecha));
+            OnPropertyChanged(nameof(AlcanceListadoSeleccionado));
+            OnPropertyChanged(nameof(ListarSoloPropios));
+            OnPropertyChanged(nameof(UsuarioFiltroSeleccionado));
+
+            AplicarFiltrosEscritos();
+
+            await CargarPaginaAsync(
+                1,
+                mostrarIndicador: true);
+
+            if (ultimaCargaExitosa &&
+                EsAdministrador &&
+                !ListarSoloPropiosAplicado)
+            {
+                await CargarUsuariosFiltroAsync();
+            }
+        }
+
+        public async Task RecargarPaginaActualAsync()
+        {
+            if (!SeHaListado)
                 return;
 
-            if (reiniciar && (IsBusy || CargandoListado))
-                return;
+            await CargarPaginaAsync(
+                Math.Max(1, paginaActual),
+                mostrarIndicador: true);
+        }
 
-            if (!reiniciar &&
-                (CargandoMas || !PuedeCargarMas))
+        private bool ListarSoloPropiosAplicado =>
+            !EsAdministrador ||
+            string.Equals(
+                alcanceListadoAplicado,
+                AlcancePropios,
+                StringComparison.OrdinalIgnoreCase);
+
+        private int ObtenerTamanoPagina() =>
+            DeviceInfo.Current.Platform == DevicePlatform.WinUI
+                ? 12
+                : 6;
+
+        private bool PuedeEjecutarConsulta() =>
+            !IsBusy &&
+            !CargandoListado &&
+            !IsRefreshing &&
+            CanView;
+
+        private bool PuedeEjecutarInteraccionListado() =>
+            PuedeEjecutarConsulta() &&
+            !IsRefreshing;
+
+        private bool ValidarRangoFechaEscrito()
+        {
+            ErrorRangoFecha = string.Empty;
+
+            if (!UsarFiltroRangoFecha)
+                return true;
+
+            if (FechaDesde.Date <= FechaHasta.Date)
+                return true;
+
+            ErrorRangoFecha =
+                "La fecha Desde no puede ser mayor que la fecha Hasta.";
+
+            return false;
+        }
+
+        private void AplicarFiltrosEscritos()
+        {
+            textoBusquedaAplicado =
+                TextoBusqueda.Trim();
+
+            usarFiltroRangoFechaAplicado =
+                UsarFiltroRangoFecha;
+
+            fechaDesdeAplicada =
+                UsarFiltroRangoFecha
+                    ? FechaDesde.Date
+                    : null;
+
+            fechaHastaAplicada =
+                UsarFiltroRangoFecha
+                    ? FechaHasta.Date
+                    : null;
+
+            alcanceListadoAplicado =
+                EsAdministrador
+                    ? AlcanceListadoSeleccionado
+                    : AlcancePropios;
+
+            usuarioFiltroAplicado =
+                !ListarSoloPropiosAplicado
+                    ? UsuarioFiltroSeleccionado?.UsuarioId
+                    : null;
+        }
+
+        private async Task AplicarFiltrosYBuscarAsync()
+        {
+            if (!PuedeEjecutarInteraccionListado() ||
+                !ValidarRangoFechaEscrito())
             {
                 return;
             }
 
-            if (!ValidarRangoFecha())
+            AplicarFiltrosEscritos();
+
+            await CargarPaginaAsync(
+                1,
+                mostrarIndicador: true);
+
+            if (ultimaCargaExitosa &&
+                EsAdministrador &&
+                !ListarSoloPropiosAplicado &&
+                !usuariosCargados)
+            {
+                await CargarUsuariosFiltroAsync();
+            }
+        }
+
+        private async Task ActualizarAsync()
+        {
+            if (!SeHaListado || !PuedeEjecutarConsulta())
                 return;
-
-            CancellationTokenSource currentSource;
-
-            if (reiniciar)
-            {
-                cargaCancellationTokenSource?.Cancel();
-                cargaCancellationTokenSource?.Dispose();
-
-                currentSource = new CancellationTokenSource();
-                cargaCancellationTokenSource = currentSource;
-            }
-            else
-            {
-                currentSource =
-                    cargaCancellationTokenSource ??
-                    new CancellationTokenSource();
-
-                cargaCancellationTokenSource ??= currentSource;
-            }
-
-            CancellationToken cancellationToken =
-                currentSource.Token;
 
             try
             {
-                if (reiniciar)
-                {
-                    ultimaCargaExitosa = false;
-                    CargandoListado = true;
-                    Mensaje = string.Empty;
-                }
-                else
-                {
-                    CargandoMas = true;
-                }
+                IsRefreshing = true;
 
-                int paginaSolicitada = reiniciar
-                    ? 1
-                    : paginaActual + 1;
+                await CargarPaginaAsync(
+                    Math.Max(1, paginaActual),
+                    mostrarIndicador: false);
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
+        }
 
-                int tamanoPagina =
-                    DeviceInfo.Current.Platform == DevicePlatform.WinUI
-                        ? 12
-                        : 6;
+        private async Task IrPaginaAsync(int pagina)
+        {
+            if (!PuedeEjecutarInteraccionListado() ||
+                pagina < 1 ||
+                pagina > Math.Max(1, totalPaginas) ||
+                pagina == paginaActual)
+            {
+                return;
+            }
+
+            await CargarPaginaAsync(
+                pagina,
+                mostrarIndicador: true);
+        }
+
+        private async Task CargarPaginaAsync(
+            int paginaSolicitada,
+            bool mostrarIndicador)
+        {
+            if (!CanView || IsBusy || CargandoListado)
+                return;
+
+            cargaCancellationTokenSource?.Cancel();
+            cargaCancellationTokenSource?.Dispose();
+
+            var source = new CancellationTokenSource();
+            cargaCancellationTokenSource = source;
+            CancellationToken cancellationToken = source.Token;
+
+            try
+            {
+                ultimaCargaExitosa = false;
+                CargandoListado = mostrarIndicador;
+                Mensaje = string.Empty;
+
+                tamanoPaginaActual = ObtenerTamanoPagina();
 
                 ApiResult<AnalisisListadoPaginadoResponse> result =
                     await listadoApiService.ListarAsync(
-                        ListarSoloPropios,
-                        PuedeFiltrarPorUsuario
-                            ? UsuarioFiltroSeleccionado?.UsuarioId
-                            : null,
-                        TextoBusqueda,
-                        UsarFiltroRangoFecha
-                            ? FechaDesde
-                            : null,
-                        UsarFiltroRangoFecha
-                            ? FechaHasta
-                            : null,
-                        paginaSolicitada,
-                        tamanoPagina,
+                        ListarSoloPropiosAplicado,
+                        usuarioFiltroAplicado,
+                        textoBusquedaAplicado,
+                        fechaDesdeAplicada,
+                        fechaHastaAplicada,
+                        Math.Max(1, paginaSolicitada),
+                        tamanoPaginaActual,
                         cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested)
@@ -566,63 +710,38 @@ namespace CONATRADEC.ViewModels
 
                 AnalisisListadoPaginadoResponse data = result.Data;
 
-                /*
-                 * El backend devuelve el permiso efectivo usando el campo
-                 * histórico esAdministrador para compatibilidad. Nunca se
-                 * deduce el alcance por el nombre del rol.
-                 */
                 EsAdministrador = data.EsAdministrador;
 
-                if (!EsAdministrador &&
-                    !string.Equals(
-                        alcanceListadoSeleccionado,
-                        AlcancePropios,
-                        StringComparison.OrdinalIgnoreCase))
+                if (!EsAdministrador)
                 {
                     alcanceListadoSeleccionado = AlcancePropios;
+                    alcanceListadoAplicado = AlcancePropios;
+                    usuarioFiltroAplicado = null;
                     OnPropertyChanged(nameof(AlcanceListadoSeleccionado));
                     OnPropertyChanged(nameof(ListarSoloPropios));
                 }
 
-                if (reiniciar)
-                    AnalisisGuardados.Clear();
+                AnalisisGuardados.Clear();
 
                 foreach (AnalisisGuardadoResumen item in data.Items)
-                {
-                    if (AnalisisGuardados.Any(x =>
-                            x.AnalisisSueloCalculoId ==
-                            item.AnalisisSueloCalculoId))
-                    {
-                        continue;
-                    }
-
                     AnalisisGuardados.Add(item);
-                }
 
-                paginaActual = data.Pagina;
+                paginaActual = Math.Max(1, data.Pagina);
                 totalPaginas = Math.Max(1, data.TotalPaginas);
-                totalRegistros = data.TotalRegistros;
+                totalRegistros = Math.Max(0, data.TotalRegistros);
+                tamanoPaginaActual = Math.Max(
+                    1,
+                    data.TamanoPagina > 0
+                        ? data.TamanoPagina
+                        : tamanoPaginaActual);
+
                 SeHaListado = true;
                 ultimaCargaExitosa = true;
-
-                if (data.Usuarios.Count > 0)
-                {
-                    ConfigurarUsuarios(data.Usuarios);
-                    usuariosCargados = true;
-                }
-                else if (data.EsAdministrador &&
-                         !ListarSoloPropios &&
-                         !usuariosCargados &&
-                         !CargandoUsuarios)
-                {
-                    _ = CargarUsuariosFiltroAsync();
-                }
-
                 NotificarEstadoLista();
             }
             catch (OperationCanceledException)
             {
-                // La pantalla se cerró o un filtro reemplazó la consulta.
+                // La pantalla se cerró o una consulta posterior reemplazó esta.
             }
             catch (Exception ex)
             {
@@ -638,26 +757,19 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                if (reiniciar)
-                {
-                    CargandoListado = false;
-                    IsRefreshing = false;
-                }
-                else
-                {
-                    CargandoMas = false;
-                }
+                CargandoListado = false;
+                IsRefreshing = false;
 
                 if (ReferenceEquals(
                         cargaCancellationTokenSource,
-                        currentSource))
+                        source))
                 {
                     cargaCancellationTokenSource.Dispose();
                     cargaCancellationTokenSource = null;
                 }
                 else
                 {
-                    currentSource.Dispose();
+                    source.Dispose();
                 }
 
                 ActualizarComandos();
@@ -667,30 +779,12 @@ namespace CONATRADEC.ViewModels
 
         public void CancelarCarga()
         {
-            filtroCancellationTokenSource?.Cancel();
             cargaCancellationTokenSource?.Cancel();
             usuariosCancellationTokenSource?.Cancel();
 
             CargandoListado = false;
-            CargandoMas = false;
             CargandoUsuarios = false;
             IsRefreshing = false;
-        }
-
-        private bool ValidarRangoFecha()
-        {
-            ErrorRangoFecha = string.Empty;
-
-            if (!UsarFiltroRangoFecha)
-                return true;
-
-            if (FechaDesde.Date <= FechaHasta.Date)
-                return true;
-
-            ErrorRangoFecha =
-                "La fecha Desde no puede ser mayor que la fecha Hasta.";
-
-            return false;
         }
 
         private void ConfigurarUsuarios(
@@ -727,7 +821,7 @@ namespace CONATRADEC.ViewModels
         private async Task CargarUsuariosFiltroAsync()
         {
             if (!EsAdministrador ||
-                ListarSoloPropios ||
+                ListarSoloPropiosAplicado ||
                 usuariosCargados ||
                 CargandoUsuarios)
             {
@@ -748,11 +842,12 @@ namespace CONATRADEC.ViewModels
                     await listadoApiService.ListarUsuariosAsync(
                         source.Token);
 
-                if (source.IsCancellationRequested)
+                if (source.IsCancellationRequested ||
+                    !result.Success ||
+                    result.Data == null)
+                {
                     return;
-
-                if (!result.Success || result.Data == null)
-                    return;
+                }
 
                 ConfigurarUsuarios(result.Data);
                 usuariosCargados = true;
@@ -778,53 +873,8 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task ListarManualmenteAsync()
-        {
-            await CargarAnalisisAsync(
-                mostrarIndicador: true,
-                reiniciar: true);
-        }
-
-        private async Task ActualizarAsync()
-        {
-            if (!SeHaListado)
-                return;
-
-            try
-            {
-                IsRefreshing = true;
-
-                await CargarAnalisisAsync(
-                    mostrarIndicador: false,
-                    reiniciar: true);
-            }
-            finally
-            {
-                IsRefreshing = false;
-            }
-        }
-
-        private async Task RecargarPorFiltroAsync()
-        {
-            if (!SeHaListado || IsBusy || CargandoListado)
-                return;
-
-            await CargarAnalisisAsync(
-                mostrarIndicador: true,
-                reiniciar: true);
-        }
-
-        private async Task CargarMasAsync()
-        {
-            await CargarAnalisisAsync(
-                mostrarIndicador: false,
-                reiniciar: false);
-        }
-
         private async Task LimpiarFiltrosAsync()
         {
-            filtroCancellationTokenSource?.Cancel();
-
             textoBusqueda = string.Empty;
             usarFiltroRangoFecha = false;
             fechaDesde = DateTime.Today.AddDays(-6);
@@ -841,56 +891,11 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(TieneErrorRangoFecha));
             OnPropertyChanged(nameof(UsuarioFiltroSeleccionado));
 
-            await CargarAnalisisAsync(
-                mostrarIndicador: true,
-                reiniciar: true);
-        }
+            AplicarFiltrosEscritos();
 
-        private void ProgramarRecargaFiltros()
-        {
-            if (!SeHaListado || IsBusy || CargandoListado)
-                return;
-
-            filtroCancellationTokenSource?.Cancel();
-            filtroCancellationTokenSource?.Dispose();
-
-            var source = new CancellationTokenSource();
-            filtroCancellationTokenSource = source;
-
-            _ = ProgramarRecargaFiltrosAsync(source);
-        }
-
-        private async Task ProgramarRecargaFiltrosAsync(
-            CancellationTokenSource source)
-        {
-            try
-            {
-                await Task.Delay(
-                    500,
-                    source.Token);
-
-                if (source.IsCancellationRequested)
-                    return;
-
-                await MainThread.InvokeOnMainThreadAsync(
-                    async () => await CargarAnalisisAsync(
-                        mostrarIndicador: true,
-                        reiniciar: true));
-            }
-            catch (OperationCanceledException)
-            {
-                // Otro cambio de filtro reemplazó esta espera.
-            }
-            finally
-            {
-                if (ReferenceEquals(
-                        filtroCancellationTokenSource,
-                        source))
-                {
-                    filtroCancellationTokenSource.Dispose();
-                    filtroCancellationTokenSource = null;
-                }
-            }
+            await CargarPaginaAsync(
+                1,
+                mostrarIndicador: true);
         }
 
         private async Task NuevoAnalisisAsync()
@@ -983,10 +988,6 @@ namespace CONATRADEC.ViewModels
                 IsBusy = true;
                 Mensaje = "Cargando el análisis para edición...";
 
-                /*
-                 * Permite que WinUI y Android dibujen el indicador antes de
-                 * comenzar las lecturas locales y la deserialización.
-                 */
                 await EsperarRenderizadoIndicadorAsync();
 
                 if (!await ValidarDatosOfflineAntesDeAbrirAsync())
@@ -1041,8 +1042,7 @@ namespace CONATRADEC.ViewModels
             return false;
         }
 
-        private static async Task
-            EsperarRenderizadoIndicadorAsync()
+        private static async Task EsperarRenderizadoIndicadorAsync()
         {
             await Task.Yield();
             await Task.Delay(80);
@@ -1098,9 +1098,32 @@ namespace CONATRADEC.ViewModels
                     return;
                 }
 
+                /*
+                 * La eliminación ya fue confirmada por el servidor. Se refleja
+                 * localmente como respaldo por si la consulta fresca falla; si
+                 * el GET responde, la colección se reemplaza inmediatamente.
+                 */
                 AnalisisGuardados.Remove(analisis);
                 totalRegistros = Math.Max(0, totalRegistros - 1);
                 NotificarEstadoLista();
+
+                /*
+                 * Si se eliminó el último elemento de una página posterior, se
+                 * consulta directamente la página anterior. En cualquier otro
+                 * caso se renueva la página visible. Esto evita calcular páginas
+                 * con el total combinado de registros sincronizados y pendientes.
+                 */
+                int paginaDestino =
+                    AnalisisGuardados.Count == 0 && paginaActual > 1
+                        ? paginaActual - 1
+                        : Math.Max(1, paginaActual);
+
+                // Se libera IsBusy para permitir la consulta fresca del listado.
+                IsBusy = false;
+
+                await CargarPaginaAsync(
+                    paginaDestino,
+                    mostrarIndicador: true);
 
                 await MostrarToastAsync(
                     string.IsNullOrWhiteSpace(respuesta.Message)
@@ -1117,8 +1140,13 @@ namespace CONATRADEC.ViewModels
         {
             OnPropertyChanged(nameof(TieneAnalisis));
             OnPropertyChanged(nameof(MostrarListaVacia));
-            OnPropertyChanged(nameof(PuedeCargarMas));
-            OnPropertyChanged(nameof(MostrarFinLista));
+            OnPropertyChanged(nameof(PaginaActual));
+            OnPropertyChanged(nameof(TotalPaginas));
+            OnPropertyChanged(nameof(PuedeIrAnterior));
+            OnPropertyChanged(nameof(PuedeIrSiguiente));
+            OnPropertyChanged(nameof(MostrarPaginacion));
+            OnPropertyChanged(nameof(PaginaTexto));
+            OnPropertyChanged(nameof(RangoPaginaTexto));
             OnPropertyChanged(nameof(TotalMostradoTexto));
         }
 
@@ -1127,7 +1155,8 @@ namespace CONATRADEC.ViewModels
             ListarCommand.ChangeCanExecute();
             ActualizarCommand.ChangeCanExecute();
             BuscarCommand.ChangeCanExecute();
-            CargarMasCommand.ChangeCanExecute();
+            PaginaAnteriorCommand.ChangeCanExecute();
+            PaginaSiguienteCommand.ChangeCanExecute();
             LimpiarFiltrosCommand.ChangeCanExecute();
             NuevoAnalisisCommand.ChangeCanExecute();
             VisualizarCommand.ChangeCanExecute();

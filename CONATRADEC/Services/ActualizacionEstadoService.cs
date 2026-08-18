@@ -12,8 +12,10 @@ namespace CONATRADEC.Services
     /// <summary>
     /// Estado global y persistente del centro de actualizaciones.
     ///
-    /// La descarga ya no pertenece a una página. Puede continuar cuando el
-    /// usuario cambia de pantalla y se recupera al volver a abrir la app.
+    /// La descarga puede sobrevivir al cambio de pantalla y, en los mecanismos
+    /// compatibles, recuperarse al volver a abrir la app. La frescura de una
+    /// visita es independiente: cada nueva instancia de la página ejecuta una
+    /// comprobación fresca al servidor.
     /// </summary>
     public sealed class ActualizacionEstadoService :
         INotifyPropertyChanged
@@ -50,6 +52,7 @@ namespace CONATRADEC.Services
 
         private bool inicializado;
         private bool comprobacionRealizada;
+        private bool actualizacionConfirmadaEnServidor;
         private bool consultando;
         private bool descargando;
         private bool instalando;
@@ -194,11 +197,26 @@ namespace CONATRADEC.Services
             Descargando ||
             Instalando;
 
+        /// <summary>
+        /// Operaciones cortas que deben bloquear completamente la interfaz.
+        /// La transferencia larga queda excluida para que el usuario pueda ver
+        /// progreso, cancelar o navegar mientras el sistema la administra.
+        /// </summary>
+        public bool BloqueoInterfaz =>
+            Consultando ||
+            Instalando;
+
         public bool PuedeBuscar =>
             !Ocupada;
 
+        /// <summary>
+        /// Una obligación guardada localmente no puede encerrar al usuario. El
+        /// cierre solo se bloquea cuando la versión obligatoria fue confirmada
+        /// por el servidor durante la sesión/visita actual.
+        /// </summary>
         public bool PuedeCerrar =>
-            !EsObligatoria;
+            !EsObligatoria ||
+            !actualizacionConfirmadaEnServidor;
 
         public bool MostrandoProgreso =>
             Descargando;
@@ -213,8 +231,16 @@ namespace CONATRADEC.Services
         public bool DebeComprobarAlAbrir =>
             inicializado &&
             !comprobacionRealizada &&
-            actualizacion is null &&
             !Descargando;
+
+        public string DescripcionPersistenciaDescarga =>
+#if ANDROID
+            "Puede cambiar de pantalla o minimizar la aplicación. Android continuará la transferencia y el progreso se recuperará al volver.";
+#elif WINDOWS
+            "Puede cambiar de pantalla mientras descarga. Si cierra la aplicación, Windows conservará el archivo parcial y continuará desde ese punto la próxima vez.";
+#else
+            "La descarga puede conservar su progreso mientras la aplicación permanezca disponible.";
+#endif
 
         public string TextoBotonPrincipal
         {
@@ -224,7 +250,7 @@ namespace CONATRADEC.Services
                     return "Buscando actualizaciones...";
 
                 if (Descargando)
-                    return "Descargando en segundo plano...";
+                    return "Descargando actualización...";
 
                 if (Instalando)
                     return "Abriendo instalador...";
@@ -273,7 +299,7 @@ namespace CONATRADEC.Services
                 if (TieneActualizacion)
                 {
                     return "Puede descargarla ahora o volver más tarde. " +
-                           "El progreso se conserva aunque cambie de pantalla.";
+                           "La descarga conserva su estado de forma segura.";
                 }
 
                 if (comprobacionRealizada)
@@ -298,8 +324,7 @@ namespace CONATRADEC.Services
                     1);
 
                 if (Math.Abs(
-                        progresoDescarga -
-                        valor) < 0.0001)
+                        progresoDescarga - valor) < 0.0001)
                 {
                     return;
                 }
@@ -336,8 +361,7 @@ namespace CONATRADEC.Services
                 : $"{FormatearTamano((long)bytesPorSegundo)}/s";
 
         public string TiempoRestanteTexto =>
-            FormatearTiempoRestante(
-                tiempoRestante);
+            FormatearTiempoRestante(tiempoRestante);
 
         public string MensajeEstado
         {
@@ -354,8 +378,7 @@ namespace CONATRADEC.Services
         }
 
         public bool TieneMensajeEstado =>
-            !string.IsNullOrWhiteSpace(
-                MensajeEstado);
+            !string.IsNullOrWhiteSpace(MensajeEstado);
 
         public string UltimaComprobacionTexto =>
             ultimaComprobacionLocal.HasValue
@@ -367,8 +390,9 @@ namespace CONATRADEC.Services
                 : "Todavía no se ha comprobado en este dispositivo.";
 
         /// <summary>
-        /// Recupera el estado guardado y, si una descarga había sido iniciada,
-        /// vuelve a conectarse con DownloadManager o BackgroundDownloader.
+        /// Recupera únicamente metadatos no sensibles y el estado de la
+        /// transferencia. Las credenciales temporales nunca se leen de
+        /// Preferences porque nunca se guardan allí.
         /// </summary>
         public async Task InicializarAsync()
         {
@@ -400,6 +424,7 @@ namespace CONATRADEC.Services
                 }
 
                 actualizacion = guardada;
+                actualizacionConfirmadaEnServidor = false;
 
                 string ruta = Preferences.Get(
                     ClaveRutaDescargada,
@@ -414,7 +439,7 @@ namespace CONATRADEC.Services
                     comprobacionRealizada = true;
                     MensajeEstado =
                         "La actualización ya fue descargada y verificada. " +
-                        "Puede instalarla cuando esté listo.";
+                        "Se confirmará nuevamente con el servidor al abrir el centro.";
                 }
                 else
                 {
@@ -425,8 +450,8 @@ namespace CONATRADEC.Services
                     {
                         comprobacionRealizada = true;
                         MensajeEstado =
-                            "Existe una actualización disponible para este " +
-                            "dispositivo.";
+                            "Hay una actualización guardada en este dispositivo. " +
+                            "Se confirmará nuevamente con el servidor.";
                     }
                 }
 
@@ -434,17 +459,6 @@ namespace CONATRADEC.Services
                 ReiniciarProgreso();
                 NotificarTodo();
 
-                bool descargaSolicitada =
-                    Preferences.Get(
-                        ClaveDescargaSolicitada,
-                        false);
-
-                if (actualizacion is not null &&
-                    !TieneArchivoDescargado &&
-                    descargaSolicitada)
-                {
-                    _ = ReanudarDescargaSeguraAsync();
-                }
             }
             finally
             {
@@ -453,7 +467,8 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Registra una actualización que ya fue encontrada durante el login.
+        /// Registra una actualización obtenida en una comprobación fresca del
+        /// login. Se considera confirmada por el servidor.
         /// </summary>
         public async Task EstablecerActualizacionAsync(
             ActualizacionDisponible disponible)
@@ -463,31 +478,31 @@ namespace CONATRADEC.Services
             await InicializarAsync();
 
             await EstablecerActualizacionInternaAsync(
-                disponible);
+                disponible,
+                confirmadaEnServidor: true);
         }
 
+        /// <summary>
+        /// Ejecuta una comprobación fresca. Una nueva visita a la página llama
+        /// siempre a este método, incluso cuando existe estado persistido.
+        /// </summary>
         public async Task ComprobarAsync(
             CancellationToken cancellationToken = default)
         {
             await InicializarAsync();
 
-            if (Descargando ||
-                Instalando)
-            {
+            if (Descargando || Instalando)
                 return;
-            }
 
             await comprobacionSemaforo.WaitAsync(
                 cancellationToken);
 
             try
             {
-                if (Descargando ||
-                    Instalando)
-                {
+                if (Descargando || Instalando)
                     return;
-                }
 
+                actualizacionConfirmadaEnServidor = false;
                 Consultando = true;
                 MensajeEstado =
                     "Consultando la versión más reciente...";
@@ -500,11 +515,20 @@ namespace CONATRADEC.Services
 
                 if (disponible is null)
                 {
+                    ActualizacionDisponible? anterior = actualizacion;
+
                     LimpiarPersistencia(
                         eliminarArchivo: true);
 
+                    if (anterior is not null)
+                    {
+                        ActualizacionAplicacionService.Instance
+                            .EliminarDescargaParcial(anterior);
+                    }
+
                     actualizacion = null;
                     comprobacionRealizada = true;
+                    actualizacionConfirmadaEnServidor = false;
                     EsperandoPermisoInstalacion = false;
                     MensajeEstado =
                         "ConatraCafé Soil ya tiene la versión más reciente.";
@@ -512,19 +536,22 @@ namespace CONATRADEC.Services
                 else
                 {
                     await EstablecerActualizacionInternaAsync(
-                        disponible);
+                        disponible,
+                        confirmadaEnServidor: true);
                 }
 
-                ultimaComprobacionLocal =
-                    DateTime.Now;
+                ultimaComprobacionLocal = DateTime.Now;
 
                 Preferences.Set(
                     ClaveUltimaComprobacion,
                     ultimaComprobacionLocal.Value
-                        .ToString("O", CultureInfo.InvariantCulture));
+                        .ToString(
+                            "O",
+                            CultureInfo.InvariantCulture));
             }
             catch (OperationCanceledException)
             {
+                actualizacionConfirmadaEnServidor = false;
                 MensajeEstado =
                     "La comprobación fue cancelada.";
 
@@ -532,6 +559,11 @@ namespace CONATRADEC.Services
             }
             catch (Exception ex)
             {
+                /*
+                 * Si no fue posible confirmar una versión obligatoria guardada,
+                 * no se bloquea la salida basándose únicamente en datos locales.
+                 */
+                actualizacionConfirmadaEnServidor = false;
                 MensajeEstado =
                     "No fue posible comprobar las actualizaciones. " +
                     ex.Message;
@@ -568,10 +600,6 @@ namespace CONATRADEC.Services
             await ComprobarAsync();
         }
 
-        /// <summary>
-        /// Inicia una descarga o se vuelve a conectar con la descarga que el
-        /// sistema operativo ya estaba administrando.
-        /// </summary>
         public async Task IniciarOContinuarDescargaAsync(
             bool instalarAutomaticamente = true)
         {
@@ -595,8 +623,7 @@ namespace CONATRADEC.Services
             }
 
             descargaCts?.Dispose();
-            descargaCts =
-                new CancellationTokenSource();
+            descargaCts = new CancellationTokenSource();
 
             Preferences.Set(
                 ClaveDescargaSolicitada,
@@ -607,8 +634,7 @@ namespace CONATRADEC.Services
             ReiniciarProgreso();
 
             MensajeEstado =
-                "La descarga continuará aunque cambie de pantalla o " +
-                "minimice la aplicación.";
+                DescripcionPersistenciaDescarga;
 
             Task tarea = DescargarInternamenteAsync(
                 actualizacion,
@@ -648,8 +674,7 @@ namespace CONATRADEC.Services
             await InicializarAsync();
 
             if (actualizacion is null ||
-                string.IsNullOrWhiteSpace(
-                    rutaDescargada))
+                string.IsNullOrWhiteSpace(rutaDescargada))
             {
                 return;
             }
@@ -685,12 +710,11 @@ namespace CONATRADEC.Services
                 EsperandoPermisoInstalacion =
                     resultado.RequierePermiso;
 
-                MensajeEstado =
-                    resultado.Mensaje;
+                MensajeEstado = resultado.Mensaje;
 
                 /*
-                 * El archivo se conserva. Si el usuario cancela la pantalla del
-                 * sistema, podrá presionar Instalar actualización nuevamente.
+                 * El archivo se conserva. Si la persona cancela el instalador
+                 * del sistema puede iniciar la instalación nuevamente.
                  */
             }
             catch (Exception ex)
@@ -708,7 +732,8 @@ namespace CONATRADEC.Services
         }
 
         private async Task EstablecerActualizacionInternaAsync(
-            ActualizacionDisponible disponible)
+            ActualizacionDisponible disponible,
+            bool confirmadaEnServidor)
         {
             bool mismaActualizacion =
                 actualizacion?.ActualizacionAplicacionId ==
@@ -719,6 +744,12 @@ namespace CONATRADEC.Services
                 LimpiarRutaDescargadaPersistida(
                     eliminarArchivo: true);
 
+                if (actualizacion is not null)
+                {
+                    ActualizacionAplicacionService.Instance
+                        .EliminarDescargaParcial(actualizacion);
+                }
+
                 rutaDescargada = null;
                 Preferences.Set(
                     ClaveDescargaSolicitada,
@@ -727,10 +758,11 @@ namespace CONATRADEC.Services
 
             actualizacion = disponible;
             comprobacionRealizada = true;
+            actualizacionConfirmadaEnServidor =
+                confirmadaEnServidor;
             EsperandoPermisoInstalacion = false;
 
-            GuardarActualizacionPersistida(
-                disponible);
+            GuardarActualizacionPersistida(disponible);
 
             string ruta = Preferences.Get(
                 ClaveRutaDescargada,
@@ -758,10 +790,25 @@ namespace CONATRADEC.Services
                           "dispositivo.";
             }
 
-            totalBytes =
-                disponible.TamanoBytes;
-
+            totalBytes = disponible.TamanoBytes;
             NotificarTodo();
+
+            /*
+             * Una transferencia pendiente solo se reanuda después de haber
+             * reconciliado la versión con el servidor. Así nunca se continúa
+             * automáticamente una publicación revocada o sustituida.
+             */
+            bool descargaSolicitada =
+                Preferences.Get(
+                    ClaveDescargaSolicitada,
+                    false);
+
+            if (descargaSolicitada &&
+                !TieneArchivoDescargado &&
+                (descargaActiva is null || descargaActiva.IsCompleted))
+            {
+                _ = ReanudarDescargaSeguraAsync();
+            }
         }
 
         private async Task DescargarInternamenteAsync(
@@ -813,9 +860,27 @@ namespace CONATRADEC.Services
                 NotificarTodo();
 
                 if (instalarAutomaticamente)
-                {
                     await InstalarAsync();
-                }
+            }
+            catch (ActualizacionYaNoDisponibleException ex)
+            {
+                rutaDescargada = null;
+                Descargando = false;
+                EsperandoPermisoInstalacion = false;
+                actualizacionConfirmadaEnServidor = false;
+
+                LimpiarPersistencia(
+                    eliminarArchivo: true);
+
+                ActualizacionAplicacionService.Instance
+                    .EliminarDescargaParcial(disponible);
+
+                comprobacionRealizada = true;
+                ReiniciarProgreso();
+
+                MensajeEstado =
+                    "La actualización pendiente ya no está disponible. " +
+                    ex.Message;
             }
             catch (OperationCanceledException)
             {
@@ -829,6 +894,10 @@ namespace CONATRADEC.Services
 
                 LimpiarRutaDescargadaPersistida(
                     eliminarArchivo: true);
+
+                /* Cancelar explícitamente sí descarta el .part de Windows. */
+                ActualizacionAplicacionService.Instance
+                    .EliminarDescargaParcial(disponible);
 
                 ReiniciarProgreso();
                 MensajeEstado =
@@ -847,6 +916,10 @@ namespace CONATRADEC.Services
                 LimpiarRutaDescargadaPersistida(
                     eliminarArchivo: true);
 
+                /*
+                 * En Windows el .part se conserva ante un error de red para que
+                 * el siguiente intento continúe desde lo ya recibido.
+                 */
                 ReiniciarProgreso();
                 MensajeEstado =
                     "No fue posible completar la actualización. " +
@@ -873,8 +946,8 @@ namespace CONATRADEC.Services
             catch
             {
                 /*
-                 * DescargarInternamenteAsync ya deja el error visible y limpia
-                 * el estado inconsistente.
+                 * DescargarInternamenteAsync deja cualquier error visible y
+                 * limpia solo el estado que resulte inconsistente.
                  */
             }
         }
@@ -892,8 +965,7 @@ namespace CONATRADEC.Services
                 totalBytes =
                     progreso.TotalBytes > 0
                         ? progreso.TotalBytes
-                        : actualizacion?.TamanoBytes ??
-                          0;
+                        : actualizacion?.TamanoBytes ?? 0;
 
                 bytesPorSegundo =
                     Math.Max(
@@ -903,8 +975,7 @@ namespace CONATRADEC.Services
                 tiempoRestante =
                     progreso.TiempoRestante;
 
-                EstadoDescarga =
-                    progreso.Estado;
+                EstadoDescarga = progreso.Estado;
 
                 ProgresoDescarga =
                     totalBytes > 0
@@ -934,10 +1005,7 @@ namespace CONATRADEC.Services
         private void ReiniciarProgreso()
         {
             bytesDescargados = 0;
-            totalBytes =
-                actualizacion?.TamanoBytes ??
-                0;
-
+            totalBytes = actualizacion?.TamanoBytes ?? 0;
             bytesPorSegundo = 0;
             tiempoRestante = null;
 
@@ -964,8 +1032,7 @@ namespace CONATRADEC.Services
 
             try
             {
-                var archivo =
-                    new FileInfo(ruta);
+                var archivo = new FileInfo(ruta);
 
                 if (disponible.TamanoBytes > 0 &&
                     archivo.Length != disponible.TamanoBytes)
@@ -1001,12 +1068,39 @@ namespace CONATRADEC.Services
             }
         }
 
+        /// <summary>
+        /// Persiste únicamente metadatos. UrlDescarga y PermisoDescarga se
+        /// limpian expresamente porque son datos efímeros de autorización.
+        /// </summary>
         private void GuardarActualizacionPersistida(
             ActualizacionDisponible disponible)
         {
+            var persistible =
+                new ActualizacionDisponible
+                {
+                    ActualizacionAplicacionId =
+                        disponible.ActualizacionAplicacionId,
+                    Plataforma = disponible.Plataforma,
+                    Canal = disponible.Canal,
+                    VersionNombre = disponible.VersionNombre,
+                    VersionCodigo = disponible.VersionCodigo,
+                    NotasVersion = disponible.NotasVersion,
+                    Obligatoria = disponible.Obligatoria,
+                    VersionMinimaCodigo =
+                        disponible.VersionMinimaCodigo,
+                    NombreArchivo = disponible.NombreArchivo,
+                    TipoContenido = disponible.TipoContenido,
+                    TamanoBytes = disponible.TamanoBytes,
+                    HashSha256 = disponible.HashSha256,
+                    UrlDescarga = string.Empty,
+                    PermisoDescarga = string.Empty,
+                    FechaPublicacionUtc =
+                        disponible.FechaPublicacionUtc
+                };
+
             string json =
                 JsonSerializer.Serialize(
-                    disponible,
+                    persistible,
                     jsonOptions);
 
             Preferences.Set(
@@ -1026,16 +1120,27 @@ namespace CONATRADEC.Services
 
             try
             {
-                return JsonSerializer.Deserialize<
-                    ActualizacionDisponible>(
-                        json,
-                        jsonOptions);
+                ActualizacionDisponible? resultado =
+                    JsonSerializer.Deserialize<
+                        ActualizacionDisponible>(
+                            json,
+                            jsonOptions);
+
+                if (resultado is not null)
+                {
+                    /*
+                     * Limpieza defensiva para instalaciones que pudieron haber
+                     * guardado UrlDescarga con permiso antes de esta versión.
+                     */
+                    resultado.UrlDescarga = string.Empty;
+                    resultado.PermisoDescarga = string.Empty;
+                }
+
+                return resultado;
             }
             catch (JsonException)
             {
-                Preferences.Remove(
-                    ClaveActualizacion);
-
+                Preferences.Remove(ClaveActualizacion);
                 return null;
             }
         }
@@ -1063,8 +1168,7 @@ namespace CONATRADEC.Services
             LimpiarRutaDescargadaPersistida(
                 eliminarArchivo);
 
-            Preferences.Remove(
-                ClaveActualizacion);
+            Preferences.Remove(ClaveActualizacion);
 
             Preferences.Set(
                 ClaveDescargaSolicitada,
@@ -1072,6 +1176,7 @@ namespace CONATRADEC.Services
 
             actualizacion = null;
             rutaDescargada = null;
+            actualizacionConfirmadaEnServidor = false;
         }
 
         private void LimpiarRutaDescargadaPersistida(
@@ -1082,15 +1187,12 @@ namespace CONATRADEC.Services
                 string.Empty);
 
             if (eliminarArchivo &&
-                !string.IsNullOrWhiteSpace(
-                    rutaGuardada))
+                !string.IsNullOrWhiteSpace(rutaGuardada))
             {
-                EliminarArchivoSeguro(
-                    rutaGuardada);
+                EliminarArchivoSeguro(rutaGuardada);
             }
 
-            Preferences.Remove(
-                ClaveRutaDescargada);
+            Preferences.Remove(ClaveRutaDescargada);
 
             if (string.Equals(
                     rutaDescargada,
@@ -1132,16 +1234,11 @@ namespace CONATRADEC.Services
             string[] unidades =
                 { "B", "KB", "MB", "GB" };
 
-            double valor =
-                Math.Max(
-                    bytes,
-                    0);
-
+            double valor = Math.Max(bytes, 0);
             int indice = 0;
 
             while (valor >= 1024 &&
-                   indice <
-                       unidades.Length - 1)
+                   indice < unidades.Length - 1)
             {
                 valor /= 1024;
                 indice++;
@@ -1158,8 +1255,7 @@ namespace CONATRADEC.Services
             if (!tiempo.HasValue)
                 return "Calculando tiempo restante...";
 
-            TimeSpan valor =
-                tiempo.Value;
+            TimeSpan valor = tiempo.Value;
 
             if (valor.TotalSeconds < 2)
                 return "Menos de 2 segundos restantes";
@@ -1200,12 +1296,14 @@ namespace CONATRADEC.Services
                 nameof(NoTieneActualizacion),
                 nameof(TieneArchivoDescargado),
                 nameof(Ocupada),
+                nameof(BloqueoInterfaz),
                 nameof(PuedeBuscar),
                 nameof(PuedeCerrar),
                 nameof(MostrandoProgreso),
                 nameof(PuedeCancelarDescarga),
                 nameof(PuedeEjecutarPrincipal),
                 nameof(DebeComprobarAlAbrir),
+                nameof(DescripcionPersistenciaDescarga),
                 nameof(TextoBotonPrincipal),
                 nameof(TituloEstadoGeneral),
                 nameof(DescripcionEstadoGeneral),

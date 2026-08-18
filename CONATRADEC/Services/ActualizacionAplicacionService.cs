@@ -1,8 +1,10 @@
-﻿using CONATRADEC.Models;
+using CONATRADEC.Models;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices;
 using Microsoft.Maui.Storage;
 using System.Diagnostics;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -27,22 +29,22 @@ namespace CONATRADEC.Services
     /// <summary>
     /// Consulta, descarga y valida las versiones publicadas.
     ///
-    /// La comprobación de versiones utiliza el cliente centralizado de la
-    /// aplicación para enviar la sesión activa. El backend devuelve una URL
-    /// temporal protegida que incluye el permiso necesario para descargar.
+    /// La API v2 entrega una URL limpia y una credencial temporal separada.
+    /// La credencial se envía únicamente mediante X-Permiso-Descarga y nunca se
+    /// almacena dentro de la URL.
     ///
-    /// Android utiliza DownloadManager para que la transferencia continúe al
-    /// minimizar la aplicación, cambiar de pantalla o perder temporalmente la
-    /// conexión.
-    ///
-    /// Windows utiliza BackgroundDownloader cuando la aplicación está
-    /// empaquetada como MSIX. En una ejecución Debug sin identidad de paquete se
-    /// utiliza HttpClient como respaldo.
+    /// Android conserva DownloadManager. Windows empaquetado conserva
+    /// BackgroundDownloader; la distribución Windows actual es desempaquetada,
+    /// por lo que utiliza una transferencia HTTP reanudable mediante Range y un
+    /// archivo .part persistente.
     /// </summary>
     public sealed class ActualizacionAplicacionService
     {
         private const string PreferenciaCanal =
             "Actualizaciones.Canal";
+
+        private const string HeaderPermisoDescarga =
+            "X-Permiso-Descarga";
 
 #if ANDROID
         private const string AndroidIdDescarga =
@@ -80,19 +82,14 @@ namespace CONATRADEC.Services
                 new(() => new ActualizacionAplicacionService());
 
         /*
-         * Cliente sin los manejadores internos de la aplicación.
-         *
-         * Se utiliza exclusivamente para transferir el instalador porque
-         * Android DownloadManager y Windows BackgroundDownloader reciben una
-         * URL temporal que ya contiene su autorización.
+         * Cliente sin los manejadores internos de la aplicación. Se usa para
+         * descargar el instalador con la credencial temporal v2.
          */
         private readonly HttpClient httpClient;
 
         /*
-         * Cliente centralizado de CONATRADEC.
-         *
-         * Agrega automáticamente X-Usuario-Id, X-Version-Sesion,
-         * X-Dispositivo, X-Plataforma y los demás datos de contexto.
+         * Cliente centralizado de CONATRADEC para comprobar versiones mediante
+         * JWT y contexto de sesión.
          */
         private readonly HttpClient apiClient;
 
@@ -131,9 +128,10 @@ namespace CONATRADEC.Services
             ObtenerPlataforma() is not null;
 
         /// <summary>
-        /// Comprueba la versión mediante el endpoint autenticado. Este endpoint
-        /// genera la URL temporal que luego utiliza el administrador de
-        /// descargas del sistema operativo.
+        /// Comprueba una versión fresca en el endpoint v2. Este endpoint exige
+        /// una sesión JWT válida, pero no depende del permiso administrativo de
+        /// la tarjeta Actualizaciones: las actualizaciones obligatorias deben
+        /// alcanzar a cualquier usuario autenticado.
         /// </summary>
         public async Task<ActualizacionDisponible?>
             ComprobarActualizacionAsync(
@@ -161,11 +159,9 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Inicia o recupera una transferencia administrada por el sistema.
-        ///
-        /// Antes de comenzar se solicita un permiso temporal nuevo. Así una
-        /// actualización encontrada anteriormente no falla con 401 porque su
-        /// autorización haya vencido mientras la aplicación permanecía abierta.
+        /// Inicia o recupera una transferencia. Antes de comenzar siempre pide
+        /// una autorización temporal nueva, por lo que un estado persistido no
+        /// conserva ni reutiliza credenciales vencidas.
         /// </summary>
         public async Task<string> DescargarEnSegundoPlanoAsync(
             ActualizacionDisponible actualizacion,
@@ -215,8 +211,8 @@ namespace CONATRADEC.Services
         }
 
         /*
-         * Mantiene compatibilidad con cualquier código anterior que todavía
-         * utilice progreso numérico.
+         * Compatibilidad con cualquier consumidor anterior que todavía use
+         * progreso numérico.
          */
         public async Task<string> DescargarAsync(
             ActualizacionDisponible actualizacion,
@@ -238,9 +234,24 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Consulta el endpoint protegido que valida la sesión y el permiso de
-        /// lectura de ActualizacionAplicacionPage.
+        /// Elimina una transferencia HTTP parcial únicamente cuando el usuario
+        /// la cancela explícitamente. Un cierre abrupto de Windows deja el .part
+        /// para que pueda reanudarse en la siguiente ejecución.
         /// </summary>
+        public void EliminarDescargaParcial(
+            ActualizacionDisponible actualizacion)
+        {
+#if WINDOWS
+            if (TieneIdentidadPaqueteWindows())
+                return;
+#endif
+
+            string rutaParcial =
+                ObtenerRutaParcialHttp(actualizacion);
+
+            EliminarSeguro(rutaParcial);
+        }
+
         private async Task<ActualizacionDisponible?>
             ConsultarActualizacionProtegidaAsync(
                 string plataforma,
@@ -249,7 +260,7 @@ namespace CONATRADEC.Services
                 CancellationToken cancellationToken)
         {
             string ruta =
-                "api/actualizaciones/aplicacion/comprobar" +
+                "api/actualizaciones/aplicacion/v2/comprobar" +
                 $"?plataforma={Uri.EscapeDataString(plataforma)}" +
                 $"&versionCodigo={versionCodigo}" +
                 $"&canal={Uri.EscapeDataString(canal)}";
@@ -283,8 +294,9 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Obtiene una URL protegida nueva inmediatamente antes de iniciar una
-        /// descarga. El permiso emitido por el backend tiene vigencia limitada.
+        /// Renueva metadatos y autorización inmediatamente antes de descargar.
+        /// Si el servidor ya no publica esa versión, se informa explícitamente
+        /// al estado global para retirar cualquier bloqueo obligatorio antiguo.
         /// </summary>
         private async Task<ActualizacionDisponible>
             RenovarPermisoDescargaAsync(
@@ -316,15 +328,24 @@ namespace CONATRADEC.Services
 
             if (renovada is null)
             {
-                throw new InvalidOperationException(
-                    "La actualización ya no está disponible o la aplicación ya se encuentra actualizada.");
+                throw new ActualizacionYaNoDisponibleException(
+                    "La actualización ya no está publicada o la aplicación ya se encuentra actualizada.");
+            }
+
+            if (renovada.ActualizacionAplicacionId !=
+                actualizacion.ActualizacionAplicacionId)
+            {
+                throw new ActualizacionYaNoDisponibleException(
+                    "Se publicó una versión más reciente. Vuelva a buscar actualizaciones antes de descargar.");
             }
 
             if (string.IsNullOrWhiteSpace(
-                    renovada.UrlDescarga))
+                    renovada.UrlDescarga) ||
+                string.IsNullOrWhiteSpace(
+                    renovada.PermisoDescarga))
             {
                 throw new InvalidOperationException(
-                    "La API no proporcionó el permiso temporal para descargar la actualización.");
+                    "La API no proporcionó una autorización temporal completa para descargar la actualización.");
             }
 
             return renovada;
@@ -363,8 +384,7 @@ namespace CONATRADEC.Services
                     carpetaBase.AbsolutePath,
                     "actualizaciones");
 
-            Directory.CreateDirectory(
-                carpeta);
+            Directory.CreateDirectory(carpeta);
 
             string nombreArchivo =
                 ObtenerNombreSeguro(
@@ -376,10 +396,6 @@ namespace CONATRADEC.Services
                     carpeta,
                     nombreArchivo);
 
-            /*
-             * Si el archivo completo ya existe, primero se valida. Esto evita
-             * volver a descargar una actualización que ya terminó.
-             */
             if (File.Exists(rutaFinal))
             {
                 try
@@ -395,8 +411,7 @@ namespace CONATRADEC.Services
                 }
                 catch
                 {
-                    EliminarSeguro(
-                        rutaFinal);
+                    EliminarSeguro(rutaFinal);
                 }
             }
 
@@ -410,8 +425,7 @@ namespace CONATRADEC.Services
                     administrador,
                     idDescarga))
             {
-                EliminarSeguro(
-                    rutaFinal);
+                EliminarSeguro(rutaFinal);
 
                 var solicitud =
                     new AndroidDownloadManager.Request(
@@ -427,15 +441,16 @@ namespace CONATRADEC.Services
                 solicitud.SetMimeType(
                     actualizacion.TipoContenido);
 
-                solicitud.SetAllowedOverMetered(
-                    true);
-
-                solicitud.SetAllowedOverRoaming(
-                    false);
+                solicitud.SetAllowedOverMetered(true);
+                solicitud.SetAllowedOverRoaming(false);
 
                 solicitud.SetNotificationVisibility(
                     AndroidDownloadVisibility
                         .VisibleNotifyCompleted);
+
+                solicitud.AddRequestHeader(
+                    HeaderPermisoDescarga,
+                    actualizacion.PermisoDescarga);
 
                 solicitud.SetDestinationUri(
                     Android.Net.Uri.FromFile(
@@ -443,8 +458,7 @@ namespace CONATRADEC.Services
                             rutaFinal)));
 
                 idDescarga =
-                    administrador.Enqueue(
-                        solicitud);
+                    administrador.Enqueue(solicitud);
 
                 Preferences.Set(
                     AndroidIdDescarga,
@@ -516,16 +530,11 @@ namespace CONATRADEC.Services
                         {
                             BytesDescargados =
                                 estado.BytesDescargados,
-                            TotalBytes =
-                                total,
-                            BytesPorSegundo =
-                                velocidad,
-                            TiempoRestante =
-                                restante,
-                            Estado =
-                                estado.Estado,
-                            EnSegundoPlano =
-                                true
+                            TotalBytes = total,
+                            BytesPorSegundo = velocidad,
+                            TiempoRestante = restante,
+                            Estado = estado.Estado,
+                            EnSegundoPlano = true
                         });
 
                     bytesAnterior =
@@ -566,8 +575,7 @@ namespace CONATRADEC.Services
                     idDescarga);
 
                 LimpiarPreferenciasAndroid();
-                EliminarSeguro(
-                    rutaFinal);
+                EliminarSeguro(rutaFinal);
 
                 throw;
             }
@@ -578,8 +586,7 @@ namespace CONATRADEC.Services
                     idDescarga);
 
                 LimpiarPreferenciasAndroid();
-                EliminarSeguro(
-                    rutaFinal);
+                EliminarSeguro(rutaFinal);
 
                 throw;
             }
@@ -621,12 +628,10 @@ namespace CONATRADEC.Services
             using var consulta =
                 new AndroidDownloadManager.Query();
 
-            consulta.SetFilterById(
-                idDescarga);
+            consulta.SetFilterById(idDescarga);
 
             using ICursor? cursor =
-                administrador.InvokeQuery(
-                    consulta);
+                administrador.InvokeQuery(consulta);
 
             return cursor is not null &&
                    cursor.MoveToFirst();
@@ -639,12 +644,10 @@ namespace CONATRADEC.Services
             using var consulta =
                 new AndroidDownloadManager.Query();
 
-            consulta.SetFilterById(
-                idDescarga);
+            consulta.SetFilterById(idDescarga);
 
             using ICursor? cursor =
-                administrador.InvokeQuery(
-                    consulta);
+                administrador.InvokeQuery(consulta);
 
             if (cursor is null ||
                 !cursor.MoveToFirst())
@@ -673,22 +676,18 @@ namespace CONATRADEC.Services
 
             var estado =
                 (AndroidDownloadStatus)
-                cursor.GetInt(
-                    indiceEstado);
+                cursor.GetInt(indiceEstado);
 
             long descargados =
                 Math.Max(
-                    cursor.GetLong(
-                        indiceDescargados),
+                    cursor.GetLong(indiceDescargados),
                     0);
 
             long total =
-                cursor.GetLong(
-                    indiceTotal);
+                cursor.GetLong(indiceTotal);
 
             int razon =
-                cursor.GetInt(
-                    indiceRazon);
+                cursor.GetInt(indiceRazon);
 
             return estado switch
             {
@@ -757,8 +756,7 @@ namespace CONATRADEC.Services
 
             try
             {
-                administrador.Remove(
-                    idDescarga);
+                administrador.Remove(idDescarga);
             }
             catch
             {
@@ -768,14 +766,9 @@ namespace CONATRADEC.Services
 
         private static void LimpiarPreferenciasAndroid()
         {
-            Preferences.Remove(
-                AndroidIdDescarga);
-
-            Preferences.Remove(
-                AndroidIdActualizacion);
-
-            Preferences.Remove(
-                AndroidRutaDescarga);
+            Preferences.Remove(AndroidIdDescarga);
+            Preferences.Remove(AndroidIdActualizacion);
+            Preferences.Remove(AndroidRutaDescarga);
         }
 
         private sealed record EstadoAndroid(
@@ -806,12 +799,9 @@ namespace CONATRADEC.Services
                     actualizacion.Plataforma);
 
             DownloadOperation? operacion =
-                await BuscarDescargaWindowsAsync(
-                    actualizacion);
+                await BuscarDescargaWindowsAsync(actualizacion);
 
-            bool esNueva =
-                operacion is null;
-
+            bool esNueva = operacion is null;
             IStorageFile archivo;
 
             if (operacion is null)
@@ -827,6 +817,10 @@ namespace CONATRADEC.Services
                         CostPolicy =
                             BackgroundTransferCostPolicy.Always
                     };
+
+                descargador.SetRequestHeader(
+                    HeaderPermisoDescarga,
+                    actualizacion.PermisoDescarga);
 
                 operacion =
                     descargador.CreateDownload(
@@ -844,8 +838,7 @@ namespace CONATRADEC.Services
             }
             else
             {
-                archivo =
-                    operacion.ResultFile;
+                archivo = operacion.ResultFile;
             }
 
             var cronometro =
@@ -871,10 +864,8 @@ namespace CONATRADEC.Services
                                 0.001);
 
                         ulong diferenciaBytes =
-                            estado.BytesReceived >=
-                            bytesAnterior
-                                ? estado.BytesReceived -
-                                  bytesAnterior
+                            estado.BytesReceived >= bytesAnterior
+                                ? estado.BytesReceived - bytesAnterior
                                 : 0;
 
                         double velocidad =
@@ -883,8 +874,7 @@ namespace CONATRADEC.Services
 
                         long total =
                             estado.TotalBytesToReceive > 0
-                                ? (long)estado
-                                    .TotalBytesToReceive
+                                ? (long)estado.TotalBytesToReceive
                                 : actualizacion.TamanoBytes;
 
                         long descargados =
@@ -901,25 +891,17 @@ namespace CONATRADEC.Services
                         progreso?.Report(
                             new ProgresoDescargaActualizacion
                             {
-                                BytesDescargados =
-                                    descargados,
-                                TotalBytes =
-                                    total,
-                                BytesPorSegundo =
-                                    velocidad,
-                                TiempoRestante =
-                                    restante,
+                                BytesDescargados = descargados,
+                                TotalBytes = total,
+                                BytesPorSegundo = velocidad,
+                                TiempoRestante = restante,
                                 Estado =
                                     "Descargando en segundo plano...",
-                                EnSegundoPlano =
-                                    true
+                                EnSegundoPlano = true
                             });
 
-                        bytesAnterior =
-                            estado.BytesReceived;
-
-                        segundosAnterior =
-                            segundosActuales;
+                        bytesAnterior = estado.BytesReceived;
+                        segundosAnterior = segundosActuales;
                     });
 
             try
@@ -996,8 +978,7 @@ namespace CONATRADEC.Services
                     string.Empty);
 
             if (idActualizacion !=
-                    actualizacion
-                        .ActualizacionAplicacionId ||
+                    actualizacion.ActualizacionAplicacionId ||
                 !Guid.TryParse(
                     guidTexto,
                     out Guid guid))
@@ -1032,14 +1013,16 @@ namespace CONATRADEC.Services
 
         private static void LimpiarPreferenciasWindows()
         {
-            Preferences.Remove(
-                WindowsGuidDescarga);
-
-            Preferences.Remove(
-                WindowsIdActualizacion);
+            Preferences.Remove(WindowsGuidDescarga);
+            Preferences.Remove(WindowsIdActualizacion);
         }
 #endif
 
+        /// <summary>
+        /// Descarga HTTP reanudable. En Windows desempaquetado el archivo .part
+        /// se guarda en AppDataDirectory, por lo que un cierre de la aplicación
+        /// no obliga a empezar desde cero. El servidor ya admite Range.
+        /// </summary>
         private async Task<string> DescargarHttpAsync(
             ActualizacionDisponible actualizacion,
             Uri url,
@@ -1047,82 +1030,160 @@ namespace CONATRADEC.Services
             CancellationToken cancellationToken,
             bool enSegundoPlano)
         {
-            using HttpRequestMessage request =
-                new(
-                    HttpMethod.Get,
-                    url);
+            string rutaFinal =
+                ObtenerRutaFinalHttp(actualizacion);
 
-            using HttpResponseMessage response =
-                await httpClient.SendAsync(
-                    request,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                string error =
-                    await response.Content.ReadAsStringAsync(
-                        cancellationToken);
-
-                throw new HttpRequestException(
-                    ExtraerMensaje(error),
-                    null,
-                    response.StatusCode);
-            }
-
-            long total =
-                response.Content.Headers.ContentLength ??
-                actualizacion.TamanoBytes;
-
-            string nombreSeguro =
-                ObtenerNombreSeguro(
-                    actualizacion.NombreArchivo,
-                    actualizacion.Plataforma);
-
-            string carpeta =
-                Path.Combine(
-                    FileSystem.CacheDirectory,
-                    "actualizaciones");
+            string rutaParcial =
+                ObtenerRutaParcialHttp(actualizacion);
 
             Directory.CreateDirectory(
-                carpeta);
+                Path.GetDirectoryName(rutaFinal)!);
 
-            string rutaTemporal =
-                Path.Combine(
-                    carpeta,
-                    $"{Guid.NewGuid():N}.tmp");
+            if (File.Exists(rutaFinal))
+            {
+                try
+                {
+                    await ValidarArchivoAsync(
+                        rutaFinal,
+                        actualizacion,
+                        progreso,
+                        enSegundoPlano,
+                        cancellationToken);
 
-            string rutaFinal =
-                Path.Combine(
-                    carpeta,
-                    nombreSeguro);
+                    return rutaFinal;
+                }
+                catch
+                {
+                    EliminarSeguro(rutaFinal);
+                }
+            }
 
-            var cronometro =
-                Stopwatch.StartNew();
+            long descargadosPrevios =
+                File.Exists(rutaParcial)
+                    ? new FileInfo(rutaParcial).Length
+                    : 0;
 
-            long bytesAnterior = 0;
-            double segundosAnterior = 0;
+            if (actualizacion.TamanoBytes > 0 &&
+                descargadosPrevios >= actualizacion.TamanoBytes)
+            {
+                if (descargadosPrevios == actualizacion.TamanoBytes)
+                {
+                    try
+                    {
+                        await ValidarArchivoAsync(
+                            rutaParcial,
+                            actualizacion,
+                            progreso,
+                            enSegundoPlano,
+                            cancellationToken);
+
+                        File.Move(
+                            rutaParcial,
+                            rutaFinal,
+                            overwrite: true);
+
+                        return rutaFinal;
+                    }
+                    catch
+                    {
+                        EliminarSeguro(rutaParcial);
+                    }
+                }
+                else
+                {
+                    EliminarSeguro(rutaParcial);
+                }
+
+                descargadosPrevios = 0;
+            }
+
+            HttpResponseMessage? response = null;
 
             try
             {
-                await using Stream origen =
-                    await response.Content
-                        .ReadAsStreamAsync(
+                response = await EnviarSolicitudDescargaAsync(
+                    actualizacion,
+                    url,
+                    descargadosPrevios,
+                    cancellationToken);
+
+                if (response.StatusCode ==
+                    HttpStatusCode.RequestedRangeNotSatisfiable)
+                {
+                    response.Dispose();
+                    response = null;
+                    EliminarSeguro(rutaParcial);
+                    descargadosPrevios = 0;
+
+                    response = await EnviarSolicitudDescargaAsync(
+                        actualizacion,
+                        url,
+                        0,
+                        cancellationToken);
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string error =
+                        await response.Content.ReadAsStringAsync(
                             cancellationToken);
+
+                    throw new HttpRequestException(
+                        ExtraerMensaje(error),
+                        null,
+                        response.StatusCode);
+                }
+
+                bool reanudada =
+                    descargadosPrevios > 0 &&
+                    response.StatusCode ==
+                        HttpStatusCode.PartialContent;
+
+                if (!reanudada)
+                    descargadosPrevios = 0;
+
+                long total =
+                    response.Content.Headers.ContentRange?.Length ??
+                    (response.Content.Headers.ContentLength.HasValue
+                        ? descargadosPrevios +
+                          response.Content.Headers.ContentLength.Value
+                        : actualizacion.TamanoBytes);
+
+                if (actualizacion.TamanoBytes > 0)
+                    total = actualizacion.TamanoBytes;
+
+                var cronometro = Stopwatch.StartNew();
+                long bytesAnterior = descargadosPrevios;
+                double segundosAnterior = 0;
+
+                await using Stream origen =
+                    await response.Content.ReadAsStreamAsync(
+                        cancellationToken);
 
                 await using FileStream destino =
                     new(
-                        rutaTemporal,
-                        FileMode.Create,
+                        rutaParcial,
+                        reanudada
+                            ? FileMode.Append
+                            : FileMode.Create,
                         FileAccess.Write,
                         FileShare.None,
                         bufferSize: 1024 * 1024,
                         useAsync: true);
 
-                byte[] buffer =
-                    new byte[1024 * 1024];
+                byte[] buffer = new byte[1024 * 1024];
+                long descargados = descargadosPrevios;
 
-                long descargados = 0;
+                progreso?.Report(
+                    new ProgresoDescargaActualizacion
+                    {
+                        BytesDescargados = descargados,
+                        TotalBytes = total,
+                        Estado = reanudada
+                            ? "Reanudando descarga de Windows..."
+                            : "Descargando actualización...",
+                        EnSegundoPlano = enSegundoPlano
+                    });
 
                 while (true)
                 {
@@ -1137,9 +1198,7 @@ namespace CONATRADEC.Services
                         break;
 
                     await destino.WriteAsync(
-                        buffer.AsMemory(
-                            0,
-                            leidos),
+                        buffer.AsMemory(0, leidos),
                         cancellationToken);
 
                     descargados += leidos;
@@ -1149,14 +1208,12 @@ namespace CONATRADEC.Services
 
                     double diferenciaSegundos =
                         Math.Max(
-                            segundosActuales -
-                            segundosAnterior,
+                            segundosActuales - segundosAnterior,
                             0.001);
 
                     long diferenciaBytes =
                         Math.Max(
-                            descargados -
-                            bytesAnterior,
+                            descargados - bytesAnterior,
                             0);
 
                     double velocidad =
@@ -1164,8 +1221,7 @@ namespace CONATRADEC.Services
                         diferenciaSegundos;
 
                     TimeSpan? restante =
-                        velocidad > 0 &&
-                        total > descargados
+                        velocidad > 0 && total > descargados
                             ? TimeSpan.FromSeconds(
                                 (total - descargados) /
                                 velocidad)
@@ -1174,51 +1230,124 @@ namespace CONATRADEC.Services
                     progreso?.Report(
                         new ProgresoDescargaActualizacion
                         {
-                            BytesDescargados =
-                                descargados,
-                            TotalBytes =
-                                total,
-                            BytesPorSegundo =
-                                velocidad,
-                            TiempoRestante =
-                                restante,
+                            BytesDescargados = descargados,
+                            TotalBytes = total,
+                            BytesPorSegundo = velocidad,
+                            TiempoRestante = restante,
                             Estado =
                                 "Descargando actualización...",
-                            EnSegundoPlano =
-                                enSegundoPlano
+                            EnSegundoPlano = enSegundoPlano
                         });
 
-                    bytesAnterior =
-                        descargados;
-
-                    segundosAnterior =
-                        segundosActuales;
+                    bytesAnterior = descargados;
+                    segundosAnterior = segundosActuales;
                 }
 
-                await destino.FlushAsync(
-                    cancellationToken);
+                await destino.FlushAsync(cancellationToken);
+
+                /*
+                 * Se valida el .part antes de convertirlo en archivo instalable.
+                 * Así un hash/tamaño inválido nunca queda guardado como EXE/APK
+                 * final.
+                 */
+                try
+                {
+                    await ValidarArchivoAsync(
+                        rutaParcial,
+                        actualizacion,
+                        progreso,
+                        enSegundoPlano,
+                        cancellationToken);
+                }
+                catch (InvalidDataException)
+                {
+                    EliminarSeguro(rutaParcial);
+                    throw;
+                }
 
                 File.Move(
-                    rutaTemporal,
+                    rutaParcial,
                     rutaFinal,
                     overwrite: true);
 
-                await ValidarArchivoAsync(
-                    rutaFinal,
-                    actualizacion,
-                    progreso,
-                    enSegundoPlano,
-                    cancellationToken);
-
                 return rutaFinal;
             }
-            catch
+            finally
             {
-                EliminarSeguro(
-                    rutaTemporal);
-
-                throw;
+                response?.Dispose();
             }
+        }
+
+        private async Task<HttpResponseMessage>
+            EnviarSolicitudDescargaAsync(
+                ActualizacionDisponible actualizacion,
+                Uri url,
+                long desde,
+                CancellationToken cancellationToken)
+        {
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Get,
+                    url);
+
+            request.Headers.TryAddWithoutValidation(
+                HeaderPermisoDescarga,
+                actualizacion.PermisoDescarga);
+
+            if (desde > 0)
+            {
+                request.Headers.Range =
+                    new RangeHeaderValue(
+                        desde,
+                        null);
+            }
+
+            return await httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+        }
+
+        private static string ObtenerRutaFinalHttp(
+            ActualizacionDisponible actualizacion)
+        {
+            string carpeta =
+                ObtenerCarpetaDescargaHttp();
+
+            string nombreSeguro =
+                ObtenerNombreSeguro(
+                    actualizacion.NombreArchivo,
+                    actualizacion.Plataforma);
+
+            /*
+             * El identificador evita reutilizar accidentalmente un .part de
+             * otra versión que tenga el mismo nombre de instalador (por
+             * ejemplo Setup.exe).
+             */
+            string nombreVersionado =
+                $"{actualizacion.ActualizacionAplicacionId}_{nombreSeguro}";
+
+            return Path.Combine(
+                carpeta,
+                nombreVersionado);
+        }
+
+        private static string ObtenerRutaParcialHttp(
+            ActualizacionDisponible actualizacion) =>
+            ObtenerRutaFinalHttp(actualizacion) +
+            ".part";
+
+        private static string ObtenerCarpetaDescargaHttp()
+        {
+#if WINDOWS
+            return Path.Combine(
+                FileSystem.AppDataDirectory,
+                "actualizaciones");
+#else
+            return Path.Combine(
+                FileSystem.CacheDirectory,
+                "actualizaciones");
+#endif
         }
 
         private static async Task ValidarArchivoAsync(
@@ -1248,16 +1377,14 @@ namespace CONATRADEC.Services
             progreso?.Report(
                 new ProgresoDescargaActualizacion
                 {
-                    BytesDescargados =
-                        tamano,
+                    BytesDescargados = tamano,
                     TotalBytes =
                         actualizacion.TamanoBytes > 0
                             ? actualizacion.TamanoBytes
                             : tamano,
                     Estado =
                         "Validando seguridad SHA-256...",
-                    EnSegundoPlano =
-                        enSegundoPlano
+                    EnSegundoPlano = enSegundoPlano
                 });
 
             string hash =
@@ -1277,23 +1404,21 @@ namespace CONATRADEC.Services
             progreso?.Report(
                 new ProgresoDescargaActualizacion
                 {
-                    BytesDescargados =
-                        tamano,
+                    BytesDescargados = tamano,
                     TotalBytes =
                         actualizacion.TamanoBytes > 0
                             ? actualizacion.TamanoBytes
                             : tamano,
                     Estado =
                         "Descarga completada y verificada.",
-                    EnSegundoPlano =
-                        enSegundoPlano
+                    EnSegundoPlano = enSegundoPlano
                 });
         }
 
         public static long ObtenerVersionCodigoInstalada()
         {
             string valor =
-                Microsoft.Maui.ApplicationModel.AppInfo.Current.BuildString ??
+                AppInfo.Current.BuildString ??
                 string.Empty;
 
             return long.TryParse(
@@ -1320,11 +1445,6 @@ namespace CONATRADEC.Services
             return null;
         }
 
-        /// <summary>
-        /// Conserva completa la URL emitida por el backend. No se reconstruye a
-        /// partir del ID porque eso eliminaría el parámetro "permiso" y causaría
-        /// nuevamente el error HTTP 401.
-        /// </summary>
         private Uri ResolverUrlDescarga(
             ActualizacionDisponible actualizacion)
         {
@@ -1338,8 +1458,7 @@ namespace CONATRADEC.Services
                 actualizacion.UrlDescarga?.Trim() ??
                 string.Empty;
 
-            if (string.IsNullOrWhiteSpace(
-                    urlDescarga))
+            if (string.IsNullOrWhiteSpace(urlDescarga))
             {
                 throw new InvalidOperationException(
                     "La API no proporcionó una dirección autorizada para descargar la actualización.");
@@ -1367,12 +1486,11 @@ namespace CONATRADEC.Services
                     "ANDROID",
                     StringComparison.OrdinalIgnoreCase)
                     ? ".apk"
-                    : ".msix";
+                    : ".exe";
 
             string valor =
                 Path.GetFileName(
-                    nombre ??
-                    string.Empty);
+                    nombre ?? string.Empty);
 
             if (string.IsNullOrWhiteSpace(valor))
             {
@@ -1381,9 +1499,8 @@ namespace CONATRADEC.Services
                     extensionPredeterminada;
             }
 
-            foreach (
-                char invalido
-                in Path.GetInvalidFileNameChars())
+            foreach (char invalido
+                     in Path.GetInvalidFileNameChars())
             {
                 valor =
                     valor.Replace(
@@ -1418,8 +1535,7 @@ namespace CONATRADEC.Services
         private static string ExtraerMensaje(
             string contenido)
         {
-            if (string.IsNullOrWhiteSpace(
-                    contenido))
+            if (string.IsNullOrWhiteSpace(contenido))
             {
                 return
                     "La API no devolvió detalles del error.";
@@ -1428,21 +1544,19 @@ namespace CONATRADEC.Services
             try
             {
                 using JsonDocument documento =
-                    JsonDocument.Parse(
-                        contenido);
+                    JsonDocument.Parse(contenido);
 
                 JsonElement raiz =
                     documento.RootElement;
 
-                foreach (
-                    string propiedad
-                    in new[]
-                    {
-                        "message",
-                        "mensaje",
-                        "title",
-                        "error"
-                    })
+                foreach (string propiedad
+                         in new[]
+                         {
+                             "message",
+                             "mensaje",
+                             "title",
+                             "error"
+                         })
                 {
                     if (raiz.TryGetProperty(
                             propiedad,

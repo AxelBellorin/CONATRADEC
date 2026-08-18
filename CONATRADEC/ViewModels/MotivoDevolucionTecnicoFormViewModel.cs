@@ -8,6 +8,8 @@ namespace CONATRADEC.ViewModels
     {
         private readonly MotivoDevolucionTecnicoApiService api = new();
         private int id;
+        private bool inicializado;
+        private string rowVersion = string.Empty;
         private string codigo = string.Empty;
         private string nombre = string.Empty;
         private string descripcion = string.Empty;
@@ -22,26 +24,50 @@ namespace CONATRADEC.ViewModels
             RegresarCommand = new Command(
                 async () => await GoToAsyncParameters(AppRoutes.Regresar),
                 () => !IsBusy);
+
             GuardarCommand = new Command(
                 async () => await GuardarAsync(),
-                () => !IsBusy && (EsNuevo ? CanAdd : CanEdit));
+                () => PuedeGuardar);
         }
 
         public Command RegresarCommand { get; }
         public Command GuardarCommand { get; }
 
         public bool EsNuevo => id <= 0;
-        public bool CodigoEditable => EsNuevo;
+        public bool CodigoEditable => EsNuevo && PuedeEditarFormulario;
+
         public string Titulo => EsNuevo
             ? "Nuevo motivo de devolución"
             : "Editar motivo de devolución";
+
         public string Subtitulo =>
-            "Define la causa, la instrucción sugerida y el tipo de corrección que deberá realizar el técnico.";
+            "Define la causa, la instrucción sugerida y la corrección que deberá realizar el técnico.";
+
+        public bool SinPermisoOperacion => EsNuevo
+            ? !CanAdd
+            : !CanView;
+
+        public string MensajeSinPermiso => EsNuevo
+            ? "No tiene permiso para crear motivos de devolución."
+            : "No tiene permiso para consultar este motivo de devolución.";
+
+        public bool MostrarGuardar => EsNuevo ? CanAdd : CanEdit;
+
+        public bool PuedeEditarFormulario =>
+            !IsBusy && MostrarGuardar;
+
+        public bool PuedeMostrarFormulario =>
+            !SinPermisoOperacion;
+
+        private bool PuedeGuardar =>
+            !IsBusy && MostrarGuardar;
 
         public string Codigo
         {
             get => codigo;
-            set => Asignar(ref codigo, value?.ToUpperInvariant().Replace(' ', '_') ?? string.Empty);
+            set => Asignar(
+                ref codigo,
+                NormalizarCodigo(value));
         }
 
         public string Nombre
@@ -69,9 +95,11 @@ namespace CONATRADEC.ViewModels
             {
                 if (requiereNuevaFotografia == value)
                     return;
+
                 requiereNuevaFotografia = value;
                 if (value)
                     permiteCorregirMetadatos = false;
+
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(PermiteCorregirMetadatos));
                 OnPropertyChanged(nameof(AyudaCorreccion));
@@ -86,6 +114,7 @@ namespace CONATRADEC.ViewModels
                 bool nuevo = RequiereNuevaFotografia ? false : value;
                 if (permiteCorregirMetadatos == nuevo)
                     return;
+
                 permiteCorregirMetadatos = nuevo;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(AyudaCorreccion));
@@ -103,15 +132,18 @@ namespace CONATRADEC.ViewModels
             get => mensajeEstado;
             private set
             {
-                if (mensajeEstado == value)
+                string nuevo = value ?? string.Empty;
+                if (mensajeEstado == nuevo)
                     return;
-                mensajeEstado = value ?? string.Empty;
+
+                mensajeEstado = nuevo;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneMensajeEstado));
             }
         }
 
-        public bool TieneMensajeEstado => !string.IsNullOrWhiteSpace(MensajeEstado);
+        public bool TieneMensajeEstado =>
+            !string.IsNullOrWhiteSpace(MensajeEstado);
 
         public string AyudaCorreccion => RequiereNuevaFotografia
             ? "El técnico deberá agregar otra evidencia y descartar la fotografía sustituida."
@@ -122,49 +154,92 @@ namespace CONATRADEC.ViewModels
         public void AplicarId(int valor)
         {
             id = Math.Max(0, valor);
+            inicializado = false;
+            rowVersion = string.Empty;
             OnPropertyChanged(nameof(EsNuevo));
             OnPropertyChanged(nameof(CodigoEditable));
             OnPropertyChanged(nameof(Titulo));
+            OnPropertyChanged(nameof(SinPermisoOperacion));
+            OnPropertyChanged(nameof(MensajeSinPermiso));
+            OnPropertyChanged(nameof(MostrarGuardar));
+            OnPropertyChanged(nameof(PuedeEditarFormulario));
+            OnPropertyChanged(nameof(PuedeMostrarFormulario));
+            ActualizarComandos();
         }
 
         public async Task InicializarAsync()
         {
             ActualizarPermisos();
-            if (!EsNuevo)
-                await CargarAsync();
+
+            if (inicializado)
+                return;
+
+            inicializado = true;
+
+            if (EsNuevo)
+                return;
+
+            if (!CanView)
+                return;
+
+            await CargarAsync();
         }
 
         private void ActualizarPermisos()
         {
             var permiso = PermissionService.Instance.Get(
-                DiagnosticoIARoutes.InterfazConfiguracion);
+                MotivoDevolucionTecnicoRoutes.InterfazConfiguracion);
+
+            CanView = permiso?.leer == true;
             CanAdd = permiso?.agregar == true;
             CanEdit = permiso?.actualizar == true;
+            CanDelete = permiso?.eliminar == true;
+
+            OnPropertyChanged(nameof(CanView));
             OnPropertyChanged(nameof(CanAdd));
             OnPropertyChanged(nameof(CanEdit));
+            OnPropertyChanged(nameof(CanDelete));
+            OnPropertyChanged(nameof(SinPermisoOperacion));
+            OnPropertyChanged(nameof(MensajeSinPermiso));
+            OnPropertyChanged(nameof(MostrarGuardar));
+            OnPropertyChanged(nameof(PuedeEditarFormulario));
+            OnPropertyChanged(nameof(PuedeMostrarFormulario));
+            OnPropertyChanged(nameof(CodigoEditable));
             ActualizarComandos();
         }
 
         private async Task CargarAsync()
         {
+            if (id <= 0 || IsBusy || !CanView)
+                return;
+
             IsBusy = true;
-            MensajeEstado = "Cargando motivo...";
+            MensajeEstado = "Cargando motivo actualizado...";
             ActualizarComandos();
+            NotificarInteraccion();
 
             try
             {
-                ApiResult<List<MotivoDevolucionTecnicoItem>> resultado =
-                    await api.ListarAdministracionAsync(true, null);
-                MotivoDevolucionTecnicoItem? item = resultado.Data?
-                    .FirstOrDefault(value =>
-                        value.MotivoDevolucionTecnicoId == id);
+                ApiResult<MotivoDevolucionTecnicoItem> resultado =
+                    await api.ObtenerV2Async(id);
 
-                if (!resultado.Success || item == null)
-                    throw new InvalidOperationException(
-                        resultado.Message.Length > 0
-                            ? resultado.Message
-                            : "No se encontró el motivo indicado.");
+                if (!resultado.Success || resultado.Data == null)
+                {
+                    await MostrarErrorAsync(resultado.Message);
+                    return;
+                }
 
+                MotivoDevolucionTecnicoItem item = resultado.Data;
+
+                if (!item.Activo)
+                {
+                    await MostrarAdvertenciaAsync(
+                        "El motivo fue desactivado por otro usuario. Regrese al listado activo o recupérelo desde Eliminados.");
+                    await GoToAsyncParameters(AppRoutes.Regresar);
+                    return;
+                }
+
+                rowVersion = item.RowVersion;
                 Codigo = item.Codigo;
                 Nombre = item.Nombre;
                 Descripcion = item.Descripcion;
@@ -173,27 +248,38 @@ namespace CONATRADEC.ViewModels
                 PermiteCorregirMetadatos = item.PermiteCorregirMetadatos;
                 OrdenTexto = item.Orden.ToString();
             }
-            catch (Exception ex)
-            {
-                await MostrarAlertaAsync(ex.Message);
-            }
             finally
             {
                 MensajeEstado = string.Empty;
                 IsBusy = false;
+                NotificarInteraccion();
                 ActualizarComandos();
             }
         }
 
         private async Task GuardarAsync()
         {
-            if (!ValidarFormulario(out string mensaje))
+            if (!PuedeGuardar)
+                return;
+
+            if (!ValidarFormulario(out string mensaje, out int orden))
             {
-                await MostrarAlertaAsync(mensaje);
+                await MostrarAdvertenciaAsync(mensaje);
                 return;
             }
 
-            if (!int.TryParse(OrdenTexto, out int orden))
+            if (!EsNuevo && string.IsNullOrWhiteSpace(rowVersion))
+            {
+                await MostrarAdvertenciaAsync(
+                    "El registro no tiene una versión válida. Regrese al listado y ábralo nuevamente.");
+                return;
+            }
+
+            bool confirmar = EsNuevo
+                ? await ConfirmarGuardadoAsync("motivo de devolución")
+                : await ConfirmarActualizacionAsync("motivo de devolución");
+
+            if (!confirmar)
                 return;
 
             var request = new MotivoDevolucionTecnicoRequest
@@ -204,63 +290,102 @@ namespace CONATRADEC.ViewModels
                 InstruccionSugerida = InstruccionSugerida.Trim(),
                 RequiereNuevaFotografia = RequiereNuevaFotografia,
                 PermiteCorregirMetadatos = PermiteCorregirMetadatos,
-                Orden = orden
+                Orden = orden,
+                RowVersion = rowVersion
             };
 
+            bool recargarPorConflicto = false;
             IsBusy = true;
             MensajeEstado = "Guardando motivo...";
             ActualizarComandos();
+            NotificarInteraccion();
 
             try
             {
                 ApiResult<MotivoDevolucionTecnicoItem> resultado = EsNuevo
-                    ? await api.CrearAsync(request)
-                    : await api.ActualizarAsync(id, request);
+                    ? await api.CrearV2Async(request)
+                    : await api.ActualizarV2Async(id, request);
 
                 if (!resultado.Success)
-                    throw new InvalidOperationException(resultado.Message);
+                {
+                    if (!EsNuevo && resultado.StatusCode == 409)
+                    {
+                        recargarPorConflicto = true;
+                        await MostrarAdvertenciaAsync(
+                            string.IsNullOrWhiteSpace(resultado.Message)
+                                ? "El motivo fue modificado por otro usuario. Se cargarán los datos actuales."
+                                : resultado.Message);
+                    }
+                    else
+                    {
+                        await MostrarErrorAsync(resultado.Message);
+                    }
 
-                await Shell.Current!.DisplayAlert(
-                    "Motivo de devolución",
-                    resultado.Message.Length > 0
-                        ? resultado.Message
-                        : "Motivo guardado correctamente.",
-                    "Aceptar");
-                await GoToAsyncParameters(AppRoutes.Regresar);
-            }
-            catch (Exception ex)
-            {
-                await MostrarAlertaAsync(ex.Message);
+                }
+                else
+                {
+                    await MostrarExitoAsync(
+                        string.IsNullOrWhiteSpace(resultado.Message)
+                            ? "Motivo guardado correctamente."
+                            : resultado.Message);
+
+                    await GoToAsyncParameters(AppRoutes.Regresar);
+                }
             }
             finally
             {
                 MensajeEstado = string.Empty;
                 IsBusy = false;
+                NotificarInteraccion();
                 ActualizarComandos();
             }
+
+            if (recargarPorConflicto)
+                await CargarAsync();
         }
 
-        private bool ValidarFormulario(out string mensaje)
+        private bool ValidarFormulario(
+            out string mensaje,
+            out int orden)
         {
-            if (Codigo.Trim().Length is < 3 or > 60)
+            string codigoNormalizado = Codigo.Trim();
+
+            if (codigoNormalizado.Length is < 3 or > 60 ||
+                codigoNormalizado.Any(caracter =>
+                    !((caracter >= 'A' && caracter <= 'Z') ||
+                      char.IsDigit(caracter) ||
+                      caracter == '_')))
             {
-                mensaje = "El código debe contener entre 3 y 60 caracteres.";
+                mensaje =
+                    "El código debe contener entre 3 y 60 caracteres: letras mayúsculas, números o guion bajo.";
+                orden = 0;
                 return false;
             }
 
             if (Nombre.Trim().Length is < 3 or > 140)
             {
                 mensaje = "El nombre debe contener entre 3 y 140 caracteres.";
+                orden = 0;
+                return false;
+            }
+
+            if (Descripcion.Trim().Length > 700)
+            {
+                mensaje = "La descripción no puede superar 700 caracteres.";
+                orden = 0;
                 return false;
             }
 
             if (InstruccionSugerida.Trim().Length is < 8 or > 2000)
             {
-                mensaje = "La instrucción sugerida debe contener entre 8 y 2000 caracteres.";
+                mensaje =
+                    "La instrucción sugerida debe contener entre 8 y 2000 caracteres.";
+                orden = 0;
                 return false;
             }
 
-            if (!int.TryParse(OrdenTexto, out int orden) || orden is < 1 or > 999)
+            if (!int.TryParse(OrdenTexto, out orden) ||
+                orden is < 1 or > 999)
             {
                 mensaje = "El orden debe estar entre 1 y 999.";
                 return false;
@@ -277,6 +402,19 @@ namespace CONATRADEC.ViewModels
             return true;
         }
 
+        private static string NormalizarCodigo(string? valor)
+        {
+            string texto = (valor ?? string.Empty)
+                .Trim()
+                .ToUpperInvariant()
+                .Replace(' ', '_');
+
+            while (texto.Contains("__", StringComparison.Ordinal))
+                texto = texto.Replace("__", "_", StringComparison.Ordinal);
+
+            return texto;
+        }
+
         private void Asignar(
             ref string campo,
             string valor,
@@ -284,15 +422,24 @@ namespace CONATRADEC.ViewModels
         {
             if (campo == valor)
                 return;
+
             campo = valor;
             OnPropertyChanged(propiedad);
         }
 
-        private static Task MostrarAlertaAsync(string mensaje) =>
-            Shell.Current?.DisplayAlert(
-                "Motivo de devolución",
-                mensaje,
-                "Aceptar") ?? Task.CompletedTask;
+        private void NotificarInteraccion()
+        {
+            OnPropertyChanged(nameof(MostrarGuardar));
+            OnPropertyChanged(nameof(PuedeEditarFormulario));
+            OnPropertyChanged(nameof(CodigoEditable));
+            ActualizarComandos();
+        }
+
+        private static Task MostrarErrorAsync(string mensaje) =>
+            GlobalService.MostrarErrorAsync(
+                string.IsNullOrWhiteSpace(mensaje)
+                    ? "No fue posible completar la operación."
+                    : mensaje);
 
         private void ActualizarComandos()
         {

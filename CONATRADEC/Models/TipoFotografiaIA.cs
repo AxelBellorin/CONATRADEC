@@ -13,6 +13,7 @@ namespace CONATRADEC.Models
         public bool Activo { get; set; }
         public DateTime FechaCreacionUtc { get; set; }
         public DateTime FechaModificacionUtc { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
 
         public bool Inactivo => !Activo;
         public bool PuedeDesactivarse =>
@@ -46,5 +47,6 @@ namespace CONATRADEC.Models
         public string Descripcion { get; set; } = string.Empty;
         public string InstruccionIA { get; set; } = string.Empty;
         public int Orden { get; set; } = 1;
+        public string RowVersion { get; set; } = string.Empty;
     }
 }

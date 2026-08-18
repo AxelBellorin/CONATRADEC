@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace CONATRADEC.Models
 {
@@ -56,8 +56,20 @@ namespace CONATRADEC.Models
         [JsonPropertyName("hashSha256")]
         public string HashSha256 { get; set; } = string.Empty;
 
+        /// <summary>
+        /// URL limpia del instalador. Desde la API v2 el permiso temporal ya no
+        /// se transporta dentro de la URL para evitar que termine en historial,
+        /// bitácoras o almacenamiento local.
+        /// </summary>
         [JsonPropertyName("urlDescarga")]
         public string UrlDescarga { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Credencial efímera utilizada exclusivamente como encabezado HTTP.
+        /// Nunca debe persistirse en Preferences.
+        /// </summary>
+        [JsonPropertyName("permisoDescarga")]
+        public string PermisoDescarga { get; set; } = string.Empty;
 
         [JsonPropertyName("fechaPublicacionUtc")]
         public DateTime? FechaPublicacionUtc { get; set; }
@@ -86,8 +98,21 @@ namespace CONATRADEC.Models
     }
 
     /// <summary>
+    /// Indica que una versión conocida por el cliente fue revocada, sustituida
+    /// o dejó de estar disponible antes de iniciar/reanudar su descarga.
+    /// </summary>
+    public sealed class ActualizacionYaNoDisponibleException :
+        InvalidOperationException
+    {
+        public ActualizacionYaNoDisponibleException(string message)
+            : base(message)
+        {
+        }
+    }
+
+    /// <summary>
     /// Estado visible de una descarga administrada por Android, Windows
-    /// o por el cliente HTTP de respaldo.
+    /// o por el cliente HTTP reanudable.
     /// </summary>
     public sealed class ProgresoDescargaActualizacion
     {

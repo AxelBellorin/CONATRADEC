@@ -6,6 +6,9 @@ namespace CONATRADEC.ViewModels
 {
     public sealed class BitacoraViewModel : GlobalService
     {
+        private const int TamanoPagina = 25;
+        private const int MaximoBusqueda = 200;
+
         private readonly BitacoraApiService apiService = new();
         private readonly List<BitacoraUsuarioFiltro> opcionesUsuarios = new();
 
@@ -26,6 +29,41 @@ namespace CONATRADEC.ViewModels
         private int totalRegistros;
         private bool catalogosCargados;
         private bool consultaRealizada;
+        private bool inicializado;
+        private DateTime? corteConsultaUtc;
+        private BitacoraFiltrosConsulta? filtrosAplicados;
+        private CancellationTokenSource? cargaCts;
+
+        public BitacoraViewModel()
+        {
+            LoadPagePermissions("bitacoraPage");
+
+            BuscarCommand = new Command(
+                async () => await BuscarAsync(),
+                () => !IsBusy && CanView);
+
+            ActualizarCommand = new Command(
+                async () => await ActualizarAsync(),
+                () => !IsBusy && CanView && consultaRealizada);
+
+            LimpiarCommand = new Command(
+                async () => await LimpiarFiltrosAsync(),
+                () => !IsBusy && CanView);
+
+            AnteriorCommand = new Command(
+                async () => await CambiarPaginaAsync(-1),
+                () => PuedeAnterior);
+
+            SiguienteCommand = new Command(
+                async () => await CambiarPaginaAsync(1),
+                () => PuedeSiguiente);
+
+            VerDetalleCommand = new Command<BitacoraListadoItem>(
+                async item => await VerDetalleAsync(item),
+                item => item != null && !IsBusy && CanView);
+        }
+
+        public event EventHandler? SolicitarScrollInicio;
 
         public ObservableCollection<BitacoraListadoItem> Registros
         {
@@ -33,7 +71,6 @@ namespace CONATRADEC.ViewModels
             private set
             {
                 registros = value ?? new ObservableCollection<BitacoraListadoItem>();
-
                 OnPropertyChanged();
                 ActualizarEstadoResultados();
             }
@@ -60,7 +97,7 @@ namespace CONATRADEC.ViewModels
         }
 
         /// <summary>
-        /// El Picker recibe únicamente textos. El identificador real se
+        /// El Picker muestra texto, pero el identificador real del usuario se
         /// conserva en opcionesUsuarios utilizando el mismo índice.
         /// </summary>
         public ObservableCollection<string> Usuarios
@@ -85,6 +122,9 @@ namespace CONATRADEC.ViewModels
             get => fechaDesde;
             set
             {
+                if (fechaDesde == value)
+                    return;
+
                 fechaDesde = value;
                 OnPropertyChanged();
             }
@@ -95,6 +135,9 @@ namespace CONATRADEC.ViewModels
             get => fechaHasta;
             set
             {
+                if (fechaHasta == value)
+                    return;
+
                 fechaHasta = value;
                 OnPropertyChanged();
             }
@@ -105,7 +148,11 @@ namespace CONATRADEC.ViewModels
             get => accionSeleccionada;
             set
             {
-                accionSeleccionada = value ?? "Todas";
+                string nuevo = value ?? "Todas";
+                if (accionSeleccionada == nuevo)
+                    return;
+
+                accionSeleccionada = nuevo;
                 OnPropertyChanged();
             }
         }
@@ -115,7 +162,11 @@ namespace CONATRADEC.ViewModels
             get => moduloSeleccionado;
             set
             {
-                moduloSeleccionado = value ?? "Todos";
+                string nuevo = value ?? "Todos";
+                if (moduloSeleccionado == nuevo)
+                    return;
+
+                moduloSeleccionado = nuevo;
                 OnPropertyChanged();
             }
         }
@@ -143,7 +194,11 @@ namespace CONATRADEC.ViewModels
             get => estadoSeleccionado;
             set
             {
-                estadoSeleccionado = value ?? "Todos";
+                string nuevo = value ?? "Todos";
+                if (estadoSeleccionado == nuevo)
+                    return;
+
+                estadoSeleccionado = nuevo;
                 OnPropertyChanged();
             }
         }
@@ -153,7 +208,11 @@ namespace CONATRADEC.ViewModels
             get => textoBusqueda;
             set
             {
-                textoBusqueda = value ?? string.Empty;
+                string nuevo = value ?? string.Empty;
+                if (textoBusqueda == nuevo)
+                    return;
+
+                textoBusqueda = nuevo;
                 OnPropertyChanged();
             }
         }
@@ -163,7 +222,11 @@ namespace CONATRADEC.ViewModels
             get => pagina;
             private set
             {
-                pagina = Math.Max(1, value);
+                int nueva = Math.Max(1, value);
+                if (pagina == nueva)
+                    return;
+
+                pagina = nueva;
                 OnPropertyChanged();
                 ActualizarPaginacion();
             }
@@ -174,7 +237,11 @@ namespace CONATRADEC.ViewModels
             get => totalPaginas;
             private set
             {
-                totalPaginas = Math.Max(1, value);
+                int nuevo = Math.Max(1, value);
+                if (totalPaginas == nuevo)
+                    return;
+
+                totalPaginas = nuevo;
                 OnPropertyChanged();
                 ActualizarPaginacion();
             }
@@ -185,33 +252,37 @@ namespace CONATRADEC.ViewModels
             get => totalRegistros;
             private set
             {
-                totalRegistros = Math.Max(0, value);
+                int nuevo = Math.Max(0, value);
+                if (totalRegistros == nuevo)
+                    return;
+
+                totalRegistros = nuevo;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ResumenResultados));
             }
         }
 
         public bool HayRegistros => Registros.Count > 0;
+        public bool TieneConsultaRealizada => consultaRealizada;
 
-        /// <summary>
-        /// Se muestra únicamente después de terminar correctamente una
-        /// consulta que no devolvió coincidencias.
-        /// </summary>
         public bool MostrarSinResultados =>
             consultaRealizada &&
             !HayRegistros &&
             !IsBusy;
 
         public bool MostrarAyudaDetalle =>
+            consultaRealizada &&
             HayRegistros &&
             !IsBusy;
 
-        /// <summary>
-        /// La paginación no se renderiza cuando la colección está vacía.
-        /// Esto evita el problema de medición de CollectionView en WinUI.
-        /// </summary>
+        public bool MostrarResumenResultados =>
+            consultaRealizada &&
+            !IsBusy;
+
         public bool MostrarPaginacion =>
+            consultaRealizada &&
             HayRegistros &&
+            TotalPaginas > 1 &&
             !IsBusy;
 
         public bool PuedeAnterior =>
@@ -231,34 +302,17 @@ namespace CONATRADEC.ViewModels
                 : $"{TotalRegistros:N0} registros encontrados";
 
         public Command BuscarCommand { get; }
+        public Command ActualizarCommand { get; }
         public Command LimpiarCommand { get; }
         public Command AnteriorCommand { get; }
         public Command SiguienteCommand { get; }
         public Command<BitacoraListadoItem> VerDetalleCommand { get; }
 
-        public BitacoraViewModel()
-        {
-            LoadPagePermissions("bitacoraPage");
-
-            BuscarCommand = new Command(
-                async () => await CargarAsync(true));
-
-            LimpiarCommand = new Command(
-                async () => await LimpiarFiltrosAsync());
-
-            AnteriorCommand = new Command(
-                async () => await CambiarPaginaAsync(-1));
-
-            SiguienteCommand = new Command(
-                async () => await CambiarPaginaAsync(1));
-
-            VerDetalleCommand = new Command<BitacoraListadoItem>(
-                async item => await VerDetalleAsync(item));
-        }
-
         public async Task InicializarAsync()
         {
             LoadPagePermissions("bitacoraPage");
+            OnPropertyChanged(nameof(CanView));
+            ActualizarComandos();
 
             if (!CanView)
             {
@@ -269,120 +323,273 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            if (!catalogosCargados)
-                await CargarCatalogosAsync();
-
-            await CargarAsync(true);
-        }
-
-        public async Task CargarAsync(bool reiniciarPagina)
-        {
-            if (IsBusy || !CanView)
+            // Regresar desde el detalle pertenece a la misma visita.
+            if (inicializado)
                 return;
-
-            if (FechaHasta.Date < FechaDesde.Date)
-            {
-                await MostrarAdvertenciaAsync(
-                    "La fecha final no puede ser menor que la fecha inicial.");
-                return;
-            }
 
             if (!await ValidarInternetAsync())
                 return;
 
-            if (reiniciarPagina)
-                Pagina = 1;
-
-            IsBusy = true;
-            ActualizarEstadoResultados();
+            using CancellationTokenSource cts = CrearCargaCts();
+            EstablecerBusy(true);
 
             try
             {
-                DateTime desdeUtc = DateTime.SpecifyKind(
-                        FechaDesde.Date,
-                        DateTimeKind.Local)
-                    .ToUniversalTime();
-
-                DateTime hastaUtc = DateTime.SpecifyKind(
-                        FechaHasta.Date.AddDays(1).AddTicks(-1),
-                        DateTimeKind.Local)
-                    .ToUniversalTime();
-
-                bool? exitoso = EstadoSeleccionado switch
+                if (!catalogosCargados)
                 {
-                    "Correctos" => true,
-                    "Con error" => false,
-                    _ => null
-                };
+                    bool catalogosOk = await CargarCatalogosInternoAsync(
+                        cts.Token);
 
-                ApiResult<BitacoraPaginadaResponse> resultado =
-                    await apiService.ListarAsync(
-                        desdeUtc,
-                        hastaUtc,
-                        ObtenerUsuarioSeleccionadoId(),
-                        AccionSeleccionada == "Todas"
-                            ? null
-                            : AccionSeleccionada,
-                        ModuloSeleccionado == "Todos"
-                            ? null
-                            : ModuloSeleccionado,
-                        exitoso,
-                        TextoBusqueda,
-                        Pagina,
-                        25);
+                    if (!catalogosOk)
+                        return;
+                }
 
-                if (!resultado.Success || resultado.Data == null)
+                if (!IntentarCrearFiltrosDesdeControles(
+                        out BitacoraFiltrosConsulta filtros,
+                        out string mensaje))
                 {
-                    consultaRealizada = false;
-                    Registros = new ObservableCollection<BitacoraListadoItem>();
-                    TotalRegistros = 0;
-                    Pagina = 1;
-                    TotalPaginas = 1;
-
-                    await MostrarErrorAsync(
-                        string.IsNullOrWhiteSpace(resultado.Message)
-                            ? "No fue posible consultar la bitácora."
-                            : resultado.Message);
-
+                    await MostrarAdvertenciaAsync(mensaje);
                     return;
                 }
 
-                List<BitacoraListadoItem> items =
-                    resultado.Data.Items ??
-                    new List<BitacoraListadoItem>();
+                BitacoraPaginadaResponse? respuesta =
+                    await ConsultarInternoAsync(
+                        filtros,
+                        1,
+                        null,
+                        cts.Token);
 
-                Registros = new ObservableCollection<BitacoraListadoItem>(
-                    items);
+                if (respuesta == null)
+                    return;
 
-                Pagina = resultado.Data.Pagina;
-                TotalPaginas = resultado.Data.TotalPaginas;
-                TotalRegistros = resultado.Data.TotalRegistros;
-                consultaRealizada = true;
+                filtrosAplicados = filtros;
+                corteConsultaUtc = respuesta.CorteConsultaUtc;
+                inicializado = true;
             }
-            catch (Exception ex)
+            catch (OperationCanceledException)
+                when (cts.IsCancellationRequested)
             {
-                consultaRealizada = false;
-                Registros = new ObservableCollection<BitacoraListadoItem>();
-                TotalRegistros = 0;
-                Pagina = 1;
-                TotalPaginas = 1;
-
-                await MostrarErrorInesperadoAsync(
-                    "consultar la bitácora",
-                    ex);
+                // La página se abandonó durante la consulta.
             }
             finally
             {
-                IsBusy = false;
-                ActualizarEstadoResultados();
-                ActualizarPaginacion();
+                LiberarCargaCts(cts);
+                EstablecerBusy(false);
             }
         }
 
-        private async Task CargarCatalogosAsync()
+        public void CancelarCarga()
+        {
+            CancellationTokenSource? cts = cargaCts;
+            cargaCts = null;
+
+            if (cts == null)
+                return;
+
+            try
+            {
+                cts.Cancel();
+            }
+            catch
+            {
+            }
+        }
+
+        private async Task BuscarAsync()
+        {
+            if (IsBusy || !CanView)
+                return;
+
+            if (!IntentarCrearFiltrosDesdeControles(
+                    out BitacoraFiltrosConsulta filtros,
+                    out string mensaje))
+            {
+                await MostrarAdvertenciaAsync(mensaje);
+                return;
+            }
+
+            bool ok = await EjecutarConsultaAsync(
+                filtros,
+                1,
+                corte: null,
+                limpiarResultadosSiFalla: true);
+
+            if (ok)
+                filtrosAplicados = filtros;
+        }
+
+        private async Task ActualizarAsync()
+        {
+            if (IsBusy || !CanView)
+                return;
+
+            BitacoraFiltrosConsulta? filtros = filtrosAplicados;
+
+            if (filtros == null)
+            {
+                if (!IntentarCrearFiltrosDesdeControles(
+                        out BitacoraFiltrosConsulta nuevos,
+                        out string mensaje))
+                {
+                    await MostrarAdvertenciaAsync(mensaje);
+                    return;
+                }
+
+                filtros = nuevos;
+            }
+
+            bool ok = await EjecutarConsultaAsync(
+                filtros,
+                Pagina,
+                corte: null,
+                limpiarResultadosSiFalla: false);
+
+            if (ok && filtrosAplicados == null)
+                filtrosAplicados = filtros;
+        }
+
+        private async Task LimpiarFiltrosAsync()
+        {
+            if (IsBusy || !CanView)
+                return;
+
+            FechaDesde = DateTime.Today.AddDays(-7);
+            FechaHasta = DateTime.Today;
+            AccionSeleccionada = Acciones.FirstOrDefault() ?? "Todas";
+            ModuloSeleccionado = Modulos.FirstOrDefault() ?? "Todos";
+            SeleccionarPrimerUsuario();
+            EstadoSeleccionado = Estados.FirstOrDefault() ?? "Todos";
+            TextoBusqueda = string.Empty;
+
+            if (!IntentarCrearFiltrosDesdeControles(
+                    out BitacoraFiltrosConsulta filtros,
+                    out string mensaje))
+            {
+                await MostrarAdvertenciaAsync(mensaje);
+                return;
+            }
+
+            bool ok = await EjecutarConsultaAsync(
+                filtros,
+                1,
+                corte: null,
+                limpiarResultadosSiFalla: true);
+
+            if (ok)
+                filtrosAplicados = filtros;
+        }
+
+        private async Task CambiarPaginaAsync(int incremento)
+        {
+            if (IsBusy || filtrosAplicados == null)
+                return;
+
+            int nuevaPagina = Pagina + incremento;
+
+            if (nuevaPagina < 1 || nuevaPagina > TotalPaginas)
+                return;
+
+            bool ok = await EjecutarConsultaAsync(
+                filtrosAplicados,
+                nuevaPagina,
+                corteConsultaUtc,
+                limpiarResultadosSiFalla: false);
+
+            if (ok)
+                SolicitarScrollInicio?.Invoke(this, EventArgs.Empty);
+        }
+
+        private async Task<bool> EjecutarConsultaAsync(
+            BitacoraFiltrosConsulta filtros,
+            int paginaSolicitada,
+            DateTime? corte,
+            bool limpiarResultadosSiFalla)
+        {
+            if (!await ValidarInternetAsync())
+                return false;
+
+            using CancellationTokenSource cts = CrearCargaCts();
+            EstablecerBusy(true);
+
+            try
+            {
+                BitacoraPaginadaResponse? respuesta =
+                    await ConsultarInternoAsync(
+                        filtros,
+                        paginaSolicitada,
+                        corte,
+                        cts.Token);
+
+                if (respuesta == null)
+                {
+                    if (limpiarResultadosSiFalla)
+                        LimpiarResultadosConsultaFallida();
+
+                    return false;
+                }
+
+                corteConsultaUtc = respuesta.CorteConsultaUtc;
+                return true;
+            }
+            catch (OperationCanceledException)
+                when (cts.IsCancellationRequested)
+            {
+                return false;
+            }
+            finally
+            {
+                LiberarCargaCts(cts);
+                EstablecerBusy(false);
+            }
+        }
+
+        private async Task<BitacoraPaginadaResponse?> ConsultarInternoAsync(
+            BitacoraFiltrosConsulta filtros,
+            int paginaSolicitada,
+            DateTime? corte,
+            CancellationToken cancellationToken)
+        {
+            ApiResult<BitacoraPaginadaResponse> resultado =
+                await apiService.ListarAsync(
+                    ConvertirInicioDiaUtc(filtros.FechaDesde),
+                    ConvertirFinDiaUtc(filtros.FechaHasta),
+                    filtros.UsuarioId,
+                    filtros.Accion,
+                    filtros.Modulo,
+                    filtros.Exitoso,
+                    filtros.Buscar,
+                    paginaSolicitada,
+                    TamanoPagina,
+                    corte,
+                    cancellationToken);
+
+            if (!resultado.Success || resultado.Data == null)
+            {
+                await MostrarErrorAsync(
+                    string.IsNullOrWhiteSpace(resultado.Message)
+                        ? "No fue posible consultar la bitácora."
+                        : resultado.Message);
+                return null;
+            }
+
+            Registros = new ObservableCollection<BitacoraListadoItem>(
+                resultado.Data.Items ?? new List<BitacoraListadoItem>());
+
+            Pagina = resultado.Data.Pagina;
+            TotalPaginas = resultado.Data.TotalPaginas;
+            TotalRegistros = resultado.Data.TotalRegistros;
+            consultaRealizada = true;
+            ActualizarEstadoResultados();
+            ActualizarPaginacion();
+
+            return resultado.Data;
+        }
+
+        private async Task<bool> CargarCatalogosInternoAsync(
+            CancellationToken cancellationToken)
         {
             ApiResult<BitacoraCatalogosResponse> resultado =
-                await apiService.CatalogosAsync();
+                await apiService.CatalogosAsync(cancellationToken);
 
             if (!resultado.Success || resultado.Data == null)
             {
@@ -390,43 +597,35 @@ namespace CONATRADEC.ViewModels
                     string.IsNullOrWhiteSpace(resultado.Message)
                         ? "No fue posible cargar los filtros de la bitácora."
                         : resultado.Message);
-
-                return;
+                return false;
             }
 
             Acciones = new ObservableCollection<string>(
                 new[] { "Todas" }
                     .Concat(resultado.Data.Acciones ?? new List<string>())
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Where(item => !string.IsNullOrWhiteSpace(item))
                     .Distinct(StringComparer.OrdinalIgnoreCase));
 
             Modulos = new ObservableCollection<string>(
                 new[] { "Todos" }
                     .Concat(resultado.Data.Modulos ?? new List<string>())
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Where(item => !string.IsNullOrWhiteSpace(item))
                     .Distinct(StringComparer.OrdinalIgnoreCase));
 
             ConstruirCatalogoUsuarios(resultado.Data.Usuarios);
 
-            AccionSeleccionada =
-                Acciones.FirstOrDefault() ?? "Todas";
-
-            ModuloSeleccionado =
-                Modulos.FirstOrDefault() ?? "Todos";
-
+            AccionSeleccionada = Acciones.FirstOrDefault() ?? "Todas";
+            ModuloSeleccionado = Modulos.FirstOrDefault() ?? "Todos";
             SeleccionarPrimerUsuario();
-
-            EstadoSeleccionado =
-                Estados.FirstOrDefault() ?? "Todos";
-
+            EstadoSeleccionado = Estados.FirstOrDefault() ?? "Todos";
             catalogosCargados = true;
+            return true;
         }
 
         private void ConstruirCatalogoUsuarios(
             IEnumerable<BitacoraUsuarioFiltro>? usuariosApi)
         {
             opcionesUsuarios.Clear();
-
             opcionesUsuarios.Add(new BitacoraUsuarioFiltro
             {
                 UsuarioId = null,
@@ -434,106 +633,100 @@ namespace CONATRADEC.ViewModels
             });
 
             IEnumerable<BitacoraUsuarioFiltro> usuariosValidos =
-                (usuariosApi ??
-                 Enumerable.Empty<BitacoraUsuarioFiltro>())
-                .Where(x =>
-                    x.UsuarioId.HasValue &&
-                    x.UsuarioId.Value > 0 &&
-                    !string.IsNullOrWhiteSpace(x.Nombre))
-                .GroupBy(x => x.UsuarioId)
-                .Select(x => x.First())
-                .OrderBy(x => x.Nombre);
+                (usuariosApi ?? Enumerable.Empty<BitacoraUsuarioFiltro>())
+                .Where(item =>
+                    item.UsuarioId.HasValue &&
+                    item.UsuarioId.Value > 0 &&
+                    !string.IsNullOrWhiteSpace(item.Nombre))
+                .GroupBy(item => item.UsuarioId)
+                .Select(grupo => grupo.First())
+                .OrderBy(item => item.Nombre)
+                .ThenBy(item => item.UsuarioId);
 
             opcionesUsuarios.AddRange(usuariosValidos);
 
             HashSet<string> nombresRepetidos = opcionesUsuarios
-                .Where(x => x.UsuarioId.HasValue)
+                .Where(item => item.UsuarioId.HasValue)
                 .GroupBy(
-                    x => x.Nombre.Trim(),
+                    item => item.Nombre.Trim(),
                     StringComparer.OrdinalIgnoreCase)
-                .Where(x => x.Count() > 1)
-                .Select(x => x.Key)
+                .Where(grupo => grupo.Count() > 1)
+                .Select(grupo => grupo.Key)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             Usuarios = new ObservableCollection<string>(
-                opcionesUsuarios.Select(x =>
+                opcionesUsuarios.Select(item =>
                 {
-                    string nombre = x.Nombre.Trim();
+                    string nombre = item.Nombre.Trim();
 
-                    return x.UsuarioId.HasValue &&
+                    return item.UsuarioId.HasValue &&
                            nombresRepetidos.Contains(nombre)
-                        ? $"{nombre} (ID {x.UsuarioId.Value})"
+                        ? $"{nombre} (ID {item.UsuarioId.Value})"
                         : nombre;
                 }));
-
-            SeleccionarPrimerUsuario();
         }
 
         private void SeleccionarPrimerUsuario()
         {
-            usuarioSeleccionadoIndex =
-                Usuarios.Count > 0
-                    ? 0
-                    : -1;
-
-            OnPropertyChanged(
-                nameof(UsuarioSeleccionadoIndex));
+            usuarioSeleccionadoIndex = Usuarios.Count > 0 ? 0 : -1;
+            OnPropertyChanged(nameof(UsuarioSeleccionadoIndex));
         }
 
         private int? ObtenerUsuarioSeleccionadoId()
         {
             int indice = UsuarioSeleccionadoIndex;
 
-            return indice >= 0 &&
-                   indice < opcionesUsuarios.Count
+            return indice >= 0 && indice < opcionesUsuarios.Count
                 ? opcionesUsuarios[indice].UsuarioId
                 : null;
         }
 
-        private async Task LimpiarFiltrosAsync()
+        private bool IntentarCrearFiltrosDesdeControles(
+            out BitacoraFiltrosConsulta filtros,
+            out string mensaje)
         {
-            if (IsBusy)
-                return;
+            filtros = new BitacoraFiltrosConsulta();
 
-            FechaDesde = DateTime.Today.AddDays(-7);
-            FechaHasta = DateTime.Today;
-
-            AccionSeleccionada =
-                Acciones.FirstOrDefault() ?? "Todas";
-
-            ModuloSeleccionado =
-                Modulos.FirstOrDefault() ?? "Todos";
-
-            SeleccionarPrimerUsuario();
-
-            EstadoSeleccionado =
-                Estados.FirstOrDefault() ?? "Todos";
-
-            TextoBusqueda = string.Empty;
-
-            await CargarAsync(true);
-        }
-
-        private async Task CambiarPaginaAsync(
-            int incremento)
-        {
-            int nuevaPagina = Pagina + incremento;
-
-            if (nuevaPagina < 1 ||
-                nuevaPagina > TotalPaginas ||
-                IsBusy)
+            if (FechaHasta.Date < FechaDesde.Date)
             {
-                return;
+                mensaje = "La fecha final no puede ser menor que la fecha inicial.";
+                return false;
             }
 
-            Pagina = nuevaPagina;
-            await CargarAsync(false);
+            string buscar = TextoBusqueda.Trim();
+            if (buscar.Length > MaximoBusqueda)
+            {
+                mensaje = $"La búsqueda no puede superar {MaximoBusqueda} caracteres.";
+                return false;
+            }
+
+            filtros = new BitacoraFiltrosConsulta
+            {
+                FechaDesde = FechaDesde.Date,
+                FechaHasta = FechaHasta.Date,
+                UsuarioId = ObtenerUsuarioSeleccionadoId(),
+                Accion = AccionSeleccionada == "Todas"
+                    ? null
+                    : AccionSeleccionada,
+                Modulo = ModuloSeleccionado == "Todos"
+                    ? null
+                    : ModuloSeleccionado,
+                Exitoso = EstadoSeleccionado switch
+                {
+                    "Correctos" => true,
+                    "Con error" => false,
+                    _ => null
+                },
+                Buscar = buscar
+            };
+
+            mensaje = string.Empty;
+            return true;
         }
 
-        private async Task VerDetalleAsync(
-            BitacoraListadoItem? item)
+        private async Task VerDetalleAsync(BitacoraListadoItem? item)
         {
-            if (item == null || IsBusy)
+            if (item == null || IsBusy || !CanView)
                 return;
 
             await GoToAsyncParameters(
@@ -544,11 +737,58 @@ namespace CONATRADEC.ViewModels
                 });
         }
 
+        private static DateTime ConvertirInicioDiaUtc(DateTime fecha) =>
+            DateTime.SpecifyKind(
+                    fecha.Date,
+                    DateTimeKind.Local)
+                .ToUniversalTime();
+
+        private static DateTime ConvertirFinDiaUtc(DateTime fecha) =>
+            DateTime.SpecifyKind(
+                    fecha.Date.AddDays(1).AddTicks(-1),
+                    DateTimeKind.Local)
+                .ToUniversalTime();
+
+        private void LimpiarResultadosConsultaFallida()
+        {
+            consultaRealizada = false;
+            Registros = new ObservableCollection<BitacoraListadoItem>();
+            Pagina = 1;
+            TotalPaginas = 1;
+            TotalRegistros = 0;
+            corteConsultaUtc = null;
+            ActualizarEstadoResultados();
+            ActualizarPaginacion();
+        }
+
+        private CancellationTokenSource CrearCargaCts()
+        {
+            CancelarCarga();
+            cargaCts = new CancellationTokenSource();
+            return cargaCts;
+        }
+
+        private void LiberarCargaCts(CancellationTokenSource cts)
+        {
+            if (ReferenceEquals(cargaCts, cts))
+                cargaCts = null;
+        }
+
+        private void EstablecerBusy(bool valor)
+        {
+            IsBusy = valor;
+            ActualizarEstadoResultados();
+            ActualizarPaginacion();
+            ActualizarComandos();
+        }
+
         private void ActualizarEstadoResultados()
         {
             OnPropertyChanged(nameof(HayRegistros));
+            OnPropertyChanged(nameof(TieneConsultaRealizada));
             OnPropertyChanged(nameof(MostrarSinResultados));
             OnPropertyChanged(nameof(MostrarAyudaDetalle));
+            OnPropertyChanged(nameof(MostrarResumenResultados));
             OnPropertyChanged(nameof(MostrarPaginacion));
         }
 
@@ -558,9 +798,29 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(PuedeSiguiente));
             OnPropertyChanged(nameof(ResumenPagina));
             OnPropertyChanged(nameof(MostrarPaginacion));
-
             AnteriorCommand?.ChangeCanExecute();
             SiguienteCommand?.ChangeCanExecute();
+        }
+
+        private void ActualizarComandos()
+        {
+            BuscarCommand.ChangeCanExecute();
+            ActualizarCommand.ChangeCanExecute();
+            LimpiarCommand.ChangeCanExecute();
+            VerDetalleCommand.ChangeCanExecute();
+            AnteriorCommand.ChangeCanExecute();
+            SiguienteCommand.ChangeCanExecute();
+        }
+
+        private sealed class BitacoraFiltrosConsulta
+        {
+            public DateTime FechaDesde { get; init; }
+            public DateTime FechaHasta { get; init; }
+            public int? UsuarioId { get; init; }
+            public string? Accion { get; init; }
+            public string? Modulo { get; init; }
+            public bool? Exitoso { get; init; }
+            public string Buscar { get; init; } = string.Empty;
         }
     }
 }

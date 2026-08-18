@@ -19,6 +19,8 @@ namespace CONATRADEC.ViewModels
         private string resumenActual = string.Empty;
         private string ultimaModificacion = string.Empty;
         private string mensajeEstado = string.Empty;
+        private string rowVersion = string.Empty;
+        private int maximoPersistido = 2;
 
         public DiagnosticoIAConfiguracionViewModel()
         {
@@ -127,28 +129,23 @@ namespace CONATRADEC.ViewModels
         public bool PuedeAdministrarTiposFotografia => CanView;
         public bool TieneHistorial => Historial.Count > 0;
         public bool SinHistorial => !TieneHistorial;
+        public bool SinPermisoLectura => !CanView;
 
         public string AyudaLimite => RevisionesIlimitadas
-            ? "Cada diagnóstico podrá solicitar revisiones adicionales mientras continúe en la etapa de análisis humano. Los errores técnicos no cuentan como revisión completada."
+            ? "Cada diagnóstico podrá solicitar revisiones adicionales mientras continúe en una etapa que las permita. Los errores técnicos no cuentan como revisión completada."
             : "El análisis inicial no cuenta. Solo se contabilizan las revisiones adicionales completadas correctamente.";
 
         public async Task InicializarAsync()
         {
             ActualizarPermisos();
 
-            if (inicializado)
+            if (!CanView)
             {
-                if (CanView)
-                    await CargarAsync();
-
+                MensajeEstado = string.Empty;
                 return;
             }
 
             inicializado = true;
-
-            if (!CanView)
-                return;
-
             await CargarAsync();
         }
 
@@ -166,6 +163,7 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(CanEdit));
             OnPropertyChanged(nameof(SoloLectura));
             OnPropertyChanged(nameof(PuedeAdministrarTiposFotografia));
+            OnPropertyChanged(nameof(SinPermisoLectura));
             ActualizarComandos();
         }
 
@@ -202,12 +200,29 @@ namespace CONATRADEC.ViewModels
             if (IsBusy || !CanEdit)
                 return;
 
-            if (!int.TryParse(MaximoRevisionesTexto, out int maximo) ||
-                maximo is < 1 or > 20)
+            int maximo;
+
+            if (RevisionesIlimitadas)
+            {
+                maximo = int.TryParse(MaximoRevisionesTexto, out int valorActual) &&
+                         valorActual is >= 1 and <= 20
+                    ? valorActual
+                    : Math.Clamp(maximoPersistido, 1, 20);
+            }
+            else if (!int.TryParse(MaximoRevisionesTexto, out maximo) ||
+                     maximo is < 1 or > 20)
             {
                 await MostrarAlertaAsync(
                     "Configuración de IA",
                     "Indique un valor entre 1 y 20 revisiones.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(rowVersion))
+            {
+                await MostrarAlertaAsync(
+                    "Configuración de IA",
+                    "La configuración todavía no tiene una versión válida. Pulse Actualizar e intente nuevamente.");
                 return;
             }
 
@@ -224,6 +239,8 @@ namespace CONATRADEC.ViewModels
             MensajeEstado = "Guardando configuración...";
             ActualizarComandos();
 
+            bool recargarPorConflicto = false;
+
             try
             {
                 DiagnosticoIAConfiguracion configuracion =
@@ -231,7 +248,8 @@ namespace CONATRADEC.ViewModels
                         new DiagnosticoIAConfiguracionActualizarRequest
                         {
                             MaximoRevisionesGemini = maximo,
-                            RevisionesIlimitadas = RevisionesIlimitadas
+                            RevisionesIlimitadas = RevisionesIlimitadas,
+                            RowVersion = rowVersion
                         });
 
                 AplicarConfiguracion(configuracion);
@@ -239,6 +257,13 @@ namespace CONATRADEC.ViewModels
                 await MostrarAlertaAsync(
                     "Configuración de IA",
                     "El límite de revisiones se actualizó correctamente.");
+            }
+            catch (DiagnosticoIAApiException ex) when (ex.StatusCode == 409)
+            {
+                recargarPorConflicto = true;
+                await MostrarAlertaAsync(
+                    "Configuración actualizada por otro usuario",
+                    ex.Message);
             }
             catch (Exception ex)
             {
@@ -250,6 +275,9 @@ namespace CONATRADEC.ViewModels
                 IsBusy = false;
                 ActualizarComandos();
             }
+
+            if (recargarPorConflicto)
+                await CargarAsync();
         }
 
         private void AplicarConfiguracion(
@@ -257,10 +285,13 @@ namespace CONATRADEC.ViewModels
         {
             RevisionesIlimitadas = configuracion.RevisionesIlimitadas;
 
-            MaximoRevisionesTexto = Math.Clamp(
+            maximoPersistido = Math.Clamp(
                 configuracion.MaximoRevisionesGemini,
                 1,
-                20).ToString();
+                20);
+
+            MaximoRevisionesTexto = maximoPersistido.ToString();
+            rowVersion = configuracion.RowVersion ?? string.Empty;
 
             ResumenActual = configuracion.Resumen;
             UltimaModificacion =
