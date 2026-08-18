@@ -21,6 +21,8 @@ namespace CONATRADEC.ViewModels
         private string ordenTexto = "1";
         private ColorPublicacionOption? colorSeleccionado;
         private bool preparado;
+        private bool datosCargados;
+        private CancellationTokenSource? cargaCancellationTokenSource;
 
         public CategoriaPublicacionFormViewModel()
         {
@@ -153,23 +155,143 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public bool PuedeAcceder =>
+            preparado &&
+            (EsEdicion
+                ? CanView && CanEdit
+                : CanAdd);
+
         public bool PuedeGuardar =>
-            EsEdicion ? CanEdit : CanAdd;
+            PuedeAcceder && datosCargados;
 
         public Command GuardarCommand { get; }
         public Command CancelarCommand { get; }
 
-        public void Preparar(CategoriaPublicacionCatalogoResponse? item)
+        public void Preparar(int categoriaId)
         {
-            if (preparado)
-                return;
+            CancelarCarga();
 
             preparado = true;
-            categoriaPublicacionId = item?.CategoriaPublicacionId ?? 0;
-            Nombre = item?.NombreCategoriaPublicacion ?? string.Empty;
-            Descripcion = item?.DescripcionCategoriaPublicacion ?? string.Empty;
-            OrdenTexto = (item?.Orden ?? 1).ToString();
-            ColorHex = string.IsNullOrWhiteSpace(item?.ColorHex)
+            datosCargados = categoriaId <= 0;
+            categoriaPublicacionId = Math.Max(0, categoriaId);
+
+            LimpiarCampos();
+
+            OnPropertyChanged(nameof(CategoriaPublicacionId));
+            OnPropertyChanged(nameof(EsEdicion));
+            OnPropertyChanged(nameof(TituloPagina));
+            OnPropertyChanged(nameof(TextoBoton));
+            OnPropertyChanged(nameof(PuedeAcceder));
+            OnPropertyChanged(nameof(PuedeGuardar));
+            GuardarCommand.ChangeCanExecute();
+        }
+
+        public void ActualizarPermisos()
+        {
+            LoadPagePermissions("categoriaPublicacionPage");
+            OnPropertyChanged(nameof(PuedeAcceder));
+            OnPropertyChanged(nameof(PuedeGuardar));
+            GuardarCommand.ChangeCanExecute();
+            CancelarCommand.ChangeCanExecute();
+        }
+
+        public async Task InicializarAsync()
+        {
+            if (!preparado || !PuedeAcceder)
+                return;
+
+            if (!EsEdicion)
+            {
+                datosCargados = true;
+                NotificarEstadoGuardado();
+                return;
+            }
+
+            if (datosCargados || IsBusy)
+                return;
+
+            cargaCancellationTokenSource?.Cancel();
+            cargaCancellationTokenSource?.Dispose();
+
+            var source = new CancellationTokenSource();
+            cargaCancellationTokenSource = source;
+
+            try
+            {
+                IsBusy = true;
+                NotificarEstadoGuardado();
+
+                ApiResult<CategoriaPublicacionCatalogoResponse> result =
+                    await apiService.ObtenerAsync(
+                        CategoriaPublicacionId,
+                        source.Token);
+
+                if (source.IsCancellationRequested)
+                    return;
+
+                if (!result.Success || result.Data == null)
+                {
+                    if (!string.Equals(
+                            result.Message,
+                            "La operación fue cancelada.",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        await MostrarErrorAsync(result.Message);
+                    }
+
+                    return;
+                }
+
+                AplicarDatos(result.Data);
+                datosCargados = true;
+                NotificarEstadoGuardado();
+            }
+            catch (OperationCanceledException)
+            {
+                // El formulario se cerró antes de completar la consulta.
+            }
+            catch (Exception ex)
+            {
+                if (!source.IsCancellationRequested)
+                {
+                    await MostrarErrorInesperadoAsync(
+                        "cargar el tipo de publicación",
+                        ex);
+                }
+            }
+            finally
+            {
+                IsBusy = false;
+
+                if (ReferenceEquals(
+                        cargaCancellationTokenSource,
+                        source))
+                {
+                    cargaCancellationTokenSource.Dispose();
+                    cargaCancellationTokenSource = null;
+                }
+                else
+                {
+                    source.Dispose();
+                }
+
+                NotificarEstadoGuardado();
+                CancelarCommand.ChangeCanExecute();
+            }
+        }
+
+        public void CancelarCarga()
+        {
+            cargaCancellationTokenSource?.Cancel();
+        }
+
+        private void AplicarDatos(
+            CategoriaPublicacionCatalogoResponse item)
+        {
+            Nombre = item.NombreCategoriaPublicacion ?? string.Empty;
+            Descripcion = item.DescripcionCategoriaPublicacion ?? string.Empty;
+            OrdenTexto = item.Orden.ToString();
+            ColorHex = string.IsNullOrWhiteSpace(item.ColorHex)
                 ? "#3B655B"
                 : item.ColorHex.ToUpperInvariant();
 
@@ -178,21 +300,19 @@ namespace CONATRADEC.ViewModels
                     x.Hex,
                     ColorHex,
                     StringComparison.OrdinalIgnoreCase));
-
-            OnPropertyChanged(nameof(CategoriaPublicacionId));
-            OnPropertyChanged(nameof(EsEdicion));
-            OnPropertyChanged(nameof(TituloPagina));
-            OnPropertyChanged(nameof(TextoBoton));
-            OnPropertyChanged(nameof(PuedeGuardar));
-            GuardarCommand.ChangeCanExecute();
         }
 
-        public void ActualizarPermisos()
+        private void LimpiarCampos()
         {
-            LoadPagePermissions("categoriaPublicacionPage");
-            OnPropertyChanged(nameof(PuedeGuardar));
-            GuardarCommand.ChangeCanExecute();
-            CancelarCommand.ChangeCanExecute();
+            Nombre = string.Empty;
+            Descripcion = string.Empty;
+            OrdenTexto = "1";
+            ColorHex = "#3B655B";
+            ColorSeleccionado = Colores.FirstOrDefault(x =>
+                string.Equals(
+                    x.Hex,
+                    ColorHex,
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task GuardarAsync()
@@ -203,7 +323,7 @@ namespace CONATRADEC.ViewModels
             if (!PuedeGuardar)
             {
                 await MostrarAdvertenciaAsync(
-                    "No tiene permiso para guardar tipos de publicación.");
+                    "No tiene permiso para guardar tipos de publicación o los datos aún no están disponibles.");
                 return;
             }
 
@@ -291,6 +411,13 @@ namespace CONATRADEC.ViewModels
             }
 
             return null;
+        }
+
+        private void NotificarEstadoGuardado()
+        {
+            OnPropertyChanged(nameof(PuedeAcceder));
+            OnPropertyChanged(nameof(PuedeGuardar));
+            GuardarCommand.ChangeCanExecute();
         }
     }
 }

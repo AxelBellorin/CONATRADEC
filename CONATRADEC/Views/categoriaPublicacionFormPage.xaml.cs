@@ -19,26 +19,63 @@ namespace CONATRADEC.Views
         public void ApplyQueryAttributes(
             IDictionary<string, object> query)
         {
-            CategoriaPublicacionCatalogoResponse? categoria = null;
+            int categoriaId = 0;
 
-            if (query.TryGetValue("Categoria", out object? valor) &&
-                valor is CategoriaPublicacionCatalogoResponse item)
+            if (query.TryGetValue(
+                    "CategoriaId",
+                    out object? valorId))
             {
-                categoria = item;
+                categoriaId = ConvertirId(valorId);
+            }
+            else if (query.TryGetValue(
+                         "Categoria",
+                         out object? valorCategoria) &&
+                     valorCategoria is
+                         CategoriaPublicacionCatalogoResponse categoria)
+            {
+                /*
+                 * Compatibilidad con navegaciones anteriores que enviaban el
+                 * DTO completo. Solo se conserva su identificador; la edición
+                 * siempre vuelve a consultar el registro fresco en la API.
+                 */
+                categoriaId = categoria.CategoriaPublicacionId;
             }
 
-            viewModel.Preparar(categoria);
+            viewModel.Preparar(categoriaId);
         }
 
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
 
             viewModel.ActualizarPermisos();
 
-            bool tienePermiso = viewModel.PuedeGuardar;
+            bool tienePermiso = viewModel.PuedeAcceder;
             ContenidoPrincipal.IsVisible = tienePermiso;
             ContenidoSinPermiso.IsVisible = !tienePermiso;
+
+            if (!tienePermiso)
+                return;
+
+            await viewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarCarga();
+            base.OnDisappearing();
+        }
+
+        private static int ConvertirId(object? valor)
+        {
+            if (valor is int id)
+                return id;
+
+            return int.TryParse(
+                    valor?.ToString(),
+                    out int convertido)
+                ? convertido
+                : 0;
         }
     }
 }

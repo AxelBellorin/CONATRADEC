@@ -1,5 +1,7 @@
 using CONATRADEC.Models;
 using System.Collections.ObjectModel;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace CONATRADEC.Services
 {
@@ -40,6 +42,87 @@ namespace CONATRADEC.Services
                     ruta,
                     "los tipos de publicación",
                     cancellationToken);
+        }
+
+        public async Task<ApiResult<CategoriaPublicacionCatalogoResponse>>
+            ObtenerAsync(
+                int categoriaId,
+                CancellationToken cancellationToken = default)
+        {
+            if (categoriaId <= 0)
+            {
+                return ApiResult<
+                    CategoriaPublicacionCatalogoResponse>.Fail(
+                        "El tipo de publicación seleccionado no es válido.");
+            }
+
+            try
+            {
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(
+                        $"api/configuracion/categorias-publicacion/{categoriaId}",
+                        cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string mensaje =
+                        await ApiServiceHelper.ReadResponseMessageAsync(
+                            response,
+                            "No fue posible obtener el tipo de publicación.",
+                            cancellationToken);
+
+                    return ApiResult<
+                        CategoriaPublicacionCatalogoResponse>.Fail(
+                            mensaje,
+                            (int)response.StatusCode);
+                }
+
+                CategoriaPublicacionCatalogoResponse? data =
+                    await response.Content.ReadFromJsonAsync<
+                        CategoriaPublicacionCatalogoResponse>(
+                            cancellationToken: cancellationToken);
+
+                if (data == null)
+                {
+                    return ApiResult<
+                        CategoriaPublicacionCatalogoResponse>.Fail(
+                            "El servidor no devolvió los datos del tipo de publicación.");
+                }
+
+                return ApiResult<
+                    CategoriaPublicacionCatalogoResponse>.Ok(data);
+            }
+            catch (TaskCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return ApiResult<
+                    CategoriaPublicacionCatalogoResponse>.Fail(
+                        "La solicitud tardó demasiado. Verifique su conexión e intente nuevamente.");
+            }
+            catch (OperationCanceledException)
+            {
+                return ApiResult<
+                    CategoriaPublicacionCatalogoResponse>.Fail(
+                        "La operación fue cancelada.");
+            }
+            catch (HttpRequestException)
+            {
+                return ApiResult<
+                    CategoriaPublicacionCatalogoResponse>.Fail(
+                        "No fue posible conectarse con el servidor. Verifique su conexión.");
+            }
+            catch (JsonException)
+            {
+                return ApiResult<
+                    CategoriaPublicacionCatalogoResponse>.Fail(
+                        "El servidor respondió, pero los datos del tipo de publicación no tienen el formato esperado.");
+            }
+            catch
+            {
+                return ApiResult<
+                    CategoriaPublicacionCatalogoResponse>.Fail(
+                        "Ocurrió un error inesperado al obtener el tipo de publicación.");
+            }
         }
 
         public async Task<ApiResult<bool>> CrearAsync(

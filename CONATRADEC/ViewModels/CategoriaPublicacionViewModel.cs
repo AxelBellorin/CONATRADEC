@@ -1,6 +1,7 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
@@ -15,6 +16,7 @@ namespace CONATRADEC.ViewModels
         private bool isRefreshing;
         private bool cargado;
         private long versionAplicada = -1;
+        private long generacionCarga;
         private CancellationTokenSource? cargaCancellationTokenSource;
 
         public CategoriaPublicacionViewModel()
@@ -152,6 +154,29 @@ namespace CONATRADEC.ViewModels
             ActualizarComandos();
         }
 
+        public async Task IniciarNuevaVisitaAsync()
+        {
+            /*
+             * Una visita nueva no conserva el filtro ni el resultado de la
+             * anterior. La consulta se reemplaza de forma determinista si una
+             * carga antigua todavía estuviera terminando en segundo plano.
+             */
+            textoBusqueda = string.Empty;
+            incluirInactivas = false;
+            Mensaje = string.Empty;
+            cargado = false;
+            versionAplicada = -1;
+            Categorias = new ObservableCollection<
+                CategoriaPublicacionCatalogoResponse>();
+
+            OnPropertyChanged(nameof(TextoBusqueda));
+            OnPropertyChanged(nameof(IncluirInactivas));
+            NotificarEstadoLista();
+
+            await CargarInternoAsync(
+                reemplazarCargaActual: true);
+        }
+
         public async Task InicializarAsync()
         {
             if (!CanView)
@@ -167,16 +192,34 @@ namespace CONATRADEC.ViewModels
             await CargarAsync();
         }
 
-        public async Task CargarAsync()
+        public Task CargarAsync() =>
+            CargarInternoAsync(
+                reemplazarCargaActual: false);
+
+        private async Task CargarInternoAsync(
+            bool reemplazarCargaActual)
         {
-            if (!CanView || IsBusy)
+            if (!CanView)
                 return;
 
-            cargaCancellationTokenSource?.Cancel();
-            cargaCancellationTokenSource?.Dispose();
+            if (!reemplazarCargaActual && IsBusy)
+                return;
+
+            long generacion = Interlocked.Increment(
+                ref generacionCarga);
 
             var source = new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                cargaCancellationTokenSource;
+
             cargaCancellationTokenSource = source;
+
+            if (anterior != null &&
+                !ReferenceEquals(anterior, source))
+            {
+                anterior.Cancel();
+            }
 
             try
             {
@@ -190,8 +233,12 @@ namespace CONATRADEC.ViewModels
                             TextoBusqueda,
                             source.Token);
 
-                if (source.IsCancellationRequested)
+                if (source.IsCancellationRequested ||
+                    generacion != Interlocked.Read(
+                        ref generacionCarga))
+                {
                     return;
+                }
 
                 if (!result.Success)
                 {
@@ -225,11 +272,13 @@ namespace CONATRADEC.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // La pantalla se cerró o la consulta fue reemplazada.
+                // La consulta fue cancelada o reemplazada por una más reciente.
             }
             catch (Exception ex)
             {
-                if (!source.IsCancellationRequested)
+                if (!source.IsCancellationRequested &&
+                    generacion == Interlocked.Read(
+                        ref generacionCarga))
                 {
                     Mensaje =
                         "No fue posible cargar los tipos de publicación.";
@@ -241,29 +290,44 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                IsBusy = false;
-                IsRefreshing = false;
+                bool esCargaActual =
+                    generacion == Interlocked.Read(
+                        ref generacionCarga);
 
                 if (ReferenceEquals(
                         cargaCancellationTokenSource,
                         source))
                 {
-                    cargaCancellationTokenSource.Dispose();
                     cargaCancellationTokenSource = null;
                 }
-                else
-                {
-                    source.Dispose();
-                }
 
-                ActualizarComandos();
-                NotificarEstadoLista();
+                source.Dispose();
+
+                if (esCargaActual)
+                {
+                    IsBusy = false;
+                    IsRefreshing = false;
+                    ActualizarComandos();
+                    NotificarEstadoLista();
+                }
             }
         }
 
         public void CancelarCarga()
         {
             cargaCancellationTokenSource?.Cancel();
+        }
+
+        public void FinalizarVisita()
+        {
+            Interlocked.Increment(ref generacionCarga);
+            CancelarCarga();
+
+            cargaCancellationTokenSource = null;
+            cargado = false;
+            versionAplicada = -1;
+            IsRefreshing = false;
+            IsBusy = false;
         }
 
         private async Task LimpiarAsync()
@@ -303,8 +367,7 @@ namespace CONATRADEC.ViewModels
                 AppRoutes.CategoriaPublicacionFormulario,
                 new Dictionary<string, object>
                 {
-                    ["Categoria"] =
-                        new CategoriaPublicacionCatalogoResponse()
+                    ["CategoriaId"] = 0
                 });
         }
 
@@ -321,11 +384,17 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
+            /*
+             * El formulario recibe únicamente el identificador. De esa forma
+             * obtiene el registro fresco desde la API y no edita una copia
+             * potencialmente desactualizada de la tarjeta del listado.
+             */
             await GoToAsyncParameters(
                 AppRoutes.CategoriaPublicacionFormulario,
                 new Dictionary<string, object>
                 {
-                    ["Categoria"] = item
+                    ["CategoriaId"] =
+                        item.CategoriaPublicacionId
                 });
         }
 
