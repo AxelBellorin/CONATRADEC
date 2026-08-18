@@ -12,7 +12,8 @@ namespace CONATRADEC.ViewModels
             "^#[0-9A-Fa-f]{6}$",
             RegexOptions.Compiled);
 
-        private readonly CategoriaPublicacionApiService apiService = new();
+        private readonly CategoriaPublicacionApiService
+            apiService = new();
 
         private int categoriaPublicacionId;
         private string nombre = string.Empty;
@@ -22,35 +23,79 @@ namespace CONATRADEC.ViewModels
         private ColorPublicacionOption? colorSeleccionado;
         private bool preparado;
         private bool datosCargados;
-        private CancellationTokenSource? cargaCancellationTokenSource;
+        private CancellationTokenSource?
+            cargaCancellationTokenSource;
+
+        private string nombreOriginal = string.Empty;
+        private string descripcionOriginal = string.Empty;
+        private string colorHexOriginal = "#3B655B";
+        private string ordenOriginal = "1";
 
         public CategoriaPublicacionFormViewModel()
         {
-            Colores = new ObservableCollection<ColorPublicacionOption>
-            {
-                new() { Nombre = "Verde institucional", Hex = "#3B655B" },
-                new() { Nombre = "Café", Hex = "#9B552C" },
-                new() { Nombre = "Naranja", Hex = "#FF9800" },
-                new() { Nombre = "Amarillo", Hex = "#F2C94C" },
-                new() { Nombre = "Azul", Hex = "#2F80ED" },
-                new() { Nombre = "Rojo", Hex = "#D64545" },
-                new() { Nombre = "Morado", Hex = "#7B61FF" },
-                new() { Nombre = "Gris", Hex = "#6B7280" }
-            };
+            Colores =
+                new ObservableCollection<
+                    ColorPublicacionOption>
+                {
+                    new()
+                    {
+                        Nombre = "Verde institucional",
+                        Hex = "#3B655B"
+                    },
+                    new()
+                    {
+                        Nombre = "Café",
+                        Hex = "#9B552C"
+                    },
+                    new()
+                    {
+                        Nombre = "Naranja",
+                        Hex = "#FF9800"
+                    },
+                    new()
+                    {
+                        Nombre = "Amarillo",
+                        Hex = "#F2C94C"
+                    },
+                    new()
+                    {
+                        Nombre = "Azul",
+                        Hex = "#2F80ED"
+                    },
+                    new()
+                    {
+                        Nombre = "Rojo",
+                        Hex = "#D64545"
+                    },
+                    new()
+                    {
+                        Nombre = "Morado",
+                        Hex = "#7B61FF"
+                    },
+                    new()
+                    {
+                        Nombre = "Gris",
+                        Hex = "#6B7280"
+                    }
+                };
 
             GuardarCommand = new Command(
                 async () => await GuardarAsync(),
                 () => !IsBusy && PuedeGuardar);
 
             CancelarCommand = new Command(
-                async () => await GoToAsyncParameters(AppRoutes.Regresar),
+                async () => await CancelarAsync(),
                 () => !IsBusy);
         }
 
-        public ObservableCollection<ColorPublicacionOption> Colores { get; }
+        public ObservableCollection<ColorPublicacionOption>
+            Colores { get; }
 
-        public int CategoriaPublicacionId => categoriaPublicacionId;
-        public bool EsEdicion => CategoriaPublicacionId > 0;
+        public int CategoriaPublicacionId =>
+            categoriaPublicacionId;
+
+        public bool EsEdicion =>
+            CategoriaPublicacionId > 0;
 
         public string TituloPagina =>
             EsEdicion
@@ -58,14 +103,22 @@ namespace CONATRADEC.ViewModels
                 : "Nuevo tipo de publicación";
 
         public string TextoBoton =>
-            EsEdicion ? "Guardar cambios" : "Crear tipo";
+            EsEdicion
+                ? "Guardar cambios"
+                : "Crear tipo";
 
         public string Nombre
         {
             get => nombre;
             set
             {
-                nombre = value ?? string.Empty;
+                string nuevo =
+                    value ?? string.Empty;
+
+                if (nombre == nuevo)
+                    return;
+
+                nombre = nuevo;
                 OnPropertyChanged();
             }
         }
@@ -75,9 +128,16 @@ namespace CONATRADEC.ViewModels
             get => descripcion;
             set
             {
-                descripcion = value ?? string.Empty;
+                string nuevo =
+                    value ?? string.Empty;
+
+                if (descripcion == nuevo)
+                    return;
+
+                descripcion = nuevo;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(CaracteresDescripcion));
+                OnPropertyChanged(
+                    nameof(CaracteresDescripcion));
             }
         }
 
@@ -89,25 +149,33 @@ namespace CONATRADEC.ViewModels
             get => colorHex;
             set
             {
-                string nuevo = value ?? string.Empty;
+                string nuevo =
+                    value ?? string.Empty;
 
                 if (colorHex == nuevo)
                     return;
 
                 colorHex = nuevo;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(ColorVistaPrevia));
+                OnPropertyChanged(
+                    nameof(ColorVistaPrevia));
 
-                ColorPublicacionOption? coincidencia = Colores
-                    .FirstOrDefault(x => string.Equals(
-                        x.Hex,
-                        colorHex,
-                        StringComparison.OrdinalIgnoreCase));
+                ColorPublicacionOption? coincidencia =
+                    Colores.FirstOrDefault(
+                        x => string.Equals(
+                            x.Hex,
+                            colorHex,
+                            StringComparison.OrdinalIgnoreCase));
 
-                if (!ReferenceEquals(colorSeleccionado, coincidencia))
+                if (!ReferenceEquals(
+                        colorSeleccionado,
+                        coincidencia))
                 {
-                    colorSeleccionado = coincidencia;
-                    OnPropertyChanged(nameof(ColorSeleccionado));
+                    colorSeleccionado =
+                        coincidencia;
+
+                    OnPropertyChanged(
+                        nameof(ColorSeleccionado));
                 }
             }
         }
@@ -117,8 +185,12 @@ namespace CONATRADEC.ViewModels
             get => colorSeleccionado;
             set
             {
-                if (ReferenceEquals(colorSeleccionado, value))
+                if (ReferenceEquals(
+                        colorSeleccionado,
+                        value))
+                {
                     return;
+                }
 
                 colorSeleccionado = value;
                 OnPropertyChanged();
@@ -134,13 +206,17 @@ namespace CONATRADEC.ViewModels
             {
                 try
                 {
-                    return ColorRegex.IsMatch(ColorHex)
-                        ? Color.FromArgb(ColorHex)
-                        : Color.FromArgb("#D1D5DB");
+                    return ColorRegex.IsMatch(
+                            ColorHex.Trim())
+                        ? Color.FromArgb(
+                            ColorHex.Trim())
+                        : Color.FromArgb(
+                            "#D1D5DB");
                 }
                 catch
                 {
-                    return Color.FromArgb("#D1D5DB");
+                    return Color.FromArgb(
+                        "#D1D5DB");
                 }
             }
         }
@@ -150,7 +226,13 @@ namespace CONATRADEC.ViewModels
             get => ordenTexto;
             set
             {
-                ordenTexto = value ?? string.Empty;
+                string nuevo =
+                    value ?? string.Empty;
+
+                if (ordenTexto == nuevo)
+                    return;
+
+                ordenTexto = nuevo;
                 OnPropertyChanged();
             }
         }
@@ -162,7 +244,8 @@ namespace CONATRADEC.ViewModels
                 : CanAdd);
 
         public bool PuedeGuardar =>
-            PuedeAcceder && datosCargados;
+            PuedeAcceder &&
+            datosCargados;
 
         public Command GuardarCommand { get; }
         public Command CancelarCommand { get; }
@@ -173,36 +256,61 @@ namespace CONATRADEC.ViewModels
 
             preparado = true;
             datosCargados = categoriaId <= 0;
-            categoriaPublicacionId = Math.Max(0, categoriaId);
+
+            categoriaPublicacionId =
+                Math.Max(0, categoriaId);
 
             LimpiarCampos();
+            CapturarEstadoOriginal();
 
-            OnPropertyChanged(nameof(CategoriaPublicacionId));
-            OnPropertyChanged(nameof(EsEdicion));
-            OnPropertyChanged(nameof(TituloPagina));
-            OnPropertyChanged(nameof(TextoBoton));
-            OnPropertyChanged(nameof(PuedeAcceder));
-            OnPropertyChanged(nameof(PuedeGuardar));
+            OnPropertyChanged(
+                nameof(CategoriaPublicacionId));
+
+            OnPropertyChanged(
+                nameof(EsEdicion));
+
+            OnPropertyChanged(
+                nameof(TituloPagina));
+
+            OnPropertyChanged(
+                nameof(TextoBoton));
+
+            OnPropertyChanged(
+                nameof(PuedeAcceder));
+
+            OnPropertyChanged(
+                nameof(PuedeGuardar));
+
             GuardarCommand.ChangeCanExecute();
         }
 
         public void ActualizarPermisos()
         {
-            LoadPagePermissions("categoriaPublicacionPage");
-            OnPropertyChanged(nameof(PuedeAcceder));
-            OnPropertyChanged(nameof(PuedeGuardar));
+            LoadPagePermissions(
+                InterfazCodigos.CategoriasPublicacion);
+
+            OnPropertyChanged(
+                nameof(PuedeAcceder));
+
+            OnPropertyChanged(
+                nameof(PuedeGuardar));
+
             GuardarCommand.ChangeCanExecute();
             CancelarCommand.ChangeCanExecute();
         }
 
         public async Task InicializarAsync()
         {
-            if (!preparado || !PuedeAcceder)
+            if (!preparado ||
+                !PuedeAcceder)
+            {
                 return;
+            }
 
             if (!EsEdicion)
             {
                 datosCargados = true;
+                CapturarEstadoOriginal();
                 NotificarEstadoGuardado();
                 return;
             }
@@ -210,40 +318,71 @@ namespace CONATRADEC.ViewModels
             if (datosCargados || IsBusy)
                 return;
 
-            cargaCancellationTokenSource?.Cancel();
+            CancelarCarga();
+
             cargaCancellationTokenSource?.Dispose();
 
-            var source = new CancellationTokenSource();
-            cargaCancellationTokenSource = source;
+            var source =
+                new CancellationTokenSource();
+
+            cargaCancellationTokenSource =
+                source;
 
             try
             {
                 IsBusy = true;
                 NotificarEstadoGuardado();
 
-                ApiResult<CategoriaPublicacionCatalogoResponse> result =
-                    await apiService.ObtenerAsync(
-                        CategoriaPublicacionId,
-                        source.Token);
+                ApiResult<
+                    CategoriaPublicacionCatalogoResponse>
+                    result =
+                        await apiService.ObtenerAsync(
+                            CategoriaPublicacionId,
+                            source.Token);
 
                 if (source.IsCancellationRequested)
                     return;
 
-                if (!result.Success || result.Data == null)
+                if (!result.Success ||
+                    result.Data == null)
                 {
                     if (!string.Equals(
                             result.Message,
                             "La operación fue cancelada.",
                             StringComparison.OrdinalIgnoreCase))
                     {
-                        await MostrarErrorAsync(result.Message);
+                        await MostrarErrorAsync(
+                            result.Message);
                     }
+
+                    /*
+                     * Un 404 en edición significa que el registro ya no existe
+                     * o dejó de estar activo. No se habilita un formulario con
+                     * datos obsoletos.
+                     */
+                    if (result.StatusCode == 404)
+                    {
+                        await GoToAsyncParameters(
+                            AppRoutes.Regresar);
+                    }
+
+                    return;
+                }
+
+                if (!result.Data.Activo)
+                {
+                    await MostrarAdvertenciaAsync(
+                        "El tipo de publicación ya no se encuentra activo.");
+
+                    await GoToAsyncParameters(
+                        AppRoutes.Regresar);
 
                     return;
                 }
 
                 AplicarDatos(result.Data);
                 datosCargados = true;
+                CapturarEstadoOriginal();
                 NotificarEstadoGuardado();
             }
             catch (OperationCanceledException)
@@ -282,24 +421,49 @@ namespace CONATRADEC.ViewModels
 
         public void CancelarCarga()
         {
-            cargaCancellationTokenSource?.Cancel();
+            CancellationTokenSource? source =
+                cargaCancellationTokenSource;
+
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         private void AplicarDatos(
             CategoriaPublicacionCatalogoResponse item)
         {
-            Nombre = item.NombreCategoriaPublicacion ?? string.Empty;
-            Descripcion = item.DescripcionCategoriaPublicacion ?? string.Empty;
-            OrdenTexto = item.Orden.ToString();
-            ColorHex = string.IsNullOrWhiteSpace(item.ColorHex)
-                ? "#3B655B"
-                : item.ColorHex.ToUpperInvariant();
+            Nombre =
+                item.NombreCategoriaPublicacion ??
+                string.Empty;
 
-            ColorSeleccionado = Colores.FirstOrDefault(x =>
-                string.Equals(
-                    x.Hex,
-                    ColorHex,
-                    StringComparison.OrdinalIgnoreCase));
+            Descripcion =
+                item.DescripcionCategoriaPublicacion ??
+                string.Empty;
+
+            OrdenTexto =
+                item.Orden.ToString();
+
+            ColorHex =
+                string.IsNullOrWhiteSpace(
+                    item.ColorHex)
+                    ? "#3B655B"
+                    : item.ColorHex
+                        .Trim()
+                        .ToUpperInvariant();
+
+            ColorSeleccionado =
+                Colores.FirstOrDefault(
+                    x => string.Equals(
+                        x.Hex,
+                        ColorHex,
+                        StringComparison.OrdinalIgnoreCase));
         }
 
         private void LimpiarCampos()
@@ -308,11 +472,13 @@ namespace CONATRADEC.ViewModels
             Descripcion = string.Empty;
             OrdenTexto = "1";
             ColorHex = "#3B655B";
-            ColorSeleccionado = Colores.FirstOrDefault(x =>
-                string.Equals(
-                    x.Hex,
-                    ColorHex,
-                    StringComparison.OrdinalIgnoreCase));
+
+            ColorSeleccionado =
+                Colores.FirstOrDefault(
+                    x => string.Equals(
+                        x.Hex,
+                        ColorHex,
+                        StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task GuardarAsync()
@@ -327,7 +493,8 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            string? error = Validar();
+            string? error =
+                Validar();
 
             if (!string.IsNullOrWhiteSpace(error))
             {
@@ -335,21 +502,47 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            int orden = int.Parse(OrdenTexto.Trim());
-
-            var request = new CategoriaPublicacionGuardarRequest
+            if (EsEdicion &&
+                !HayCambios())
             {
-                NombreCategoriaPublicacion = Nombre.Trim(),
-                DescripcionCategoriaPublicacion = Descripcion.Trim(),
-                ColorHex = ColorHex.Trim().ToUpperInvariant(),
-                Orden = orden
-            };
+                await MostrarInformacionAsync(
+                    "No hay cambios para guardar.");
+                return;
+            }
 
-            bool confirmar = EsEdicion
-                ? await ConfirmarActualizacionAsync(
-                    $"el tipo de publicación “{request.NombreCategoriaPublicacion}”")
-                : await ConfirmarGuardadoAsync(
-                    $"el tipo de publicación “{request.NombreCategoriaPublicacion}”");
+            int orden =
+                int.Parse(
+                    OrdenTexto.Trim());
+
+            var request =
+                new CategoriaPublicacionGuardarRequest
+                {
+                    /*
+                     * Se conserva la presentación escrita por el usuario.
+                     * Backend normaliza únicamente para comparar duplicados.
+                     */
+                    NombreCategoriaPublicacion =
+                        Nombre
+                            .ReplaceLineEndings(" ")
+                            .Trim(),
+
+                    DescripcionCategoriaPublicacion =
+                        Descripcion.Trim(),
+
+                    ColorHex =
+                        ColorHex
+                            .Trim()
+                            .ToUpperInvariant(),
+
+                    Orden = orden
+                };
+
+            bool confirmar =
+                EsEdicion
+                    ? await ConfirmarActualizacionAsync(
+                        $"el tipo de publicación “{request.NombreCategoriaPublicacion}”")
+                    : await ConfirmarGuardadoAsync(
+                        $"el tipo de publicación “{request.NombreCategoriaPublicacion}”");
 
             if (!confirmar)
                 return;
@@ -360,20 +553,40 @@ namespace CONATRADEC.ViewModels
                 GuardarCommand.ChangeCanExecute();
                 CancelarCommand.ChangeCanExecute();
 
-                ApiResult<bool> result = EsEdicion
-                    ? await apiService.ActualizarAsync(
-                        CategoriaPublicacionId,
-                        request)
-                    : await apiService.CrearAsync(request);
+                ApiResult<bool> result =
+                    EsEdicion
+                        ? await apiService.ActualizarAsync(
+                            CategoriaPublicacionId,
+                            request)
+                        : await apiService.CrearAsync(
+                            request);
 
                 if (!result.Success)
                 {
-                    await MostrarErrorAsync(result.Message);
+                    if (string.Equals(
+                            result.Message,
+                            "La creación fue cancelada.",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return;
+                    }
+
+                    await MostrarErrorAsync(
+                        result.Message);
+
                     return;
                 }
 
-                await MostrarExitoAsync(result.Message);
-                await GoToAsyncParameters(AppRoutes.Regresar);
+                CapturarEstadoOriginal();
+
+                await MostrarExitoAsync(
+                    string.IsNullOrWhiteSpace(
+                        result.Message)
+                        ? "Tipo de publicación guardado correctamente."
+                        : result.Message);
+
+                await GoToAsyncParameters(
+                    AppRoutes.Regresar);
             }
             catch (Exception ex)
             {
@@ -389,34 +602,157 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        private async Task CancelarAsync()
+        {
+            if (IsBusy)
+                return;
+
+            if (HayCambios())
+            {
+                bool confirmar =
+                    await ConfirmarSalidaSinGuardarAsync();
+
+                if (!confirmar)
+                    return;
+            }
+
+            await GoToAsyncParameters(
+                AppRoutes.Regresar);
+        }
+
         private string? Validar()
         {
-            if (string.IsNullOrWhiteSpace(Nombre))
-                return "Debe escribir el nombre del tipo de publicación.";
+            Nombre =
+                Nombre
+                    .ReplaceLineEndings(" ")
+                    .Trim();
 
-            if (Nombre.Trim().Length > 80)
-                return "El nombre puede contener como máximo 80 caracteres.";
+            Descripcion =
+                Descripcion.Trim();
+
+            ColorHex =
+                ColorHex.Trim();
+
+            OrdenTexto =
+                OrdenTexto.Trim();
+
+            if (string.IsNullOrWhiteSpace(Nombre))
+            {
+                return
+                    "Debe escribir el nombre del tipo de publicación.";
+            }
+
+            if (Nombre.Length > 80)
+            {
+                return
+                    "El nombre puede contener como máximo 80 caracteres.";
+            }
 
             if (Descripcion.Length > 250)
-                return "La descripción puede contener como máximo 250 caracteres.";
+            {
+                return
+                    "La descripción puede contener como máximo 250 caracteres.";
+            }
 
-            if (!ColorRegex.IsMatch(ColorHex.Trim()))
-                return "El color debe tener el formato hexadecimal #RRGGBB, por ejemplo #3B655B.";
+            if (!ColorRegex.IsMatch(ColorHex))
+            {
+                return
+                    "El color debe tener el formato hexadecimal #RRGGBB, por ejemplo #3B655B.";
+            }
 
-            if (!int.TryParse(OrdenTexto.Trim(), out int orden) ||
+            if (!int.TryParse(
+                    OrdenTexto,
+                    out int orden) ||
                 orden < 0 ||
                 orden > 9999)
             {
-                return "El orden debe ser un número entero entre 0 y 9999.";
+                return
+                    "El orden debe ser un número entero entre 0 y 9999.";
             }
 
             return null;
         }
 
+        private bool HayCambios()
+        {
+            string nombreActual =
+                Nombre
+                    .ReplaceLineEndings(" ")
+                    .Trim();
+
+            string descripcionActual =
+                Descripcion.Trim();
+
+            string colorActual =
+                ColorHex
+                    .Trim()
+                    .ToUpperInvariant();
+
+            string ordenActual =
+                NormalizarOrdenParaComparar(
+                    OrdenTexto);
+
+            return
+                !string.Equals(
+                    nombreActual,
+                    nombreOriginal,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    descripcionActual,
+                    descripcionOriginal,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    colorActual,
+                    colorHexOriginal,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(
+                    ordenActual,
+                    ordenOriginal,
+                    StringComparison.Ordinal);
+        }
+
+        private void CapturarEstadoOriginal()
+        {
+            nombreOriginal =
+                Nombre
+                    .ReplaceLineEndings(" ")
+                    .Trim();
+
+            descripcionOriginal =
+                Descripcion.Trim();
+
+            colorHexOriginal =
+                ColorHex
+                    .Trim()
+                    .ToUpperInvariant();
+
+            ordenOriginal =
+                NormalizarOrdenParaComparar(
+                    OrdenTexto);
+        }
+
+        private static string NormalizarOrdenParaComparar(
+            string? valor)
+        {
+            string texto =
+                (valor ?? string.Empty)
+                    .Trim();
+
+            return int.TryParse(
+                    texto,
+                    out int numero)
+                ? numero.ToString()
+                : texto;
+        }
+
         private void NotificarEstadoGuardado()
         {
-            OnPropertyChanged(nameof(PuedeAcceder));
-            OnPropertyChanged(nameof(PuedeGuardar));
+            OnPropertyChanged(
+                nameof(PuedeAcceder));
+
+            OnPropertyChanged(
+                nameof(PuedeGuardar));
+
             GuardarCommand.ChangeCanExecute();
         }
     }

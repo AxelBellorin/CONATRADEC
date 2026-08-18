@@ -7,22 +7,27 @@ namespace CONATRADEC.ViewModels
 {
     public sealed class CategoriaPublicacionViewModel : GlobalService
     {
-        private readonly CategoriaPublicacionApiService apiService = new();
-        private ObservableCollection<CategoriaPublicacionCatalogoResponse>
+        private readonly CategoriaPublicacionApiService
+            apiService = new();
+
+        private ObservableCollection<
+            CategoriaPublicacionCatalogoResponse>
             categorias = new();
+
         private string textoBusqueda = string.Empty;
+        private string textoBusquedaAplicado = string.Empty;
         private string mensaje = string.Empty;
-        private bool incluirInactivas;
         private bool isRefreshing;
         private bool cargado;
         private long versionAplicada = -1;
         private long generacionCarga;
-        private CancellationTokenSource? cargaCancellationTokenSource;
+        private CancellationTokenSource?
+            cargaCancellationTokenSource;
 
         public CategoriaPublicacionViewModel()
         {
             BuscarCommand = new Command(
-                async () => await CargarAsync(),
+                async () => await BuscarAsync(),
                 () => !IsBusy && CanView);
 
             LimpiarCommand = new Command(
@@ -40,17 +45,18 @@ namespace CONATRADEC.ViewModels
             EditarCommand =
                 new Command<CategoriaPublicacionCatalogoResponse>(
                     async item => await EditarAsync(item),
-                    item => !IsBusy && CanEdit && item != null);
+                    item =>
+                        !IsBusy &&
+                        CanEdit &&
+                        item != null);
 
             DesactivarCommand =
                 new Command<CategoriaPublicacionCatalogoResponse>(
-                    async item => await CambiarEstadoAsync(item, false),
-                    item => !IsBusy && CanDelete && item?.Activo == true);
-
-            ReactivarCommand =
-                new Command<CategoriaPublicacionCatalogoResponse>(
-                    async item => await CambiarEstadoAsync(item, true),
-                    item => !IsBusy && CanEdit && item?.Activo == false);
+                    async item => await DesactivarAsync(item),
+                    item =>
+                        !IsBusy &&
+                        CanDelete &&
+                        item?.Activo == true);
 
             RegresarCommand = new Command(
                 async () => await GoToAsyncParameters(
@@ -58,7 +64,8 @@ namespace CONATRADEC.ViewModels
                 () => !IsBusy);
         }
 
-        public ObservableCollection<CategoriaPublicacionCatalogoResponse>
+        public ObservableCollection<
+            CategoriaPublicacionCatalogoResponse>
             Categorias
         {
             get => categorias;
@@ -75,20 +82,13 @@ namespace CONATRADEC.ViewModels
             get => textoBusqueda;
             set
             {
-                textoBusqueda = value ?? string.Empty;
-                OnPropertyChanged();
-            }
-        }
+                string nuevo =
+                    value ?? string.Empty;
 
-        public bool IncluirInactivas
-        {
-            get => incluirInactivas;
-            set
-            {
-                if (incluirInactivas == value)
+                if (textoBusqueda == nuevo)
                     return;
 
-                incluirInactivas = value;
+                textoBusqueda = nuevo;
                 OnPropertyChanged();
             }
         }
@@ -112,7 +112,13 @@ namespace CONATRADEC.ViewModels
             get => mensaje;
             private set
             {
-                mensaje = value ?? string.Empty;
+                string nuevo =
+                    value ?? string.Empty;
+
+                if (mensaje == nuevo)
+                    return;
+
+                mensaje = nuevo;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TieneMensaje));
             }
@@ -134,43 +140,59 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        public bool TieneCategorias => Categorias.Count > 0;
+        public bool TieneCategorias =>
+            Categorias.Count > 0;
 
         public bool MostrarVacio =>
-            cargado && !TieneCategorias && !IsBusy;
+            cargado &&
+            !TieneCategorias &&
+            !IsBusy &&
+            !TieneMensaje;
 
         public Command BuscarCommand { get; }
         public Command LimpiarCommand { get; }
         public Command RefrescarCommand { get; }
         public Command NuevoCommand { get; }
-        public Command<CategoriaPublicacionCatalogoResponse> EditarCommand { get; }
-        public Command<CategoriaPublicacionCatalogoResponse> DesactivarCommand { get; }
-        public Command<CategoriaPublicacionCatalogoResponse> ReactivarCommand { get; }
+
+        public Command<CategoriaPublicacionCatalogoResponse>
+            EditarCommand { get; }
+
+        public Command<CategoriaPublicacionCatalogoResponse>
+            DesactivarCommand { get; }
+
         public Command RegresarCommand { get; }
 
         public void ActualizarPermisos()
         {
-            LoadPagePermissions("categoriaPublicacionPage");
+            LoadPagePermissions(
+                InterfazCodigos.CategoriasPublicacion);
+
             ActualizarComandos();
         }
 
         public async Task IniciarNuevaVisitaAsync()
         {
             /*
-             * Una visita nueva no conserva el filtro ni el resultado de la
-             * anterior. La consulta se reemplaza de forma determinista si una
-             * carga antigua todavía estuviera terminando en segundo plano.
+             * Una visita nueva nunca reutiliza la búsqueda ni la colección de
+             * la visita anterior. El filtro aplicado se separa del texto que el
+             * usuario escribe para que escribir por sí solo no cambie la
+             * consulta enviada al servidor.
              */
+            Interlocked.Increment(
+                ref generacionCarga);
+
+            CancelarCarga();
+
             textoBusqueda = string.Empty;
-            incluirInactivas = false;
+            textoBusquedaAplicado = string.Empty;
             Mensaje = string.Empty;
             cargado = false;
             versionAplicada = -1;
-            Categorias = new ObservableCollection<
-                CategoriaPublicacionCatalogoResponse>();
+            Categorias =
+                new ObservableCollection<
+                    CategoriaPublicacionCatalogoResponse>();
 
             OnPropertyChanged(nameof(TextoBusqueda));
-            OnPropertyChanged(nameof(IncluirInactivas));
             NotificarEstadoLista();
 
             await CargarInternoAsync(
@@ -196,6 +218,17 @@ namespace CONATRADEC.ViewModels
             CargarInternoAsync(
                 reemplazarCargaActual: false);
 
+        private async Task BuscarAsync()
+        {
+            if (!CanView || IsBusy)
+                return;
+
+            textoBusquedaAplicado =
+                TextoBusqueda.Trim();
+
+            await CargarAsync();
+        }
+
         private async Task CargarInternoAsync(
             bool reemplazarCargaActual)
         {
@@ -205,20 +238,29 @@ namespace CONATRADEC.ViewModels
             if (!reemplazarCargaActual && IsBusy)
                 return;
 
-            long generacion = Interlocked.Increment(
-                ref generacionCarga);
+            long generacion =
+                Interlocked.Increment(
+                    ref generacionCarga);
 
-            var source = new CancellationTokenSource();
+            var source =
+                new CancellationTokenSource();
 
             CancellationTokenSource? anterior =
                 cargaCancellationTokenSource;
 
-            cargaCancellationTokenSource = source;
+            cargaCancellationTokenSource =
+                source;
 
             if (anterior != null &&
                 !ReferenceEquals(anterior, source))
             {
-                anterior.Cancel();
+                try
+                {
+                    anterior.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
             }
 
             try
@@ -229,8 +271,7 @@ namespace CONATRADEC.ViewModels
                 ApiResult<ObservableCollection<
                     CategoriaPublicacionCatalogoResponse>> result =
                         await apiService.GetAsync(
-                            IncluirInactivas,
-                            TextoBusqueda,
+                            textoBusquedaAplicado,
                             source.Token);
 
                 if (source.IsCancellationRequested ||
@@ -257,22 +298,32 @@ namespace CONATRADEC.ViewModels
                     new ObservableCollection<
                         CategoriaPublicacionCatalogoResponse>();
 
-                foreach (CategoriaPublicacionCatalogoResponse item
-                         in result.Data ?? new())
+                foreach (
+                    CategoriaPublicacionCatalogoResponse item
+                    in result.Data ?? new())
                 {
-                    item.PuedeDesactivar = CanDelete && item.Activo;
-                    item.PuedeReactivar = CanEdit && !item.Activo;
+                    /*
+                     * La pantalla principal contiene únicamente activos.
+                     * Reactivar se realiza exclusivamente desde Eliminados.
+                     */
+                    item.PuedeDesactivar =
+                        CanDelete && item.Activo;
+
+                    item.PuedeReactivar = false;
+
                     nuevaLista.Add(item);
                 }
 
                 Categorias = nuevaLista;
                 cargado = true;
+
                 versionAplicada =
-                    PublicacionListadoEstadoService.VersionActual;
+                    PublicacionListadoEstadoService
+                        .VersionActual;
             }
             catch (OperationCanceledException)
             {
-                // La consulta fue cancelada o reemplazada por una más reciente.
+                // La consulta fue cancelada o reemplazada.
             }
             catch (Exception ex)
             {
@@ -315,34 +366,63 @@ namespace CONATRADEC.ViewModels
 
         public void CancelarCarga()
         {
-            cargaCancellationTokenSource?.Cancel();
+            CancellationTokenSource? source =
+                cargaCancellationTokenSource;
+
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         public void FinalizarVisita()
         {
-            Interlocked.Increment(ref generacionCarga);
-            CancelarCarga();
+            Interlocked.Increment(
+                ref generacionCarga);
 
+            CancelarCarga();
             cargaCancellationTokenSource = null;
+
+            textoBusqueda = string.Empty;
+            textoBusquedaAplicado = string.Empty;
+            Mensaje = string.Empty;
             cargado = false;
             versionAplicada = -1;
             IsRefreshing = false;
             IsBusy = false;
+
+            Categorias =
+                new ObservableCollection<
+                    CategoriaPublicacionCatalogoResponse>();
+
+            OnPropertyChanged(nameof(TextoBusqueda));
+            NotificarEstadoLista();
         }
 
         private async Task LimpiarAsync()
         {
+            if (!CanView || IsBusy)
+                return;
+
             textoBusqueda = string.Empty;
-            incluirInactivas = false;
+            textoBusquedaAplicado = string.Empty;
 
             OnPropertyChanged(nameof(TextoBusqueda));
-            OnPropertyChanged(nameof(IncluirInactivas));
 
             await CargarAsync();
         }
 
         private async Task RefrescarAsync()
         {
+            if (!CanView || IsBusy)
+                return;
+
             try
             {
                 IsRefreshing = true;
@@ -385,9 +465,8 @@ namespace CONATRADEC.ViewModels
             }
 
             /*
-             * El formulario recibe únicamente el identificador. De esa forma
-             * obtiene el registro fresco desde la API y no edita una copia
-             * potencialmente desactualizada de la tarjeta del listado.
+             * El formulario recibe únicamente el ID y obtiene el registro
+             * actual desde la API administrativa antes de habilitar Guardar.
              */
             await GoToAsyncParameters(
                 AppRoutes.CategoriaPublicacionFormulario,
@@ -398,63 +477,77 @@ namespace CONATRADEC.ViewModels
                 });
         }
 
-        private async Task CambiarEstadoAsync(
-            CategoriaPublicacionCatalogoResponse? item,
-            bool activo)
+        private async Task DesactivarAsync(
+            CategoriaPublicacionCatalogoResponse? item)
         {
-            if (item == null || IsBusy)
-                return;
-
-            if (activo && !CanEdit)
+            if (item == null ||
+                !item.Activo ||
+                IsBusy)
             {
-                await MostrarAdvertenciaAsync(
-                    "No tiene permiso para reactivar tipos de publicación.");
                 return;
             }
 
-            if (!activo && !CanDelete)
+            if (!CanDelete)
             {
                 await MostrarAdvertenciaAsync(
                     "No tiene permiso para desactivar tipos de publicación.");
                 return;
             }
 
-            string accion = activo ? "reactivar" : "desactivar";
-
-            bool confirmar = await ConfirmarAsync(
-                activo
-                    ? "Reactivar tipo de publicación"
-                    : "Desactivar tipo de publicación",
-                $"¿Desea {accion} “{item.NombreCategoriaPublicacion}”?",
-                activo ? "Reactivar" : "Desactivar",
-                "Cancelar");
+            bool confirmar =
+                await ConfirmarAsync(
+                    "Desactivar tipo de publicación",
+                    $"¿Desea desactivar “{item.NombreCategoriaPublicacion}”?",
+                    "Desactivar",
+                    "Cancelar");
 
             if (!confirmar)
                 return;
+
+            bool eliminado = false;
 
             try
             {
                 IsBusy = true;
 
                 ApiResult<bool> result =
-                    await apiService.CambiarEstadoAsync(
-                        item.CategoriaPublicacionId,
-                        activo);
+                    await apiService.DesactivarAsync(
+                        item.CategoriaPublicacionId);
 
                 if (!result.Success)
                 {
-                    await MostrarErrorAsync(result.Message);
+                    await MostrarErrorAsync(
+                        result.Message);
                     return;
                 }
 
-                await MostrarExitoAsync(result.Message);
+                eliminado = true;
+
+                await MostrarExitoAsync(
+                    string.IsNullOrWhiteSpace(
+                        result.Message)
+                        ? "Tipo de publicación desactivado correctamente."
+                        : result.Message);
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorInesperadoAsync(
+                    "desactivar el tipo de publicación",
+                    ex);
             }
             finally
             {
                 IsBusy = false;
             }
 
-            await CargarAsync();
+            if (eliminado)
+            {
+                /*
+                 * El servidor vuelve a ser la fuente de verdad después de la
+                 * eliminación lógica; no se usa List.Remove como resultado final.
+                 */
+                await CargarAsync();
+            }
         }
 
         private void ActualizarComandos()
@@ -465,7 +558,6 @@ namespace CONATRADEC.ViewModels
             NuevoCommand.ChangeCanExecute();
             EditarCommand.ChangeCanExecute();
             DesactivarCommand.ChangeCanExecute();
-            ReactivarCommand.ChangeCanExecute();
             RegresarCommand.ChangeCanExecute();
         }
 

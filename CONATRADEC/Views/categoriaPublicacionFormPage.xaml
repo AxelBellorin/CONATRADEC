@@ -12,17 +12,20 @@
         <Grid x:Name="ContenidoPrincipal">
             <ScrollView>
                 <VerticalStackLayout
+                    x:Name="FormularioLayout"
                     MaximumWidthRequest="860"
                     HorizontalOptions="Center"
-                    Padding="{OnIdiom Phone='12,12,12,28', Tablet='20,18,20,32', Desktop='28,22,28,36'}"
+                    Padding="12,12,12,28"
                     Spacing="14">
 
                     <Border Style="{StaticResource ModernHeroCard}">
                         <Grid
-                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                            x:Name="HeroGrid"
+                            RowDefinitions="Auto,Auto"
+                            ColumnDefinitions="*"
                             RowSpacing="12"
                             ColumnSpacing="14">
+
                             <VerticalStackLayout Spacing="4">
                                 <Button
                                     Text="← Cancelar"
@@ -39,15 +42,16 @@
                             </VerticalStackLayout>
 
                             <Button
-                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                x:Name="GuardarSuperiorButton"
+                                Grid.Row="1"
+                                Grid.Column="0"
                                 Text="{Binding TextoBoton}"
                                 Command="{Binding GuardarCommand}"
                                 IsVisible="{Binding PuedeGuardar}"
                                 Style="{StaticResource ModernPrimaryButton}"
-                                HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                                HorizontalOptions="Fill"
                                 VerticalOptions="End"
-                                MinimumWidthRequest="{OnIdiom Phone=0, Default=150}" />
+                                MinimumWidthRequest="0" />
                         </Grid>
                     </Border>
 
@@ -58,7 +62,9 @@
                                 Style="{StaticResource ModernSectionTitle}" />
 
                             <VerticalStackLayout Spacing="6">
-                                <Label Text="Nombre *" Style="{StaticResource ModernFieldLabel}" />
+                                <Label
+                                    Text="Nombre *"
+                                    Style="{StaticResource ModernFieldLabel}" />
                                 <Border Style="{StaticResource ModernInputBorder}">
                                     <Entry
                                         Text="{Binding Nombre}"
@@ -70,12 +76,15 @@
 
                             <VerticalStackLayout Spacing="6">
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <Label Text="Descripción" Style="{StaticResource ModernFieldLabel}" />
+                                    <Label
+                                        Text="Descripción"
+                                        Style="{StaticResource ModernFieldLabel}" />
                                     <Label
                                         Grid.Column="1"
                                         Text="{Binding CaracteresDescripcion}"
                                         Style="{StaticResource ModernCaption}" />
                                 </Grid>
+
                                 <Border
                                     Style="{StaticResource ModernInputBorder}"
                                     Padding="10,8"
@@ -95,12 +104,16 @@
                             </VerticalStackLayout>
 
                             <Grid
-                                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                                ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                x:Name="ColorGrid"
+                                RowDefinitions="Auto,Auto"
+                                ColumnDefinitions="*"
                                 ColumnSpacing="14"
                                 RowSpacing="14">
+
                                 <VerticalStackLayout Spacing="6">
-                                    <Label Text="Color sugerido" Style="{StaticResource ModernFieldLabel}" />
+                                    <Label
+                                        Text="Color sugerido"
+                                        Style="{StaticResource ModernFieldLabel}" />
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <Picker
                                             Title="Seleccione un color"
@@ -112,10 +125,13 @@
                                 </VerticalStackLayout>
 
                                 <VerticalStackLayout
-                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                    Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                    x:Name="ColorHexContainer"
+                                    Grid.Row="1"
+                                    Grid.Column="0"
                                     Spacing="6">
-                                    <Label Text="Código hexadecimal *" Style="{StaticResource ModernFieldLabel}" />
+                                    <Label
+                                        Text="Código hexadecimal *"
+                                        Style="{StaticResource ModernFieldLabel}" />
                                     <Border Style="{StaticResource ModernInputBorder}">
                                         <Entry
                                             Text="{Binding ColorHex}"
@@ -141,8 +157,13 @@
                                             StrokeShape="RoundRectangle 10" />
                                     </Border>
 
-                                    <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-                                        <Label Text="Vista previa" Style="{StaticResource ModernSectionTitle}" />
+                                    <VerticalStackLayout
+                                        Grid.Column="1"
+                                        Spacing="4"
+                                        VerticalOptions="Center">
+                                        <Label
+                                            Text="Vista previa"
+                                            Style="{StaticResource ModernSectionTitle}" />
                                         <Label
                                             Text="Este color identificará el tipo en las tarjetas y filtros de Noticias."
                                             Style="{StaticResource ModernPageSubtitle}" />
@@ -151,7 +172,9 @@
                             </Border>
 
                             <VerticalStackLayout Spacing="6">
-                                <Label Text="Orden *" Style="{StaticResource ModernFieldLabel}" />
+                                <Label
+                                    Text="Orden *"
+                                    Style="{StaticResource ModernFieldLabel}" />
                                 <Border Style="{StaticResource ModernInputBorder}">
                                     <Entry
                                         Text="{Binding OrdenTexto}"
@@ -168,19 +191,33 @@
                     </Border>
 
                     <Grid
+                        x:Name="AccionesGrid"
+                        RowDefinitions="Auto"
                         ColumnDefinitions="*,*"
                         ColumnSpacing="10"
+                        RowSpacing="10"
                         Padding="0,2,0,0">
+
                         <Button
+                            x:Name="CancelarInferiorButton"
+                            Grid.Row="0"
+                            Grid.Column="0"
                             Text="Cancelar"
                             Command="{Binding CancelarCommand}"
-                            Style="{StaticResource ModernNeutralButton}" />
+                            Style="{StaticResource ModernNeutralButton}"
+                            MinimumWidthRequest="0"
+                            HorizontalOptions="Fill" />
+
                         <Button
+                            x:Name="GuardarInferiorButton"
+                            Grid.Row="0"
                             Grid.Column="1"
                             Text="{Binding TextoBoton}"
                             Command="{Binding GuardarCommand}"
                             IsVisible="{Binding PuedeGuardar}"
-                            Style="{StaticResource ModernPrimaryButton}" />
+                            Style="{StaticResource ModernPrimaryButton}"
+                            MinimumWidthRequest="0"
+                            HorizontalOptions="Fill" />
                     </Grid>
                 </VerticalStackLayout>
             </ScrollView>
@@ -188,7 +225,8 @@
             <Grid
                 IsVisible="{Binding IsBusy}"
                 BackgroundColor="#52000000"
-                InputTransparent="False">
+                InputTransparent="False"
+                ZIndex="100">
                 <Border
                     Style="{StaticResource ModernCard}"
                     HorizontalOptions="Center"
@@ -201,7 +239,7 @@
                             WidthRequest="28"
                             HeightRequest="28" />
                         <Label
-                            Text="Procesando categoría..."
+                            Text="Procesando tipo de publicación..."
                             Style="{StaticResource ModernSectionTitle}"
                             VerticalOptions="Center" />
                     </HorizontalStackLayout>
@@ -214,7 +252,9 @@
             IsVisible="False"
             Padding="24">
             <Border Style="{StaticResource ModernAccessDeniedCard}">
-                <VerticalStackLayout Spacing="10">
+                <VerticalStackLayout
+                    Spacing="12"
+                    HorizontalOptions="Center">
                     <Label
                         Text="Sin permiso"
                         Style="{StaticResource ModernPageTitle}"
@@ -223,6 +263,11 @@
                         Text="No tiene permiso para crear o editar tipos de publicación."
                         Style="{StaticResource ModernPageSubtitle}"
                         HorizontalTextAlignment="Center" />
+                    <Button
+                        Text="← Regresar"
+                        Command="{Binding CancelarCommand}"
+                        Style="{StaticResource ModernPrimaryButton}"
+                        HorizontalOptions="Center" />
                 </VerticalStackLayout>
             </Border>
         </Grid>
