@@ -32,6 +32,7 @@ namespace CONATRADEC.Views
             AjustarColumnasNoticias(ancho);
             AjustarHeroNoticias(ancho);
             AjustarFiltrosNoticias(ancho);
+            AjustarPaginacionNoticias(ancho);
         }
 
         private void AjustarColumnasNoticias(double ancho)
@@ -113,6 +114,7 @@ namespace CONATRADEC.Views
             bool compacto = ancho < BreakpointControlesCompactos;
             if (noticiasFiltrosCompactosAplicado == compacto)
                 return;
+
             Button? buscar = BuscarBotonNoticias("Buscar");
             Button? limpiar = BuscarBotonNoticias("Limpiar");
 
@@ -179,6 +181,24 @@ namespace CONATRADEC.Views
             }
 
             noticiasFiltrosCompactosAplicado = compacto;
+        }
+
+        private void AjustarPaginacionNoticias(double ancho)
+        {
+            if (PaginacionNoticias == null)
+                return;
+
+            double margenHorizontal =
+                ancho < 600
+                    ? 24
+                    : ancho < 900
+                        ? 36
+                        : 44;
+
+            PaginacionNoticias.WidthRequest =
+                Math.Min(
+                    560,
+                    Math.Max(0, ancho - margenHorizontal));
         }
 
         private static void PosicionarNoticias(

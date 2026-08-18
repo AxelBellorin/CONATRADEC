@@ -6,8 +6,7 @@ namespace CONATRADEC.Views
 {
     public partial class noticiasPage : ContentPage
     {
-        private NoticiasViewModel viewModel = new();
-        private bool paginaMostrada;
+        private readonly NoticiasViewModel viewModel = new();
 
         public noticiasPage()
         {
@@ -22,33 +21,53 @@ namespace CONATRADEC.Views
 
             try
             {
-                /*
-                 * Las rutas de detalle y administración se apilan sobre esta
-                 * página. Al regresar se crea un ViewModel nuevo para que el
-                 * feed vuelva a consultar categorías y publicaciones actuales,
-                 * sin conservar filtros de la visita anterior.
-                 */
-                if (paginaMostrada)
-                {
-                    viewModel.CancelarCarga();
-                    viewModel = new NoticiasViewModel();
-                    BindingContext = viewModel;
-                }
-                else
-                {
-                    paginaMostrada = true;
-                }
-
                 viewModel.ActualizarPermisos();
                 ContenidoPrincipal.IsVisible = viewModel.CanView;
                 ContenidoSinPermiso.IsVisible = !viewModel.CanView;
 
                 if (!viewModel.CanView)
+                {
+                    NoticiasVisitaService.FinalizarVisita();
+                    viewModel.CancelarCarga();
                     return;
+                }
+
+                AplicarResponsiveNoticias();
+
+                bool nuevaVisita =
+                    NoticiasVisitaService.AsegurarVisita();
 
                 // Permite que Android dibuje primero la estructura de la página.
                 await Task.Yield();
-                await viewModel.InicializarAsync();
+
+                if (nuevaVisita)
+                {
+                    await viewModel.IniciarNuevaVisitaAsync();
+                    return;
+                }
+
+                /*
+                 * Regresar desde Detalle sin cambios mantiene exactamente la
+                 * página y filtros de la visita y no consulta el feed.
+                 *
+                 * Si desde Detalle se editó la publicación, el formulario ya
+                 * incrementó PublicacionListadoEstadoService y solamente en ese
+                 * caso se renueva la página actual con los filtros aplicados.
+                 */
+                if (viewModel.SeHaListado &&
+                    viewModel.RequiereRecargaPorCambios &&
+                    !viewModel.IsBusy &&
+                    !viewModel.CargandoListado)
+                {
+                    await viewModel.RecargarPaginaActualAsync();
+                    return;
+                }
+
+                if (!viewModel.SeHaListado &&
+                    !viewModel.CargandoListado)
+                {
+                    await viewModel.InicializarAsync();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -84,6 +103,11 @@ namespace CONATRADEC.Views
         {
             try
             {
+                /*
+                 * Cancelar una solicitud no finaliza la visita. El servicio de
+                 * visita decide si la navegación sigue dentro del módulo o si
+                 * realmente se abandonó Noticias.
+                 */
                 viewModel.CancelarCarga();
             }
             catch (Exception ex)
@@ -93,6 +117,57 @@ namespace CONATRADEC.Views
             }
 
             base.OnDisappearing();
+        }
+
+        /// <summary>
+        /// Espera el reemplazo real de la página y posiciona la primera noticia
+        /// al inicio. No se ejecuta cuando la consulta falla o no cambia página.
+        /// </summary>
+        private async void PaginacionNoticias_Clicked(
+            object? sender,
+            EventArgs e)
+        {
+            int paginaAnterior = viewModel.PaginaActual;
+            bool operacionDetectada = false;
+
+            for (int intento = 0; intento < 240; intento++)
+            {
+                if (viewModel.CargandoListado ||
+                    viewModel.PaginaActual != paginaAnterior)
+                {
+                    operacionDetectada = true;
+                }
+
+                if (operacionDetectada &&
+                    !viewModel.CargandoListado)
+                {
+                    if (viewModel.PaginaActual != paginaAnterior &&
+                        viewModel.Publicaciones.Count > 0)
+                    {
+                        await DesplazarNoticiasAlInicioAsync();
+                    }
+
+                    return;
+                }
+
+                await Task.Delay(50);
+            }
+        }
+
+        private async Task DesplazarNoticiasAlInicioAsync()
+        {
+            if (NoticiasCollectionView == null ||
+                viewModel.Publicaciones.Count == 0)
+            {
+                return;
+            }
+
+            await Task.Delay(60);
+
+            NoticiasCollectionView.ScrollTo(
+                0,
+                position: ScrollToPosition.Start,
+                animate: false);
         }
     }
 }
