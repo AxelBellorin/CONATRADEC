@@ -91,5 +91,30 @@ namespace CONATRADEC.Views
 
             base.OnDisappearing();
         }
+
+        private async void AbrirEliminadas_Clicked(
+            object? sender,
+            EventArgs e)
+        {
+            try
+            {
+                await PublicacionesEliminadasLauncher.AbrirAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(
+                    $"No fue posible abrir las publicaciones eliminadas: {ex}");
+
+                try
+                {
+                    await GlobalService.MostrarErrorAsync(
+                        "No fue posible abrir las publicaciones eliminadas.");
+                }
+                catch
+                {
+                    // Nunca se propaga una excepción desde este async void.
+                }
+            }
+        }
     }
 }

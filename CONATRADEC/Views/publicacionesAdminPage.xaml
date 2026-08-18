@@ -45,16 +45,37 @@
                                 Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
-                        <Button
+                        <!--
+                            Eliminadas es un flujo independiente de los estados
+                            activos. En teléfono los botones se apilan; en tablet
+                            y Windows permanecen juntos a la derecha.
+                        -->
+                        <Grid
                             Grid.Row="{OnIdiom Phone=1, Default=0}"
                             Grid.Column="{OnIdiom Phone=0, Default=1}"
-                            Text="Nueva publicación"
-                            Command="{Binding NuevaCommand}"
-                            IsVisible="{Binding CanAdd}"
-                            Style="{StaticResource ModernPrimaryButton}"
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,Auto'}"
+                            RowSpacing="8"
+                            ColumnSpacing="8"
                             HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
-                            VerticalOptions="End"
-                            MinimumWidthRequest="{OnIdiom Phone=0, Default=170}" />
+                            VerticalOptions="End">
+                            <Button
+                                Text="Eliminadas"
+                                Clicked="AbrirEliminadas_Clicked"
+                                IsVisible="{Binding CanAdministrar}"
+                                Style="{StaticResource ModernSecondaryButton}"
+                                HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                                MinimumWidthRequest="{OnIdiom Phone=0, Default=130}" />
+                            <Button
+                                Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                Text="Nueva publicación"
+                                Command="{Binding NuevaCommand}"
+                                IsVisible="{Binding CanAdd}"
+                                Style="{StaticResource ModernPrimaryButton}"
+                                HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                                MinimumWidthRequest="{OnIdiom Phone=0, Default=170}" />
+                        </Grid>
                     </Grid>
                 </Border>
 
