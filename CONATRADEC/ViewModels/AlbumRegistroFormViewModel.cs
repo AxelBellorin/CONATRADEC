@@ -13,6 +13,7 @@ namespace CONATRADEC.ViewModels
     public sealed class AlbumRegistroFormViewModel : GlobalService
     {
         private readonly AlbumBotanicoApiService apiService = new();
+        private CancellationTokenSource? cargaCts;
 
         private ObservableCollection<CategoriaAlbumBotanicoResponse>
             categorias = new();
@@ -70,6 +71,8 @@ namespace CONATRADEC.ViewModels
                 mode = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TituloPagina));
+                OnPropertyChanged(nameof(PuedeGuardar));
+                RefrescarComandos();
             }
         }
 
@@ -258,6 +261,12 @@ namespace CONATRADEC.ViewModels
                 ? "Nueva subcategoría"
                 : "Editar subcategoría";
 
+        public bool PuedeGuardar =>
+            CanView &&
+            (Mode == FormMode.FormModeSelect.Create
+                ? CanAdd
+                : Mode == FormMode.FormModeSelect.Edit && CanEdit);
+
         public Command GuardarCommand { get; }
         public Command CancelarCommand { get; }
 
@@ -265,7 +274,7 @@ namespace CONATRADEC.ViewModels
         {
             GuardarCommand = new Command(
                 async () => await GuardarAsync(),
-                () => !IsBusy);
+                () => !IsBusy && PuedeGuardar);
 
             CancelarCommand = new Command(
                 async () => await CancelarAsync(),
@@ -275,6 +284,7 @@ namespace CONATRADEC.ViewModels
         public void ActualizarPermisos()
         {
             LoadPagePermissions("albumFotosPage");
+            OnPropertyChanged(nameof(PuedeGuardar));
             RefrescarComandos();
         }
 
@@ -287,27 +297,56 @@ namespace CONATRADEC.ViewModels
             IsBusy = true;
             RefrescarComandos();
 
+            CancellationTokenSource cts = RenovarCarga();
+            CancellationToken token = cts.Token;
+
             try
             {
-                ApiResult<List<CategoriaAlbumBotanicoResponse>> resultado =
-                    await apiService.GetCategoriasAsync(false);
+                List<CategoriaAlbumBotanicoResponse> categoriasActivas;
 
-                if (!resultado.Success)
+                if (AlbumBotanicoVisitaService.IntentarObtenerCategorias(
+                        out List<CategoriaAlbumBotanicoResponse> cache))
                 {
-                    await MostrarErrorAsync(resultado.Message);
-                    inicializado = false;
-                    return;
+                    categoriasActivas = cache
+                        .Where(item => item.Activo)
+                        .ToList();
+                }
+                else
+                {
+                    ApiResult<List<CategoriaAlbumBotanicoResponse>> resultado =
+                        await apiService.GetCategoriasAsync(false, token);
+
+                    if (token.IsCancellationRequested)
+                        return;
+
+                    if (!resultado.Success)
+                    {
+                        await MostrarErrorAsync(resultado.Message);
+                        inicializado = false;
+                        return;
+                    }
+
+                    categoriasActivas = resultado.Data ?? [];
                 }
 
                 Categorias = new ObservableCollection<
-                    CategoriaAlbumBotanicoResponse>(resultado.Data ?? []);
+                    CategoriaAlbumBotanicoResponse>(categoriasActivas);
 
                 if (Mode == FormMode.FormModeSelect.Edit && RegistroId > 0)
                 {
+                    /*
+                     * La edición siempre obtiene la ficha actual por ID.
+                     * El catálogo puede reutilizarse dentro de la visita, pero
+                     * los datos editables nunca provienen del snapshot del listado.
+                     */
                     ApiResult<AlbumDetalleResponse> detalleResultado =
                         await apiService.GetDetalleAsync(
                             RegistroId,
-                            incluirInactivos: true);
+                            incluirInactivos: true,
+                            cancellationToken: token);
+
+                    if (token.IsCancellationRequested)
+                        return;
 
                     if (!detalleResultado.Success ||
                         detalleResultado.Data == null)
@@ -341,6 +380,10 @@ namespace CONATRADEC.ViewModels
 
                 LimpiarErrores();
             }
+            catch (OperationCanceledException)
+            {
+                inicializado = false;
+            }
             catch (Exception ex)
             {
                 inicializado = false;
@@ -355,9 +398,37 @@ namespace CONATRADEC.ViewModels
             }
         }
 
+        public void CancelarCarga()
+        {
+            CancellationTokenSource? anterior = cargaCts;
+            cargaCts = null;
+
+            if (anterior == null)
+                return;
+
+            try
+            {
+                anterior.Cancel();
+            }
+            catch
+            {
+            }
+            finally
+            {
+                anterior.Dispose();
+            }
+        }
+
+        private CancellationTokenSource RenovarCarga()
+        {
+            CancelarCarga();
+            cargaCts = new CancellationTokenSource();
+            return cargaCts;
+        }
+
         private async Task GuardarAsync()
         {
-            if (IsBusy)
+            if (IsBusy || !PuedeGuardar)
                 return;
 
             if (!ValidarCampos())
@@ -392,6 +463,7 @@ namespace CONATRADEC.ViewModels
 
             IsBusy = true;
             RefrescarComandos();
+            CancellationTokenSource cts = RenovarCarga();
 
             try
             {
@@ -400,7 +472,10 @@ namespace CONATRADEC.ViewModels
                 if (esCreacion)
                 {
                     ApiResult<RegistroAlbumCreadoData> resultado =
-                        await apiService.CrearRegistroAsync(request);
+                        await apiService.CrearRegistroAsync(request, cts.Token);
+
+                    if (cts.Token.IsCancellationRequested)
+                        return;
 
                     if (!resultado.Success || resultado.Data == null)
                     {
@@ -415,7 +490,12 @@ namespace CONATRADEC.ViewModels
                 else
                 {
                     ApiResult<bool> resultado =
-                        await apiService.ActualizarRegistroAsync(request);
+                        await apiService.ActualizarRegistroAsync(
+                            request,
+                            cts.Token);
+
+                    if (cts.Token.IsCancellationRequested)
+                        return;
 
                     if (!resultado.Success)
                     {
@@ -448,6 +528,10 @@ namespace CONATRADEC.ViewModels
                     await GoToAsyncParameters(AppRoutes.Regresar);
                 }
             }
+            catch (OperationCanceledException)
+            {
+                // La navegación canceló el guardado en curso.
+            }
             catch (Exception ex)
             {
                 await MostrarErrorInesperadoAsync(
@@ -466,6 +550,7 @@ namespace CONATRADEC.ViewModels
             if (IsBusy)
                 return;
 
+            CancelarCarga();
             await GoToAsyncParameters(AppRoutes.Regresar);
         }
 

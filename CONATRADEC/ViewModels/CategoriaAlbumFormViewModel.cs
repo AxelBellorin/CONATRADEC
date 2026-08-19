@@ -4,14 +4,15 @@ using Microsoft.Maui.Storage;
 
 namespace CONATRADEC.ViewModels
 {
-    public sealed class CategoriaAlbumFormViewModel :
-        GlobalService
+    public sealed class CategoriaAlbumFormViewModel : GlobalService
     {
         private readonly AlbumBotanicoApiService apiService = new();
         private CategoriaAlbumBotanicoRequest item = new();
         private FormMode.FormModeSelect mode;
         private string nombre = string.Empty;
         private string descripcion = string.Empty;
+        private string nombreInicial = string.Empty;
+        private string descripcionInicial = string.Empty;
         private string errorNombre = string.Empty;
         private string errorDescripcion = string.Empty;
         private FileResult? archivoSeleccionado;
@@ -21,15 +22,18 @@ namespace CONATRADEC.ViewModels
             get => item;
             set
             {
-                item =
-                    value ??
-                    new CategoriaAlbumBotanicoRequest();
+                item = value ?? new CategoriaAlbumBotanicoRequest();
 
-                Nombre =
-                    item.NombreCategoria ?? string.Empty;
+                Nombre = item.NombreCategoria ?? string.Empty;
+                Descripcion = item.Descripcion ?? string.Empty;
 
-                Descripcion =
-                    item.Descripcion ?? string.Empty;
+                /*
+                 * Se conserva una fotografía del estado inicial para que
+                 * Cancelar sólo pregunte cuando el usuario realmente cambió
+                 * información y no simplemente por estar editando un registro.
+                 */
+                nombreInicial = Nombre.Trim();
+                descripcionInicial = Descripcion.Trim();
 
                 LimpiarErrores();
                 OnPropertyChanged();
@@ -114,8 +118,7 @@ namespace CONATRADEC.ViewModels
         public bool TieneErrorDescripcion =>
             !string.IsNullOrWhiteSpace(ErrorDescripcion);
 
-        public string? ImagenActual =>
-            Item.RutaImagenPortadaActual;
+        public string? ImagenActual => Item.RutaImagenPortadaActual;
 
         public bool TieneImagenActual =>
             !string.IsNullOrWhiteSpace(ImagenActual);
@@ -131,7 +134,10 @@ namespace CONATRADEC.ViewModels
                 : "Editar categoría";
 
         public bool PuedeGuardar =>
-            Mode != FormMode.FormModeSelect.View;
+            CanView &&
+            (Mode == FormMode.FormModeSelect.Create
+                ? CanAdd
+                : Mode == FormMode.FormModeSelect.Edit && CanEdit);
 
         public Command SeleccionarPortadaCommand { get; }
         public Command GuardarCommand { get; }
@@ -141,8 +147,7 @@ namespace CONATRADEC.ViewModels
         {
             SeleccionarPortadaCommand =
                 new Command(
-                    async () =>
-                        await SeleccionarPortadaAsync(),
+                    async () => await SeleccionarPortadaAsync(),
                     () => !IsBusy && PuedeGuardar);
 
             GuardarCommand =
@@ -159,44 +164,49 @@ namespace CONATRADEC.ViewModels
         public void ActualizarPermisos()
         {
             LoadPagePermissions("albumFotosPage");
+            OnPropertyChanged(nameof(PuedeGuardar));
+            RefrescarComandos();
         }
 
         private async Task SeleccionarPortadaAsync()
         {
-            if (IsBusy)
+            if (IsBusy || !PuedeGuardar)
                 return;
 
             try
             {
-                FileResult? archivo =
-                    await FilePicker.Default.PickAsync(
-                        new PickOptions
-                        {
-                            PickerTitle =
-                                "Seleccione la portada de la categoría",
-                            FileTypes =
-                                FilePickerFileType.Images
-                        });
+                FileResult? archivo = await FilePicker.Default.PickAsync(
+                    new PickOptions
+                    {
+                        PickerTitle = "Seleccione la portada de la categoría",
+                        FileTypes = FilePickerFileType.Images
+                    });
 
                 if (archivo == null)
                     return;
 
-                string extension =
-                    Path.GetExtension(archivo.FileName)
-                        .ToLowerInvariant();
+                string extension = Path.GetExtension(archivo.FileName)
+                    .ToLowerInvariant();
 
-                if (extension is not
-                    (".jpg" or ".jpeg" or ".png" or ".webp"))
+                if (extension is not (".jpg" or ".jpeg" or ".png" or ".webp"))
                 {
                     await MostrarAdvertenciaAsync(
                         "Seleccione una imagen JPG, JPEG, PNG o WEBP.");
                     return;
                 }
 
-                archivoSeleccionado = archivo;
+                const long tamanioMaximo = 8L * 1024 * 1024;
+                await using Stream stream = await archivo.OpenReadAsync();
 
-                OnPropertyChanged(
-                    nameof(ArchivoSeleccionadoTexto));
+                if (stream.CanSeek && stream.Length > tamanioMaximo)
+                {
+                    await MostrarAdvertenciaAsync(
+                        "La imagen no puede superar los 8 MB.");
+                    return;
+                }
+
+                archivoSeleccionado = archivo;
+                OnPropertyChanged(nameof(ArchivoSeleccionadoTexto));
             }
             catch (Exception ex)
             {
@@ -218,22 +228,17 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            bool confirm =
-                Mode == FormMode.FormModeSelect.Create
-                    ? await ConfirmarGuardadoAsync(
-                        "la categoría")
-                    : await ConfirmarActualizacionAsync(
-                        "la categoría");
+            bool confirm = Mode == FormMode.FormModeSelect.Create
+                ? await ConfirmarGuardadoAsync("la categoría")
+                : await ConfirmarActualizacionAsync("la categoría");
 
             if (!confirm)
                 return;
 
             Item.NombreCategoria = Nombre.Trim();
-
-            Item.Descripcion =
-                string.IsNullOrWhiteSpace(Descripcion)
-                    ? null
-                    : Descripcion.Trim();
+            Item.Descripcion = string.IsNullOrWhiteSpace(Descripcion)
+                ? null
+                : Descripcion.Trim();
 
             IsBusy = true;
             RefrescarComandos();
@@ -245,66 +250,51 @@ namespace CONATRADEC.ViewModels
 
                 if (Mode == FormMode.FormModeSelect.Create)
                 {
-                    var result =
-                        await apiService
-                            .CrearCategoriaAsync(Item);
+                    ApiResult<CategoriaCreadaData> result =
+                        await apiService.CrearCategoriaAsync(Item);
 
-                    if (!result.Success ||
-                        result.Data == null)
+                    if (!result.Success || result.Data == null)
                     {
-                        await MostrarErrorAsync(
-                            result.Message);
+                        await MostrarErrorAsync(result.Message);
                         return;
                     }
 
-                    categoriaId =
-                        result.Data
-                            .CategoriaAlbumBotanicoId;
+                    categoriaId = result.Data.CategoriaAlbumBotanicoId;
 
                     /*
-                     * La categoría ya existe desde este momento.
-                     * Si la navegación no pudiera completarse, un nuevo clic
-                     * actualizará el registro y no volverá a insertarlo.
+                     * La categoría ya existe desde este momento. Si la portada
+                     * falla, no se vuelve a insertar la categoría al reintentar.
                      */
                     Item.CategoriaAlbumBotanicoId = categoriaId;
                     Mode = FormMode.FormModeSelect.Edit;
 
-                    mensajePrincipal =
-                        string.IsNullOrWhiteSpace(
-                            result.Message)
-                            ? "Categoría guardada correctamente."
-                            : result.Message;
+                    mensajePrincipal = string.IsNullOrWhiteSpace(result.Message)
+                        ? "Categoría guardada correctamente."
+                        : result.Message;
                 }
                 else
                 {
-                    var result =
-                        await apiService
-                            .ActualizarCategoriaAsync(Item);
+                    ApiResult<bool> result =
+                        await apiService.ActualizarCategoriaAsync(Item);
 
                     if (!result.Success)
                     {
-                        await MostrarErrorAsync(
-                            result.Message);
+                        await MostrarErrorAsync(result.Message);
                         return;
                     }
 
-                    categoriaId =
-                        Item.CategoriaAlbumBotanicoId;
-
-                    mensajePrincipal =
-                        string.IsNullOrWhiteSpace(
-                            result.Message)
-                            ? "Categoría actualizada correctamente."
-                            : result.Message;
+                    categoriaId = Item.CategoriaAlbumBotanicoId;
+                    mensajePrincipal = string.IsNullOrWhiteSpace(result.Message)
+                        ? "Categoría actualizada correctamente."
+                        : result.Message;
                 }
 
                 if (archivoSeleccionado != null)
                 {
-                    var imageResult =
-                        await apiService
-                            .SubirPortadaCategoriaAsync(
-                                categoriaId,
-                                archivoSeleccionado);
+                    ApiResult<PortadaCategoriaData> imageResult =
+                        await apiService.SubirPortadaCategoriaAsync(
+                            categoriaId,
+                            archivoSeleccionado);
 
                     if (!imageResult.Success)
                     {
@@ -312,30 +302,20 @@ namespace CONATRADEC.ViewModels
                             "La categoría se guardó, pero la portada no pudo cargarse. " +
                             imageResult.Message);
                     }
-                    else if (!string.IsNullOrWhiteSpace(
-                                 imageResult.Message))
+                    else if (!string.IsNullOrWhiteSpace(imageResult.Message))
                     {
-                        await MostrarExitoAsync(
-                            imageResult.Message);
+                        await MostrarExitoAsync(imageResult.Message);
                     }
                 }
 
                 archivoSeleccionado = null;
-                OnPropertyChanged(
-                    nameof(ArchivoSeleccionadoTexto));
+                OnPropertyChanged(nameof(ArchivoSeleccionadoTexto));
 
-                /*
-                 * Regresa a la misma instancia del álbum. Al reaparecer,
-                 * albumFotosPage ejecuta LoadAsync(true) y actualiza el menú,
-                 * las categorías y la galería.
-                 */
                 AlbumBotanicoRefreshState.MarcarCambio();
 
-                await GoToAsyncParameters(
-                    AppRoutes.Regresar);
+                await GoToAsyncParameters(AppRoutes.Regresar);
 
-                await MostrarExitoAsync(
-                    mensajePrincipal);
+                await MostrarExitoAsync(mensajePrincipal);
             }
             catch (Exception ex)
             {
@@ -358,21 +338,24 @@ namespace CONATRADEC.ViewModels
                 return;
 
             bool hayCambios =
-                !string.IsNullOrWhiteSpace(Nombre) ||
-                !string.IsNullOrWhiteSpace(Descripcion) ||
+                !string.Equals(
+                    Nombre.Trim(),
+                    nombreInicial,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    Descripcion.Trim(),
+                    descripcionInicial,
+                    StringComparison.Ordinal) ||
                 archivoSeleccionado != null;
 
             if (hayCambios)
             {
-                bool salir =
-                    await ConfirmarSalidaSinGuardarAsync();
-
+                bool salir = await ConfirmarSalidaSinGuardarAsync();
                 if (!salir)
                     return;
             }
 
-            await GoToAsyncParameters(
-                AppRoutes.Regresar);
+            await GoToAsyncParameters(AppRoutes.Regresar);
         }
 
         private bool ValidarCampos()
@@ -384,8 +367,7 @@ namespace CONATRADEC.ViewModels
 
             if (string.IsNullOrWhiteSpace(Nombre))
             {
-                ErrorNombre =
-                    "Ingrese el nombre de la categoría.";
+                ErrorNombre = "Ingrese el nombre de la categoría.";
             }
             else if (Nombre.Length > 100)
             {
@@ -399,9 +381,7 @@ namespace CONATRADEC.ViewModels
                     "La descripción no puede superar los 500 caracteres.";
             }
 
-            return
-                !TieneErrorNombre &&
-                !TieneErrorDescripcion;
+            return !TieneErrorNombre && !TieneErrorDescripcion;
         }
 
         private void LimpiarErrores()

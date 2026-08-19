@@ -133,7 +133,7 @@
                         "Categorías del álbum eliminadas",
                         "categoría del álbum",
                         "La reactivación conserva sus registros e imágenes relacionadas.",
-                        "categoriaAlbumPage")
+                        "albumFotosPage")
                 };
 
         /// <summary>
@@ -151,8 +151,7 @@
                     ["api/Rol/crearRol"] = Rol,
                     ["api/elemento-quimico/crear"] = ElementoQuimico,
                     ["api/configuracion/tipos-cultivo"] = TipoCultivo,
-                    ["api/configuracion/tipos-analisis-suelo"] =
-                        TipoAnalisis,
+                    ["api/configuracion/tipos-analisis-suelo"] = TipoAnalisis,
                     ["api/configuracion/extraccion-nutrientes"] =
                         ExtraccionNutriente,
                     ["api/configuracion/rangos-nutrientes"] =
@@ -182,33 +181,21 @@
             string? titulo,
             out CatalogoEliminadoConfiguracion configuracion)
         {
-            string valor =
-                Normalizar(titulo);
+            string valor = Normalizar(titulo);
 
-            /*
-             * La pantalla principal "Rangos nutricionales" no muestra rangos
-             * individuales: muestra tarjetas de tipos de cultivo.
-             */
             if (string.Equals(
                     valor,
                     "rangos nutricionales",
                     StringComparison.Ordinal))
             {
-                return TryGet(
-                    TipoCultivo,
-                    out configuracion);
+                return TryGet(TipoCultivo, out configuracion);
             }
 
-            /*
-             * En la pantalla de detalle el título es "Rangos de <cultivo>".
-             */
             if (valor.StartsWith(
                     "rangos de ",
                     StringComparison.Ordinal))
             {
-                return TryGet(
-                    RangoNutriente,
-                    out configuracion);
+                return TryGet(RangoNutriente, out configuracion);
             }
 
             string? codigo =
@@ -255,9 +242,7 @@
                                                                         ? Rol
                                                                         : null;
 
-            return TryGet(
-                codigo,
-                out configuracion);
+            return TryGet(codigo, out configuracion);
         }
 
         public static bool TryGetCodigoCreacion(
@@ -273,40 +258,28 @@
                 return false;
             }
 
-            string limpia =
-                route
-                    .Split('?', 2)[0]
-                    .Trim()
-                    .TrimStart('/')
-                    .TrimEnd('/');
+            string limpia = route
+                .Split('?', 2)[0]
+                .Trim()
+                .TrimStart('/')
+                .TrimEnd('/');
 
-            return RutasCreacion.TryGetValue(
-                limpia,
-                out codigo!);
+            return RutasCreacion.TryGetValue(limpia, out codigo!);
         }
 
-        private static string Normalizar(
-            string? valor)
+        private static string Normalizar(string? valor)
         {
-            string texto =
-                (valor ?? string.Empty)
-                    .Trim()
-                    .ToLowerInvariant()
-                    .Normalize(
-                        System.Text
-                            .NormalizationForm
-                            .FormD);
+            string texto = (valor ?? string.Empty)
+                .Trim()
+                .ToLowerInvariant()
+                .Normalize(System.Text.NormalizationForm.FormD);
 
             return new string(
                 texto
                     .Where(caracter =>
-                        System.Globalization
-                            .CharUnicodeInfo
-                            .GetUnicodeCategory(
-                                caracter) !=
-                        System.Globalization
-                            .UnicodeCategory
-                            .NonSpacingMark)
+                        System.Globalization.CharUnicodeInfo
+                            .GetUnicodeCategory(caracter) !=
+                        System.Globalization.UnicodeCategory.NonSpacingMark)
                     .ToArray());
         }
     }

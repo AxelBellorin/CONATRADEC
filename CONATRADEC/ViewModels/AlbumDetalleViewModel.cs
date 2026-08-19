@@ -9,13 +9,20 @@ namespace CONATRADEC.ViewModels
         private int id;
         private AlbumDetalleResponse? detalle;
         private bool cargando;
+        private long versionCargada = -1;
+        private CancellationTokenSource? cargaCts;
 
         public int Id
         {
             get => id;
             set
             {
+                if (id == value)
+                    return;
+
                 id = value;
+                Detalle = null;
+                versionCargada = -1;
                 OnPropertyChanged();
             }
         }
@@ -39,7 +46,7 @@ namespace CONATRADEC.ViewModels
         public bool SinFotos => !TieneFotos;
 
         public bool PuedeAdministrarFotos =>
-            CanAdd || CanEdit || CanDelete;
+            CanView && (CanAdd || CanEdit || CanDelete);
 
         public Command RegresarCommand { get; }
         public Command EditarCommand { get; }
@@ -50,18 +57,13 @@ namespace CONATRADEC.ViewModels
         public AlbumDetalleViewModel()
         {
             RegresarCommand = new Command(
-                async () => await GoToAsyncParameters(
-                    AppRoutes.Regresar));
+                async () => await GoToAsyncParameters(AppRoutes.Regresar));
 
-            EditarCommand = new Command(
-                async () => await EditarAsync());
-
-            AdministrarFotosCommand = new Command(
-                async () => await AdministrarFotosAsync());
-
-            CambiarEstadoCommand = new Command(
-                async () => await CambiarEstadoAsync());
-
+            EditarCommand = new Command(async () => await EditarAsync());
+            AdministrarFotosCommand =
+                new Command(async () => await AdministrarFotosAsync());
+            CambiarEstadoCommand =
+                new Command(async () => await CambiarEstadoAsync());
             AbrirFotoCommand = new Command<AlbumFotoResponse>(
                 async foto => await AbrirFotoAsync(foto));
         }
@@ -77,36 +79,45 @@ namespace CONATRADEC.ViewModels
             if (Id <= 0 || cargando)
                 return;
 
+            /*
+             * Visor y otros subflujos de solo lectura no invalidan el detalle.
+             * Después de una mutación AlbumBotanicoRefreshState cambia y esta
+             * misma instancia vuelve a consultar una única vez.
+             */
+            if (Detalle != null &&
+                versionCargada == AlbumBotanicoRefreshState.VersionActual)
+            {
+                return;
+            }
+
             cargando = true;
+            CancellationTokenSource cts = RenovarCarga();
+            CancellationToken token = cts.Token;
 
             if (showIndicator)
                 IsBusy = true;
 
             try
             {
-                /*
-                 * Primero se consulta siempre el detalle público activo.
-                 * Esa ruta se almacena en SQLite y contiene también las
-                 * fotografías que necesita el visor offline.
-                 */
                 ApiResult<AlbumDetalleResponse> result =
                     await apiService.GetDetalleAsync(
                         Id,
-                        incluirInactivos: false);
+                        incluirInactivos: false,
+                        cancellationToken: token);
 
-                /*
-                 * Solo cuando el registro no está disponible públicamente y el
-                 * usuario administra el Álbum se intenta la consulta de
-                 * inactivos. Esa segunda consulta continúa siendo conectada.
-                 */
                 if ((!result.Success || result.Data == null) &&
+                    CanView &&
                     (CanEdit || CanDelete) &&
                     EstadoConexionService.Instance.HayInternet)
                 {
                     result = await apiService.GetDetalleAsync(
                         Id,
-                        incluirInactivos: true);
+                        incluirInactivos: true,
+                        cancellationToken: token);
                 }
+
+                if (token.IsCancellationRequested)
+                    return;
 
                 if (!result.Success || result.Data == null)
                 {
@@ -115,6 +126,7 @@ namespace CONATRADEC.ViewModels
                 }
 
                 Detalle = result.Data;
+                versionCargada = AlbumBotanicoRefreshState.VersionActual;
             }
             finally
             {
@@ -125,8 +137,35 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task AbrirFotoAsync(
-            AlbumFotoResponse? foto)
+        public void CancelarCarga()
+        {
+            CancellationTokenSource? anterior = cargaCts;
+            cargaCts = null;
+
+            if (anterior == null)
+                return;
+
+            try
+            {
+                anterior.Cancel();
+            }
+            catch
+            {
+            }
+            finally
+            {
+                anterior.Dispose();
+            }
+        }
+
+        private CancellationTokenSource RenovarCarga()
+        {
+            CancelarCarga();
+            cargaCts = new CancellationTokenSource();
+            return cargaCts;
+        }
+
+        private async Task AbrirFotoAsync(AlbumFotoResponse? foto)
         {
             if (foto == null ||
                 Detalle == null ||
@@ -140,15 +179,14 @@ namespace CONATRADEC.ViewModels
                 new Dictionary<string, object>
                 {
                     ["Fotos"] = Detalle.Fotos,
-                    ["FotoSeleccionadaId"] =
-                        foto.AlbumBotanicoCafeFotoId,
+                    ["FotoSeleccionadaId"] = foto.AlbumBotanicoCafeFotoId,
                     ["TituloAlbum"] = Detalle.Titulo
                 });
         }
 
         private async Task EditarAsync()
         {
-            if (!CanEdit)
+            if (!CanView || !CanEdit)
             {
                 await MostrarToastAsync(
                     "No tiene permisos para editar este registro.");
@@ -161,8 +199,7 @@ namespace CONATRADEC.ViewModels
                 {
                     ["Mode"] = FormMode.FormModeSelect.Edit,
                     ["RegistroId"] = Id,
-                    ["CategoriaId"] =
-                        Detalle?.CategoriaAlbumBotanicoId ?? 0
+                    ["CategoriaId"] = Detalle?.CategoriaAlbumBotanicoId ?? 0
                 });
         }
 
@@ -188,7 +225,7 @@ namespace CONATRADEC.ViewModels
             if (Detalle == null || IsBusy)
                 return;
 
-            if (!CanDelete)
+            if (!CanView || !CanDelete)
             {
                 await MostrarToastAsync(
                     "No tiene permisos para cambiar el estado.");
@@ -216,9 +253,7 @@ namespace CONATRADEC.ViewModels
             try
             {
                 ApiResult<bool> result =
-                    await apiService.CambiarEstadoRegistroAsync(
-                        Id,
-                        nuevoEstado);
+                    await apiService.CambiarEstadoRegistroAsync(Id, nuevoEstado);
 
                 if (!result.Success)
                 {

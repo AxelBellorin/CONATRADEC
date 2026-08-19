@@ -230,6 +230,9 @@
 		<MauiXaml Update="Views\ActualizacionAplicacionPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\albumEliminadosPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\AnalisisGuardadoDetallePage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>

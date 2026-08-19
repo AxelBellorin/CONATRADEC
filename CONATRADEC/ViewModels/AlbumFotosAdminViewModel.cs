@@ -8,8 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace CONATRADEC.ViewModels
 {
-    public sealed class AlbumFotosAdminViewModel :
-        GlobalService
+    public sealed class AlbumFotosAdminViewModel : GlobalService
     {
         private readonly AlbumBotanicoApiService apiService = new();
         private int id;
@@ -20,13 +19,19 @@ namespace CONATRADEC.ViewModels
         private bool esPortadaNueva;
         private int ordenNuevo = 1;
         private bool cargando;
+        private long versionCargada = -1;
 
         public int Id
         {
             get => id;
             set
             {
+                if (id == value)
+                    return;
+
                 id = value;
+                Detalle = null;
+                versionCargada = -1;
                 OnPropertyChanged();
             }
         }
@@ -79,22 +84,14 @@ namespace CONATRADEC.ViewModels
                 ? "Seleccione una imagen para cargar."
                 : archivoSeleccionado.FileName;
 
-        public ImageSource? ImagenSeleccionadaPreview =>
-            vistaPreviaImagen;
-
-        public bool TieneArchivoSeleccionado =>
-            archivoSeleccionado != null;
-
-        public bool SinArchivoSeleccionado =>
-            !TieneArchivoSeleccionado;
-
-        public bool TieneFotos =>
-            Detalle?.Fotos.Count > 0;
-
+        public ImageSource? ImagenSeleccionadaPreview => vistaPreviaImagen;
+        public bool TieneArchivoSeleccionado => archivoSeleccionado != null;
+        public bool SinArchivoSeleccionado => !TieneArchivoSeleccionado;
+        public bool TieneFotos => Detalle?.Fotos.Count > 0;
         public bool SinFotos => !TieneFotos;
 
         public bool PuedeSubir =>
-            CanAdd && Detalle?.Activo == true;
+            CanView && CanAdd && Detalle?.Activo == true;
 
         public Command RegresarCommand { get; }
         public Command SeleccionarArchivoCommand { get; }
@@ -107,36 +104,23 @@ namespace CONATRADEC.ViewModels
         public AlbumFotosAdminViewModel()
         {
             RegresarCommand =
-                new Command(async () =>
-                    await RegresarAsync());
-
+                new Command(async () => await RegresarAsync());
             SeleccionarArchivoCommand =
-                new Command(async () =>
-                    await SeleccionarArchivoAsync());
-
+                new Command(async () => await SeleccionarArchivoAsync());
             SubirFotoCommand =
-                new Command(async () =>
-                    await SubirFotoAsync());
-
+                new Command(async () => await SubirFotoAsync());
             GuardarFotoCommand =
                 new Command<AlbumFotoResponse>(
-                    async foto =>
-                        await GuardarFotoAsync(foto));
-
+                    async foto => await GuardarFotoAsync(foto));
             EstablecerPortadaCommand =
                 new Command<AlbumFotoResponse>(
-                    async foto =>
-                        await EstablecerPortadaAsync(foto));
-
+                    async foto => await EstablecerPortadaAsync(foto));
             EliminarFotoCommand =
                 new Command<AlbumFotoResponse>(
-                    async foto =>
-                        await EliminarFotoAsync(foto));
-
+                    async foto => await EliminarFotoAsync(foto));
             AbrirFotoCommand =
                 new Command<AlbumFotoResponse>(
-                    async foto =>
-                        await AbrirFotoAsync(foto));
+                    async foto => await AbrirFotoAsync(foto));
         }
 
         public void ActualizarPermisos()
@@ -150,6 +134,17 @@ namespace CONATRADEC.ViewModels
             if (Id <= 0 || cargando)
                 return;
 
+            /*
+             * Abrir el visor no modifica datos. Al regresar se reutiliza el
+             * detalle ya cargado; una mutación incrementa la versión y obliga
+             * a obtener una única copia fresca del servidor.
+             */
+            if (Detalle != null &&
+                versionCargada == AlbumBotanicoRefreshState.VersionActual)
+            {
+                return;
+            }
+
             cargando = true;
 
             if (showIndicator)
@@ -157,23 +152,20 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                var result =
-                    await apiService.GetDetalleAsync(
-                        Id,
-                        true);
+                ApiResult<AlbumDetalleResponse> result =
+                    await apiService.GetDetalleAsync(Id, true);
 
-                if (!result.Success ||
-                    result.Data == null)
+                if (!result.Success || result.Data == null)
                 {
                     await MostrarToastAsync(result.Message);
                     return;
                 }
 
                 Detalle = result.Data;
-                OrdenNuevo =
-                    Detalle.Fotos.Count == 0
-                        ? 1
-                        : Detalle.Fotos.Max(x => x.Orden) + 1;
+                OrdenNuevo = Detalle.Fotos.Count == 0
+                    ? 1
+                    : Detalle.Fotos.Max(x => x.Orden) + 1;
+                versionCargada = AlbumBotanicoRefreshState.VersionActual;
             }
             finally
             {
@@ -186,7 +178,7 @@ namespace CONATRADEC.ViewModels
 
         private async Task SeleccionarArchivoAsync()
         {
-            if (!CanAdd)
+            if (!CanView || !CanAdd)
             {
                 await MostrarToastAsync(
                     "No tiene permisos para agregar fotografías.");
@@ -198,39 +190,31 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                FileResult? archivo =
-                    await FilePicker.Default.PickAsync(
-                        new PickOptions
-                        {
-                            PickerTitle =
-                                "Seleccione una fotografía",
-                            FileTypes =
-                                FilePickerFileType.Images
-                        });
+                FileResult? archivo = await FilePicker.Default.PickAsync(
+                    new PickOptions
+                    {
+                        PickerTitle = "Seleccione una fotografía",
+                        FileTypes = FilePickerFileType.Images
+                    });
 
                 if (archivo == null)
                     return;
 
-                string extension =
-                    Path.GetExtension(archivo.FileName)
-                        .ToLowerInvariant();
+                string extension = Path.GetExtension(archivo.FileName)
+                    .ToLowerInvariant();
 
-                if (extension is not
-                    (".jpg" or ".jpeg" or ".png" or ".webp"))
+                if (extension is not (".jpg" or ".jpeg" or ".png" or ".webp"))
                 {
                     await MostrarToastAsync(
                         "Seleccione una imagen JPG, JPEG, PNG o WEBP.");
                     return;
                 }
 
-                const long tamanioMaximo =
-                    8L * 1024 * 1024;
+                const long tamanioMaximo = 8L * 1024 * 1024;
 
-                await using Stream stream =
-                    await archivo.OpenReadAsync();
+                await using Stream stream = await archivo.OpenReadAsync();
 
-                if (stream.CanSeek &&
-                    stream.Length > tamanioMaximo)
+                if (stream.CanSeek && stream.Length > tamanioMaximo)
                 {
                     await MostrarToastAsync(
                         "La imagen no puede superar los 8 MB.");
@@ -248,13 +232,9 @@ namespace CONATRADEC.ViewModels
                 }
 
                 byte[] bytesImagen = memoria.ToArray();
-
                 archivoSeleccionado = archivo;
-                vistaPreviaImagen =
-                    ImageSource.FromStream(
-                        () => new MemoryStream(
-                            bytesImagen,
-                            writable: false));
+                vistaPreviaImagen = ImageSource.FromStream(
+                    () => new MemoryStream(bytesImagen, writable: false));
 
                 NotificarArchivoSeleccionado();
             }
@@ -282,8 +262,7 @@ namespace CONATRADEC.ViewModels
 
             if (archivoSeleccionado == null)
             {
-                await MostrarToastAsync(
-                    "Seleccione una fotografía.");
+                await MostrarToastAsync("Seleccione una fotografía.");
                 return;
             }
 
@@ -298,7 +277,7 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                var result =
+                ApiResult<FotoAlbumCreadaData> result =
                     await apiService.SubirFotoAsync(
                         Id,
                         archivoSeleccionado,
@@ -308,9 +287,7 @@ namespace CONATRADEC.ViewModels
 
                 if (!result.Success)
                 {
-                    Page? page =
-                        Application.Current?.MainPage;
-
+                    Page? page = Application.Current?.MainPage;
                     if (page != null)
                     {
                         await page.DisplayAlert(
@@ -318,17 +295,14 @@ namespace CONATRADEC.ViewModels
                             result.Message,
                             "Aceptar");
                     }
-
                     return;
                 }
 
                 await MostrarToastAsync(result.Message);
                 AlbumBotanicoRefreshState.MarcarCambio();
-
                 LimpiarArchivoSeleccionado();
                 DescripcionNueva = string.Empty;
                 EsPortadaNueva = false;
-
                 await LoadAsync(false);
             }
             finally
@@ -346,44 +320,33 @@ namespace CONATRADEC.ViewModels
 
         private void NotificarArchivoSeleccionado()
         {
-            OnPropertyChanged(
-                nameof(ArchivoSeleccionadoTexto));
-            OnPropertyChanged(
-                nameof(TieneArchivoSeleccionado));
-            OnPropertyChanged(
-                nameof(SinArchivoSeleccionado));
-            OnPropertyChanged(
-                nameof(ImagenSeleccionadaPreview));
+            OnPropertyChanged(nameof(ArchivoSeleccionadoTexto));
+            OnPropertyChanged(nameof(TieneArchivoSeleccionado));
+            OnPropertyChanged(nameof(SinArchivoSeleccionado));
+            OnPropertyChanged(nameof(ImagenSeleccionadaPreview));
         }
 
-        private async Task AbrirFotoAsync(
-            AlbumFotoResponse? foto)
+        private async Task AbrirFotoAsync(AlbumFotoResponse? foto)
         {
-            if (foto == null ||
-                Detalle == null ||
-                Detalle.Fotos.Count == 0)
-            {
+            if (foto == null || Detalle == null || Detalle.Fotos.Count == 0)
                 return;
-            }
 
             await GoToAsyncParameters(
                 AppRoutes.AlbumFotoVisor,
                 new Dictionary<string, object>
                 {
                     ["Fotos"] = Detalle.Fotos,
-                    ["FotoSeleccionadaId"] =
-                        foto.AlbumBotanicoCafeFotoId,
+                    ["FotoSeleccionadaId"] = foto.AlbumBotanicoCafeFotoId,
                     ["TituloAlbum"] = Detalle.Titulo
                 });
         }
 
-        private async Task GuardarFotoAsync(
-            AlbumFotoResponse? foto)
+        private async Task GuardarFotoAsync(AlbumFotoResponse? foto)
         {
             if (foto == null || IsBusy)
                 return;
 
-            if (!CanEdit)
+            if (!CanView || !CanEdit)
             {
                 await MostrarToastAsync(
                     "No tiene permisos para editar fotografías.");
@@ -401,9 +364,7 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                var result =
-                    await apiService
-                        .ActualizarFotoAsync(foto);
+                ApiResult<bool> result = await apiService.ActualizarFotoAsync(foto);
 
                 if (!result.Success)
                 {
@@ -421,13 +382,12 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task EstablecerPortadaAsync(
-            AlbumFotoResponse? foto)
+        private async Task EstablecerPortadaAsync(AlbumFotoResponse? foto)
         {
             if (foto == null || IsBusy)
                 return;
 
-            if (!CanEdit)
+            if (!CanView || !CanEdit)
             {
                 await MostrarToastAsync(
                     "No tiene permisos para cambiar la portada.");
@@ -445,10 +405,8 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                var result =
-                    await apiService
-                        .EstablecerPortadaAsync(
-                            foto.AlbumBotanicoCafeFotoId);
+                ApiResult<bool> result = await apiService.EstablecerPortadaAsync(
+                    foto.AlbumBotanicoCafeFotoId);
 
                 if (!result.Success)
                 {
@@ -466,13 +424,12 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task EliminarFotoAsync(
-            AlbumFotoResponse? foto)
+        private async Task EliminarFotoAsync(AlbumFotoResponse? foto)
         {
             if (foto == null || IsBusy)
                 return;
 
-            if (!CanDelete)
+            if (!CanView || !CanDelete)
             {
                 await MostrarToastAsync(
                     "No tiene permisos para desactivar fotografías.");
@@ -480,7 +437,6 @@ namespace CONATRADEC.ViewModels
             }
 
             Page? page = Application.Current?.MainPage;
-
             if (page == null)
                 return;
 
@@ -497,9 +453,8 @@ namespace CONATRADEC.ViewModels
 
             try
             {
-                var result =
-                    await apiService.EliminarFotoAsync(
-                        foto.AlbumBotanicoCafeFotoId);
+                ApiResult<bool> result = await apiService.EliminarFotoAsync(
+                    foto.AlbumBotanicoCafeFotoId);
 
                 if (!result.Success)
                 {
@@ -511,10 +466,9 @@ namespace CONATRADEC.ViewModels
                         INavigation navegacion =
                             Shell.Current?.Navigation ?? page.Navigation;
 
-                        var dialogo =
-                            new FotografiaVinculadaInspeccionPage(
-                                inspeccionId,
-                                mensajeVisible);
+                        var dialogo = new FotografiaVinculadaInspeccionPage(
+                            inspeccionId,
+                            mensajeVisible);
 
                         await navegacion.PushModalAsync(dialogo);
                         bool irInspeccion = await dialogo.ResultadoTask;
@@ -547,12 +501,6 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        /// <summary>
-        /// El backend antepone un marcador interno únicamente cuando la foto
-        /// proviene de una inspección. El marcador se elimina antes de mostrar
-        /// el texto al usuario y conserva el identificador necesario para abrir
-        /// directamente el expediente que controla la publicación.
-        /// </summary>
         private static bool TryParsearBloqueoInspeccion(
             string? mensaje,
             out int inspeccionId,

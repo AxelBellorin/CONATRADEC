@@ -9,13 +9,13 @@
     <Grid>
         <ScrollView>
             <VerticalStackLayout
-                Padding="{OnIdiom Phone='12,10,12,26', Tablet='20,16,20,32', Desktop='28,20,28,38'}"
+                x:Name="FormularioStack"
+                Padding="12,10,12,26"
                 MaximumWidthRequest="1040"
-                HorizontalOptions="Center"
+                HorizontalOptions="Fill"
                 Spacing="14">
 
-                <!-- Encabezado desplazable para no consumir altura permanente. -->
-                <Border Style="{StaticResource ModernHeroCard}">
+                <Border Style="{StaticResource ModernHeroCard}" HorizontalOptions="Fill">
                     <VerticalStackLayout Spacing="8">
                         <Button
                             Text="← Regresar"
@@ -25,37 +25,25 @@
                             HorizontalOptions="Start"
                             HeightRequest="36"
                             Padding="4,4" />
-                        <Label
-                            Text="{Binding TituloPagina}"
-                            Style="{StaticResource ModernPageTitle}" />
+                        <Label Text="{Binding TituloPagina}" Style="{StaticResource ModernPageTitle}" />
                         <Label
                             Text="Defina la identificación y la información técnica. Las fotografías se administran después de guardar."
                             Style="{StaticResource ModernPageSubtitle}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <Border Style="{StaticResource ModernFormCard}">
+                <Border Style="{StaticResource ModernFormCard}" HorizontalOptions="Fill">
                     <VerticalStackLayout Spacing="15">
                         <VerticalStackLayout Spacing="3">
-                            <Label
-                                Text="Identificación"
-                                Style="{StaticResource ModernSectionTitle}"
-                                TextColor="{StaticResource color_Verde}" />
-                            <Label
-                                Text="Datos principales de la subcategoría del álbum."
-                                Style="{StaticResource ModernCaption}" />
+                            <Label Text="Identificación" Style="{StaticResource ModernSectionTitle}" TextColor="{StaticResource color_Verde}" />
+                            <Label Text="Datos principales de la subcategoría del álbum." Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout Spacing="5">
-                            <Label
-                                Text="Categoría *"
-                                Style="{StaticResource ModernFieldLabel}" />
+                            <Label Text="Categoría *" Style="{StaticResource ModernFieldLabel}" />
                             <Border Style="{StaticResource ModernInputBorder}">
                                 <Border.Triggers>
-                                    <DataTrigger
-                                        TargetType="Border"
-                                        Binding="{Binding TieneErrorCategoria}"
-                                        Value="True">
+                                    <DataTrigger TargetType="Border" Binding="{Binding TieneErrorCategoria}" Value="True">
                                         <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
                                         <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
@@ -67,27 +55,20 @@
                                     Title="Seleccione una categoría"
                                     Style="{StaticResource ModernPicker}" />
                             </Border>
-                            <Label
-                                Text="{Binding ErrorCategoria}"
-                                IsVisible="{Binding TieneErrorCategoria}"
-                                Style="{StaticResource ValidationMessageStyle}" />
+                            <Label Text="{Binding ErrorCategoria}" IsVisible="{Binding TieneErrorCategoria}" Style="{StaticResource ValidationMessageStyle}" />
                         </VerticalStackLayout>
 
                         <Grid
-                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                            x:Name="IdentificacionCamposGrid"
+                            HorizontalOptions="Fill"
+                            ColumnDefinitions="*,*"
                             ColumnSpacing="12"
                             RowSpacing="12">
-                            <VerticalStackLayout Spacing="5">
-                                <Label
-                                    Text="Subcategoría específica *"
-                                    Style="{StaticResource ModernFieldLabel}" />
+                            <VerticalStackLayout x:Name="SubcategoriaCampo" Spacing="5">
+                                <Label Text="Subcategoría específica *" Style="{StaticResource ModernFieldLabel}" />
                                 <Border Style="{StaticResource ModernInputBorder}">
                                     <Border.Triggers>
-                                        <DataTrigger
-                                            TargetType="Border"
-                                            Binding="{Binding TieneErrorTitulo}"
-                                            Value="True">
+                                        <DataTrigger TargetType="Border" Binding="{Binding TieneErrorTitulo}" Value="True">
                                             <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
                                             <Setter Property="StrokeThickness" Value="2" />
                                         </DataTrigger>
@@ -98,25 +79,14 @@
                                         Placeholder="Ejemplo: Mancha de hierro"
                                         Style="{StaticResource ModernEntry}" />
                                 </Border>
-                                <Label
-                                    Text="{Binding ErrorTitulo}"
-                                    IsVisible="{Binding TieneErrorTitulo}"
-                                    Style="{StaticResource ValidationMessageStyle}" />
+                                <Label Text="{Binding ErrorTitulo}" IsVisible="{Binding TieneErrorTitulo}" Style="{StaticResource ValidationMessageStyle}" />
                             </VerticalStackLayout>
 
-                            <VerticalStackLayout
-                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                Spacing="5">
-                                <Label
-                                    Text="Nombre científico"
-                                    Style="{StaticResource ModernFieldLabel}" />
+                            <VerticalStackLayout x:Name="NombreCientificoCampo" Grid.Column="1" Spacing="5">
+                                <Label Text="Nombre científico" Style="{StaticResource ModernFieldLabel}" />
                                 <Border Style="{StaticResource ModernInputBorder}">
                                     <Border.Triggers>
-                                        <DataTrigger
-                                            TargetType="Border"
-                                            Binding="{Binding TieneErrorNombreCientifico}"
-                                            Value="True">
+                                        <DataTrigger TargetType="Border" Binding="{Binding TieneErrorNombreCientifico}" Value="True">
                                             <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
                                             <Setter Property="StrokeThickness" Value="2" />
                                         </DataTrigger>
@@ -127,23 +97,15 @@
                                         Placeholder="Ejemplo: Cercospora coffeicola"
                                         Style="{StaticResource ModernEntry}" />
                                 </Border>
-                                <Label
-                                    Text="{Binding ErrorNombreCientifico}"
-                                    IsVisible="{Binding TieneErrorNombreCientifico}"
-                                    Style="{StaticResource ValidationMessageStyle}" />
+                                <Label Text="{Binding ErrorNombreCientifico}" IsVisible="{Binding TieneErrorNombreCientifico}" Style="{StaticResource ValidationMessageStyle}" />
                             </VerticalStackLayout>
                         </Grid>
 
                         <VerticalStackLayout Spacing="5">
-                            <Label
-                                Text="Descripción general *"
-                                Style="{StaticResource ModernFieldLabel}" />
+                            <Label Text="Descripción general *" Style="{StaticResource ModernFieldLabel}" />
                             <Border Style="{StaticResource ModernInputBorder}" Padding="10">
                                 <Border.Triggers>
-                                    <DataTrigger
-                                        TargetType="Border"
-                                        Binding="{Binding TieneErrorDescripcion}"
-                                        Value="True">
+                                    <DataTrigger TargetType="Border" Binding="{Binding TieneErrorDescripcion}" Value="True">
                                         <Setter Property="Stroke" Value="{StaticResource RedDelete}" />
                                         <Setter Property="StrokeThickness" Value="2" />
                                     </DataTrigger>
@@ -156,30 +118,22 @@
                                     BackgroundColor="Transparent"
                                     TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                             </Border>
-                            <Label
-                                Text="{Binding ErrorDescripcion}"
-                                IsVisible="{Binding TieneErrorDescripcion}"
-                                Style="{StaticResource ValidationMessageStyle}" />
+                            <Label Text="{Binding ErrorDescripcion}" IsVisible="{Binding TieneErrorDescripcion}" Style="{StaticResource ValidationMessageStyle}" />
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
-                <Border Style="{StaticResource ModernFormCard}">
-                    <VerticalStackLayout Spacing="14">
+                <Border Style="{StaticResource ModernFormCard}" HorizontalOptions="Fill">
+                    <VerticalStackLayout Spacing="14" HorizontalOptions="Fill">
                         <VerticalStackLayout Spacing="3">
-                            <Label
-                                Text="Información técnica"
-                                Style="{StaticResource ModernSectionTitle}"
-                                TextColor="{StaticResource color_Cafe}" />
-                            <Label
-                                Text="Estos campos se mostrarán en el detalle de la subcategoría."
-                                Style="{StaticResource ModernCaption}" />
+                            <Label Text="Información técnica" Style="{StaticResource ModernSectionTitle}" TextColor="{StaticResource color_Cafe}" />
+                            <Label Text="Estos campos se mostrarán en el detalle de la subcategoría." Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
                         <Grid
-                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
-                            ColumnSpacing="12"
+                            HorizontalOptions="Fill"
+                            RowDefinitions="Auto,Auto"
+                            ColumnDefinitions="*"
                             RowSpacing="12">
                             <VerticalStackLayout Spacing="5">
                                 <Label Text="Características" Style="{StaticResource ModernFieldLabel}" />
@@ -192,10 +146,7 @@
                                         TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                                 </Border>
                             </VerticalStackLayout>
-                            <VerticalStackLayout
-                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                Spacing="5">
+                            <VerticalStackLayout Grid.Row="1" Spacing="5">
                                 <Label Text="Síntomas" Style="{StaticResource ModernFieldLabel}" />
                                 <Border Style="{StaticResource ModernInputBorder}" Padding="10">
                                     <Editor
@@ -209,9 +160,9 @@
                         </Grid>
 
                         <Grid
-                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
-                            ColumnSpacing="12"
+                            HorizontalOptions="Fill"
+                            RowDefinitions="Auto,Auto"
+                            ColumnDefinitions="*"
                             RowSpacing="12">
                             <VerticalStackLayout Spacing="5">
                                 <Label Text="Causas" Style="{StaticResource ModernFieldLabel}" />
@@ -224,10 +175,7 @@
                                         TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
                                 </Border>
                             </VerticalStackLayout>
-                            <VerticalStackLayout
-                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                Spacing="5">
+                            <VerticalStackLayout Grid.Row="1" Spacing="5">
                                 <Label Text="Recomendaciones" Style="{StaticResource ModernFieldLabel}" />
                                 <Border Style="{StaticResource ModernInfoBanner}" Padding="10">
                                     <Editor
@@ -255,19 +203,21 @@
                 </Border>
 
                 <Grid
-                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                    x:Name="AccionesFormularioGrid"
+                    HorizontalOptions="Fill"
+                    ColumnDefinitions="*,*"
                     RowSpacing="8"
                     ColumnSpacing="10">
                     <Button
+                        x:Name="CancelarFormularioButton"
                         Text="Cancelar"
                         Command="{Binding CancelarCommand}"
                         IsEnabled="{Binding NotIsBusy}"
                         Style="{StaticResource ModernNeutralButton}"
                         HeightRequest="50" />
                     <Button
-                        Grid.Row="{OnIdiom Phone=1, Default=0}"
-                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                        x:Name="GuardarFormularioButton"
+                        Grid.Column="1"
                         Text="Guardar subcategoría"
                         Command="{Binding GuardarCommand}"
                         IsEnabled="{Binding NotIsBusy}"
@@ -277,7 +227,6 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <!-- Relay para carga inicial y guardado. -->
         <Grid
             ZIndex="100"
             IsVisible="{Binding IsBusy}"
@@ -303,10 +252,7 @@
                         FontAttributes="Bold"
                         HorizontalTextAlignment="Center"
                         TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
-                    <Label
-                        Text="Espere mientras se completa la operación."
-                        HorizontalTextAlignment="Center"
-                        Style="{StaticResource ModernCaption}" />
+                    <Label Text="Espere mientras se completa la operación." HorizontalTextAlignment="Center" Style="{StaticResource ModernCaption}" />
                 </VerticalStackLayout>
             </Border>
         </Grid>

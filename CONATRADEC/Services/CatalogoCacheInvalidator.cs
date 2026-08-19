@@ -26,7 +26,6 @@ namespace CONATRADEC.Services
                             "cacheFormulario",
                             "cacheCreadoUtc");
 
-                        // La lista activa cambia de composición tras reactivar.
                         UbicacionVisitaService.MarcarPaisesParaRecargar();
                         break;
 
@@ -35,8 +34,6 @@ namespace CONATRADEC.Services
                             typeof(DepartamentoApiService),
                             "CachePorPais");
 
-                        // La reactivación cambia tanto la lista del país actual
-                        // como el conteo mostrado en la tarjeta de País.
                         UbicacionVisitaService.MarcarDepartamentosParaRecargar();
                         UbicacionVisitaService.MarcarPaisesParaRecargar();
                         break;
@@ -46,7 +43,6 @@ namespace CONATRADEC.Services
                             typeof(MunicipioApiService),
                             "CachePorDepartamento");
 
-                        // También cambia el conteo de municipios del padre.
                         UbicacionVisitaService.MarcarMunicipiosParaRecargar();
                         UbicacionVisitaService.MarcarDepartamentosParaRecargar();
                         break;
@@ -57,14 +53,7 @@ namespace CONATRADEC.Services
                             "cacheFormulario",
                             "cacheCreadoUtc");
 
-                        /*
-                         * La reactivación desde el modal común cambia la
-                         * composición del listado activo. Se incrementa la
-                         * versión para que, al cerrar el modal, se renueve la
-                         * página visible dentro de la misma visita.
-                         */
-                        ElementoQuimicoListadoEstadoService
-                            .MarcarParaRecargar();
+                        ElementoQuimicoListadoEstadoService.MarcarParaRecargar();
                         break;
 
                     case CatalogoEliminadoCodigos.TipoCultivo:
@@ -74,38 +63,28 @@ namespace CONATRADEC.Services
                             "cacheCreadoUtc");
 
                         AnalisisSueloApiService.LimpiarCacheTiposCultivo();
-
-                        /*
-                         * La reactivación se realiza desde el modal común de
-                         * eliminados. Se marca el listado administrativo para
-                         * que, al cerrar el modal, renueve la página visible.
-                         */
                         TipoCultivoListadoEstadoService.MarcarCambio();
                         break;
 
                     case CatalogoEliminadoCodigos.TipoAnalisis:
-                        /*
-                         * TipoAnalisisSueloApiService ya no mantiene un caché
-                         * global de 20 minutos. La reactivación sí cambia la
-                         * composición del listado activo, por lo que se marca
-                         * la versión de la visita para recargar la página actual
-                         * al cerrar el modal de eliminados.
-                         */
                         TipoAnalisisSueloListadoEstadoService.MarcarCambio();
                         break;
 
                     case CatalogoEliminadoCodigos.ExtraccionNutriente:
-                        /*
-                         * Reactivar una extracción modifica el listado activo.
-                         * La misma visita conserva búsqueda y página, pero debe
-                         * reconstruir la página visible desde el servidor.
-                         */
-                        ExtraccionNutrienteListadoEstadoService
-                            .MarcarParaRecargar();
+                        ExtraccionNutrienteListadoEstadoService.MarcarParaRecargar();
                         break;
 
                     case CatalogoEliminadoCodigos.CategoriaPublicacion:
                         PublicacionListadoEstadoService.MarcarActualizacion();
+                        break;
+
+                    case CatalogoEliminadoCodigos.CategoriaAlbum:
+                        /*
+                         * Reactivar una categoría desde el modal común cambia
+                         * la composición del Álbum activo. La visita conserva
+                         * filtros y página, pero debe reconciliarse al cerrar.
+                         */
+                        AlbumBotanicoRefreshState.MarcarCambio();
                         break;
                 }
             }

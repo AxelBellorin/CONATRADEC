@@ -9,10 +9,6 @@
     BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
 
     <ContentPage.Resources>
-        <!--
-            En Windows convierte únicamente las rutas físicas del álbum en
-            StreamImageSource. Android y las URL remotas conservan su flujo.
-        -->
         <converters:AlbumImageSourceConverter x:Key="AlbumImageSourceConverter" />
     </ContentPage.Resources>
 
@@ -25,123 +21,103 @@
 
                 <CollectionView
                     x:Name="AlbumCollectionView"
-                    Margin="{OnIdiom Phone='12,12,12,20', Tablet='20,18,20,26', Desktop='28,22,28,30'}"
                     ItemsSource="{Binding Registros}"
                     SelectionMode="None"
-                    ItemSizingStrategy="MeasureFirstItem"
-                    RemainingItemsThreshold="2"
-                    RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                    ItemSizingStrategy="MeasureFirstItem">
 
                     <CollectionView.ItemsLayout>
                         <GridItemsLayout
+                            x:Name="AlbumGrid"
                             Orientation="Vertical"
-                            Span="{OnIdiom Phone=1, Tablet=2, Desktop=3}"
+                            Span="1"
                             HorizontalItemSpacing="14"
                             VerticalItemSpacing="14" />
                     </CollectionView.ItemsLayout>
 
-                    <!--
-                        Encabezado, búsqueda, categorías y filtros pertenecen
-                        directamente al Header del CollectionView. Todo sale de
-                        la pantalla con el scroll natural sin reparentado dinámico.
-                    -->
                     <CollectionView.Header>
                         <VerticalStackLayout
+                            x:Name="AlbumHeaderStack"
                             Spacing="14"
                             Margin="0,0,0,14">
 
-                            <VerticalStackLayout Spacing="10">
-                                <Border Style="{StaticResource ModernHeroCard}">
+                            <Border Style="{StaticResource ModernHeroCard}">
+                                <Grid
+                                    x:Name="HeroAlbumGrid"
+                                    ColumnDefinitions="*,Auto"
+                                    ColumnSpacing="16"
+                                    RowSpacing="12">
+                                    <VerticalStackLayout
+                                        x:Name="HeroAlbumTexto"
+                                        Spacing="4">
+                                        <Label
+                                            Text="Álbum botánico"
+                                            Style="{StaticResource ModernPageTitle}" />
+                                        <Label
+                                            Text="Explore categorías, subcategorías y fotografías aprobadas para consulta técnica."
+                                            Style="{StaticResource ModernPageSubtitle}" />
+                                    </VerticalStackLayout>
+
                                     <Grid
-                                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
-                                        RowSpacing="12"
-                                        ColumnSpacing="16">
-
-                                        <VerticalStackLayout
-                                            Grid.Row="0"
-                                            Grid.Column="0"
-                                            Spacing="4">
-                                            <Label
-                                                Text="Álbum botánico"
-                                                Style="{StaticResource ModernPageTitle}" />
-                                            <Label
-                                                Text="Explore categorías, subcategorías y fotografías aprobadas para consulta técnica."
-                                                Style="{StaticResource ModernPageSubtitle}" />
-                                        </VerticalStackLayout>
-
-                                        <Grid
-                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                            Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                            ColumnDefinitions="*,*"
-                                            ColumnSpacing="8"
-                                            HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
-                                            <Button
-                                                Grid.Column="0"
-                                                Text="Nueva categoría"
-                                                Command="{Binding AgregarCategoriaCommand}"
-                                                IsVisible="{Binding CanAdd}"
-                                                Style="{StaticResource ModernSecondaryButton}"
-                                                MinimumWidthRequest="{OnIdiom Phone=0, Default=150}" />
-                                            <Button
-                                                Grid.Column="1"
-                                                Text="Nueva subcategoría"
-                                                Command="{Binding AgregarRegistroCommand}"
-                                                IsVisible="{Binding CanAdd}"
-                                                Style="{StaticResource ModernPrimaryButton}"
-                                                MinimumWidthRequest="{OnIdiom Phone=0, Default=170}" />
-                                        </Grid>
-                                    </Grid>
-                                </Border>
-
-                                <Border Style="{StaticResource ModernCard}" Padding="10">
-                                    <Grid
-                                        RowDefinitions="Auto,Auto"
-                                        ColumnDefinitions="*,Auto"
-                                        RowSpacing="6"
-                                        ColumnSpacing="8">
-                                        <SearchBar
-                                            Grid.Row="0"
-                                            Grid.Column="0"
-                                            Text="{Binding TextoBusqueda}"
-                                            SearchButtonPressed="OnBuscarPresionado"
-                                            Placeholder="Buscar categoría, subcategoría o nombre científico"
-                                            Style="{StaticResource ModernSearchBar}" />
+                                        x:Name="HeroAlbumAcciones"
+                                        Grid.Column="1"
+                                        ColumnDefinitions="Auto,Auto,Auto"
+                                        ColumnSpacing="8"
+                                        RowSpacing="8">
                                         <Button
-                                            Grid.Row="0"
+                                            x:Name="NuevaCategoriaButton"
+                                            Text="Nueva categoría"
+                                            Command="{Binding AgregarCategoriaCommand}"
+                                            IsVisible="{Binding CanAdd}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0" />
+                                        <Button
+                                            x:Name="NuevaSubcategoriaButton"
                                             Grid.Column="1"
-                                            Text="Limpiar"
-                                            Clicked="OnLimpiarBusquedaClicked"
+                                            Text="Nueva subcategoría"
+                                            Command="{Binding AgregarRegistroCommand}"
+                                            IsVisible="{Binding CanAdd}"
+                                            Style="{StaticResource ModernPrimaryButton}"
+                                            MinimumWidthRequest="0" />
+                                        <Button
+                                            x:Name="EliminadosButton"
+                                            Grid.Column="2"
+                                            Text="Elementos eliminados"
+                                            Clicked="OnAbrirEliminadosClicked"
+                                            IsVisible="{Binding MostrarEliminados}"
                                             Style="{StaticResource ModernNeutralButton}"
-                                            HeightRequest="46" />
-                                        <HorizontalStackLayout
-                                            Grid.Row="1"
-                                            Grid.ColumnSpan="2"
-                                            IsVisible="{Binding MostrarInactivos}"
-                                            Spacing="8">
-                                            <Switch
-                                                IsToggled="{Binding IncluirInactivos}"
-                                                Toggled="OnIncluirInactivosToggled"
-                                                Style="{StaticResource SwitchStyle}" />
-                                            <Label
-                                                Text="Mostrar elementos inactivos"
-                                                VerticalOptions="Center"
-                                                Style="{StaticResource ModernCaption}" />
-                                        </HorizontalStackLayout>
+                                            MinimumWidthRequest="0" />
                                     </Grid>
-                                </Border>
-                            </VerticalStackLayout>
+                                </Grid>
+                            </Border>
 
-                            <!-- Selector horizontal: se mantiene liviano y no interfiere con la virtualización vertical. -->
+                            <Border Style="{StaticResource ModernCard}" Padding="10">
+                                <Grid
+                                    x:Name="BusquedaAlbumGrid"
+                                    ColumnDefinitions="*,Auto"
+                                    ColumnSpacing="8"
+                                    RowSpacing="8">
+                                    <SearchBar
+                                        x:Name="BusquedaAlbum"
+                                        Text="{Binding TextoBusqueda}"
+                                        SearchButtonPressed="OnBuscarPresionado"
+                                        Placeholder="Buscar categoría, subcategoría o nombre científico"
+                                        Style="{StaticResource ModernSearchBar}" />
+                                    <Button
+                                        x:Name="LimpiarBusquedaButton"
+                                        Grid.Column="1"
+                                        Text="Limpiar"
+                                        Clicked="OnLimpiarBusquedaClicked"
+                                        Style="{StaticResource ModernNeutralButton}"
+                                        HeightRequest="46"
+                                        MinimumWidthRequest="0" />
+                                </Grid>
+                            </Border>
+
                             <VerticalStackLayout Spacing="8">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <VerticalStackLayout Spacing="2">
-                                        <Label
-                                            Text="Categorías"
-                                            Style="{StaticResource ModernSectionTitle}" />
-                                        <Label
-                                            Text="Deslice horizontalmente para explorar."
-                                            Style="{StaticResource ModernCaption}" />
+                                        <Label Text="Categorías" Style="{StaticResource ModernSectionTitle}" />
+                                        <Label Text="Deslice horizontalmente para explorar." Style="{StaticResource ModernCaption}" />
                                     </VerticalStackLayout>
                                     <Label
                                         Grid.Column="1"
@@ -169,9 +145,7 @@
                                             <Border.GestureRecognizers>
                                                 <TapGestureRecognizer Command="{Binding SeleccionarTodasCommand}" />
                                             </Border.GestureRecognizers>
-                                            <VerticalStackLayout
-                                                VerticalOptions="Center"
-                                                Spacing="5">
+                                            <VerticalStackLayout VerticalOptions="Center" Spacing="5">
                                                 <Label
                                                     Text="Todas"
                                                     FontFamily="MontserratBold"
@@ -203,27 +177,21 @@
                                                         Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.SeleccionarCategoriaCommand}"
                                                         CommandParameter="{Binding .}" />
                                                 </Border.GestureRecognizers>
-                                                <Grid
-                                                    RowDefinitions="*,Auto,Auto"
-                                                    RowSpacing="4">
+                                                <Grid RowDefinitions="*,Auto,Auto" RowSpacing="4">
                                                     <Label
                                                         Text="{Binding NombreCategoria}"
                                                         FontFamily="MontserratBold"
                                                         FontAttributes="Bold"
                                                         FontSize="13"
-                                                        TextColor="{StaticResource color_Negro}"
+                                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
                                                         MaxLines="2"
                                                         LineBreakMode="TailTruncation" />
                                                     <Label
                                                         Grid.Row="1"
                                                         Text="{Binding TotalRegistros, StringFormat='{}{0} subcategorías'}"
                                                         Style="{StaticResource ModernCaption}" />
-                                                    <Grid
-                                                        Grid.Row="2"
-                                                        ColumnDefinitions="*,*"
-                                                        ColumnSpacing="5">
+                                                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="5">
                                                         <Button
-                                                            Grid.Column="0"
                                                             Text="Editar"
                                                             Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.EditarCategoriaCommand}"
                                                             CommandParameter="{Binding .}"
@@ -234,7 +202,7 @@
                                                             Padding="5,2" />
                                                         <Button
                                                             Grid.Column="1"
-                                                            Text="{Binding AccionEstadoTexto}"
+                                                            Text="Desactivar"
                                                             Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CambiarEstadoCategoriaCommand}"
                                                             CommandParameter="{Binding .}"
                                                             IsVisible="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CanDelete}"
@@ -250,9 +218,104 @@
                                 </CollectionView>
                             </VerticalStackLayout>
 
+                            <VerticalStackLayout
+                                IsVisible="{Binding MostrarSeccionSubcategorias}"
+                                Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="Subcategorías" Style="{StaticResource ModernSectionTitle}" />
+                                        <Label Text="Filtre la galería dentro de la categoría seleccionada." Style="{StaticResource ModernCaption}" />
+                                    </VerticalStackLayout>
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="{Binding Subcategorias.Count, StringFormat='{}{0} disponibles'}"
+                                        VerticalOptions="Center"
+                                        Style="{StaticResource ModernCaption}" />
+                                </Grid>
+
+                                <CollectionView
+                                    IsVisible="{Binding MostrarFiltroSubcategorias}"
+                                    ItemsSource="{Binding Subcategorias}"
+                                    ItemsLayout="HorizontalList"
+                                    SelectionMode="None"
+                                    HeightRequest="96"
+                                    HorizontalScrollBarVisibility="Never">
+                                    <CollectionView.Header>
+                                        <Border
+                                            WidthRequest="150"
+                                            HeightRequest="86"
+                                            Margin="0,0,9,0"
+                                            Padding="10"
+                                            BackgroundColor="{Binding FondoTodasSubcategorias}"
+                                            Stroke="{Binding BordeTodasSubcategorias}"
+                                            StrokeShape="RoundRectangle 14">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding SeleccionarTodasSubcategoriasCommand}" />
+                                            </Border.GestureRecognizers>
+                                            <Label
+                                                Text="Todas"
+                                                VerticalOptions="Center"
+                                                HorizontalTextAlignment="Center"
+                                                FontFamily="MontserratBold"
+                                                FontAttributes="Bold"
+                                                TextColor="{Binding TextoTodasSubcategorias}" />
+                                        </Border>
+                                    </CollectionView.Header>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border
+                                                WidthRequest="210"
+                                                HeightRequest="86"
+                                                Margin="0,0,9,0"
+                                                Padding="10"
+                                                BackgroundColor="{Binding FondoSeleccion}"
+                                                Stroke="{Binding BordeSeleccion}"
+                                                StrokeShape="RoundRectangle 14">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer
+                                                        Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.SeleccionarSubcategoriaCommand}"
+                                                        CommandParameter="{Binding .}" />
+                                                </Border.GestureRecognizers>
+                                                <Grid RowDefinitions="*,Auto">
+                                                    <Label
+                                                        Text="{Binding NombreSubcategoria}"
+                                                        MaxLines="2"
+                                                        LineBreakMode="TailTruncation"
+                                                        FontFamily="MontserratBold"
+                                                        FontAttributes="Bold"
+                                                        FontSize="12"
+                                                        TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                                    <Label
+                                                        Grid.Row="1"
+                                                        Text="{Binding TotalTexto}"
+                                                        Style="{StaticResource ModernCaption}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+
+                                <Grid
+                                    IsVisible="{Binding PuedeEditarSubcategoria}"
+                                    ColumnDefinitions="*,*"
+                                    ColumnSpacing="8">
+                                    <Button
+                                        Text="Editar seleccionada"
+                                        Command="{Binding EditarSubcategoriaCommand}"
+                                        IsVisible="{Binding CanEdit}"
+                                        Style="{StaticResource ModernUpdateButton}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Text="Desactivar seleccionada"
+                                        Command="{Binding CambiarEstadoSubcategoriaCommand}"
+                                        IsVisible="{Binding CanDelete}"
+                                        Style="{StaticResource ModernCoffeeButton}" />
+                                </Grid>
+                            </VerticalStackLayout>
+
                             <Border Style="{StaticResource ModernInfoBanner}">
                                 <Label
-                                    Text="Seleccione una categoría para concentrar la galería. Cada ficha conserva su información técnica y sus fotografías aprobadas."
+                                    Text="El listado activo se mantiene separado de los elementos eliminados. Las subcategorías desactivadas pueden reactivarse desde Elementos eliminados."
                                     FontSize="11"
                                     TextColor="{StaticResource color_Verde}"
                                     LineBreakMode="WordWrap" />
@@ -260,12 +323,8 @@
 
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                 <VerticalStackLayout Spacing="2">
-                                    <Label
-                                        Text="{Binding TituloGaleria}"
-                                        Style="{StaticResource ModernSectionTitle}" />
-                                    <Label
-                                        Text="Toque una ficha para consultar sus fotografías e información técnica."
-                                        Style="{StaticResource ModernCaption}" />
+                                    <Label Text="{Binding TituloGaleria}" Style="{StaticResource ModernSectionTitle}" />
+                                    <Label Text="Toque una ficha para consultar sus fotografías e información técnica." Style="{StaticResource ModernCaption}" />
                                 </VerticalStackLayout>
                                 <Label
                                     Grid.Column="1"
@@ -279,13 +338,10 @@
                                 IsVisible="{Binding SinRegistros}"
                                 Style="{StaticResource ModernEmptyStateCard}"
                                 HorizontalOptions="Center"
-                                MaximumWidthRequest="560">
+                                MaximumWidthRequest="560"
+                                InputTransparent="True">
                                 <VerticalStackLayout Spacing="8">
-                                    <Image
-                                        Source="iconalbum.png"
-                                        WidthRequest="52"
-                                        HeightRequest="52"
-                                        HorizontalOptions="Center" />
+                                    <Image Source="iconalbum.png" WidthRequest="52" HeightRequest="52" HorizontalOptions="Center" />
                                     <Label
                                         Text="No se encontraron subcategorías para los filtros seleccionados."
                                         HorizontalTextAlignment="Center"
@@ -298,31 +354,17 @@
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
-                            <Border
-                                Style="{StaticResource ModernCatalogCard}"
-                                Padding="0">
-                                <Grid RowDefinitions="{OnIdiom Phone='220,Auto', Tablet='190,Auto', Desktop='180,Auto'}">
+                            <Border Style="{StaticResource ModernCatalogCard}" Padding="0">
+                                <Grid RowDefinitions="200,Auto">
                                     <Grid BackgroundColor="#EEF5F2">
                                         <Image
                                             Source="{Binding FotoPortadaUrl, Converter={StaticResource AlbumImageSourceConverter}}"
                                             Aspect="AspectFill"
                                             IsVisible="{Binding TieneFoto}" />
-                                        <Grid
-                                            IsVisible="{Binding SinFoto}"
-                                            BackgroundColor="#EEF5F2">
-                                            <VerticalStackLayout
-                                                HorizontalOptions="Center"
-                                                VerticalOptions="Center"
-                                                Spacing="6">
-                                                <Image
-                                                    Source="iconalbum.png"
-                                                    WidthRequest="42"
-                                                    HeightRequest="42" />
-                                                <Label
-                                                    Text="Sin fotografía de portada"
-                                                    HorizontalTextAlignment="Center"
-                                                    FontSize="11"
-                                                    TextColor="{StaticResource color_GrisOscuro}" />
+                                        <Grid IsVisible="{Binding SinFoto}" BackgroundColor="#EEF5F2">
+                                            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="6">
+                                                <Image Source="iconalbum.png" WidthRequest="42" HeightRequest="42" />
+                                                <Label Text="Sin fotografía de portada" HorizontalTextAlignment="Center" FontSize="11" TextColor="{StaticResource color_GrisOscuro}" />
                                             </VerticalStackLayout>
                                         </Grid>
                                         <Border
@@ -331,23 +373,12 @@
                                             HorizontalOptions="End"
                                             VerticalOptions="Start"
                                             Style="{StaticResource ModernBadgeGreen}">
-                                            <Label
-                                                Text="{Binding TotalFotosTexto}"
-                                                FontSize="10"
-                                                FontAttributes="Bold"
-                                                TextColor="{StaticResource color_Verde}" />
+                                            <Label Text="{Binding TotalFotosTexto}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource color_Verde}" />
                                         </Border>
                                     </Grid>
 
-                                    <VerticalStackLayout
-                                        Grid.Row="1"
-                                        Padding="14"
-                                        Spacing="7">
-                                        <Label
-                                            Text="{Binding Categoria}"
-                                            FontSize="10.5"
-                                            FontAttributes="Bold"
-                                            TextColor="{StaticResource color_Cafe}" />
+                                    <VerticalStackLayout Grid.Row="1" Padding="14" Spacing="7">
+                                        <Label Text="{Binding Categoria}" FontSize="10.5" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
                                         <Label
                                             Text="{Binding Titulo}"
                                             FontFamily="MontserratBold"
@@ -376,11 +407,8 @@
                                             CommandParameter="{Binding .}"
                                             Style="{StaticResource ModernPrimaryButton}"
                                             HeightRequest="44" />
-                                        <Grid
-                                            ColumnDefinitions="*,*"
-                                            ColumnSpacing="7">
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="7">
                                             <Button
-                                                Grid.Column="0"
                                                 Text="Editar"
                                                 Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.EditarRegistroCommand}"
                                                 CommandParameter="{Binding .}"
@@ -388,7 +416,7 @@
                                                 Style="{StaticResource ModernUpdateButton}" />
                                             <Button
                                                 Grid.Column="1"
-                                                Text="{Binding AccionEstadoTexto}"
+                                                Text="Desactivar"
                                                 Command="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CambiarEstadoRegistroCommand}"
                                                 CommandParameter="{Binding .}"
                                                 IsVisible="{Binding Source={x:Reference AlbumPageRoot}, Path=BindingContext.CanDelete}"
@@ -401,26 +429,37 @@
                     </CollectionView.ItemTemplate>
 
                     <CollectionView.Footer>
-                        <VerticalStackLayout
-                            Padding="0,16"
-                            Spacing="8">
-                            <ActivityIndicator
-                                IsRunning="{Binding IsLoadingMore}"
-                                IsVisible="{Binding IsLoadingMore}"
-                                Color="{StaticResource color_Verde}" />
-                            <Button
-                                Text="Cargar más"
-                                Command="{Binding CargarMasCommand}"
-                                IsVisible="{Binding TieneMas}"
-                                Style="{StaticResource ModernSecondaryButton}"
-                                HorizontalOptions="Center"
-                                MinimumWidthRequest="180" />
-                        </VerticalStackLayout>
+                        <Border
+                            x:Name="PaginacionAlbum"
+                            Margin="0,18,0,8"
+                            Padding="12"
+                            IsVisible="{Binding MostrarPaginacion}"
+                            HorizontalOptions="Center"
+                            Style="{StaticResource ModernCard}">
+                            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,*" RowSpacing="5" ColumnSpacing="10">
+                                <Button
+                                    Text="← Anterior"
+                                    Clicked="OnPaginaAnteriorClicked"
+                                    IsEnabled="{Binding PuedeIrAnterior}"
+                                    Style="{StaticResource ModernNeutralButton}"
+                                    MinimumWidthRequest="0" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                    <Label Text="{Binding PaginaTexto}" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+                                    <Label Text="{Binding RangoPaginaTexto}" HorizontalTextAlignment="Center" Style="{StaticResource ModernCaption}" />
+                                </VerticalStackLayout>
+                                <Button
+                                    Grid.Column="2"
+                                    Text="Siguiente →"
+                                    Clicked="OnPaginaSiguienteClicked"
+                                    IsEnabled="{Binding PuedeIrSiguiente}"
+                                    Style="{StaticResource ModernNeutralButton}"
+                                    MinimumWidthRequest="0" />
+                            </Grid>
+                        </Border>
                     </CollectionView.Footer>
                 </CollectionView>
             </RefreshView>
 
-            <!-- Relay bloqueante para carga inicial, búsquedas y cambios de estado. -->
             <Grid
                 ZIndex="100"
                 BackgroundColor="#520B1511"
@@ -435,21 +474,14 @@
                     Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
                     StrokeShape="RoundRectangle 18">
                     <VerticalStackLayout Spacing="10">
-                        <ActivityIndicator
-                            IsRunning="{Binding IsBusy}"
-                            Color="{StaticResource color_Verde}"
-                            WidthRequest="38"
-                            HeightRequest="38" />
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" WidthRequest="38" HeightRequest="38" />
                         <Label
                             Text="Actualizando el álbum..."
                             FontFamily="MontserratBold"
                             FontAttributes="Bold"
                             HorizontalTextAlignment="Center"
                             TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
-                        <Label
-                            Text="Estamos preparando categorías y fotografías."
-                            HorizontalTextAlignment="Center"
-                            Style="{StaticResource ModernCaption}" />
+                        <Label Text="Estamos preparando categorías y fotografías." HorizontalTextAlignment="Center" Style="{StaticResource ModernCaption}" />
                     </VerticalStackLayout>
                 </Border>
             </Grid>

@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.albumEliminadosPage"
+    x:Name="EliminadosRoot"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:CONATRADEC.Converters"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource SurfacePage}, Dark={StaticResource SurfacePageDark}}">
+
+    <ContentPage.Resources>
+        <converters:AlbumImageSourceConverter x:Key="AlbumImageSourceConverter" />
+    </ContentPage.Resources>
+
+    <Grid>
+        <RefreshView
+            IsRefreshing="{Binding IsRefreshing}"
+            Command="{Binding RefrescarCommand}"
+            RefreshColor="{StaticResource color_Verde}">
+            <CollectionView
+                x:Name="EliminadosCollection"
+                ItemsSource="{Binding Registros}"
+                SelectionMode="None"
+                ItemSizingStrategy="MeasureFirstItem">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout
+                        x:Name="EliminadosGrid"
+                        Orientation="Vertical"
+                        Span="1"
+                        HorizontalItemSpacing="12"
+                        VerticalItemSpacing="12" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.Header>
+                    <VerticalStackLayout
+                        x:Name="EncabezadoEliminados"
+                        Spacing="12"
+                        Margin="0,0,0,14">
+                        <Border Style="{StaticResource ModernHeroCard}">
+                            <VerticalStackLayout Spacing="8">
+                                <Button
+                                    Text="← Cerrar"
+                                    Command="{Binding CerrarCommand}"
+                                    Style="{StaticResource ModernLinkButton}"
+                                    HorizontalOptions="Start"
+                                    HeightRequest="36"
+                                    Padding="4,4" />
+                                <Label
+                                    Text="Elementos eliminados del Álbum"
+                                    Style="{StaticResource ModernPageTitle}" />
+                                <Label
+                                    Text="Reactive subcategorías conservando el mismo identificador, información técnica y relaciones históricas."
+                                    Style="{StaticResource ModernPageSubtitle}" />
+                                <Button
+                                    Text="Ver categorías eliminadas"
+                                    Command="{Binding CategoriasEliminadasCommand}"
+                                    IsVisible="{Binding CanView}"
+                                    Style="{StaticResource ModernSecondaryButton}"
+                                    HorizontalOptions="Start"
+                                    MinimumWidthRequest="190" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource ModernCard}" Padding="10">
+                            <Grid
+                                x:Name="BusquedaEliminadosGrid"
+                                ColumnDefinitions="*,Auto"
+                                ColumnSpacing="8"
+                                RowSpacing="8">
+                                <SearchBar
+                                    x:Name="BusquedaEliminados"
+                                    Text="{Binding TextoBusqueda}"
+                                    SearchButtonPressed="OnBuscarPressed"
+                                    Placeholder="Buscar subcategoría eliminada"
+                                    Style="{StaticResource ModernSearchBar}" />
+                                <Button
+                                    x:Name="LimpiarEliminadosButton"
+                                    Grid.Column="1"
+                                    Text="Limpiar"
+                                    Command="{Binding LimpiarCommand}"
+                                    Style="{StaticResource ModernNeutralButton}"
+                                    HeightRequest="46"
+                                    MinimumWidthRequest="0" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            IsVisible="{Binding SinRegistros}"
+                            InputTransparent="True"
+                            Style="{StaticResource ModernEmptyStateCard}">
+                            <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                <Image Source="iconalbum.png" WidthRequest="54" HeightRequest="54" />
+                                <Label
+                                    Text="No hay subcategorías eliminadas para mostrar."
+                                    HorizontalTextAlignment="Center"
+                                    FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource ModernCatalogCard}" Padding="0">
+                            <Grid RowDefinitions="150,Auto">
+                                <Grid BackgroundColor="#EEF5F2">
+                                    <Image
+                                        Source="{Binding FotoPortadaUrl, Converter={StaticResource AlbumImageSourceConverter}}"
+                                        Aspect="AspectFill"
+                                        IsVisible="{Binding TieneFoto}" />
+                                    <Grid IsVisible="{Binding SinFoto}">
+                                        <Image
+                                            Source="iconalbum.png"
+                                            WidthRequest="48"
+                                            HeightRequest="48"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Grid>
+                                </Grid>
+                                <VerticalStackLayout Grid.Row="1" Padding="14" Spacing="7">
+                                    <Label Text="{Binding Categoria}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource color_Cafe}" />
+                                    <Label
+                                        Text="{Binding Titulo}"
+                                        FontFamily="MontserratBold"
+                                        FontAttributes="Bold"
+                                        FontSize="16"
+                                        MaxLines="2"
+                                        LineBreakMode="TailTruncation" />
+                                    <Label
+                                        Text="{Binding NombreCientifico}"
+                                        IsVisible="{Binding TieneNombreCientifico}"
+                                        FontAttributes="Italic"
+                                        FontSize="12"
+                                        TextColor="{StaticResource color_Verde}" />
+                                    <Label
+                                        Text="La categoría debe estar activa para poder reactivar esta subcategoría."
+                                        Style="{StaticResource ModernCaption}"
+                                        TextColor="{StaticResource color_Cafe}" />
+                                    <Button
+                                        Text="Reactivar"
+                                        Command="{Binding Source={x:Reference EliminadosRoot}, Path=BindingContext.ReactivarCommand}"
+                                        CommandParameter="{Binding .}"
+                                        IsVisible="{Binding Source={x:Reference EliminadosRoot}, Path=BindingContext.CanEdit}"
+                                        IsEnabled="{Binding CategoriaActiva}"
+                                        Style="{StaticResource ModernPrimaryButton}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <Border
+                        x:Name="PaginacionEliminados"
+                        Margin="0,18,0,8"
+                        Padding="12"
+                        IsVisible="{Binding MostrarPaginacion}"
+                        HorizontalOptions="Center"
+                        Style="{StaticResource ModernCard}">
+                        <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="10">
+                            <Button
+                                Text="← Anterior"
+                                Clicked="OnPaginaAnteriorClicked"
+                                IsEnabled="{Binding PuedeIrAnterior}"
+                                Style="{StaticResource ModernNeutralButton}"
+                                MinimumWidthRequest="0" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                <Label Text="{Binding PaginaTexto}" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+                                <Label Text="{Binding RangoPaginaTexto}" HorizontalTextAlignment="Center" Style="{StaticResource ModernCaption}" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="2"
+                                Text="Siguiente →"
+                                Clicked="OnPaginaSiguienteClicked"
+                                IsEnabled="{Binding PuedeIrSiguiente}"
+                                Style="{StaticResource ModernNeutralButton}"
+                                MinimumWidthRequest="0" />
+                        </Grid>
+                    </Border>
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+
+        <Grid
+            ZIndex="100"
+            IsVisible="{Binding IsBusy}"
+            InputTransparent="False"
+            BackgroundColor="#520B1511">
+            <Border
+                Padding="22,18"
+                MaximumWidthRequest="340"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource SurfaceCardDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" Color="{StaticResource color_Verde}" />
+                    <Label Text="Procesando elementos eliminados..." FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>
