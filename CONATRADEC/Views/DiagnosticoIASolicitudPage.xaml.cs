@@ -1,8 +1,8 @@
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
-using System.Collections.ObjectModel;
 using Microsoft.Maui.Devices;
+using System.Collections.ObjectModel;
 
 namespace CONATRADEC.Views
 {
@@ -30,17 +30,19 @@ namespace CONATRADEC.Views
         IQueryAttributable
     {
         /*
-         * El XAML consulta propiedades como TituloVista y SubtituloVista
-         * durante InitializeComponent(). Por eso el ViewModel debe existir
-         * antes de que comience la construcción del árbol visual.
+         * La captura conserva su ViewModel histórico para no alterar fotografías,
+         * visor ni flujo IA. El listado auditado utiliza un ViewModel separado.
          */
         private readonly DiagnosticoIASolicitudViewModel viewModel = new();
+        private readonly DiagnosticoIASolicitudListadoViewModel listadoViewModel =
+            new();
 
         private readonly InspeccionFitosanitariaBandejaApiService bandejaApi =
             InspeccionFitosanitariaBandejaApiService.Instance;
 
         private string modoActual = DiagnosticoIARoutes.ModoMisInspecciones;
         private bool cargandoTecnicos;
+        private bool tecnicosCargados;
         private bool cambiandoVista;
         private bool selectorVistaAbierto;
         private Button? selectorVistaButton;
@@ -59,7 +61,7 @@ namespace CONATRADEC.Views
             VistaInspeccionesPicker.ItemDisplayBinding = null;
             TecnicoFiltroPicker.ItemDisplayBinding = null;
 
-            BindingContext = viewModel;
+            BindingContext = listadoViewModel;
             PrepararSelectorVistaPersonalizado();
             PrepararSelectorTecnicoPersonalizado();
 
@@ -71,6 +73,8 @@ namespace CONATRADEC.Views
                 new VistaMisInspeccionesItem(
                     DiagnosticoIARoutes.ModoDecisionesPendientes,
                     "Requieren decisión técnica"));
+
+            ConfigurarPaginadorListado();
         }
 
         public ObservableCollection<TecnicoInspeccionFiltroItem>
@@ -78,6 +82,15 @@ namespace CONATRADEC.Views
 
         public ObservableCollection<VistaMisInspeccionesItem>
             VistasInspecciones { get; } = [];
+
+        private bool EsModoNuevaActual => string.Equals(
+            modoActual,
+            DiagnosticoIARoutes.ModoNuevaInspeccion,
+            StringComparison.OrdinalIgnoreCase);
+
+        private bool EstaOcupado => EsModoNuevaActual
+            ? viewModel.IsBusy
+            : listadoViewModel.IsBusy;
 
         /// <summary>
         /// Mis inspecciones y sus decisiones comparten el mismo encabezado.
@@ -88,11 +101,11 @@ namespace CONATRADEC.Views
                 DiagnosticoIARoutes.ModoHistorial,
                 StringComparison.OrdinalIgnoreCase)
             ? "Historial de inspecciones"
-            : viewModel.EsModoNueva
+            : EsModoNuevaActual
                 ? "Nueva inspección fitosanitaria"
                 : "Mis inspecciones";
 
-        public string SubtituloVista => viewModel.EsModoNueva
+        public string SubtituloVista => EsModoNuevaActual
             ? "Registre la evidencia y la fecha real de identificación en campo."
             : string.Equals(
                 modoActual,
@@ -108,7 +121,17 @@ namespace CONATRADEC.Views
                 StringComparison.OrdinalIgnoreCase);
 
         public bool MostrarSelectorMisInspecciones =>
-            !viewModel.EsModoNueva && !MostrarFiltroTecnico;
+            !EsModoNuevaActual && !MostrarFiltroTecnico;
+
+        private void AplicarBindingContextActual()
+        {
+            object destino = EsModoNuevaActual
+                ? viewModel
+                : listadoViewModel;
+
+            if (!ReferenceEquals(BindingContext, destino))
+                BindingContext = destino;
+        }
 
         /// <summary>
         /// En Windows el Picker nativo puede desplegar correctamente sus
@@ -147,9 +170,9 @@ namespace CONATRADEC.Views
             object? sender,
             EventArgs e)
         {
-            if (selectorVistaAbierto || viewModel.IsBusy ||
+            if (selectorVistaAbierto || EstaOcupado ||
                 VistasInspecciones.Count == 0 ||
-                viewModel.EsModoNueva || MostrarFiltroTecnico)
+                EsModoNuevaActual || MostrarFiltroTecnico)
             {
                 return;
             }
@@ -224,7 +247,7 @@ namespace CONATRADEC.Views
             EventArgs e)
         {
             if (selectorTecnicoAbierto || cargandoTecnicos ||
-                viewModel.IsBusy || !MostrarFiltroTecnico ||
+                EstaOcupado || !MostrarFiltroTecnico ||
                 TecnicosFiltro.Count == 0)
             {
                 return;
@@ -289,17 +312,19 @@ namespace CONATRADEC.Views
                 seleccionado?.TextoMostrar ?? "Todos los técnicos";
         }
 
+        /// <summary>
+        /// Cambiar el técnico solo modifica el filtro escrito. La consulta se
+        /// ejecuta únicamente cuando el usuario pulsa Buscar.
+        /// </summary>
         private void AplicarFiltroTecnico(
             TecnicoInspeccionFiltroItem? seleccionado)
         {
-            bandejaApi.EstablecerTecnicoContextual(
-                modoActual,
-                seleccionado?.UsuarioTecnicoId is > 0
-                    ? seleccionado.UsuarioTecnicoId
-                    : null);
+            int? tecnicoId = seleccionado?.UsuarioTecnicoId is > 0
+                ? seleccionado.UsuarioTecnicoId
+                : null;
 
-            if (viewModel.BuscarInspeccionesCommand.CanExecute(null))
-                viewModel.BuscarInspeccionesCommand.Execute(null);
+            bandejaApi.EstablecerTecnicoContextual(modoActual, tecnicoId);
+            listadoViewModel.EstablecerTecnicoEscrito(tecnicoId);
         }
 
         public void ApplyQueryAttributes(
@@ -309,7 +334,18 @@ namespace CONATRADEC.Views
             {
                 modoActual = DiagnosticoIARoutes.NormalizarModo(
                     modo?.ToString());
+
                 viewModel.AplicarModo(modoActual);
+                if (!EsModoNuevaActual)
+                {
+                    // Una nueva instancia de la Page constituye una nueva visita.
+                    bandejaApi.EstablecerTecnicoContextual(modoActual, null);
+                    listadoViewModel.EstablecerTecnicoEscrito(null);
+                    listadoViewModel.AplicarModo(modoActual);
+                    tecnicosCargados = false;
+                }
+
+                AplicarBindingContextActual();
                 query.Remove("modo");
 
                 OnPropertyChanged(nameof(MostrarFiltroTecnico));
@@ -332,24 +368,78 @@ namespace CONATRADEC.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+            AplicarBindingContextActual();
+
+            if (!EsModoNuevaActual)
+                listadoViewModel.ActivarPagina();
+
+            if (!await ValidarPermisosAsync())
+                return;
+
             SincronizarSelectorVista();
 
-            if (MostrarFiltroTecnico)
+            if (!EsModoNuevaActual && MostrarFiltroTecnico)
             {
-                await CargarTecnicosAsync();
+                if (!tecnicosCargados && !ModoSesionService.EsOffline)
+                    await CargarTecnicosAsync();
             }
-            else
+            else if (!EsModoNuevaActual)
             {
                 bandejaApi.EstablecerTecnicoContextual(modoActual, null);
+                listadoViewModel.EstablecerTecnicoEscrito(null);
             }
 
-            await viewModel.InicializarAsync();
+            if (EsModoNuevaActual)
+                await viewModel.InicializarAsync();
+            else
+                await listadoViewModel.InicializarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            if (!EsModoNuevaActual)
+                listadoViewModel.CancelarOperaciones();
+
+            base.OnDisappearing();
+        }
+
+        private async Task<bool> ValidarPermisosAsync()
+        {
+            bool puedeLeer = PermissionService.Instance.HasRead(
+                DiagnosticoIARoutes.InterfazSolicitud);
+            bool puedeAgregar = !EsModoNuevaActual ||
+                PermissionService.Instance.HasAdd(
+                    DiagnosticoIARoutes.InterfazSolicitud);
+
+            if (puedeLeer && puedeAgregar)
+                return true;
+
+            string mensaje = !puedeLeer
+                ? "No tiene permiso para consultar inspecciones fitosanitarias."
+                : "No tiene permiso para registrar una nueva inspección fitosanitaria.";
+
+            await DisplayAlert("Acceso no autorizado", mensaje, "Aceptar");
+
+            if (Shell.Current != null)
+            {
+                try
+                {
+                    await Shell.Current.GoToAsync("..");
+                }
+                catch (InvalidOperationException)
+                {
+                    await Shell.Current.GoToAsync(
+                        DiagnosticoIARoutes.RutaModulo);
+                }
+            }
+
+            return false;
         }
 
         private void SincronizarSelectorVista()
         {
             if (VistasInspecciones.Count == 0 ||
-                viewModel.EsModoNueva ||
+                EsModoNuevaActual ||
                 MostrarFiltroTecnico)
             {
                 return;
@@ -398,7 +488,7 @@ namespace CONATRADEC.Views
         private async Task CambiarVistaAsync(
             VistaMisInspeccionesItem seleccionada)
         {
-            if (viewModel.EsModoNueva || MostrarFiltroTecnico ||
+            if (EsModoNuevaActual || MostrarFiltroTecnico ||
                 string.Equals(
                     modoActual,
                     seleccionada.Modo,
@@ -410,14 +500,16 @@ namespace CONATRADEC.Views
 
             modoActual = seleccionada.Modo;
             bandejaApi.EstablecerTecnicoContextual(modoActual, null);
-            viewModel.AplicarModo(modoActual);
+            listadoViewModel.EstablecerTecnicoEscrito(null);
+            listadoViewModel.AplicarModo(modoActual);
+            AplicarBindingContextActual();
 
             OnPropertyChanged(nameof(TituloVista));
             OnPropertyChanged(nameof(SubtituloVista));
             OnPropertyChanged(nameof(MostrarFiltroTecnico));
             OnPropertyChanged(nameof(MostrarSelectorMisInspecciones));
 
-            await viewModel.InicializarAsync();
+            await listadoViewModel.InicializarAsync();
             SincronizarSelectorVista();
         }
 
@@ -466,6 +558,15 @@ namespace CONATRADEC.Views
                 ActualizarTextoSelectorTecnico(
                     TecnicoFiltroPicker.SelectedItem as
                         TecnicoInspeccionFiltroItem);
+
+                listadoViewModel.EstablecerTecnicoEscrito(
+                    TecnicoFiltroPicker.SelectedItem is
+                        TecnicoInspeccionFiltroItem seleccionado &&
+                    seleccionado.UsuarioTecnicoId is > 0
+                        ? seleccionado.UsuarioTecnicoId
+                        : null);
+
+                tecnicosCargados = true;
             }
             catch (Exception ex)
             {
@@ -502,6 +603,7 @@ namespace CONATRADEC.Views
             EventArgs e)
         {
             bandejaApi.EstablecerTecnicoContextual(modoActual, null);
+            listadoViewModel.EstablecerTecnicoEscrito(null);
 
             cargandoTecnicos = true;
             TecnicoFiltroPicker.SelectedIndex =
@@ -513,13 +615,16 @@ namespace CONATRADEC.Views
                 TecnicoFiltroPicker.SelectedItem as
                     TecnicoInspeccionFiltroItem);
 
-            if (viewModel.LimpiarFiltrosCommand.CanExecute(null))
-                viewModel.LimpiarFiltrosCommand.Execute(null);
+            if (!EsModoNuevaActual &&
+                listadoViewModel.LimpiarFiltrosCommand.CanExecute(null))
+            {
+                listadoViewModel.LimpiarFiltrosCommand.Execute(null);
+            }
         }
 
         protected override bool OnBackButtonPressed()
         {
-            if (viewModel.EsVisorAbierto)
+            if (EsModoNuevaActual && viewModel.EsVisorAbierto)
             {
                 viewModel.CerrarVisor();
                 return true;

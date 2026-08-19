@@ -1,12 +1,14 @@
 using CONATRADEC.Controls;
+using CONATRADEC.ViewModels;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
 
 namespace CONATRADEC.Views
 {
     /// <summary>
-    /// Ajustes de containment para Nueva inspección y Mis inspecciones.
-    /// No cambia datos ni comandos; únicamente reorganiza controles existentes.
+    /// Ajustes responsive de Nueva inspección y Mis inspecciones. Las decisiones
+    /// se toman por ancho real para que una ventana WinUI reducida se comporte
+    /// como una superficie compacta aunque DeviceIdiom continúe siendo Desktop.
     /// </summary>
     public partial class DiagnosticoIASolicitudPage
     {
@@ -20,14 +22,143 @@ namespace CONATRADEC.Views
                 typeof(DiagnosticoIASolicitudPage),
                 null);
 
+        private bool paginadorConfigurado;
+        private Button? paginaAnteriorButton;
+        private Button? paginaSiguienteButton;
+        private Label? paginaEstadoLabel;
+
         protected override void OnSizeAllocated(double width, double height)
         {
             base.OnSizeAllocated(width, height);
             AplicarResponsiveSolicitud();
         }
 
+        /// <summary>
+        /// Sustituye únicamente la carga incremental histórica. El EmptyState
+        /// existente permanece en el Footer y el listado conserva virtualización.
+        /// </summary>
+        private void ConfigurarPaginadorListado()
+        {
+            if (paginadorConfigurado || ListadoGrid == null)
+                return;
+
+            paginadorConfigurado = true;
+            ListadoGrid.RemainingItemsThreshold = -1;
+            ListadoGrid.RemainingItemsThresholdReachedCommand = null;
+
+            Button? cargarMas = BuscarBotonSolicitud(
+                "Cargar más inspecciones");
+            Grid? bloqueHistorico = cargarMas == null
+                ? null
+                : ResponsiveLayoutUtility.FindAncestor<Grid>(cargarMas);
+
+            if (bloqueHistorico != null)
+                bloqueHistorico.IsVisible = false;
+
+            VerticalStackLayout? footer = bloqueHistorico?.Parent as
+                VerticalStackLayout;
+
+            if (footer == null && ListadoGrid.Footer is VerticalStackLayout directo)
+                footer = directo;
+
+            if (footer == null)
+                return;
+
+            paginaAnteriorButton = new Button
+            {
+                Text = "Anterior",
+                HeightRequest = 44,
+                MinimumWidthRequest = 0,
+                Padding = new Thickness(12, 6),
+                BackgroundColor = Color.FromArgb("#E3EFEA"),
+                TextColor = Color.FromArgb("#3B655B"),
+                CornerRadius = 10,
+                HorizontalOptions = LayoutOptions.Fill,
+                Command = listadoViewModel.PaginaAnteriorCommand
+            };
+
+            paginaSiguienteButton = new Button
+            {
+                Text = "Siguiente",
+                HeightRequest = 44,
+                MinimumWidthRequest = 0,
+                Padding = new Thickness(12, 6),
+                BackgroundColor = Color.FromArgb("#E3EFEA"),
+                TextColor = Color.FromArgb("#3B655B"),
+                CornerRadius = 10,
+                HorizontalOptions = LayoutOptions.Fill,
+                Command = listadoViewModel.PaginaSiguienteCommand
+            };
+
+            paginaEstadoLabel = new Label
+            {
+                FontSize = 13,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#3B655B"),
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center,
+                MinimumWidthRequest = 96
+            };
+            paginaEstadoLabel.SetBinding(
+                Label.TextProperty,
+                new Binding(
+                    nameof(DiagnosticoIASolicitudListadoViewModel.TextoPaginacion),
+                    source: listadoViewModel));
+
+            var grid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto),
+                    new ColumnDefinition(GridLength.Star)
+                },
+                ColumnSpacing = 8,
+                HorizontalOptions = LayoutOptions.Fill
+            };
+
+            grid.Add(paginaAnteriorButton, 0, 0);
+            grid.Add(paginaEstadoLabel, 1, 0);
+            grid.Add(paginaSiguienteButton, 2, 0);
+
+            var contenedor = new Border
+            {
+                Padding = new Thickness(8, 10),
+                Margin = new Thickness(0, 4, 0, 0),
+                BackgroundColor = Colors.Transparent,
+                Stroke = Colors.Transparent,
+                Content = grid
+            };
+
+            footer.Children.Add(contenedor);
+            listadoViewModel.PaginaCargada += OnPaginaListadoCargada;
+        }
+
+        private void OnPaginaListadoCargada(object? sender, EventArgs e)
+        {
+            if (ListadoGrid == null || listadoViewModel.Solicitudes.Count == 0)
+                return;
+
+            Dispatcher.Dispatch(() =>
+            {
+                try
+                {
+                    ListadoGrid.ScrollTo(
+                        0,
+                        position: ScrollToPosition.Start,
+                        animate: false);
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // La colección pudo cambiar entre el evento y el despacho.
+                }
+            });
+        }
+
         private void AplicarResponsiveSolicitud()
         {
+            ConfigurarPaginadorListado();
+
             double ancho = ObtenerAnchoSolicitud();
             if (ancho <= 0)
                 return;
@@ -36,8 +167,11 @@ namespace CONATRADEC.Views
             AjustarFilaTerreno(ancho);
             AjustarCabeceraFotografias(ancho);
             AjustarNavegacionFotografias(ancho);
+            AjustarMetadatosFotografia(ancho);
             AjustarBarraListado(ancho);
             AjustarBusquedaListado(ancho);
+            AjustarFiltrosListado(ancho);
+            AjustarPaginador(ancho);
         }
 
         private double ObtenerAnchoSolicitud()
@@ -51,14 +185,23 @@ namespace CONATRADEC.Views
 
         private void AjustarSelectorVista(double ancho)
         {
-            if (VistaInspeccionesPicker == null)
-                return;
-
             bool compacto = ancho < BreakpointCompacto;
-            VistaInspeccionesPicker.WidthRequest = compacto ? -1 : 315;
-            VistaInspeccionesPicker.MinimumWidthRequest = compacto ? 0 : 260;
-            VistaInspeccionesPicker.HorizontalOptions =
-                compacto ? LayoutOptions.Fill : LayoutOptions.End;
+
+            if (VistaInspeccionesPicker != null)
+            {
+                VistaInspeccionesPicker.WidthRequest = compacto ? -1 : 315;
+                VistaInspeccionesPicker.MinimumWidthRequest = compacto ? 0 : 260;
+                VistaInspeccionesPicker.HorizontalOptions =
+                    compacto ? LayoutOptions.Fill : LayoutOptions.End;
+            }
+
+            if (selectorVistaButton != null)
+            {
+                selectorVistaButton.WidthRequest = compacto ? -1 : 315;
+                selectorVistaButton.MinimumWidthRequest = compacto ? 0 : 260;
+                selectorVistaButton.HorizontalOptions =
+                    compacto ? LayoutOptions.Fill : LayoutOptions.End;
+            }
         }
 
         private void AjustarFilaTerreno(double ancho)
@@ -280,6 +423,31 @@ namespace CONATRADEC.Views
             MarcarEstadoSolicitud(grid, compacto);
         }
 
+        private void AjustarMetadatosFotografia(double ancho)
+        {
+            bool compacto = ancho < BreakpointCompacto;
+
+            foreach (string texto in new[]
+                     {
+                         "Tipo de fotografía *",
+                         "Fecha de identificación en campo *"
+                     })
+            {
+                Label? label = ResponsiveLayoutUtility.FindDescendant<Label>(
+                    this,
+                    item => string.Equals(
+                        item.Text?.Trim(),
+                        texto,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (label?.Parent is VerticalStackLayout contenido &&
+                    contenido.Parent is Border tarjeta)
+                {
+                    tarjeta.MinimumWidthRequest = compacto ? 0 : 320;
+                }
+            }
+        }
+
         private void AjustarBarraListado(double ancho)
         {
             Button? actualizar = BuscarBotonSolicitud("Actualizar");
@@ -413,6 +581,67 @@ namespace CONATRADEC.Views
             }
 
             MarcarEstadoSolicitud(grid, compacto);
+        }
+
+        /// <summary>
+        /// Los WidthRequest declarados por DeviceIdiom son adecuados en teléfono
+        /// y escritorio amplio, pero una ventana WinUI estrecha continúa siendo
+        /// Desktop. En compacto se usa el ancho útil real para impedir overflow.
+        /// </summary>
+        private void AjustarFiltrosListado(double ancho)
+        {
+            bool compacto = ancho < BreakpointCompacto;
+            double anchoCompacto = Math.Max(0, ancho - 54);
+
+            (string Etiqueta, double AnchoNormal)[] filtros =
+            [
+                ("Técnico responsable", 285),
+                ("Propietario", 225),
+                ("Departamento", 190),
+                ("Tipo de fotografía", 205),
+                ("Estado", 215),
+                ("Registro desde", 210),
+                ("Registro hasta", 210)
+            ];
+
+            foreach ((string etiqueta, double anchoNormal) in filtros)
+            {
+                Label? label = ResponsiveLayoutUtility.FindDescendant<Label>(
+                    this,
+                    item => string.Equals(
+                        item.Text?.Trim(),
+                        etiqueta,
+                        StringComparison.OrdinalIgnoreCase));
+
+                VerticalStackLayout? contenedor = label == null
+                    ? null
+                    : ResponsiveLayoutUtility.FindAncestor<VerticalStackLayout>(
+                        label);
+
+                if (contenedor == null)
+                    continue;
+
+                contenedor.MinimumWidthRequest = 0;
+                contenedor.WidthRequest = compacto
+                    ? anchoCompacto
+                    : anchoNormal;
+            }
+        }
+
+        private void AjustarPaginador(double ancho)
+        {
+            if (paginaAnteriorButton == null || paginaSiguienteButton == null)
+                return;
+
+            bool muyCompacto = ancho < 430;
+            paginaAnteriorButton.FontSize = muyCompacto ? 11 : 13;
+            paginaSiguienteButton.FontSize = muyCompacto ? 11 : 13;
+
+            if (paginaEstadoLabel != null)
+            {
+                paginaEstadoLabel.FontSize = muyCompacto ? 11 : 13;
+                paginaEstadoLabel.MinimumWidthRequest = muyCompacto ? 78 : 96;
+            }
         }
 
         private static bool? EstadoSolicitudAplicado(Grid grid) =>

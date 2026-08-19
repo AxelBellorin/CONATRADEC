@@ -8,13 +8,9 @@ namespace CONATRADEC.Services
     /// Última barrera antes de HttpClientHandler.
     ///
     /// Durante una sesión offline ninguna solicitud puede alcanzar la red,
-    /// incluso si un servicio antiguo intenta llamar a base.SendAsync.
-    /// La respuesta se genera inmediatamente, sin DNS, socket, timeout ni
-    /// comprobación de conectividad.
-    ///
-    /// La captura fitosanitaria constituye una excepción controlada: la
-    /// creación de inspecciones y su bandeja local se resuelven íntegramente en
-    /// el dispositivo y continúan sin tocar la red.
+    /// incluso si un servicio antiguo intenta llamar a base.SendAsync. La
+    /// captura fitosanitaria constituye una excepción controlada y se resuelve
+    /// íntegramente en el dispositivo.
     /// </summary>
     public sealed class ModoSesionHttpHandler : DelegatingHandler
     {
@@ -24,9 +20,11 @@ namespace CONATRADEC.Services
         {
             if (ModoSesionService.EsEnLinea)
             {
-                return await base.SendAsync(
+                HttpResponseMessage respuesta = await base.SendAsync(
                     request,
                     cancellationToken);
+                RegistrarMutacionFitosanitaria(request, respuesta);
+                return respuesta;
             }
 
             HttpResponseMessage? respuestaFitosanitaria =
@@ -36,18 +34,21 @@ namespace CONATRADEC.Services
                         cancellationToken);
 
             if (respuestaFitosanitaria != null)
+            {
+                RegistrarMutacionFitosanitaria(
+                    request,
+                    respuestaFitosanitaria);
                 return respuestaFitosanitaria;
+            }
 
             bool esOperacionEscritura =
                 request.Method != HttpMethod.Get &&
                 request.Method != HttpMethod.Head &&
                 request.Method != HttpMethod.Options;
 
-            string mensaje =
-                esOperacionEscritura
-                    ? OfflineWriteAccessService.Mensaje
-                    : OfflineReadResponseService
-                        .MensajeSinDatosLocales;
+            string mensaje = esOperacionEscritura
+                ? OfflineWriteAccessService.Mensaje
+                : OfflineReadResponseService.MensajeSinDatosLocales;
 
             string json = JsonSerializer.Serialize(new
             {
@@ -72,6 +73,37 @@ namespace CONATRADEC.Services
                     : OfflineReadResponseService.OrigenSinDatos);
 
             return response;
+        }
+
+        /// <summary>
+        /// Una escritura exitosa dentro del expediente invalida únicamente la
+        /// página visible de Solicitudes. Al regresar desde Resultado se hace
+        /// un solo GET de esa página; una navegación de solo lectura no genera
+        /// recarga.
+        /// </summary>
+        private static void RegistrarMutacionFitosanitaria(
+            HttpRequestMessage request,
+            HttpResponseMessage response)
+        {
+            if (!response.IsSuccessStatusCode ||
+                request.Method == HttpMethod.Get ||
+                request.Method == HttpMethod.Head ||
+                request.Method == HttpMethod.Options)
+            {
+                return;
+            }
+
+            string path = request.RequestUri?.AbsolutePath ?? string.Empty;
+            bool esFlujoFitosanitario =
+                path.StartsWith(
+                    "/api/inspecciones-fitosanitarias",
+                    StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith(
+                    "/api/revision-fitosanitaria",
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (esFlujoFitosanitario)
+                DiagnosticoIASolicitudVisitaService.MarcarMutacion();
         }
     }
 }
