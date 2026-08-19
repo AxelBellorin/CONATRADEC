@@ -5,15 +5,11 @@ using System.Collections.ObjectModel;
 namespace CONATRADEC.ViewModels
 {
     /// <summary>
-    /// Bandeja operativa del analizador.
+    /// Bandeja operativa del analizador con paginación numérica.
     ///
-    /// El flujo se divide en tres vistas:
-    /// - Mis expedientes: asignados al usuario actual y todavía activos.
-    /// - Disponibles: expedientes sin analizador que pueden tomarse.
-    /// - Revisados: expedientes cuya revisión humana del usuario ya terminó.
-    ///
-    /// Tomar un expediente es una operación explícita y atómica en la API;
-    /// ningún analizador normal puede quitarle un expediente a otro usuario.
+    /// La visita conserva vista, filtro aplicado y página mientras el usuario
+    /// entra a un expediente y regresa. Solo una mutación real del subflujo
+    /// invalida la página visible; una consulta de solo lectura no la recarga.
     /// </summary>
     public sealed class DiagnosticoIAAnalizadorViewModel : DiagnosticoIAViewModelBase
     {
@@ -25,68 +21,68 @@ namespace CONATRADEC.ViewModels
 
         private readonly InspeccionFitosanitariaBandejaApiService filtrosApi =
             InspeccionFitosanitariaBandejaApiService.Instance;
-        private readonly InspeccionFitosanitariaBandejaOperativaApiService api =
+        private readonly InspeccionFitosanitariaBandejaOperativaNumeradaApiService api =
             new();
         private readonly InspeccionRevisionBloqueoApiService asignacionApi =
             new();
 
+        private CancellationTokenSource? cargaCts;
+        private bool paginaActiva;
+        private bool inicializado;
         private bool catalogoTecnicosCargado;
-        private bool cargandoMas;
         private bool cambiandoVista;
         private string vistaActual = VistaMis;
         private TecnicoInspeccionFiltroItem? tecnicoSeleccionado;
-        private DateTime? siguienteFechaUtc;
-        private int? siguienteId;
-        private bool hayMas;
+        private int? tecnicoAplicadoId;
+        private int paginaActual = 1;
+        private int totalPaginas;
+        private int totalRegistros;
 
         public DiagnosticoIAAnalizadorViewModel()
         {
             ActualizarCommand = new Command(
                 async () => await ActualizarAsync(),
-                () => !IsBusy && !cargandoMas && !cambiandoVista);
+                () => PuedeEjecutarAccion);
 
-            CargarMasCommand = new Command(
-                async () => await CargarMasAsync(),
-                () => !IsBusy && !cargandoMas && !cambiandoVista && HayMas);
+            AplicarFiltroTecnicoCommand = new Command(
+                async () => await AplicarFiltroTecnicoAsync(),
+                () => PuedeEjecutarAccion && FiltroTecnicoPendiente);
+
+            PaginaAnteriorCommand = new Command(
+                async () => await CambiarPaginaAsync(paginaActual - 1),
+                () => PuedeEjecutarAccion && PuedePaginaAnterior);
+
+            PaginaSiguienteCommand = new Command(
+                async () => await CambiarPaginaAsync(paginaActual + 1),
+                () => PuedeEjecutarAccion && PuedePaginaSiguiente);
 
             AbrirCommand = new Command<InspeccionFitosanitariaBandejaItemV2>(
                 async item => await AbrirAsync(item),
                 item => item != null &&
                     !MostrandoDisponibles &&
-                    !IsBusy &&
-                    !cargandoMas &&
-                    !cambiandoVista);
+                    PuedeEjecutarAccion);
 
             TomarCommand = new Command<InspeccionFitosanitariaBandejaItemV2>(
                 async item => await TomarAsync(item),
                 item => item != null &&
                     MostrandoDisponibles &&
                     PuedeTomarExpediente &&
-                    !IsBusy &&
-                    !cargandoMas &&
-                    !cambiandoVista);
+                    PuedeEjecutarAccion);
 
             VerMisCommand = new Command(
                 async () => await CambiarVistaAsync(VistaMis),
-                () => !MostrandoMis &&
-                    !IsBusy &&
-                    !cargandoMas &&
-                    !cambiandoVista);
+                () => !MostrandoMis && PuedeEjecutarAccion);
 
             VerDisponiblesCommand = new Command(
                 async () => await CambiarVistaAsync(VistaDisponibles),
-                () => !MostrandoDisponibles &&
-                    !IsBusy &&
-                    !cargandoMas &&
-                    !cambiandoVista);
+                () => !MostrandoDisponibles && PuedeEjecutarAccion);
 
             VerRevisadasCommand = new Command(
                 async () => await CambiarVistaAsync(VistaRevisados),
-                () => !MostrandoRevisadas &&
-                    !IsBusy &&
-                    !cargandoMas &&
-                    !cambiandoVista);
+                () => !MostrandoRevisadas && PuedeEjecutarAccion);
         }
+
+        public event EventHandler? PaginaCargada;
 
         public ObservableCollection<InspeccionFitosanitariaBandejaItemV2>
             Solicitudes { get; } = [];
@@ -95,7 +91,9 @@ namespace CONATRADEC.ViewModels
             TecnicosFiltro { get; } = [];
 
         public Command ActualizarCommand { get; }
-        public Command CargarMasCommand { get; }
+        public Command AplicarFiltroTecnicoCommand { get; }
+        public Command PaginaAnteriorCommand { get; }
+        public Command PaginaSiguienteCommand { get; }
         public Command<InspeccionFitosanitariaBandejaItemV2> AbrirCommand { get; }
         public Command<InspeccionFitosanitariaBandejaItemV2> TomarCommand { get; }
         public Command VerMisCommand { get; }
@@ -113,14 +111,37 @@ namespace CONATRADEC.ViewModels
                 tecnicoSeleccionado = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TecnicoFiltroTexto));
-
-                if (catalogoTecnicosCargado && !IsBusy && !cambiandoVista)
-                    _ = CargarPrimeraPaginaAsync();
+                OnPropertyChanged(nameof(FiltroTecnicoPendiente));
+                OnPropertyChanged(nameof(TextoEstadoFiltroTecnico));
+                ActualizarComandos();
             }
         }
 
         public string TecnicoFiltroTexto =>
             TecnicoSeleccionado?.TextoMostrar ?? "Todos los técnicos";
+
+        public bool FiltroTecnicoPendiente =>
+            ObtenerTecnicoId(TecnicoSeleccionado) != tecnicoAplicadoId;
+
+        public string TextoEstadoFiltroTecnico
+        {
+            get
+            {
+                if (FiltroTecnicoPendiente)
+                    return "Hay un cambio de técnico pendiente. Pulse Aplicar filtro para consultar.";
+
+                if (tecnicoAplicadoId is not > 0)
+                    return "Filtro aplicado: todos los técnicos.";
+
+                TecnicoInspeccionFiltroItem? aplicado = TecnicosFiltro
+                    .FirstOrDefault(item =>
+                        item.UsuarioTecnicoId == tecnicoAplicadoId.Value);
+
+                return aplicado == null
+                    ? "Filtro de técnico aplicado."
+                    : $"Filtro aplicado: {aplicado.TextoMostrar}.";
+            }
+        }
 
         public bool MostrandoMis =>
             string.Equals(vistaActual, VistaMis, StringComparison.Ordinal);
@@ -148,11 +169,11 @@ namespace CONATRADEC.ViewModels
         public string TextoSinSolicitudes => vistaActual switch
         {
             VistaDisponibles =>
-                "No hay expedientes disponibles para tomar en este momento.",
+                "No hay expedientes disponibles para tomar con el filtro aplicado.",
             VistaRevisados =>
-                "Todavía no hay inspecciones revisadas por este analizador.",
+                "No hay inspecciones revisadas con el filtro aplicado.",
             _ =>
-                "No tiene expedientes de análisis asignados con trabajo activo."
+                "No tiene expedientes de análisis asignados con el filtro aplicado."
         };
 
         public string TextoAbrir => MostrandoRevisadas
@@ -160,44 +181,27 @@ namespace CONATRADEC.ViewModels
             : "Continuar revisión";
 
         public bool SinSolicitudes =>
-            !IsBusy && !cargandoMas && Solicitudes.Count == 0;
+            !IsBusy && Solicitudes.Count == 0;
 
-        public bool HayMas
-        {
-            get => hayMas;
-            private set
-            {
-                if (hayMas == value)
-                    return;
+        public bool TieneResultados => Solicitudes.Count > 0;
 
-                hayMas = value;
-                OnPropertyChanged();
-                CargarMasCommand.ChangeCanExecute();
-            }
-        }
+        public int PaginaActual => paginaActual;
+        public int TotalPaginas => totalPaginas;
+        public int TotalRegistros => totalRegistros;
+        public bool PuedePaginaAnterior => paginaActual > 1;
+        public bool PuedePaginaSiguiente =>
+            totalPaginas > 0 && paginaActual < totalPaginas;
 
-        public bool CargandoMas
-        {
-            get => cargandoMas;
-            private set
-            {
-                if (cargandoMas == value)
-                    return;
+        public string TextoPagina => totalPaginas <= 0
+            ? "Página 1 de 1"
+            : $"Página {paginaActual:N0} de {totalPaginas:N0}";
 
-                cargandoMas = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(TextoCargarMas));
-                ActualizarComandos();
-            }
-        }
+        public string ResumenResultados => totalRegistros == 1
+            ? "1 expediente"
+            : $"{totalRegistros:N0} expedientes";
 
-        public string TextoCargarMas => CargandoMas
-            ? "Cargando..."
-            : MostrandoRevisadas
-                ? "Cargar más revisados"
-                : MostrandoDisponibles
-                    ? "Cargar más disponibles"
-                    : "Cargar más expedientes";
+        private bool PuedeEjecutarAccion =>
+            paginaActiva && !IsBusy && !cambiandoVista;
 
         private string ModoApiActual => vistaActual switch
         {
@@ -206,22 +210,134 @@ namespace CONATRADEC.ViewModels
             _ => DiagnosticoIARoutes.ModoAnalizador
         };
 
-        public async Task InicializarAsync()
+        public void ActivarPagina()
         {
-            await CargarTecnicosAsync();
-            await CargarPrimeraPaginaAsync();
+            paginaActiva = true;
+
+            if (cargaCts == null || cargaCts.IsCancellationRequested)
+            {
+                cargaCts?.Dispose();
+                cargaCts = new CancellationTokenSource();
+            }
+
+            ActualizarComandos();
+        }
+
+        public void CancelarOperaciones()
+        {
+            paginaActiva = false;
+            cargaCts?.Cancel();
+            cargaCts?.Dispose();
+            cargaCts = null;
+            ActualizarComandos();
+        }
+
+        public async Task InicializarOReanudarAsync()
+        {
+            if (!paginaActiva || !ValidarEnLinea())
+                return;
+
+            if (!inicializado)
+            {
+                DiagnosticoIAAnalizadorVisitaService.Limpiar();
+                cambiandoVista = true;
+                ActualizarComandos();
+
+                try
+                {
+                    await CargarTecnicosAsync(forzar: true);
+                    bool cargaInicialExitosa = await CargarPaginaAsync(
+                        1,
+                        permitirDuranteCambioVista: true);
+                    inicializado = cargaInicialExitosa;
+                }
+                finally
+                {
+                    cambiandoVista = false;
+                    ActualizarComandos();
+                }
+
+                return;
+            }
+
+            if (!DiagnosticoIAAnalizadorVisitaService.ConsumirMutacion())
+                return;
+
+            if (!catalogoTecnicosCargado)
+            {
+                cambiandoVista = true;
+                ActualizarComandos();
+                try
+                {
+                    await CargarTecnicosAsync(forzar: true);
+                    bool refrescoExitoso = await CargarPaginaAsync(
+                        paginaActual,
+                        permitirDuranteCambioVista: true);
+                    if (!refrescoExitoso)
+                        DiagnosticoIAAnalizadorVisitaService.MarcarMutacion();
+                }
+                finally
+                {
+                    cambiandoVista = false;
+                    ActualizarComandos();
+                }
+
+                return;
+            }
+
+            bool refrescoPaginaExitoso = await CargarPaginaAsync(paginaActual);
+            if (!refrescoPaginaExitoso)
+                DiagnosticoIAAnalizadorVisitaService.MarcarMutacion();
         }
 
         private async Task ActualizarAsync()
         {
-            await CargarTecnicosAsync(forzar: true);
-            await CargarPrimeraPaginaAsync();
+            if (!PuedeEjecutarAccion || !ValidarEnLinea())
+                return;
+
+            cambiandoVista = true;
+            ActualizarComandos();
+            try
+            {
+                await CargarTecnicosAsync(forzar: true);
+                await CargarPaginaAsync(
+                    paginaActual,
+                    permitirDuranteCambioVista: true);
+            }
+            finally
+            {
+                cambiandoVista = false;
+                ActualizarComandos();
+            }
+        }
+
+        private async Task AplicarFiltroTecnicoAsync()
+        {
+            if (!PuedeEjecutarAccion || !FiltroTecnicoPendiente)
+                return;
+
+            tecnicoAplicadoId = ObtenerTecnicoId(TecnicoSeleccionado);
+            NotificarFiltroTecnico();
+            await CargarPaginaAsync(1);
+        }
+
+        private async Task CambiarPaginaAsync(int nuevaPagina)
+        {
+            if (!PuedeEjecutarAccion ||
+                nuevaPagina < 1 ||
+                (totalPaginas > 0 && nuevaPagina > totalPaginas) ||
+                nuevaPagina == paginaActual)
+            {
+                return;
+            }
+
+            await CargarPaginaAsync(nuevaPagina);
         }
 
         private async Task CambiarVistaAsync(string nuevaVista)
         {
             if (string.Equals(vistaActual, nuevaVista, StringComparison.Ordinal) ||
-                cambiandoVista || IsBusy || CargandoMas)
+                !PuedeEjecutarAccion)
             {
                 return;
             }
@@ -231,10 +347,12 @@ namespace CONATRADEC.ViewModels
 
             try
             {
+                RestaurarFiltroEscritoDesdeAplicado();
                 EstablecerVista(nuevaVista);
                 catalogoTecnicosCargado = false;
+
                 await CargarTecnicosAsync(forzar: true);
-                await CargarPrimeraPaginaAsync();
+                await CargarPaginaAsync(1, permitirDuranteCambioVista: true);
             }
             finally
             {
@@ -252,32 +370,44 @@ namespace CONATRADEC.ViewModels
                 _ => VistaMis
             };
 
+            paginaActual = 1;
+            totalPaginas = 0;
+            totalRegistros = 0;
+
             OnPropertyChanged(nameof(MostrandoMis));
             OnPropertyChanged(nameof(MostrandoDisponibles));
             OnPropertyChanged(nameof(MostrandoRevisadas));
             OnPropertyChanged(nameof(SubtituloVista));
             OnPropertyChanged(nameof(TextoSinSolicitudes));
-            OnPropertyChanged(nameof(TextoCargarMas));
             OnPropertyChanged(nameof(TextoAbrir));
             OnPropertyChanged(nameof(PuedeTomarExpediente));
+            NotificarPaginacion();
             ActualizarComandos();
         }
 
         private async Task CargarTecnicosAsync(bool forzar = false)
         {
             if ((!forzar && catalogoTecnicosCargado) ||
+                !paginaActiva ||
                 !ValidarEnLinea(false))
             {
                 return;
             }
 
+            CancellationToken token = ObtenerTokenActivo();
+
             try
             {
                 int tecnicoSeleccionadoId =
-                    tecnicoSeleccionado?.UsuarioTecnicoId ?? 0;
+                    ObtenerTecnicoId(TecnicoSeleccionado) ?? 0;
+                int tecnicoAplicadoAnterior = tecnicoAplicadoId ?? 0;
 
                 TecnicoInspeccionFiltroRespuesta respuesta =
-                    await filtrosApi.ObtenerTecnicosAsync(ModoApiActual);
+                    await filtrosApi.ObtenerTecnicosAsync(
+                        ModoApiActual,
+                        token);
+
+                token.ThrowIfCancellationRequested();
 
                 TecnicosFiltro.Clear();
                 TecnicosFiltro.Add(TecnicoInspeccionFiltroItem.Todos());
@@ -286,11 +416,24 @@ namespace CONATRADEC.ViewModels
                     TecnicosFiltro.Add(item);
 
                 catalogoTecnicosCargado = true;
+
                 tecnicoSeleccionado = TecnicosFiltro.FirstOrDefault(item =>
                     item.UsuarioTecnicoId == tecnicoSeleccionadoId) ??
                     TecnicosFiltro[0];
+
+                if (tecnicoAplicadoAnterior > 0 &&
+                    TecnicosFiltro.All(item =>
+                        item.UsuarioTecnicoId != tecnicoAplicadoAnterior))
+                {
+                    tecnicoAplicadoId = null;
+                }
+
                 OnPropertyChanged(nameof(TecnicoSeleccionado));
                 OnPropertyChanged(nameof(TecnicoFiltroTexto));
+                NotificarFiltroTecnico();
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
@@ -298,84 +441,61 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CargarPrimeraPaginaAsync()
+        private async Task<bool> CargarPaginaAsync(
+            int paginaSolicitada,
+            bool permitirDuranteCambioVista = false)
         {
-            siguienteFechaUtc = null;
-            siguienteId = null;
-            HayMas = false;
-            await CargarPaginaAsync(reemplazar: true);
-        }
-
-        private async Task CargarMasAsync()
-        {
-            if (!HayMas || CargandoMas || IsBusy || cambiandoVista)
-                return;
-
-            CargandoMas = true;
-            try
-            {
-                await CargarPaginaAsync(reemplazar: false);
-            }
-            finally
-            {
-                CargandoMas = false;
-            }
-        }
-
-        private async Task CargarPaginaAsync(bool reemplazar)
-        {
-            if ((IsBusy && reemplazar) ||
-                (cambiandoVista && !reemplazar) ||
+            if (!paginaActiva ||
+                IsBusy ||
+                (!permitirDuranteCambioVista && cambiandoVista) ||
                 !ValidarEnLinea(false))
             {
-                return;
+                return false;
             }
 
-            if (reemplazar)
+            CancellationToken token = ObtenerTokenActivo();
+            bool exito = false;
+
+            IsBusy = true;
+            MensajeEstado = vistaActual switch
             {
-                IsBusy = true;
-                MensajeEstado = vistaActual switch
-                {
-                    VistaDisponibles =>
-                        "Cargando expedientes disponibles para el analizador...",
-                    VistaRevisados =>
-                        "Cargando inspecciones revisadas por el analizador...",
-                    _ =>
-                        "Cargando mis expedientes de análisis..."
-                };
-                ActualizarComandos();
-            }
+                VistaDisponibles =>
+                    "Cargando expedientes disponibles para el analizador...",
+                VistaRevisados =>
+                    "Cargando inspecciones revisadas por el analizador...",
+                _ =>
+                    "Cargando mis expedientes de análisis..."
+            };
+            ActualizarComandos();
 
             try
             {
-                InspeccionFitosanitariaBandejaPaginaV2 pagina =
+                InspeccionFitosanitariaBandejaPaginaNumeradaV2 pagina =
                     await api.ObtenerPaginaAsync(
                         ModoApiActual,
-                        TecnicoSeleccionado?.UsuarioTecnicoId is > 0
-                            ? TecnicoSeleccionado.UsuarioTecnicoId
-                            : null,
-                        reemplazar ? null : siguienteFechaUtc,
-                        reemplazar ? null : siguienteId,
-                        TamanoPagina);
+                        tecnicoAplicadoId,
+                        paginaSolicitada,
+                        TamanoPagina,
+                        token);
 
-                if (reemplazar)
-                    Solicitudes.Clear();
+                token.ThrowIfCancellationRequested();
 
-                HashSet<int> existentes = Solicitudes
-                    .Select(item => item.InspeccionId)
-                    .ToHashSet();
+                Solicitudes.Clear();
+                foreach (InspeccionFitosanitariaBandejaItemV2 item in pagina.Items)
+                    Solicitudes.Add(item);
 
-                foreach (InspeccionFitosanitariaBandejaItemV2 item
-                         in pagina.Items)
-                {
-                    if (existentes.Add(item.InspeccionId))
-                        Solicitudes.Add(item);
-                }
+                paginaActual = Math.Max(1, pagina.Pagina);
+                totalPaginas = Math.Max(0, pagina.TotalPaginas);
+                totalRegistros = Math.Max(0, pagina.Total);
 
-                siguienteFechaUtc = pagina.SiguienteFechaUtc;
-                siguienteId = pagina.SiguienteId;
-                HayMas = pagina.HayMas;
                 OnPropertyChanged(nameof(SinSolicitudes));
+                OnPropertyChanged(nameof(TieneResultados));
+                NotificarPaginacion();
+                PaginaCargada?.Invoke(this, EventArgs.Empty);
+                exito = true;
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
@@ -383,15 +503,14 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                if (reemplazar)
-                {
-                    MensajeEstado = string.Empty;
-                    IsBusy = false;
-                }
-
+                MensajeEstado = string.Empty;
+                IsBusy = false;
                 OnPropertyChanged(nameof(SinSolicitudes));
+                OnPropertyChanged(nameof(TieneResultados));
                 ActualizarComandos();
             }
+
+            return exito;
         }
 
         private async Task TomarAsync(
@@ -400,11 +519,12 @@ namespace CONATRADEC.ViewModels
             if (item == null ||
                 !MostrandoDisponibles ||
                 !PuedeTomarExpediente ||
-                IsBusy || CargandoMas || cambiandoVista)
+                !PuedeEjecutarAccion)
             {
                 return;
             }
 
+            CancellationToken token = ObtenerTokenActivo();
             IsBusy = true;
             MensajeEstado =
                 $"Asignando el expediente #{item.InspeccionId} a su usuario...";
@@ -415,16 +535,28 @@ namespace CONATRADEC.ViewModels
             {
                 await asignacionApi.TomarAsync(
                     item.InspeccionId,
-                    "analizador");
+                    "analizador",
+                    token);
 
+                token.ThrowIfCancellationRequested();
                 asignado = true;
+
                 EstablecerVista(VistaMis);
+                tecnicoAplicadoId = null;
+                tecnicoSeleccionado = TecnicosFiltro.FirstOrDefault(itemFiltro =>
+                    itemFiltro.UsuarioTecnicoId <= 0);
                 catalogoTecnicosCargado = false;
+                OnPropertyChanged(nameof(TecnicoSeleccionado));
+                OnPropertyChanged(nameof(TecnicoFiltroTexto));
+                NotificarFiltroTecnico();
 
                 await GoToAsyncParameters(
                     DiagnosticoIARoutes.CrearRutaResultado(
                         item.InspeccionId,
                         DiagnosticoIARoutes.ModoAnalizador));
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
@@ -439,10 +571,10 @@ namespace CONATRADEC.ViewModels
 
             /*
              * Si otro analizador tomó el expediente al mismo tiempo, se vuelve
-             * a consultar Disponibles para retirarlo inmediatamente de la vista.
+             * a leer únicamente la página visible de Disponibles para retirarlo.
              */
-            if (!asignado && MostrandoDisponibles)
-                await CargarPrimeraPaginaAsync();
+            if (!asignado && MostrandoDisponibles && paginaActiva)
+                await CargarPaginaAsync(paginaActual);
         }
 
         private async Task AbrirAsync(
@@ -450,7 +582,7 @@ namespace CONATRADEC.ViewModels
         {
             if (item == null ||
                 MostrandoDisponibles ||
-                IsBusy || CargandoMas || cambiandoVista)
+                !PuedeEjecutarAccion)
             {
                 return;
             }
@@ -465,10 +597,60 @@ namespace CONATRADEC.ViewModels
                     origen));
         }
 
+        private void RestaurarFiltroEscritoDesdeAplicado()
+        {
+            tecnicoSeleccionado = tecnicoAplicadoId is > 0
+                ? TecnicosFiltro.FirstOrDefault(item =>
+                    item.UsuarioTecnicoId == tecnicoAplicadoId.Value)
+                : TecnicosFiltro.FirstOrDefault(item =>
+                    item.UsuarioTecnicoId <= 0);
+
+            OnPropertyChanged(nameof(TecnicoSeleccionado));
+            OnPropertyChanged(nameof(TecnicoFiltroTexto));
+            NotificarFiltroTecnico();
+        }
+
+        private static int? ObtenerTecnicoId(
+            TecnicoInspeccionFiltroItem? tecnico) =>
+            tecnico?.UsuarioTecnicoId is > 0
+                ? tecnico.UsuarioTecnicoId
+                : null;
+
+        private CancellationToken ObtenerTokenActivo()
+        {
+            if (cargaCts == null || cargaCts.IsCancellationRequested)
+            {
+                cargaCts?.Dispose();
+                cargaCts = new CancellationTokenSource();
+            }
+
+            return cargaCts.Token;
+        }
+
+        private void NotificarFiltroTecnico()
+        {
+            OnPropertyChanged(nameof(FiltroTecnicoPendiente));
+            OnPropertyChanged(nameof(TextoEstadoFiltroTecnico));
+            ActualizarComandos();
+        }
+
+        private void NotificarPaginacion()
+        {
+            OnPropertyChanged(nameof(PaginaActual));
+            OnPropertyChanged(nameof(TotalPaginas));
+            OnPropertyChanged(nameof(TotalRegistros));
+            OnPropertyChanged(nameof(PuedePaginaAnterior));
+            OnPropertyChanged(nameof(PuedePaginaSiguiente));
+            OnPropertyChanged(nameof(TextoPagina));
+            OnPropertyChanged(nameof(ResumenResultados));
+        }
+
         private void ActualizarComandos()
         {
             ActualizarCommand.ChangeCanExecute();
-            CargarMasCommand.ChangeCanExecute();
+            AplicarFiltroTecnicoCommand.ChangeCanExecute();
+            PaginaAnteriorCommand.ChangeCanExecute();
+            PaginaSiguienteCommand.ChangeCanExecute();
             AbrirCommand.ChangeCanExecute();
             TomarCommand.ChangeCanExecute();
             VerMisCommand.ChangeCanExecute();

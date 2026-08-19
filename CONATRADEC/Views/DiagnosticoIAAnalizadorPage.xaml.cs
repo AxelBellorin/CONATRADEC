@@ -1,42 +1,79 @@
 using CONATRADEC.Models;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 
 namespace CONATRADEC.Views
 {
     public partial class DiagnosticoIAAnalizadorPage : ContentPage
     {
-        private DiagnosticoIAAnalizadorViewModel viewModel;
+        private readonly DiagnosticoIAAnalizadorViewModel viewModel;
         private bool selectorTecnicoAbierto;
-        private bool paginaMostrada;
+        private bool validandoPermiso;
 
         public DiagnosticoIAAnalizadorPage()
         {
             InitializeComponent();
             viewModel = new DiagnosticoIAAnalizadorViewModel();
+            viewModel.PaginaCargada += OnPaginaCargada;
             BindingContext = viewModel;
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
+            viewModel.ActivarPagina();
 
-            /*
-             * El resultado se abre sobre esta bandeja. Al volver se crea una
-             * bandeja nueva para consultar asignaciones y estados actuales sin
-             * conservar técnico, pestaña o paginación de la visita anterior.
-             */
-            if (paginaMostrada)
+            if (!await ValidarPermisoLecturaAsync())
+                return;
+
+            await viewModel.InicializarOReanudarAsync();
+        }
+
+        protected override void OnDisappearing()
+        {
+            viewModel.CancelarOperaciones();
+            selectorTecnicoAbierto = false;
+            base.OnDisappearing();
+        }
+
+        private async Task<bool> ValidarPermisoLecturaAsync()
+        {
+            if (PermissionService.Instance.HasRead(
+                    DiagnosticoIARoutes.InterfazAnalizador))
             {
-                viewModel = new DiagnosticoIAAnalizadorViewModel();
-                BindingContext = viewModel;
-                selectorTecnicoAbierto = false;
-            }
-            else
-            {
-                paginaMostrada = true;
+                return true;
             }
 
-            await viewModel.InicializarAsync();
+            if (validandoPermiso)
+                return false;
+
+            validandoPermiso = true;
+            try
+            {
+                await DisplayAlert(
+                    "Acceso no autorizado",
+                    "No tiene permiso para consultar la bandeja del analizador.",
+                    "Aceptar");
+
+                if (Shell.Current != null)
+                {
+                    try
+                    {
+                        await Shell.Current.GoToAsync(AppRoutes.Regresar);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        await Shell.Current.GoToAsync(
+                            DiagnosticoIARoutes.RutaModulo);
+                    }
+                }
+
+                return false;
+            }
+            finally
+            {
+                validandoPermiso = false;
+            }
         }
 
         private async void OnSeleccionarTecnicoClicked(
@@ -85,6 +122,20 @@ namespace CONATRADEC.Views
             {
                 selectorTecnicoAbierto = false;
             }
+        }
+
+        private void OnPaginaCargada(object? sender, EventArgs e)
+        {
+            Dispatcher.Dispatch(() =>
+            {
+                if (viewModel.Solicitudes.Count == 0)
+                    return;
+
+                AnalizadorListado.ScrollTo(
+                    0,
+                    position: ScrollToPosition.Start,
+                    animate: false);
+            });
         }
     }
 }

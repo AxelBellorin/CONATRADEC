@@ -54,11 +54,7 @@
                             BackgroundColor="#F2F7F5"
                             Stroke="#C8DED6"
                             StrokeShape="RoundRectangle 13">
-                            <Grid
-                                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                                ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
-                                RowSpacing="8"
-                                ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="10">
                                 <VerticalStackLayout Spacing="2">
                                     <Label
                                         Text="Asignación de expedientes"
@@ -71,20 +67,27 @@
                                         TextColor="#5E6B67"
                                         LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
-                                <Grid
-                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                    Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                    ColumnDefinitions="*,*,*"
-                                    ColumnSpacing="6"
-                                    HorizontalOptions="{OnIdiom Phone=Fill, Default=End}">
+
+                                <!--
+                                    FlexLayout responde al ancho real. En Windows
+                                    angosto los botones se apilan sin depender del
+                                    DeviceIdiom de escritorio.
+                                -->
+                                <FlexLayout
+                                    Direction="Row"
+                                    Wrap="Wrap"
+                                    AlignItems="Stretch"
+                                    JustifyContent="Start">
                                     <Button
-                                        Grid.Column="0"
                                         Text="Mis expedientes"
                                         Command="{Binding VerMisCommand}"
-                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=145}"
+                                        MinimumWidthRequest="135"
                                         HeightRequest="42"
+                                        Margin="0,0,6,6"
                                         Padding="8,5"
-                                        FontSize="{OnIdiom Phone=11, Default=12}"
+                                        FontSize="12"
+                                        FlexLayout.Grow="1"
+                                        FlexLayout.Basis="150"
                                         BackgroundColor="#E3EFEA"
                                         TextColor="#315E52"
                                         CornerRadius="9">
@@ -96,13 +99,15 @@
                                         </Button.Triggers>
                                     </Button>
                                     <Button
-                                        Grid.Column="1"
                                         Text="Disponibles"
                                         Command="{Binding VerDisponiblesCommand}"
-                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=125}"
+                                        MinimumWidthRequest="125"
                                         HeightRequest="42"
+                                        Margin="0,0,6,6"
                                         Padding="8,5"
-                                        FontSize="{OnIdiom Phone=11, Default=12}"
+                                        FontSize="12"
+                                        FlexLayout.Grow="1"
+                                        FlexLayout.Basis="140"
                                         BackgroundColor="#E3EFEA"
                                         TextColor="#315E52"
                                         CornerRadius="9">
@@ -114,13 +119,15 @@
                                         </Button.Triggers>
                                     </Button>
                                     <Button
-                                        Grid.Column="2"
                                         Text="Revisados"
                                         Command="{Binding VerRevisadasCommand}"
-                                        MinimumWidthRequest="{OnIdiom Phone=0, Default=125}"
+                                        MinimumWidthRequest="125"
                                         HeightRequest="42"
+                                        Margin="0,0,0,6"
                                         Padding="8,5"
-                                        FontSize="{OnIdiom Phone=11, Default=12}"
+                                        FontSize="12"
+                                        FlexLayout.Grow="1"
+                                        FlexLayout.Basis="140"
                                         BackgroundColor="#E3EFEA"
                                         TextColor="#315E52"
                                         CornerRadius="9">
@@ -131,76 +138,95 @@
                                             </DataTrigger>
                                         </Button.Triggers>
                                     </Button>
-                                </Grid>
-                            </Grid>
+                                </FlexLayout>
+                            </VerticalStackLayout>
                         </Border>
 
-                        <Grid
-                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                            ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
-                            RowSpacing="7"
-                            ColumnSpacing="8">
+                        <FlexLayout
+                            Direction="Row"
+                            Wrap="Wrap"
+                            AlignItems="Center"
+                            JustifyContent="Start">
                             <Label
-                                Grid.Row="0"
-                                Grid.Column="0"
                                 Text="{Binding SubtituloVista}"
+                                MinimumWidthRequest="220"
+                                Margin="0,0,8,8"
+                                FlexLayout.Grow="1"
+                                FlexLayout.Basis="420"
                                 FontAttributes="Bold"
                                 TextColor="#3B655B"
                                 VerticalTextAlignment="Center"
                                 LineBreakMode="WordWrap" />
                             <Button
-                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                Grid.Column="{OnIdiom Phone=0, Default=1}"
                                 Text="Actualizar"
                                 Command="{Binding ActualizarCommand}"
+                                MinimumWidthRequest="120"
                                 HeightRequest="44"
+                                Margin="0,0,0,8"
                                 Padding="14,7"
+                                FlexLayout.Basis="135"
                                 BackgroundColor="#E3EFEA"
-                                TextColor="#3B655B"
-                                HorizontalOptions="Fill" />
-                        </Grid>
+                                TextColor="#3B655B" />
+                        </FlexLayout>
 
                         <Border
                             Padding="{OnIdiom Phone=10, Default=12}"
                             BackgroundColor="White"
                             Stroke="#C8DED6"
                             StrokeShape="RoundRectangle 13">
-                            <Grid
-                                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                                ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,*'}"
-                                RowSpacing="5"
-                                ColumnSpacing="12">
-                                <VerticalStackLayout
-                                    Grid.Row="0"
-                                    Grid.Column="0"
-                                    Spacing="1"
-                                    VerticalOptions="Center">
+                            <VerticalStackLayout Spacing="9">
+                                <VerticalStackLayout Spacing="1">
                                     <Label
                                         Text="Técnico responsable"
                                         FontSize="13"
                                         FontAttributes="Bold"
                                         TextColor="#263A35" />
                                     <Label
-                                        Text="Filtra por el usuario que registró la inspección."
+                                        Text="Seleccione el usuario que registró la inspección. La selección no consulta el servidor hasta pulsar Aplicar filtro."
                                         FontSize="11"
-                                        TextColor="#6B7773" />
+                                        TextColor="#6B7773"
+                                        LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
-                                <Button
-                                    x:Name="TecnicoSelectorButton"
-                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                    Grid.Column="{OnIdiom Phone=0, Default=1}"
-                                    Text="{Binding TecnicoFiltroTexto}"
-                                    Clicked="OnSeleccionarTecnicoClicked"
-                                    MinimumWidthRequest="{OnIdiom Phone=0, Default=360}"
-                                    HeightRequest="44"
-                                    Padding="14,8"
-                                    HorizontalOptions="Fill"
-                                    BackgroundColor="White"
-                                    BorderColor="#C9D4D0"
-                                    BorderWidth="1"
-                                    TextColor="#263A35"
-                                    CornerRadius="8" />
-                            </Grid>
+
+                                <FlexLayout
+                                    Direction="Row"
+                                    Wrap="Wrap"
+                                    AlignItems="Stretch"
+                                    JustifyContent="Start">
+                                    <Button
+                                        x:Name="TecnicoSelectorButton"
+                                        Text="{Binding TecnicoFiltroTexto}"
+                                        Clicked="OnSeleccionarTecnicoClicked"
+                                        MinimumWidthRequest="220"
+                                        HeightRequest="44"
+                                        Margin="0,0,8,8"
+                                        Padding="14,8"
+                                        FlexLayout.Grow="1"
+                                        FlexLayout.Basis="360"
+                                        BackgroundColor="White"
+                                        BorderColor="#C9D4D0"
+                                        BorderWidth="1"
+                                        TextColor="#263A35"
+                                        CornerRadius="8" />
+                                    <Button
+                                        Text="Aplicar filtro"
+                                        Command="{Binding AplicarFiltroTecnicoCommand}"
+                                        MinimumWidthRequest="150"
+                                        HeightRequest="44"
+                                        Margin="0,0,0,8"
+                                        Padding="14,8"
+                                        FlexLayout.Basis="170"
+                                        BackgroundColor="#3B655B"
+                                        TextColor="White"
+                                        CornerRadius="8" />
+                                </FlexLayout>
+
+                                <Label
+                                    Text="{Binding TextoEstadoFiltroTecnico}"
+                                    FontSize="11"
+                                    TextColor="#52665F"
+                                    LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
                         </Border>
 
                         <Border
@@ -317,27 +343,32 @@
                                     </VerticalStackLayout>
                                 </FlexLayout>
 
-                                <Grid
-                                    ColumnDefinitions="{OnIdiom Phone='*,*', Default='*,*,*,*,*'}"
-                                    RowDefinitions="{OnIdiom Phone='Auto,Auto,Auto', Default='Auto'}"
-                                    ColumnSpacing="8"
-                                    RowSpacing="8">
-                                    <Border Grid.Row="0" Grid.Column="0" Padding="10" BackgroundColor="#F7FAF9" Stroke="#DCE6E2" StrokeShape="RoundRectangle 11">
+                                <!--
+                                    Métricas con envoltura por ancho real. Así una
+                                    ventana WinUI angosta no intenta conservar cinco
+                                    columnas de escritorio.
+                                -->
+                                <FlexLayout
+                                    Direction="Row"
+                                    Wrap="Wrap"
+                                    AlignItems="Stretch"
+                                    JustifyContent="Start">
+                                    <Border Margin="0,0,8,8" MinimumWidthRequest="135" FlexLayout.Grow="1" FlexLayout.Basis="165" Padding="10" BackgroundColor="#F7FAF9" Stroke="#DCE6E2" StrokeShape="RoundRectangle 11">
                                         <VerticalStackLayout Spacing="2"><Label Text="Total activas" FontSize="11" TextColor="#6B7773" /><Label Text="{Binding TotalFotografias}" FontSize="18" FontAttributes="Bold" TextColor="#263A35" /></VerticalStackLayout>
                                     </Border>
-                                    <Border Grid.Row="0" Grid.Column="1" Padding="10" BackgroundColor="#EAF3EF" Stroke="#C8DED6" StrokeShape="RoundRectangle 11">
+                                    <Border Margin="0,0,8,8" MinimumWidthRequest="135" FlexLayout.Grow="1" FlexLayout.Basis="165" Padding="10" BackgroundColor="#EAF3EF" Stroke="#C8DED6" StrokeShape="RoundRectangle 11">
                                         <VerticalStackLayout Spacing="2"><Label Text="Recibidas" FontSize="11" TextColor="#527066" /><Label Text="{Binding EnviadasRevision}" FontSize="18" FontAttributes="Bold" TextColor="#315E52" /></VerticalStackLayout>
                                     </Border>
-                                    <Border Grid.Row="{OnIdiom Phone=1, Default=0}" Grid.Column="{OnIdiom Phone=0, Default=2}" Padding="10" BackgroundColor="#EDF4FF" Stroke="#C8D9EE" StrokeShape="RoundRectangle 11">
+                                    <Border Margin="0,0,8,8" MinimumWidthRequest="145" FlexLayout.Grow="1" FlexLayout.Basis="180" Padding="10" BackgroundColor="#EDF4FF" Stroke="#C8D9EE" StrokeShape="RoundRectangle 11">
                                         <VerticalStackLayout Spacing="2"><Label Text="Enviadas al aprobador" FontSize="11" TextColor="#315B86" /><Label Text="{Binding EnviadasAprobador}" FontSize="18" FontAttributes="Bold" TextColor="#315B86" /></VerticalStackLayout>
                                     </Border>
-                                    <Border Grid.Row="{OnIdiom Phone=1, Default=0}" Grid.Column="{OnIdiom Phone=1, Default=3}" Padding="10" BackgroundColor="#FFF8E2" Stroke="#E4C765" StrokeShape="RoundRectangle 11">
+                                    <Border Margin="0,0,8,8" MinimumWidthRequest="155" FlexLayout.Grow="1" FlexLayout.Basis="190" Padding="10" BackgroundColor="#FFF8E2" Stroke="#E4C765" StrokeShape="RoundRectangle 11">
                                         <VerticalStackLayout Spacing="2"><Label Text="Pendientes/correcciones" FontSize="11" TextColor="#705A19" /><Label Text="{Binding RequierenDecisionTecnico}" FontSize="18" FontAttributes="Bold" TextColor="#705A19" /></VerticalStackLayout>
                                     </Border>
-                                    <Border Grid.Row="{OnIdiom Phone=2, Default=0}" Grid.Column="{OnIdiom Phone=0, Default=4}" Grid.ColumnSpan="{OnIdiom Phone=2, Default=1}" Padding="10" BackgroundColor="#FDECEC" Stroke="#F0C8C4" StrokeShape="RoundRectangle 11">
+                                    <Border Margin="0,0,0,8" MinimumWidthRequest="145" FlexLayout.Grow="1" FlexLayout.Basis="175" Padding="10" BackgroundColor="#FDECEC" Stroke="#F0C8C4" StrokeShape="RoundRectangle 11">
                                         <VerticalStackLayout Spacing="2"><Label Text="Error IA pendiente" FontSize="11" TextColor="#9A3028" /><Label Text="{Binding ConError}" FontSize="18" FontAttributes="Bold" TextColor="#B42318" /></VerticalStackLayout>
                                     </Border>
-                                </Grid>
+                                </FlexLayout>
 
                                 <Label
                                     FontSize="12"
@@ -388,7 +419,7 @@
                 </CollectionView.ItemTemplate>
 
                 <CollectionView.Footer>
-                    <VerticalStackLayout Padding="0,14,0,4" Spacing="8">
+                    <VerticalStackLayout Padding="0,14,0,4" Spacing="10">
                         <Border
                             Padding="18"
                             BackgroundColor="#F2F6F4"
@@ -397,25 +428,64 @@
                             IsVisible="{Binding SinSolicitudes}">
                             <Label Text="{Binding TextoSinSolicitudes}" HorizontalTextAlignment="Center" TextColor="#5E6B67" />
                         </Border>
-                        <ActivityIndicator
-                            IsRunning="{Binding CargandoMas}"
-                            IsVisible="{Binding CargandoMas}"
-                            Color="#3B655B" />
-                        <Button
-                            Text="{Binding TextoCargarMas}"
-                            Command="{Binding CargarMasCommand}"
-                            IsVisible="{Binding HayMas}"
-                            HeightRequest="46"
-                            MaximumWidthRequest="360"
-                            HorizontalOptions="Center"
-                            BackgroundColor="#EAF3EF"
-                            TextColor="#315E52"
-                            CornerRadius="11" />
+
+                        <Border
+                            Padding="12"
+                            BackgroundColor="#F7FAF9"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 13"
+                            IsVisible="{Binding TieneResultados}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label
+                                    Text="{Binding ResumenResultados}"
+                                    FontSize="12"
+                                    FontAttributes="Bold"
+                                    HorizontalTextAlignment="Center"
+                                    TextColor="#52665F" />
+                                <FlexLayout
+                                    Direction="Row"
+                                    Wrap="Wrap"
+                                    AlignItems="Center"
+                                    JustifyContent="Center">
+                                    <Button
+                                        Text="← Anterior"
+                                        Command="{Binding PaginaAnteriorCommand}"
+                                        MinimumWidthRequest="120"
+                                        HeightRequest="44"
+                                        Margin="0,0,8,8"
+                                        Padding="12,7"
+                                        FlexLayout.Basis="145"
+                                        BackgroundColor="#EAF3EF"
+                                        TextColor="#315E52"
+                                        CornerRadius="10" />
+                                    <Label
+                                        Text="{Binding TextoPagina}"
+                                        MinimumWidthRequest="120"
+                                        Margin="0,0,8,8"
+                                        Padding="10,7"
+                                        FlexLayout.Basis="150"
+                                        FontAttributes="Bold"
+                                        HorizontalTextAlignment="Center"
+                                        VerticalTextAlignment="Center"
+                                        TextColor="#263A35" />
+                                    <Button
+                                        Text="Siguiente →"
+                                        Command="{Binding PaginaSiguienteCommand}"
+                                        MinimumWidthRequest="120"
+                                        HeightRequest="44"
+                                        Margin="0,0,0,8"
+                                        Padding="12,7"
+                                        FlexLayout.Basis="145"
+                                        BackgroundColor="#EAF3EF"
+                                        TextColor="#315E52"
+                                        CornerRadius="10" />
+                                </FlexLayout>
+                            </VerticalStackLayout>
+                        </Border>
                     </VerticalStackLayout>
                 </CollectionView.Footer>
             </CollectionView>
 
-            <!-- Relay de carga principal; CargandoMas permanece no bloqueante. -->
             <Grid
                 ZIndex="50"
                 IsVisible="{Binding IsBusy}"

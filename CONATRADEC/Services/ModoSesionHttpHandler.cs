@@ -76,10 +76,10 @@ namespace CONATRADEC.Services
         }
 
         /// <summary>
-        /// Una escritura exitosa dentro del expediente invalida únicamente la
-        /// página visible de Solicitudes. Al regresar desde Resultado se hace
-        /// un solo GET de esa página; una navegación de solo lectura no genera
-        /// recarga.
+        /// Una escritura funcional dentro del expediente invalida las bandejas
+        /// que pueden reflejar ese cambio. Los POST usados únicamente para
+        /// adquirir, renovar o liberar el bloqueo temporal de edición no son
+        /// cambios de negocio y por eso no fuerzan una recarga al regresar.
         /// </summary>
         private static void RegistrarMutacionFitosanitaria(
             HttpRequestMessage request,
@@ -102,8 +102,25 @@ namespace CONATRADEC.Services
                     "/api/revision-fitosanitaria",
                     StringComparison.OrdinalIgnoreCase);
 
-            if (esFlujoFitosanitario)
-                DiagnosticoIASolicitudVisitaService.MarcarMutacion();
+            if (!esFlujoFitosanitario)
+                return;
+
+            bool esSoloGestionBloqueo =
+                path.EndsWith(
+                    "/bloqueo/adquirir",
+                    StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith(
+                    "/bloqueo/renovar",
+                    StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith(
+                    "/bloqueo/liberar",
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (esSoloGestionBloqueo)
+                return;
+
+            DiagnosticoIASolicitudVisitaService.MarcarMutacion();
+            DiagnosticoIAAnalizadorVisitaService.MarcarMutacion();
         }
     }
 }
