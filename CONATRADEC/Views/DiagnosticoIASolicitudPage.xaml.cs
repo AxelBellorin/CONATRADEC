@@ -1,3 +1,4 @@
+using CONATRADEC.Controls;
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
@@ -48,6 +49,7 @@ namespace CONATRADEC.Views
         private Button? selectorVistaButton;
         private bool selectorTecnicoAbierto;
         private Button? selectorTecnicoButton;
+        private Grid? visorCapturaGrid;
 
         public DiagnosticoIASolicitudPage()
         {
@@ -60,6 +62,15 @@ namespace CONATRADEC.Views
              */
             VistaInspeccionesPicker.ItemDisplayBinding = null;
             TecnicoFiltroPicker.ItemDisplayBinding = null;
+
+            /*
+             * Esta Page contiene dos superficies funcionalmente distintas:
+             * captura de una nueva inspección y bandejas de solicitudes.
+             * Cada una conserva su propio BindingContext para impedir que los
+             * bindings de una superficie se intenten resolver contra el
+             * ViewModel de la otra cuando cambia el modo de la página.
+             */
+            ConfigurarBindingContextsPorSeccion();
 
             BindingContext = listadoViewModel;
             PrepararSelectorVistaPersonalizado();
@@ -123,6 +134,29 @@ namespace CONATRADEC.Views
         public bool MostrarSelectorMisInspecciones =>
             !EsModoNuevaActual && !MostrarFiltroTecnico;
 
+        private void ConfigurarBindingContextsPorSeccion()
+        {
+            ContenidoScroll.BindingContext = viewModel;
+            ListadoGrid.BindingContext = listadoViewModel;
+
+            if (visorCapturaGrid == null &&
+                Content is ContentView contenedorPrincipal &&
+                contenedorPrincipal.Content is Grid gridPrincipal)
+            {
+                visorCapturaGrid = gridPrincipal.Children
+                    .OfType<Grid>()
+                    .FirstOrDefault(grid => grid.ZIndex >= 100);
+            }
+
+            visorCapturaGrid ??=
+                ResponsiveLayoutUtility.FindDescendant<Grid>(
+                    this,
+                    grid => grid.ZIndex >= 100);
+
+            if (visorCapturaGrid != null)
+                visorCapturaGrid.BindingContext = viewModel;
+        }
+
         private void AplicarBindingContextActual()
         {
             object destino = EsModoNuevaActual
@@ -131,6 +165,13 @@ namespace CONATRADEC.Views
 
             if (!ReferenceEquals(BindingContext, destino))
                 BindingContext = destino;
+
+            /*
+             * IsVisible deja de depender de la herencia del BindingContext,
+             * porque ambas superficies mantienen contextos propios y estables.
+             */
+            ContenidoScroll.IsVisible = EsModoNuevaActual;
+            ListadoGrid.IsVisible = !EsModoNuevaActual;
         }
 
         /// <summary>

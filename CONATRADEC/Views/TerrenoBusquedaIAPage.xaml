@@ -22,6 +22,7 @@
                 y conserva la virtualización cuando existen muchos terrenos.
             -->
             <CollectionView
+                x:Name="TerrenosCollection"
                 ItemsSource="{Binding Resultados}"
                 SelectionMode="None"
                 IsVisible="True"
@@ -172,19 +173,47 @@
                 </CollectionView.ItemTemplate>
 
                 <CollectionView.Footer>
-                    <VerticalStackLayout Padding="0,8,0,18" Spacing="8">
-                        <ActivityIndicator
-                            IsRunning="{Binding CargandoMas}"
-                            IsVisible="{Binding CargandoMas}"
-                            Color="{StaticResource color_Verde}" />
-                        <Button
-                            Text="Cargar más"
-                            Command="{Binding CargarMasCommand}"
-                            IsVisible="{Binding PuedeCargarMas}"
-                            Style="{StaticResource InspectionNeutralButton}"
-                            MaximumWidthRequest="360"
-                            HorizontalOptions="Center" />
-                    </VerticalStackLayout>
+                    <Border
+                        Margin="0,8,0,18"
+                        Padding="12"
+                        MaximumWidthRequest="700"
+                        HorizontalOptions="Center"
+                        Style="{StaticResource InspectionSoftPanel}"
+                        IsVisible="{Binding MostrarPaginador}">
+                        <!--
+                            FlexLayout permite que el paginador se reorganice
+                            también en ventanas Windows angostas, no solo según
+                            el DeviceIdiom del dispositivo.
+                        -->
+                        <FlexLayout
+                            Direction="Row"
+                            Wrap="Wrap"
+                            AlignItems="Center"
+                            JustifyContent="Center">
+                            <Button
+                                Text="← Anterior"
+                                Command="{Binding PaginaAnteriorCommand}"
+                                IsEnabled="{Binding PuedeIrAnterior}"
+                                Style="{StaticResource InspectionNeutralButton}"
+                                MinimumWidthRequest="120"
+                                Margin="4" />
+                            <Label
+                                Text="{Binding TextoPaginacion}"
+                                FontAttributes="Bold"
+                                TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}"
+                                VerticalTextAlignment="Center"
+                                HorizontalTextAlignment="Center"
+                                MinimumWidthRequest="130"
+                                Margin="12,4" />
+                            <Button
+                                Text="Siguiente →"
+                                Command="{Binding PaginaSiguienteCommand}"
+                                IsEnabled="{Binding PuedeIrSiguiente}"
+                                Style="{StaticResource InspectionNeutralButton}"
+                                MinimumWidthRequest="120"
+                                Margin="4" />
+                        </FlexLayout>
+                    </Border>
                 </CollectionView.Footer>
             </CollectionView>
 
