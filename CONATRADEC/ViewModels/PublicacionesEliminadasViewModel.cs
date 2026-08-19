@@ -62,6 +62,7 @@ namespace CONATRADEC.ViewModels
                         "restaurar la publicación"),
                     item =>
                         item != null &&
+                        CanView &&
                         CanEdit &&
                         !IsBusy);
 
@@ -105,7 +106,8 @@ namespace CONATRADEC.ViewModels
         public Command CerrarCommand { get; }
 
         public bool CanAdministrar =>
-            CanAdd || CanEdit || CanDelete;
+            CanView &&
+            (CanAdd || CanEdit || CanDelete);
 
         public string Titulo =>
             "Publicaciones eliminadas";
@@ -509,7 +511,7 @@ namespace CONATRADEC.ViewModels
             if (item?.PublicacionId is not > 0 || IsBusy)
                 return;
 
-            if (!CanEdit)
+            if (!CanView || !CanEdit)
             {
                 await MostrarAdvertenciaAsync(
                     "No tiene permiso para restaurar publicaciones.");
@@ -526,9 +528,8 @@ namespace CONATRADEC.ViewModels
                 return;
 
             bool reactivada = false;
-            bool recargarPagina = false;
             int paginaAntesReactivar =
-                paginaActual;
+                PaginaActual;
             string mensajeExito =
                 "Publicación restaurada como borrador.";
 
@@ -569,19 +570,6 @@ namespace CONATRADEC.ViewModels
                     string.IsNullOrWhiteSpace(resultado.Message)
                         ? mensajeExito
                         : resultado.Message;
-
-                Registros.Remove(item);
-                TotalRegistros =
-                    Math.Max(0, TotalRegistros - 1);
-
-                RecalcularPaginas();
-
-                if (Registros.Count == 0 &&
-                    TotalRegistros > 0 &&
-                    paginaAntesReactivar > 1)
-                {
-                    recargarPagina = true;
-                }
             }
             finally
             {
@@ -600,46 +588,17 @@ namespace CONATRADEC.ViewModels
                 return;
 
             /*
-             * El listado administrativo activo debe volver a consultar el
-             * servidor al cerrar la papelera porque ahora existe un borrador
-             * activo que antes no formaba parte de esa lista.
+             * La restauración modifica tanto la papelera como el listado
+             * activo. Ambos estados vuelven a derivarse del servidor.
              */
             PublicacionListadoEstadoService.MarcarActualizacion();
 
-            if (recargarPagina)
-            {
-                int paginaDestino =
-                    Math.Min(
-                        Math.Max(1, paginaActual),
-                        Math.Max(1, totalPaginas));
-
-                await CargarPaginaAsync(
-                    paginaDestino,
-                    "Actualizando publicaciones eliminadas...",
-                    "Ajustando la página después de la restauración");
-            }
+            await CargarPaginaAsync(
+                paginaAntesReactivar,
+                "Actualizando publicaciones eliminadas...",
+                "Consultando nuevamente la página después de restaurar");
 
             await MostrarExitoAsync(mensajeExito);
-        }
-
-        private void RecalcularPaginas()
-        {
-            int tamano =
-                Math.Max(1, tamanoPaginaActual);
-
-            totalPaginas =
-                TotalRegistros == 0
-                    ? 1
-                    : (int)Math.Ceiling(
-                        TotalRegistros /
-                        (double)tamano);
-
-            paginaActual =
-                Math.Min(
-                    Math.Max(1, paginaActual),
-                    Math.Max(1, totalPaginas));
-
-            NotificarEstado();
         }
 
         private async Task CerrarAsync()

@@ -3,6 +3,7 @@ using CONATRADEC.Services;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using System.Collections.ObjectModel;
+using System.Threading;
 
 namespace CONATRADEC.ViewModels
 {
@@ -34,8 +35,10 @@ namespace CONATRADEC.ViewModels
         private ImageSource? portadaPreview;
         private FileResult? portadaSeleccionada;
         private string rutaPortadaActual = string.Empty;
+        private bool eliminarPortadaPendiente;
         private string mensaje = string.Empty;
         private bool inicializado;
+        private CancellationTokenSource? operacionCts;
 
         public PublicacionFormViewModel()
         {
@@ -54,7 +57,7 @@ namespace CONATRADEC.ViewModels
                 () => !IsBusy && PuedeGuardar);
 
             CancelarCommand = new Command(
-                async () => await GoToAsyncParameters(AppRoutes.Regresar),
+                async () => await CancelarAsync(),
                 () => !IsBusy);
 
             EliminarPortadaCommand = new Command(
@@ -90,7 +93,8 @@ namespace CONATRADEC.ViewModels
             EsEdicion ? "Guardar cambios" : "Crear publicación";
 
         public bool PuedeGuardar =>
-            EsEdicion ? CanEdit : CanAdd;
+            CanView &&
+            (EsEdicion ? CanEdit : CanAdd);
 
         public CategoriaPublicacionResponse? CategoriaSeleccionada
         {
@@ -360,24 +364,36 @@ namespace CONATRADEC.ViewModels
             if (!PuedeGuardar)
             {
                 Mensaje =
-                    "No tiene permiso para crear o editar publicaciones.";
+                    "No tiene permiso de lectura y creación/edición de publicaciones.";
                 return;
             }
 
             if (!await ValidarInternetAsync())
                 return;
 
+            CancellationTokenSource source =
+                PrepararOperacion();
+
             try
             {
                 IsBusy = true;
                 Mensaje = string.Empty;
 
-                await CargarCategoriasAsync();
+                await CargarCategoriasAsync(source.Token);
+                source.Token.ThrowIfCancellationRequested();
 
                 if (EsEdicion)
-                    await CargarPublicacionAsync();
+                    await CargarPublicacionAsync(source.Token);
                 else
                     PrepararNuevaPublicacion();
+            }
+            catch (OperationCanceledException)
+            {
+                inicializado = false;
+            }
+            catch (ObjectDisposedException)
+            {
+                inicializado = false;
             }
             catch (Exception ex)
             {
@@ -389,9 +405,25 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                IsBusy = false;
+                if (EsOperacionActual(source))
+                    IsBusy = false;
+
+                LiberarOperacion(source);
                 ActualizarComandos();
             }
+        }
+
+        public void CancelarCarga()
+        {
+            CancellationTokenSource? source =
+                Interlocked.Exchange(
+                    ref operacionCts,
+                    null);
+
+            CancelarSeguro(source);
+
+            IsBusy = false;
+            ActualizarComandos();
         }
 
         public async Task SeleccionarPortadaAsync(FileResult archivo)
@@ -421,6 +453,12 @@ namespace CONATRADEC.ViewModels
                 await origen.CopyToAsync(destino);
 
                 portadaSeleccionada = archivo;
+
+                /*
+                 * Si antes se había marcado la portada actual para eliminar,
+                 * seleccionar una nueva la reemplazará durante Guardar.
+                 */
+                eliminarPortadaPendiente = false;
                 PortadaPreview = ImageSource.FromFile(cachePath);
             }
             catch
@@ -430,29 +468,63 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CargarCategoriasAsync()
+        private async Task CargarCategoriasAsync(
+            CancellationToken cancellationToken)
         {
+            if (PublicacionesAdminVisitaService
+                    .IntentarObtenerCategorias(
+                        out List<CategoriaPublicacionResponse> categoriasCache))
+            {
+                AplicarCategorias(categoriasCache);
+                return;
+            }
+
             ApiResult<List<CategoriaPublicacionResponse>> result =
-                await apiService.GetCategoriasAsync();
+                await apiService.GetCategoriasAsync(cancellationToken);
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (!result.Success || result.Data == null)
                 throw new InvalidOperationException(result.Message);
 
+            AplicarCategorias(result.Data);
+
+            if (PublicacionesAdminVisitaService.EstaActiva)
+            {
+                PublicacionesAdminVisitaService
+                    .GuardarCategorias(result.Data);
+            }
+        }
+
+        private void AplicarCategorias(
+            IEnumerable<CategoriaPublicacionResponse> categorias)
+        {
+            int? seleccionAnterior =
+                CategoriaSeleccionada?.CategoriaPublicacionId;
+
             Categorias.Clear();
 
             foreach (CategoriaPublicacionResponse categoria
-                     in result.Data.OrderBy(x => x.Orden))
+                     in categorias.OrderBy(x => x.Orden))
             {
                 Categorias.Add(categoria);
             }
 
-            CategoriaSeleccionada ??= Categorias.FirstOrDefault();
+            CategoriaSeleccionada =
+                Categorias.FirstOrDefault(x =>
+                    x.CategoriaPublicacionId == seleccionAnterior)
+                ?? Categorias.FirstOrDefault();
         }
 
-        private async Task CargarPublicacionAsync()
+        private async Task CargarPublicacionAsync(
+            CancellationToken cancellationToken)
         {
             ApiResult<PublicacionDetalleResponse> result =
-                await apiService.GetParaAdministrarAsync(PublicacionId);
+                await apiService.GetParaAdministrarAsync(
+                    PublicacionId,
+                    cancellationToken);
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (!result.Success || result.Data == null)
                 throw new InvalidOperationException(result.Message);
@@ -512,10 +584,14 @@ namespace CONATRADEC.ViewModels
             }
 
             rutaPortadaActual = item.RutaImagenPortada;
+            portadaSeleccionada = null;
+            eliminarPortadaPendiente = false;
 
-            if (!string.IsNullOrWhiteSpace(item.ImagenPortadaUrl))
-                PortadaPreview = ImageSource.FromUri(
-                    new Uri(item.ImagenPortadaUrl));
+            PortadaPreview =
+                !string.IsNullOrWhiteSpace(item.ImagenPortadaUrl)
+                    ? ImageSource.FromUri(
+                        new Uri(item.ImagenPortadaUrl))
+                    : null;
         }
 
         private void PrepararNuevaPublicacion()
@@ -531,6 +607,10 @@ namespace CONATRADEC.ViewModels
             HoraEventoFin = new TimeSpan(10, 0, 0);
             EstadoSeleccionado = "BORRADOR";
             CategoriaSeleccionada = Categorias.FirstOrDefault();
+            portadaSeleccionada = null;
+            rutaPortadaActual = string.Empty;
+            eliminarPortadaPendiente = false;
+            PortadaPreview = null;
         }
 
         private async Task GuardarAsync()
@@ -556,6 +636,11 @@ namespace CONATRADEC.ViewModels
             if (!await ValidarInternetAsync())
                 return;
 
+            CancellationTokenSource source =
+                PrepararOperacion();
+
+            bool publicacionPersistida = false;
+
             try
             {
                 IsBusy = true;
@@ -567,7 +652,12 @@ namespace CONATRADEC.ViewModels
                 if (EsEdicion)
                 {
                     ApiResult<bool> result =
-                        await apiService.ActualizarAsync(request);
+                        await apiService.ActualizarAsync(
+                            request,
+                            source.Token);
+
+                    if (source.IsCancellationRequested)
+                        return;
 
                     if (!result.Success)
                     {
@@ -577,11 +667,17 @@ namespace CONATRADEC.ViewModels
                     }
 
                     mensajeExito = result.Message;
+                    publicacionPersistida = true;
                 }
                 else
                 {
                     ApiResult<PublicacionCreadaResponse> result =
-                        await apiService.CrearAsync(request);
+                        await apiService.CrearAsync(
+                            request,
+                            source.Token);
+
+                    if (source.IsCancellationRequested)
+                        return;
 
                     if (!result.Success || result.Data == null)
                     {
@@ -592,6 +688,7 @@ namespace CONATRADEC.ViewModels
 
                     PublicacionId = result.Data.PublicacionId;
                     mensajeExito = result.Message;
+                    publicacionPersistida = true;
                 }
 
                 if (portadaSeleccionada != null)
@@ -599,21 +696,48 @@ namespace CONATRADEC.ViewModels
                     ApiResult<PortadaPublicacionResponse> portadaResult =
                         await apiService.SubirPortadaAsync(
                             PublicacionId,
-                            portadaSeleccionada);
+                            portadaSeleccionada,
+                            source.Token);
+
+                    if (source.IsCancellationRequested)
+                        return;
+
+                    if (!portadaResult.Success ||
+                        portadaResult.Data == null)
+                    {
+                        await FinalizarGuardadoParcialAsync(
+                            "La publicación fue guardada, pero la portada no pudo cargarse. " +
+                            portadaResult.Message);
+                        return;
+                    }
+
+                    rutaPortadaActual =
+                        portadaResult.Data.RutaImagenPortada;
+                    portadaSeleccionada = null;
+                    eliminarPortadaPendiente = false;
+                }
+                else if (eliminarPortadaPendiente &&
+                         EsEdicion &&
+                         !string.IsNullOrWhiteSpace(rutaPortadaActual))
+                {
+                    ApiResult<bool> portadaResult =
+                        await apiService.EliminarPortadaAsync(
+                            PublicacionId,
+                            source.Token);
+
+                    if (source.IsCancellationRequested)
+                        return;
 
                     if (!portadaResult.Success)
                     {
-                        PublicacionListadoEstadoService
-                            .MarcarActualizacion();
-
-                        Mensaje =
-                            "La publicación fue guardada, pero la portada no pudo cargarse. " +
-                            portadaResult.Message;
-
-                        await MostrarAdvertenciaAsync(Mensaje);
-                        await GoToAsyncParameters(AppRoutes.Regresar);
+                        await FinalizarGuardadoParcialAsync(
+                            "La publicación fue guardada, pero la portada no pudo eliminarse. " +
+                            portadaResult.Message);
                         return;
                     }
+
+                    rutaPortadaActual = string.Empty;
+                    eliminarPortadaPendiente = false;
                 }
 
                 PublicacionListadoEstadoService.MarcarActualizacion();
@@ -624,8 +748,21 @@ namespace CONATRADEC.ViewModels
 
                 await GoToAsyncParameters(AppRoutes.Regresar);
             }
+            catch (OperationCanceledException)
+            {
+                if (publicacionPersistida)
+                    PublicacionListadoEstadoService.MarcarActualizacion();
+            }
+            catch (ObjectDisposedException)
+            {
+                if (publicacionPersistida)
+                    PublicacionListadoEstadoService.MarcarActualizacion();
+            }
             catch (Exception ex)
             {
+                if (publicacionPersistida)
+                    PublicacionListadoEstadoService.MarcarActualizacion();
+
                 Mensaje = "No fue posible guardar la publicación.";
                 await MostrarErrorInesperadoAsync(
                     "guardar la publicación",
@@ -633,9 +770,21 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                IsBusy = false;
+                if (EsOperacionActual(source))
+                    IsBusy = false;
+
+                LiberarOperacion(source);
                 ActualizarComandos();
             }
+        }
+
+        private async Task FinalizarGuardadoParcialAsync(
+            string mensajeAdvertencia)
+        {
+            PublicacionListadoEstadoService.MarcarActualizacion();
+            Mensaje = mensajeAdvertencia;
+            await MostrarAdvertenciaAsync(Mensaje);
+            await GoToAsyncParameters(AppRoutes.Regresar);
         }
 
         private async Task EliminarPortadaAsync()
@@ -645,34 +794,30 @@ namespace CONATRADEC.ViewModels
 
             bool confirmar = await ConfirmarAsync(
                 "Eliminar portada",
-                "¿Desea quitar la imagen de portada de esta publicación?",
-                "Eliminar",
+                "¿Desea quitar la imagen de portada de esta publicación? El cambio se aplicará al guardar.",
+                "Quitar",
                 "Cancelar");
 
             if (!confirmar)
                 return;
 
-            if (!EsEdicion || string.IsNullOrWhiteSpace(rutaPortadaActual))
-            {
-                portadaSeleccionada = null;
-                PortadaPreview = null;
-                return;
-            }
-
-            ApiResult<bool> result =
-                await apiService.EliminarPortadaAsync(PublicacionId);
-
-            if (!result.Success)
-            {
-                await MostrarErrorAsync(result.Message);
-                return;
-            }
-
-            rutaPortadaActual = string.Empty;
+            /*
+             * No se modifica el servidor aquí. Si el usuario cancela la edición,
+             * la portada original permanece intacta. La eliminación real se
+             * ejecuta únicamente después de Guardar cambios.
+             */
             portadaSeleccionada = null;
+            eliminarPortadaPendiente =
+                EsEdicion &&
+                !string.IsNullOrWhiteSpace(rutaPortadaActual);
+
             PortadaPreview = null;
-            PublicacionListadoEstadoService.MarcarActualizacion();
-            await MostrarExitoAsync(result.Message);
+        }
+
+        private Task CancelarAsync()
+        {
+            CancelarCarga();
+            return GoToAsyncParameters(AppRoutes.Regresar);
         }
 
         private PublicacionGuardarRequest ConstruirRequest()
@@ -786,6 +931,52 @@ namespace CONATRADEC.ViewModels
             }
 
             return null;
+        }
+
+        private CancellationTokenSource PrepararOperacion()
+        {
+            var source = new CancellationTokenSource();
+
+            CancellationTokenSource? anterior =
+                Interlocked.Exchange(
+                    ref operacionCts,
+                    source);
+
+            CancelarSeguro(anterior);
+            return source;
+        }
+
+        private bool EsOperacionActual(
+            CancellationTokenSource source) =>
+            ReferenceEquals(
+                Volatile.Read(ref operacionCts),
+                source);
+
+        private void LiberarOperacion(
+            CancellationTokenSource source)
+        {
+            Interlocked.CompareExchange(
+                ref operacionCts,
+                null,
+                source);
+
+            source.Dispose();
+        }
+
+        private static void CancelarSeguro(
+            CancellationTokenSource? source)
+        {
+            if (source == null)
+                return;
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // La operación propietaria pudo finalizar primero.
+            }
         }
 
         private static DateTimeOffset CrearDateTimeOffsetLocal(

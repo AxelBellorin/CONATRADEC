@@ -3,6 +3,7 @@ using CONATRADEC.ViewModels;
 using Microsoft.Maui.Storage;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -70,9 +71,11 @@ namespace CONATRADEC.Views
             AplicarDisenoResponsivo();
             viewModel.ActualizarPermisos();
 
-            bool puedeAcceder = publicacionId > 0
-                ? viewModel.CanEdit
-                : viewModel.CanAdd;
+            bool puedeAcceder =
+                viewModel.CanView &&
+                (publicacionId > 0
+                    ? viewModel.CanEdit
+                    : viewModel.CanAdd);
 
             ContenidoPrincipal.IsVisible = puedeAcceder;
             ContenidoSinPermiso.IsVisible = !puedeAcceder;
@@ -82,6 +85,21 @@ namespace CONATRADEC.Views
                 await viewModel.InicializarAsync(publicacionId);
                 AplicarDisenoResponsivo();
             }
+        }
+
+        protected override void OnDisappearing()
+        {
+            try
+            {
+                viewModel.CancelarCarga();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(
+                    $"No fue posible cancelar la operación del formulario de publicación: {ex}");
+            }
+
+            base.OnDisappearing();
         }
 
         private void OnPaginaLoaded(

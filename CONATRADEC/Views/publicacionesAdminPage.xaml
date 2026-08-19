@@ -17,17 +17,20 @@
 
             <!-- SearchBar estable fuera del CollectionView virtualizado. -->
             <VerticalStackLayout
+                x:Name="EncabezadoAdminStack"
                 Grid.Row="0"
                 Margin="{OnIdiom Phone='12,12,12,10', Tablet='20,18,20,12', Desktop='28,22,28,14'}"
                 Spacing="10">
 
                 <Border Style="{StaticResource ModernHeroCard}">
                     <Grid
-                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
-                        RowSpacing="12"
-                        ColumnSpacing="14">
-                        <VerticalStackLayout Spacing="4">
+                        x:Name="HeroAdminGrid"
+                        ColumnDefinitions="*,Auto"
+                        ColumnSpacing="14"
+                        RowSpacing="12">
+                        <VerticalStackLayout
+                            x:Name="HeroAdminTexto"
+                            Spacing="4">
                             <Button
                                 Text="← Noticias"
                                 Command="{Binding RegresarCommand}"
@@ -45,36 +48,31 @@
                                 Style="{StaticResource ModernCaption}" />
                         </VerticalStackLayout>
 
-                        <!--
-                            Eliminadas es un flujo independiente de los estados
-                            activos. En teléfono los botones se apilan; en tablet
-                            y Windows permanecen juntos a la derecha.
-                        -->
                         <Grid
-                            Grid.Row="{OnIdiom Phone=1, Default=0}"
-                            Grid.Column="{OnIdiom Phone=0, Default=1}"
-                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                            ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,Auto'}"
-                            RowSpacing="8"
+                            x:Name="HeroAdminAcciones"
+                            Grid.Column="1"
+                            ColumnDefinitions="Auto,Auto"
                             ColumnSpacing="8"
-                            HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
+                            RowSpacing="8"
+                            HorizontalOptions="End"
                             VerticalOptions="End">
                             <Button
+                                x:Name="EliminadasButton"
                                 Text="Eliminadas"
                                 Clicked="AbrirEliminadas_Clicked"
                                 IsVisible="{Binding CanAdministrar}"
                                 Style="{StaticResource ModernSecondaryButton}"
-                                HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
-                                MinimumWidthRequest="{OnIdiom Phone=0, Default=130}" />
+                                HorizontalOptions="Fill"
+                                MinimumWidthRequest="0" />
                             <Button
-                                Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                x:Name="NuevaPublicacionButton"
+                                Grid.Column="1"
                                 Text="Nueva publicación"
                                 Command="{Binding NuevaCommand}"
                                 IsVisible="{Binding CanAdd}"
                                 Style="{StaticResource ModernPrimaryButton}"
-                                HorizontalOptions="{OnIdiom Phone=Fill, Default=End}"
-                                MinimumWidthRequest="{OnIdiom Phone=0, Default=170}" />
+                                HorizontalOptions="Fill"
+                                MinimumWidthRequest="0" />
                         </Grid>
                     </Grid>
                 </Border>
@@ -83,7 +81,7 @@
                     <Border Style="{StaticResource ModernInputBorder}">
                         <SearchBar
                             Placeholder="Buscar por título o contenido"
-                            Text="{Binding TextoBusqueda}"
+                            Text="{Binding TextoBusqueda, Mode=TwoWay}"
                             SearchCommand="{Binding BuscarCommand}"
                             Style="{StaticResource ModernSearchBar}" />
                     </Border>
@@ -97,30 +95,35 @@
                 RefreshColor="{StaticResource color_Verde}">
 
                 <CollectionView
+                    x:Name="PublicacionesCollection"
                     Margin="{OnIdiom Phone='12,0,12,20', Tablet='20,0,20,26', Desktop='28,0,28,30'}"
                     ItemsSource="{Binding Publicaciones}"
                     SelectionMode="None"
-                    ItemSizingStrategy="MeasureFirstItem"
-                    RemainingItemsThreshold="2"
-                    RemainingItemsThresholdReachedCommand="{Binding CargarMasCommand}">
+                    ItemSizingStrategy="MeasureFirstItem">
 
                     <CollectionView.ItemsLayout>
                         <GridItemsLayout
+                            x:Name="PublicacionesGrid"
                             Orientation="Vertical"
-                            Span="{OnIdiom Phone=1, Tablet=2, Desktop=3}"
+                            Span="1"
                             HorizontalItemSpacing="14"
                             VerticalItemSpacing="14" />
                     </CollectionView.ItemsLayout>
 
                     <CollectionView.Header>
-                        <VerticalStackLayout Spacing="10" Margin="0,0,0,14">
+                        <VerticalStackLayout
+                            Spacing="10"
+                            Margin="0,0,0,14">
+
                             <Border Style="{StaticResource ModernCard}">
                                 <Grid
-                                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
-                                    ColumnDefinitions="{OnIdiom Phone='*,*', Default='1*,1*,Auto,Auto'}"
+                                    x:Name="FiltrosAdminGrid"
+                                    ColumnDefinitions="*,*,Auto,Auto"
                                     ColumnSpacing="8"
                                     RowSpacing="8">
-                                    <Border Style="{StaticResource ModernInputBorder}">
+                                    <Border
+                                        x:Name="CategoriaFiltroBorder"
+                                        Style="{StaticResource ModernInputBorder}">
                                         <Picker
                                             Title="Categoría"
                                             ItemsSource="{Binding Categorias}"
@@ -128,7 +131,10 @@
                                             SelectedItem="{Binding CategoriaSeleccionada}"
                                             Style="{StaticResource ModernPicker}" />
                                     </Border>
-                                    <Border Grid.Column="1" Style="{StaticResource ModernInputBorder}">
+                                    <Border
+                                        x:Name="EstadoFiltroBorder"
+                                        Grid.Column="1"
+                                        Style="{StaticResource ModernInputBorder}">
                                         <Picker
                                             Title="Estado"
                                             ItemsSource="{Binding Estados}"
@@ -136,17 +142,19 @@
                                             Style="{StaticResource ModernPicker}" />
                                     </Border>
                                     <Button
-                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                        Grid.Column="{OnIdiom Phone=0, Default=2}"
+                                        x:Name="BuscarFiltroButton"
+                                        Grid.Column="2"
                                         Text="Buscar"
                                         Command="{Binding BuscarCommand}"
-                                        Style="{StaticResource ModernPrimaryButton}" />
+                                        Style="{StaticResource ModernPrimaryButton}"
+                                        MinimumWidthRequest="0" />
                                     <Button
-                                        Grid.Row="{OnIdiom Phone=1, Default=0}"
-                                        Grid.Column="{OnIdiom Phone=1, Default=3}"
+                                        x:Name="LimpiarFiltroButton"
+                                        Grid.Column="3"
                                         Text="Limpiar"
                                         Command="{Binding LimpiarFiltrosCommand}"
-                                        Style="{StaticResource ModernNeutralButton}" />
+                                        Style="{StaticResource ModernNeutralButton}"
+                                        MinimumWidthRequest="0" />
                                 </Grid>
                             </Border>
 
@@ -156,6 +164,32 @@
                                 <Label
                                     Text="{Binding Mensaje}"
                                     Style="{StaticResource ModernPageSubtitle}" />
+                            </Border>
+
+                            <!--
+                                Estado vacío independiente del EmptyView de
+                                CollectionView para evitar capturas de interacción
+                                en WinUI cuando una búsqueda no devuelve registros.
+                            -->
+                            <Border
+                                IsVisible="{Binding MostrarVacio}"
+                                InputTransparent="True"
+                                Style="{StaticResource ModernEmptyStateCard}"
+                                Margin="0,8,0,12"
+                                HorizontalOptions="Center"
+                                MaximumWidthRequest="560">
+                                <VerticalStackLayout
+                                    Spacing="8"
+                                    HorizontalOptions="Center">
+                                    <Label
+                                        Text="No hay publicaciones administrativas"
+                                        Style="{StaticResource ModernSectionTitle}"
+                                        HorizontalTextAlignment="Center" />
+                                    <Label
+                                        Text="Cree una publicación o cambie los filtros."
+                                        Style="{StaticResource ModernPageSubtitle}"
+                                        HorizontalTextAlignment="Center" />
+                                </VerticalStackLayout>
                             </Border>
                         </VerticalStackLayout>
                     </CollectionView.Header>
@@ -182,8 +216,14 @@
                                             Aspect="AspectFill" />
                                     </Grid>
 
-                                    <VerticalStackLayout Grid.Row="1" Padding="14" Spacing="7">
-                                        <FlexLayout Direction="Row" Wrap="Wrap" AlignItems="Center">
+                                    <VerticalStackLayout
+                                        Grid.Row="1"
+                                        Padding="14"
+                                        Spacing="7">
+                                        <FlexLayout
+                                            Direction="Row"
+                                            Wrap="Wrap"
+                                            AlignItems="Center">
                                             <Border
                                                 Margin="0,0,5,5"
                                                 Padding="7,3"
@@ -250,14 +290,16 @@
                                                 Command="{Binding Source={x:Reference PublicacionesAdminRoot}, Path=BindingContext.EditarCommand}"
                                                 CommandParameter="{Binding .}"
                                                 IsVisible="{Binding Source={x:Reference PublicacionesAdminRoot}, Path=BindingContext.CanEdit}"
-                                                Style="{StaticResource ModernUpdateButton}" />
+                                                Style="{StaticResource ModernUpdateButton}"
+                                                MinimumWidthRequest="0" />
                                             <Button
                                                 Grid.Column="1"
                                                 Text="{Binding AccionEstadoTexto}"
                                                 Command="{Binding Source={x:Reference PublicacionesAdminRoot}, Path=BindingContext.CambiarEstadoCommand}"
                                                 CommandParameter="{Binding .}"
                                                 IsVisible="{Binding Source={x:Reference PublicacionesAdminRoot}, Path=BindingContext.CanEdit}"
-                                                Style="{StaticResource ModernCoffeeButton}" />
+                                                Style="{StaticResource ModernCoffeeButton}"
+                                                MinimumWidthRequest="0" />
                                             <Button
                                                 Grid.Row="1"
                                                 Text="{Binding AccionDestacadaTexto}"
@@ -265,7 +307,8 @@
                                                 CommandParameter="{Binding .}"
                                                 IsVisible="{Binding Source={x:Reference PublicacionesAdminRoot}, Path=BindingContext.CanEdit}"
                                                 Style="{StaticResource ModernSecondaryButton}"
-                                                FontSize="10" />
+                                                FontSize="10"
+                                                MinimumWidthRequest="0" />
                                             <Button
                                                 Grid.Row="1"
                                                 Grid.Column="1"
@@ -273,7 +316,8 @@
                                                 Command="{Binding Source={x:Reference PublicacionesAdminRoot}, Path=BindingContext.EliminarCommand}"
                                                 CommandParameter="{Binding .}"
                                                 IsVisible="{Binding Source={x:Reference PublicacionesAdminRoot}, Path=BindingContext.CanDelete}"
-                                                Style="{StaticResource ModernDangerSoftButton}" />
+                                                Style="{StaticResource ModernDangerSoftButton}"
+                                                MinimumWidthRequest="0" />
                                         </Grid>
                                     </VerticalStackLayout>
                                 </Grid>
@@ -281,38 +325,65 @@
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
 
-                    <CollectionView.EmptyView>
-                        <Grid Padding="12,24">
+                    <CollectionView.Footer>
+                        <VerticalStackLayout Spacing="0">
                             <Border
-                                IsVisible="{Binding MostrarVacio}"
-                                Style="{StaticResource ModernEmptyStateCard}"
-                                HorizontalOptions="Center"
-                                VerticalOptions="Start"
-                                MaximumWidthRequest="560">
-                                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                                    <Label
-                                        Text="No hay publicaciones administrativas"
-                                        Style="{StaticResource ModernSectionTitle}"
-                                        HorizontalTextAlignment="Center" />
-                                    <Label
-                                        Text="Cree una publicación o cambie los filtros."
-                                        Style="{StaticResource ModernPageSubtitle}"
-                                        HorizontalTextAlignment="Center" />
+                                x:Name="PaginacionAdmin"
+                                IsVisible="{Binding MostrarPaginacion}"
+                                Margin="0,16,0,24"
+                                Padding="{OnIdiom Phone='12,12', Tablet='14,13', Desktop='16,14'}"
+                                Style="{StaticResource ModernCatalogCard}"
+                                MaximumWidthRequest="560"
+                                HorizontalOptions="Center">
+
+                                <VerticalStackLayout Spacing="11">
+                                    <VerticalStackLayout
+                                        Spacing="2"
+                                        HorizontalOptions="Center">
+                                        <Label
+                                            Text="{Binding PaginaTexto}"
+                                            FontFamily="MontserratBold"
+                                            FontSize="12"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextPrimary}, Dark={StaticResource TextPrimaryDark}}" />
+                                        <Label
+                                            Text="{Binding RangoPaginaTexto}"
+                                            FontFamily="MontserratMedium"
+                                            FontSize="10"
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextSecondary}, Dark={StaticResource TextSecondaryDark}}" />
+                                    </VerticalStackLayout>
+
+                                    <Grid
+                                        ColumnDefinitions="*,*"
+                                        ColumnSpacing="10">
+                                        <Button
+                                            Grid.Column="0"
+                                            Text="← Anterior"
+                                            Pressed="PaginacionAdmin_Pressed"
+                                            Clicked="PaginacionAdmin_Clicked"
+                                            Command="{Binding PaginaAnteriorCommand}"
+                                            IsEnabled="{Binding PuedeIrAnterior}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Siguiente →"
+                                            Pressed="PaginacionAdmin_Pressed"
+                                            Clicked="PaginacionAdmin_Clicked"
+                                            Command="{Binding PaginaSiguienteCommand}"
+                                            IsEnabled="{Binding PuedeIrSiguiente}"
+                                            Style="{StaticResource ModernSecondaryButton}"
+                                            MinimumWidthRequest="0"
+                                            HorizontalOptions="Fill" />
+                                    </Grid>
                                 </VerticalStackLayout>
                             </Border>
-                        </Grid>
-                    </CollectionView.EmptyView>
 
-                    <CollectionView.Footer>
-                        <VerticalStackLayout Padding="0,16,0,28" Spacing="8" HorizontalOptions="Center">
-                            <ActivityIndicator
-                                IsVisible="{Binding CargandoMas}"
-                                IsRunning="{Binding CargandoMas}"
-                                Color="{StaticResource color_Verde}" />
-                            <Label
-                                IsVisible="{Binding MostrarFinLista}"
-                                Text="No hay más publicaciones."
-                                Style="{StaticResource ModernCaption}" />
+                            <BoxView
+                                HeightRequest="{OnIdiom Phone=18, Tablet=22, Desktop=26}"
+                                Opacity="0" />
                         </VerticalStackLayout>
                     </CollectionView.Footer>
                 </CollectionView>
@@ -354,7 +425,7 @@
                         Style="{StaticResource ModernPageTitle}"
                         HorizontalTextAlignment="Center" />
                     <Label
-                        Text="Necesita permiso para agregar, actualizar o eliminar publicaciones."
+                        Text="Necesita permiso de lectura y al menos permiso para agregar, actualizar o eliminar publicaciones."
                         Style="{StaticResource ModernPageSubtitle}"
                         HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
