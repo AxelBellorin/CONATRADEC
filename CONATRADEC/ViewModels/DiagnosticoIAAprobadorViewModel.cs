@@ -4,6 +4,13 @@ using System.Collections.ObjectModel;
 
 namespace CONATRADEC.ViewModels
 {
+    /// <summary>
+    /// Bandeja operativa del aprobador con paginación numérica.
+    ///
+    /// La visita conserva vista, filtros aplicados y página mientras el usuario
+    /// entra a un expediente y regresa. Los filtros escritos no consultan el
+    /// servidor hasta que el usuario ejecuta Buscar.
+    /// </summary>
     public sealed class DiagnosticoIAAprobadorViewModel : DiagnosticoIAViewModelBase
     {
         private const int TamanoPagina = 20;
@@ -15,31 +22,47 @@ namespace CONATRADEC.ViewModels
 
         private readonly InspeccionFitosanitariaBandejaApiService filtrosApi =
             InspeccionFitosanitariaBandejaApiService.Instance;
-        private readonly InspeccionFitosanitariaBandejaOperativaApiService api =
+        private readonly InspeccionFitosanitariaBandejaOperativaNumeradaApiService api =
             new();
         private readonly InspeccionRevisionBloqueoApiService asignacionApi =
             new();
         private readonly TipoFotografiaIAApiService tiposFotografiaApi =
             new();
 
+        private CancellationTokenSource? cargaCts;
+        private bool paginaActiva;
+        private bool inicializado;
         private bool catalogoTecnicosCargado;
-        private bool cargandoMas;
-        private string vistaActual = VistaMis;
+        private bool catalogoTiposCargado;
         private bool cambiandoVista;
         private bool filtrosExpandidos;
+        private string vistaActual = VistaMis;
+
+        // Filtros escritos: cambiar estos valores nunca ejecuta HTTP.
         private bool usarFechaDesde;
         private bool usarFechaHasta;
         private TecnicoInspeccionFiltroItem? tecnicoSeleccionado;
         private FiltroCodigoOpcionV2? tipoFotografiaFiltroSeleccionado;
         private FiltroCodigoOpcionV2? estadoFiltroSeleccionado;
-        private DateTime? siguienteFechaUtc;
-        private int? siguienteId;
-        private bool hayMas;
         private string buscarInspeccion = string.Empty;
         private string propietarioFiltro = string.Empty;
         private string departamentoFiltro = string.Empty;
         private DateTime fechaDesde = DateTime.Today.AddDays(-30);
         private DateTime fechaHasta = DateTime.Today;
+
+        // Filtros aplicados: únicamente estos gobiernan la página consultada.
+        private string buscarAplicado = string.Empty;
+        private string propietarioAplicado = string.Empty;
+        private string departamentoAplicado = string.Empty;
+        private int? tecnicoAplicadoId;
+        private string tipoFotografiaAplicado = string.Empty;
+        private string estadoAplicado = string.Empty;
+        private DateTime? fechaDesdeAplicada;
+        private DateTime? fechaHastaAplicada;
+
+        private int paginaActual = 1;
+        private int totalPaginas;
+        private int totalRegistros;
 
         public DiagnosticoIAAprobadorViewModel()
         {
@@ -49,49 +72,55 @@ namespace CONATRADEC.ViewModels
 
             ActualizarCommand = new Command(
                 async () => await ActualizarAsync(),
-                () => !IsBusy && !cargandoMas && !cambiandoVista);
+                () => PuedeEjecutarAccion);
 
             BuscarCommand = new Command(
                 async () => await BuscarAsync(),
-                () => !IsBusy && !cargandoMas && !cambiandoVista);
+                () => PuedeEjecutarAccion);
 
             LimpiarFiltrosCommand = new Command(
                 async () => await LimpiarFiltrosAsync(),
-                () => !IsBusy && !cargandoMas && !cambiandoVista);
+                () => PuedeEjecutarAccion);
 
             AlternarFiltrosCommand = new Command(
                 () => FiltrosExpandidos = !FiltrosExpandidos,
-                () => !IsBusy && !cargandoMas && !cambiandoVista);
+                () => PuedeEjecutarAccion);
 
-            CargarMasCommand = new Command(
-                async () => await CargarMasAsync(),
-                () => !IsBusy && !cargandoMas && !cambiandoVista && HayMas);
+            PaginaAnteriorCommand = new Command(
+                async () => await CambiarPaginaAsync(paginaActual - 1),
+                () => PuedeEjecutarAccion && PuedePaginaAnterior);
+
+            PaginaSiguienteCommand = new Command(
+                async () => await CambiarPaginaAsync(paginaActual + 1),
+                () => PuedeEjecutarAccion && PuedePaginaSiguiente);
 
             AbrirCommand = new Command<InspeccionFitosanitariaBandejaItemV2>(
                 async item => await AbrirAsync(item),
                 item => item != null &&
                     !MostrandoDisponibles &&
-                    !IsBusy && !cargandoMas && !cambiandoVista);
+                    PuedeEjecutarAccion);
 
             TomarCommand = new Command<InspeccionFitosanitariaBandejaItemV2>(
                 async item => await TomarAsync(item),
                 item => item != null &&
                     MostrandoDisponibles &&
                     PuedeTomarExpediente &&
-                    !IsBusy && !cargandoMas && !cambiandoVista);
+                    PuedeEjecutarAccion);
 
             VerMisCommand = new Command(
                 async () => await CambiarVistaAsync(VistaMis),
-                () => !MostrandoMis && !IsBusy && !cargandoMas && !cambiandoVista);
+                () => !MostrandoMis && PuedeEjecutarAccion);
 
             VerDisponiblesCommand = new Command(
                 async () => await CambiarVistaAsync(VistaDisponibles),
-                () => !MostrandoDisponibles && !IsBusy && !cargandoMas && !cambiandoVista);
+                () => !MostrandoDisponibles && PuedeEjecutarAccion);
 
             VerRevisadasCommand = new Command(
                 async () => await CambiarVistaAsync(VistaRevisados),
-                () => !MostrandoRevisadas && !IsBusy && !cargandoMas && !cambiandoVista);
+                () => !MostrandoRevisadas && PuedeEjecutarAccion);
         }
+
+        public event EventHandler? PaginaCargada;
 
         public ObservableCollection<InspeccionFitosanitariaBandejaItemV2>
             Solicitudes { get; } = [];
@@ -101,8 +130,7 @@ namespace CONATRADEC.ViewModels
 
         /// <summary>
         /// El primer elemento es una opción exclusiva de interfaz. El resto se
-        /// reconstruye desde el catálogo activo del backend para evitar que los
-        /// filtros diverjan de Web o de la configuración administrativa.
+        /// reconstruye desde el catálogo activo del backend.
         /// </summary>
         public ObservableCollection<FiltroCodigoOpcionV2>
             TiposFotografiaFiltro { get; } =
@@ -123,7 +151,8 @@ namespace CONATRADEC.ViewModels
         public Command BuscarCommand { get; }
         public Command LimpiarFiltrosCommand { get; }
         public Command AlternarFiltrosCommand { get; }
-        public Command CargarMasCommand { get; }
+        public Command PaginaAnteriorCommand { get; }
+        public Command PaginaSiguienteCommand { get; }
         public Command<InspeccionFitosanitariaBandejaItemV2> AbrirCommand { get; }
         public Command<InspeccionFitosanitariaBandejaItemV2> TomarCommand { get; }
         public Command VerMisCommand { get; }
@@ -156,6 +185,7 @@ namespace CONATRADEC.ViewModels
                 string nuevo = value ?? string.Empty;
                 if (buscarInspeccion == nuevo)
                     return;
+
                 buscarInspeccion = nuevo;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -170,6 +200,7 @@ namespace CONATRADEC.ViewModels
                 string nuevo = value ?? string.Empty;
                 if (propietarioFiltro == nuevo)
                     return;
+
                 propietarioFiltro = nuevo;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -184,6 +215,7 @@ namespace CONATRADEC.ViewModels
                 string nuevo = value ?? string.Empty;
                 if (departamentoFiltro == nuevo)
                     return;
+
                 departamentoFiltro = nuevo;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -198,6 +230,7 @@ namespace CONATRADEC.ViewModels
             {
                 if (ReferenceEquals(tipoFotografiaFiltroSeleccionado, value))
                     return;
+
                 tipoFotografiaFiltroSeleccionado = value;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -211,6 +244,7 @@ namespace CONATRADEC.ViewModels
             {
                 if (ReferenceEquals(estadoFiltroSeleccionado, value))
                     return;
+
                 estadoFiltroSeleccionado = value;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -224,6 +258,7 @@ namespace CONATRADEC.ViewModels
             {
                 if (usarFechaDesde == value)
                     return;
+
                 usarFechaDesde = value;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -237,6 +272,7 @@ namespace CONATRADEC.ViewModels
             {
                 if (usarFechaHasta == value)
                     return;
+
                 usarFechaHasta = value;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -251,6 +287,7 @@ namespace CONATRADEC.ViewModels
                 DateTime nueva = LimitarFecha(value);
                 if (fechaDesde == nueva)
                     return;
+
                 fechaDesde = nueva;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -265,6 +302,7 @@ namespace CONATRADEC.ViewModels
                 DateTime nueva = LimitarFecha(value);
                 if (fechaHasta == nueva)
                     return;
+
                 fechaHasta = nueva;
                 OnPropertyChanged();
                 NotificarFiltros();
@@ -281,28 +319,35 @@ namespace CONATRADEC.ViewModels
             {
                 if (filtrosExpandidos == value)
                     return;
+
                 filtrosExpandidos = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TextoBotonFiltros));
             }
         }
 
+        /// <summary>
+        /// Cuenta solo filtros que realmente gobiernan el listado visible.
+        /// Los cambios escritos todavía no aplicados no se anuncian como activos.
+        /// </summary>
         public int CantidadFiltrosActivos
         {
             get
             {
                 int cantidad = 0;
-                if (!string.IsNullOrWhiteSpace(BuscarInspeccion)) cantidad++;
-                if (TecnicoSeleccionado?.UsuarioTecnicoId is > 0) cantidad++;
-                if (!string.IsNullOrWhiteSpace(PropietarioFiltro)) cantidad++;
-                if (!string.IsNullOrWhiteSpace(DepartamentoFiltro)) cantidad++;
-                if (!string.IsNullOrWhiteSpace(TipoFotografiaFiltroSeleccionado.Codigo)) cantidad++;
-                if (!string.IsNullOrWhiteSpace(EstadoFiltroSeleccionado.Codigo)) cantidad++;
-                if (UsarFechaDesde) cantidad++;
-                if (UsarFechaHasta) cantidad++;
+                if (!string.IsNullOrWhiteSpace(buscarAplicado)) cantidad++;
+                if (tecnicoAplicadoId is > 0) cantidad++;
+                if (!string.IsNullOrWhiteSpace(propietarioAplicado)) cantidad++;
+                if (!string.IsNullOrWhiteSpace(departamentoAplicado)) cantidad++;
+                if (!string.IsNullOrWhiteSpace(tipoFotografiaAplicado)) cantidad++;
+                if (!string.IsNullOrWhiteSpace(estadoAplicado)) cantidad++;
+                if (fechaDesdeAplicada.HasValue) cantidad++;
+                if (fechaHastaAplicada.HasValue) cantidad++;
                 return cantidad;
             }
         }
+
+        public bool FiltrosPendientesDeAplicar => !FiltrosEscritosCoincidenConAplicados();
 
         public string TextoBotonFiltros => FiltrosExpandidos
             ? "Ocultar filtros ▲"
@@ -310,11 +355,22 @@ namespace CONATRADEC.ViewModels
                 ? "Buscar y filtrar ▼"
                 : $"Buscar y filtrar ({CantidadFiltrosActivos}) ▼";
 
-        public string ResumenFiltrosActivos => CantidadFiltrosActivos == 0
-            ? "Sin filtros adicionales"
-            : CantidadFiltrosActivos == 1
-                ? "1 filtro activo"
-                : $"{CantidadFiltrosActivos} filtros activos";
+        public string ResumenFiltrosActivos
+        {
+            get
+            {
+                string aplicados = CantidadFiltrosActivos switch
+                {
+                    0 => "Sin filtros aplicados",
+                    1 => "1 filtro aplicado",
+                    _ => $"{CantidadFiltrosActivos} filtros aplicados"
+                };
+
+                return FiltrosPendientesDeAplicar
+                    ? aplicados + " · cambios pendientes de aplicar"
+                    : aplicados;
+            }
+        }
 
         public bool MostrandoMis =>
             string.Equals(vistaActual, VistaMis, StringComparison.Ordinal);
@@ -344,50 +400,35 @@ namespace CONATRADEC.ViewModels
         public string TextoSinSolicitudes => vistaActual switch
         {
             VistaDisponibles =>
-                "No hay expedientes disponibles para tomar como aprobador.",
+                "No hay expedientes disponibles para tomar con los filtros aplicados.",
             VistaRevisados =>
-                "No hay inspecciones revisadas que coincidan con los filtros.",
+                "No hay inspecciones revisadas que coincidan con los filtros aplicados.",
             _ =>
-                "No tiene expedientes asignados con fotografías pendientes de aprobación."
+                "No tiene expedientes asignados con fotografías pendientes de aprobación y los filtros aplicados."
         };
 
         public bool SinSolicitudes =>
-            !IsBusy && !cargandoMas && Solicitudes.Count == 0;
+            !IsBusy && Solicitudes.Count == 0;
 
-        public bool HayMas
-        {
-            get => hayMas;
-            private set
-            {
-                if (hayMas == value)
-                    return;
-                hayMas = value;
-                OnPropertyChanged();
-                CargarMasCommand.ChangeCanExecute();
-            }
-        }
+        public bool TieneResultados => Solicitudes.Count > 0;
 
-        public bool CargandoMas
-        {
-            get => cargandoMas;
-            private set
-            {
-                if (cargandoMas == value)
-                    return;
-                cargandoMas = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(TextoCargarMas));
-                ActualizarComandos();
-            }
-        }
+        public int PaginaActual => paginaActual;
+        public int TotalPaginas => totalPaginas;
+        public int TotalRegistros => totalRegistros;
+        public bool PuedePaginaAnterior => paginaActual > 1;
+        public bool PuedePaginaSiguiente =>
+            totalPaginas > 0 && paginaActual < totalPaginas;
 
-        public string TextoCargarMas => CargandoMas
-            ? "Cargando..."
-            : MostrandoRevisadas
-                ? "Cargar más revisados"
-                : MostrandoDisponibles
-                    ? "Cargar más disponibles"
-                    : "Cargar más expedientes";
+        public string TextoPagina => totalPaginas <= 0
+            ? "Página 1 de 1"
+            : $"Página {paginaActual:N0} de {totalPaginas:N0}";
+
+        public string ResumenResultados => totalRegistros == 1
+            ? "1 expediente"
+            : $"{totalRegistros:N0} expedientes";
+
+        private bool PuedeEjecutarAccion =>
+            paginaActiva && !IsBusy && !cambiandoVista;
 
         private string ModoApiActual => vistaActual switch
         {
@@ -396,100 +437,140 @@ namespace CONATRADEC.ViewModels
             _ => DiagnosticoIARoutes.ModoAprobador
         };
 
-        public async Task InicializarAsync()
+        public void ActivarPagina()
         {
-            await CargarTiposFotografiaAsync();
-            await CargarTecnicosAsync();
-            await CargarPrimeraPaginaAsync();
-        }
+            paginaActiva = true;
 
-        private async Task ActualizarAsync()
-        {
-            await CargarTiposFotografiaAsync(forzar: true);
-            await CargarTecnicosAsync(forzar: true);
-            await CargarPrimeraPaginaAsync();
-        }
-
-        private async Task CargarTiposFotografiaAsync(bool forzar = false)
-        {
-            string codigoSeleccionado =
-                tipoFotografiaFiltroSeleccionado?.Codigo ?? string.Empty;
-
-            ApiResult<List<TipoFotografiaIAItem>> resultado =
-                await tiposFotografiaApi.ListarActivosAsync(forzar);
-
-            if (!resultado.Success || resultado.Data is not { Count: > 0 })
+            if (cargaCts == null || cargaCts.IsCancellationRequested)
             {
-                if (TiposFotografiaFiltro.Count <= 1)
+                cargaCts?.Dispose();
+                cargaCts = new CancellationTokenSource();
+            }
+
+            ActualizarComandos();
+        }
+
+        public void CancelarOperaciones()
+        {
+            paginaActiva = false;
+            cargaCts?.Cancel();
+            cargaCts?.Dispose();
+            cargaCts = null;
+            ActualizarComandos();
+        }
+
+        public async Task InicializarOReanudarAsync()
+        {
+            if (!paginaActiva || !ValidarEnLinea())
+                return;
+
+            if (!inicializado)
+            {
+                DiagnosticoIAAprobadorVisitaService.Limpiar();
+                cambiandoVista = true;
+                ActualizarComandos();
+
+                try
                 {
-                    await MostrarAlertaAsync(
-                        "Tipos de fotografía",
-                        string.IsNullOrWhiteSpace(resultado.Message)
-                            ? "No fue posible cargar el catálogo activo de tipos de fotografía."
-                            : resultado.Message);
+                    // Nueva visita: ambos catálogos deben provenir del servidor.
+                    await CargarTiposFotografiaAsync(forzar: true);
+                    await CargarTecnicosAsync(forzar: true);
+
+                    bool cargaInicialExitosa = await CargarPaginaAsync(
+                        1,
+                        permitirDuranteCambioVista: true);
+                    inicializado = cargaInicialExitosa;
+                }
+                finally
+                {
+                    cambiandoVista = false;
+                    ActualizarComandos();
                 }
 
                 return;
             }
 
-            // Se conserva siempre la opción de interfaz "Todos los tipos".
-            // Evitamos dejar la colección vacía temporalmente porque los
-            // bindings de MAUI pueden reevaluar el getter durante un Clear().
-            while (TiposFotografiaFiltro.Count > 1)
-                TiposFotografiaFiltro.RemoveAt(TiposFotografiaFiltro.Count - 1);
+            if (!DiagnosticoIAAprobadorVisitaService.ConsumirMutacion())
+                return;
 
-            if (TiposFotografiaFiltro.Count == 0)
+            bool necesitaCatalogos =
+                !catalogoTecnicosCargado || !catalogoTiposCargado;
+
+            if (necesitaCatalogos)
             {
-                TiposFotografiaFiltro.Add(
-                    new FiltroCodigoOpcionV2(
-                        string.Empty,
-                        "Todos los tipos"));
+                cambiandoVista = true;
+                ActualizarComandos();
+                try
+                {
+                    if (!catalogoTiposCargado)
+                        await CargarTiposFotografiaAsync(forzar: true);
+                    if (!catalogoTecnicosCargado)
+                        await CargarTecnicosAsync(forzar: true);
+
+                    bool refrescoExitoso = await CargarPaginaAsync(
+                        paginaActual,
+                        permitirDuranteCambioVista: true);
+                    if (!refrescoExitoso)
+                        DiagnosticoIAAprobadorVisitaService.MarcarMutacion();
+                }
+                finally
+                {
+                    cambiandoVista = false;
+                    ActualizarComandos();
+                }
+
+                return;
             }
 
-            foreach (TipoFotografiaIAItem item in resultado.Data
-                         .Where(item => item.Activo)
-                         .OrderBy(item => item.Orden)
-                         .ThenBy(item => item.NombreMostrar))
-            {
-                TiposFotografiaFiltro.Add(
-                    new FiltroCodigoOpcionV2(
-                        item.Codigo,
-                        item.NombreMostrar));
-            }
-
-            tipoFotografiaFiltroSeleccionado =
-                TiposFotografiaFiltro.FirstOrDefault(item =>
-                    string.Equals(
-                        item.Codigo,
-                        codigoSeleccionado,
-                        StringComparison.OrdinalIgnoreCase)) ??
-                ObtenerFiltroTipoFotografiaPredeterminado();
-
-            OnPropertyChanged(nameof(TipoFotografiaFiltroSeleccionado));
-            NotificarFiltros();
+            bool refrescoPaginaExitoso = await CargarPaginaAsync(paginaActual);
+            if (!refrescoPaginaExitoso)
+                DiagnosticoIAAprobadorVisitaService.MarcarMutacion();
         }
 
-        private FiltroCodigoOpcionV2 ObtenerFiltroTipoFotografiaPredeterminado() =>
-            TiposFotografiaFiltro.FirstOrDefault() ??
-            new FiltroCodigoOpcionV2(
-                string.Empty,
-                "Todos los tipos");
+        private async Task ActualizarAsync()
+        {
+            if (!PuedeEjecutarAccion || !ValidarEnLinea())
+                return;
+
+            cambiandoVista = true;
+            ActualizarComandos();
+
+            try
+            {
+                await CargarTiposFotografiaAsync(forzar: true);
+                await CargarTecnicosAsync(forzar: true);
+                await CargarPaginaAsync(
+                    paginaActual,
+                    permitirDuranteCambioVista: true);
+            }
+            finally
+            {
+                cambiandoVista = false;
+                ActualizarComandos();
+            }
+        }
 
         private async Task BuscarAsync()
         {
-            if (!ValidarRangoFechas())
+            if (!PuedeEjecutarAccion || !ValidarRangoFechasEscritas())
                 return;
 
-            await CargarPrimeraPaginaAsync();
+            CapturarFiltrosAplicados();
+            NotificarFiltros();
+            await CargarPaginaAsync(1);
             FiltrosExpandidos = false;
         }
 
         private async Task LimpiarFiltrosAsync()
         {
+            if (!PuedeEjecutarAccion)
+                return;
+
             BuscarInspeccion = string.Empty;
             PropietarioFiltro = string.Empty;
             DepartamentoFiltro = string.Empty;
-            TecnicoSeleccionado = TecnicosFiltro.FirstOrDefault();
+            TecnicoSeleccionado = TecnicosFiltro.FirstOrDefault(item =>
+                item.UsuarioTecnicoId <= 0);
             TipoFotografiaFiltroSeleccionado =
                 ObtenerFiltroTipoFotografiaPredeterminado();
             EstadoFiltroSeleccionado = EstadosFiltro[0];
@@ -497,13 +578,29 @@ namespace CONATRADEC.ViewModels
             UsarFechaHasta = false;
             FechaDesde = DateTime.Today.AddDays(-30);
             FechaHasta = DateTime.Today;
-            await CargarPrimeraPaginaAsync();
+
+            LimpiarFiltrosAplicados();
+            NotificarFiltros();
+            await CargarPaginaAsync(1);
+        }
+
+        private async Task CambiarPaginaAsync(int nuevaPagina)
+        {
+            if (!PuedeEjecutarAccion ||
+                nuevaPagina < 1 ||
+                (totalPaginas > 0 && nuevaPagina > totalPaginas) ||
+                nuevaPagina == paginaActual)
+            {
+                return;
+            }
+
+            await CargarPaginaAsync(nuevaPagina);
         }
 
         private async Task CambiarVistaAsync(string nuevaVista)
         {
             if (string.Equals(vistaActual, nuevaVista, StringComparison.Ordinal) ||
-                cambiandoVista || IsBusy || CargandoMas)
+                !PuedeEjecutarAccion)
             {
                 return;
             }
@@ -513,10 +610,13 @@ namespace CONATRADEC.ViewModels
 
             try
             {
+                // Un cambio pendiente no se convierte silenciosamente en filtro.
+                RestaurarFiltrosEscritosDesdeAplicados();
                 EstablecerVista(nuevaVista);
                 catalogoTecnicosCargado = false;
+
                 await CargarTecnicosAsync(forzar: true);
-                await CargarPrimeraPaginaAsync();
+                await CargarPaginaAsync(1, permitirDuranteCambioVista: true);
             }
             finally
             {
@@ -534,38 +634,104 @@ namespace CONATRADEC.ViewModels
                 _ => VistaMis
             };
 
+            paginaActual = 1;
+            totalPaginas = 0;
+            totalRegistros = 0;
+
             OnPropertyChanged(nameof(MostrandoMis));
             OnPropertyChanged(nameof(MostrandoDisponibles));
             OnPropertyChanged(nameof(MostrandoRevisadas));
             OnPropertyChanged(nameof(SubtituloVista));
             OnPropertyChanged(nameof(TextoSinSolicitudes));
-            OnPropertyChanged(nameof(TextoCargarMas));
             OnPropertyChanged(nameof(PuedeTomarExpediente));
+            NotificarPaginacion();
             ActualizarComandos();
         }
 
-        private async Task CargarTecnicosAsync(bool forzar = false)
+        private async Task CargarTiposFotografiaAsync(bool forzar = false)
         {
-            if ((!forzar && catalogoTecnicosCargado) || !ValidarEnLinea(false))
+            if ((!forzar && catalogoTiposCargado) ||
+                !paginaActiva ||
+                !ValidarEnLinea(false))
+            {
                 return;
+            }
+
+            CancellationToken token = ObtenerTokenActivo();
+            string codigoSeleccionado =
+                tipoFotografiaFiltroSeleccionado?.Codigo ?? string.Empty;
+            string codigoAplicadoAnterior = tipoFotografiaAplicado;
 
             try
             {
-                int seleccionadoId = tecnicoSeleccionado?.UsuarioTecnicoId ?? 0;
-                TecnicoInspeccionFiltroRespuesta respuesta =
-                    await filtrosApi.ObtenerTecnicosAsync(ModoApiActual);
+                ApiResult<List<TipoFotografiaIAItem>> resultado =
+                    await tiposFotografiaApi.ListarActivosAsync(
+                        forzar,
+                        token);
 
-                TecnicosFiltro.Clear();
-                TecnicosFiltro.Add(TecnicoInspeccionFiltroItem.Todos());
-                foreach (TecnicoInspeccionFiltroItem item in respuesta.Tecnicos)
-                    TecnicosFiltro.Add(item);
+                token.ThrowIfCancellationRequested();
 
-                catalogoTecnicosCargado = true;
-                tecnicoSeleccionado = TecnicosFiltro.FirstOrDefault(item =>
-                    item.UsuarioTecnicoId == seleccionadoId) ?? TecnicosFiltro[0];
-                OnPropertyChanged(nameof(TecnicoSeleccionado));
-                OnPropertyChanged(nameof(TecnicoFiltroTexto));
+                if (!resultado.Success || resultado.Data is not { Count: > 0 })
+                {
+                    if (TiposFotografiaFiltro.Count <= 1)
+                    {
+                        await MostrarAlertaAsync(
+                            "Tipos de fotografía",
+                            string.IsNullOrWhiteSpace(resultado.Message)
+                                ? "No fue posible cargar el catálogo activo de tipos de fotografía."
+                                : resultado.Message);
+                    }
+
+                    return;
+                }
+
+                while (TiposFotografiaFiltro.Count > 1)
+                    TiposFotografiaFiltro.RemoveAt(TiposFotografiaFiltro.Count - 1);
+
+                if (TiposFotografiaFiltro.Count == 0)
+                {
+                    TiposFotografiaFiltro.Add(
+                        new FiltroCodigoOpcionV2(
+                            string.Empty,
+                            "Todos los tipos"));
+                }
+
+                foreach (TipoFotografiaIAItem item in resultado.Data
+                             .Where(item => item.Activo)
+                             .OrderBy(item => item.Orden)
+                             .ThenBy(item => item.NombreMostrar))
+                {
+                    TiposFotografiaFiltro.Add(
+                        new FiltroCodigoOpcionV2(
+                            item.Codigo,
+                            item.NombreMostrar));
+                }
+
+                catalogoTiposCargado = true;
+
+                tipoFotografiaFiltroSeleccionado =
+                    TiposFotografiaFiltro.FirstOrDefault(item =>
+                        string.Equals(
+                            item.Codigo,
+                            codigoSeleccionado,
+                            StringComparison.OrdinalIgnoreCase)) ??
+                    ObtenerFiltroTipoFotografiaPredeterminado();
+
+                if (!string.IsNullOrWhiteSpace(codigoAplicadoAnterior) &&
+                    TiposFotografiaFiltro.All(item =>
+                        !string.Equals(
+                            item.Codigo,
+                            codigoAplicadoAnterior,
+                            StringComparison.OrdinalIgnoreCase)))
+                {
+                    tipoFotografiaAplicado = string.Empty;
+                }
+
+                OnPropertyChanged(nameof(TipoFotografiaFiltroSeleccionado));
                 NotificarFiltros();
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
@@ -573,95 +739,138 @@ namespace CONATRADEC.ViewModels
             }
         }
 
-        private async Task CargarPrimeraPaginaAsync()
-        {
-            siguienteFechaUtc = null;
-            siguienteId = null;
-            HayMas = false;
-            await CargarPaginaAsync(reemplazar: true);
-        }
+        private FiltroCodigoOpcionV2 ObtenerFiltroTipoFotografiaPredeterminado() =>
+            TiposFotografiaFiltro.FirstOrDefault() ??
+            new FiltroCodigoOpcionV2(
+                string.Empty,
+                "Todos los tipos");
 
-        private async Task CargarMasAsync()
+        private async Task CargarTecnicosAsync(bool forzar = false)
         {
-            if (!HayMas || CargandoMas || IsBusy || cambiandoVista)
+            if ((!forzar && catalogoTecnicosCargado) ||
+                !paginaActiva ||
+                !ValidarEnLinea(false))
+            {
                 return;
+            }
 
-            CargandoMas = true;
+            CancellationToken token = ObtenerTokenActivo();
+
             try
             {
-                await CargarPaginaAsync(reemplazar: false);
+                int tecnicoSeleccionadoId =
+                    ObtenerTecnicoId(TecnicoSeleccionado) ?? 0;
+                int tecnicoAplicadoAnterior = tecnicoAplicadoId ?? 0;
+
+                TecnicoInspeccionFiltroRespuesta respuesta =
+                    await filtrosApi.ObtenerTecnicosAsync(
+                        ModoApiActual,
+                        token);
+
+                token.ThrowIfCancellationRequested();
+
+                TecnicosFiltro.Clear();
+                TecnicosFiltro.Add(TecnicoInspeccionFiltroItem.Todos());
+
+                foreach (TecnicoInspeccionFiltroItem item in respuesta.Tecnicos)
+                    TecnicosFiltro.Add(item);
+
+                catalogoTecnicosCargado = true;
+
+                tecnicoSeleccionado = TecnicosFiltro.FirstOrDefault(item =>
+                    item.UsuarioTecnicoId == tecnicoSeleccionadoId) ??
+                    TecnicosFiltro[0];
+
+                if (tecnicoAplicadoAnterior > 0 &&
+                    TecnicosFiltro.All(item =>
+                        item.UsuarioTecnicoId != tecnicoAplicadoAnterior))
+                {
+                    tecnicoAplicadoId = null;
+                }
+
+                OnPropertyChanged(nameof(TecnicoSeleccionado));
+                OnPropertyChanged(nameof(TecnicoFiltroTexto));
+                NotificarFiltros();
             }
-            finally
+            catch (OperationCanceledException)
             {
-                CargandoMas = false;
+            }
+            catch (Exception ex)
+            {
+                await MostrarErrorAsync(ex);
             }
         }
 
-        private async Task CargarPaginaAsync(bool reemplazar)
+        private async Task<bool> CargarPaginaAsync(
+            int paginaSolicitada,
+            bool permitirDuranteCambioVista = false)
         {
-            if ((IsBusy && reemplazar) || (cambiandoVista && !reemplazar) || !ValidarEnLinea(false))
-                return;
-
-            if (!ValidarRangoFechas())
-                return;
-
-            if (reemplazar)
+            if (!paginaActiva ||
+                IsBusy ||
+                (!permitirDuranteCambioVista && cambiandoVista) ||
+                !ValidarEnLinea(false))
             {
-                IsBusy = true;
-                MensajeEstado = vistaActual switch
-                {
-                    VistaDisponibles =>
-                        "Cargando expedientes disponibles para aprobación...",
-                    VistaRevisados =>
-                        "Cargando inspecciones revisadas...",
-                    _ =>
-                        "Cargando mis expedientes de aprobación..."
-                };
-                ActualizarComandos();
+                return false;
             }
+
+            CancellationToken token = ObtenerTokenActivo();
+            bool exito = false;
+
+            IsBusy = true;
+            MensajeEstado = vistaActual switch
+            {
+                VistaDisponibles =>
+                    "Cargando expedientes disponibles para aprobación...",
+                VistaRevisados =>
+                    "Cargando inspecciones revisadas...",
+                _ =>
+                    "Cargando mis expedientes de aprobación..."
+            };
+            ActualizarComandos();
 
             try
             {
                 var filtro = new InspeccionFitosanitariaBandejaFiltroV2
                 {
                     Modo = ModoApiActual,
-                    Buscar = BuscarInspeccion,
-                    Propietario = PropietarioFiltro,
-                    TecnicoId = TecnicoSeleccionado?.UsuarioTecnicoId is > 0
-                        ? TecnicoSeleccionado.UsuarioTecnicoId
-                        : null,
-                    Departamento = DepartamentoFiltro,
-                    TipoFotografia = TipoFotografiaFiltroSeleccionado.Codigo,
-                    Estado = EstadoFiltroSeleccionado.Codigo,
-                    FechaDesde = UsarFechaDesde ? FechaDesde : null,
-                    FechaHasta = UsarFechaHasta ? FechaHasta : null,
+                    Buscar = buscarAplicado,
+                    Propietario = propietarioAplicado,
+                    TecnicoId = tecnicoAplicadoId,
+                    Departamento = departamentoAplicado,
+                    TipoFotografia = tipoFotografiaAplicado,
+                    Estado = estadoAplicado,
+                    FechaDesde = fechaDesdeAplicada,
+                    FechaHasta = fechaHastaAplicada,
                     DesfaseHorarioMinutos = (int)TimeZoneInfo.Local
                         .GetUtcOffset(DateTime.Now).TotalMinutes,
-                    UltimaFechaUtc = reemplazar ? null : siguienteFechaUtc,
-                    UltimoId = reemplazar ? null : siguienteId,
                     TamanoPagina = TamanoPagina
                 };
 
-                InspeccionFitosanitariaBandejaPaginaV2 pagina =
-                    await api.ObtenerPaginaAsync(filtro);
+                InspeccionFitosanitariaBandejaPaginaNumeradaV2 pagina =
+                    await api.ObtenerPaginaAsync(
+                        filtro,
+                        paginaSolicitada,
+                        TamanoPagina,
+                        token);
 
-                if (reemplazar)
-                    Solicitudes.Clear();
+                token.ThrowIfCancellationRequested();
 
-                HashSet<int> existentes = Solicitudes
-                    .Select(item => item.InspeccionId)
-                    .ToHashSet();
-
+                Solicitudes.Clear();
                 foreach (InspeccionFitosanitariaBandejaItemV2 item in pagina.Items)
-                {
-                    if (existentes.Add(item.InspeccionId))
-                        Solicitudes.Add(item);
-                }
+                    Solicitudes.Add(item);
 
-                siguienteFechaUtc = pagina.SiguienteFechaUtc;
-                siguienteId = pagina.SiguienteId;
-                HayMas = pagina.HayMas;
+                paginaActual = Math.Max(1, pagina.Pagina);
+                totalPaginas = Math.Max(0, pagina.TotalPaginas);
+                totalRegistros = Math.Max(0, pagina.Total);
+
                 OnPropertyChanged(nameof(SinSolicitudes));
+                OnPropertyChanged(nameof(TieneResultados));
+                NotificarPaginacion();
+                PaginaCargada?.Invoke(this, EventArgs.Empty);
+                exito = true;
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
@@ -669,27 +878,28 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                if (reemplazar)
-                {
-                    MensajeEstado = string.Empty;
-                    IsBusy = false;
-                }
-
+                MensajeEstado = string.Empty;
+                IsBusy = false;
                 OnPropertyChanged(nameof(SinSolicitudes));
+                OnPropertyChanged(nameof(TieneResultados));
                 ActualizarComandos();
             }
+
+            return exito;
         }
 
-        private async Task TomarAsync(InspeccionFitosanitariaBandejaItemV2? item)
+        private async Task TomarAsync(
+            InspeccionFitosanitariaBandejaItemV2? item)
         {
             if (item == null ||
                 !MostrandoDisponibles ||
                 !PuedeTomarExpediente ||
-                IsBusy || CargandoMas || cambiandoVista)
+                !PuedeEjecutarAccion)
             {
                 return;
             }
 
+            CancellationToken token = ObtenerTokenActivo();
             IsBusy = true;
             MensajeEstado =
                 $"Asignando el expediente #{item.InspeccionId} a su usuario...";
@@ -700,9 +910,12 @@ namespace CONATRADEC.ViewModels
             {
                 await asignacionApi.TomarAsync(
                     item.InspeccionId,
-                    "aprobador");
+                    "aprobador",
+                    token);
 
+                token.ThrowIfCancellationRequested();
                 asignado = true;
+
                 EstablecerVista(VistaMis);
                 catalogoTecnicosCargado = false;
 
@@ -710,6 +923,9 @@ namespace CONATRADEC.ViewModels
                     DiagnosticoIARoutes.CrearRutaResultado(
                         item.InspeccionId,
                         DiagnosticoIARoutes.ModoAprobador));
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
@@ -722,15 +938,20 @@ namespace CONATRADEC.ViewModels
                 ActualizarComandos();
             }
 
-            if (!asignado && MostrandoDisponibles)
-                await CargarPrimeraPaginaAsync();
+            /*
+             * Si otro aprobador tomó el expediente simultáneamente, se vuelve a
+             * leer únicamente la página visible para retirarlo de Disponibles.
+             */
+            if (!asignado && MostrandoDisponibles && paginaActiva)
+                await CargarPaginaAsync(paginaActual);
         }
 
-        private async Task AbrirAsync(InspeccionFitosanitariaBandejaItemV2? item)
+        private async Task AbrirAsync(
+            InspeccionFitosanitariaBandejaItemV2? item)
         {
             if (item == null ||
                 MostrandoDisponibles ||
-                IsBusy || CargandoMas || cambiandoVista)
+                !PuedeEjecutarAccion)
             {
                 return;
             }
@@ -745,9 +966,111 @@ namespace CONATRADEC.ViewModels
                     origen));
         }
 
-        private bool ValidarRangoFechas()
+        private void CapturarFiltrosAplicados()
         {
-            if (UsarFechaDesde && UsarFechaHasta && FechaDesde.Date > FechaHasta.Date)
+            buscarAplicado = NormalizarTexto(BuscarInspeccion);
+            propietarioAplicado = NormalizarTexto(PropietarioFiltro);
+            departamentoAplicado = NormalizarTexto(DepartamentoFiltro);
+            tecnicoAplicadoId = ObtenerTecnicoId(TecnicoSeleccionado);
+            tipoFotografiaAplicado =
+                TipoFotografiaFiltroSeleccionado.Codigo?.Trim() ?? string.Empty;
+            estadoAplicado =
+                EstadoFiltroSeleccionado.Codigo?.Trim() ?? string.Empty;
+            fechaDesdeAplicada = UsarFechaDesde ? FechaDesde.Date : null;
+            fechaHastaAplicada = UsarFechaHasta ? FechaHasta.Date : null;
+        }
+
+        private void LimpiarFiltrosAplicados()
+        {
+            buscarAplicado = string.Empty;
+            propietarioAplicado = string.Empty;
+            departamentoAplicado = string.Empty;
+            tecnicoAplicadoId = null;
+            tipoFotografiaAplicado = string.Empty;
+            estadoAplicado = string.Empty;
+            fechaDesdeAplicada = null;
+            fechaHastaAplicada = null;
+        }
+
+        private void RestaurarFiltrosEscritosDesdeAplicados()
+        {
+            buscarInspeccion = buscarAplicado;
+            propietarioFiltro = propietarioAplicado;
+            departamentoFiltro = departamentoAplicado;
+            tecnicoSeleccionado = tecnicoAplicadoId is > 0
+                ? TecnicosFiltro.FirstOrDefault(item =>
+                    item.UsuarioTecnicoId == tecnicoAplicadoId.Value)
+                : TecnicosFiltro.FirstOrDefault(item =>
+                    item.UsuarioTecnicoId <= 0);
+            tipoFotografiaFiltroSeleccionado =
+                TiposFotografiaFiltro.FirstOrDefault(item =>
+                    string.Equals(
+                        item.Codigo,
+                        tipoFotografiaAplicado,
+                        StringComparison.OrdinalIgnoreCase)) ??
+                ObtenerFiltroTipoFotografiaPredeterminado();
+            estadoFiltroSeleccionado = EstadosFiltro.FirstOrDefault(item =>
+                string.Equals(
+                    item.Codigo,
+                    estadoAplicado,
+                    StringComparison.OrdinalIgnoreCase)) ?? EstadosFiltro[0];
+            usarFechaDesde = fechaDesdeAplicada.HasValue;
+            usarFechaHasta = fechaHastaAplicada.HasValue;
+            fechaDesde = fechaDesdeAplicada ?? DateTime.Today.AddDays(-30);
+            fechaHasta = fechaHastaAplicada ?? DateTime.Today;
+
+            OnPropertyChanged(nameof(BuscarInspeccion));
+            OnPropertyChanged(nameof(PropietarioFiltro));
+            OnPropertyChanged(nameof(DepartamentoFiltro));
+            OnPropertyChanged(nameof(TecnicoSeleccionado));
+            OnPropertyChanged(nameof(TecnicoFiltroTexto));
+            OnPropertyChanged(nameof(TipoFotografiaFiltroSeleccionado));
+            OnPropertyChanged(nameof(EstadoFiltroSeleccionado));
+            OnPropertyChanged(nameof(UsarFechaDesde));
+            OnPropertyChanged(nameof(UsarFechaHasta));
+            OnPropertyChanged(nameof(FechaDesde));
+            OnPropertyChanged(nameof(FechaHasta));
+            NotificarFiltros();
+        }
+
+        private bool FiltrosEscritosCoincidenConAplicados()
+        {
+            if (!string.Equals(
+                    NormalizarTexto(BuscarInspeccion),
+                    buscarAplicado,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(
+                    NormalizarTexto(PropietarioFiltro),
+                    propietarioAplicado,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(
+                    NormalizarTexto(DepartamentoFiltro),
+                    departamentoAplicado,
+                    StringComparison.OrdinalIgnoreCase) ||
+                ObtenerTecnicoId(TecnicoSeleccionado) != tecnicoAplicadoId ||
+                !string.Equals(
+                    TipoFotografiaFiltroSeleccionado.Codigo?.Trim() ?? string.Empty,
+                    tipoFotografiaAplicado,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(
+                    EstadoFiltroSeleccionado.Codigo?.Trim() ?? string.Empty,
+                    estadoAplicado,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            DateTime? desdeEscrita = UsarFechaDesde ? FechaDesde.Date : null;
+            DateTime? hastaEscrita = UsarFechaHasta ? FechaHasta.Date : null;
+
+            return desdeEscrita == fechaDesdeAplicada &&
+                   hastaEscrita == fechaHastaAplicada;
+        }
+
+        private bool ValidarRangoFechasEscritas()
+        {
+            if (UsarFechaDesde && UsarFechaHasta &&
+                FechaDesde.Date > FechaHasta.Date)
             {
                 _ = MostrarAlertaAsync(
                     "Filtros de fecha",
@@ -768,11 +1091,45 @@ namespace CONATRADEC.ViewModels
             return fecha;
         }
 
+        private static string NormalizarTexto(string? valor) =>
+            string.IsNullOrWhiteSpace(valor)
+                ? string.Empty
+                : valor.Trim();
+
+        private static int? ObtenerTecnicoId(
+            TecnicoInspeccionFiltroItem? tecnico) =>
+            tecnico?.UsuarioTecnicoId is > 0
+                ? tecnico.UsuarioTecnicoId
+                : null;
+
+        private CancellationToken ObtenerTokenActivo()
+        {
+            if (cargaCts == null || cargaCts.IsCancellationRequested)
+            {
+                cargaCts?.Dispose();
+                cargaCts = new CancellationTokenSource();
+            }
+
+            return cargaCts.Token;
+        }
+
         private void NotificarFiltros()
         {
             OnPropertyChanged(nameof(CantidadFiltrosActivos));
+            OnPropertyChanged(nameof(FiltrosPendientesDeAplicar));
             OnPropertyChanged(nameof(TextoBotonFiltros));
             OnPropertyChanged(nameof(ResumenFiltrosActivos));
+        }
+
+        private void NotificarPaginacion()
+        {
+            OnPropertyChanged(nameof(PaginaActual));
+            OnPropertyChanged(nameof(TotalPaginas));
+            OnPropertyChanged(nameof(TotalRegistros));
+            OnPropertyChanged(nameof(PuedePaginaAnterior));
+            OnPropertyChanged(nameof(PuedePaginaSiguiente));
+            OnPropertyChanged(nameof(TextoPagina));
+            OnPropertyChanged(nameof(ResumenResultados));
         }
 
         private void ActualizarComandos()
@@ -781,7 +1138,8 @@ namespace CONATRADEC.ViewModels
             BuscarCommand.ChangeCanExecute();
             LimpiarFiltrosCommand.ChangeCanExecute();
             AlternarFiltrosCommand.ChangeCanExecute();
-            CargarMasCommand.ChangeCanExecute();
+            PaginaAnteriorCommand.ChangeCanExecute();
+            PaginaSiguienteCommand.ChangeCanExecute();
             AbrirCommand.ChangeCanExecute();
             TomarCommand.ChangeCanExecute();
             VerMisCommand.ChangeCanExecute();

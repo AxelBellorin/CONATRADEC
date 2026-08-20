@@ -80,6 +80,9 @@ namespace CONATRADEC.Services
         /// que pueden reflejar ese cambio. Los POST usados únicamente para
         /// adquirir, renovar o liberar el bloqueo temporal de edición no son
         /// cambios de negocio y por eso no fuerzan una recarga al regresar.
+        ///
+        /// Las operaciones posteriores del Álbum Botánico pertenecen a la
+        /// visita del Aprobador y también deben invalidar su página visible.
         /// </summary>
         private static void RegistrarMutacionFitosanitaria(
             HttpRequestMessage request,
@@ -102,7 +105,12 @@ namespace CONATRADEC.Services
                     "/api/revision-fitosanitaria",
                     StringComparison.OrdinalIgnoreCase);
 
-            if (!esFlujoFitosanitario)
+            bool esFlujoAlbumFitosanitario =
+                path.StartsWith(
+                    "/api/publicaciones-album-fitosanitarias",
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (!esFlujoFitosanitario && !esFlujoAlbumFitosanitario)
                 return;
 
             bool esSoloGestionBloqueo =
@@ -119,8 +127,15 @@ namespace CONATRADEC.Services
             if (esSoloGestionBloqueo)
                 return;
 
-            DiagnosticoIASolicitudVisitaService.MarcarMutacion();
-            DiagnosticoIAAnalizadorVisitaService.MarcarMutacion();
+            if (esFlujoFitosanitario)
+            {
+                DiagnosticoIASolicitudVisitaService.MarcarMutacion();
+                DiagnosticoIAAnalizadorVisitaService.MarcarMutacion();
+                DiagnosticoIAAprobadorVisitaService.MarcarMutacion();
+                return;
+            }
+
+            DiagnosticoIAAprobadorVisitaService.MarcarMutacion();
         }
     }
 }
