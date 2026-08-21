@@ -4,7 +4,6 @@ using CONATRADEC.Views;
 using Microsoft.Maui.Media;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Globalization;
 
 namespace CONATRADEC.ViewModels
 {
@@ -174,38 +173,104 @@ namespace CONATRADEC.ViewModels
 
         public bool TieneSeleccion => FotosSeleccionadas.Count > 0;
         public int CantidadSeleccionada => FotosSeleccionadas.Count;
-        public string TextoSeleccion => CantidadSeleccionada == 1
-            ? "1 fotografía seleccionada"
-            : $"{CantidadSeleccionada} fotografías seleccionadas";
+        public int CantidadProcesablesIA => FotosSeleccionadasProcesablesIA.Count;
+        public int CantidadListasParaEnviar => FotosSeleccionadasParaEnviar.Count;
+
+        public string TextoBotonProcesarIA => CantidadProcesablesIA switch
+        {
+            <= 0 => "Procesar selección con IA",
+            1 => "Procesar 1 con IA",
+            _ => $"Procesar {CantidadProcesablesIA} con IA"
+        };
+
+        public string TextoBotonEnviarAnalizador => CantidadListasParaEnviar switch
+        {
+            <= 0 => "Enviar al analizador",
+            1 => "Enviar 1 al analizador",
+            _ => $"Enviar {CantidadListasParaEnviar} al analizador"
+        };
+
+        public string TextoSeleccion
+        {
+            get
+            {
+                int total = CantidadSeleccionada;
+                if (total == 0)
+                    return "Ninguna fotografía seleccionada";
+
+                int requierenIa = CantidadProcesablesIA;
+                int listasParaEnviar = CantidadListasParaEnviar;
+
+                var partes = new List<string>
+                {
+                    total == 1
+                        ? "1 fotografía seleccionada"
+                        : $"{total} fotografías seleccionadas"
+                };
+
+                if (requierenIa > 0)
+                {
+                    partes.Add(
+                        requierenIa == 1
+                            ? "1 requiere IA"
+                            : $"{requierenIa} requieren IA");
+                }
+
+                if (listasParaEnviar > 0)
+                {
+                    partes.Add(
+                        listasParaEnviar == 1
+                            ? "1 lista para enviar"
+                            : $"{listasParaEnviar} listas para enviar");
+                }
+
+                return string.Join(" · ", partes);
+            }
+        }
+
+        /// <summary>
+        /// La selección visual es global, pero cada acción trabaja únicamente
+        /// con las fotografías que cumplen sus propias reglas de estado. Una
+        /// evidencia ya analizada nunca bloquea el análisis inicial de otra.
+        /// </summary>
+        public List<InspeccionFotoV2> FotosSeleccionadasProcesablesIA =>
+            FotosSeleccionadas
+                .Where(EsProcesablePorIAInicial)
+                .ToList();
+
+        public List<InspeccionFotoV2> FotosSeleccionadasParaEnviar =>
+            FotosSeleccionadas
+                .Where(item =>
+                    item.Estado ==
+                        InspeccionFotoEstados.PendienteDecisionTecnico)
+                .ToList();
+
+        public List<InspeccionFotoV2> FotosSeleccionadasReevaluables =>
+            FotosSeleccionadas
+                .Where(item =>
+                    item.ResultadoIA != null &&
+                    item.PuedeSolicitarRevisionIA &&
+                    item.Estado ==
+                        InspeccionFotoEstados.PendienteDecisionTecnico)
+                .ToList();
 
         public bool PuedeProcesarSeleccion =>
             !SoloConsultaAsignacion &&
-            TieneSeleccion &&
+            FotosSeleccionadasProcesablesIA.Count > 0 &&
             Detalle?.PuedeGestionarSolicitud == true &&
-            EsEtapaTecnicaAbierta &&
-            FotosSeleccionadas.All(item => item.Estado is
-                InspeccionFotoEstados.Borrador or
-                InspeccionFotoEstados.PendienteIA or
-                InspeccionFotoEstados.ErrorIA or
-                InspeccionFotoEstados.NoConcluyente);
+            EsEtapaTecnicaAbierta;
 
         public bool PuedeEnviarSeleccion =>
             !SoloConsultaAsignacion &&
-            TieneSeleccion &&
+            CantidadListasParaEnviar > 0 &&
             Detalle?.PuedeGestionarSolicitud == true &&
-            EsEtapaTecnicaAbierta &&
-            FotosSeleccionadas.All(item => item.Estado ==
-                InspeccionFotoEstados.PendienteDecisionTecnico);
+            EsEtapaTecnicaAbierta;
 
         public bool PuedeSolicitarRevision =>
             !SoloConsultaAsignacion &&
-            CantidadSeleccionada == 1 &&
+            FotosSeleccionadasReevaluables.Count == 1 &&
             Detalle?.PuedeGestionarSolicitud == true &&
-            EsEtapaTecnicaAbierta &&
-            FotosSeleccionadas.All(item => item.PuedeSolicitarRevisionIA) &&
-            FotosSeleccionadas.All(item => item.Estado is
-                InspeccionFotoEstados.PendienteDecisionTecnico or
-                InspeccionFotoEstados.ErrorIA);
+            EsEtapaTecnicaAbierta;
 
         public bool PuedeDescartarSeleccion =>
             !SoloConsultaAsignacion &&
@@ -257,6 +322,30 @@ namespace CONATRADEC.ViewModels
                     "Bandeja del aprobador",
                 _ => "Mis inspecciones"
             };
+
+        private static bool EsProcesablePorIAInicial(InspeccionFotoV2 foto)
+        {
+            if (foto.Descartada)
+                return false;
+
+            /*
+             * El estado del expediente individual es la autoridad del flujo.
+             * ERROR_IA se mantiene procesable aunque exista un resultado
+             * persistido, porque el backend puede recuperar de forma idempotente
+             * un análisis que terminó bien pero cuyo estado final no se alcanzó
+             * a registrar correctamente.
+             */
+            if (foto.Estado is
+                InspeccionFotoEstados.Borrador or
+                InspeccionFotoEstados.PendienteIA or
+                InspeccionFotoEstados.ErrorIA)
+            {
+                return true;
+            }
+
+            return foto.ResultadoIA == null &&
+                   foto.Estado == InspeccionFotoEstados.NoConcluyente;
+        }
 
         public void AplicarParametros(int id, string? origenVista)
         {
@@ -329,7 +418,7 @@ namespace CONATRADEC.ViewModels
                 return;
 
             IsBusy = true;
-            MensajeEstado = "Cargando expedientes individuales...";
+            MensajeEstado = "Actualizando estado de la inspección...";
             ActualizarComandos();
 
             try
@@ -489,100 +578,41 @@ namespace CONATRADEC.ViewModels
             if (archivos.Count == 0)
                 return;
 
-            string? fechaTexto = await Shell.Current.DisplayPromptAsync(
-                "Fecha de identificación en campo",
-                "Ingrese la fecha en formato yyyy-MM-dd.",
-                "Continuar",
-                "Cancelar",
-                DateTime.Today.ToString("yyyy-MM-dd"),
-                10,
-                Keyboard.Text);
-
-            if (fechaTexto == null)
-                return;
-
-            if (!DateTime.TryParseExact(
-                    fechaTexto.Trim(),
-                    "yyyy-MM-dd",
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.None,
-                    out DateTime fechaCampo) ||
-                fechaCampo.Date > DateTime.Today)
-            {
-                await MostrarAlertaAsync(
-                    "Fecha no válida",
-                    "Use yyyy-MM-dd y no indique una fecha futura.");
-                return;
-            }
-
-            ApiResult<List<TipoFotografiaIAItem>> tiposResult =
-                await tiposFotografiaApi.ListarActivosAsync();
-
-            List<TipoFotografiaIAItem> tipos = tiposResult.Data?
-                .Where(item => item.Activo)
-                .OrderBy(item => item.Orden)
-                .ThenBy(item => item.Nombre)
-                .ToList() ?? [];
-
-            if (!tiposResult.Success || tipos.Count == 0)
-            {
-                await MostrarAlertaAsync(
-                    "Catálogo requerido",
-                    string.IsNullOrWhiteSpace(tiposResult.Message)
-                        ? "No hay tipos de fotografía activos."
-                        : tiposResult.Message);
-                return;
-            }
-
-            string? seleccionTipo = await Shell.Current.DisplayActionSheet(
-                "Tipo de fotografía",
-                "Cancelar",
-                null,
-                tipos.Select(item => item.NombreMostrar).ToArray());
-
-            TipoFotografiaIAItem? tipo = tipos.FirstOrDefault(item =>
-                string.Equals(
-                    item.NombreMostrar,
-                    seleccionTipo,
-                    StringComparison.Ordinal));
-
-            if (tipo == null)
-                return;
-
-            var temporales = new List<InspeccionFotoLocal>();
+            var temporales = new List<InspeccionFotoPreparacionLocal>();
+            bool propiedadTransferida = false;
 
             try
             {
+                int orden = 1;
+
                 foreach (FileResult archivo in archivos)
                 {
                     string ruta = await CopiarTemporalAsync(archivo);
-                    temporales.Add(new InspeccionFotoLocal
+
+                    temporales.Add(new InspeccionFotoPreparacionLocal
                     {
+                        OrdenTemporal = orden++,
                         RutaLocal = ruta,
                         NombreArchivo = archivo.FileName,
                         TipoContenido = archivo.ContentType ?? "image/jpeg",
-                        FechaIdentificacionCampo = fechaCampo.Date,
-                        TipoFotografiaSeleccionada = tipo
+                        FechaIdentificacionCampo = DateTime.Today
                     });
                 }
 
-                bool confirmar = await Shell.Current.DisplayAlert(
-                    "Agregar fotografías",
-                    $"Se incorporarán {temporales.Count} fotografía(s) a la inspección. Quedarán pendientes de análisis IA.",
-                    "Agregar",
-                    "Cancelar");
+                await Shell.Current.GoToAsync(
+                    DiagnosticoIARoutes.PaginaAgregarFotografias,
+                    true,
+                    new Dictionary<string, object>
+                    {
+                        ["inspeccionId"] = diagnosticoId,
+                        ["fotografias"] = temporales
+                    });
 
-                if (!confirmar)
-                    return;
-
-                IsBusy = true;
-                MensajeEstado = "Agregando fotografías...";
-                ActualizarComandos();
-
-                await inspeccionApi.AgregarFotosAsync(
-                    diagnosticoId,
-                    temporales);
-                await ActualizarAsyncForzado();
+                /*
+                 * La página de preparación pasa a ser propietaria de los
+                 * archivos temporales y los elimina al guardar o cancelar.
+                 */
+                propiedadTransferida = true;
             }
             catch (Exception ex)
             {
@@ -590,41 +620,65 @@ namespace CONATRADEC.ViewModels
             }
             finally
             {
-                foreach (InspeccionFotoLocal temporal in temporales)
+                if (!propiedadTransferida)
                 {
-                    try
-                    {
-                        if (File.Exists(temporal.RutaLocal))
-                            File.Delete(temporal.RutaLocal);
-                    }
-                    catch
-                    {
-                    }
+                    foreach (InspeccionFotoPreparacionLocal temporal in temporales)
+                        temporal.EliminarArchivoTemporal();
                 }
-
-                MensajeEstado = string.Empty;
-                IsBusy = false;
-                ActualizarComandos();
             }
         }
 
         private async Task ProcesarSeleccionAsync()
         {
-            await EjecutarOperacionAsync(
-                "Analizando fotografías con IA...",
-                () => inspeccionApi.ProcesarFotosAsync(
-                    diagnosticoId,
-                    FotosSeleccionadas.Select(item => item.FotografiaId)
-                        .ToList()));
+            if (!PuedeProcesarSeleccion ||
+                Shell.Current == null ||
+                IsBusy ||
+                !ValidarEnLinea())
+            {
+                return;
+            }
+
+            int[] fotografiaIds = FotosSeleccionadasProcesablesIA
+                .Select(item => item.FotografiaId)
+                .Distinct()
+                .ToArray();
+
+            if (fotografiaIds.Length == 0)
+                return;
+
+            /*
+             * El análisis inicial se prepara en una página dedicada. Allí el
+             * técnico ve cada imagen, escribe un contexto independiente y
+             * confirma el lote antes de consumir el proveedor de IA.
+             */
+            await Shell.Current.GoToAsync(
+                DiagnosticoIARoutes.PaginaPrepararAnalisisIA,
+                true,
+                new Dictionary<string, object>
+                {
+                    ["diagnosticoId"] = diagnosticoId,
+                    ["fotografiaIds"] = fotografiaIds
+                });
         }
 
         private async Task EnviarAnalizadorAsync()
         {
+            List<InspeccionFotoV2> paraEnviar =
+                FotosSeleccionadasParaEnviar;
+
+            if (paraEnviar.Count == 0)
+                return;
+
+            string mensaje = paraEnviar.Count == CantidadSeleccionada
+                ? $"Enviando {paraEnviar.Count} fotografía(s) al analizador..."
+                : $"Enviando {paraEnviar.Count} de {CantidadSeleccionada} fotografía(s) seleccionadas que ya tienen decisión técnica pendiente...";
+
             await EjecutarOperacionAsync(
-                "Enviando fotografías al analizador...",
+                mensaje,
                 () => inspeccionApi.EnviarAnalizadorAsync(
                     diagnosticoId,
-                    FotosSeleccionadas.Select(item => item.FotografiaId)
+                    paraEnviar
+                        .Select(item => item.FotografiaId)
                         .ToList()));
         }
 
@@ -633,7 +687,7 @@ namespace CONATRADEC.ViewModels
             if (!PuedeSolicitarRevision || Shell.Current == null)
                 return;
 
-            InspeccionFotoV2 foto = FotosSeleccionadas[0];
+            InspeccionFotoV2 foto = FotosSeleccionadasReevaluables[0];
             if (!foto.PuedeSolicitarRevisionIA)
             {
                 await MostrarAlertaAsync(
@@ -643,26 +697,18 @@ namespace CONATRADEC.ViewModels
                 return;
             }
 
-            string? retroalimentacion = await Shell.Current.DisplayPromptAsync(
-                "Solicitar nueva evaluación IA",
-                "Explique qué debe revisar nuevamente la IA.",
-                "Solicitar",
-                "Cancelar",
-                string.Empty,
-                2000,
-                Keyboard.Text);
+            string? retroalimentacion =
+                await TextoMultilineaDialogService.SolicitarAsync(
+                    "Solicitar nueva evaluación IA",
+                    "Explique qué debe revisar nuevamente la IA. Puede describir lesiones, zonas de la imagen, síntomas o cualquier detalle de campo que deba reconsiderarse.",
+                    "Solicitar",
+                    "Cancelar",
+                    valorInicial: string.Empty,
+                    maximoCaracteres: 1600,
+                    minimoCaracteres: 8);
 
-            if (string.IsNullOrWhiteSpace(retroalimentacion) ||
-                retroalimentacion.Trim().Length < 8)
-            {
-                if (retroalimentacion != null)
-                {
-                    await MostrarAlertaAsync(
-                        "Información insuficiente",
-                        "La retroalimentación debe contener al menos 8 caracteres.");
-                }
+            if (retroalimentacion == null)
                 return;
-            }
 
             await EjecutarOperacionAsync(
                 "Solicitando nueva evaluación IA...",
@@ -959,6 +1005,21 @@ namespace CONATRADEC.ViewModels
             catch (Exception ex)
             {
                 await MostrarErrorAsync(ex);
+
+                /*
+                 * Si el cliente perdió la respuesta o agotó el tiempo de espera,
+                 * el backend pudo haber alcanzado a persistir ANALIZANDO_IA,
+                 * ERROR_IA o incluso el resultado final. Se fuerza una lectura
+                 * fresca para que la pantalla no quede mostrando PENDIENTE_IA.
+                 */
+                try
+                {
+                    await ActualizarAsyncForzado();
+                }
+                catch
+                {
+                    // Se conserva el error original como mensaje principal.
+                }
             }
             finally
             {
@@ -1031,7 +1092,14 @@ namespace CONATRADEC.ViewModels
             OnPropertyChanged(nameof(FotosSeleccionadas));
             OnPropertyChanged(nameof(TieneSeleccion));
             OnPropertyChanged(nameof(CantidadSeleccionada));
+            OnPropertyChanged(nameof(CantidadProcesablesIA));
+            OnPropertyChanged(nameof(CantidadListasParaEnviar));
+            OnPropertyChanged(nameof(TextoBotonProcesarIA));
+            OnPropertyChanged(nameof(TextoBotonEnviarAnalizador));
             OnPropertyChanged(nameof(TextoSeleccion));
+            OnPropertyChanged(nameof(FotosSeleccionadasProcesablesIA));
+            OnPropertyChanged(nameof(FotosSeleccionadasParaEnviar));
+            OnPropertyChanged(nameof(FotosSeleccionadasReevaluables));
             OnPropertyChanged(nameof(PuedeProcesarSeleccion));
             OnPropertyChanged(nameof(PuedeEnviarSeleccion));
             OnPropertyChanged(nameof(PuedeSolicitarRevision));

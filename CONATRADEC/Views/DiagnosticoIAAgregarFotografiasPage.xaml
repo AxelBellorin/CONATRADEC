@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.DiagnosticoIAAgregarFotografiasPage"
+    x:Name="PaginaAgregarFotos"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    xmlns:viewmodels="clr-namespace:CONATRADEC.ViewModels"
+    x:DataType="viewmodels:DiagnosticoIAAgregarFotografiasViewModel"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F7F8F7">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid
+            Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}"
+            RowDefinitions="Auto,Auto,*,Auto"
+            RowSpacing="12">
+
+            <Border
+                Grid.Row="0"
+                Padding="{OnIdiom Phone=14, Default=18}"
+                BackgroundColor="White"
+                Stroke="#C8DED6"
+                StrokeShape="RoundRectangle 14"
+                MaximumWidthRequest="1250"
+                HorizontalOptions="Fill">
+                <Grid
+                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                    ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,*'}"
+                    RowSpacing="10"
+                    ColumnSpacing="14">
+                    <Button
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Text="← Volver"
+                        Clicked="OnVolverClicked"
+                        WidthRequest="{OnIdiom Phone=0, Default=120}"
+                        HeightRequest="44"
+                        HorizontalOptions="{OnIdiom Phone=Fill, Default=Start}"
+                        BackgroundColor="#EEF2F0"
+                        TextColor="#3B655B"
+                        CornerRadius="10" />
+                    <VerticalStackLayout
+                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                        Spacing="4">
+                        <Label
+                            Text="{Binding Titulo}"
+                            FontSize="{OnIdiom Phone=24, Default=29}"
+                            FontAttributes="Bold"
+                            TextColor="#263A35" />
+                        <Label
+                            Text="{Binding Subtitulo}"
+                            FontSize="13"
+                            TextColor="#5E6B67"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <Border
+                Grid.Row="1"
+                Padding="12"
+                BackgroundColor="#FFF9E8"
+                Stroke="#E2B93B"
+                StrokeShape="RoundRectangle 12"
+                IsVisible="{Binding TieneMensajeEstado}"
+                MaximumWidthRequest="1250"
+                HorizontalOptions="Fill">
+                <HorizontalStackLayout Spacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        Color="#9B552C" />
+                    <Label
+                        Text="{Binding MensajeEstado}"
+                        TextColor="#6B5710"
+                        VerticalTextAlignment="Center" />
+                </HorizontalStackLayout>
+            </Border>
+
+            <CollectionView
+                Grid.Row="2"
+                ItemsSource="{Binding Fotografias}"
+                SelectionMode="None"
+                MaximumWidthRequest="1250"
+                HorizontalOptions="Fill">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout
+                        Padding="20"
+                        Spacing="8"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Label
+                            Text="No hay fotografías para preparar."
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            TextColor="#263A35" />
+                        <Label
+                            Text="Regrese a la inspección y seleccione las imágenes nuevamente."
+                            TextColor="#5E6B67" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:InspeccionFotoPreparacionLocal">
+                        <Border
+                            Margin="0,0,0,12"
+                            Padding="{OnIdiom Phone=12, Default=16}"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeShape="RoundRectangle 14">
+                            <Grid
+                                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                ColumnDefinitions="{OnIdiom Phone='*', Default='280,*'}"
+                                RowSpacing="14"
+                                ColumnSpacing="18">
+
+                                <Border
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    HeightRequest="{OnIdiom Phone=260, Default=250}"
+                                    BackgroundColor="#EEF2F0"
+                                    Stroke="#C8DED6"
+                                    StrokeShape="RoundRectangle 12">
+                                    <Image
+                                        Source="{Binding Miniatura}"
+                                        Aspect="AspectFit" />
+                                </Border>
+
+                                <VerticalStackLayout
+                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                    Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                    Spacing="10">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label
+                                                Text="{Binding Titulo}"
+                                                FontSize="19"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35" />
+                                            <Label
+                                                Text="{Binding ArchivoTexto}"
+                                                FontSize="12"
+                                                TextColor="#6A7773"
+                                                LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+                                        <Button
+                                            Grid.Column="1"
+                                            Text="Quitar"
+                                            Command="{Binding Source={x:Reference PaginaAgregarFotos}, Path=BindingContext.EliminarFotoCommand}"
+                                            CommandParameter="{Binding .}"
+                                            HeightRequest="38"
+                                            Padding="12,6"
+                                            BackgroundColor="#FDECEC"
+                                            TextColor="#B42318"
+                                            CornerRadius="9" />
+                                    </Grid>
+
+                                    <Grid
+                                        ColumnDefinitions="{OnIdiom Phone='*', Default='*,*'}"
+                                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                        RowSpacing="10"
+                                        ColumnSpacing="12">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label
+                                                Text="Fecha de identificación en campo"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35" />
+                                            <DatePicker
+                                                Date="{Binding FechaIdentificacionCampo, Mode=TwoWay}"
+                                                MaximumDate="{Binding Source={x:Reference PaginaAgregarFotos}, Path=BindingContext.FechaMaxima}"
+                                                Format="dd/MM/yyyy"
+                                                HeightRequest="48"
+                                                BackgroundColor="#F8FAF9" />
+                                        </VerticalStackLayout>
+
+                                        <VerticalStackLayout
+                                            Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                            Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                            Spacing="4">
+                                            <Label
+                                                Text="Tipo de fotografía"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35" />
+                                            <Picker
+                                                Title="Seleccione el tipo"
+                                                ItemsSource="{Binding Source={x:Reference PaginaAgregarFotos}, Path=BindingContext.TiposFotografia}"
+                                                SelectedItem="{Binding TipoFotografiaSeleccionada, Mode=TwoWay}"
+                                                HeightRequest="48"
+                                                BackgroundColor="#F8FAF9" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+
+                                    <Border
+                                        Padding="10"
+                                        BackgroundColor="#EEF6F2"
+                                        Stroke="#C8DED6"
+                                        StrokeShape="RoundRectangle 10">
+                                        <VerticalStackLayout Spacing="3">
+                                            <Label
+                                                Text="Qué priorizará la IA"
+                                                FontSize="12"
+                                                FontAttributes="Bold"
+                                                TextColor="#3B655B" />
+                                            <Label
+                                                Text="{Binding InstruccionTipoFotografia}"
+                                                FontSize="12"
+                                                TextColor="#4D625C"
+                                                LineBreakMode="WordWrap" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Border
+                Grid.Row="3"
+                Padding="12"
+                BackgroundColor="White"
+                Stroke="#D9E3DF"
+                StrokeShape="RoundRectangle 12"
+                MaximumWidthRequest="1250"
+                HorizontalOptions="Fill">
+                <Grid
+                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                    RowSpacing="8"
+                    ColumnSpacing="12">
+                    <Label
+                        Text="Configure la fecha y el tipo de cada imagen antes de agregar el lote."
+                        TextColor="#5E6B67"
+                        VerticalTextAlignment="Center" />
+                    <Button
+                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                        Text="{Binding TextoGuardar}"
+                        Command="{Binding GuardarCommand}"
+                        IsEnabled="{Binding PuedeGuardar}"
+                        MinimumWidthRequest="{OnIdiom Phone=0, Default=220}"
+                        HeightRequest="48"
+                        HorizontalOptions="Fill"
+                        BackgroundColor="#3B655B"
+                        TextColor="White"
+                        CornerRadius="11" />
+                </Grid>
+            </Border>
+        </Grid>
+    </ContentView>
+</ContentPage>

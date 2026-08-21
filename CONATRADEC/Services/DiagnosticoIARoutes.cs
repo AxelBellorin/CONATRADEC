@@ -55,6 +55,22 @@ namespace CONATRADEC.Services
             nameof(Views.DiagnosticoIAConfiguracionPage),
             typeof(Views.DiagnosticoIAConfiguracionPage));
 
+        /// <summary>
+        /// Preparación visual de un lote local antes de incorporarlo al
+        /// expediente. Cada fotografía conserva fecha y tipo propios.
+        /// </summary>
+        public static readonly string PaginaAgregarFotografias = Registrar(
+            nameof(Views.DiagnosticoIAAgregarFotografiasPage),
+            typeof(Views.DiagnosticoIAAgregarFotografiasPage));
+
+        /// <summary>
+        /// Preparación del análisis IA inicial. Muestra las fotografías
+        /// seleccionadas con su contexto específico antes de consumir IA.
+        /// </summary>
+        public static readonly string PaginaPrepararAnalisisIA = Registrar(
+            nameof(Views.DiagnosticoIAPrepararAnalisisPage),
+            typeof(Views.DiagnosticoIAPrepararAnalisisPage));
+
         public static string RutaModulo => Pagina;
 
         public static void AsegurarRegistro()
@@ -66,6 +82,8 @@ namespace CONATRADEC.Services
             _ = PaginaAprobador;
             _ = PaginaBusquedaTerreno;
             _ = PaginaConfiguracion;
+            _ = PaginaAgregarFotografias;
+            _ = PaginaPrepararAnalisisIA;
         }
 
         public static string CrearRutaSolicitud(string modo)

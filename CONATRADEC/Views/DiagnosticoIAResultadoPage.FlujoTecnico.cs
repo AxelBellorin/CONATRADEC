@@ -1,7 +1,10 @@
+using CONATRADEC.Controls;
 using CONATRADEC.Models;
 using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Devices;
+using Microsoft.Maui.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +16,55 @@ namespace CONATRADEC.Views
     public partial class DiagnosticoIAResultadoPage
     {
         private bool finalizandoEtapaTecnica;
+        private bool esperandoConfiguracionBotonIA;
+
+        /// <summary>
+        /// El botón histórico «Analizar con IA» funciona ahora sobre la
+        /// selección completa. Cada fotografía se procesa de forma independiente
+        /// según su estado; por eso se presenta como una acción de lote.
+        /// </summary>
+        protected override void OnHandlerChanged()
+        {
+            base.OnHandlerChanged();
+
+            if (Handler == null)
+                return;
+
+            Dispatcher.Dispatch(ConfigurarBotonProcesamientoIA);
+
+            if (!esperandoConfiguracionBotonIA)
+            {
+                esperandoConfiguracionBotonIA = true;
+                Loaded += OnResultadoPageLoadedParaBotonIA;
+            }
+        }
+
+        private void OnResultadoPageLoadedParaBotonIA(
+            object? sender,
+            EventArgs e)
+        {
+            Loaded -= OnResultadoPageLoadedParaBotonIA;
+            esperandoConfiguracionBotonIA = false;
+            ConfigurarBotonProcesamientoIA();
+        }
+
+        private void ConfigurarBotonProcesamientoIA()
+        {
+            Button? boton = ResponsiveLayoutUtility.FindDescendant<Button>(
+                this,
+                current =>
+                    string.Equals(
+                        current.Text,
+                        "Analizar con IA",
+                        StringComparison.Ordinal) ||
+                    string.Equals(
+                        current.Text,
+                        "Procesar selección con IA",
+                        StringComparison.Ordinal));
+
+            if (boton != null)
+                boton.Text = "Procesar selección con IA";
+        }
 
         /// <summary>
         /// Selecciona únicamente fotografías que todavía pertenecen a la etapa
@@ -111,7 +163,7 @@ namespace CONATRADEC.Views
             {
                 await DisplayAlert(
                     "Análisis de IA requerido",
-                    "Ninguna evidencia tiene todavía un resultado de IA. Seleccione al menos una fotografía y use «Analizar con IA» antes de intentar finalizar la inspección.",
+                    "Ninguna evidencia tiene todavía un resultado de IA. Use «Procesar pendientes con IA» o seleccione fotografías y use «Analizar con IA» antes de intentar finalizar la inspección.",
                     "Aceptar");
                 return;
             }

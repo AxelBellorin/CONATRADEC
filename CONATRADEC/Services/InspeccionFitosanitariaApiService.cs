@@ -209,6 +209,67 @@ namespace CONATRADEC.Services
                 new { fotografiaIds },
                 cancellationToken);
 
+        /// <summary>
+        /// Ejecuta el análisis inicial con contexto específico por fotografía.
+        /// El endpoint histórico se conserva sin cambios para clientes anteriores.
+        /// </summary>
+        public Task<InspeccionOperacionMasivaV2> ProcesarFotosConContextoAsync(
+            int inspeccionId,
+            IReadOnlyCollection<int> fotografiaIds,
+            IReadOnlyDictionary<int, string> contextosPorFotografia,
+            CancellationToken cancellationToken = default)
+        {
+            if (inspeccionId <= 0)
+                throw new ArgumentOutOfRangeException(nameof(inspeccionId));
+
+            List<int> ids = (fotografiaIds ?? [])
+                .Where(item => item > 0)
+                .Distinct()
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                throw new ArgumentException(
+                    "Debe seleccionar al menos una fotografía.",
+                    nameof(fotografiaIds));
+            }
+
+            if (contextosPorFotografia == null)
+                throw new ArgumentNullException(nameof(contextosPorFotografia));
+
+            var contextos = ids
+                .Select(fotografiaId =>
+                {
+                    contextosPorFotografia.TryGetValue(
+                        fotografiaId,
+                        out string? contexto);
+
+                    string texto = contexto?.Trim() ?? string.Empty;
+                    if (texto.Length < 8 || texto.Length > 500)
+                    {
+                        throw new ArgumentException(
+                            "Cada fotografía debe incluir un contexto específico de 8 a 500 caracteres.",
+                            nameof(contextosPorFotografia));
+                    }
+
+                    return new
+                    {
+                        fotografiaId,
+                        contexto = texto
+                    };
+                })
+                .ToList();
+
+            return PostAsync<InspeccionOperacionMasivaV2>(
+                $"api/inspecciones-fitosanitarias/{inspeccionId}/contexto/procesar-fotografias",
+                new
+                {
+                    fotografiaIds = ids,
+                    contextos
+                },
+                cancellationToken);
+        }
+
         public Task<InspeccionOperacionMasivaV2> SolicitarRevisionIAAsync(
             int inspeccionId,
             IReadOnlyCollection<int> fotografiaIds,
@@ -221,7 +282,7 @@ namespace CONATRADEC.Services
                 "Cada solicitud de revisión IA debe corresponder a una sola fotografía.");
 
             return PostAsync<InspeccionOperacionMasivaV2>(
-                $"api/inspecciones-fitosanitarias/{inspeccionId}/solicitar-revision-ia",
+                $"api/inspecciones-fitosanitarias/{inspeccionId}/contexto/solicitar-revision-ia",
                 new
                 {
                     fotografiaIds,

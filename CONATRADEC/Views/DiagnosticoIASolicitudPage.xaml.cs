@@ -543,6 +543,14 @@ namespace CONATRADEC.Views
             bandejaApi.EstablecerTecnicoContextual(modoActual, null);
             listadoViewModel.EstablecerTecnicoEscrito(null);
             listadoViewModel.AplicarModo(modoActual);
+
+            /*
+             * AplicarModo cancela la carga anterior para descartar solicitudes
+             * pendientes. Al cambiar entre las dos vistas seguimos dentro de la
+             * misma Page, por lo que debemos reactivarla antes de inicializar.
+             */
+            listadoViewModel.ActivarPagina();
+
             AplicarBindingContextActual();
 
             OnPropertyChanged(nameof(TituloVista));

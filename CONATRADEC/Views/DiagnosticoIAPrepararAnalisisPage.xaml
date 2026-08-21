@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CONATRADEC.Views.DiagnosticoIAPrepararAnalisisPage"
+    x:Name="PaginaPrepararIA"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:CONATRADEC.Models"
+    xmlns:viewmodels="clr-namespace:CONATRADEC.ViewModels"
+    x:DataType="viewmodels:DiagnosticoIAPrepararAnalisisViewModel"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#F7F8F7">
+
+    <ContentView ControlTemplate="{StaticResource FooterTemplate}">
+        <Grid
+            Padding="{OnIdiom Phone='12,12,12,18', Tablet='18,16,18,22', Desktop='24,20,24,26'}"
+            RowDefinitions="Auto,Auto,*,Auto"
+            RowSpacing="12">
+
+            <Border
+                Grid.Row="0"
+                Padding="{OnIdiom Phone=14, Default=18}"
+                BackgroundColor="White"
+                Stroke="#C8DED6"
+                StrokeShape="RoundRectangle 14"
+                MaximumWidthRequest="1250"
+                HorizontalOptions="Fill">
+                <Grid
+                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                    ColumnDefinitions="{OnIdiom Phone='*', Default='Auto,*'}"
+                    RowSpacing="10"
+                    ColumnSpacing="14">
+                    <Button
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Text="← Volver al expediente"
+                        Clicked="OnVolverClicked"
+                        WidthRequest="{OnIdiom Phone=0, Default=190}"
+                        HeightRequest="44"
+                        HorizontalOptions="{OnIdiom Phone=Fill, Default=Start}"
+                        BackgroundColor="#EEF2F0"
+                        TextColor="#3B655B"
+                        CornerRadius="10" />
+
+                    <VerticalStackLayout
+                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                        Spacing="4">
+                        <Label
+                            Text="{Binding Titulo}"
+                            FontSize="{OnIdiom Phone=24, Default=29}"
+                            FontAttributes="Bold"
+                            TextColor="#263A35"
+                            LineBreakMode="WordWrap" />
+                        <Label
+                            Text="{Binding Subtitulo}"
+                            FontSize="13"
+                            TextColor="#5E6B67"
+                            LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <Border
+                Grid.Row="1"
+                Padding="12"
+                BackgroundColor="#FFF9E8"
+                Stroke="#E2B93B"
+                StrokeShape="RoundRectangle 12"
+                MaximumWidthRequest="1250"
+                HorizontalOptions="Fill">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <ActivityIndicator
+                        IsRunning="{Binding IsBusy}"
+                        IsVisible="{Binding IsBusy}"
+                        Color="#9B552C"
+                        VerticalOptions="Center" />
+                    <VerticalStackLayout
+                        Grid.Column="1"
+                        Spacing="2">
+                        <Label
+                            Text="{Binding TextoProgreso}"
+                            FontAttributes="Bold"
+                            TextColor="#6B5710" />
+                        <Label
+                            Text="{Binding MensajeEstado}"
+                            FontSize="12"
+                            TextColor="#6B5710"
+                            LineBreakMode="WordWrap"
+                            IsVisible="{Binding TieneMensajeEstado}" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <CollectionView
+                Grid.Row="2"
+                ItemsSource="{Binding Fotografias}"
+                SelectionMode="None"
+                MaximumWidthRequest="1250"
+                HorizontalOptions="Fill">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout
+                        Padding="24"
+                        Spacing="8"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Label
+                            Text="No hay fotografías pendientes de IA."
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            TextColor="#263A35" />
+                        <Label
+                            Text="Regrese al expediente y actualice para consultar el estado más reciente."
+                            TextColor="#5E6B67"
+                            HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:InspeccionFotoContextoIAItem">
+                        <Border
+                            Margin="0,0,0,14"
+                            Padding="{OnIdiom Phone=12, Default=16}"
+                            BackgroundColor="White"
+                            Stroke="#D9E3DF"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 14">
+                            <Border.Triggers>
+                                <DataTrigger
+                                    TargetType="Border"
+                                    Binding="{Binding ConError}"
+                                    Value="True">
+                                    <Setter Property="Stroke" Value="#D92D20" />
+                                    <Setter Property="BackgroundColor" Value="#FFF8F7" />
+                                </DataTrigger>
+                                <DataTrigger
+                                    TargetType="Border"
+                                    Binding="{Binding Completada}"
+                                    Value="True">
+                                    <Setter Property="Stroke" Value="#7AB8A6" />
+                                    <Setter Property="BackgroundColor" Value="#F4FBF8" />
+                                </DataTrigger>
+                            </Border.Triggers>
+
+                            <Grid
+                                RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                                ColumnDefinitions="{OnIdiom Phone='*', Default='360,*'}"
+                                RowSpacing="14"
+                                ColumnSpacing="20">
+
+                                <VerticalStackLayout
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    Spacing="8">
+                                    <Border
+                                        HeightRequest="{OnIdiom Phone=300, Default=330}"
+                                        BackgroundColor="#EEF2F0"
+                                        Stroke="#C8DED6"
+                                        StrokeShape="RoundRectangle 12">
+                                        <Image
+                                            Source="{Binding UrlImagen}"
+                                            Aspect="AspectFit" />
+                                    </Border>
+
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label
+                                                Text="{Binding Fotografia.Titulo}"
+                                                FontSize="18"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35" />
+                                            <Label
+                                                Text="{Binding FechaCampoTexto}"
+                                                FontSize="12"
+                                                TextColor="#5E6B67" />
+                                        </VerticalStackLayout>
+                                        <Border
+                                            Grid.Column="1"
+                                            Padding="9,5"
+                                            BackgroundColor="#E3EFEA"
+                                            Stroke="#C8DED6"
+                                            StrokeShape="RoundRectangle 9"
+                                            VerticalOptions="Start">
+                                            <Label
+                                                Text="{Binding TipoFotografiaTexto}"
+                                                FontSize="11"
+                                                FontAttributes="Bold"
+                                                TextColor="#3B655B" />
+                                        </Border>
+                                    </Grid>
+                                </VerticalStackLayout>
+
+                                <VerticalStackLayout
+                                    Grid.Row="{OnIdiom Phone=1, Default=0}"
+                                    Grid.Column="{OnIdiom Phone=0, Default=1}"
+                                    Spacing="10">
+                                    <Label
+                                        Text="Contexto específico para esta fotografía"
+                                        FontSize="17"
+                                        FontAttributes="Bold"
+                                        TextColor="#263A35" />
+                                    <Label
+                                        Text="Describa qué observó en campo o qué desea que la IA revise. El texto de esta tarjeta se enviará únicamente con esta fotografía y el análisis se limitará al contexto fitosanitario del cafeto."
+                                        FontSize="12"
+                                        TextColor="#5E6B67"
+                                        LineBreakMode="WordWrap" />
+
+                                    <Border
+                                        Padding="10"
+                                        BackgroundColor="#EEF6F2"
+                                        Stroke="#B9D7CB"
+                                        StrokeShape="RoundRectangle 10"
+                                        IsVisible="{Binding RecuperaResultadoExistente}">
+                                        <Label
+                                            Text="Esta fotografía ya tiene un resultado IA válido guardado. Al procesarla se recuperará ese resultado sin volver a consumir el modelo."
+                                            FontSize="12"
+                                            TextColor="#3B655B"
+                                            LineBreakMode="WordWrap" />
+                                    </Border>
+
+                                    <Border
+                                        Padding="0"
+                                        BackgroundColor="#FAFCFB"
+                                        Stroke="#C9D4D0"
+                                        StrokeShape="RoundRectangle 10">
+                                        <Border.Triggers>
+                                            <DataTrigger
+                                                TargetType="Border"
+                                                Binding="{Binding RecuperaResultadoExistente}"
+                                                Value="True">
+                                                <Setter Property="IsVisible" Value="False" />
+                                            </DataTrigger>
+                                        </Border.Triggers>
+                                        <Editor
+                                            Text="{Binding Contexto, Mode=TwoWay}"
+                                            Placeholder="Ejemplo: revisar las manchas amarillas visibles en la zona central y los bordes secos de la hoja..."
+                                            AutoSize="TextChanges"
+                                            HeightRequest="{OnIdiom Phone=170, Default=200}"
+                                            MinimumHeightRequest="150"
+                                            MaxLength="500"
+                                            FontSize="14"
+                                            TextColor="#263A35"
+                                            BackgroundColor="Transparent"
+                                            Margin="8" />
+                                    </Border>
+
+                                    <Label
+                                        Text="{Binding ContextoCaracteresTexto}"
+                                        FontSize="11"
+                                        TextColor="#6A7773"
+                                        HorizontalTextAlignment="End">
+                                        <Label.Triggers>
+                                            <DataTrigger
+                                                TargetType="Label"
+                                                Binding="{Binding RecuperaResultadoExistente}"
+                                                Value="True">
+                                                <Setter Property="IsVisible" Value="False" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+
+                                    <Border
+                                        Padding="10"
+                                        BackgroundColor="#F5F8F7"
+                                        Stroke="#DFE8E4"
+                                        StrokeShape="RoundRectangle 10">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                                            <ActivityIndicator
+                                                IsRunning="{Binding Procesando}"
+                                                IsVisible="{Binding Procesando}"
+                                                Color="#3B655B"
+                                                VerticalOptions="Center" />
+                                            <Label
+                                                Grid.Column="1"
+                                                Text="{Binding EstadoOperacion}"
+                                                FontSize="12"
+                                                TextColor="#4F5D59"
+                                                LineBreakMode="WordWrap"
+                                                VerticalTextAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Border
+                Grid.Row="3"
+                Padding="12"
+                BackgroundColor="White"
+                Stroke="#D9E3DF"
+                StrokeShape="RoundRectangle 12"
+                MaximumWidthRequest="1250"
+                HorizontalOptions="Fill">
+                <Grid
+                    RowDefinitions="{OnIdiom Phone='Auto,Auto', Default='Auto'}"
+                    ColumnDefinitions="{OnIdiom Phone='*', Default='*,Auto'}"
+                    RowSpacing="8"
+                    ColumnSpacing="12">
+                    <Label
+                        Text="{Binding TextoAyudaProcesamiento}"
+                        TextColor="#5E6B67"
+                        LineBreakMode="WordWrap"
+                        VerticalTextAlignment="Center" />
+                    <Button
+                        Grid.Row="{OnIdiom Phone=1, Default=0}"
+                        Grid.Column="{OnIdiom Phone=0, Default=1}"
+                        Text="{Binding TextoBotonProcesar}"
+                        Command="{Binding ProcesarCommand}"
+                        IsEnabled="{Binding PuedeProcesar}"
+                        MinimumWidthRequest="{OnIdiom Phone=0, Default=250}"
+                        HeightRequest="50"
+                        HorizontalOptions="Fill"
+                        BackgroundColor="#3B655B"
+                        TextColor="White"
+                        CornerRadius="11"
+                        FontAttributes="Bold" />
+                </Grid>
+            </Border>
+        </Grid>
+    </ContentView>
+</ContentPage>

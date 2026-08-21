@@ -254,6 +254,9 @@
 		<MauiXaml Update="Views\DevolucionTecnicoFotografiaPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
+		<MauiXaml Update="Views\DiagnosticoIAAgregarFotografiasPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 		<MauiXaml Update="Views\DiagnosticoIAAnalizadorPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
@@ -264,6 +267,9 @@
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 		<MauiXaml Update="Views\DiagnosticoIAPage.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Views\DiagnosticoIAPrepararAnalisisPage.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
 

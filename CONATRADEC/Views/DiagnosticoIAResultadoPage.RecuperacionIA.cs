@@ -10,7 +10,9 @@ namespace CONATRADEC.Views
     /// <summary>
     /// Presentación y ejecución explícita de la recuperación de análisis IA.
     /// No modifica estados al consultar el expediente: el usuario debe confirmar
-    /// la recuperación mediante el botón visible en esta misma página.
+    /// la recuperación mediante el botón visible en esta misma página. Las
+    /// acciones ordinarias del técnico se presentan en el parcial especializado
+    /// de acciones por lote para mantener una única regla visual.
     /// </summary>
     public partial class DiagnosticoIAResultadoPage
     {
@@ -24,8 +26,6 @@ namespace CONATRADEC.Views
         private Label? recuperacionIATitulo;
         private Label? recuperacionIADetalle;
         private Button? recuperacionIAButton;
-        private Button? analizarConIAButton;
-        private Button? solicitarNuevaEvaluacionIAButton;
         private bool recuperacionIASuscrita;
         private bool recuperacionIAEnCurso;
 
@@ -46,9 +46,9 @@ namespace CONATRADEC.Views
             Dispatcher.Dispatch(() =>
             {
                 IntegrarPanelRecuperacionIA();
-                IntegrarAccionesEvaluacionIA();
+                IntegrarAccionesTecnicoLote();
                 ActualizarPanelRecuperacionIA();
-                ActualizarAccionesEvaluacionIA();
+                ActualizarAccionesTecnicoLote();
             });
         }
 
@@ -147,11 +147,16 @@ namespace CONATRADEC.Views
                 or nameof(DiagnosticoIAResultadoViewModel.IsBusy)
                 or nameof(DiagnosticoIAResultadoViewModel.FotosSeleccionadas)
                 or nameof(DiagnosticoIAResultadoViewModel.CantidadSeleccionada)
+                or nameof(DiagnosticoIAResultadoViewModel.CantidadProcesablesIA)
+                or nameof(DiagnosticoIAResultadoViewModel.CantidadListasParaEnviar)
                 or nameof(DiagnosticoIAResultadoViewModel.PuedeProcesarSeleccion)
+                or nameof(DiagnosticoIAResultadoViewModel.PuedeEnviarSeleccion)
                 or nameof(DiagnosticoIAResultadoViewModel.PuedeSolicitarRevision)
+                or nameof(DiagnosticoIAResultadoViewModel.TextoBotonProcesarIA)
+                or nameof(DiagnosticoIAResultadoViewModel.TextoBotonEnviarAnalizador)
                 or nameof(DiagnosticoIAResultadoViewModel.TextoRegresar))
             {
-                Dispatcher.Dispatch(ActualizarAccionesEvaluacionIA);
+                Dispatcher.Dispatch(ActualizarAccionesTecnicoLote);
             }
         }
 
@@ -162,77 +167,8 @@ namespace CONATRADEC.Views
             Dispatcher.Dispatch(() =>
             {
                 ActualizarPanelRecuperacionIA();
-                ActualizarAccionesEvaluacionIA();
+                ActualizarAccionesTecnicoLote();
             });
-        }
-
-        /// <summary>
-        /// Refuerza en la interfaz la separación entre el primer análisis y una
-        /// reevaluación. Si ya existe ResultadoIA, el botón de análisis inicial
-        /// deja de mostrarse y solo queda disponible la reevaluación formal.
-        /// </summary>
-        private void IntegrarAccionesEvaluacionIA()
-        {
-            analizarConIAButton ??=
-                ResponsiveLayoutUtility.FindDescendant<Button>(
-                    this,
-                    item => string.Equals(
-                        item.Text,
-                        "Analizar con IA",
-                        StringComparison.Ordinal));
-
-            solicitarNuevaEvaluacionIAButton ??=
-                ResponsiveLayoutUtility.FindDescendant<Button>(
-                    this,
-                    item => string.Equals(
-                        item.Text,
-                        "Solicitar nueva evaluación IA",
-                        StringComparison.Ordinal));
-        }
-
-        private void ActualizarAccionesEvaluacionIA()
-        {
-            IntegrarAccionesEvaluacionIA();
-
-            if (analizarConIAButton == null ||
-                solicitarNuevaEvaluacionIAButton == null)
-            {
-                return;
-            }
-
-            List<InspeccionFotoV2> seleccionadas =
-                viewModel.FotosSeleccionadas;
-
-            bool vistaTecnico = string.Equals(
-                viewModel.TextoRegresar,
-                "Mis inspecciones",
-                StringComparison.OrdinalIgnoreCase);
-
-            bool todasSinResultadoPrevio =
-                seleccionadas.Count > 0 &&
-                seleccionadas.All(item => item.ResultadoIA == null);
-
-            bool unaConResultadoPrevio =
-                seleccionadas.Count == 1 &&
-                seleccionadas[0].ResultadoIA != null;
-
-            analizarConIAButton.IsVisible =
-                vistaTecnico &&
-                viewModel.PuedeProcesarSeleccion &&
-                todasSinResultadoPrevio;
-
-            analizarConIAButton.IsEnabled =
-                analizarConIAButton.IsVisible &&
-                !viewModel.IsBusy;
-
-            solicitarNuevaEvaluacionIAButton.IsVisible =
-                vistaTecnico &&
-                viewModel.PuedeSolicitarRevision &&
-                unaConResultadoPrevio;
-
-            solicitarNuevaEvaluacionIAButton.IsEnabled =
-                solicitarNuevaEvaluacionIAButton.IsVisible &&
-                !viewModel.IsBusy;
         }
 
         private void ActualizarPanelRecuperacionIA()
