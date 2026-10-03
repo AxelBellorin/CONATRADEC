@@ -116,7 +116,7 @@ namespace CONATRADEC.Models
 
     /// <summary>
     /// Elemento de trabajo para preparar un análisis IA inicial. El contexto
-    /// pertenece exclusivamente a la fotografía mostrada en la tarjeta.
+    /// adicional pertenece exclusivamente a la fotografía mostrada y es opcional.
     /// </summary>
     public sealed class InspeccionFotoContextoIAItem : INotifyPropertyChanged
     {
@@ -151,17 +151,46 @@ namespace CONATRADEC.Models
 
                 contexto = nuevo;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneContextoAdicional));
                 OnPropertyChanged(nameof(ContextoCaracteresTexto));
                 OnPropertyChanged(nameof(ContextoValido));
             }
         }
 
-        public string ContextoCaracteresTexto =>
-            $"{Contexto.Length} / 500 caracteres";
+        public bool TieneContextoAdicional =>
+            !string.IsNullOrWhiteSpace(Contexto);
 
-        public bool ContextoValido => RecuperaResultadoExistente ||
-                                      (Contexto.Trim().Length >= 8 &&
-                                       Contexto.Trim().Length <= 500);
+        public string ContextoCaracteresTexto
+        {
+            get
+            {
+                int caracteres = Contexto.Trim().Length;
+
+                if (caracteres == 0)
+                    return "Opcional · 0 / 500 caracteres";
+
+                if (caracteres < 8)
+                {
+                    return
+                        $"{Contexto.Length} / 500 caracteres · escriba al menos 8 o déjelo vacío";
+                }
+
+                return $"{Contexto.Length} / 500 caracteres";
+            }
+        }
+
+        public bool ContextoValido
+        {
+            get
+            {
+                if (RecuperaResultadoExistente)
+                    return true;
+
+                int caracteres = Contexto.Trim().Length;
+                return caracteres == 0 ||
+                       (caracteres >= 8 && caracteres <= 500);
+            }
+        }
 
         public string EstadoOperacion
         {

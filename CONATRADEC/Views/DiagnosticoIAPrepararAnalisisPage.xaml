@@ -194,12 +194,12 @@
                                     Grid.Column="{OnIdiom Phone=0, Default=1}"
                                     Spacing="10">
                                     <Label
-                                        Text="Contexto específico para esta fotografía"
+                                        Text="Contexto adicional (opcional)"
                                         FontSize="17"
                                         FontAttributes="Bold"
                                         TextColor="#263A35" />
                                     <Label
-                                        Text="Describa qué observó en campo o qué desea que la IA revise. El texto de esta tarjeta se enviará únicamente con esta fotografía y el análisis se limitará al contexto fitosanitario del cafeto."
+                                        Text="Puede indicar algo puntual que observó o desea revisar. Si lo deja vacío, la IA utilizará el tipo de fotografía y las instrucciones fitosanitarias configuradas. Si escribe algo, se enviará únicamente con esta fotografía."
                                         FontSize="12"
                                         TextColor="#5E6B67"
                                         LineBreakMode="WordWrap" />
@@ -232,7 +232,7 @@
                                         </Border.Triggers>
                                         <Editor
                                             Text="{Binding Contexto, Mode=TwoWay}"
-                                            Placeholder="Ejemplo: revisar las manchas amarillas visibles en la zona central y los bordes secos de la hoja..."
+                                            Placeholder="Opcional. Ejemplo: revisar este insecto, estas manchas o una zona específica de la fotografía..."
                                             AutoSize="TextChanges"
                                             HeightRequest="{OnIdiom Phone=170, Default=200}"
                                             MinimumHeightRequest="150"

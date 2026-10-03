@@ -8,7 +8,7 @@ namespace CONATRADEC.ViewModels
     /// <summary>
     /// Prepara y ejecuta el análisis IA inicial de una selección de fotografías.
     /// La selección es un lote visual, pero cada fotografía conserva su propio
-    /// contexto, llamada HTTP, estado y resultado.
+    /// contexto adicional opcional, llamada HTTP, estado y resultado.
     /// </summary>
     public sealed class DiagnosticoIAPrepararAnalisisViewModel :
         DiagnosticoIAViewModelBase
@@ -38,9 +38,8 @@ namespace CONATRADEC.ViewModels
             : $"Preparar análisis IA · {Fotografias.Count} fotografías";
 
         public string Subtitulo => Fotografias.Count == 1
-            ? "Revise la imagen y escriba qué desea que la IA observe específicamente."
-            : "Revise cada imagen y escriba qué desea que la IA observe. " +
-              "El lote se procesa fotografía por fotografía y un error no detiene las demás.";
+            ? "Revise la imagen. Si observó algo particular, puede agregar un contexto adicional antes de iniciar."
+            : "Revise cada imagen. El contexto adicional es opcional; cada fotografía se procesa de forma independiente y un error no detiene las demás.";
 
         public int CantidadFotografias => Fotografias.Count;
         public int CantidadCompletadas => Fotografias.Count(item => item.Completada);
@@ -94,9 +93,8 @@ namespace CONATRADEC.ViewModels
         }
 
         public string TextoAyudaProcesamiento => Fotografias.Count == 1
-            ? "Revise la imagen y su contexto antes de iniciar el análisis."
-            : "Revise todas las imágenes y sus contextos antes de iniciar. " +
-              "Las fotografías se procesarán individualmente.";
+            ? "El contexto adicional es opcional. Si lo deja vacío, la IA se guiará por el tipo de fotografía y las instrucciones fitosanitarias configuradas."
+            : "El contexto adicional es opcional. Las fotografías sin texto se analizarán usando su tipo de evidencia y las instrucciones fitosanitarias configuradas.";
 
         public bool PuedeProcesar =>
             diagnosticoId > 0 &&
@@ -168,7 +166,7 @@ namespace CONATRADEC.ViewModels
                                           fotografia.Estado ==
                                               InspeccionFotoEstados.ErrorIA
                             ? "Existe un resultado IA válido guardado. Se recuperará sin volver a consumir el modelo."
-                            : "Pendiente de contexto y procesamiento"
+                            : "Pendiente de procesamiento"
                     };
 
                     item.PropertyChanged += OnFotografiaPropertyChanged;
@@ -216,10 +214,10 @@ namespace CONATRADEC.ViewModels
             if (contextosInvalidos.Count > 0)
             {
                 await MostrarAlertaAsync(
-                    "Contexto incompleto",
+                    "Contexto adicional inválido",
                     pendientes.Count == 1
-                        ? "La fotografía debe tener entre 8 y 500 caracteres de contexto antes de iniciar el análisis."
-                        : "Cada fotografía debe tener entre 8 y 500 caracteres de contexto antes de procesar el lote.");
+                        ? "El contexto adicional puede dejarse vacío. Si escribe uno, debe contener entre 8 y 500 caracteres."
+                        : "El contexto adicional puede dejarse vacío en cada fotografía. Si escribe uno, debe contener entre 8 y 500 caracteres.");
                 return;
             }
 
@@ -228,8 +226,8 @@ namespace CONATRADEC.ViewModels
                     ? "Procesar fotografía con IA"
                     : "Procesar lote con IA",
                 pendientes.Count == 1
-                    ? "Se analizará esta fotografía con el contexto mostrado."
-                    : $"Se analizarán {pendientes.Count} fotografías una por una. Cada imagen usará únicamente su propio contexto y un error no detendrá las demás.");
+                    ? "Se analizará esta fotografía usando su tipo de evidencia y las instrucciones configuradas. El contexto adicional se aplicará solamente si fue escrito."
+                    : $"Se analizarán {pendientes.Count} fotografías una por una. Cada imagen usará su tipo de evidencia y, cuando exista, únicamente su propio contexto adicional. Un error no detendrá las demás.");
 
             if (!confirmar)
                 return;

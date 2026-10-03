@@ -1,4 +1,4 @@
-﻿using CONATRADEC.Services;
+using CONATRADEC.Services;
 using CONATRADEC.ViewModels;
 using System.Diagnostics;
 using System.Linq;
@@ -9,6 +9,8 @@ namespace CONATRADEC.Views
     public partial class albumDetallePage : ContentPage
     {
         private readonly AlbumDetalleViewModel viewModel = new();
+        private readonly AlbumFitosanitarioSenalizacionApiService
+            senalizacionApi = new();
         private CollectionView? fotosCollection;
         private int spanFotos = -1;
 
@@ -33,6 +35,17 @@ namespace CONATRADEC.Views
 
             try
             {
+                /*
+                 * Una entrada o regreso visible al detalle parte de datos de
+                 * señalización limpios. Al abrir el visor no se borra la caché,
+                 * de modo que el subflujo puede reutilizar las mismas capas.
+                 */
+                if (viewModel.Id > 0)
+                {
+                    AlbumFitosanitarioSenalizacionCache.LimpiarAlbum(
+                        viewModel.Id);
+                }
+
                 viewModel.ActualizarPermisos();
 
                 if (!viewModel.CanView)
@@ -48,6 +61,7 @@ namespace CONATRADEC.Views
 
                 AplicarColumnasFotografias();
                 await viewModel.LoadAsync(true);
+                await CargarSenalizacionesFitosanitariasAsync();
                 AplicarColumnasFotografias();
             }
             catch (Exception ex)
@@ -58,8 +72,42 @@ namespace CONATRADEC.Views
 
         protected override void OnDisappearing()
         {
+            /*
+             * No se limpia la señalización aquí: abrir el visor fotográfico es
+             * un subflujo del mismo módulo y necesita conservar estas capas.
+             * La siguiente aparición del detalle invalida y vuelve a consultar.
+             */
             viewModel.CancelarCarga();
             base.OnDisappearing();
+        }
+
+        /// <summary>
+        /// Carga todas las señales de la ficha en una sola petición. La caché
+        /// vive únicamente durante esta visita al detalle del álbum.
+        /// </summary>
+        private async Task CargarSenalizacionesFitosanitariasAsync()
+        {
+            int albumId = viewModel.Detalle?.AlbumBotanicoCafeId ?? 0;
+            if (albumId <= 0)
+                return;
+
+            try
+            {
+                var datos = await senalizacionApi.ObtenerAsync(albumId);
+                AlbumFitosanitarioSenalizacionCache.ReemplazarAlbum(
+                    albumId,
+                    datos);
+            }
+            catch (Exception ex)
+            {
+                // La señalización es complementaria: la galería normal continúa
+                // disponible aun si esta consulta falla temporalmente.
+                Debug.WriteLine(
+                    $"No fue posible cargar señalización fitosanitaria: {ex}");
+                AlbumFitosanitarioSenalizacionCache.ReemplazarAlbum(
+                    albumId,
+                    []);
+            }
         }
 
         private void AplicarColumnasFotografias()

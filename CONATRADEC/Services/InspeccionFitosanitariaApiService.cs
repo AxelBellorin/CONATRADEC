@@ -210,8 +210,10 @@ namespace CONATRADEC.Services
                 cancellationToken);
 
         /// <summary>
-        /// Ejecuta el análisis inicial con contexto específico por fotografía.
-        /// El endpoint histórico se conserva sin cambios para clientes anteriores.
+        /// Ejecuta el análisis inicial con un contexto adicional opcional por
+        /// fotografía. Cuando no se envía texto, el backend mantiene la misma
+        /// ruta contextual e interpreta la imagen usando su tipo de evidencia y
+        /// las instrucciones fitosanitarias configuradas.
         /// </summary>
         public Task<InspeccionOperacionMasivaV2> ProcesarFotosConContextoAsync(
             int inspeccionId,
@@ -245,10 +247,11 @@ namespace CONATRADEC.Services
                         out string? contexto);
 
                     string texto = contexto?.Trim() ?? string.Empty;
-                    if (texto.Length < 8 || texto.Length > 500)
+                    if (texto.Length > 0 &&
+                        (texto.Length < 8 || texto.Length > 500))
                     {
                         throw new ArgumentException(
-                            "Cada fotografía debe incluir un contexto específico de 8 a 500 caracteres.",
+                            "El contexto adicional puede dejarse vacío; si se escribe, debe contener entre 8 y 500 caracteres.",
                             nameof(contextosPorFotografia));
                     }
 
@@ -258,6 +261,7 @@ namespace CONATRADEC.Services
                         contexto = texto
                     };
                 })
+                .Where(item => !string.IsNullOrWhiteSpace(item.contexto))
                 .ToList();
 
             return PostAsync<InspeccionOperacionMasivaV2>(

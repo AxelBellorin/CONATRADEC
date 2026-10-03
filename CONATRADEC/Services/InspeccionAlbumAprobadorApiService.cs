@@ -5,9 +5,9 @@ namespace CONATRADEC.Services
 {
     /// <summary>
     /// Operaciones posteriores a la decisión técnica del aprobador.
-    /// Una vez confirmada la clasificación oficial, la administración del
-    /// Álbum Botánico se reduce a consultar el estado o retirar una publicación.
-    /// La publicación se realiza mediante el servicio fitosanitario existente.
+    /// El estado agregado se obtiene ahora desde las publicaciones por
+    /// diagnóstico. La forma del modelo se conserva para no romper las tarjetas
+    /// históricas que todavía muestran un resumen por fotografía.
     /// </summary>
     public sealed class InspeccionAlbumAprobadorApiService
     {
@@ -26,13 +26,15 @@ namespace CONATRADEC.Services
             EnviarAsync(
                 new HttpRequestMessage(
                     HttpMethod.Get,
-                    $"api/publicaciones-album-fitosanitarias/{inspeccionId}/fotografias/{fotografiaId}/estado"),
+                    $"api/inspecciones-fitosanitarias/{inspeccionId}/" +
+                    $"fotografias/{fotografiaId}/" +
+                    "estado-publicaciones-diagnosticos"),
                 cancellationToken);
 
         /// <summary>
-        /// Retira únicamente la copia activa del Álbum Botánico. La decisión
-        /// técnica y la clasificación oficial del expediente permanecen
-        /// inalterables y la fotografía puede volver a publicarse después.
+        /// Compatibilidad con el botón anterior: si se invoca esta operación se
+        /// retiran todas las publicaciones activas de la fotografía. La pantalla
+        /// nueva permite decidirlo de forma individual por diagnóstico.
         /// </summary>
         public Task<EstadoAlbumAprobador> RetirarPublicacionAsync(
             int inspeccionId,
@@ -41,7 +43,9 @@ namespace CONATRADEC.Services
             EnviarAsync(
                 new HttpRequestMessage(
                     HttpMethod.Patch,
-                    $"api/publicaciones-album-fitosanitarias/{inspeccionId}/fotografias/{fotografiaId}/publicacion/retirar"),
+                    $"api/inspecciones-fitosanitarias/{inspeccionId}/" +
+                    $"fotografias/{fotografiaId}/" +
+                    "publicaciones-diagnosticos/retirar-todas"),
                 cancellationToken);
 
         private async Task<EstadoAlbumAprobador> EnviarAsync(

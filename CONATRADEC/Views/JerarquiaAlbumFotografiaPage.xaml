@@ -10,12 +10,12 @@
     <Grid RowDefinitions="Auto,*">
         <Grid
             Grid.Row="0"
-            Padding="16,12"
+            Padding="{OnPlatform WinUI='22,14', Default='14,11'}"
             ColumnDefinitions="Auto,*"
             ColumnSpacing="10"
             BackgroundColor="White">
             <Button
-                Text="← Cancelar"
+                Text="← Cerrar"
                 Command="{Binding CancelarCommand}"
                 IsEnabled="{Binding NotIsBusy}"
                 Style="{x:Null}"
@@ -24,37 +24,39 @@
                 FontAttributes="Bold" />
             <VerticalStackLayout Grid.Column="1" Spacing="1">
                 <Label
-                    Text="Clasificación para el Álbum Botánico"
-                    FontSize="20"
+                    Text="Clasificaciones para el Álbum Botánico"
+                    FontSize="{OnPlatform WinUI=21, Default=18}"
                     FontAttributes="Bold"
                     TextColor="#263A35" />
                 <Label
                     Text="{Binding EtapaTexto}"
                     FontSize="11"
-                    TextColor="#5E6B67" />
+                    TextColor="#5E6B67"
+                    LineBreakMode="WordWrap" />
             </VerticalStackLayout>
         </Grid>
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout
-                Padding="{OnPlatform WinUI='26,22,26,34', Default='14,14,14,26'}"
+                Padding="{OnPlatform WinUI='26,22,26,34', Default='12,12,12,26'}"
                 Spacing="14"
-                MaximumWidthRequest="1040"
+                MaximumWidthRequest="1100"
                 HorizontalOptions="Center">
 
+                <!-- Evidencia común: una sola fotografía para todos los diagnósticos. -->
                 <Border
                     Padding="14"
                     BackgroundColor="White"
                     Stroke="#D7E2DD"
                     StrokeShape="RoundRectangle 16">
                     <Grid
-                        ColumnDefinitions="{OnPlatform WinUI='310,*', Default='*'}"
+                        ColumnDefinitions="{OnPlatform WinUI='320,*', Default='*'}"
                         RowDefinitions="{OnPlatform WinUI='Auto', Default='Auto,Auto'}"
                         ColumnSpacing="16"
                         RowSpacing="12">
                         <Border
                             Grid.Column="0"
-                            HeightRequest="{OnPlatform WinUI=300, Default=240}"
+                            HeightRequest="{OnPlatform WinUI=300, Default=230}"
                             BackgroundColor="#EDF2F0"
                             Stroke="#D7E2DD"
                             StrokeShape="RoundRectangle 13">
@@ -82,6 +84,7 @@
                                 </Border>
                             </Grid>
                         </Border>
+
                         <VerticalStackLayout
                             Grid.Column="{OnPlatform WinUI=1, Default=0}"
                             Grid.Row="{OnPlatform WinUI=0, Default=1}"
@@ -92,289 +95,533 @@
                                 FontAttributes="Bold"
                                 TextColor="#263A35" />
                             <Label
-                                Text="{Binding Fotografia.ResultadoIA.DiagnosticoVisible, StringFormat='Diagnóstico IA: {0}'}"
-                                FontSize="15"
+                                Text="Una fotografía · varias afectaciones independientes"
+                                FontSize="13"
                                 FontAttributes="Bold"
                                 TextColor="#3B655B" />
                             <Label
-                                Text="{Binding Fotografia.ResultadoIA.NombreCientificoSugerido, StringFormat='Nombre científico sugerido: {0}'}"
-                                FontAttributes="Italic"
-                                TextColor="#4F5D59" />
-                            <Label
-                                Text="{Binding Fotografia.ResultadoIA.ResumenImagen}"
+                                Text="Cada diagnóstico conserva su clasificación, decisión y publicación. La evidencia física permanece única y las señales se guardan como coordenadas asociadas al diagnóstico."
+                                FontSize="12"
                                 TextColor="#4F5D59"
                                 LineBreakMode="WordWrap" />
-
-                            <Border
-                                Padding="10"
-                                BackgroundColor="#FFF8E5"
-                                Stroke="#E4C45D"
-                                StrokeShape="RoundRectangle 10"
-                                IsVisible="{Binding TieneJerarquiaActual}">
-                                <VerticalStackLayout Spacing="3">
-                                    <Label
-                                        Text="Clasificación registrada"
-                                        FontAttributes="Bold"
-                                        TextColor="#6B5710" />
-                                    <Label
-                                        Text="{Binding JerarquiaActual.Categoria, StringFormat='Categoría: {0}'}"
-                                        TextColor="#6B5710" />
-                                    <Label
-                                        Text="{Binding JerarquiaActual.Ficha, StringFormat='Subcategoría: {0}'}"
-                                        TextColor="#6B5710" />
-                                </VerticalStackLayout>
-                            </Border>
+                            <Label
+                                Text="{Binding ResumenDiagnosticos}"
+                                FontSize="12"
+                                TextColor="#6B5710"
+                                FontAttributes="Bold"
+                                LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
                     </Grid>
                 </Border>
 
+                <!-- Diagnósticos independientes. -->
                 <Border
                     Padding="16"
                     BackgroundColor="White"
                     Stroke="#D7E2DD"
                     StrokeShape="RoundRectangle 16">
-                    <VerticalStackLayout Spacing="15">
+                    <VerticalStackLayout Spacing="12">
                         <VerticalStackLayout Spacing="3">
                             <Label
-                                Text="1. Categoría"
+                                Text="Diagnósticos de esta fotografía"
                                 FontSize="18"
                                 FontAttributes="Bold"
                                 TextColor="#263A35" />
                             <Label
-                                Text="La categoría siempre se selecciona del catálogo oficial. No se permite escribirla libremente desde una inspección."
+                                Text="Seleccione cada diagnóstico para revisar su categoría y subcategoría. Una decisión no modifica a los demás."
                                 FontSize="11"
-                                TextColor="#5E6B67" />
+                                TextColor="#5E6B67"
+                                LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
-
-                        <Border
-                            Padding="11,2"
-                            BackgroundColor="#F7F9F8"
-                            Stroke="#D4E0DB"
-                            StrokeShape="RoundRectangle 11">
-                            <Picker
-                                ItemsSource="{Binding Categorias}"
-                                SelectedItem="{Binding CategoriaSeleccionada, Mode=TwoWay}"
-                                ItemDisplayBinding="{Binding NombreCategoria}"
-                                Title="Seleccione una categoría"
-                                TextColor="#263A35" />
-                        </Border>
-
-                        <Border
-                            Padding="10"
-                            BackgroundColor="#EEF5F2"
-                            Stroke="#C8DED6"
-                            StrokeShape="RoundRectangle 10">
-                            <Label
-                                Text="Si la categoría necesaria no existe, debe crearse desde la administración del Álbum Botánico antes de continuar."
-                                FontSize="11"
-                                TextColor="#365A50" />
-                        </Border>
-
-                        <BoxView HeightRequest="1" Color="#E5ECE9" />
-
-                        <VerticalStackLayout Spacing="3">
-                            <Label
-                                Text="2. Subcategoría específica"
-                                FontSize="18"
-                                FontAttributes="Bold"
-                                TextColor="#263A35" />
-                            <Label
-                                Text="Busque primero en el catálogo para evitar duplicados. Toque una subcategoría para seleccionarla; la opción elegida quedará resaltada."
-                                FontSize="11"
-                                TextColor="#5E6B67" />
-                        </VerticalStackLayout>
-
-                        <Grid
-                            ColumnDefinitions="*,Auto"
-                            ColumnSpacing="8"
-                            IsVisible="{Binding UsarSubcategoriaExistente}">
-                            <Border
-                                Grid.Column="0"
-                                Padding="10,2"
-                                BackgroundColor="#F7F9F8"
-                                Stroke="#D4E0DB"
-                                StrokeShape="RoundRectangle 11">
-                                <SearchBar
-                                    Text="{Binding BuscarSubcategoria}"
-                                    Placeholder="Buscar por nombre común o científico"
-                                    TextColor="#263A35"
-                                    PlaceholderColor="#82908B"
-                                    BackgroundColor="Transparent" />
-                            </Border>
-                            <Button
-                                Grid.Column="1"
-                                Text="Limpiar"
-                                Command="{Binding LimpiarBusquedaCommand}"
-                                HeightRequest="46"
-                                CornerRadius="10"
-                                BackgroundColor="#EEF2F0"
-                                TextColor="#374A44" />
-                        </Grid>
-
-                        <Border
-                            Padding="6"
-                            BackgroundColor="#FBFCFB"
-                            Stroke="#D4E0DB"
-                            StrokeShape="RoundRectangle 11"
-                            IsVisible="{Binding UsarSubcategoriaExistente}">
-                            <CollectionView
-                                ItemsSource="{Binding SubcategoriasEspecificas}"
-                                SelectedItem="{Binding SubcategoriaSeleccionada, Mode=TwoWay}"
-                                SelectionMode="Single"
-                                MaximumHeightRequest="280">
-                                <CollectionView.EmptyView>
-                                    <Label
-                                        Padding="12"
-                                        Text="No se encontraron subcategorías con ese criterio."
-                                        HorizontalTextAlignment="Center"
-                                        TextColor="#6A7773" />
-                                </CollectionView.EmptyView>
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:AlbumRegistroJerarquiaResponse">
-                                        <Border
-                                            Margin="3"
-                                            Padding="12,9"
-                                            BackgroundColor="White"
-                                            Stroke="#E0E8E5"
-                                            StrokeThickness="1"
-                                            StrokeShape="RoundRectangle 9">
-                                            <VisualStateManager.VisualStateGroups>
-                                                <VisualStateGroup Name="CommonStates">
-                                                    <VisualState Name="Normal" />
-                                                    <VisualState Name="Selected">
-                                                        <VisualState.Setters>
-                                                            <Setter
-                                                                Property="BackgroundColor"
-                                                                Value="#E8F3EE" />
-                                                            <Setter
-                                                                Property="Stroke"
-                                                                Value="#3B655B" />
-                                                            <Setter
-                                                                Property="StrokeThickness"
-                                                                Value="2" />
-                                                        </VisualState.Setters>
-                                                    </VisualState>
-                                                </VisualStateGroup>
-                                            </VisualStateManager.VisualStateGroups>
-                                            <VerticalStackLayout Spacing="2">
-                                                <Label
-                                                    Text="{Binding Titulo}"
-                                                    FontAttributes="Bold"
-                                                    TextColor="#263A35" />
-                                                <Label
-                                                    Text="{Binding NombreCientifico}"
-                                                    FontSize="11"
-                                                    FontAttributes="Italic"
-                                                    TextColor="#5E6B67" />
-                                            </VerticalStackLayout>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-                        </Border>
-
-                        <Button
-                            Text="{Binding TextoAlternarPropuesta}"
-                            Command="{Binding AlternarPropuestaCommand}"
-                            HeightRequest="46"
-                            CornerRadius="11"
-                            HorizontalOptions="Start"
-                            BackgroundColor="#FFF4EA"
-                            TextColor="#8A4D27" />
 
                         <VerticalStackLayout
                             Spacing="8"
-                            IsVisible="{Binding ProponerSubcategoria}">
-                            <Border
-                                Padding="12"
-                                BackgroundColor="#FFF8E5"
-                                Stroke="#E4C45D"
-                                StrokeShape="RoundRectangle 11">
+                            BindableLayout.ItemsSource="{Binding Diagnosticos}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:ClasificacionDiagnosticoAlbumItem">
+                                    <Border
+                                        Padding="12"
+                                        BackgroundColor="{Binding FondoSeleccion}"
+                                        Stroke="{Binding BordeSeleccion}"
+                                        StrokeThickness="1.5"
+                                        StrokeShape="RoundRectangle 12">
+                                        <Grid
+                                            ColumnDefinitions="Auto,*,Auto"
+                                            ColumnSpacing="10"
+                                            RowDefinitions="Auto,Auto,Auto,Auto">
+                                            <Border
+                                                Grid.RowSpan="4"
+                                                WidthRequest="13"
+                                                HeightRequest="13"
+                                                Margin="0,4,0,0"
+                                                HorizontalOptions="Start"
+                                                VerticalOptions="Start"
+                                                BackgroundColor="{Binding ColorMarcador}"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 4" />
+
+                                            <Label
+                                                Grid.Column="1"
+                                                Text="{Binding Rol}"
+                                                FontSize="10.5"
+                                                FontAttributes="Bold"
+                                                TextColor="#6B7773" />
+                                            <Label
+                                                Grid.Row="1"
+                                                Grid.Column="1"
+                                                Text="{Binding Diagnostico}"
+                                                FontSize="14"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35"
+                                                LineBreakMode="WordWrap" />
+                                            <Label
+                                                Grid.Row="2"
+                                                Grid.Column="1"
+                                                Text="{Binding RutaClasificacion}"
+                                                FontSize="12"
+                                                TextColor="#315E52"
+                                                LineBreakMode="WordWrap" />
+                                            <HorizontalStackLayout
+                                                Grid.Row="3"
+                                                Grid.Column="1"
+                                                Spacing="8">
+                                                <Label
+                                                    Text="{Binding EstadoClasificacionTexto}"
+                                                    FontSize="10.5"
+                                                    FontAttributes="Bold"
+                                                    TextColor="{Binding EstadoColor}" />
+                                                <Label
+                                                    Text="{Binding SenalizacionTexto}"
+                                                    FontSize="10.5"
+                                                    TextColor="#52625D" />
+                                            </HorizontalStackLayout>
+
+                                            <Button
+                                                Grid.Column="2"
+                                                Grid.RowSpan="4"
+                                                Text="Revisar"
+                                                CommandParameter="{Binding .}"
+                                                Clicked="OnSeleccionarDiagnosticoClicked"
+                                                VerticalOptions="Center"
+                                                HeightRequest="40"
+                                                Padding="12,6"
+                                                CornerRadius="9"
+                                                BackgroundColor="#EEF5F2"
+                                                TextColor="#315E52"
+                                                FontSize="11"
+                                                FontAttributes="Bold" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Formulario de la afectación seleccionada. -->
+                <Border
+                    IsVisible="{Binding TieneDiagnosticoSeleccionado}"
+                    Padding="16"
+                    BackgroundColor="White"
+                    Stroke="#D7E2DD"
+                    StrokeShape="RoundRectangle 16">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="2">
                                 <Label
-                                    Text="La nueva subcategoría quedará como propuesta. El sistema buscará coincidencias antes de guardarla para evitar duplicados accidentales."
-                                    FontSize="11"
-                                    TextColor="#6B5710" />
-                            </Border>
-                            <Border
-                                Padding="12,3"
-                                BackgroundColor="#FFF9ED"
-                                Stroke="#E9CF9B"
-                                StrokeShape="RoundRectangle 11">
-                                <Entry
-                                    Text="{Binding SubcategoriaPropuesta}"
-                                    MaxLength="200"
-                                    Placeholder="Nombre de la nueva subcategoría"
+                                    Text="Clasificación del diagnóstico seleccionado"
+                                    FontSize="18"
+                                    FontAttributes="Bold"
                                     TextColor="#263A35" />
-                            </Border>
+                                <Label
+                                    Text="{Binding DiagnosticoSeleccionado.Diagnostico}"
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    TextColor="#3B655B" />
+                                <Label
+                                    Text="{Binding DiagnosticoSeleccionado.Rol}"
+                                    FontSize="11"
+                                    TextColor="#5E6B67" />
+                            </VerticalStackLayout>
                             <Border
-                                Padding="12,3"
+                                Grid.Column="1"
+                                Padding="9,5"
+                                VerticalOptions="Center"
+                                BackgroundColor="#EEF5F2"
+                                Stroke="#C8DED6"
+                                StrokeShape="RoundRectangle 10">
+                                <Label
+                                    Text="{Binding DiagnosticoSeleccionado.SenalizacionTexto}"
+                                    FontSize="10.5"
+                                    FontAttributes="Bold"
+                                    TextColor="#315E52" />
+                            </Border>
+                        </Grid>
+
+                        <Border
+                            IsVisible="{Binding ClasificacionCerrada}"
+                            Padding="12"
+                            BackgroundColor="#EEF5F2"
+                            Stroke="#C8DED6"
+                            StrokeShape="RoundRectangle 11">
+                            <Label
+                                Text="Esta clasificación ya fue confirmada por el aprobador y quedó cerrada. Puede administrar su publicación, pero no sobrescribir categoría ni subcategoría desde este flujo."
+                                FontSize="11"
+                                TextColor="#315E52"
+                                LineBreakMode="WordWrap" />
+                        </Border>
+
+                        <VerticalStackLayout
+                            Spacing="14"
+                            IsVisible="{Binding PuedeEditarClasificacion}">
+
+                            <VerticalStackLayout Spacing="3">
+                                <Label
+                                    Text="1. Categoría"
+                                    FontSize="16"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="La categoría siempre se selecciona del catálogo oficial."
+                                    FontSize="11"
+                                    TextColor="#5E6B67" />
+                            </VerticalStackLayout>
+
+                            <Border
+                                Padding="11,2"
                                 BackgroundColor="#F7F9F8"
                                 Stroke="#D4E0DB"
                                 StrokeShape="RoundRectangle 11">
-                                <Entry
-                                    Text="{Binding NombreCientifico}"
-                                    MaxLength="200"
-                                    Placeholder="Nombre científico (opcional)"
+                                <Picker
+                                    ItemsSource="{Binding Categorias}"
+                                    SelectedItem="{Binding CategoriaSeleccionada, Mode=TwoWay}"
+                                    ItemDisplayBinding="{Binding NombreCategoria}"
+                                    Title="Seleccione una categoría"
                                     TextColor="#263A35" />
                             </Border>
+
+                            <BoxView HeightRequest="1" Color="#E5ECE9" />
+
+                            <VerticalStackLayout Spacing="3">
+                                <Label
+                                    Text="2. Subcategoría específica"
+                                    FontSize="16"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Label
+                                    Text="Busque primero una subcategoría existente para evitar duplicados."
+                                    FontSize="11"
+                                    TextColor="#5E6B67" />
+                            </VerticalStackLayout>
+
+                            <Grid
+                                ColumnDefinitions="*,Auto"
+                                ColumnSpacing="8"
+                                IsVisible="{Binding UsarSubcategoriaExistente}">
+                                <Border
+                                    Grid.Column="0"
+                                    Padding="10,2"
+                                    BackgroundColor="#F7F9F8"
+                                    Stroke="#D4E0DB"
+                                    StrokeShape="RoundRectangle 11">
+                                    <SearchBar
+                                        Text="{Binding BuscarSubcategoria}"
+                                        Placeholder="Buscar por nombre común o científico"
+                                        TextColor="#263A35"
+                                        PlaceholderColor="#82908B"
+                                        BackgroundColor="Transparent" />
+                                </Border>
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Limpiar"
+                                    Command="{Binding LimpiarBusquedaCommand}"
+                                    HeightRequest="46"
+                                    CornerRadius="10"
+                                    BackgroundColor="#EEF2F0"
+                                    TextColor="#374A44" />
+                            </Grid>
+
+                            <Border
+                                Padding="6"
+                                BackgroundColor="#FBFCFB"
+                                Stroke="#D4E0DB"
+                                StrokeShape="RoundRectangle 11"
+                                IsVisible="{Binding UsarSubcategoriaExistente}">
+                                <CollectionView
+                                    ItemsSource="{Binding SubcategoriasEspecificas}"
+                                    SelectedItem="{Binding SubcategoriaSeleccionada, Mode=TwoWay}"
+                                    SelectionMode="Single"
+                                    MaximumHeightRequest="250">
+                                    <CollectionView.EmptyView>
+                                        <Label
+                                            Padding="12"
+                                            Text="No se encontraron subcategorías con ese criterio."
+                                            HorizontalTextAlignment="Center"
+                                            TextColor="#6A7773" />
+                                    </CollectionView.EmptyView>
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:AlbumRegistroJerarquiaResponse">
+                                            <Border
+                                                Margin="3"
+                                                Padding="12,9"
+                                                BackgroundColor="White"
+                                                Stroke="#E0E8E5"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 9">
+                                                <VisualStateManager.VisualStateGroups>
+                                                    <VisualStateGroup Name="CommonStates">
+                                                        <VisualState Name="Normal" />
+                                                        <VisualState Name="Selected">
+                                                            <VisualState.Setters>
+                                                                <Setter Property="BackgroundColor" Value="#E8F3EE" />
+                                                                <Setter Property="Stroke" Value="#3B655B" />
+                                                                <Setter Property="StrokeThickness" Value="2" />
+                                                            </VisualState.Setters>
+                                                        </VisualState>
+                                                    </VisualStateGroup>
+                                                </VisualStateManager.VisualStateGroups>
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label
+                                                        Text="{Binding Titulo}"
+                                                        FontAttributes="Bold"
+                                                        TextColor="#263A35" />
+                                                    <Label
+                                                        Text="{Binding NombreCientifico}"
+                                                        FontSize="11"
+                                                        FontAttributes="Italic"
+                                                        TextColor="#5E6B67" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                            </Border>
+
+                            <Button
+                                Text="{Binding TextoAlternarPropuesta}"
+                                Command="{Binding AlternarPropuestaCommand}"
+                                HeightRequest="44"
+                                CornerRadius="11"
+                                HorizontalOptions="Start"
+                                BackgroundColor="#FFF4EA"
+                                TextColor="#8A4D27" />
+
+                            <VerticalStackLayout
+                                Spacing="8"
+                                IsVisible="{Binding ProponerSubcategoria}">
+                                <Border
+                                    Padding="12"
+                                    BackgroundColor="#FFF8E5"
+                                    Stroke="#E4C45D"
+                                    StrokeShape="RoundRectangle 11">
+                                    <Label
+                                        Text="El analizador registra una propuesta. El aprobador puede convertirla en subcategoría oficial después de comprobar duplicados."
+                                        FontSize="11"
+                                        TextColor="#6B5710"
+                                        LineBreakMode="WordWrap" />
+                                </Border>
+                                <Border
+                                    Padding="12,3"
+                                    BackgroundColor="#FFF9ED"
+                                    Stroke="#E9CF9B"
+                                    StrokeShape="RoundRectangle 11">
+                                    <Entry
+                                        Text="{Binding SubcategoriaPropuesta}"
+                                        MaxLength="200"
+                                        Placeholder="Nombre de la nueva subcategoría"
+                                        TextColor="#263A35" />
+                                </Border>
+                                <Border
+                                    Padding="12,3"
+                                    BackgroundColor="#F7F9F8"
+                                    Stroke="#D4E0DB"
+                                    StrokeShape="RoundRectangle 11">
+                                    <Entry
+                                        Text="{Binding NombreCientifico}"
+                                        MaxLength="200"
+                                        Placeholder="Nombre científico (opcional)"
+                                        TextColor="#263A35" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout
+                                Spacing="6"
+                                IsVisible="{Binding RequiereDescripcionCreacion}">
+                                <Label
+                                    Text="Descripción de la nueva subcategoría *"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Border
+                                    Padding="10"
+                                    BackgroundColor="#F7F9F8"
+                                    Stroke="#D4E0DB"
+                                    StrokeShape="RoundRectangle 11">
+                                    <Editor
+                                        Text="{Binding Descripcion}"
+                                        MinimumHeightRequest="90"
+                                        AutoSize="TextChanges"
+                                        Placeholder="Descripción general para crear la subcategoría oficial."
+                                        TextColor="#263A35" />
+                                </Border>
+                                <Label
+                                    Text="Síntomas visibles"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Border
+                                    Padding="10"
+                                    BackgroundColor="#F7F9F8"
+                                    Stroke="#D4E0DB"
+                                    StrokeShape="RoundRectangle 11">
+                                    <Editor
+                                        Text="{Binding Sintomas}"
+                                        MinimumHeightRequest="75"
+                                        AutoSize="TextChanges"
+                                        Placeholder="Síntomas que caracterizan la subcategoría."
+                                        TextColor="#263A35" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="6">
+                                <Label
+                                    Text="Justificación técnica *"
+                                    FontAttributes="Bold"
+                                    TextColor="#263A35" />
+                                <Border
+                                    Padding="10"
+                                    BackgroundColor="#F7F9F8"
+                                    Stroke="#D4E0DB"
+                                    StrokeShape="RoundRectangle 11">
+                                    <Editor
+                                        Text="{Binding Motivo}"
+                                        MinimumHeightRequest="85"
+                                        AutoSize="TextChanges"
+                                        MaxLength="1200"
+                                        Placeholder="Explique por qué esta clasificación corresponde al diagnóstico."
+                                        TextColor="#263A35" />
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <Button
+                                Text="{Binding TextoGuardar}"
+                                Command="{Binding GuardarCommand}"
+                                IsEnabled="{Binding NotIsBusy}"
+                                HeightRequest="50"
+                                CornerRadius="12"
+                                BackgroundColor="#3B655B"
+                                TextColor="White"
+                                FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Publicación independiente, disponible cuando el aprobador cerró clasificaciones. -->
+                <Border
+                    IsVisible="{Binding MostrarPanelPublicaciones}"
+                    Padding="16"
+                    BackgroundColor="White"
+                    Stroke="#D7E2DD"
+                    StrokeShape="RoundRectangle 16">
+                    <VerticalStackLayout Spacing="12">
+                        <VerticalStackLayout Spacing="3">
+                            <Label
+                                Text="Publicación en el Álbum Botánico"
+                                FontSize="18"
+                                FontAttributes="Bold"
+                                TextColor="#263A35" />
+                            <Label
+                                Text="Seleccione de forma independiente qué diagnósticos desea publicar. Si un diagnóstico tiene señalización, se mostrará siempre con sus regiones; no se modifica la fotografía original."
+                                FontSize="11"
+                                TextColor="#5E6B67"
+                                LineBreakMode="WordWrap" />
                         </VerticalStackLayout>
 
                         <VerticalStackLayout
-                            Spacing="6"
-                            IsVisible="{Binding RequiereDescripcionCreacion}">
-                            <Label
-                                Text="Descripción de la nueva subcategoría *"
-                                FontAttributes="Bold"
-                                TextColor="#263A35" />
-                            <Border
-                                Padding="10"
-                                BackgroundColor="#F7F9F8"
-                                Stroke="#D4E0DB"
-                                StrokeShape="RoundRectangle 11">
-                                <Editor
-                                    Text="{Binding Descripcion}"
-                                    MinimumHeightRequest="100"
-                                    AutoSize="TextChanges"
-                                    Placeholder="Descripción general para crear la subcategoría oficial."
-                                    TextColor="#263A35" />
-                            </Border>
-                            <Label
-                                Text="Síntomas visibles"
-                                FontAttributes="Bold"
-                                TextColor="#263A35" />
-                            <Border
-                                Padding="10"
-                                BackgroundColor="#F7F9F8"
-                                Stroke="#D4E0DB"
-                                StrokeShape="RoundRectangle 11">
-                                <Editor
-                                    Text="{Binding Sintomas}"
-                                    MinimumHeightRequest="80"
-                                    AutoSize="TextChanges"
-                                    Placeholder="Síntomas que caracterizan la subcategoría."
-                                    TextColor="#263A35" />
-                            </Border>
+                            Spacing="8"
+                            BindableLayout.ItemsSource="{Binding DiagnosticosPublicables}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:ClasificacionDiagnosticoAlbumItem">
+                                    <Border
+                                        Padding="12"
+                                        BackgroundColor="#F8FBFA"
+                                        Stroke="#D7E2DD"
+                                        StrokeShape="RoundRectangle 11">
+                                        <Grid
+                                            ColumnDefinitions="*,Auto"
+                                            ColumnSpacing="12"
+                                            RowDefinitions="Auto,Auto,Auto">
+                                            <Label
+                                                Text="{Binding Diagnostico}"
+                                                FontSize="13"
+                                                FontAttributes="Bold"
+                                                TextColor="#263A35"
+                                                LineBreakMode="WordWrap" />
+                                            <Label
+                                                Grid.Row="1"
+                                                Text="{Binding RutaClasificacion}"
+                                                FontSize="11"
+                                                TextColor="#315E52"
+                                                LineBreakMode="WordWrap" />
+                                            <Label
+                                                Grid.Row="2"
+                                                Text="{Binding SenalizacionTexto}"
+                                                FontSize="10.5"
+                                                TextColor="#52625D" />
+                                            <VerticalStackLayout
+                                                Grid.Column="1"
+                                                Grid.RowSpan="3"
+                                                VerticalOptions="Center"
+                                                HorizontalOptions="End"
+                                                Spacing="2">
+                                                <Switch
+                                                    IsToggled="{Binding PublicarEnAlbum, Mode=TwoWay}"
+                                                    IsEnabled="{Binding PuedeAdministrarPublicacion}"
+                                                    HorizontalOptions="Center" />
+                                                <Label
+                                                    Text="{Binding PublicacionSeleccionTexto}"
+                                                    FontSize="9.5"
+                                                    HorizontalTextAlignment="Center"
+                                                    TextColor="#5E6B67" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Spacing="6">
-                            <Label
-                                Text="Justificación técnica *"
-                                FontAttributes="Bold"
-                                TextColor="#263A35" />
-                            <Border
-                                Padding="10"
-                                BackgroundColor="#F7F9F8"
-                                Stroke="#D4E0DB"
-                                StrokeShape="RoundRectangle 11">
-                                <Editor
-                                    Text="{Binding Motivo}"
-                                    MinimumHeightRequest="90"
-                                    AutoSize="TextChanges"
-                                    MaxLength="1200"
-                                    Placeholder="Explique por qué esta clasificación representa la fotografía."
-                                    TextColor="#263A35" />
-                            </Border>
-                        </VerticalStackLayout>
+                        <FlexLayout
+                            Direction="Row"
+                            Wrap="Wrap"
+                            AlignItems="Center"
+                            JustifyContent="Start">
+                            <Button
+                                Margin="0,0,8,8"
+                                Text="Publicar todos"
+                                Command="{Binding PublicarTodosCommand}"
+                                IsEnabled="{Binding NotIsBusy}"
+                                HeightRequest="42"
+                                CornerRadius="10"
+                                BackgroundColor="#EEF5F2"
+                                TextColor="#315E52" />
+                            <Button
+                                Margin="0,0,8,8"
+                                Text="Ninguno"
+                                Command="{Binding NingunaPublicacionCommand}"
+                                IsEnabled="{Binding NotIsBusy}"
+                                HeightRequest="42"
+                                CornerRadius="10"
+                                BackgroundColor="#F3F4F4"
+                                TextColor="#52625D" />
+                            <Button
+                                Margin="0,0,0,8"
+                                Text="Guardar publicaciones"
+                                Command="{Binding GuardarPublicacionesCommand}"
+                                IsEnabled="{Binding NotIsBusy}"
+                                HeightRequest="42"
+                                CornerRadius="10"
+                                BackgroundColor="#F2C94C"
+                                TextColor="#263A35"
+                                FontAttributes="Bold" />
+                        </FlexLayout>
                     </VerticalStackLayout>
                 </Border>
 
@@ -385,7 +632,9 @@
                     StrokeShape="RoundRectangle 12">
                     <Label
                         Text="{Binding AyudaEtapa}"
-                        TextColor="#365A50" />
+                        FontSize="11"
+                        TextColor="#365A50"
+                        LineBreakMode="WordWrap" />
                 </Border>
 
                 <ActivityIndicator
@@ -393,57 +642,14 @@
                     IsVisible="{Binding IsBusy}"
                     Color="#9B552C" />
 
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                    <Button
-                        Text="Cancelar"
-                        Command="{Binding CancelarCommand}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Style="{x:Null}"
-                        HeightRequest="50"
-                        CornerRadius="12"
-                        BackgroundColor="#ECEFED"
-                        TextColor="#374A44" />
-                    <Button
-                        Grid.Column="1"
-                        Text="{Binding TextoGuardar}"
-                        Command="{Binding GuardarCommand}"
-                        IsEnabled="{Binding NotIsBusy}"
-                        Style="{x:Null}"
-                        HeightRequest="50"
-                        CornerRadius="12"
-                        BackgroundColor="#3B655B"
-                        TextColor="White"
-                        FontAttributes="Bold">
-                        <Button.Triggers>
-                            <MultiTrigger TargetType="Button">
-                                <MultiTrigger.Conditions>
-                                    <BindingCondition
-                                        Binding="{Binding JerarquiaActual.Estado}"
-                                        Value="PROPUESTA_ANALIZADOR" />
-                                    <BindingCondition
-                                        Binding="{Binding EsAprobador}"
-                                        Value="False" />
-                                </MultiTrigger.Conditions>
-                                <Setter
-                                    Property="Text"
-                                    Value="Actualizar propuesta" />
-                            </MultiTrigger>
-                            <MultiTrigger TargetType="Button">
-                                <MultiTrigger.Conditions>
-                                    <BindingCondition
-                                        Binding="{Binding JerarquiaActual.Estado}"
-                                        Value="RESUELTA_ANALIZADOR" />
-                                    <BindingCondition
-                                        Binding="{Binding EsAprobador}"
-                                        Value="False" />
-                                </MultiTrigger.Conditions>
-                                <Setter
-                                    Property="Text"
-                                    Value="Actualizar clasificación" />
-                            </MultiTrigger>
-                        </Button.Triggers>
-                    </Button>
-                </Grid>
+                <Button
+                    Text="Cerrar"
+                    Command="{Binding CancelarCommand}"
+                    IsEnabled="{Binding NotIsBusy}"
+                    HeightRequest="48"
+                    CornerRadius="12"
+                    BackgroundColor="#ECEFED"
+                    TextColor="#374A44" />
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

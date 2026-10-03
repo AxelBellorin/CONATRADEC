@@ -8,12 +8,10 @@ using System.Text;
 namespace CONATRADEC.Views
 {
     /// <summary>
-    /// Clasifica una fotografía con la estructura oficial del Álbum Botánico:
-    /// Categoría -> Subcategoría específica -> Fotografías.
-    ///
-    /// La categoría siempre proviene del catálogo oficial. La subcategoría se
-    /// busca primero en el catálogo y solo puede proponerse una nueva cuando no
-    /// exista una coincidencia adecuada.
+    /// Administra las clasificaciones del Álbum Botánico por diagnóstico
+    /// individual dentro de una sola fotografía. La fotografía mantiene una
+    /// identidad única; categoría, subcategoría y publicación pertenecen a cada
+    /// afectación confirmada.
     /// </summary>
     public partial class JerarquiaAlbumFotografiaPage : ContentPage
     {
@@ -21,15 +19,20 @@ namespace CONATRADEC.Views
         private readonly string etapa;
         private readonly AlbumBotanicoApiService albumApi = new();
         private readonly AlbumJerarquiaApiService jerarquiaApi = new();
+        private readonly InspeccionAlbumDiagnosticoApiService diagnosticoApi =
+            new();
         private readonly TaskCompletionSource<bool> resultadoTcs = new();
         private readonly List<AlbumRegistroJerarquiaResponse>
             subcategoriasCatalogo = [];
 
         private CategoriaAlbumBotanicoResponse? categoriaSeleccionada;
         private AlbumRegistroJerarquiaResponse? subcategoriaSeleccionada;
+        private ClasificacionDiagnosticoAlbumItem? diagnosticoSeleccionado;
         private bool proponerSubcategoria;
         private bool isBusy;
         private bool inicializada;
+        private bool cambiosRealizados;
+        private bool cargandoFormulario;
         private int versionCarga;
 
         private string buscarSubcategoria = string.Empty;
@@ -53,23 +56,37 @@ namespace CONATRADEC.Views
             JerarquiaActual = fotografia.JerarquiaAlbum;
 
             GuardarCommand = new Command(
-                async () => await GuardarAsync(),
-                () => !IsBusy);
+                async () => await GuardarClasificacionAsync(),
+                () => !IsBusy && PuedeEditarClasificacion);
             CancelarCommand = new Command(
                 async () => await CerrarAsync(false),
                 () => !IsBusy);
             AlternarPropuestaCommand = new Command(
                 AlternarPropuesta,
-                () => !IsBusy);
+                () => !IsBusy && PuedeEditarClasificacion);
             LimpiarBusquedaCommand = new Command(
                 () => BuscarSubcategoria = string.Empty,
                 () => !IsBusy);
+            PublicarTodosCommand = new Command(
+                SeleccionarTodasPublicaciones,
+                () => !IsBusy && MostrarPanelPublicaciones);
+            NingunaPublicacionCommand = new Command(
+                QuitarTodasPublicaciones,
+                () => !IsBusy && MostrarPanelPublicaciones);
+            GuardarPublicacionesCommand = new Command(
+                async () => await GuardarPublicacionesAsync(),
+                () => !IsBusy && MostrarPanelPublicaciones);
 
             BindingContext = this;
         }
 
         public InspeccionFotoV2 Fotografia { get; }
-        public JerarquiaDiagnosticoFotoResponse? JerarquiaActual { get; }
+
+        /// <summary>
+        /// Referencia histórica de clasificación principal. Se conserva para
+        /// compatibilidad con pantallas/versiones anteriores.
+        /// </summary>
+        public JerarquiaDiagnosticoFotoResponse? JerarquiaActual { get; private set; }
 
         public ObservableCollection<CategoriaAlbumBotanicoResponse>
             Categorias { get; } = [];
@@ -77,34 +94,38 @@ namespace CONATRADEC.Views
         public ObservableCollection<AlbumRegistroJerarquiaResponse>
             SubcategoriasEspecificas { get; } = [];
 
+        public ObservableCollection<ClasificacionDiagnosticoAlbumItem>
+            Diagnosticos { get; } = [];
+
+        public ObservableCollection<ClasificacionDiagnosticoAlbumItem>
+            DiagnosticosPublicables { get; } = [];
+
         public Command GuardarCommand { get; }
         public Command CancelarCommand { get; }
         public Command AlternarPropuestaCommand { get; }
         public Command LimpiarBusquedaCommand { get; }
+        public Command PublicarTodosCommand { get; }
+        public Command NingunaPublicacionCommand { get; }
+        public Command GuardarPublicacionesCommand { get; }
+
         public Task<bool> ResultadoTask => resultadoTcs.Task;
 
         public bool EsAprobador => etapa == "APROBADOR";
 
-        public bool TieneJerarquiaActual =>
-            JerarquiaActual?.TieneClasificacion == true;
-
         public string EtapaTexto => EsAprobador
-            ? "Aprobador · seleccione la clasificación oficial antes de decidir"
-            : "Analizador · confirme una clasificación existente o proponga únicamente la subcategoría que falte";
+            ? "Aprobador · confirme cada diagnóstico y decida cuáles se publican"
+            : "Analizador · confirme cada diagnóstico o proponga la subcategoría que falte";
 
         public string AyudaEtapa => EsAprobador
-            ? "El aprobador puede convertir una propuesta de subcategoría en catálogo oficial. La categoría debe existir previamente en el Álbum Botánico."
-            : "La categoría nunca se crea desde la inspección. Una subcategoría nueva queda solo como propuesta hasta que el aprobador la confirme.";
+            ? "Cada diagnóstico se resuelve por separado. Al publicar, el Álbum reutiliza la fotografía original y muestra automáticamente las regiones de señalización asociadas a esa afectación."
+            : "La categoría debe existir en el Álbum. Si falta la subcategoría específica, puede dejar una propuesta para que el aprobador la confirme sin afectar los demás diagnósticos.";
 
-        public string TextoGuardar => EsAprobador
-            ? "Confirmar clasificación"
-            : ProponerSubcategoria
-                ? "Guardar propuesta"
-                : "Guardar clasificación";
-
-        public string TextoAlternarPropuesta => ProponerSubcategoria
-            ? "← Volver al catálogo"
-            : "+ Proponer nueva subcategoría";
+        public string ResumenDiagnosticos => Diagnosticos.Count switch
+        {
+            0 => "Sin diagnósticos clasificables.",
+            1 => "1 diagnóstico registrado para esta fotografía.",
+            _ => $"{Diagnosticos.Count} diagnósticos independientes registrados para esta fotografía."
+        };
 
         public new bool IsBusy
         {
@@ -117,24 +138,68 @@ namespace CONATRADEC.Views
                 isBusy = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(NotIsBusy));
-                GuardarCommand.ChangeCanExecute();
-                CancelarCommand.ChangeCanExecute();
-                AlternarPropuestaCommand.ChangeCanExecute();
-                LimpiarBusquedaCommand.ChangeCanExecute();
+                ActualizarComandos();
             }
         }
 
         public bool NotIsBusy => !IsBusy;
+
+        public ClasificacionDiagnosticoAlbumItem? DiagnosticoSeleccionado
+        {
+            get => diagnosticoSeleccionado;
+            private set
+            {
+                if (ReferenceEquals(diagnosticoSeleccionado, value))
+                    return;
+
+                if (diagnosticoSeleccionado != null)
+                    diagnosticoSeleccionado.IsSelected = false;
+
+                diagnosticoSeleccionado = value;
+
+                if (diagnosticoSeleccionado != null)
+                    diagnosticoSeleccionado.IsSelected = true;
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TieneDiagnosticoSeleccionado));
+                OnPropertyChanged(nameof(ClasificacionCerrada));
+                OnPropertyChanged(nameof(PuedeEditarClasificacion));
+                OnPropertyChanged(nameof(TextoGuardar));
+                ActualizarComandos();
+            }
+        }
+
+        public bool TieneDiagnosticoSeleccionado =>
+            DiagnosticoSeleccionado != null;
+
+        public bool ClasificacionCerrada =>
+            DiagnosticoSeleccionado?.EsResueltaAprobador == true ||
+            DiagnosticoSeleccionado?.EsDescartada == true;
+
+        public bool PuedeEditarClasificacion =>
+            DiagnosticoSeleccionado != null &&
+            !DiagnosticoSeleccionado.EsDescartada &&
+            !DiagnosticoSeleccionado.EsResueltaAprobador;
+
+        public bool MostrarPanelPublicaciones =>
+            EsAprobador && DiagnosticosPublicables.Count > 0;
+
+        public string TextoGuardar => EsAprobador
+            ? ProponerSubcategoria
+                ? "Confirmar y crear subcategoría"
+                : "Confirmar clasificación"
+            : ProponerSubcategoria
+                ? "Guardar propuesta"
+                : "Guardar clasificación";
+
+        public string TextoAlternarPropuesta => ProponerSubcategoria
+            ? "← Volver al catálogo"
+            : "+ Proponer nueva subcategoría";
+
         public bool UsarSubcategoriaExistente => !ProponerSubcategoria;
+
         public bool RequiereDescripcionCreacion =>
             EsAprobador && ProponerSubcategoria;
-
-        /// <summary>
-        /// Se conserva para compatibilidad con DTO antiguos, pero nunca se
-        /// habilita desde esta interfaz. Las categorías se administran en el
-        /// Álbum Botánico.
-        /// </summary>
-        public bool ProponerCategoria => false;
 
         public CategoriaAlbumBotanicoResponse? CategoriaSeleccionada
         {
@@ -146,6 +211,9 @@ namespace CONATRADEC.Views
 
                 categoriaSeleccionada = value;
                 OnPropertyChanged();
+
+                if (cargandoFormulario)
+                    return;
 
                 BuscarSubcategoria = string.Empty;
                 _ = CargarSubcategoriasEspecificasAsync(
@@ -185,20 +253,18 @@ namespace CONATRADEC.Views
                 OnPropertyChanged(nameof(UsarSubcategoriaExistente));
                 OnPropertyChanged(nameof(RequiereDescripcionCreacion));
                 OnPropertyChanged(nameof(TextoGuardar));
-                OnPropertyChanged(nameof(TextoAlternarPropuesta));
 
-                if (value)
+                if (value && !cargandoFormulario)
                 {
                     subcategoriaSeleccionada = null;
                     OnPropertyChanged(nameof(SubcategoriaSeleccionada));
 
                     if (string.IsNullOrWhiteSpace(SubcategoriaPropuesta))
                     {
-                        SubcategoriaPropuesta = LimpiarNombreDiagnostico(
-                            PrimerTexto(
-                                JerarquiaActual?.Ficha,
-                                Fotografia.ResultadoIA?.ClasificacionAlbumPropuesta,
-                                Fotografia.ResultadoIA?.DiagnosticoVisible));
+                        SubcategoriaPropuesta =
+                            DiagnosticoSeleccionado?.SubcategoriaMostrar ??
+                            DiagnosticoSeleccionado?.Diagnostico ??
+                            string.Empty;
                     }
                 }
             }
@@ -283,40 +349,12 @@ namespace CONATRADEC.Views
                     Categorias.Add(item);
                 }
 
-                PrecargarTextos();
-
-                int? categoriaId =
-                    JerarquiaActual?.CategoriaAlbumBotanicoId ??
-                    Fotografia.ResultadoIA?.CategoriaAlbumBotanicoIdSugerida;
-
-                CategoriaAlbumBotanicoResponse? categoria = Categorias
-                    .FirstOrDefault(item =>
-                        item.CategoriaAlbumBotanicoId == categoriaId);
-
-                if (categoria == null)
-                {
-                    string nombre = PrimerTexto(
-                        JerarquiaActual?.Categoria,
-                        Fotografia.ResultadoIA?.CategoriaAlbumPropuesta,
-                        MapearCategoriaDesdeIA());
-
-                    string buscada = NormalizarClave(nombre);
-                    categoria = Categorias.FirstOrDefault(item =>
-                        NormalizarClave(item.NombreCategoria) == buscada);
-                }
-
-                if (categoria != null)
-                {
-                    categoriaSeleccionada = categoria;
-                    OnPropertyChanged(nameof(CategoriaSeleccionada));
-                    await CargarSubcategoriasEspecificasAsync(
-                        categoria.CategoriaAlbumBotanicoId);
-                }
+                await RefrescarDiagnosticosAsync(null);
             }
             catch (Exception ex)
             {
                 await DisplayAlert(
-                    "No fue posible cargar la clasificación",
+                    "No fue posible cargar las clasificaciones",
                     ex.Message,
                     "Aceptar");
                 await CerrarAsync(false);
@@ -327,35 +365,162 @@ namespace CONATRADEC.Views
             }
         }
 
-        private void PrecargarTextos()
+        private async Task RefrescarDiagnosticosAsync(string? claveSeleccionar)
         {
-            JerarquiaDiagnosticoFotoResponse? actual = JerarquiaActual;
-            InspeccionFotoResultadoIAV2? ia = Fotografia.ResultadoIA;
+            List<ClasificacionDiagnosticoAlbumItem> datos =
+                await diagnosticoApi.ObtenerEstadoAsync(
+                    diagnosticoId,
+                    Fotografia.FotografiaId);
 
-            SubcategoriaPropuesta = LimpiarNombreDiagnostico(
-                PrimerTexto(
-                    actual?.Ficha,
-                    ia?.ClasificacionAlbumPropuesta,
-                    ia?.DiagnosticoVisible));
-            NombreCientifico = PrimerTexto(
-                actual?.NombreCientifico,
-                ia?.NombreCientificoSugerido);
-            Motivo = PrimerTexto(
-                actual?.Motivo,
-                ia?.MotivoAlbumPropuesta,
-                "Clasificación revisada por el analizador.");
-            Descripcion = ia?.ResumenImagen ?? string.Empty;
-            Sintomas = string.Join(
-                Environment.NewLine,
-                ia?.SintomasVisibles ?? []);
+            string? claveAnterior = claveSeleccionar ??
+                DiagnosticoSeleccionado?.DiagnosticoClave;
 
-            ProponerSubcategoria =
-                actual?.FichaEsPropuesta == true ||
-                ia?.RequiereGestionAlbum == true;
+            DiagnosticoSeleccionado = null;
+            Diagnosticos.Clear();
+            DiagnosticosPublicables.Clear();
+
+            foreach (ClasificacionDiagnosticoAlbumItem item in datos
+                         .Where(item => item.Activo)
+                         .OrderByDescending(item => item.EsPrincipal)
+                         .ThenBy(item => item.OrdenDiagnostico))
+            {
+                item.PublicarEnAlbum = item.PublicadaActiva;
+                Diagnosticos.Add(item);
+
+                if (item.PuedePublicarse || item.PublicadaActiva)
+                    DiagnosticosPublicables.Add(item);
+            }
+
+            OnPropertyChanged(nameof(ResumenDiagnosticos));
+            OnPropertyChanged(nameof(MostrarPanelPublicaciones));
+            ActualizarComandos();
+
+            ClasificacionDiagnosticoAlbumItem? seleccionar =
+                !string.IsNullOrWhiteSpace(claveAnterior)
+                    ? Diagnosticos.FirstOrDefault(item =>
+                        string.Equals(
+                            item.DiagnosticoClave,
+                            claveAnterior,
+                            StringComparison.Ordinal))
+                    : null;
+
+            seleccionar ??= Diagnosticos.FirstOrDefault(item =>
+                !item.EsDescartada && !item.EsResueltaAprobador);
+            seleccionar ??= Diagnosticos.FirstOrDefault(item => item.EsPrincipal);
+            seleccionar ??= Diagnosticos.FirstOrDefault();
+
+            if (seleccionar != null)
+                await SeleccionarDiagnosticoAsync(seleccionar);
+        }
+
+        private async void OnSeleccionarDiagnosticoClicked(
+            object? sender,
+            EventArgs e)
+        {
+            if (IsBusy ||
+                sender is not Button boton ||
+                boton.CommandParameter is not ClasificacionDiagnosticoAlbumItem item)
+            {
+                return;
+            }
+
+            await SeleccionarDiagnosticoAsync(item);
+        }
+
+        private async Task SeleccionarDiagnosticoAsync(
+            ClasificacionDiagnosticoAlbumItem item)
+        {
+            DiagnosticoSeleccionado = item;
+            await PrecargarFormularioAsync(item);
+        }
+
+        private async Task PrecargarFormularioAsync(
+            ClasificacionDiagnosticoAlbumItem item)
+        {
+            cargandoFormulario = true;
+            try
+            {
+                buscarSubcategoria = string.Empty;
+                OnPropertyChanged(nameof(BuscarSubcategoria));
+
+                subcategoriaPropuesta = LimpiarNombreDiagnostico(
+                    PrimerTexto(
+                        item.SubcategoriaSeleccionada,
+                        item.SubcategoriaSugerida,
+                        item.Diagnostico));
+                OnPropertyChanged(nameof(SubcategoriaPropuesta));
+
+                nombreCientifico = item.NombreCientificoSugerido ?? string.Empty;
+                OnPropertyChanged(nameof(NombreCientifico));
+
+                descripcion = Fotografia.ResultadoIA?.ResumenImagen ?? string.Empty;
+                OnPropertyChanged(nameof(Descripcion));
+
+                sintomas = string.Join(
+                    Environment.NewLine,
+                    Fotografia.ResultadoIA?.SintomasVisibles ?? []);
+                OnPropertyChanged(nameof(Sintomas));
+
+                motivo = PrimerTexto(
+                    item.EstadoClasificacionTexto,
+                    "Clasificación revisada por el analizador.");
+                OnPropertyChanged(nameof(Motivo));
+
+                int? categoriaId =
+                    item.CategoriaAlbumBotanicoIdSeleccionada ??
+                    item.CategoriaAlbumBotanicoIdSugerida;
+
+                CategoriaAlbumBotanicoResponse? categoria = Categorias
+                    .FirstOrDefault(catalogo =>
+                        catalogo.CategoriaAlbumBotanicoId == categoriaId);
+
+                if (categoria == null)
+                {
+                    string claveCategoria = NormalizarClave(
+                        PrimerTexto(
+                            item.CategoriaSeleccionada,
+                            item.CategoriaSugerida));
+
+                    categoria = Categorias.FirstOrDefault(catalogo =>
+                        NormalizarClave(catalogo.NombreCategoria) ==
+                        claveCategoria);
+                }
+
+                categoriaSeleccionada = categoria;
+                OnPropertyChanged(nameof(CategoriaSeleccionada));
+
+                int? subcategoriaId =
+                    item.AlbumBotanicoCafeIdSeleccionado ??
+                    item.AlbumBotanicoCafeIdSugerido;
+
+                bool propuesta =
+                    item.EsPropuestaAnalizador ||
+                    (subcategoriaId is not > 0 && item.RequiereDecision);
+
+                proponerSubcategoria = propuesta;
+                OnPropertyChanged(nameof(ProponerSubcategoria));
+                OnPropertyChanged(nameof(UsarSubcategoriaExistente));
+                OnPropertyChanged(nameof(RequiereDescripcionCreacion));
+                OnPropertyChanged(nameof(TextoGuardar));
+
+                await CargarSubcategoriasEspecificasAsync(
+                    categoria?.CategoriaAlbumBotanicoId,
+                    subcategoriaId,
+                    item.SubcategoriaMostrar);
+            }
+            finally
+            {
+                cargandoFormulario = false;
+                OnPropertyChanged(nameof(ClasificacionCerrada));
+                OnPropertyChanged(nameof(PuedeEditarClasificacion));
+                ActualizarComandos();
+            }
         }
 
         private async Task CargarSubcategoriasEspecificasAsync(
-            int? categoriaId)
+            int? categoriaId,
+            int? idPreferido = null,
+            string? nombrePreferido = null)
         {
             int version = Interlocked.Increment(ref versionCarga);
 
@@ -388,38 +553,40 @@ namespace CONATRADEC.Views
 
                 AplicarFiltroSubcategorias();
 
-                int? id = JerarquiaActual?.AlbumBotanicoCafeId ??
-                    Fotografia.ResultadoIA?.AlbumBotanicoCafeIdSugerido;
+                AlbumRegistroJerarquiaResponse? seleccion = null;
 
-                AlbumRegistroJerarquiaResponse? seleccion =
-                    subcategoriasCatalogo.FirstOrDefault(item =>
-                        item.AlbumBotanicoCafeId == id);
-
-                if (seleccion == null)
+                if (idPreferido is > 0)
                 {
-                    string nombre = LimpiarNombreDiagnostico(
-                        PrimerTexto(
-                            JerarquiaActual?.Ficha,
-                            Fotografia.ResultadoIA?.ClasificacionAlbumPropuesta,
-                            Fotografia.ResultadoIA?.DiagnosticoVisible));
-                    string clave = NormalizarClave(nombre);
-
                     seleccion = subcategoriasCatalogo.FirstOrDefault(item =>
-                        NormalizarClave(item.Titulo) == clave);
+                        item.AlbumBotanicoCafeId == idPreferido.Value);
                 }
 
-                if (seleccion != null &&
-                    JerarquiaActual?.FichaEsPropuesta != true)
+                if (seleccion == null &&
+                    !string.IsNullOrWhiteSpace(nombrePreferido))
+                {
+                    string clave = NormalizarClave(
+                        LimpiarNombreDiagnostico(nombrePreferido));
+
+                    seleccion = subcategoriasCatalogo.FirstOrDefault(item =>
+                        NormalizarClave(
+                            LimpiarNombreDiagnostico(item.Titulo)) == clave);
+                }
+
+                if (seleccion != null && !proponerSubcategoria)
                 {
                     subcategoriaSeleccionada = seleccion;
                     OnPropertyChanged(nameof(SubcategoriaSeleccionada));
-                    NombreCientifico =
-                        seleccion.NombreCientifico ?? string.Empty;
-                    ProponerSubcategoria = false;
+                    nombreCientifico = seleccion.NombreCientifico ?? string.Empty;
+                    OnPropertyChanged(nameof(NombreCientifico));
                 }
-                else if (subcategoriasCatalogo.Count == 0)
+                else if (subcategoriasCatalogo.Count == 0 &&
+                    DiagnosticoSeleccionado?.EsResueltaAprobador != true)
                 {
-                    ProponerSubcategoria = true;
+                    proponerSubcategoria = true;
+                    OnPropertyChanged(nameof(ProponerSubcategoria));
+                    OnPropertyChanged(nameof(UsarSubcategoriaExistente));
+                    OnPropertyChanged(nameof(RequiereDescripcionCreacion));
+                    OnPropertyChanged(nameof(TextoGuardar));
                 }
             }
             catch (Exception ex)
@@ -434,7 +601,6 @@ namespace CONATRADEC.Views
         private void AplicarFiltroSubcategorias()
         {
             string filtro = NormalizarClave(BuscarSubcategoria);
-
             IEnumerable<AlbumRegistroJerarquiaResponse> items =
                 subcategoriasCatalogo;
 
@@ -456,7 +622,7 @@ namespace CONATRADEC.Views
 
         private void AlternarPropuesta()
         {
-            if (IsBusy)
+            if (IsBusy || !PuedeEditarClasificacion)
                 return;
 
             ProponerSubcategoria = !ProponerSubcategoria;
@@ -468,10 +634,14 @@ namespace CONATRADEC.Views
             }
         }
 
-        private async Task GuardarAsync()
+        private async Task GuardarClasificacionAsync()
         {
-            if (IsBusy)
+            if (IsBusy ||
+                DiagnosticoSeleccionado == null ||
+                !PuedeEditarClasificacion)
+            {
                 return;
+            }
 
             if (!ValidarFormulario(out string error))
             {
@@ -488,19 +658,17 @@ namespace CONATRADEC.Views
                 return;
             }
 
+            ClasificacionDiagnosticoAlbumItem actual =
+                DiagnosticoSeleccionado;
+            bool eraPropuesta = ProponerSubcategoria;
+
             bool confirmar = await DisplayAlert(
                 EsAprobador
                     ? "Confirmar clasificación"
                     : ProponerSubcategoria
                         ? "Guardar propuesta"
                         : "Guardar clasificación",
-                EsAprobador
-                    ? ProponerSubcategoria
-                        ? "La propuesta se convertirá en una subcategoría oficial dentro de la categoría seleccionada."
-                        : "La fotografía quedará vinculada con la subcategoría oficial seleccionada."
-                    : ProponerSubcategoria
-                        ? "La nueva subcategoría quedará como propuesta para que el aprobador la revise."
-                        : "La fotografía quedará vinculada con una subcategoría existente del catálogo.",
+                CrearMensajeConfirmacion(actual),
                 "Continuar",
                 "Cancelar");
 
@@ -514,42 +682,70 @@ namespace CONATRADEC.Views
                     ? null
                     : SubcategoriaSeleccionada?.AlbumBotanicoCafeId;
 
-                var request = new ResolverJerarquiaAlbumRequest
+                var request = new ResolverClasificacionDiagnosticoAlbumRequest
                 {
+                    DiagnosticoClave = actual.DiagnosticoClave,
                     Etapa = etapa,
+                    Accion = string.Equals(
+                            actual.AccionHumana,
+                            "CORREGIR",
+                            StringComparison.OrdinalIgnoreCase)
+                        ? "CORREGIR"
+                        : "CONFIRMAR",
                     CategoriaAlbumBotanicoId =
                         CategoriaSeleccionada?.CategoriaAlbumBotanicoId,
-                    SubcategoriaAlbumBotanicoId = subcategoriaId,
                     AlbumBotanicoCafeId = subcategoriaId,
-                    ProponerCategoria = false,
                     ProponerSubcategoria = ProponerSubcategoria,
-                    ProponerFicha = false,
-                    CategoriaPropuesta = string.Empty,
-                    SubcategoriaPropuesta = SubcategoriaPropuesta.Trim(),
-                    FichaPropuesta = SubcategoriaPropuesta.Trim(),
+                    Categoria =
+                        CategoriaSeleccionada?.NombreCategoria ?? string.Empty,
+                    Subcategoria = ProponerSubcategoria
+                        ? SubcategoriaPropuesta.Trim()
+                        : SubcategoriaSeleccionada?.Titulo ?? string.Empty,
                     NombreCientifico = NombreCientifico.Trim(),
                     Descripcion = Descripcion.Trim(),
                     Sintomas = Sintomas.Trim(),
                     Motivo = Motivo.Trim()
                 };
 
-                ApiResult<bool> resultado = await jerarquiaApi
-                    .ResolverJerarquiaAsync(
-                        diagnosticoId,
-                        Fotografia.FotografiaId,
-                        request);
+                await diagnosticoApi.ResolverClasificacionAsync(
+                    diagnosticoId,
+                    Fotografia.FotografiaId,
+                    request);
 
-                if (!resultado.Success)
-                    throw new InvalidOperationException(resultado.Message);
+                cambiosRealizados = true;
+                string clave = actual.DiagnosticoClave;
+
+                await RefrescarDiagnosticosAsync(clave);
+
+                ClasificacionDiagnosticoAlbumItem? actualizado =
+                    Diagnosticos.FirstOrDefault(item =>
+                        string.Equals(
+                            item.DiagnosticoClave,
+                            clave,
+                            StringComparison.Ordinal));
+
+                if (actualizado?.EsPrincipal == true)
+                    await SincronizarClasificacionPrincipalLegadaAsync(actualizado);
+
+                ClasificacionDiagnosticoAlbumItem? siguiente =
+                    Diagnosticos.FirstOrDefault(item =>
+                        !item.EsDescartada && !item.EsResueltaAprobador &&
+                        !string.Equals(
+                            item.DiagnosticoClave,
+                            clave,
+                            StringComparison.Ordinal));
+
+                if (siguiente != null)
+                    await SeleccionarDiagnosticoAsync(siguiente);
 
                 await DisplayAlert(
                     "Clasificación guardada",
-                    string.IsNullOrWhiteSpace(resultado.Message)
-                        ? "La clasificación de la fotografía fue actualizada."
-                        : resultado.Message,
+                    EsAprobador
+                        ? "La clasificación de este diagnóstico quedó confirmada sin modificar los demás diagnósticos de la fotografía."
+                        : eraPropuesta
+                            ? "La propuesta quedó registrada únicamente para este diagnóstico."
+                            : "La clasificación quedó registrada únicamente para este diagnóstico.",
                     "Aceptar");
-
-                await CerrarAsync(true);
             }
             catch (Exception ex)
             {
@@ -564,8 +760,186 @@ namespace CONATRADEC.Views
             }
         }
 
+        /// <summary>
+        /// Mantiene actualizada la clasificación histórica de una sola foto con
+        /// el diagnóstico principal. Los diagnósticos adicionales nunca escriben
+        /// sobre esta relación; su fuente oficial es la tabla V2 por diagnóstico.
+        /// </summary>
+        private async Task SincronizarClasificacionPrincipalLegadaAsync(
+            ClasificacionDiagnosticoAlbumItem item)
+        {
+            int? categoriaId =
+                item.CategoriaAlbumBotanicoIdSeleccionada ??
+                item.CategoriaAlbumBotanicoIdSugerida;
+
+            bool propuesta =
+                item.EsPropuestaAnalizador &&
+                item.AlbumBotanicoCafeIdSeleccionado is not > 0;
+
+            int? subcategoriaId = propuesta
+                ? null
+                : item.AlbumBotanicoCafeIdSeleccionado ??
+                  item.AlbumBotanicoCafeIdSugerido;
+
+            if (categoriaId is not > 0)
+                return;
+
+            var request = new ResolverJerarquiaAlbumRequest
+            {
+                Etapa = etapa,
+                CategoriaAlbumBotanicoId = categoriaId,
+                SubcategoriaAlbumBotanicoId = subcategoriaId,
+                AlbumBotanicoCafeId = subcategoriaId,
+                ProponerCategoria = false,
+                ProponerSubcategoria = propuesta,
+                ProponerFicha = false,
+                CategoriaPropuesta = string.Empty,
+                SubcategoriaPropuesta = item.SubcategoriaMostrar,
+                FichaPropuesta = item.SubcategoriaMostrar,
+                NombreCientifico = item.NombreCientificoSugerido,
+                Descripcion = string.IsNullOrWhiteSpace(Descripcion)
+                    ? Fotografia.ResultadoIA?.ResumenImagen ?? string.Empty
+                    : Descripcion,
+                Sintomas = Sintomas,
+                Motivo = string.IsNullOrWhiteSpace(Motivo)
+                    ? "Clasificación principal sincronizada con el flujo por diagnóstico."
+                    : Motivo
+            };
+
+            ApiResult<bool> resultado = await jerarquiaApi.ResolverJerarquiaAsync(
+                diagnosticoId,
+                Fotografia.FotografiaId,
+                request);
+
+            if (!resultado.Success)
+                throw new InvalidOperationException(resultado.Message);
+
+            JerarquiaActual = new JerarquiaDiagnosticoFotoResponse
+            {
+                FotografiaId = Fotografia.FotografiaId,
+                TieneClasificacion = true,
+                CategoriaAlbumBotanicoId = categoriaId,
+                AlbumBotanicoCafeId = subcategoriaId,
+                Categoria = item.CategoriaMostrar,
+                Ficha = item.SubcategoriaMostrar,
+                NombreCientifico = item.NombreCientificoSugerido,
+                Estado = item.Estado,
+                SubcategoriaEsPropuesta = propuesta,
+                FichaEsPropuesta = propuesta
+            };
+
+            Fotografia.JerarquiaAlbum = JerarquiaActual;
+            OnPropertyChanged(nameof(JerarquiaActual));
+        }
+
+        private async Task GuardarPublicacionesAsync()
+        {
+            if (!EsAprobador || IsBusy || !MostrarPanelPublicaciones)
+                return;
+
+            List<ClasificacionDiagnosticoAlbumItem> administrables =
+                DiagnosticosPublicables
+                    .Where(item => item.PuedePublicarse || item.PublicadaActiva)
+                    .ToList();
+
+            if (administrables.Count == 0)
+                return;
+
+            int publicar = administrables.Count(item =>
+                item.PuedePublicarse && item.PublicarEnAlbum);
+            int retirar = administrables.Count(item =>
+                item.PublicadaActiva && !item.PublicarEnAlbum);
+
+            bool confirmar = await DisplayAlert(
+                "Guardar publicaciones",
+                $"Se mantendrán/publicarán {publicar} diagnóstico(s) y se retirarán {retirar} publicación(es) activas. La fotografía original no se duplicará. ¿Desea continuar?",
+                "Guardar",
+                "Cancelar");
+
+            if (!confirmar)
+                return;
+
+            IsBusy = true;
+            try
+            {
+                var request = new SincronizarPublicacionesDiagnosticosAlbumRequest
+                {
+                    Diagnosticos = administrables
+                        .Select(item =>
+                            new PublicacionDiagnosticoSeleccionAlbumRequest
+                            {
+                                DiagnosticoClave = item.DiagnosticoClave,
+                                Publicar =
+                                    item.PuedePublicarse &&
+                                    item.PublicarEnAlbum,
+                                Descripcion =
+                                    $"{item.Rol}: {item.Diagnostico}. " +
+                                    item.RutaClasificacion
+                            })
+                        .ToList()
+                };
+
+                await diagnosticoApi.SincronizarPublicacionesAsync(
+                    diagnosticoId,
+                    Fotografia.FotografiaId,
+                    request);
+
+                cambiosRealizados = true;
+                AlbumBotanicoRefreshState.MarcarCambio();
+
+                string? clave = DiagnosticoSeleccionado?.DiagnosticoClave;
+                await RefrescarDiagnosticosAsync(clave);
+
+                int activas = Diagnosticos.Count(item => item.PublicadaActiva);
+                await DisplayAlert(
+                    "Publicaciones actualizadas",
+                    activas == 0
+                        ? "La fotografía no tiene diagnósticos publicados actualmente en el Álbum Botánico."
+                        : activas == 1
+                            ? "1 diagnóstico de esta fotografía está publicado actualmente en el Álbum Botánico."
+                            : $"{activas} diagnósticos de esta fotografía están publicados actualmente en el Álbum Botánico.",
+                    "Aceptar");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert(
+                    "No fue posible actualizar las publicaciones",
+                    ex.Message,
+                    "Aceptar");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private void SeleccionarTodasPublicaciones()
+        {
+            foreach (ClasificacionDiagnosticoAlbumItem item in
+                     DiagnosticosPublicables)
+            {
+                if (item.PuedePublicarse)
+                    item.PublicarEnAlbum = true;
+            }
+        }
+
+        private void QuitarTodasPublicaciones()
+        {
+            foreach (ClasificacionDiagnosticoAlbumItem item in
+                     DiagnosticosPublicables)
+            {
+                item.PublicarEnAlbum = false;
+            }
+        }
+
         private bool ValidarFormulario(out string error)
         {
+            if (DiagnosticoSeleccionado == null)
+            {
+                error = "Seleccione un diagnóstico para continuar.";
+                return false;
+            }
+
             if (CategoriaSeleccionada == null)
             {
                 error =
@@ -595,7 +969,7 @@ namespace CONATRADEC.Views
                 return false;
             }
 
-            if (!EsAprobador && Motivo.Trim().Length < 8)
+            if (Motivo.Trim().Length < 8)
             {
                 error =
                     "Explique la clasificación con al menos 8 caracteres.";
@@ -663,24 +1037,23 @@ namespace CONATRADEC.Views
             return true;
         }
 
-        private string MapearCategoriaDesdeIA()
+        private string CrearMensajeConfirmacion(
+            ClasificacionDiagnosticoAlbumItem item)
         {
-            string categoriaIa =
-                Fotografia.ResultadoIA?.CategoriaPrincipal ?? string.Empty;
+            string destino = ProponerSubcategoria
+                ? $"{CategoriaSeleccionada?.NombreCategoria} → {SubcategoriaPropuesta.Trim()}"
+                : $"{CategoriaSeleccionada?.NombreCategoria} → {SubcategoriaSeleccionada?.Titulo}";
 
-            return categoriaIa switch
+            if (EsAprobador)
             {
-                "ENFERMEDAD" => "Enfermedades",
-                "PLAGA" => "Plagas",
-                "ALTERACION_NUTRICIONAL" => "Alteraciones nutricionales",
-                "ESTRES_ABIOTICO" => "Estrés abiótico",
-                "DANO_MECANICO" => "Daños mecánicos",
-                "NO_APLICA" when
-                    Fotografia.ResultadoIA?.EsAparentementeSana == true =>
-                        "Plantas sanas",
-                _ => Fotografia.ResultadoIA?.CategoriaAlbumPropuesta ??
-                    string.Empty
-            };
+                return ProponerSubcategoria
+                    ? $"Se creará/confirmará «{SubcategoriaPropuesta.Trim()}» y se asignará únicamente a {item.Diagnostico}. La clasificación quedará cerrada para este diagnóstico."
+                    : $"Se confirmará {destino} únicamente para {item.Diagnostico}. La clasificación quedará cerrada para este diagnóstico.";
+            }
+
+            return ProponerSubcategoria
+                ? $"Se registrará {destino} como propuesta únicamente para {item.Diagnostico}."
+                : $"Se registrará {destino} únicamente para {item.Diagnostico}.";
         }
 
         private async void OnImagenTapped(object? sender, TappedEventArgs e)
@@ -694,12 +1067,26 @@ namespace CONATRADEC.Views
         private async Task CerrarAsync(bool resultado)
         {
             if (!resultadoTcs.Task.IsCompleted)
-                resultadoTcs.TrySetResult(resultado);
+            {
+                resultadoTcs.TrySetResult(
+                    resultado || cambiosRealizados);
+            }
 
             if (Navigation.ModalStack.Contains(this))
                 await Navigation.PopModalAsync();
             else if (Navigation.NavigationStack.Contains(this))
                 await Navigation.PopAsync();
+        }
+
+        private void ActualizarComandos()
+        {
+            GuardarCommand.ChangeCanExecute();
+            CancelarCommand.ChangeCanExecute();
+            AlternarPropuestaCommand.ChangeCanExecute();
+            LimpiarBusquedaCommand.ChangeCanExecute();
+            PublicarTodosCommand.ChangeCanExecute();
+            NingunaPublicacionCommand.ChangeCanExecute();
+            GuardarPublicacionesCommand.ChangeCanExecute();
         }
 
         private static string NormalizarEtapa(string? valor) =>
@@ -780,7 +1167,9 @@ namespace CONATRADEC.Views
             return builder.ToString().Trim();
         }
 
-        private static double CalcularSimilitud(string izquierda, string derecha)
+        private static double CalcularSimilitud(
+            string izquierda,
+            string derecha)
         {
             string a = izquierda.Replace(" ", string.Empty);
             string b = derecha.Replace(" ", string.Empty);

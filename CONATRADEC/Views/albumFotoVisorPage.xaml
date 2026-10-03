@@ -84,12 +84,13 @@
                             Padding="{OnPlatform WinUI='34,20', Default='8,12'}">
 
                             <!--
-                                El visor utiliza primero la fotografía original.
-                                Si no está disponible localmente, utiliza la
-                                miniatura descargada como respaldo.
+                                La fotografía original permanece intacta. Las
+                                señales fitosanitarias se dibujan como una capa
+                                asociada al diagnóstico publicado.
                             -->
-                            <controls:ZoomableAlbumImage
-                                Source="{Binding FotoVisorUrl, Converter={StaticResource AlbumImageSourceConverter}}" />
+                            <controls:ZoomableAlbumFitosanitarioImage
+                                Source="{Binding FotoVisorUrl, Converter={StaticResource AlbumImageSourceConverter}}"
+                                AlbumFotoId="{Binding AlbumBotanicoCafeFotoId}" />
 
                             <Border
                                 Margin="12"
